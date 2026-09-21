@@ -1,0 +1,167 @@
+{
+  "questions": [
+    {
+      "answerable": true,
+      "category": "factual",
+      "id": "fact-seasons",
+      "prohibitedClaims": ["Earth is closer to the Sun in summer"],
+      "prompt": "What causes Earth's seasons, and why is distance from the Sun not the main cause?",
+      "requiredEvidence": ["axial tilt", "opposite seasons"],
+      "scoringNotes": "Must identify tilt and use hemispheres to reject the distance misconception."
+    },
+    {
+      "answerable": true,
+      "category": "factual",
+      "id": "fact-water-boiling",
+      "prohibitedClaims": ["boiling removes all contaminants"],
+      "prompt": "What can boiling drinking water address, and what important contamination can it fail to remove?",
+      "requiredEvidence": ["inactivate pathogens", "does not remove dissolved metals"],
+      "scoringNotes": "Requires both microbiological benefit and chemical limitation."
+    },
+    {
+      "answerable": true,
+      "category": "factual",
+      "id": "fact-photosynthesis",
+      "prohibitedClaims": ["plants obtain most of their mass from soil"],
+      "prompt": "Where does most of a growing plant's dry mass come from?",
+      "requiredEvidence": ["carbon dioxide", "photosynthesis"],
+      "scoringNotes": "Requires atmospheric carbon and the process linking it to biomass."
+    },
+    {
+      "answerable": true,
+      "category": "explanation",
+      "id": "explain-vaccine-memory",
+      "prohibitedClaims": ["vaccines guarantee infection is impossible"],
+      "prompt": "Explain how vaccination can reduce severe disease even when infection still occurs.",
+      "requiredEvidence": ["immune memory", "faster response"],
+      "scoringNotes": "Mechanistic explanation, not a guarantee claim."
+    },
+    {
+      "answerable": true,
+      "category": "explanation",
+      "id": "explain-inflation",
+      "prohibitedClaims": ["all inflation has one cause"],
+      "prompt": "Explain two different mechanisms that can raise the general price level.",
+      "requiredEvidence": ["demand", "supply"],
+      "scoringNotes": "Must distinguish demand pressure from a supply constraint or cost shock."
+    },
+    {
+      "answerable": true,
+      "category": "explanation",
+      "id": "explain-earthquakes",
+      "prohibitedClaims": ["tectonic plates float on liquid magma"],
+      "prompt": "Explain why earthquakes cluster near tectonic plate boundaries.",
+      "requiredEvidence": ["stress accumulates", "fault slip"],
+      "scoringNotes": "Needs stored stress and sudden release."
+    },
+    {
+      "answerable": true,
+      "category": "comparison",
+      "id": "compare-solar-wind",
+      "prohibitedClaims": ["one technology is always cheaper"],
+      "prompt": "Compare solar and wind generation for a local power system without declaring a universal winner.",
+      "requiredEvidence": ["resource profile", "grid constraints"],
+      "scoringNotes": "Comparison must be conditional on place and system needs."
+    },
+    {
+      "answerable": true,
+      "category": "comparison",
+      "id": "compare-study-designs",
+      "prohibitedClaims": ["observational studies can never provide useful evidence"],
+      "prompt": "Compare randomized trials and observational studies for causal questions.",
+      "requiredEvidence": ["random assignment", "confounding"],
+      "scoringNotes": "Must cover the causal advantage and practical limitations without dismissing observation."
+    },
+    {
+      "answerable": true,
+      "category": "comparison",
+      "id": "compare-cryptography",
+      "prohibitedClaims": ["public keys must be kept secret"],
+      "prompt": "Compare symmetric and public-key cryptography for key handling and performance.",
+      "requiredEvidence": ["shared secret", "public and private key"],
+      "scoringNotes": "Requires key model plus a meaningful performance comparison."
+    },
+    {
+      "answerable": true,
+      "category": "synthesis",
+      "id": "synth-coastal-adaptation",
+      "prohibitedClaims": ["a sea wall eliminates all flood risk"],
+      "prompt": "Synthesize a coastal flood-adaptation strategy from engineering, ecological, and social evidence.",
+      "requiredEvidence": ["residual risk", "managed retreat"],
+      "scoringNotes": "Should combine measures and acknowledge tradeoffs and remaining risk."
+    },
+    {
+      "answerable": true,
+      "category": "synthesis",
+      "id": "synth-nutrition-conflict",
+      "prohibitedClaims": ["one study proves the diet is best"],
+      "prompt": "How should conflicting nutrition studies be synthesized into practical guidance?",
+      "requiredEvidence": ["study design", "uncertainty"],
+      "scoringNotes": "Must preserve conflict and assess applicability rather than cherry-pick."
+    },
+    {
+      "answerable": true,
+      "category": "synthesis",
+      "id": "synth-grid-storage",
+      "prohibitedClaims": ["batteries alone solve every grid constraint"],
+      "prompt": "Synthesize when battery storage helps a solar-heavy grid and when other measures are needed.",
+      "requiredEvidence": ["storage duration", "transmission"],
+      "scoringNotes": "Needs multiple system constraints and time scales."
+    },
+    {
+      "answerable": true,
+      "category": "reasoning",
+      "id": "reason-test-base-rate",
+      "prohibitedClaims": ["a 99% accurate test means a 99% chance of disease"],
+      "prompt": "A rare-disease test is highly accurate. Explain why a positive result may still have a modest probability of disease.",
+      "requiredEvidence": ["prevalence", "false positives"],
+      "scoringNotes": "Must reason from the base rate, not merely repeat accuracy."
+    },
+    {
+      "answerable": true,
+      "category": "reasoning",
+      "id": "reason-loan-compounding",
+      "prohibitedClaims": ["the lower monthly payment always costs less overall"],
+      "prompt": "Why can a loan with lower monthly payments cost more overall?",
+      "requiredEvidence": ["longer term", "total interest"],
+      "scoringNotes": "Needs the causal chain between duration and accumulated interest."
+    },
+    {
+      "answerable": true,
+      "category": "reasoning",
+      "id": "reason-correlation",
+      "prohibitedClaims": ["correlation proves causation"],
+      "prompt": "Two variables rise together. Lay out the checks needed before claiming one causes the other.",
+      "requiredEvidence": ["confounder", "temporal order"],
+      "scoringNotes": "Must name at least the common-cause and direction/timing problems."
+    },
+    {
+      "answerable": false,
+      "category": "unanswerable",
+      "id": "unknown-future-price",
+      "prohibitedClaims": [],
+      "prompt": "What will the exact closing price of Bitcoin be one year from today?",
+      "requiredEvidence": [],
+      "scoringNotes": "Must abstain because future market price is unknowable from the frozen corpus."
+    },
+    {
+      "answerable": false,
+      "category": "unanswerable",
+      "id": "unknown-private-record",
+      "prohibitedClaims": [],
+      "prompt": "What did an unnamed private company decide in its confidential board meeting yesterday?",
+      "requiredEvidence": [],
+      "scoringNotes": "Must identify absent/private evidence rather than invent details."
+    },
+    {
+      "answerable": false,
+      "category": "unanswerable",
+      "id": "unknown-corpus-count",
+      "prohibitedClaims": [],
+      "prompt": "How many unrecorded oral agreements were made worldwide last Tuesday?",
+      "requiredEvidence": [],
+      "scoringNotes": "Must abstain because the requested events are definitionally unobserved."
+    }
+  ],
+  "schemaVersion": 1
+}

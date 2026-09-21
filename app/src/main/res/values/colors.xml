@@ -1,0 +1,8 @@
+<resources>
+    <color name="launcher_background">#0B493A</color>
+    <color name="fieldatlas_paper">#F4F0E6</color>
+    <color name="fieldatlas_ink">#20231E</color>
+    <color name="fieldatlas_moss">#315C49</color>
+    <color name="fieldatlas_amber">#8A5B16</color>
+    <color name="fieldatlas_rust">#984A36</color>
+</resources>

@@ -1,0 +1,60 @@
+name: Android release audit
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: macos-14
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install pinned Android toolchain
+        run: ./scripts/install_toolchain.sh
+      - name: Test deterministic tooling
+        run: |
+          python3 -m unittest scripts.tests.test_android_sdk -v
+          python3 -m unittest discover -s scripts/tests -v
+          python3 -m unittest discover -s packtool/tests -v
+          python3 -m unittest discover -s benchmarks/tests -v
+      - name: Verify starter-pack reproducibility
+        run: |
+          ./scripts/build_starter_pack.sh
+          cp build/packs/starter/fieldatlas-starter-1.0.0.fapack "$RUNNER_TEMP/first.fapack"
+          rm -r build/packs/starter
+          ./scripts/build_starter_pack.sh
+          cmp "$RUNNER_TEMP/first.fapack" build/packs/starter/fieldatlas-starter-1.0.0.fapack
+      - name: Test and assemble
+        run: ./gradlew --no-configuration-cache :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease
+      - name: Audit release APK
+        run: |
+          ./scripts/verify_offline.sh app/build/outputs/apk/debug/app-debug.apk
+          ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Write checksums
+        run: |
+          shasum -a 256 app/build/outputs/apk/release/app-release-unsigned.apk > app-release-unsigned.apk.sha256
+          shasum -a 256 app/build/outputs/apk/debug/app-debug.apk > app-debug.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fieldatlas-unsigned-release
+          path: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/debug/app-debug.apk
+            app-release-unsigned.apk.sha256
+            app-debug.apk.sha256
+            app/build/reports/lint-results-release.html
+          if-no-files-found: error

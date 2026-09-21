@@ -1,0 +1,28 @@
+{
+  "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
+  "sourceSnapshot": "docs/compliance/bounty-31-source.md",
+  "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
+  "lastAuditedAt": "2026-09-21",
+  "requirements": [
+    { "id": "B31-01", "obligation": "Run on Android and hardware compatible with GrapheneOS", "status": "blocked", "evidence": ["docs/device-testing.md", "docs/evidence/physical/infinix-x6840-android16/"] },
+    { "id": "B31-02", "obligation": "Stay within a maximum 12 GB RAM environment", "status": "pass", "evidence": ["app/src/main/java/xyz/fieldatlas/diagnostics/AndroidDiagnosticsCollector.kt", "app/src/main/java/xyz/fieldatlas/proof/ProofMapper.kt", "docs/evidence/physical/infinix-x6840-android16/proof-metrics.png", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-03", "obligation": "Use at most 50 GB total installed storage", "status": "pass", "evidence": ["app/src/main/java/xyz/fieldatlas/assets/StorageBudget.kt", "app/src/test/java/xyz/fieldatlas/assets/StorageBudgetTest.kt"] },
+    { "id": "B31-04", "obligation": "Work completely offline after installation and asset provisioning", "status": "pass", "evidence": ["scripts/verify_offline.sh", "scripts/device_acceptance.sh", "docs/evidence/physical/infinix-x6840-android16/radios-off-research.png", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-05", "obligation": "Make no API, remote inference, web search, or network requests during use", "status": "pass", "evidence": ["scripts/verify_offline.sh", "app/src/main/AndroidManifest.xml", "docs/compliance/release-audit.md"] },
+    { "id": "B31-06", "obligation": "Require no Google Play Services for core offline behavior", "status": "pass", "evidence": ["scripts/verify_offline.sh", "app/src/androidTest/java/xyz/fieldatlas/diagnostics/OfflineAcceptanceTest.kt"] },
+    { "id": "B31-07", "obligation": "Handle explanation, comparison, synthesis, and reasoning beyond recall", "status": "blocked", "evidence": ["benchmarks/questions-v1.json", "app/src/main/assets/benchmark/questions-v1.json", "docs/evaluation.md"] },
+    { "id": "B31-08", "obligation": "Respond at speeds usable for real phone lookups", "status": "pass", "evidence": ["app/src/main/java/xyz/fieldatlas/research/ResearchModels.kt", "app/src/main/java/xyz/fieldatlas/proof/ProofMapper.kt", "docs/evidence/physical/infinix-x6840-android16/proof-metrics.png", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-09", "obligation": "Publish the submission in a public GitHub repository", "status": "pass", "evidence": ["https://github.com/0x94t3z/fieldatlas"] },
+    { "id": "B31-10", "obligation": "Include all code, assets, dependencies, and reproduction instructions", "status": "pass", "evidence": ["README.md", ".gitmodules", ".github/workflows/android.yml", "scripts/install_toolchain.sh", "scripts/tests/test_android_sdk.py"] },
+    { "id": "B31-11", "obligation": "Document models, datasets, indexes, and other resources", "status": "pass", "evidence": ["MODELS.md", "DATASETS.md"] },
+    { "id": "B31-12", "obligation": "Work on real Android hardware at submission time", "status": "pass", "evidence": ["docs/device-testing.md", "docs/evidence/physical/infinix-x6840-android16/radios-off-research.png", "docs/evidence/physical/infinix-x6840-android16/signed-release-app-info.png", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-13", "obligation": "Install and run within minutes without substantial debugging", "status": "pass", "evidence": ["docs/installation.md", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-14", "obligation": "Include assets or provide clear download and installation instructions", "status": "pass", "evidence": ["MODELS.md", "DATASETS.md", "docs/installation.md"] },
+    { "id": "B31-15", "obligation": "Publish a public demo on X or Farcaster", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/field-atlas-public-demo.mp4"] },
+    { "id": "B31-16", "obligation": "Demo offline use, hard queries, repository link, and approach", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/field-atlas-public-demo.mp4", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
+    { "id": "B31-17", "obligation": "Submit a relevant POIDH screenshot with demo and repository links", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/radios-off-research.png"] },
+    { "id": "B31-18", "obligation": "Keep the functional reviewed version in GitHub at claim time", "status": "pass", "evidence": ["https://github.com/0x94t3z/fieldatlas/releases/tag/v1.0.0"] },
+    { "id": "B31-19", "obligation": "Avoid fraud, malware, plagiarism, material changes, and violations", "status": "pass", "evidence": ["fixtures/starter/LICENSES.md", "THIRD_PARTY_NOTICES.md", "docs/compliance/release-audit.md"] },
+    { "id": "B31-20", "obligation": "Measure against the greater-than-50-percent quality bar transparently", "status": "blocked", "evidence": ["benchmarks/score_results.py", "app/src/main/java/xyz/fieldatlas/benchmark/BenchmarkCodec.kt", "docs/evaluation.md"] }
+  ]
+}

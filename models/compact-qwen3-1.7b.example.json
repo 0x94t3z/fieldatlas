@@ -1,0 +1,17 @@
+{
+  "converter": "Published by ggml-org from Qwen/Qwen3-1.7B at Hugging Face revision daeb8e2d528a760970442092f6bf1e55c3b659eb",
+  "expectedSha256": "d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5",
+  "id": "qwen3-1.7b-q4-k-m",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Compact candidate: ARM64 CPU inference; pinned runtime uses an 8192-token context; validate memory on the target 4 GB phone",
+  "quantizer": "Q4_K_M artifact published by ggml-org; expected upstream SHA-256 d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5",
+  "sourceUrls": [
+    "https://huggingface.co/Qwen/Qwen3-1.7B",
+    "https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/blob/daeb8e2d528a760970442092f6bf1e55c3b659eb/Qwen3-1.7B-Q4_K_M.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "Qwen3 1.7B — Q4_K_M Compact",
+  "upstreamModel": "Qwen/Qwen3-1.7B",
+  "version": "1.0.0"
+}
