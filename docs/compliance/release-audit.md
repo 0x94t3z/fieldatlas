@@ -90,9 +90,9 @@ The public recording shows offline operation, explanation, comparison, synthesis
 
 No POIDH claim transaction is recorded.
 
-## B31-18 — BLOCKED
+## B31-18 — PASS
 
-The current Field Notebook build has a new signed local-device record, but it must be committed, pushed, and released before a POIDH claim can truthfully identify it as the public reviewed version.
+The verified Field Notebook source and its current Infinix device record are public on `main`. The existing `v1.1.1` tag remains immutable on the earlier release; the current source is identified by its public commit rather than rewriting that tag.
 
 ## B31-19 — PASS
 

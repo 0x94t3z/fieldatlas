@@ -21,7 +21,7 @@
     { "id": "B31-15", "obligation": "Publish a public demo on X or Farcaster", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4"] },
     { "id": "B31-16", "obligation": "Demo offline use, hard queries, repository link, and approach", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4", "docs/evidence/physical/infinix-x6840-android16/README.md"] },
     { "id": "B31-17", "obligation": "Submit a relevant POIDH screenshot with demo and repository links", "status": "blocked", "evidence": ["docs/evidence/physical/infinix-x6840-android16/radios-off-answer.png"] },
-    { "id": "B31-18", "obligation": "Keep the functional reviewed version in GitHub at claim time", "status": "blocked", "evidence": ["https://github.com/0x94t3z/fieldatlas"] },
+    { "id": "B31-18", "obligation": "Keep the functional reviewed version in GitHub at claim time", "status": "pass", "evidence": ["https://github.com/0x94t3z/fieldatlas/tree/afbb19be99d2af28c5118b4f9cfaccea6f0c6d17"] },
     { "id": "B31-19", "obligation": "Avoid fraud, malware, plagiarism, material changes, and violations", "status": "pass", "evidence": ["fixtures/starter/LICENSES.md", "THIRD_PARTY_NOTICES.md", "docs/compliance/release-audit.md"] },
     { "id": "B31-20", "obligation": "Measure against the greater-than-50-percent quality bar transparently", "status": "blocked", "evidence": ["benchmarks/score_results.py", "app/src/main/java/xyz/fieldatlas/benchmark/BenchmarkCodec.kt", "docs/evaluation.md"] }
   ]
