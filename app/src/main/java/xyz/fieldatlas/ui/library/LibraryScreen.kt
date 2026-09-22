@@ -94,18 +94,15 @@ private fun AssetCard(model: AssetCardModel) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     model.title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text("${model.kind} · ${model.size} · version ${model.version}")
+                Text(
+                    "${model.kind} · ${model.size} · version ${model.version}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            model.coverageLabel?.let {
-                Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
-            }
-            model.coverageSummary?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         FieldAtlasInformationAction(

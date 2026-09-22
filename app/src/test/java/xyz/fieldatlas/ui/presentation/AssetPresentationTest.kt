@@ -1,7 +1,6 @@
 package xyz.fieldatlas.ui.presentation
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import xyz.fieldatlas.assets.CoverageLevel
@@ -20,16 +19,15 @@ class AssetPresentationTest {
         assertEquals(SetupNextAction.Importing, deriveSetupNextAction(emptyList(), true))
     }
 
-    @Test fun demoPackIsNeverPresentedAsBroadCoverage() {
+    @Test fun knowledgeCardOmitsDemoCoverageCopy() {
         val card = knowledge(CoverageLevel.DEMO).toAssetCardModel()
-        assertEquals("Demo coverage", card.coverageLabel)
-        assertFalse(card.coverageSummary.orEmpty().contains("comprehensive", ignoreCase = true))
-    }
-
-    @Test fun modelHasNoInventedCoverage() {
-        val card = model().toAssetCardModel()
+        assertEquals("Knowledge", card.kind)
         assertNull(card.coverageLabel)
         assertNull(card.coverageSummary)
+    }
+
+    @Test fun modelCardKeepsItsIdentity() {
+        val card = model().toAssetCardModel()
         assertEquals("Model", card.kind)
     }
 

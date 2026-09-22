@@ -1,7 +1,6 @@
 package xyz.fieldatlas.ui.presentation
 
 import java.text.NumberFormat
-import xyz.fieldatlas.assets.CoverageLevel
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
 
@@ -39,17 +38,10 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
     size = formatBytes(installedBytes),
     version = version,
     license = license,
-    coverageLabel = discovery?.coverageLevel?.label,
-    coverageSummary = discovery?.coverageSummary,
+    coverageLabel = null,
+    coverageSummary = null,
     manifestSha256 = manifestSha256,
 )
-
-private val CoverageLevel.label: String
-    get() = when (this) {
-        CoverageLevel.DEMO -> "Demo coverage"
-        CoverageLevel.FOCUSED -> "Focused coverage"
-        CoverageLevel.BROAD -> "Broad coverage"
-    }
 
 private fun formatBytes(bytes: Long): String {
     val formatter = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }
