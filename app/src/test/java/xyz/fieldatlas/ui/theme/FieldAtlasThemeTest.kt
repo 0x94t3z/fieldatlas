@@ -8,8 +8,8 @@ import org.junit.Test
 
 class FieldAtlasThemeTest {
     @Test
-    fun lightAppearanceIsPaperLightAndForestAccented() {
-        val colors = fieldAtlasColorScheme(darkTheme = false)
+    fun fieldNotebookIsTheOnlyPaperAndForestAppearance() {
+        val colors = fieldAtlasColorScheme()
 
         assertEquals(Color(0xFFF3EFE5), colors.background)
         assertEquals(Color(0xFF285D49), colors.primary)
@@ -20,25 +20,11 @@ class FieldAtlasThemeTest {
     }
 
     @Test
-    fun darkAppearanceIsCharcoalAndSageWithReadableActions() {
-        val colors = fieldAtlasColorScheme(darkTheme = true)
+    fun fieldNotebookUsesWarmSurfacesRatherThanACharcoalVariant() {
+        val colors = fieldAtlasColorScheme()
 
-        assertEquals(Color(0xFF111713), colors.background)
-        assertEquals(Color(0xFFA8D7BD), colors.primary)
-        assertTrue(colors.background.luminance() < 0.02f)
-        assertTrue(colors.primary.green > colors.primary.red)
-        assertTrue(colors.primary.green > colors.primary.blue)
-        assertTrue(contrastRatio(colors.primary, colors.onPrimary) >= 4.5f)
-    }
-
-    @Test
-    fun appearancesNeverResolveToTheSamePalette() {
-        val light = fieldAtlasColorScheme(darkTheme = false)
-        val dark = fieldAtlasColorScheme(darkTheme = true)
-
-        assertTrue(light.background != dark.background)
-        assertTrue(light.surface != dark.surface)
-        assertTrue(light.primary != dark.primary)
+        assertTrue(colors.surface.luminance() > 0.9f)
+        assertTrue(colors.onSurface.luminance() < 0.1f)
     }
 
     private fun contrastRatio(first: Color, second: Color): Float {
