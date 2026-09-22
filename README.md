@@ -51,7 +51,7 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The sta
 
 ## Install and use
 
-1. Download the signed APK from the [latest release](https://github.com/0x94t3z/fieldatlas/releases/latest), or transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk` for a local build. The unsigned release artifact is for reproducibility checks and is not installable.
+1. Download the signed [Field Atlas 1.1.0 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.0.apk), verify its SHA-256 `5de7c22ec06babb83932f58a890c0d0efb1383c31aa3a2281ce89d10ddd4f9d2`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 2. Install the APK. Android may require permission for the file manager to install unknown apps.
 3. Open Field Atlas and import the model and knowledge packs with the system document picker.
 4. Turn on airplane mode and explicitly disable Wi-Fi and mobile data.

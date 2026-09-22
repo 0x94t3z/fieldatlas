@@ -2,7 +2,7 @@
 
 ## APK
 
-Download the APK and checksum file from the [latest release](https://github.com/0x94t3z/fieldatlas/releases/latest), verify the SHA-256 value, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
+Download the signed [Field Atlas 1.1.0 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.0.apk), verify SHA-256 `5de7c22ec06babb83932f58a890c0d0efb1383c31aa3a2281ce89d10ddd4f9d2`, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
 
 ## Packs
 
