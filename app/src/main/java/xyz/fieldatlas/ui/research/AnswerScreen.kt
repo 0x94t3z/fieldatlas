@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,12 +36,16 @@ fun AnswerScreen(
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     val sourceLabel = if (state.sources.size == 1) "1 source" else "${state.sources.size} sources"
 
-    Column(Modifier.fillMaxSize()) {
-        FieldAtlasTopBar(title = "Research answer", onBack = onBack)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            FieldAtlasTopBar(title = "Research answer", onBack = onBack)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
             item {
                 Text(
                     text = state.question.ifBlank { "Research result" },
@@ -62,7 +67,10 @@ fun AnswerScreen(
                 }
             }
             item {
-                FieldAtlasCard(Modifier.fillMaxWidth()) {
+                FieldAtlasCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
                     AnswerMarkdownRenderer(
                         blocks = presentation.blocks,
                         sourceCount = state.sources.size,
@@ -107,6 +115,7 @@ fun AnswerScreen(
                 }
             }
             item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 24.dp)) }
+            }
         }
     }
 }

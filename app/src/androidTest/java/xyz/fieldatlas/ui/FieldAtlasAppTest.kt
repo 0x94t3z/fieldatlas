@@ -49,8 +49,12 @@ class FieldAtlasAppTest {
 
     @Test fun firstLaunchShowsSetupAndAccessibleImport() {
         render(packs = emptyList())
+        compose.onNodeWithText("FIELD ATLAS").assertExists()
         compose.onNodeWithText("Pack your atlas").assertExists()
         compose.onNodeWithText("No cloud").assertExists()
+        compose.onNodeWithText("1. Add model pack").assertExists()
+        compose.onNodeWithText("2. Add knowledge pack").assertExists()
+        compose.onNodeWithText("Turn off Wi-Fi and mobile data", substring = true).assertExists()
         compose.onNodeWithText("Choose model pack").assertExists().assertHasClickAction()
     }
 

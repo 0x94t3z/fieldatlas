@@ -8,8 +8,8 @@ import org.junit.Test
 
 class FieldAtlasThemeTest {
     @Test
-    fun fieldNotebookIsTheOnlyPaperAndForestAppearance() {
-        val colors = fieldAtlasColorScheme()
+    fun lightFieldNotebookUsesPaperAndForest() {
+        val colors = fieldAtlasColorScheme(darkTheme = false)
 
         assertEquals(Color(0xFFF3EFE5), colors.background)
         assertEquals(Color(0xFF285D49), colors.primary)
@@ -20,11 +20,12 @@ class FieldAtlasThemeTest {
     }
 
     @Test
-    fun fieldNotebookUsesWarmSurfacesRatherThanACharcoalVariant() {
-        val colors = fieldAtlasColorScheme()
+    fun darkFieldNotebookUsesInkAndSage() {
+        val colors = fieldAtlasColorScheme(darkTheme = true)
 
-        assertTrue(colors.surface.luminance() > 0.9f)
-        assertTrue(colors.onSurface.luminance() < 0.1f)
+        assertTrue(colors.surface.luminance() < 0.03f)
+        assertTrue(colors.primary.green > colors.primary.red)
+        assertTrue(colors.primary.green > colors.primary.blue)
     }
 
     private fun contrastRatio(first: Color, second: Color): Float {

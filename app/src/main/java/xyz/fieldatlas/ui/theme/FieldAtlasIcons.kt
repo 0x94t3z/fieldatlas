@@ -18,6 +18,7 @@ object FieldAtlasIcons {
     val Information by icon("Information", "M11 10h2v8h-2v-8zm0-4h2v2h-2V6zm1-4a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16z")
     val Import by icon("Import", "M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17V3zM5 19h14v2H5v-2z")
     val Citation by icon("Citation", "M7.5 6A3.5 3.5 0 0 0 4 9.5V14a3 3 0 0 0 3 3h3v-6H6V9.5C6 8.67 6.67 8 7.5 8H10V6H7.5zm9 0A3.5 3.5 0 0 0 13 9.5V14a3 3 0 0 0 3 3h3v-6h-4V9.5c0-.83.67-1.5 1.5-1.5H19V6h-2.5z")
+    val Offline by icon("Offline", "M3 4.3 4.3 3 21 19.7 19.7 21l-2.4-2.4A7.98 7.98 0 0 1 12 20a8 8 0 0 1-8-8c0-1.8.6-3.46 1.6-4.78L3 4.3zm4.06 5.05A5.96 5.96 0 0 0 6 12a6 6 0 0 0 9.82 4.61L7.06 9.35zM12 4c1.8 0 3.46.6 4.78 1.6L15.32 7.06A5.96 5.96 0 0 0 12 6c-.55 0-1.08.07-1.58.22L8.86 4.66A8.1 8.1 0 0 1 12 4z")
 
     private fun icon(name: String, pathData: String) = lazy {
         ImageVector.Builder(

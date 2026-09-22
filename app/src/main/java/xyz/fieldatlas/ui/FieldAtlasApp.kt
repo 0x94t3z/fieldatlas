@@ -12,6 +12,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -54,6 +59,17 @@ fun FieldAtlasApp(
 ) {
     val ready = packs.any { it.type == PackType.MODEL } && packs.any { it.type == PackType.KNOWLEDGE }
     val knowledgePack = packs.firstOrNull { it.type == PackType.KNOWLEDGE }
+    var autoPreparationStarted by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(ready, inferenceState) {
+        when {
+            !ready -> autoPreparationStarted = false
+            shouldAutoPrepareModel(ready, inferenceState, autoPreparationStarted) -> {
+                autoPreparationStarted = true
+                onLoadModel()
+            }
+            inferenceState != InferenceState.Idle -> autoPreparationStarted = true
+        }
+    }
     FieldAtlasTheme {
         if (!ready) {
             SetupScreen(packs, importing, setupError, onImportPack)
@@ -73,10 +89,15 @@ fun FieldAtlasApp(
                     val source = researchState.sources.getOrNull(detail.index)
                     if (source == null) {
                         BackHandler { navigation.back() }
-                        Column(Modifier.fillMaxSize()) {
-                            FieldAtlasTopBar(title = "Source", onBack = closeDetail)
-                            Box(Modifier.padding(horizontal = 20.dp)) {
-                                Text("This source is no longer available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        androidx.compose.material3.Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
+                            Column(Modifier.fillMaxSize()) {
+                                FieldAtlasTopBar(title = "Source", onBack = closeDetail)
+                                Box(Modifier.padding(horizontal = 20.dp)) {
+                                    Text("This source is no longer available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     } else {
@@ -142,6 +163,12 @@ fun FieldAtlasApp(
         }
     }
 }
+
+internal fun shouldAutoPrepareModel(
+    assetsReady: Boolean,
+    inferenceState: InferenceState,
+    started: Boolean,
+): Boolean = assetsReady && inferenceState == InferenceState.Idle && !started
 
 @Composable
 private fun primaryLabel(destination: PrimaryDestination): String = stringResource(

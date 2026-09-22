@@ -75,13 +75,20 @@ fun FieldAtlasStatusPill(
     text: String,
     state: StatusTone = StatusTone.Neutral,
     modifier: Modifier = Modifier,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
 ) {
-    val colors = when (state) {
+    val defaultColors = when (state) {
         StatusTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
         StatusTone.Positive -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         StatusTone.Attention -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
     }
-    Surface(modifier = modifier, color = colors.first, contentColor = colors.second, shape = MaterialTheme.shapes.small) {
+    Surface(
+        modifier = modifier,
+        color = containerColor ?: defaultColors.first,
+        contentColor = contentColor ?: defaultColors.second,
+        shape = MaterialTheme.shapes.small,
+    ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
@@ -93,11 +100,12 @@ fun FieldAtlasStatusPill(
 @Composable
 fun FieldAtlasCard(
     modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
@@ -150,12 +158,19 @@ fun NotebookSection(
 }
 
 @Composable
-fun StatusStrip(items: List<String>, modifier: Modifier = Modifier) {
+fun StatusStrip(
+    items: List<String>,
+    modifier: Modifier = Modifier,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
+) {
     Row(
         modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items.forEach { item -> FieldAtlasStatusPill(text = item) }
+        items.forEach { item ->
+            FieldAtlasStatusPill(text = item, containerColor = containerColor, contentColor = contentColor)
+        }
     }
 }
 

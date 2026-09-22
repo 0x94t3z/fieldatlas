@@ -1,10 +1,12 @@
 package xyz.fieldatlas.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.sp
 object FieldAtlasColors {
     val PaperBackground = Color(0xFFF3EFE5)
     val ForestGreen = Color(0xFF285D49)
+    val SageWash = Color(0xFFE8E9DE)
 }
 
 private val FieldNotebookColors = lightColorScheme(
@@ -39,6 +42,28 @@ private val FieldNotebookColors = lightColorScheme(
     outlineVariant = Color(0xFFD5CEBD),
     error = Color(0xFF984A36),
     onError = Color.White,
+)
+
+private val FieldNotebookDarkColors = darkColorScheme(
+    primary = Color(0xFFA6D8B9),
+    onPrimary = Color(0xFF123526),
+    primaryContainer = Color(0xFF244F3A),
+    onPrimaryContainer = Color(0xFFD6EBDD),
+    secondary = Color(0xFFE5C98A),
+    onSecondary = Color(0xFF3A2D08),
+    secondaryContainer = Color(0xFF55441A),
+    onSecondaryContainer = Color(0xFFFFE4A7),
+    tertiary = Color(0xFFC5CEC1),
+    background = Color(0xFF111A15),
+    onBackground = Color(0xFFE7E9E1),
+    surface = Color(0xFF16231C),
+    onSurface = Color(0xFFE7E9E1),
+    surfaceVariant = Color(0xFF2A3830),
+    onSurfaceVariant = Color(0xFFC4CDC4),
+    outline = Color(0xFF8B988D),
+    outlineVariant = Color(0xFF3C4B41),
+    error = Color(0xFFFFB4A5),
+    onError = Color(0xFF5D1509),
 )
 
 private val FieldAtlasTypography = Typography(
@@ -90,14 +115,16 @@ private val FieldAtlasShapes = Shapes(
     extraLarge = RoundedCornerShape(28.dp),
 )
 
-fun fieldAtlasColorScheme(): ColorScheme = FieldNotebookColors
+fun fieldAtlasColorScheme(darkTheme: Boolean): ColorScheme =
+    if (darkTheme) FieldNotebookDarkColors else FieldNotebookColors
 
 @Composable
 fun FieldAtlasTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
     MaterialTheme(
-        colorScheme = fieldAtlasColorScheme(),
+        colorScheme = fieldAtlasColorScheme(darkTheme),
         typography = FieldAtlasTypography,
         shapes = FieldAtlasShapes,
         content = content,

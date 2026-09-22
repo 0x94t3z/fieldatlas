@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,12 +34,16 @@ fun SourcesScreen(
 ) {
     BackHandler(onBack = onBack)
     var showDetails by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize()) {
-        FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack)
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
                     FieldAtlasStatusPill("Source $sourceNumber")
@@ -51,7 +56,10 @@ fun SourcesScreen(
                 }
             }
             item {
-                FieldAtlasCard(Modifier.fillMaxWidth()) {
+                FieldAtlasCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    containerColor = MaterialTheme.colorScheme.background,
+                ) {
                     SelectionContainer {
                         Text(evidence.text, style = MaterialTheme.typography.bodyLarge)
                     }
@@ -70,6 +78,7 @@ fun SourcesScreen(
                 }
             }
             item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 24.dp)) }
+            }
         }
     }
 }
