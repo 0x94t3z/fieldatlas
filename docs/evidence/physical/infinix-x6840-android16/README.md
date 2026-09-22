@@ -27,6 +27,6 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 ## Video
 
-`field-atlas-current-demo.mp4` is an 86.69-second recording pulled directly from the Infinix during the same radios-off session. It records the current Field Notebook UI, a local research run, and the completed answer. No visuals were generated or simulated.
+`field-atlas-current-demo.mp4` is a 234.39-second native 720 × 1576 H.264 recording pulled directly from the Infinix during a radios-off session. It records the current Field Notebook Research home, installed local model and knowledge pack, Android radios-off state, real preparation, the full local research run, and the completed cited answer. `field-atlas-current-demo-source-hold.mp4` is a separate raw source-passage hold from the same device and answer state. The two recordings are intentionally preserved as separate, unedited device files because the OEM recorder enforces a real-frame cap on long captures.
 
 This record demonstrates installation, local execution, offline mode, local source attribution, and the current visual build on one physical Android device. It does not represent GrapheneOS testing or an independent assessment of the bounty's quality bar.
