@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -20,6 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -131,6 +135,32 @@ fun FieldAtlasPrimaryButton(
         contentPadding = ButtonDefaults.ContentPadding,
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable
+fun FieldAtlasInformationAction(
+    label: String,
+    onClick: () -> Unit,
+    expanded: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = null,
+            modifier = Modifier.heightIn(max = 22.dp),
+        )
+        Text(
+            label,
+            modifier = Modifier.weight(1f).padding(start = 12.dp),
+            style = MaterialTheme.typography.titleMedium,
+        )
+        if (expanded) {
+            Text("−", style = MaterialTheme.typography.headlineMedium)
+        } else {
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 package xyz.fieldatlas.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +40,7 @@ import xyz.fieldatlas.ui.sources.SourcesScreen
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
+import xyz.fieldatlas.ui.theme.FieldAtlasColors
 
 @Composable
 fun FieldAtlasApp(
@@ -59,6 +62,7 @@ fun FieldAtlasApp(
 ) {
     val ready = packs.any { it.type == PackType.MODEL } && packs.any { it.type == PackType.KNOWLEDGE }
     val knowledgePack = packs.firstOrNull { it.type == PackType.KNOWLEDGE }
+    val menuBackground = if (isSystemInDarkTheme()) null else FieldAtlasColors.SageWash
     var autoPreparationStarted by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(ready, inferenceState) {
         when {
@@ -117,13 +121,20 @@ fun FieldAtlasApp(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                NavigationBar(containerColor = menuBackground ?: MaterialTheme.colorScheme.surface) {
                     PrimaryDestination.entries.forEach { item ->
                         val itemLabel = primaryLabel(item)
                         NavigationBarItem(
                             selected = navigation.primary == item,
                             onClick = { navigation.select(item) },
                             modifier = Modifier.semantics { contentDescription = itemLabel },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = FieldAtlasColors.OnMenuSelection,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                indicatorColor = FieldAtlasColors.MenuSelection,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
                             icon = {
                                 Icon(
                                     imageVector = primaryIcon(item),

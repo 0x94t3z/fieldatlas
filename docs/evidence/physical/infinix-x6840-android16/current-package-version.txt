@@ -1,0 +1,2 @@
+    versionCode=4 minSdk=33 targetSdk=36
+    versionName=1.1.1

@@ -43,8 +43,8 @@ class RequirementLedgerTest {
             "physical-device evidence directory must be named",
             requirement("B31-12").evidence.any { it.startsWith("docs/evidence/physical/") },
         )
-        assertTrue(File("../docs/evidence/physical/infinix-x6840-android16/radios-off-research.png").isFile)
-        assertTrue(File("../docs/evidence/physical/infinix-x6840-android16/proof-metrics.png").isFile)
+        assertTrue(File("../docs/evidence/physical/infinix-x6840-android16/radios-off-answer.png").isFile)
+        assertTrue(File("../docs/evidence/physical/infinix-x6840-android16/current-app-meminfo.txt").isFile)
     }
 
     private fun requirement(id: String): Requirement {

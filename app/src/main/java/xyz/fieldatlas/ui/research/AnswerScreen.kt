@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -94,9 +94,11 @@ fun AnswerScreen(
                 val model = formatResearchMetrics(metrics, state.sources.size)
                 item {
                     FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        TextButton(onClick = { showPerformance = !showPerformance }) {
-                            Text(if (showPerformance) "Hide performance details" else "Performance details")
-                        }
+                        FieldAtlasInformationAction(
+                            label = if (showPerformance) "Hide performance details" else "Performance details",
+                            onClick = { showPerformance = !showPerformance },
+                            expanded = showPerformance,
+                        )
                         if (showPerformance) {
                             Text("Retrieval ${model.retrieval}")
                             model.firstToken?.let { Text("First word $it") }

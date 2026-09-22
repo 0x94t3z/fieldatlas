@@ -20,6 +20,8 @@ object FieldAtlasColors {
     val PaperBackground = Color(0xFFF3EFE5)
     val ForestGreen = Color(0xFF285D49)
     val SageWash = Color(0xFFE8E9DE)
+    val MenuSelection = Color(0xFF595267)
+    val OnMenuSelection = Color(0xFFF1EAFF)
 }
 
 private val FieldNotebookColors = lightColorScheme(

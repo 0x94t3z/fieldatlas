@@ -25,6 +25,7 @@ import xyz.fieldatlas.proof.ProofFact
 import xyz.fieldatlas.proof.ProofModel
 import xyz.fieldatlas.proof.ProofState
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
@@ -95,9 +96,11 @@ fun MoreScreen(
         }
         item {
             FieldAtlasCard(Modifier.fillMaxWidth()) {
-                TextButton(onClick = { showTechnical = !showTechnical }) {
-                    Text(if (showTechnical) "Hide technical details" else "Technical details")
-                }
+                FieldAtlasInformationAction(
+                    label = if (showTechnical) "Hide technical details" else "Technical details",
+                    onClick = { showTechnical = !showTechnical },
+                    expanded = showTechnical,
+                )
                 if (showTechnical) {
                     (proof.offline + proof.device + proof.latestRun).forEach { fact -> ProofRow(fact) }
                 }

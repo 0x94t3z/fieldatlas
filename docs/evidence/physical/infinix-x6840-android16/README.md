@@ -1,54 +1,32 @@
-# Infinix SMART 20 / X6840 Android 16 release record
+# Field Atlas 1.1.1 physical-device record
 
-Captured on 2026-09-21 from a USB-paired physical handset. Android reports manufacturer `INFINIX`, model `Infinix X6840`, API 36, ARM64, 720 × 1576 px, and 3,831,080 KiB physical memory. The system document picker identifies the retail device as Infinix SMART 20. No device serial, account, network address, or private user data is retained.
+Captured on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64. The device reported `Infinix X6840`; the signed installed package was `xyz.fieldatlas` version 1.1.1 (`versionCode` 4).
 
-## Exact tested assets
+## Exact tested artifact
 
-- Signed release: `app-release.apk` from the recorded v1.0.0 device session.
-- Release signer SHA-256: `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
-- Final starter knowledge pack: 25,500 bytes; SHA-256 `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`.
-- Qwen3 1.7B Q4_K_M model pack: 1,282,441,304 bytes; SHA-256 `e4ac4b6b68d55b1846c70fc877ef142954669cb8e04b85d4a74e4838430ae60b`.
-- Android package/version: `xyz.fieldatlas`, version `1.0.0` (`versionCode` 2).
+- Signed APK: 49,144,290 bytes.
+- SHA-256: `104461ea2c5a55c4832238757b012eb8bf4623a2bbe6f4d7dbf24af770cd35ba`.
+- Offline APK audit: passed.
+- Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
+- Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
 
-The signed APK was installed with Android Debug Bridge, pulled back from the package path, and compared byte-for-byte with the local signed artifact. Both packs were imported through Android's document picker and their source-file hashes were checked on the handset.
+The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-## Radios-off research proof
+## Radios-off run
 
-Airplane mode was enabled, Wi-Fi disabled, and mobile data disabled before model loading and research. The local model loaded from the extracted ARM64 runtime/backend. The query **“Why does Earth have seasons”** completed with local source `S1`, all citation markers mapped, and no network permission in the installed APK.
+Airplane mode was enabled and Wi-Fi and mobile data were disabled before launching the app. The installed model and knowledge pack were used to answer “Why do Earth's hemispheres have opposite seasons?” locally. The resulting answer displays the offline state and mapped local citations.
 
-- Retrieval: 34 ms
-- Total response: 41,276 ms
-- Generated tokens: 108
-- Derived rate: 2.62 tokens/s
-- Loaded-run app PSS: 2,135,363 KiB
-- Loaded-run app RSS: 1,290,491 KiB
-- Loaded-run swap PSS: 927,123 KiB
+- `research-home-light.png` — current light-theme research home while radios were off.
+- `radios-off-answer.png` — completed on-device answer with local source and citation markers.
+- `library-light.png` — installed model and knowledge pack in the current Field Notebook library.
+- `research-home-dark.png` — current Android-system dark theme.
 
-This demonstrates a usable single lookup on a device with far less than the 12 GB ceiling. It does not imply every frozen benchmark prompt is equally fast: the sustained 18-question run included polling bounds from 5 to 155 seconds.
+## Memory observation
 
-## Guided benchmark and export recovery
+`current-app-meminfo.txt` records a 2,099,224 KiB total PSS observation for the loaded current app process. This is about 2.0 GiB, below the 12 GB environment ceiling. It is a field observation, not a performance guarantee.
 
-The frozen 18-question guided suite completed in one continuous radios-off run: 16 rows were `COMPLETE` and 2 were explicit `INSUFFICIENT` results. The source export was 25,821 bytes with SHA-256 `ad3c5d12e4169455f894d1477ac6012cec752727327f984bd7b3c96977c69452`. It contained no serial, account, email, private storage path, or Android identifier found by the release scan. That run used the byte-identical research text with the earlier unspaced source label; the final deterministic pack changes only that user-visible attribution to “Field Atlas” and was reimported for the final installed state.
+## Video
 
-That run exposed an empty-export bug when the OEM killed the memory-heavy app behind Android's document picker. The repair stages evidence in an fsynced private file before opening the picker. A repeated hardware export entered the same process-death state and returned a non-empty, valid 25,821-byte JSON document after activity recreation. Regression tests cover store recreation, missing payloads, stale replacement, and removal of model reasoning markers. The raw pre-sanitizer run remains in the ignored local `build/evidence/device/` tree; it is not presented as the final public benchmark output and no greater-than-50-percent quality claim is made.
+`field-atlas-current-demo.mp4` is an 86.69-second recording pulled directly from the Infinix during the same radios-off session. It records the current Field Notebook UI, a local research run, and the completed answer. No visuals were generated or simulated.
 
-## Screenshots
-
-- `first-launch.png` — first physical launch.
-- `radios-off-research.png` — completed offline research with radio isolation.
-- `proof-metrics.png` — measured timing, memory, and citation mapping.
-- `signed-release-app-info.png` — installed Field Atlas version information.
-
-These screenshots support the device record; they do not replace reproducible commands, APK hashes, benchmark exports, or independent review.
-
-## Demo asset
-
-`field-atlas-public-demo.mp4` is a 120.88-second, 720 × 1576 H.264 device demo (1,766,167 bytes; SHA-256 `2a1078c4fbb991ff22801f74e7352908ad0dd57f58dbd01f2c17cc10279bb938`). It shows the installed **Field Atlas** identity, explanation, comparison, synthesis, source attribution, measured diagnostics, and an explicit insufficient-evidence response. Long generation waits are trimmed; answers are unmodified, and every moving segment comes from the same radios-off physical-device session.
-
-## Installation/readiness observation
-
-The signed APK installed in about 8 seconds. Observed model-pack import completed within 64 seconds, knowledge-pack import within 5 seconds, model load in about 30 seconds, and the demonstrated lookup in 41.3 seconds. These are direct observed upper bounds from the acceptance session, not a laboratory clean-install benchmark.
-
-## Remaining boundary
-
-This record covers physical Infinix hardware, offline operation, memory, installation, and one measured lookup. It does not represent a Pixel/GrapheneOS test or a paired online-baseline evaluation.
+This record demonstrates installation, local execution, offline mode, local source attribution, and the current visual build on one physical Android device. It does not represent GrapheneOS testing or an independent assessment of the bounty's quality bar.

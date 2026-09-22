@@ -15,8 +15,8 @@ object FieldAtlasIcons {
     val Performance by icon("Performance", "M12 4a9 9 0 0 0-9 9c0 2.39.93 4.68 2.59 6.36L7 17.95A6.97 6.97 0 0 1 5 13a7 7 0 1 1 12 4.95l1.41 1.41A9 9 0 0 0 12 4zm4.24 4.34-5.66 3.17a2 2 0 1 0 1.91 1.91l3.17-5.66-.42.58z")
     val Diagnostics by icon("Diagnostics", "M6 2h8l4 4v5h-2V7h-3V4H6v16h6v2H6a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2zm11 11v4.17l1.59-1.58L20 17l-4 4-4-4 1.41-1.41L15 17.17V13h2z")
     val Benchmark by icon("Benchmark", "M4 19h16v2H2V3h2v16zm3-2H5v-5h2v5zm4 0H9V7h2v10zm4 0h-2V9h2v8zm4 0h-2V4h2v13z")
-    val Information by icon("Information", "M11 10h2v8h-2v-8zm0-4h2v2h-2V6zm1-4a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16z")
     val Import by icon("Import", "M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17V3zM5 19h14v2H5v-2z")
+    val Check by icon("Check", "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z")
     val Citation by icon("Citation", "M7.5 6A3.5 3.5 0 0 0 4 9.5V14a3 3 0 0 0 3 3h3v-6H6V9.5C6 8.67 6.67 8 7.5 8H10V6H7.5zm9 0A3.5 3.5 0 0 0 13 9.5V14a3 3 0 0 0 3 3h3v-6h-4V9.5c0-.83.67-1.5 1.5-1.5H19V6h-2.5z")
     val Offline by icon("Offline", "M3 4.3 4.3 3 21 19.7 19.7 21l-2.4-2.4A7.98 7.98 0 0 1 12 20a8 8 0 0 1-8-8c0-1.8.6-3.46 1.6-4.78L3 4.3zm4.06 5.05A5.96 5.96 0 0 0 6 12a6 6 0 0 0 9.82 4.61L7.06 9.35zM12 4c1.8 0 3.46.6 4.78 1.6L15.32 7.06A5.96 5.96 0 0 0 12 6c-.55 0-1.08.07-1.58.22L8.86 4.66A8.1 8.1 0 0 1 12 4z")
 

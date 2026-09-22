@@ -24,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
@@ -45,6 +48,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
+import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.StatusStrip
 
 @Composable
@@ -107,9 +111,11 @@ fun SetupScreen(
                             color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold,
                         )
-                        TextButton(onClick = { showErrorDetails = !showErrorDetails }) {
-                            Text(if (showErrorDetails) "Hide technical details" else "Show technical details")
-                        }
+                        FieldAtlasInformationAction(
+                            label = if (showErrorDetails) "Hide technical details" else "Technical details",
+                            onClick = { showErrorDetails = !showErrorDetails },
+                            expanded = showErrorDetails,
+                        )
                         if (showErrorDetails) Text(error, style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -160,7 +166,7 @@ private fun PackRequirementCard(
                 shape = MaterialTheme.shapes.small,
             ) {
                 Icon(
-                    if (number == "1") FieldAtlasIcons.Performance else FieldAtlasIcons.Library,
+                    if (number == "1") Icons.Outlined.Inventory2 else Icons.Outlined.Description,
                     contentDescription = null,
                     modifier = Modifier.padding(12.dp),
                     tint = MaterialTheme.colorScheme.primary,
@@ -169,6 +175,20 @@ private fun PackRequirementCard(
             Column(Modifier.weight(1f)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Text(if (ready) "Ready and verified" else detail, style = MaterialTheme.typography.bodyMedium)
+            }
+            if (ready) {
+                Surface(
+                    modifier = Modifier.size(30.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape,
+                ) {
+                    Icon(
+                        FieldAtlasIcons.Check,
+                        contentDescription = "$title ready",
+                        modifier = Modifier.padding(7.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         }
     }

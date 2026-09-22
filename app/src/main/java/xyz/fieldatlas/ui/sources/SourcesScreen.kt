@@ -11,7 +11,6 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 
@@ -67,9 +67,11 @@ fun SourcesScreen(
             }
             item {
                 FieldAtlasCard(Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { showDetails = !showDetails }) {
-                        Text(if (showDetails) "Hide source details" else "Source details")
-                    }
+                    FieldAtlasInformationAction(
+                        label = if (showDetails) "Hide source details" else "Source details",
+                        onClick = { showDetails = !showDetails },
+                        expanded = showDetails,
+                    )
                     if (showDetails) {
                         Text("Document ${evidence.documentId}", style = MaterialTheme.typography.bodySmall)
                         Text("Chunk ${evidence.chunkId}", style = MaterialTheme.typography.bodySmall)

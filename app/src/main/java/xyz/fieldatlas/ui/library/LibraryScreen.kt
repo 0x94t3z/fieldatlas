@@ -2,21 +2,28 @@ package xyz.fieldatlas.ui.library
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,7 +32,9 @@ import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
+import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 
 @Composable
 fun LibraryScreen(packs: List<InstalledAsset>, onImportPack: () -> Unit) {
@@ -75,26 +84,38 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun AssetCard(model: AssetCardModel) {
     var expanded by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
+    val iconBackground = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else FieldAtlasColors.SageWash
+    val icon = if (model.kind.equals("model", ignoreCase = true)) Icons.Outlined.Inventory2 else Icons.Outlined.Description
     FieldAtlasCard(Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Surface(modifier = Modifier.size(72.dp), color = iconBackground, shape = MaterialTheme.shapes.medium) {
+                Icon(icon, contentDescription = null, modifier = Modifier.padding(20.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    model.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text("${model.kind} · ${model.size} · version ${model.version}")
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                model.title,
-                style = MaterialTheme.typography.titleLarge,
-                fontFamily = FontFamily.Serif,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text("${model.kind} · ${model.size} · version ${model.version}")
             model.coverageLabel?.let {
                 Text(it, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
             }
             model.coverageSummary?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-            TextButton(onClick = { expanded = !expanded }) {
-                Text(if (expanded) "Hide verification details" else "Verification details")
-            }
-            if (expanded) {
-                Text("License: ${model.license}", style = MaterialTheme.typography.bodySmall)
-                Text("SHA-256: ${model.manifestSha256}", style = MaterialTheme.typography.bodySmall)
-            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        FieldAtlasInformationAction(
+            label = if (expanded) "Hide verification details" else "Verification details",
+            onClick = { expanded = !expanded },
+            expanded = expanded,
+        )
+        if (expanded) {
+            Text("License: ${model.license}", style = MaterialTheme.typography.bodySmall)
+            Text("SHA-256: ${model.manifestSha256}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

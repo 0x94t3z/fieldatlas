@@ -90,9 +90,9 @@ The public recording shows offline operation, explanation, comparison, synthesis
 
 No POIDH claim transaction is recorded.
 
-## B31-18 — PASS
+## B31-18 — BLOCKED
 
-The reviewed functional version is preserved at public tag `v1.0.0` with checksum-matched release assets.
+The current Field Notebook build has a new signed local-device record, but it must be committed, pushed, and released before a POIDH claim can truthfully identify it as the public reviewed version.
 
 ## B31-19 — PASS
 
