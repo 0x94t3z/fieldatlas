@@ -4,7 +4,7 @@ Captured on 2026-09-21 from a USB-paired physical handset. Android reports manuf
 
 ## Exact tested assets
 
-- Signed release: `app-release.apk` from the final local release matrix; its byte count and SHA-256 are recorded in `docs/compliance/release-audit.md`.
+- Signed release: `app-release.apk` from the recorded v1.0.0 device session.
 - Release signer SHA-256: `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
 - Final starter knowledge pack: 25,500 bytes; SHA-256 `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`.
 - Qwen3 1.7B Q4_K_M model pack: 1,282,441,304 bytes; SHA-256 `e4ac4b6b68d55b1846c70fc877ef142954669cb8e04b85d4a74e4838430ae60b`.
@@ -39,11 +39,11 @@ That run exposed an empty-export bug when the OEM killed the memory-heavy app be
 - `proof-metrics.png` — measured timing, memory, and citation mapping.
 - `signed-release-app-info.png` — installed Field Atlas version information.
 
-These screenshots support the device record; they do not replace the reproducible commands, APK hashes, benchmark export, or public demo required by the bounty.
+These screenshots support the device record; they do not replace reproducible commands, APK hashes, benchmark exports, or independent review.
 
 ## Demo asset
 
-`field-atlas-public-demo.mp4` is a 120.88-second, 720 × 1576 H.264 device demo (1,766,167 bytes; SHA-256 `2a1078c4fbb991ff22801f74e7352908ad0dd57f58dbd01f2c17cc10279bb938`). It shows the installed **Field Atlas** identity, two explanation/comparison answers, a model reload and solar-storage synthesis, source attribution, measured proof, and an explicit insufficient-evidence response. Long generation waits are trimmed; answers are unmodified, and every moving segment comes from the same radios-off physical-device session. No X or Farcaster post URL is currently recorded.
+`field-atlas-public-demo.mp4` is a 120.88-second, 720 × 1576 H.264 device demo (1,766,167 bytes; SHA-256 `2a1078c4fbb991ff22801f74e7352908ad0dd57f58dbd01f2c17cc10279bb938`). It shows the installed **Field Atlas** identity, explanation, comparison, synthesis, source attribution, measured diagnostics, and an explicit insufficient-evidence response. Long generation waits are trimmed; answers are unmodified, and every moving segment comes from the same radios-off physical-device session.
 
 ## Installation/readiness observation
 
@@ -51,4 +51,4 @@ The signed APK installed in about 8 seconds. Observed model-pack import complete
 
 ## Remaining boundary
 
-This record satisfies the physical Infinix, offline, memory, installation, and measured-lookup gates. A GrapheneOS-compatible Pixel run, a paired named online baseline, and an authentic public X or Farcaster video remain outstanding and are tracked as blocked in the requirement ledger.
+This record covers physical Infinix hardware, offline operation, memory, installation, and one measured lookup. It does not represent a Pixel/GrapheneOS test or a paired online-baseline evaluation.

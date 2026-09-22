@@ -33,7 +33,11 @@ class LlamaInferenceGateway internal constructor(
 
     init {
         adapterScope.launch {
-            engine.state.collect { upstream -> mutableState.value = LlamaStateMapper.map(upstream) }
+            engine.state.collect {
+                if (!lifecycleMutex.isLocked) {
+                    mutableState.value = LlamaStateMapper.map(engine.state.value)
+                }
+            }
         }
     }
 
@@ -41,6 +45,7 @@ class LlamaInferenceGateway internal constructor(
         require(modelPath.isNotBlank()) { "modelPath must not be blank" }
         require(systemPrompt.isNotBlank()) { "systemPrompt must not be blank" }
         check(state.value == InferenceState.Idle) { "Model load requires Idle state" }
+        mutableState.value = InferenceState.Loading
         try {
             when (val initialized = withTimeout(NATIVE_INIT_TIMEOUT_MS) {
                 engine.state.first {
@@ -72,6 +77,7 @@ class LlamaInferenceGateway internal constructor(
         require(maxTokens > 0) { "maxTokens must be positive" }
         lifecycleMutex.withLock {
             check(state.value == InferenceState.Ready) { "Generation requires Ready state" }
+            mutableState.value = InferenceState.Generating
             try {
                 engine.sendUserPrompt(prompt, maxTokens).collect { emit(it) }
                 mutableState.value = LlamaStateMapper.map(engine.state.value)

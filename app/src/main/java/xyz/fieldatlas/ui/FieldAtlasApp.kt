@@ -1,44 +1,38 @@
 package xyz.fieldatlas.ui
 
-import androidx.compose.foundation.layout.padding
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.R
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.proof.ProofModel
-import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.library.LibraryScreen
-import xyz.fieldatlas.ui.proof.ProofScreen
+import xyz.fieldatlas.ui.more.MoreScreen
+import xyz.fieldatlas.ui.research.AnswerScreen
 import xyz.fieldatlas.ui.research.ResearchScreen
 import xyz.fieldatlas.ui.research.ResearchUiState
 import xyz.fieldatlas.ui.setup.SetupScreen
 import xyz.fieldatlas.ui.sources.SourcesScreen
+import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
-
-enum class Destination(@StringRes val label: Int, @DrawableRes val icon: Int) {
-    Research(R.string.nav_research, R.drawable.ic_research),
-    Library(R.string.nav_library, R.drawable.ic_library),
-    Proof(R.string.nav_proof, R.drawable.ic_proof),
-}
+import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 
 @Composable
 fun FieldAtlasApp(
@@ -47,6 +41,7 @@ fun FieldAtlasApp(
     setupError: String?,
     researchState: ResearchUiState,
     proof: ProofModel,
+    navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
     onImportPack: () -> Unit,
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
@@ -64,28 +59,53 @@ fun FieldAtlasApp(
             SetupScreen(packs, importing, setupError, onImportPack)
             return@FieldAtlasTheme
         }
-        var destination by rememberSaveable { mutableStateOf(Destination.Research) }
-        var selectedSource by remember { mutableStateOf<Evidence?>(null) }
-        if (selectedSource != null) {
-            SourcesScreen(
-                evidence = selectedSource!!,
-                packLicense = knowledgePack?.license,
-                onBack = { selectedSource = null },
-            )
+
+        val closeDetail = { navigation.back(); Unit }
+        val detail = navigation.detail
+        if (detail != null) {
+            when (detail) {
+                DetailDestination.Answer -> AnswerScreen(
+                    state = researchState,
+                    onBack = closeDetail,
+                    onCitation = navigation::openSource,
+                )
+                is DetailDestination.Source -> {
+                    val source = researchState.sources.getOrNull(detail.index)
+                    if (source == null) {
+                        BackHandler { navigation.back() }
+                        Column(Modifier.fillMaxSize()) {
+                            FieldAtlasTopBar(title = "Source", onBack = closeDetail)
+                            Box(Modifier.padding(horizontal = 20.dp)) {
+                                Text("This source is no longer available.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    } else {
+                        SourcesScreen(
+                            evidence = source,
+                            sourceNumber = detail.index + 1,
+                            sourceCount = researchState.sources.size,
+                            packLicense = knowledgePack?.license,
+                            onBack = closeDetail,
+                        )
+                    }
+                }
+            }
             return@FieldAtlasTheme
         }
+
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar {
-                    Destination.entries.forEach { item ->
-                        val itemLabel = stringResource(item.label)
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    PrimaryDestination.entries.forEach { item ->
+                        val itemLabel = primaryLabel(item)
                         NavigationBarItem(
-                            selected = destination == item,
-                            onClick = { destination = item },
+                            selected = navigation.primary == item,
+                            onClick = { navigation.select(item) },
                             modifier = Modifier.semantics { contentDescription = itemLabel },
                             icon = {
                                 Icon(
-                                    painter = painterResource(item.icon),
+                                    imageVector = primaryIcon(item),
                                     contentDescription = itemLabel,
                                 )
                             },
@@ -96,23 +116,44 @@ fun FieldAtlasApp(
             },
         ) { padding ->
             Box(Modifier.padding(padding)) {
-                when (destination) {
-                    Destination.Research -> ResearchScreen(
+                when (navigation.primary) {
+                    PrimaryDestination.Research -> ResearchScreen(
                         state = researchState,
-                        assetsReady = ready,
                         inferenceState = inferenceState,
+                        collectionCount = packs.count { it.type == PackType.KNOWLEDGE },
                         suggestions = knowledgePack?.discovery?.exampleQuestions.orEmpty(),
                         onQuestionChange = onQuestionChange,
                         onSubmit = onSubmit,
                         onStop = onStop,
-                        onLoadModel = onLoadModel,
-                        onUnloadModel = onUnloadModel,
-                        onSource = { selectedSource = it },
+                        onPrepareModel = onLoadModel,
+                        onOpenAnswer = navigation::openAnswer,
                     )
-                    Destination.Library -> LibraryScreen(packs, onImportPack)
-                    Destination.Proof -> ProofScreen(proof, onExportDiagnostics, onOpenBenchmark)
+                    PrimaryDestination.Library -> LibraryScreen(packs, onImportPack)
+                    PrimaryDestination.More -> MoreScreen(
+                        proof = proof,
+                        inferenceState = inferenceState,
+                        onPrepareModel = onLoadModel,
+                        onReleaseModel = onUnloadModel,
+                        onExportDiagnostics = onExportDiagnostics,
+                        onOpenBenchmark = onOpenBenchmark,
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun primaryLabel(destination: PrimaryDestination): String = stringResource(
+    when (destination) {
+        PrimaryDestination.Research -> R.string.nav_research
+        PrimaryDestination.Library -> R.string.nav_library
+        PrimaryDestination.More -> R.string.nav_more
+    },
+)
+
+private fun primaryIcon(destination: PrimaryDestination): ImageVector = when (destination) {
+    PrimaryDestination.Research -> FieldAtlasIcons.Research
+    PrimaryDestination.Library -> FieldAtlasIcons.Library
+    PrimaryDestination.More -> FieldAtlasIcons.More
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -47,7 +48,7 @@ fun SetupScreen(
     val nextAction = deriveSetupNextAction(packs, importing)
     var showErrorDetails by rememberSaveable(error) { mutableStateOf(false) }
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding().padding(horizontal = 20.dp),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {

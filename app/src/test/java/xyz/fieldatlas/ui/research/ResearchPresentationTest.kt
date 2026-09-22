@@ -25,6 +25,29 @@ class ResearchPresentationTest {
         assertEquals("1 of 1 sources cited", model.citationCoverage)
     }
 
+    @Test fun citationTargetsOnlyExistingSources() {
+        val model = buildAnswerPresentation("Result [S1], [S2], [S2], and [S8]", sourceCount = 2)
+
+        assertEquals(setOf(1, 2), model.availableCitations)
+        assertEquals(setOf(8), model.unavailableCitations)
+    }
+
+    @Test fun zeroSourcesMakesEveryCitationUnavailable() {
+        val model = buildAnswerPresentation("Unsupported [S1]", sourceCount = 0)
+
+        assertEquals(emptySet<Int>(), model.availableCitations)
+        assertEquals(setOf(1), model.unavailableCitations)
+    }
+
+    @Test fun generationLabelsUsePlainResearchLanguage() {
+        assertEquals("Ready for a question", researchActivityLabel(ResearchPhase.Idle))
+        assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching))
+        assertEquals("Writing from sources", researchActivityLabel(ResearchPhase.Generating))
+        assertEquals("Answer ready", researchActivityLabel(ResearchPhase.Complete))
+        assertEquals("More evidence needed", researchActivityLabel(ResearchPhase.Insufficient))
+        assertEquals("Research needs attention", researchActivityLabel(ResearchPhase.Error))
+    }
+
     private fun metrics(
         totalMillis: Long,
         tokens: Int,

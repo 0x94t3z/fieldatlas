@@ -21,6 +21,7 @@ import xyz.fieldatlas.benchmark.BenchmarkCodec
 import xyz.fieldatlas.diagnostics.DiagnosticsProvider
 import xyz.fieldatlas.export.ExportStagingStore
 import xyz.fieldatlas.ui.FieldAtlasApp
+import xyz.fieldatlas.ui.rememberFieldAtlasNavigationState
 import xyz.fieldatlas.ui.proof.BenchmarkScreen
 import xyz.fieldatlas.ui.proof.BenchmarkViewModel
 import xyz.fieldatlas.ui.research.ResearchViewModel
@@ -40,6 +41,7 @@ class MainActivity : ComponentActivity() {
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
             var showBenchmark by rememberSaveable { mutableStateOf(false) }
+            val appNavigation = rememberFieldAtlasNavigationState()
             val scope = rememberCoroutineScope()
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
             val proof = remember(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
@@ -51,12 +53,16 @@ class MainActivity : ComponentActivity() {
             val diagnosticsExporter = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
-                if (uri != null) transferExport(scope, exportStore, DIAGNOSTICS_EXPORT, uri)
+                if (uri != null) transferExport(
+                    scope, exportStore, DIAGNOSTICS_EXPORT, uri, "Diagnostics exported",
+                )
             }
             val benchmarkExporter = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
-                if (uri != null) transferExport(scope, exportStore, BENCHMARK_EXPORT, uri)
+                if (uri != null) transferExport(
+                    scope, exportStore, BENCHMARK_EXPORT, uri, "Benchmark evidence exported",
+                )
             }
 
             if (showBenchmark) {
@@ -89,6 +95,7 @@ class MainActivity : ComponentActivity() {
                 researchState = researchState,
                 inferenceState = inferenceState,
                 proof = proof,
+                navigation = appNavigation,
                 onImportPack = { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
                 onQuestionChange = researchViewModel::updateQuestion,
                 onSubmit = researchViewModel::submit,
@@ -133,6 +140,7 @@ class MainActivity : ComponentActivity() {
         store: ExportStagingStore,
         name: String,
         uri: android.net.Uri,
+        successMessage: String,
     ) {
         scope.launch {
             val result = runCatching {
@@ -145,7 +153,7 @@ class MainActivity : ComponentActivity() {
             }
             Toast.makeText(
                 this@MainActivity,
-                if (result.isSuccess) "Evidence exported" else "Export failed; try again",
+                if (result.isSuccess) successMessage else "Export failed; try again",
                 Toast.LENGTH_LONG,
             ).show()
         }

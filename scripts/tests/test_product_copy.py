@@ -34,11 +34,12 @@ class ProductCopyTest(unittest.TestCase):
             self.assertNotIn(phrase, text)
         self.assertNotIn("!", text)
 
-    def test_navigation_resources_use_research_library_and_proof(self):
+    def test_navigation_resources_use_research_library_and_more(self):
         strings = (ROOT / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8")
         self.assertIn('name="nav_research"', strings)
         self.assertIn('name="nav_library"', strings)
-        self.assertIn('name="nav_proof"', strings)
+        self.assertIn('name="nav_more"', strings)
+        self.assertNotIn('name="nav_proof"', strings)
         self.assertNotIn('name="nav_diagnostics"', strings)
 
     def test_public_android_name_has_the_human_readable_space(self):
@@ -48,8 +49,8 @@ class ProductCopyTest(unittest.TestCase):
 
     def test_public_candidate_has_release_version(self):
         gradle = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
-        self.assertIn("versionCode = 2", gradle)
-        self.assertIn('versionName = "1.0.0"', gradle)
+        self.assertIn("versionCode = 3", gradle)
+        self.assertIn('versionName = "1.1.0"', gradle)
 
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -63,7 +64,7 @@ class ProductCopyTest(unittest.TestCase):
             path
             for path in ROOT.rglob("*.md")
             if not any(
-                part in {".git", ".gradle", ".worktrees", "build", "third_party"}
+                part in {".git", ".gradle", ".superpowers", ".worktrees", "build", "third_party"}
                 for part in path.relative_to(ROOT).parts
             )
         ]

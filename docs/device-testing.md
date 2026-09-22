@@ -1,6 +1,6 @@
 # Physical-device testing
 
-Run the full matrix on the 4 GB Infinix Smart 20 first, then repeat the tagged build on a supported Pixel running GrapheneOS. Emulator results do not satisfy either hardware row.
+Run the full matrix on the lowest-memory target first, then repeat the tagged build on a supported Pixel running GrapheneOS. Emulator results do not replace physical-device evidence.
 
 Automated Compose instrumentation has also run on a paired **Infinix X6840, Android 16/API 36, ARM64**. This is not represented as the Smart 20 or GrapheneOS target. The sanitized record is under `docs/evidence/physical/infinix-x6840-android16/`. It proves native installation and UI execution only; it does not replace the offline model/packs matrix below.
 

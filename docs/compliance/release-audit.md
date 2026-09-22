@@ -6,6 +6,10 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
+The current public candidate is Field Atlas `1.1.0` (`versionCode` 3). Its signed APK is 49,150,454 bytes with SHA-256 `5de7c22ec06babb83932f58a890c0d0efb1383c31aa3a2281ce89d10ddd4f9d2`. The release candidate was upgraded in place, imported both offline packs, loaded the model, completed a cited answer, and opened its exact source passage on the physical Infinix X6840. The complete 28-test connected suite passed immediately before the final citation-wrapping and benchmark-back refinements; their JVM and Android-test compilation gates pass, while the paired handset currently requires ADB authorization before those focused device checks can be repeated.
+
+The table below records the original `1.0.0` hardware evidence session retained with the repository.
+
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
 | Debug APK | 84,612,936 | `0e362502a0c82550f922861897984306d7915bd7bfa408919c679e43ff38d6c8` |

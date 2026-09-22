@@ -1,8 +1,8 @@
 package xyz.fieldatlas.ui.proof
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,7 +13,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -21,7 +20,7 @@ import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.benchmark.BenchmarkResultState
 import xyz.fieldatlas.benchmark.BenchmarkRun
 import xyz.fieldatlas.inference.InferenceState
-import xyz.fieldatlas.ui.theme.FieldAtlasHeader
+import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 
 @Composable
 fun BenchmarkScreen(
@@ -32,19 +31,14 @@ fun BenchmarkScreen(
     onExport: (BenchmarkRun) -> Unit,
     onBack: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-                TextButton(onClick = onBack) { Text("Back to proof") }
-            }
-            FieldAtlasHeader(
-                title = "Device benchmark",
-                subtitle = "Run one frozen question at a time and retain the raw local evidence.",
-            )
-        }
+    BackHandler(onBack = onBack)
+    Column(Modifier.fillMaxSize()) {
+        FieldAtlasTopBar(title = "Device benchmark", onBack = onBack)
+        LazyColumn(
+            modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+        item { Text("Run one frozen question at a time and retain the raw local evidence.") }
         item {
             Text(
                 "${state.run.results.size} / ${state.totalQuestions} completed",
@@ -100,6 +94,7 @@ fun BenchmarkScreen(
                     }
                 }
             }
+        }
         }
     }
 }

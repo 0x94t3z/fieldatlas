@@ -14,5 +14,6 @@ build/
 *.jks
 keystore.properties
 .DS_Store
+.superpowers/
 __pycache__/
 *.pyc
