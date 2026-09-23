@@ -16,10 +16,21 @@ The recorded package version, APK checksum, Android release, and airplane-mode s
 
 Airplane mode was enabled and Wi-Fi and mobile data were disabled before launching the app. The installed model and knowledge pack were used to answer “Why do Earth's hemispheres have opposite seasons?” locally. The resulting answer displays the offline state and mapped local citations.
 
-- `research-home-light.png` — current light-theme research home while radios were off.
-- `radios-off-answer.png` — completed on-device answer with local source and citation markers.
-- `library-light.png` — installed model and knowledge pack in the current Field Notebook library.
-- `research-home-dark.png` — current Android-system dark theme.
+### Research home · light theme
+
+![Field Atlas research home in the light theme while offline](research-home-light.png)
+
+### Installed local assets
+
+![Field Atlas library showing the installed local model and knowledge pack](library-light.png)
+
+### Cited offline answer
+
+![Completed on-device answer with local citations](radios-off-answer.png)
+
+### Research home · dark theme
+
+![Field Atlas research home following the Android system dark theme](research-home-dark.png)
 
 ## Memory observation
 
@@ -27,6 +38,20 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 ## Video
 
-`field-atlas-current-demo.mp4` is a 46.97-second 1920 x 1080 H.264 demo built from the current Infinix run. It shows the current Field Atlas branding, offline research flow, the installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, a cited answer, and local grounding. `field-atlas-claim-answer.png`, `field-atlas-claim-overview.jpg`, and `field-atlas-claim-preview.gif` are derived from that demo for public proof posts and POIDH claim upload.
+<video src="field-atlas-current-demo.mp4" controls width="720">
+  <a href="field-atlas-current-demo.mp4">Play the complete physical-device demo</a>
+</video>
+
+[![Animated preview of the Field Atlas physical-device demo](field-atlas-claim-preview.gif)](field-atlas-current-demo.mp4)
+
+The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the current Infinix run. It shows the current Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. Select the animated preview if the video player is unavailable.
+
+### Claim answer
+
+![Field Atlas cited answer prepared for the public proof post](field-atlas-claim-answer.png)
+
+### Demo overview
+
+![Overview frames from the Field Atlas physical-device demo](field-atlas-claim-overview.jpg)
 
 This record demonstrates installation, local execution, offline mode, local source attribution, and the current visual build on one physical Android device. It does not represent GrapheneOS testing or an independent assessment of the bounty's quality bar.

@@ -8,6 +8,16 @@ Field Atlas retrieves local evidence and produces cited answers with an on-devic
 
 The signed Android release has been exercised offline on a physical Infinix X6840. Reproducible checks cover the app, pack format, native runtime, offline policy, and release artifacts.
 
+## Demo
+
+<video src="https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4" controls width="720">
+  <a href="https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4">Play the Field Atlas demo</a>
+</video>
+
+[![Field Atlas offline Android demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
+
+The recording shows Field Atlas running on a physical Infinix Android phone with radios off, using its installed local model and knowledge pack to produce a cited answer. Select the animated preview if your Markdown viewer does not display the video player.
+
 ## Project layout
 
 - `app/` — native Kotlin/Jetpack Compose Android application and tests
@@ -51,7 +61,7 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The sta
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk), verify SHA-256 `c66e3d7943adb290a65108e20c270a17fc4b0f3f2ab6f03853d808e555af136e`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk), verify SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 2. Install the APK. Android may require permission for the file manager to install unknown apps.
 3. Open Field Atlas and import the model and knowledge packs with the system document picker.
 4. Turn on airplane mode and explicitly disable Wi-Fi and mobile data.
