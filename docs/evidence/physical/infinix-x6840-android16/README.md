@@ -46,10 +46,6 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the current Infinix run. It shows the current Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. Select the animated preview if the video player is unavailable.
 
-### Claim answer
-
-![Field Atlas cited answer prepared for the public proof post](field-atlas-claim-answer.png)
-
 ### Demo overview
 
 ![Overview frames from the Field Atlas physical-device demo](field-atlas-claim-overview.jpg)
