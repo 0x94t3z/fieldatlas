@@ -24,6 +24,6 @@ The offline-policy audit rejects network permissions, cleartext traffic, common 
 
 ## Physical-device record
 
-The sanitized [Infinix X6840 record](evidence/physical/infinix-x6840-android16/README.md) documents a signed, radios-off model load and cited answer on a 4 GB Android 16 handset. It includes measured memory and timing observations, screenshots, and a device recording without retaining the device serial or user data.
+The sanitized [Infinix X6840 record](evidence/physical/infinix-x6840-android16/README.md) documents a signed, radios-off model load and cited answers on a 4 GB Android 16 handset. It includes measured memory and timing observations, several explanation/comparison/synthesis queries, exact local source passages, screenshots, and device recordings without retaining the device serial or user data.
 
 GrapheneOS compatibility follows the standard Android document picker, app-private storage, and bundled ARM64 runtime design. A dedicated physical Pixel/GrapheneOS record should still accompany any device-specific compatibility claim.

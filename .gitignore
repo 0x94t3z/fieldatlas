@@ -10,6 +10,7 @@ build/
 .cxx/
 *.gguf
 *.fapack
+!releases/*.fapack
 *.keystore
 *.jks
 keystore.properties

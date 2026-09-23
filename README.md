@@ -16,7 +16,9 @@ The signed Android release has been exercised offline on a physical Infinix X684
 
 [![Field Atlas offline Android demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
 
-The recording shows Field Atlas running on a physical Infinix Android phone with radios off, using its installed local model and knowledge pack to produce a cited answer. Select the animated preview if your Markdown viewer does not display the video player.
+The recording shows Field Atlas running on a physical Infinix Android phone with radios off, using its installed local model and knowledge pack to produce a cited answer. Select the animated preview if your Markdown viewer does not display the video player. Additional unedited [multi-query device evidence](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) covers water safety, solar storage, and a cross-source treatment recommendation.
+
+Public proof: [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8).
 
 ## Project layout
 
@@ -51,19 +53,19 @@ The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c86
 
 ## Prepare offline assets
 
-Build the project-authored starter knowledge pack. It is labelled **Demo coverage** in the app; it validates the workflow and is not presented as broad research coverage.
+Download the ready-to-import [Field Atlas Starter Evidence pack](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/fieldatlas-starter-1.0.0.fapack), or reproduce it locally:
 
 ```sh
 ./scripts/build_starter_pack.sh
 ```
 
-Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the workflow but is not sufficient for competitive research quality; its exact scope and licensing are in [DATASETS.md](DATASETS.md).
+Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`. Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the workflow but is not sufficient for competitive research quality; its exact scope and licensing are in [DATASETS.md](DATASETS.md).
 
 ## Install and use
 
 1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk), verify SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 2. Install the APK. Android may require permission for the file manager to install unknown apps.
-3. Open Field Atlas and import the model and knowledge packs with the system document picker.
+3. Open Field Atlas and import the model pack and downloaded starter knowledge pack with the system document picker.
 4. Turn on airplane mode and explicitly disable Wi-Fi and mobile data.
 5. Tap **Prepare for research**, enter a question, then tap **Start research**.
 6. Read the answer and select a numbered citation to inspect its exact supporting passage.

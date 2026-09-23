@@ -6,7 +6,7 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-The current public candidate is Field Atlas `1.1.1` (`versionCode` 4). Its signed APK is 49,128,438 bytes with SHA-256 `c66e3d7943adb290a65108e20c270a17fc4b0f3f2ab6f03853d808e555af136e`. It contains only the Field Notebook appearance: warm paper surfaces, forest-green accents, editorial typography, and tactile research cards; system dark-theme selection is not part of this release. The release candidate was upgraded in place, imported both offline packs, loaded the model, completed a cited answer, and opened its exact source passage on the physical Infinix X6840. The complete 28-test connected suite passed immediately before the final citation-wrapping and benchmark-back refinements; their JVM and Android-test compilation gates pass, while the paired handset currently requires ADB authorization before those focused device checks can be repeated.
+The current public candidate is Field Atlas `1.1.1` (`versionCode` 4). Its signed APK is 49,143,558 bytes with SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`. It uses the Field Notebook appearance in both Android-system light and dark themes. The release candidate was upgraded in place, imported both offline packs, loaded the model, completed a cited answer, and opened its exact source passage on the physical Infinix X6840. On 2026-09-23 the installed base APK was pulled from the connected handset and matched the public release byte-for-byte. The same audit reran 42 deterministic Python tests, JVM unit tests, release lint, all 29 connected Android tests on the Infinix, the offline APK policy, and APK v2 signature verification successfully. The latest public GitHub Actions run for the candidate source also passed.
 
 The table below records the original `1.0.0` hardware evidence session retained with the repository.
 
@@ -28,7 +28,7 @@ The native ARM64 Android app runs on the Infinix. No supported Pixel running Gra
 
 ## B31-02 — PASS
 
-The successful loaded-model run occurred on a device with 3,831,080 KiB physical memory. Measured app memory was 2,135,363 KiB PSS, 1,290,491 KiB RSS, and 927,123 KiB swap PSS, below the 12 GB environment ceiling.
+The successful loaded-model run occurred on a device with 3,831,080 KiB physical memory. The current retained observation reports 2,099,224 KiB total PSS, 116,047 KiB total RSS, and 2,048,864 KiB swap PSS, below the 12 GB environment ceiling. This is one field observation rather than a peak-memory guarantee.
 
 ## B31-03 — PASS
 
@@ -46,9 +46,9 @@ The manifest requests neither `INTERNET` nor `ACCESS_NETWORK_STATE`, disables cl
 
 The APK audit found no Google Play Services or Firebase packages. Instrumentation asserts that Google API availability classes are absent, and core use succeeded without Play Services integration.
 
-## B31-07 — BLOCKED
+## B31-07 — PASS
 
-The frozen 18-question hardware run completed with 16 `COMPLETE` and 2 explicit `INSUFFICIENT` rows across explanation, comparison, synthesis, reasoning, factual, and abstention categories. The starter corpus is intentionally narrow and outputs have not been scored against a named baseline, so broad research-quality coverage is not claimed.
+The physical-device record now includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. The frozen 18-question hardware run also completed with 16 `COMPLETE` and 2 explicit `INSUFFICIENT` rows across explanation, comparison, synthesis, reasoning, factual, and abstention categories. The starter corpus remains intentionally narrow and these results do not establish broad or frontier-level research quality.
 
 ## B31-08 — PASS
 
@@ -60,7 +60,7 @@ The reviewed tree is public at `https://github.com/0x94t3z/fieldatlas`.
 
 ## B31-10 — PASS
 
-The tree contains source, exact submodule gitlink, deterministic pack builders, CI, toolchain bootstrap, model/data provenance, release gates, and reproduction instructions. A healthy-network clean clone must still initialize the pinned llama.cpp submodule before publication.
+The tree contains source, exact submodule gitlink, deterministic pack builders, the ready-to-import starter knowledge pack, CI, toolchain bootstrap, model/data provenance, release gates, and reproduction instructions. A healthy-network clean clone initializes the pinned llama.cpp submodule recursively.
 
 ## B31-11 — PASS
 
@@ -78,13 +78,13 @@ Observed acceptance bounds were about 8 seconds for APK installation, at most 64
 
 The repository provides deterministic knowledge/model pack builders plus immutable model download, checksum, USB transfer, import, and troubleshooting instructions.
 
-## B31-15 — BLOCKED
+## B31-15 — PASS
 
-The authentic device demo is published with the GitHub release, but no X or Farcaster post URL is recorded.
+The authentic device demo is published in the repository and linked from the public Farcaster post at `https://farcaster.xyz/0x94t3z.eth/0x9538cba8`. The post links the public repository and briefly describes the local-model and local-knowledge approach.
 
 ## B31-16 — BLOCKED
 
-The public recording shows offline operation, explanation, comparison, synthesis, source cards, model reload, proof metrics, and abstention. It does not yet establish the requested difficult-query bar through a public X or Farcaster post.
+The current public recording shows offline operation, local inference, a cited explanation, and its exact supporting source passage. It contains one seasons query, not the several examples requested by the bounty, and therefore does not yet establish the difficult-query bar through a public X or Farcaster post.
 
 ## B31-17 — BLOCKED
 

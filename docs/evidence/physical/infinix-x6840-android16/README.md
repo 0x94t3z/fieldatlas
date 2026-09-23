@@ -1,6 +1,6 @@
 # Field Atlas 1.1.1 physical-device record
 
-Captured on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64. The device reported `Infinix X6840`; the signed installed package was `xyz.fieldatlas` version 1.1.1 (`versionCode` 4).
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`; the signed installed package was `xyz.fieldatlas` version 1.1.1 (`versionCode` 4).
 
 ## Exact tested artifact
 
@@ -11,6 +11,8 @@ Captured on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Androi
 - Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
+
+The installed base APK was pulled back from the connected device on 2026-09-23 and matched the public release byte-for-byte at SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`.
 
 ## Radios-off run
 
@@ -50,4 +52,48 @@ The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the curren
 
 ![Overview frames from the Field Atlas physical-device demo](field-atlas-claim-overview.jpg)
 
+## Additional multi-query evidence
+
+These follow-up runs used the same installed signed APK, local Qwen model, starter knowledge pack, airplane mode, and disabled Wi-Fi. The raw portrait recordings retain the real inference wait rather than replacing it with simulated output.
+
+### Water-treatment limitation
+
+Question: “What does boiling water remove, and what can remain?”
+
+<video src="water-safety-proof.mp4" controls width="360">
+  <a href="water-safety-proof.mp4">Play the 87.65-second raw water-safety run</a>
+</video>
+
+![Offline water-safety answer with a numbered local citation](water-safety-answer.png)
+
+![Exact local water-safety passage opened from the answer citation](water-safety-source.png)
+
+### Solar-storage reasoning
+
+Question: “When can battery storage help a solar-heavy grid?”
+
+<video src="solar-storage-proof.mp4" controls width="360">
+  <a href="solar-storage-proof.mp4">Play the 96.69-second raw solar-storage run</a>
+</video>
+
+![Offline solar-storage answer grounded in installed sources](solar-storage-answer.png)
+
+![Exact local solar-storage passage opened from the answer citation](solar-storage-source.png)
+
+### Cross-source comparison and synthesis
+
+Question: “Compare boiling and filtration for water that may contain pathogens and dissolved metals, then explain what evidence must be checked before recommending treatment.”
+
+<video src="cross-source-water-proof.mp4" controls width="360">
+  <a href="cross-source-water-proof.mp4">Play the 170.32-second raw cross-source run</a>
+</video>
+
+![Offline cross-source answer generated from three installed passages](cross-source-water-answer.png)
+
+![Cross-source answer showing its numbered local citations](cross-source-water-citations.png)
+
+![The separate evidence-comparison passage opened from citation 2](cross-source-water-source.png)
+
 This record demonstrates installation, local execution, offline mode, local source attribution, and the current visual build on one physical Android device. It does not represent GrapheneOS testing or an independent assessment of the bounty's quality bar.
+
+Public proof: [Farcaster](https://farcaster.xyz/0x94t3z.eth/0x9538cba8).
