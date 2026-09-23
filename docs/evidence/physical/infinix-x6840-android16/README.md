@@ -4,8 +4,8 @@ Captured on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Androi
 
 ## Exact tested artifact
 
-- Signed APK: 49,144,290 bytes.
-- SHA-256: `104461ea2c5a55c4832238757b012eb8bf4623a2bbe6f4d7dbf24af770cd35ba`.
+- Signed APK: 49,143,558 bytes.
+- SHA-256: `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`.
 - Offline APK audit: passed.
 - Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
 - Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
@@ -27,6 +27,6 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 ## Video
 
-`field-atlas-current-demo.mp4` is a 234.39-second native 720 × 1576 H.264 recording pulled directly from the Infinix during a radios-off session. It records the current Field Notebook Research home, installed local model and knowledge pack, Android radios-off state, real preparation, the full local research run, and the completed cited answer. `field-atlas-current-demo-source-hold.mp4` is a separate raw source-passage hold from the same device and answer state. The two recordings are intentionally preserved as separate, unedited device files because the OEM recorder enforces a real-frame cap on long captures.
+`field-atlas-current-demo.mp4` is a 46.97-second 1920 x 1080 H.264 demo built from the current Infinix run. It shows the current Field Atlas branding, offline research flow, the installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, a cited answer, and local grounding. `field-atlas-claim-answer.png`, `field-atlas-claim-overview.jpg`, and `field-atlas-claim-preview.gif` are derived from that demo for public proof posts and POIDH claim upload.
 
 This record demonstrates installation, local execution, offline mode, local source attribution, and the current visual build on one physical Android device. It does not represent GrapheneOS testing or an independent assessment of the bounty's quality bar.
