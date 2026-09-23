@@ -28,6 +28,8 @@ python3 scripts/model_manifest.py \
   --output qwen3-1.7b-q4-k-m-1.0.0.fapack
 ```
 
+The output file to copy to Android is `qwen3-1.7b-q4-k-m-1.0.0.fapack`. Field Atlas imports this model pack through **Choose model pack**. The raw `Qwen3-1.7B-Q4_K_M.gguf` is only an input to the pack builder.
+
 The builder streams the model, rejects a hash mismatch, and stores the verified GGUF without compression or a managed-memory copy. Model weights are not committed to Git.
 
 ## Limits and validation status

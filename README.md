@@ -53,7 +53,12 @@ The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c86
 
 ## Prepare offline assets
 
-Download the ready-to-import [Field Atlas Starter Evidence pack](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/fieldatlas-starter-1.0.0.fapack), or reproduce it locally:
+Field Atlas needs two local files before it can answer questions:
+
+- a model pack, built from the documented Qwen3 1.7B GGUF model
+- a knowledge pack, such as the ready-to-import [Field Atlas Starter Evidence pack](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/fieldatlas-starter-1.0.0.fapack)
+
+The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The starter knowledge pack can also be reproduced locally:
 
 ```sh
 ./scripts/build_starter_pack.sh
@@ -63,14 +68,18 @@ Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk), verify SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
-2. Install the APK. Android may require permission for the file manager to install unknown apps.
-3. Open Field Atlas and import the model pack and downloaded starter knowledge pack with the system document picker.
-4. Turn on airplane mode and explicitly disable Wi-Fi and mobile data.
-5. Tap **Prepare for research**, enter a question, then tap **Start research**.
-6. Read the answer and select a numbered citation to inspect its exact supporting passage.
-7. Open **More** for privacy details, the guided device benchmark, and diagnostics export.
-8. Use **Release model memory** in More when the local model is no longer needed.
+1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk).
+2. Download or build the two packs: one model `.fapack` and one knowledge `.fapack`.
+3. Copy the APK and both `.fapack` files to the Android phone.
+4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
+5. Open Field Atlas, tap **Choose model pack**, and select the model `.fapack`.
+6. Tap **Choose knowledge pack** and select the starter knowledge `.fapack`.
+7. Open Research, tap **Prepare for research**, enter a question, then tap **Start research**.
+8. Read the answer and select a numbered citation to inspect its exact supporting passage.
+9. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
+10. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
+
+The release APK SHA-256 is `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 
