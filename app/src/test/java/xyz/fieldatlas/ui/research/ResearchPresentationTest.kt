@@ -44,6 +44,10 @@ class ResearchPresentationTest {
         assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching))
         assertEquals("Searching your library (47%)", researchActivityLabel(ResearchPhase.Searching, 0.47))
         assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching, 0.004))
+        assertEquals(
+            "Searching your library (+3 concept matches, 42%)",
+            researchActivityLabel(ResearchPhase.Searching, 0.42, vectorMatches = 3),
+        )
         assertEquals("Writing from sources", researchActivityLabel(ResearchPhase.Generating))
         assertEquals(
             "Writing from sources (85 tokens written)",

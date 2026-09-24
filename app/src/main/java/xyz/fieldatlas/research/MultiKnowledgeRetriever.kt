@@ -40,28 +40,31 @@ class MultiKnowledgeRetriever(
     override suspend fun search(
         query: String,
         limit: Int,
-        onProgress: suspend (Double) -> Unit,
+        onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> = withContext(ioDispatcher) {
         require(limit in 1..50) { "Evidence limit must be between 1 and 50" }
         if (FtsQuery.from(query) == null) return@withContext emptyList()
         val files = databaseFiles()
         val embeddings = runCatching(packEmbeddings).getOrDefault(emptyList())
         val total = files.size.coerceAtLeast(1)
+        var vectorMatches = 0
         val runs = files.mapIndexed { index, file ->
             runCatching {
                 val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
                 val keyword = FtsRetriever(database).search(query, limit) { inner ->
-                    onProgress((index + inner.coerceIn(0.0, 1.0)) / total)
+                    onProgress(SearchProgress((index + inner.fraction.coerceIn(0.0, 1.0)) / total, vectorMatches))
                 }
-                keyword.withVectorEvidence(database, embeddings.getOrNull(index), query, limit)
+                val (run, hits) = keyword.withVectorEvidence(database, embeddings.getOrNull(index), query, limit)
+                vectorMatches += hits
+                run
             }.getOrElse { error ->
                 if (error is OutOfMemoryError) throw error
                 opened.remove(file.absolutePath)?.close()
-                onProgress((index + 1.0) / total)
+                onProgress(SearchProgress((index + 1.0) / total, vectorMatches))
                 emptyList()
             }
         }
-        onProgress(1.0)
+        onProgress(SearchProgress(1.0, vectorMatches))
         mergeEvidence(runs, limit)
     }
 
@@ -80,16 +83,16 @@ class MultiKnowledgeRetriever(
         embedding: PackEmbedding?,
         query: String,
         limit: Int,
-    ): List<Evidence> {
-        if (embedding == null || !database.hasVectorTable()) return this
+    ): Pair<List<Evidence>, Int> {
+        if (embedding == null || !database.hasVectorTable()) return this to 0
         val vector = runCatching { embed(embedding.queryPrefix + query) }.getOrNull()
-            ?: return this
-        if (vector.size != embedding.dim) return this
+            ?: return this to 0
+        if (vector.size != embedding.dim) return this to 0
         val hits = database
             .vectorSearch(vector, embedding.dim, limit)
             .filter { evidence -> evidence.score >= embedding.rejectBelow }
-        if (hits.isEmpty()) return this
-        return fuseVectorAhead(hits, this)
+        if (hits.isEmpty()) return this to 0
+        return fuseVectorAhead(hits, this) to hits.size
     }
 
     internal companion object {
@@ -103,7 +106,12 @@ class MultiKnowledgeRetriever(
          */
         internal fun fuseVectorAhead(hits: List<Evidence>, keyword: List<Evidence>): List<Evidence> {
             val anchored = hits.mapIndexed { rank, evidence ->
-                evidence.copy(score = VECTOR_FLOOR - (hits.size - rank))
+                // The cosine that earned this chunk its place is the honest per-source
+                // attribution shown under the answer; the anchored score is merge plumbing.
+                evidence.copy(
+                    score = VECTOR_FLOOR - (hits.size - rank),
+                    matchedBy = "concept match ${"%.2f".format(evidence.score)}",
+                )
             }
             val seen = hits.map { evidence ->
                 Triple(evidence.documentId, evidence.chunkId, evidence.source)

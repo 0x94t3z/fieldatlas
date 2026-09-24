@@ -212,7 +212,7 @@ private fun ResearchAction(
 ) {
     if (state.isRunning || inferenceState == InferenceState.Generating) {
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten), fontWeight = FontWeight.SemiBold)
+            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten, state.retrievalVectorMatches), fontWeight = FontWeight.SemiBold)
             if (state.keywords.isNotEmpty()) {
                 Text(
                     "Searching for: ${state.keywords.joinToString(", ")}",

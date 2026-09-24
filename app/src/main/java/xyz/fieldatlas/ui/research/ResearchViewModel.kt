@@ -37,6 +37,7 @@ data class ResearchUiState(
     val keywords: List<String> = emptyList(),
     val phase: ResearchPhase = ResearchPhase.Idle,
     val retrievalProgress: Double = 0.0,
+    val retrievalVectorMatches: Int = 0,
     /** (tokensRead, tokensTotal) while the engine decodes the answer prompt; null otherwise. */
     val promptRead: Pair<Int, Int>? = null,
     val tokensWritten: Int = 0,
@@ -84,6 +85,13 @@ class ResearchViewModel(
             orchestrator.searchProgress.collect { fraction ->
                 mutableUiState.update { state ->
                     state.copy(retrievalProgress = fraction.coerceIn(0.0, 1.0))
+                }
+            }
+        }
+        scope.launch {
+            orchestrator.vectorMatches.collect { count ->
+                mutableUiState.update { state ->
+                    state.copy(retrievalVectorMatches = count.coerceAtLeast(0))
                 }
             }
         }
@@ -175,6 +183,7 @@ class ResearchViewModel(
                     is ResearchEvent.Searching -> mutableUiState.value.copy(
                         phase = ResearchPhase.Searching,
                         retrievalProgress = 0.0,
+                        retrievalVectorMatches = 0,
                         error = null,
                     )
                     is ResearchEvent.Sources -> mutableUiState.value.copy(sources = event.evidence)

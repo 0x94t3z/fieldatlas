@@ -102,7 +102,12 @@ fun AnswerScreen(
                         // [S#] markers reference them.
                         state.sources.forEachIndexed { index, evidence ->
                             Text(
-                                "${index + 1}: ${evidence.title}",
+                                buildString {
+                                    append("${index + 1}: ${evidence.title}")
+                                    // Why this source is here: the query terms that matched it,
+                                    // or the cosine when the pack embedding found it.
+                                    evidence.matchedBy?.let { append("  ·  $it") }
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier

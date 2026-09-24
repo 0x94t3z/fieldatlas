@@ -24,7 +24,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
     override suspend fun search(
         query: String,
         limit: Int,
-        onProgress: suspend (Double) -> Unit,
+        onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> {
         require(limit in 1..50) { "limit must be between 1 and 50" }
         val sanitized = FtsQuery.from(query) ?: return emptyList()
@@ -32,7 +32,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         // (models invent plausible compound words) would make every conjunction empty.
         val alive = sanitized.terms.filter { term -> frequencyOf(term) > 0 }
         if (alive.isEmpty()) return emptyList()
-        onProgress(0.3)
+        onProgress(SearchProgress(0.3))
 
         val rareFirst = alive.sortedWith(compareBy({ frequencyOf(it) }, { -it.length }))
         val core = rareFirst.take(CORE_TERMS)
@@ -54,14 +54,14 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             consider(exact)
             break
         }
-        onProgress(0.55)
+        onProgress(SearchProgress(0.55))
 
         // Pack-strength pass: bm25 over every surviving term at once. The question's entities
         // are often corpus-common (encyclopaedic) words that the rare-core stage discards; this
         // is the pass that retrieves the Lion and Taiwan ARTICLES for questions about them. Its
         // full fetched head goes into the pool, so it can never be gated out by other stages.
         consider(database.search(alive.joinToString(" OR ") { term -> "\"$term\"" }, limit * 3))
-        onProgress(0.8)
+        onProgress(SearchProgress(0.8))
 
         // Coverage pass: per-term probes so every entity of a compound question ("Singapore or
         // Honduras") keeps a candidate even when the pack's overall bm25 leader is something
@@ -92,32 +92,27 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         // planner filler ("La Liga records and statistics" for statistics/records). Slot
         // scarcity was removed on purpose: three slots let three cov-2 noise pages bury the one
         // article a question is actually about.
-        val titleCandidates = if (alive.isEmpty()) emptyList() else database.titleCandidateTitles(
+        // Title boost: one nominated article PER TERM - the SHORTEST-titled article whose
+        // title contains that term (so "Taiwan" beats "Taiwan Railway"), then the slots go to
+        // the RAREST terms (frequency-probed) so generic words ("mount", "data") cannot spend
+        // the whole budget on stub pages while "allies" - the word that actually names the
+        // answer - is crowded out. This is the fixed21 behaviour, restored verbatim after
+        // coverage-tier experiments proved it worse on the 16-case answer battery: what was
+        // actually broken around it (merge starvation, probe cap, query order) got fixed
+        // separately and stays fixed.
+        val candidateIndex = if (alive.isEmpty()) emptyMap() else database.titleCandidateTitles(
             alive.take(TITLE_TERM_SCAN)
                 .joinToString(" OR ") { term -> "title : \"" + term.replace("\"", "") + "\"" },
-        ).associateWith { candidate -> titleTermsIn(candidate.title, alive) }
-            .filter { (candidate, covered) -> candidate.isNamedBy(covered) }
-            .map { (candidate, covered) ->
-                Triple(
-                    candidate,
-                    // Tier 1: the title IS a query term. Tier 2: its FIRST WORD is one
-                    // ("Allies of World War I" for allies, "Mount Everest" for mount). Within
-                    // a tier, titles built around the RAREST covered word lead - "Mount
-                    // Everest" (everest is rare) beats "Mount Lu", and long titles that merely
-                    // contain common words never reach this list at all.
-                    if (covered.any { term -> candidate.title.length <= term.length + TITLE_EXACT_SLACK }) 0 else 1,
-                    covered.minOf { term -> frequencyOf(term) },
-                )
-            }
-            .sortedWith(
-                compareBy<Triple<TitleCandidate, Int, Int>> { (_, tier, _) -> tier }
-                    .thenBy { (_, _, rarest) -> rarest }
-                    .thenBy { (candidate, _, _) -> candidate.title.length },
-            )
-            .distinctBy { (candidate, _, _) -> candidate.title.lowercase() }
+        ).associateWith { candidate -> candidate.title.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).toHashSet() }
+        val nominated = alive.take(TITLE_TERM_SCAN).mapNotNull { term ->
+            candidateIndex.entries.filter { (_, tokens) -> term in tokens }
+                .minByOrNull { (candidate, _) -> candidate.title.length }
+                ?.let { entry -> frequencyOf(term) to entry.key }
+        }.sortedBy { (frequency, _) -> frequency }
+            .distinctBy { (_, candidate) -> candidate.title.lowercase() }
             .take(TITLE_BOOST_CAP)
-            .map { (candidate, _, _) -> candidate }
-        val titleRows = database.titleLeadChunks(titleCandidates)
+            .map { (_, candidate) -> candidate }
+        val titleRows = database.titleLeadChunks(nominated)
         // Chosen title articles re-score below the whole pool's floor, ordered by their
         // weighted coverage, so the pack's ranking leads with the articles the question names.
         val titleBoosts = LinkedHashMap<String, Int>()
@@ -143,24 +138,20 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             chunksPerDocument[row.documentId] = used + 1
             picked += row
         }
-        return picked.also { onProgress(1.0) }
+        return picked.map { row -> row.copy(matchedBy = keywordAttribution(row, alive)) }
+            .also { onProgress(SearchProgress(1.0)) }
+    }
+
+    /** "keyword: a, b" naming up to four query terms actually present in the chunk. */
+    private fun keywordAttribution(evidence: Evidence, terms: List<String>): String? {
+        val tokens = (evidence.title + " " + evidence.text).lowercase()
+            .split(Regex("[^\\p{L}\\p{N}]+")).toHashSet()
+        val covered = terms.filter { term -> term in tokens }.distinct().take(4)
+        return if (covered.isEmpty()) null else "keyword: " + covered.joinToString(", ")
     }
 
     private fun frequencyOf(term: String): Int = frequencyCache.getOrPut(term) {
         database.countCapped("\"$term\"", FREQUENCY_PROBE_CAP)
-    }
-
-    /** The query terms appearing as whole words in a title - the boost ordering key. */
-    private fun titleTermsIn(title: String, terms: List<String>): List<String> {
-        val tokens = title.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).toHashSet()
-        return terms.filter { term -> term in tokens }
-    }
-
-    /** Name-like: the title IS one of the terms, or its first word is one of them. */
-    private fun TitleCandidate.isNamedBy(covered: List<String>): Boolean {
-        val tokens = title.lowercase().split(Regex("[^\\p{L}\\p{N}]+"))
-        return covered.any { term -> title.length <= term.length + TITLE_EXACT_SLACK } ||
-            tokens.firstOrNull()?.let { first -> first in covered } == true
     }
 
     private companion object {
@@ -169,6 +160,5 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         const val MAX_CHUNKS_PER_DOCUMENT = 2
         const val TITLE_BOOST_CAP = 8
         const val TITLE_TERM_SCAN = 16
-        const val TITLE_EXACT_SLACK = 2
     }
 }

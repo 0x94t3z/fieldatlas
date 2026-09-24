@@ -259,25 +259,20 @@ class Pack:
         # Title-coverage boosts (mirror of FtsRetriever): titles holding the most query terms
         # win the boost slots; ties go to titles of rarer words (count-sum), then shortest.
         # Case-duplicate pages share a slot; one lede chunk per slot.
+        # Title boost (mirror of FtsRetriever): one nomination per term - shortest title
+        # containing the term - slots to the rarest terms, cap 3, one lede chunk each.
         candidates = self.title_candidate_titles(alive)
-        scored = []
-        for title, rowid in candidates:
-            tokens = re.split(r"[^\w]+", title.lower())
-            covered = [t for t in alive if t in set(tokens)]
-            # Name-like only: the title IS a query term, or its FIRST WORD is one ("Allies of
-            # World War I" for allies, "Mount Everest" for mount). Long titles that merely
-            # contain common words are ordinary bm25 rows, never boosts.
-            if not covered: continue
-            # Tier 1: the title IS a query term (strongest); tier 2: first word is one.
-            exact = any(len(title) <= len(t) + 2 for t in covered)
-            if not exact and tokens[0] not in covered: continue
-            scored.append((0 if exact else 1, min(counts[t] for t in covered), len(title), title.lower(), rowid))
-        scored.sort()
+        tokenized = [(title, rowid, set(re.split(r"[^\w]+", title.lower()))) for title, rowid in candidates]
+        nominated = []
+        for t in alive[:16]:
+            hits = [(len(title), title.lower(), rowid) for title, rowid, toks in tokenized if t in toks]
+            if hits: nominated.append((counts[t],) + min(hits))
+        nominated.sort()
         chosen, seen_lower = [], set()
-        for _, _, _, low, rowid in scored:
+        for _, _, low, rowid in nominated:
             if low in seen_lower: continue
             seen_lower.add(low); chosen.append(rowid)
-            if len(chosen) >= 8: break
+            if len(chosen) >= 3: break
         boosts = {}
         for idx, rowid in enumerate(chosen):
             r = self.title_lead(rowid)

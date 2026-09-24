@@ -44,6 +44,7 @@ fun researchActivityLabel(
     retrievalProgress: Double = 0.0,
     promptRead: Pair<Int, Int>? = null,
     tokensWritten: Int = 0,
+    vectorMatches: Int = 0,
 ): String {
     val readSuffix = promptRead
         ?.takeIf { (read, total) -> total > 0 && read <= total && tokensWritten == 0 }
@@ -53,7 +54,8 @@ fun researchActivityLabel(
         ResearchPhase.Idle -> "Ready for a question"
         ResearchPhase.Planning -> "Generating search keywords$readSuffix"
         ResearchPhase.Searching -> if (retrievalProgress >= 0.02) {
-            "Searching your library (${(retrievalProgress * 100).toInt().coerceIn(1, 99)}%)"
+            val found = if (vectorMatches > 0) "+$vectorMatches concept matches, " else ""
+            "Searching your library ($found${(retrievalProgress * 100).toInt().coerceIn(1, 99)}%)"
         } else {
             "Searching your library"
         }

@@ -29,7 +29,7 @@ class ResearchOrchestratorTest {
                 // Real device publishes these from withContext(Dispatchers.IO) inside the
                 // multi-pack retriever — the exact setting that crashed flow-emit progress.
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    onProgress(0.4); onProgress(1.0)
+                    onProgress(SearchProgress(0.4)); onProgress(SearchProgress(1.0))
                 }
                 listOf(evidence)
             },

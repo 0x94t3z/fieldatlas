@@ -28,6 +28,10 @@ class ResearchOrchestrator(
     private val _searchProgress = MutableStateFlow(0.0)
     val searchProgress: StateFlow<Double> = _searchProgress
 
+    /** How many evidence matches so far came from vector (concept) search instead of keywords. */
+    private val _vectorMatches = MutableStateFlow(0)
+    val vectorMatches: StateFlow<Int> = _vectorMatches
+
     private val activeRun = AtomicBoolean(false)
 
     fun research(
@@ -49,6 +53,7 @@ class ResearchOrchestrator(
         try {
             val startedAt = monotonicMillis()
             _searchProgress.value = 0.0
+            _vectorMatches.value = 0
             emit(ResearchEvent.Planning(question))
             // Query understanding runs before retrieval: the loaded model turns "Tell me about
             // viruses" into the terms documents actually use (virus, viral, infection), because
@@ -93,8 +98,9 @@ class ResearchOrchestrator(
             // must speak first - planner synonyms fill in breadth behind it.
             val merged = (questionTerms + keywords).distinct()
             if (merged.isNotEmpty()) {
-                evidence = retriever.search(merged.joinToString(" "), resultLimit) { fraction ->
-                    _searchProgress.value = fraction
+                evidence = retriever.search(merged.joinToString(" "), resultLimit) { progress ->
+                    _searchProgress.value = progress.fraction
+                    _vectorMatches.value = progress.vectorMatches
                 }
             }
             if (evidence.isEmpty()) {
