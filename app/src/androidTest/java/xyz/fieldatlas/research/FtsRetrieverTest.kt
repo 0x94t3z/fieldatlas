@@ -74,9 +74,9 @@ class FtsRetrieverTest {
         assertEquals(setOf("Source E", "Source F"), results.map { it.source }.toSet())
     }
 
-    @Test fun broadFallbackFindsEvidenceAcrossComparisonTerms() = withRetriever { retriever ->
+    @Test fun strictRetrievalDoesNotCitePartialComparisonMatches() = withRetriever { retriever ->
         val results = retriever.search("Compare solar and wind for a local grid", 5)
-        assertEquals(setOf("doc-a", "doc-b"), results.map { it.documentId }.toSet())
+        assertTrue(results.isEmpty())
     }
 
     @Test fun operatorsAndUnicodeAreSafeBoundQueries() = withRetriever { retriever ->

@@ -8,17 +8,17 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 The current public candidate is Field Atlas `1.1.10` (`versionCode` 13), rebuilt with the Reference-aligned `questions-v2.json` benchmark and the inflected-term retrieval fix. Its signed APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d` (also recorded in `docs/releases/field-atlas-1.1.10.md`). It uses the Field Notebook appearance in both Android-system light and dark themes. This build bundles and installs the focused Field Atlas Reference knowledge pack on first launch, including migration away from the legacy Starter Evidence pack, so users only import a model pack. Cited answers still require strict local-evidence matches; a question without a matching passage falls back to an explicitly uncited offline-model answer. JVM tests, release lint, signed assembly, offline policy, and physical installation pass.
 
-The table below records the original `1.0.0` hardware evidence session retained with the repository.
+The table below records the original hardware evidence session retained with the repository. The current reviewed artifact is the signed `1.1.10` APK above; older rows are retained only as provenance for the historical capture.
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
 | Debug APK | 84,612,936 | `0e362502a0c82550f922861897984306d7915bd7bfa408919c679e43ff38d6c8` |
 | Unsigned release APK | 49,014,387 | `39d59da9295fd07d886f920104a0c0362a379c33884c6d5a88000df75f2c7f1d` |
 | Signed release APK | 49,022,579 | `13448e4b91ffc00971168a024dd74a808ac3394d14866c4858c85c2875a1b022` |
-| Starter knowledge pack | 25,500 | `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b` |
+| Historical Starter knowledge pack | 25,500 | `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b` |
 | Qwen3 1.7B model pack | 1,282,441,304 | `e4ac4b6b68d55b1846c70fc877ef142954669cb8e04b85d4a74e4838430ae60b` |
 
-The release matrix covers 12 packtool tests, 26 release-script tests, 4 scorer tests, 96 JVM tests, release lint, debug/unsigned/signed assembly, signature identity, offline APK policy, release-reflection retention, and physical instrumentation. Candidate APKs are ARM64/API 33+ and contain no network permission. The signed APK uses v2 signing and certificate SHA-256 `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
+The release matrix covers 12 packtool tests, 26 release-script tests, 4 scorer tests, 96 JVM tests, 29 connected Android tests on the Infinix X6840, release lint, debug/unsigned/signed assembly, signature identity, offline APK policy, and release-reflection retention. Candidate APKs are ARM64/API 33+ and contain no network permission. The signed APK uses v2 signing and certificate SHA-256 `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
 
 The signed radios-off acceptance run used a physical Infinix SMART 20 / X6840 on Android 16. Exact screenshots and observations are in `docs/evidence/physical/infinix-x6840-android16/`.
 
@@ -32,7 +32,7 @@ The successful loaded-model run occurred on a device with 3,831,080 KiB physical
 
 ## B31-03 — PASS
 
-`StorageBudget` enforces a 50,000,000,000-byte installed cap plus archive/extraction headroom. Overflow and low-space behavior are tested; imported model and starter packs total about 1.283 GB.
+`StorageBudget` enforces a 50,000,000,000-byte installed cap plus archive/extraction headroom. Overflow and low-space behavior are tested; the imported model plus bundled Reference pack total about 1.283 GB. The Starter row above is historical provenance only.
 
 ## B31-04 — PASS
 

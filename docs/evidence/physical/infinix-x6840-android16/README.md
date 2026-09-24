@@ -2,17 +2,17 @@
 
 Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. The historical 1.1.6 package is retained below; the current signed Field Atlas 1.1.10 package (`versionCode` 13) was installed in place on 2026-09-24 and launched successfully. The bundled Field Atlas Reference knowledge set appeared automatically in Library.
 
-## Exact tested artifact
+## Current reviewed artifact
 
-- Signed APK: 49,145,506 bytes.
-- SHA-256: `951c66746830813a8874ab011e35b3d0b06d6752e5d1006b5c678c6cdf8be40d`.
+- Signed APK: 49,155,300 bytes (`Field Atlas v1.1.10`).
+- SHA-256: `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d`.
 - Offline APK audit: passed.
 - Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
 - Knowledge pack: Field Atlas Reference, 45.06 KB.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The current 1.1.10 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set. The exact current hash is recorded in `docs/releases/field-atlas-1.1.10.md`; the artifact table above remains the historical 1.1.6 capture.
+The current 1.1.10 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set. The exact release hash is also recorded in `docs/releases/field-atlas-1.1.10.md`.
 
 The current-build review page with the Reference-pack screenshot is [here](../../current-reference-v1.1.6/README.md).
 
@@ -56,7 +56,7 @@ The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlie
 
 ## Additional multi-query evidence
 
-These follow-up runs used the earlier installed signed APK, local Qwen model, Starter Evidence pack, airplane mode, and disabled Wi-Fi. The raw portrait recordings retain the real inference wait rather than replacing it with simulated output; they are historical evidence and do not claim to demonstrate the current Reference pack.
+These follow-up runs used the earlier installed signed APK, local Qwen model, Starter Evidence pack, airplane mode, and disabled Wi-Fi. The raw portrait recordings retain the real inference wait rather than replacing it with simulated output; they are historical evidence and do not claim to demonstrate the current Reference pack. The current Reference-pack install and behavior are documented above and in the current-build review page.
 
 ### Water-treatment limitation
 

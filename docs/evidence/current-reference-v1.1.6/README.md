@@ -1,10 +1,10 @@
 # Current Field Atlas Reference build
 
-This page is the review hub for the functional Field Atlas `1.1.6` build. The APK is the signed release linked from the [installation guide](../../installation.md), and the source is pinned by the public `main` history.
+This page is the review hub for the Field Atlas Reference build currently shipped in Field Atlas `1.1.10`. The directory name is retained for link stability from the earlier review; it does not identify the current app version. The signed APK is linked from the [installation guide](../../installation.md), and the source is pinned by the public `main` history.
 
 ## Real-device check
 
-On 2026-09-24, the signed `xyz.fieldatlas` package was installed on an Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64. The app launched with radios disabled. The bundled Reference pack migrated into app-private storage automatically; no knowledge-pack import was required.
+On 2026-09-24, the signed `xyz.fieldatlas` `1.1.10` package was installed on an Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64. The app launched with radios disabled. The bundled Reference pack migrated into app-private storage automatically; no knowledge-pack import was required.
 
 ![Field Atlas Reference pack in Library on the Infinix](library-reference-infinix.png)
 
