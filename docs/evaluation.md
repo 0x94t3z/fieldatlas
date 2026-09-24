@@ -1,12 +1,12 @@
 # Evaluation
 
-`benchmarks/questions-v1.json` freezes 18 questions: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
+`benchmarks/questions-v2.json` freezes 18 questions aligned with the bundled Field Atlas Reference pack: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
 
 Each answer is scored for required evidence phrases, prohibited claims, citations, and appropriate abstention. This mechanical rubric is deliberately reproducible but cannot replace human review of correctness or prose quality.
 
 ```sh
 python3 benchmarks/score_results.py \
-  --benchmark benchmarks/questions-v1.json \
+  --benchmark benchmarks/questions-v2.json \
   --offline build/evidence/offline-results.json \
   --baseline build/evidence/baseline-results.json \
   --output build/evidence/paired-score.json

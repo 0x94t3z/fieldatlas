@@ -42,7 +42,7 @@ class AppContainer(context: Context) {
     private val registry = AssetRegistry(appContext.filesDir)
     private val importer = AssetImporter(appContext)
     private val mutablePacks = MutableStateFlow<List<InstalledAsset>>(emptyList())
-    private val benchmarkQuestions = appContext.assets.open("benchmark/questions-v1.json")
+    private val benchmarkQuestions = appContext.assets.open("benchmark/questions-v2.json")
         .bufferedReader(Charsets.UTF_8).use { reader ->
             Json.decodeFromString<BenchmarkQuestionSet>(reader.readText()).also {
                 require(it.schemaVersion == 1) { "Unsupported bundled benchmark schema" }

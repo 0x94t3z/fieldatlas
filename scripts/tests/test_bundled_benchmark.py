@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 class BundledBenchmarkTest(unittest.TestCase):
     def test_android_benchmark_copy_matches_frozen_source(self):
-        source = json.loads((ROOT / "benchmarks/questions-v1.json").read_text(encoding="utf-8"))
+        source = json.loads((ROOT / "benchmarks/questions-v2.json").read_text(encoding="utf-8"))
         bundled = json.loads(
-            (ROOT / "app/src/main/assets/benchmark/questions-v1.json").read_text(encoding="utf-8")
+            (ROOT / "app/src/main/assets/benchmark/questions-v2.json").read_text(encoding="utf-8")
         )
         self.assertEqual(source, bundled)
 
