@@ -1,6 +1,6 @@
 # Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed Field Atlas 1.1.6 package (`versionCode` 9) was installed in place and launched successfully. The bundled Field Atlas Reference knowledge set appeared automatically in Library.
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. The historical 1.1.6 package is retained below; the current signed Field Atlas 1.1.10 package (`versionCode` 13) was installed in place on 2026-09-24 and launched successfully. The bundled Field Atlas Reference knowledge set appeared automatically in Library.
 
 ## Exact tested artifact
 
@@ -12,7 +12,7 @@ Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X684
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The 1.1.6 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set.
+The current 1.1.10 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set. The exact current hash is recorded in `docs/releases/field-atlas-1.1.10.md`; the artifact table above remains the historical 1.1.6 capture.
 
 The current-build review page with the Reference-pack screenshot is [here](../../current-reference-v1.1.6/README.md).
 
@@ -48,7 +48,7 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 [![Animated preview of the Field Atlas physical-device demo](field-atlas-claim-preview.gif)](field-atlas-current-demo.mp4)
 
-The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlier Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. The current 1.1.6 Reference pack is documented separately from this historical recording.
+The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlier Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. The recording predates the 1.1.10 retrieval and hardware-back fixes and remains historical evidence.
 
 ### Demo overview
 

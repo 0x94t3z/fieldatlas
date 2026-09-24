@@ -68,7 +68,7 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Ref
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.6 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.6/field-atlas-v1.1.6.apk).
+1. Download the signed [Field Atlas 1.1.10 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.10/fieldatlas-1.1.10.apk).
 2. Download or build the model `.fapack`.
 3. Copy the APK and model `.fapack` to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
@@ -78,7 +78,7 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Ref
 8. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
 9. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-The release APK SHA-256 is `3b9edba447cfad6e777e2243ab3ae9f9b75973493c6ebc8a7993aafbad654783`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+The release APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 

@@ -6,7 +6,7 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-The next public candidate is Field Atlas `1.1.7` (`versionCode` 10), rebuilt with the Reference-aligned `questions-v2.json` benchmark. It uses the Field Notebook appearance in both Android-system light and dark themes. This build bundles and installs the focused Field Atlas Reference knowledge pack on first launch, including migration away from the legacy Starter Evidence pack, so users only import a model pack. Cited answers still require strict local-evidence matches; a question without a matching passage falls back to an explicitly uncited offline-model answer. JVM unit tests and release assembly pass; physical installation and benchmark export for 1.1.7 remain to be recorded.
+The current public candidate is Field Atlas `1.1.10` (`versionCode` 13), rebuilt with the Reference-aligned `questions-v2.json` benchmark and the inflected-term retrieval fix. Its signed APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d` (also recorded in `docs/releases/field-atlas-1.1.10.md`). It uses the Field Notebook appearance in both Android-system light and dark themes. This build bundles and installs the focused Field Atlas Reference knowledge pack on first launch, including migration away from the legacy Starter Evidence pack, so users only import a model pack. Cited answers still require strict local-evidence matches; a question without a matching passage falls back to an explicitly uncited offline-model answer. JVM tests, release lint, signed assembly, offline policy, and physical installation pass.
 
 The table below records the original `1.0.0` hardware evidence session retained with the repository.
 
