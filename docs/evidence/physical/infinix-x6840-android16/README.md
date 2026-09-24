@@ -1,18 +1,18 @@
-# Field Atlas 1.1.1 physical-device record
+# Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`; the signed installed package was `xyz.fieldatlas` version 1.1.1 (`versionCode` 4).
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed installed package was upgraded in place to `xyz.fieldatlas` version 1.1.2 (`versionCode` 5).
 
 ## Exact tested artifact
 
-- Signed APK: 49,143,558 bytes.
-- SHA-256: `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`.
+- Signed APK: 49,145,506 bytes.
+- SHA-256: `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`.
 - Offline APK audit: passed.
 - Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
 - Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The installed base APK was pulled back from the connected device on 2026-09-23 and matched the public release byte-for-byte at SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`.
+The installed base APK was pulled back from the connected device on 2026-09-24 and matched the public 1.1.2 release byte-for-byte at SHA-256 `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`.
 
 ## Radios-off run
 
@@ -46,7 +46,7 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 [![Animated preview of the Field Atlas physical-device demo](field-atlas-claim-preview.gif)](field-atlas-current-demo.mp4)
 
-The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the current Infinix run. It shows the current Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. Select the animated preview if the video player is unavailable.
+The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the 1.1.1 Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. Select the animated preview if the video player is unavailable.
 
 ### Demo overview
 

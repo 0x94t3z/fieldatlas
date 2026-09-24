@@ -101,7 +101,11 @@ fun ResearchScreen(
                 FieldAtlasCard(Modifier.fillMaxWidth()) {
                     Text("Answer ready", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "Written from ${state.sources.size} installed ${if (state.sources.size == 1) "source" else "sources"}.",
+                        if (state.sources.isEmpty()) {
+                            "Written by the offline model without local citations."
+                        } else {
+                            "Written from ${state.sources.size} installed ${if (state.sources.size == 1) "source" else "sources"}."
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     FieldAtlasPrimaryButton(

@@ -65,7 +65,7 @@ fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchM
         total = formatDuration(metrics.totalMillis),
         tokenCount = "${metrics.generatedTokenCount} generated tokens",
         tokenRate = rate,
-        citationCoverage = "$citedCount of $sourceCount sources cited",
+        citationCoverage = if (sourceCount == 0) "No local sources cited" else "$citedCount of $sourceCount sources cited",
         hasUnmappedCitation = metrics.hasUnmappedCitation,
     )
 }

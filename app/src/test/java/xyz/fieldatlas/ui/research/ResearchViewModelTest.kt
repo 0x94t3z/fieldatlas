@@ -61,6 +61,19 @@ class ResearchViewModelTest {
         assertEquals(ResearchPhase.Complete, state.phase)
     }
 
+    @Test fun noEvidenceStillCompletesWithOfflineModelAnswer() {
+        val viewModel = viewModel(
+            Retriever { _, _ -> emptyList() },
+            FakeInferenceGateway(listOf("Offline model answer")),
+        )
+        viewModel.updateQuestion("Explain F1")
+        viewModel.submit()
+        val state = viewModel.uiState.value
+        assertEquals("Offline model answer", state.answer)
+        assertTrue(state.sources.isEmpty())
+        assertEquals(ResearchPhase.Complete, state.phase)
+    }
+
     @Test fun modelThinkingIsNeverPresentedAsTheResearchAnswer() {
         val viewModel = viewModel(
             Retriever { _, _ -> listOf(evidence) },

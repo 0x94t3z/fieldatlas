@@ -35,16 +35,19 @@ class ResearchOrchestrator(
             emit(ResearchEvent.Searching(question))
             val evidence = retriever.search(question, resultLimit)
             val retrievalFinishedAt = monotonicMillis()
-            if (evidence.isEmpty()) {
-                emit(ResearchEvent.InsufficientEvidence("No matching offline evidence was found"))
-                return@flow
+            val packed = if (evidence.isEmpty()) {
+                PromptBuilder.buildModelOnly(question)
+            } else {
+                PromptBuilder.build(question, evidence, contextTokenBudget)
             }
-            val packed = PromptBuilder.build(question, evidence, contextTokenBudget)
             if (packed.sources.isEmpty()) {
-                emit(ResearchEvent.InsufficientEvidence("The context budget could not fit any evidence"))
-                return@flow
+                if (evidence.isNotEmpty()) {
+                    emit(ResearchEvent.InsufficientEvidence("The context budget could not fit any evidence"))
+                    return@flow
+                }
+            } else {
+                emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
             }
-            emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
 
             var firstTokenAt: Long? = null
             var generatedTokenCount = 0

@@ -29,12 +29,16 @@ class ResearchOrchestratorTest {
         assertEquals(0, inference.generateCalls)
     }
 
-    @Test fun noEvidenceEmitsInsufficiencyAndSkipsGeneration() = runBlocking {
-        val inference = FakeInferenceGateway(listOf("unused"))
+    @Test fun noEvidenceFallsBackToUncitedOfflineModelAnswer() = runBlocking {
+        val inference = FakeInferenceGateway(listOf("General offline answer"))
         val events = ResearchOrchestrator(Retriever { _, _ -> emptyList() }, inference)
             .research("Question").toList()
-        assertTrue(events.last() is ResearchEvent.InsufficientEvidence)
-        assertEquals(0, inference.generateCalls)
+        assertEquals(listOf("General offline answer"), events.filterIsInstance<ResearchEvent.Token>().map { it.text })
+        assertTrue(events.none { it is ResearchEvent.Sources })
+        val metrics = events.last() as ResearchEvent.Complete
+        assertTrue(metrics.metrics.citedSourceIds.isEmpty())
+        assertFalse(metrics.metrics.hasUnmappedCitation)
+        assertEquals(1, inference.generateCalls)
     }
 
     @Test fun streamsSourcesTokensAndCitationMetrics() = runBlocking {

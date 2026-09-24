@@ -32,6 +32,15 @@ class PromptBuilderTest {
         assertTrue(packed.prompt.contains("/no_think"))
     }
 
+    @Test fun modelOnlyPromptAllowsUncitedOfflineLookup() {
+        val packed = PromptBuilder.buildModelOnly("Explain F1")
+
+        assertTrue(packed.sources.isEmpty())
+        assertTrue(packed.prompt.contains("offline knowledge only"))
+        assertTrue(packed.prompt.contains("do not invent citations"))
+        assertTrue(packed.prompt.contains("Explain F1"))
+    }
+
     @Test fun truncationPreservesCitationMappingAndSurrogatePairs() {
         val huge = first.copy(text = "😀".repeat(2_000))
         val packed = PromptBuilder.build("Summarize", listOf(huge, second), 128)

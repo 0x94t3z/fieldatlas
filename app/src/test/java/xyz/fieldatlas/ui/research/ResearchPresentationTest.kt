@@ -14,6 +14,9 @@ class ResearchPresentationTest {
 
         val missing = formatResearchMetrics(metrics(totalMillis = 0, tokens = 10), sourceCount = 2)
         assertNull(missing.tokenRate)
+
+        val modelOnly = formatResearchMetrics(metrics(totalMillis = 1_000, tokens = 10), sourceCount = 0)
+        assertEquals("No local sources cited", modelOnly.citationCoverage)
     }
 
     @Test fun exposesUnmappedCitationAsAWarningInsteadOfAConfidenceClaim() {

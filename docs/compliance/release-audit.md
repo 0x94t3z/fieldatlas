@@ -6,7 +6,7 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-The current public candidate is Field Atlas `1.1.1` (`versionCode` 4). Its signed APK is 49,143,558 bytes with SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`. It uses the Field Notebook appearance in both Android-system light and dark themes. The release candidate was upgraded in place, imported both offline packs, loaded the model, completed a cited answer, and opened its exact source passage on the physical Infinix X6840. On 2026-09-23 the installed base APK was pulled from the connected handset and matched the public release byte-for-byte. The same audit reran 42 deterministic Python tests, JVM unit tests, release lint, all 29 connected Android tests on the Infinix, the offline APK policy, and APK v2 signature verification successfully. The latest public GitHub Actions run for the candidate source also passed.
+The current public candidate is Field Atlas `1.1.2` (`versionCode` 5). Its signed APK is 49,145,506 bytes with SHA-256 `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`. It uses the Field Notebook appearance in both Android-system light and dark themes. The release candidate was upgraded in place on the physical Infinix X6840, launched successfully, and the installed base APK was pulled back from the handset and matched the public release byte-for-byte. This build adds uncited offline-model fallback for questions outside the installed knowledge while retaining cited source-backed answers when local evidence is retrieved. The audit reran focused JVM unit tests, release lint through `assembleRelease`, the offline APK policy, and APK v2 signature verification successfully.
 
 The table below records the original `1.0.0` hardware evidence session retained with the repository.
 
@@ -48,7 +48,7 @@ The APK audit found no Google Play Services or Firebase packages. Instrumentatio
 
 ## B31-07 — PASS
 
-The physical-device record now includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. The frozen 18-question hardware run also completed with 16 `COMPLETE` and 2 explicit `INSUFFICIENT` rows across explanation, comparison, synthesis, reasoning, factual, and abstention categories. The starter corpus remains intentionally narrow and these results do not establish broad or frontier-level research quality.
+The physical-device record includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. Field Atlas now also supports uncited offline-model answers when no matching local source is retrieved. The starter corpus remains intentionally narrow and these results do not establish broad or frontier-level research quality.
 
 ## B31-08 — PASS
 

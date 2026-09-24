@@ -35,6 +35,7 @@ fun AnswerScreen(
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     val sourceLabel = if (state.sources.size == 1) "1 source" else "${state.sources.size} sources"
+    val hasSources = state.sources.isNotEmpty()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -55,11 +56,15 @@ fun AnswerScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        "Answer from $sourceLabel",
+                        if (hasSources) "Answer from $sourceLabel" else "Offline model answer",
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        "Generated on this device from your installed knowledge.",
+                        if (hasSources) {
+                            "Generated on this device from your installed knowledge."
+                        } else {
+                            "No matching local source was found, so this answer is uncited."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

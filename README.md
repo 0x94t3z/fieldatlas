@@ -4,7 +4,7 @@
 
 *Answers grounded in what you carry.*
 
-Field Atlas retrieves local evidence and produces cited answers with an on-device model. It has no network permission, makes no remote inference or search requests, and does not require Google Play Services. Model and knowledge packs are selected from local storage and verified before installation.
+Field Atlas answers with an on-device model and uses local knowledge packs when it can ground a response in citations. If no matching local source is found, it can still give an uncited offline model answer and labels that path clearly. It has no network permission, makes no remote inference or search requests, and does not require Google Play Services. Model and knowledge packs are selected from local storage and verified before installation.
 
 The signed Android release has been exercised offline on a physical Infinix X6840. Reproducible checks cover the app, pack format, native runtime, offline policy, and release artifacts.
 
@@ -53,22 +53,22 @@ The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c86
 
 ## Prepare offline assets
 
-Field Atlas needs two local files before it can answer questions:
+Field Atlas needs two local files for the full research workflow:
 
 - a model pack, built from the documented Qwen3 1.7B GGUF model
 - a knowledge pack, such as the ready-to-import [Field Atlas Starter Evidence pack](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/fieldatlas-starter-1.0.0.fapack)
 
-The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The starter knowledge pack can also be reproduced locally:
+The model pack lets Field Atlas answer offline. The knowledge pack lets it retrieve local passages, add citations, and open exact supporting sources. The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The starter knowledge pack can also be reproduced locally:
 
 ```sh
 ./scripts/build_starter_pack.sh
 ```
 
-Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`. Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the workflow but is not sufficient for competitive research quality; its exact scope and licensing are in [DATASETS.md](DATASETS.md).
+Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`. Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the citation workflow but is not broad coverage; questions outside it fall back to an uncited offline model answer. Its exact scope and licensing are in [DATASETS.md](DATASETS.md).
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk).
+1. Download the signed [Field Atlas 1.1.2 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.2.apk).
 2. Download or build the two packs: one model `.fapack` and one knowledge `.fapack`.
 3. Copy the APK and both `.fapack` files to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
@@ -79,13 +79,13 @@ Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b
 9. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
 10. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-The release APK SHA-256 is `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+The release APK SHA-256 is `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 
 ## Architecture and privacy
 
-The Compose UI calls a research orchestrator that sanitizes an FTS5 query, retrieves bounded passages, packs a citation-constrained prompt, and streams llama.cpp output. The model is loaded only after an explicit tap. Import rejects unknown manifest fields, unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes, duplicate versions, and storage-budget violations. Research questions remain on-device; diagnostic export excludes the latest question unless the user opts in.
+The Compose UI calls a research orchestrator that sanitizes an FTS5 query, retrieves bounded passages, packs a citation-constrained prompt when local sources exist, and streams llama.cpp output. When retrieval finds no matching local source, the orchestrator switches to an uncited offline-model prompt instead of making a network request. The model is loaded only after an explicit tap. Import rejects unknown manifest fields, unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes, duplicate versions, and storage-budget violations. Research questions remain on-device; diagnostic export excludes the latest question unless the user opts in.
 
 ## Verification
 
