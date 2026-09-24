@@ -101,4 +101,4 @@ Project-authored corpus licensing, upstream notices, dependency versions, releas
 
 ## B31-20 — BLOCKED
 
-The deterministic paired scorer emits per-question, category, and overall results and refuses issuer-success wording. The local run exists, but a frozen named online-baseline output has not been collected, so no greater-than-50-percent claim is made.
+The deterministic paired scorer emitted per-question, category, and overall results for the 18-question run. Against the dynamic OpenRouter `openrouter/free` route, Field Atlas scored `0.027778` versus `0.194444` (ratio `0.142859`, or 14.3%). This exploratory result does not meet the greater-than-50-percent bar, and the router is not a pinned model/provider; no winner-quality claim is made. The recorded interpretation is in `docs/evidence/benchmark-free-router-2026-09-24/README.md`.
