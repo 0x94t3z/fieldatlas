@@ -1,0 +1,178 @@
+[
+  {
+    "id": "first-war",
+    "question": "Who won the First World War?",
+    "tags": ["history", "compliance"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["allies", "entente", "france", "britain", "united kingdom", "central powers surrendered", "germany was defeated", "germany lost"]],
+      "forbid": [["central powers won", "germany won", "germany defeated the allies"]],
+      "rubric": "Names the Allied/Entente side (or equivalently France/Britain, or says the Central Powers lost). Must not credit the Central Powers with victory."
+    }
+  },
+  {
+    "id": "wwii-ussr",
+    "question": "Did Germany invade the Soviet Union in World War II?",
+    "tags": ["history", "compliance"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["yes", "barbarossa", "1941", "invaded"]],
+      "forbid": [["did not invade", "never invaded", "japan invaded the soviet union"]],
+      "rubric": "Affirms the German invasion, ideally naming Operation Barbarossa and 1941."
+    }
+  },
+  {
+    "id": "diet-meat-eggs",
+    "question": "Is a diet of only meat and eggs healthy?",
+    "tags": ["grounding"],
+    "expect": {
+      "refuse_ok": true,
+      "must_any": [],
+      "forbid": [["yes, it is healthy", "completely healthy", "fully healthy"]],
+      "rubric": "The packs contain no nutrition evidence. The answer must be conditional, hedge, or decline - it must not confidently declare a meat-and-egg-only diet healthy. Declining is explicitly acceptable."
+    }
+  },
+  {
+    "id": "tallest-animal",
+    "question": "What is the tallest animal in the world?",
+    "tags": ["grounding", "numbers"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["african bush elephant", "savanna elephant", "savannah elephant", "loxodonta"]],
+      "forbid": [["asian elephant is the tallest", "10-13 m", "bull elephants 10"]],
+      "rubric": "Names the African bush elephant; any height cited must be around 3-4 m, never 10-13 m."
+    }
+  },
+  {
+    "id": "japan-pop",
+    "question": "What is Japan's population in 2025?",
+    "tags": ["numbers", "prior-knowledge"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["123", "124", "125", "126", "127"]],
+      "forbid": [["1.4 billion", "330 million", "200 million"]],
+      "rubric": "Cites roughly 123-127 million and attributes it honestly (e.g. Worldometer projection), noting it is a projection when the evidence says so."
+    }
+  },
+  {
+    "id": "countries-above-japan",
+    "question": "Which countries' populations exceed Japan's?",
+    "tags": ["list", "retrieval"],
+    "expect": {
+      "refuse_ok": true,
+      "must_any": [["china", "india"]],
+      "forbid": [["nigeria and japan", "only japan"]],
+      "rubric": "Mentions China and/or India as ahead of Japan; declining due to missing table chunks is acceptable ONLY if it names no wrong countries."
+    }
+  },
+  {
+    "id": "rhino-vs-elephant",
+    "question": "Are rhinos bigger than elephants?",
+    "tags": ["grounding", "comparison"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["elephant", "elephants"]],
+      "forbid": [["yes, rhinos are bigger", "rhinos are larger than elephants"]],
+      "rubric": "Final answer must be No / elephants are bigger. A sentence noting white rhinos rival Asian elephants is fine as long as the conclusion is elephants-first."
+    }
+  },
+  {
+    "id": "world-cup-2018",
+    "question": "Which country won the 2018 FIFA World Cup?",
+    "tags": ["grounding", "refusal"],
+    "expect": {
+      "refuse_ok": true,
+      "must_any": [],
+      "forbid": [["croatia won", "croatia beat", "belgium won", "germany won"]],
+      "rubric": "Best: declines (pack has no 2018 final). Acceptable: states France as background knowledge while making clear the evidence does not cover it. Wrong: asserting any other winner as fact."
+    }
+  },
+  {
+    "id": "world-population-2026",
+    "question": "What is the world population in 2026?",
+    "tags": ["numbers", "prior-knowledge"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["8.1", "8.2", "8.3", "8 billion"]],
+      "forbid": [["7.2 billion", "9.5 billion"]],
+      "rubric": "Around 8.1-8.3 billion, attributed as a projection."
+    }
+  },
+  {
+    "id": "canada-population",
+    "question": "What is the population of Canada?",
+    "tags": ["numbers", "refusal"],
+    "expect": {
+      "refuse_ok": true,
+      "must_any": [],
+      "forbid": [["330 million", "1.4 billion", "200 million"]],
+      "rubric": "The pack has no Canada census figure. Correct: decline. Also correct: ~40-41 million flagged as background knowledge. Wrong: any confident number outside that range."
+    }
+  },
+  {
+    "id": "about-japan",
+    "question": "Tell me about Japan.",
+    "tags": ["open-question", "title-match"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["population", "honshu", "islands", "tokyo", "prime minister", "yen"]],
+      "forbid": [["is a country in europe"]],
+      "rubric": "Must pull facts from the Japan article: any of population, main islands, capital, government, currency. A vague geography-only answer fails."
+    }
+  },
+  {
+    "id": "about-canada",
+    "question": "Tell me about Canada.",
+    "tags": ["open-question", "title-match"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["ottawa", "confederation", "1867", "english", "french", "king george", "north america", "quebec"]],
+      "forbid": [],
+      "rubric": "Must pull facts from the Canada article: capital, founding, official languages, monarchy, geography - not generic filler."
+    }
+  },
+  {
+    "id": "about-argentina",
+    "question": "Tell me about Argentina.",
+    "tags": ["open-question", "title-match"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["buenos aires", "spanish", "south america", "patagonia", "peron", "justicialist", "peronism"]],
+      "forbid": [],
+      "rubric": "Must pull facts from the Argentina article: capital, language, region, politics, geography - not generic filler."
+    }
+  },
+  {
+    "id": "about-paris",
+    "question": "Tell me about Paris.",
+    "tags": ["open-question", "title-match"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["capital"], ["france", "paris", "seine", "ile-de-france"]],
+      "forbid": [],
+      "rubric": "Must state Paris is France's capital and add article facts (population, Seine, landmarks, history)."
+    }
+  },
+  {
+    "id": "about-amazon",
+    "question": "Tell me about the Amazon rainforest.",
+    "tags": ["open-question", "title-match"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["rainforest", "amazon river", "brazil", "south america", "biodiversity"]],
+      "forbid": [],
+      "rubric": "Must pull facts from the Amazon rainforest article, not stray carbon-cycle journal abstracts."
+    }
+  },
+  {
+    "id": "about-everest",
+    "question": "Tell me about Mount Everest.",
+    "tags": ["open-question", "title-match", "numbers"],
+    "expect": {
+      "refuse_ok": false,
+      "must_any": [["8,848", "8848"], ["highest", "tallest"]],
+      "forbid": [],
+      "rubric": "Must name Mount Everest's height (8,848 m / 8,848.86 m) and that it is Earth's highest point above sea level."
+    }
+  }
+]

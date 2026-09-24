@@ -59,6 +59,31 @@ Build the project-authored starter knowledge pack. It is labelled **Demo coverag
 
 Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the workflow but is not sufficient for competitive research quality; its exact scope and licensing are in [DATASETS.md](DATASETS.md).
 
+## Regenerating the full research stack
+
+The heavyweight data — model packs, knowledge packs, embeddings — is not committed;
+[`tools/`](tools/README.md) regenerates every pack deterministically from pinned sources:
+
+- `tools/build_model_packs.py` builds the Qwen3 / Qwen3.5 / MiniCPM5 model packs and the
+  Vosk audio pack from the registry in `models/*.example.json` (sha256-pinned downloads).
+- `tools/wiki_mini_build.py` rebuilds the wikipedia-mini knowledge pack from the Wikimedia
+  dump (vital-article snapshot in `tools/wiki_vital_titles.json`, live-refreshable).
+- `tools/build_vector_pack.py` turns an embedding TSV into a vector-capable knowledge pack
+  (int8 `chunk_vectors` table + embedded BGE-small query encoder), enabling on-device
+  semantic search with keyword fallback.
+- `tools/content2fapack.py` / `tools/fapack_convert.py` convert raw corpora or any JSONL
+  document spool into knowledge packs.
+
+This checkout uses the unmodified upstream llama.cpp pinned commit; the runtime patch
+must be applied before building (see [scripts/patches/README.md](scripts/patches/README.md)):
+
+```sh
+cd third_party/llama.cpp && git apply ../../scripts/patches/ai-chat-generation-fixes.patch
+```
+
+A prebuilt debug APK with the full vector-search stack is in
+[`releases/field-atlas-v1.1.1-vector.apk`](releases/field-atlas-v1.1.1-vector.apk) (git LFS).
+
 ## Install and use
 
 1. Download the signed [Field Atlas 1.1.1 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.1.apk), verify SHA-256 `6ffdc71cba6543e57adbdb4d2c51b6866a7e941d754108b1344216830b1936fa`, and install it. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.

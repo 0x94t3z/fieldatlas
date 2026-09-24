@@ -17,3 +17,5 @@ keystore.properties
 .superpowers/
 __pycache__/
 *.pyc
+__pycache__/
+*.pyc
