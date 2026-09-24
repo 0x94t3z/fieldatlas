@@ -6,7 +6,7 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-The current public candidate is Field Atlas `1.1.2` (`versionCode` 5). Its signed APK is 49,145,506 bytes with SHA-256 `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`. It uses the Field Notebook appearance in both Android-system light and dark themes. The release candidate was upgraded in place on the physical Infinix X6840, launched successfully, and the installed base APK was pulled back from the handset and matched the public release byte-for-byte. This build adds uncited offline-model fallback for questions outside the installed knowledge while retaining cited source-backed answers when local evidence is retrieved. The audit reran focused JVM unit tests, release lint through `assembleRelease`, the offline APK policy, and APK v2 signature verification successfully.
+The current public candidate is Field Atlas `1.1.3` (`versionCode` 6). Its signed APK is 49,144,886 bytes with SHA-256 `5df7becfd11e3ce875fd24b467c6436e2fc186c1086581a41c2c23438c527293`. It uses the Field Notebook appearance in both Android-system light and dark themes. This build uses only strict local-evidence matches for cited answers: a question without a matching passage falls back to an explicitly uncited offline-model answer, and unmatched citation markers are not presented as actions. The audit reran JVM unit tests, release lint, the offline APK policy, and APK v2 signature verification successfully.
 
 The table below records the original `1.0.0` hardware evidence session retained with the repository.
 

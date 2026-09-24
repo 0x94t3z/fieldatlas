@@ -4,7 +4,7 @@
 
 Field Atlas uses local files only. Before opening the app for the first time, put these three files on the phone:
 
-- `field-atlas-v1.1.2.apk` - the Android app
+- `field-atlas-v1.1.3.apk` - the Android app
 - `qwen3-1.7b-q4-k-m-1.0.0.fapack` - the local model pack
 - `fieldatlas-starter-1.0.0.fapack` - the starter knowledge pack
 
@@ -14,7 +14,7 @@ The app does not download packs by itself because the installed Android app has 
 
 ## APK
 
-Download the signed [Field Atlas 1.1.2 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.2.apk), verify SHA-256 `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
+Download the signed [Field Atlas 1.1.3 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.3.apk), verify the SHA-256 published beside it, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
 
 ## Packs
 

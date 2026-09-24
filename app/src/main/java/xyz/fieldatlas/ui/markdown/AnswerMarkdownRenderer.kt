@@ -118,7 +118,9 @@ private fun InlineBlock(
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 citations.forEach { citation ->
-                    CitationChip(citation.number, sourceCount, onCitation)
+                    if (citation.number in 1..sourceCount) {
+                        CitationChip(citation.number, onCitation)
+                    }
                 }
             }
         }
@@ -126,16 +128,14 @@ private fun InlineBlock(
 }
 
 @Composable
-private fun CitationChip(number: Int, sourceCount: Int, onCitation: (Int) -> Unit) {
-    val available = number in 1..sourceCount
-    val semantics = if (available) "Open source $number" else "Source $number unavailable"
+private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
     Surface(
         modifier = Modifier
             .clip(MaterialTheme.shapes.extraSmall)
-            .then(if (available) Modifier.clickable { onCitation(number - 1) } else Modifier)
-            .semantics { contentDescription = semantics },
-        color = if (available) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (available) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+            .clickable { onCitation(number - 1) }
+            .semantics { contentDescription = "Open source $number" },
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = MaterialTheme.shapes.extraSmall,
     ) {
         Text(
