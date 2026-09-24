@@ -14,6 +14,8 @@ The recorded package version, APK checksum, Android release, and airplane-mode s
 
 The 1.1.6 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set.
 
+The current-build review page with the Reference-pack screenshot is [here](../../current-reference-v1.1.6/README.md).
+
 ## Radios-off run
 
 Airplane mode was enabled and Wi-Fi and mobile data were disabled before launching the app. The installed model and knowledge pack were used to answer “Why do Earth's hemispheres have opposite seasons?” locally. The resulting answer displays the offline state and mapped local citations.
