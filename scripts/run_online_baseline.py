@@ -29,7 +29,7 @@ def load_questions(path: Path) -> list[dict[str, object]]:
     return value["questions"]
 
 
-def request_answer(api_key: str, model: str, prompt: str, timeout: float) -> str:
+def request_answer(api_key: str, model: str, prompt: str, timeout: float, retries: int) -> str:
     body = {
         "model": model,
         "temperature": 0,
@@ -52,14 +52,26 @@ def request_answer(api_key: str, model: str, prompt: str, timeout: float) -> str
         },
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            value = json.load(response)
-    except urllib.error.HTTPError as error:
-        detail = error.read().decode("utf-8", errors="replace")[:500]
-        raise RuntimeError(f"OpenRouter HTTP {error.code}: {detail}") from error
-    except urllib.error.URLError as error:
-        raise RuntimeError(f"OpenRouter connection failed: {error.reason}") from error
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                value = json.load(response)
+            break
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")[:500]
+            if error.code == 429 and attempt < retries:
+                wait = min(120.0, 5.0 * (2**attempt))
+                print(f"provider rate-limited; retrying in {wait:.0f}s", file=sys.stderr, flush=True)
+                time.sleep(wait)
+                continue
+            raise RuntimeError(f"OpenRouter HTTP {error.code}: {detail}") from error
+        except urllib.error.URLError as error:
+            if attempt < retries:
+                wait = min(60.0, 5.0 * (2**attempt))
+                print(f"connection failed; retrying in {wait:.0f}s", file=sys.stderr, flush=True)
+                time.sleep(wait)
+                continue
+            raise RuntimeError(f"OpenRouter connection failed: {error.reason}") from error
     try:
         content = value["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as error:
@@ -76,6 +88,7 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--delay", type=float, default=1.0, help="Seconds between requests")
+    parser.add_argument("--retries", type=int, default=4, help="Retries for rate limits and transient network errors")
     parser.add_argument("--resume", action="store_true", help="Resume completed rows from the output file")
     args = parser.parse_args()
 
@@ -101,7 +114,7 @@ def main() -> int:
         if not isinstance(identifier, str) or not isinstance(prompt, str):
             raise SystemExit(f"invalid question at index {index}")
         print(f"[{index}/{len(questions)}] {identifier}", file=sys.stderr, flush=True)
-        answer = request_answer(api_key, args.model, prompt, args.timeout)
+        answer = request_answer(api_key, args.model, prompt, args.timeout, max(0, args.retries))
         results.append({"questionId": identifier, "answer": answer})
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(
