@@ -76,6 +76,7 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=120.0)
     parser.add_argument("--delay", type=float, default=1.0, help="Seconds between requests")
+    parser.add_argument("--resume", action="store_true", help="Resume completed rows from the output file")
     args = parser.parse_args()
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -83,8 +84,18 @@ def main() -> int:
         raise SystemExit("OPENROUTER_API_KEY is not set")
     questions = load_questions(args.benchmark)
     results: list[dict[str, str]] = []
+    if args.resume and args.output.exists():
+        prior = json.loads(args.output.read_text(encoding="utf-8"))
+        if prior.get("schemaVersion") != 1 or not isinstance(prior.get("results"), list):
+            raise SystemExit("cannot resume: output is not a benchmark result file")
+        results = prior["results"]
+        expected = [q.get("id") for q in questions[: len(results)]]
+        if [row.get("questionId") for row in results] != expected:
+            raise SystemExit("cannot resume: output rows do not match benchmark order")
     started = datetime.now(timezone.utc).isoformat()
     for index, question in enumerate(questions, start=1):
+        if index <= len(results):
+            continue
         identifier = question.get("id")
         prompt = question.get("prompt")
         if not isinstance(identifier, str) or not isinstance(prompt, str):
@@ -92,6 +103,11 @@ def main() -> int:
         print(f"[{index}/{len(questions)}] {identifier}", file=sys.stderr, flush=True)
         answer = request_answer(api_key, args.model, prompt, args.timeout)
         results.append({"questionId": identifier, "answer": answer})
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(
+            json.dumps({"schemaVersion": 1, "results": results}, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
         if index < len(questions):
             time.sleep(max(0.0, args.delay))
 
