@@ -100,6 +100,7 @@ class AssetImporter private constructor(
                     manifestSha256 = Sha256.digest(manifestBytes),
                     rootPath = finalRoot.absolutePath,
                     discovery = manifest.discovery,
+                    embedding = manifest.embedding.takeIf { manifest.type == PackType.KNOWLEDGE },
                 )
                 try {
                     registry.add(installed)

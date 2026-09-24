@@ -11,6 +11,8 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -34,6 +36,39 @@ class AssetRegistry(private val storageRoot: File) {
         writeUnlocked((current + asset).sortedWith(compareBy(InstalledAsset::id, InstalledAsset::version)))
     }
 
+    suspend fun setEnabled(id: String, version: String, enabled: Boolean) = mutex.withLock {
+        val current = readUnlocked()
+        require(current.any { it.id == id && it.version == version }) { "Asset version is not installed" }
+        writeUnlocked(current.map { asset ->
+            if (asset.id == id && asset.version == version) asset.copy(enabled = enabled) else asset
+        })
+    }
+
+    /** Marks one MODEL or AUDIO pack active; every other pack of the SAME type loses the flag. */
+    suspend fun setActiveModel(id: String, version: String) = mutex.withLock {
+        val current = readUnlocked()
+        val target = current.firstOrNull { it.id == id && it.version == version }
+        require(target != null && target.type != PackType.KNOWLEDGE) { "Selectable pack is not installed" }
+        writeUnlocked(current.map { asset ->
+            if (asset.type == target.type) {
+                asset.copy(active = asset.id == id && asset.version == version)
+            } else {
+                asset
+            }
+        })
+    }
+
+    /** Removes the registry entry and the installed pack directory from the phone. */
+    suspend fun remove(id: String, version: String) = mutex.withLock {
+        val current = readUnlocked()
+        val asset = current.firstOrNull { it.id == id && it.version == version }
+            ?: error("Asset version is not installed")
+        writeUnlocked(current.filterNot { it.id == id && it.version == version })
+        File(asset.rootPath).deleteRecursively()
+        val packParent = File(asset.rootPath).parentFile
+        if (packParent?.isDirectory == true && packParent.list()?.isEmpty() == true) packParent.delete()
+    }
+
     private fun readUnlocked(): List<InstalledAsset> {
         if (!registryFile.exists()) return emptyList()
         return Json.parseToJsonElement(registryFile.readText()).jsonArray.map { element ->
@@ -55,6 +90,13 @@ class AssetRegistry(private val storageRoot: File) {
                 manifestSha256 = value.getValue("manifestSha256").jsonPrimitive.content,
                 rootPath = value.getValue("rootPath").jsonPrimitive.content,
                 discovery = discovery,
+                enabled = value["enabled"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: true,
+                active = value["active"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: false,
+                embedding = value["embedding"]?.let { element ->
+                    runCatching {
+                        Json.decodeFromJsonElement(PackEmbedding.serializer(), element)
+                    }.getOrNull()
+                },
             )
         }
     }
@@ -72,6 +114,8 @@ class AssetRegistry(private val storageRoot: File) {
                     put("installedBytes", asset.installedBytes)
                     put("manifestSha256", asset.manifestSha256)
                     put("rootPath", asset.rootPath)
+                    put("enabled", asset.enabled)
+                    put("active", asset.active)
                     asset.discovery?.let { discovery ->
                         put("discovery", buildJsonObject {
                             put("coverageSummary", discovery.coverageSummary)
@@ -80,6 +124,12 @@ class AssetRegistry(private val storageRoot: File) {
                             })
                             put("coverageLevel", discovery.coverageLevel.name)
                         })
+                    }
+                    asset.embedding?.let { embedding ->
+                        put(
+                            "embedding",
+                            Json.encodeToJsonElement(PackEmbedding.serializer(), embedding),
+                        )
                     }
                 })
             }

@@ -28,11 +28,15 @@ import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.R
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
+import xyz.fieldatlas.research.AnswerRecord
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.proof.ProofModel
+import xyz.fieldatlas.ui.history.HistoryScreen
 import xyz.fieldatlas.ui.library.LibraryScreen
 import xyz.fieldatlas.ui.more.MoreScreen
 import xyz.fieldatlas.ui.research.AnswerScreen
+import xyz.fieldatlas.ui.research.ResearchPhase
+import xyz.fieldatlas.ui.research.VoiceUiState
 import xyz.fieldatlas.ui.research.ResearchScreen
 import xyz.fieldatlas.ui.research.ResearchUiState
 import xyz.fieldatlas.ui.setup.SetupScreen
@@ -48,20 +52,30 @@ fun FieldAtlasApp(
     importing: Boolean,
     setupError: String?,
     researchState: ResearchUiState,
+    historyRecords: List<AnswerRecord> = emptyList(),
     proof: ProofModel,
     navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
     onImportPack: () -> Unit,
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
+    voiceState: VoiceUiState = VoiceUiState(),
+    onMicClick: () -> Unit = {},
+    diagnosticsText: String = "",
+    onClearDiagnostics: () -> Unit = {},
+    onAskAnotherQuestion: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
     onUnloadModel: () -> Unit = {},
     onExportDiagnostics: (Boolean) -> Unit = {},
     onOpenBenchmark: () -> Unit = {},
+    onToggleResearch: (InstalledAsset, Boolean) -> Unit = { _, _ -> },
+    onActivateModel: (InstalledAsset) -> Unit = {},
+    onDeletePack: (InstalledAsset) -> Unit = {},
 ) {
     val ready = packs.any { it.type == PackType.MODEL } && packs.any { it.type == PackType.KNOWLEDGE }
-    val knowledgePack = packs.firstOrNull { it.type == PackType.KNOWLEDGE }
+    val knowledgePack = packs.firstOrNull { it.type == PackType.KNOWLEDGE && it.enabled }
+        ?: packs.firstOrNull { it.type == PackType.KNOWLEDGE }
     val menuBackground = if (isSystemInDarkTheme()) null else FieldAtlasColors.SageWash
     var autoPreparationStarted by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(ready, inferenceState) {
@@ -72,6 +86,13 @@ fun FieldAtlasApp(
                 onLoadModel()
             }
             inferenceState != InferenceState.Idle -> autoPreparationStarted = true
+        }
+    }
+    // A finished answer takes the stage immediately; the research screen stays behind it so
+    // "Ask another question" (or system back) returns to a fresh asking view.
+    LaunchedEffect(researchState.phase, researchState.completion) {
+        if (researchState.phase == ResearchPhase.Complete && researchState.answer.isNotBlank()) {
+            navigation.openAnswer()
         }
     }
     FieldAtlasTheme {
@@ -87,6 +108,7 @@ fun FieldAtlasApp(
                 DetailDestination.Answer -> AnswerScreen(
                     state = researchState,
                     onBack = closeDetail,
+                    onAskAnother = { onAskAnotherQuestion(); navigation.back() },
                     onCitation = navigation::openSource,
                 )
                 is DetailDestination.Source -> {
@@ -152,15 +174,20 @@ fun FieldAtlasApp(
                     PrimaryDestination.Research -> ResearchScreen(
                         state = researchState,
                         inferenceState = inferenceState,
-                        collectionCount = packs.count { it.type == PackType.KNOWLEDGE },
+                        collectionCount = packs.count { it.type == PackType.KNOWLEDGE && it.enabled },
                         suggestions = knowledgePack?.discovery?.exampleQuestions.orEmpty(),
+                        voiceState = voiceState,
+                        onMicClick = onMicClick,
+                        diagnosticsText = diagnosticsText,
+                        onClearDiagnostics = onClearDiagnostics,
                         onQuestionChange = onQuestionChange,
                         onSubmit = onSubmit,
                         onStop = onStop,
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
                     )
-                    PrimaryDestination.Library -> LibraryScreen(packs, onImportPack)
+                    PrimaryDestination.Library -> LibraryScreen(packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack)
+                    PrimaryDestination.History -> HistoryScreen(historyRecords)
                     PrimaryDestination.More -> MoreScreen(
                         proof = proof,
                         inferenceState = inferenceState,
@@ -186,6 +213,7 @@ private fun primaryLabel(destination: PrimaryDestination): String = stringResour
     when (destination) {
         PrimaryDestination.Research -> R.string.nav_research
         PrimaryDestination.Library -> R.string.nav_library
+        PrimaryDestination.History -> R.string.nav_history
         PrimaryDestination.More -> R.string.nav_more
     },
 )
@@ -193,5 +221,6 @@ private fun primaryLabel(destination: PrimaryDestination): String = stringResour
 private fun primaryIcon(destination: PrimaryDestination): ImageVector = when (destination) {
     PrimaryDestination.Research -> FieldAtlasIcons.Research
     PrimaryDestination.Library -> FieldAtlasIcons.Library
+    PrimaryDestination.History -> FieldAtlasIcons.History
     PrimaryDestination.More -> FieldAtlasIcons.More
 }

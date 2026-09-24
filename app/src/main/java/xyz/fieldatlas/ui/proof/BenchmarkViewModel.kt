@@ -39,6 +39,7 @@ class BenchmarkViewModel(
     runId: () -> String = { UUID.randomUUID().toString() },
     now: () -> String = { Instant.now().toString() },
     launchScope: CoroutineScope? = null,
+    private val onError: (String) -> Unit = {},
 ) : ViewModel() {
     private val scope = launchScope ?: viewModelScope
     private val recorder = BenchmarkRecorder(questions, runId(), now(), artifacts, diagnosticsSha256)
@@ -58,6 +59,8 @@ class BenchmarkViewModel(
             try {
                 orchestrator.research(question.prompt).collect { event ->
                     when (event) {
+                        is ResearchEvent.Planning -> Unit
+                        is ResearchEvent.Keywords -> Unit
                         is ResearchEvent.Searching -> Unit
                         is ResearchEvent.Sources -> {
                             active?.evidenceChunkIds = event.evidence.map { it.chunkId }
@@ -94,6 +97,7 @@ class BenchmarkViewModel(
 
     @Synchronized
     private fun finishActive(state: BenchmarkResultState, error: String? = null) {
+        error?.let(onError)
         val result = active ?: return
         active = null
         recorder.record(

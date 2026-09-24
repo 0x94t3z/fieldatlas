@@ -4,8 +4,10 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,10 +22,13 @@ import kotlinx.coroutines.withContext
 import xyz.fieldatlas.benchmark.BenchmarkCodec
 import xyz.fieldatlas.diagnostics.DiagnosticsProvider
 import xyz.fieldatlas.export.ExportStagingStore
+import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.ui.FieldAtlasApp
 import xyz.fieldatlas.ui.rememberFieldAtlasNavigationState
 import xyz.fieldatlas.ui.proof.BenchmarkScreen
 import xyz.fieldatlas.ui.proof.BenchmarkViewModel
+import xyz.fieldatlas.ui.research.ResearchPhase
+import xyz.fieldatlas.ui.research.KeepAliveService
 import xyz.fieldatlas.ui.research.ResearchViewModel
 import xyz.fieldatlas.ui.setup.SetupViewModel
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
@@ -39,7 +44,27 @@ class MainActivity : ComponentActivity() {
         setContent {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
+            val historyRecords by container.answerHistory.records.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { container.answerHistory.ensureLoaded() }
+            // A run in flight outranks background process trimming: the service pins priority.
+            LaunchedEffect(researchState.phase) {
+                when (researchState.phase) {
+                    ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating ->
+                        KeepAliveService.start(this@MainActivity)
+                    else -> KeepAliveService.stop(this@MainActivity)
+                }
+            }
+            val voiceState by researchViewModel.voiceState.collectAsStateWithLifecycle()
+            val diagnosticsNotices by container.errorBus.notices.collectAsStateWithLifecycle()
+            val microphonePermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestPermission(),
+            ) { granted -> if (granted) researchViewModel.onMicClick() }
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
+            LaunchedEffect(inferenceState) {
+                (inferenceState as? InferenceState.Failed)?.let { failure ->
+                    container.errorBus.report("Model", failure.message)
+                }
+            }
             var showBenchmark by rememberSaveable { mutableStateOf(false) }
             val appNavigation = rememberFieldAtlasNavigationState()
             val scope = rememberCoroutineScope()
@@ -93,15 +118,39 @@ class MainActivity : ComponentActivity() {
                 importing = setupState.importing,
                 setupError = setupState.error,
                 researchState = researchState,
+                historyRecords = historyRecords,
                 inferenceState = inferenceState,
                 proof = proof,
                 navigation = appNavigation,
                 onImportPack = { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
                 onQuestionChange = researchViewModel::updateQuestion,
                 onSubmit = researchViewModel::submit,
+                voiceState = voiceState,
+                onMicClick = {
+                    if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)
+                        == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    ) {
+                        researchViewModel.onMicClick()
+                    } else {
+                        microphonePermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }
+                },
+                diagnosticsText = diagnosticsNotices.joinToString("\n") { "[${it.area}] ${it.message}" },
+                onClearDiagnostics = container.errorBus::clear,
+                onAskAnotherQuestion = { researchViewModel.startNewQuestion() },
                 onStop = researchViewModel::cancelResearch,
-                onLoadModel = { scope.launch { runCatching { container.loadModel() } } },
-                onUnloadModel = { scope.launch { runCatching { container.unloadModel() } } },
+                onLoadModel = {
+                    scope.launch {
+                        runCatching { container.loadModel() }
+                            .onFailure { container.errorBus.report("Model", it) }
+                    }
+                },
+                onUnloadModel = {
+                    scope.launch {
+                        runCatching { container.unloadModel() }
+                            .onFailure { container.errorBus.report("Model", it) }
+                    }
+                },
                 onExportDiagnostics = { includeQuestion ->
                     val snapshot = container.diagnosticsSnapshot(
                         researchState.metrics,
@@ -123,12 +172,32 @@ class MainActivity : ComponentActivity() {
                     benchmarkWasOpened = true
                     showBenchmark = true
                 },
+                onToggleResearch = { asset, enabled ->
+                    scope.launch {
+                        runCatching { container.setPackEnabled(asset, enabled) }
+                            .onFailure { container.errorBus.report("Library", it) }
+                    }
+                },
+                onActivateModel = { asset ->
+                    scope.launch {
+                        runCatching { container.setActiveModel(asset) }
+                            .onFailure { container.errorBus.report("Model", it) }
+                    }
+                },
+                onDeletePack = { asset ->
+                    scope.launch {
+                        runCatching { container.deletePack(asset) }
+                            .onFailure { container.errorBus.report("Library", it) }
+                    }
+                },
             )
         }
     }
 
     override fun onStop() {
-        researchViewModel.cancelResearch()
+        // Research deliberately KEEPS RUNNING when the app goes to the background: a foreground
+        // service (started while a run is active) keeps the process alive, the model stays
+        // loaded, and the answer completes while the user does something else.
         if (benchmarkWasOpened) benchmarkViewModel.stop()
         super.onStop()
     }

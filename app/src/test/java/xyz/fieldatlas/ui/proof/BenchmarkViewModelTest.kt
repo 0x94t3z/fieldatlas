@@ -29,12 +29,15 @@ class BenchmarkViewModelTest {
     @Test fun stopPreservesEvidenceAndPartialAnswerAndMarksCurrentCancelled() {
         val cancelled = AtomicBoolean(false)
         val gateway = object : InferenceGateway {
+            var calls = 0
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
-            override fun generate(prompt: String, maxTokens: Int): Flow<String> = flow {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
                 try {
-                    emit("partial")
-                    awaitCancellation()
+                    if (calls++ < 2) emit("keyword") else {
+                        emit("partial")
+                        awaitCancellation()
+                    }
                 } finally {
                     cancelled.set(true)
                 }
@@ -44,7 +47,7 @@ class BenchmarkViewModelTest {
         val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Fact", 1.0)
         val viewModel = BenchmarkViewModel(
             questions = listOf(question("q1"), question("q2")),
-            orchestrator = ResearchOrchestrator(Retriever { _, _ -> listOf(evidence) }, gateway),
+            orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway),
             artifacts = emptyList(),
             diagnosticsSha256 = "a".repeat(64),
             runId = { "run-1" },
@@ -67,7 +70,7 @@ class BenchmarkViewModelTest {
         val gateway = object : InferenceGateway {
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
-            override fun generate(prompt: String, maxTokens: Int): Flow<String> = flow {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
                 emit("<thi")
                 emit("nk>private reasoning</think>\n\nVisible answer [S1]")
             }
@@ -76,7 +79,7 @@ class BenchmarkViewModelTest {
         val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Fact", 1.0)
         val viewModel = BenchmarkViewModel(
             questions = listOf(question("q1")),
-            orchestrator = ResearchOrchestrator(Retriever { _, _ -> listOf(evidence) }, gateway),
+            orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway),
             artifacts = emptyList(),
             diagnosticsSha256 = "a".repeat(64),
             runId = { "run-1" },

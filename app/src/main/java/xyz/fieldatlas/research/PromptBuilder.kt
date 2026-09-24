@@ -6,7 +6,7 @@ object PromptBuilder {
     private const val MIN_CONTEXT_TOKENS = 128
     private const val MAX_CONTEXT_TOKENS = 32_768
     private const val POLICY = """/no_think
-You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with [S#]. If evidence is insufficient, say so."""
+You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with [S#] at the end of each claim, for example: Tigers are the largest cats. [S2] Where evidence gives explicit numbers or direct comparisons, prefer them over relative statements. If the evidence does not contain the answer, say that in one sentence and stop - never walk through the sources one by one."""
 
     fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }

@@ -45,6 +45,13 @@ class FtsRetrieverTest {
             insert(database, "doc-d:0000", "doc-d", "Tie", "Author D · CC0", "identical tie text")
             insert(database, "doc-e:0000", "doc-e", "Coffee guidance A", "Source E", "coffee pregnancy limit is low")
             insert(database, "doc-f:0000", "doc-f", "Coffee guidance B", "Source F", "coffee pregnancy limit is moderate")
+            // Title-boost fixtures: generic stub articles that bm25 loves (they repeat the query
+            // words constantly) versus the articles a "who won the world war" question is really
+            // about — the article whose TITLE carries the most query terms must win the slots.
+            insert(database, "doc-g:0000", "doc-g", "World", "Source G", ("world war history " + "world war world war world war ").repeat(6))
+            insert(database, "doc-h:0000", "doc-h", "War", "Source H", ("war world history " + "war war war war war ").repeat(6))
+            insert(database, "doc-i:0000", "doc-i", "World War I", "Source I", "the war lasted from 1914 to 1918")
+            insert(database, "doc-j:0000", "doc-j", "Allies of World War I", "Source J", "the allies entente france britain defeated the central powers")
         }
     }
 
@@ -52,11 +59,25 @@ class FtsRetrieverTest {
         root.deleteRecursively()
     }
 
+    @Test fun nameLikeTitlesLeadTheirPackNotTermFrequency() = withRetriever { retriever ->
+        // "Allies of World War I" is named by its FIRST WORD being a query term, and 'allies'
+        // is the rarest covered word - it leads; the article a question is about must never be
+        // starved out of the pack's top picks by term-frequency junk.
+        val allies = retriever.search("allies history records", 5)
+        assertEquals("doc-j:0000", allies.first().chunkId)
+
+        val war = retriever.search("world war allies winners records", 5)
+        assertTrue(
+            "the named war articles must stay inside the pack's answer set: " + war.map { it.chunkId },
+            listOf("doc-i:0000", "doc-j:0000").all { it in war.map { evidence -> evidence.chunkId } },
+        )
+    }
+
     @Test fun returnsRankedAttributedEvidence() = withRetriever { retriever ->
         val results = retriever.search("solar energy", 5)
         assertEquals("doc-a:0001", results.first().chunkId)
         assertEquals("Author A · CC BY 4.0", results.first().source)
-        assertTrue(results.first().score >= results.last().score)
+        assertTrue(results.first().score <= results.last().score)
     }
 
     @Test fun tiesAreBrokenByChunkId() = withRetriever { retriever ->

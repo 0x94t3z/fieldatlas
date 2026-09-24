@@ -17,11 +17,16 @@ object PackManifestParser {
     private val requiredRootFields = setOf(
         "schemaVersion", "id", "version", "type", "title", "license", "sourceUrls", "artifacts",
     )
-    private val allowedRootFields = requiredRootFields + "discovery"
+    private val allowedRootFields = requiredRootFields + setOf("discovery", "embedding")
     private val artifactFields = setOf("path", "bytes", "sha256")
     private val discoveryFields = setOf("coverageSummary", "exampleQuestions", "coverageLevel")
+    private val embeddingFields = setOf(
+        "model", "dim", "quant", "normalized", "table", "count", "rejectBelow",
+        "queryPrefix", "encoderPath", "encoderSha256", "encoderSourceUrl",
+    )
     private val hashPattern = Regex("[0-9a-f]{64}")
     private val identifierPattern = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+    private val tableNamePattern = Regex("[a-z][a-z0-9_]{0,63}")
 
     fun parse(bytes: ByteArray): PackManifest = try {
         val root = Json.parseToJsonElement(bytes.decodeToString()).jsonObject
@@ -50,7 +55,9 @@ object PackManifestParser {
         require(artifacts.map { it.path }.toSet().size == artifacts.size) { "Duplicate artifact path" }
         val discovery = root["discovery"]?.let(::parseDiscovery)
         require(type == PackType.KNOWLEDGE || discovery == null) { "Model packs must not declare discovery" }
-        PackManifest(schemaVersion, id, version, type, title, license, sourceUrls, artifacts, discovery)
+        val embedding = root["embedding"]?.let(::parseEmbedding)
+        require(type == PackType.KNOWLEDGE || embedding == null) { "Only knowledge packs may declare embedding" }
+        PackManifest(schemaVersion, id, version, type, title, license, sourceUrls, artifacts, discovery, embedding)
     } catch (error: InvalidPackManifestException) {
         throw error
     } catch (error: Exception) {
@@ -85,6 +92,34 @@ object PackManifestParser {
             else -> error("Unknown coverageLevel")
         }
         return PackDiscovery(summary, questions, level)
+    }
+
+    private fun parseEmbedding(element: JsonElement): PackEmbedding {
+        val value = element.jsonObject
+        requireFields(value, embeddingFields, embeddingFields, "embedding")
+        val model = value.requiredNormalizedText("model", 120)
+        val dim = value.requiredInt("dim")
+        require(dim in 1..8192) { "embedding.dim must be between 1 and 8192" }
+        val quant = value.requiredNormalizedText("quant", 80)
+        val normalized = value.getValue("normalized").jsonPrimitive.content.toBooleanStrictOrNull()
+            ?: error("embedding.normalized must be a boolean")
+        val table = value.requiredText("table")
+        require(tableNamePattern.matches(table)) { "embedding.table must be a lowercase SQL identifier" }
+        val count = value.requiredLong("count")
+        require(count > 0) { "embedding.count must be positive" }
+        val rejectBelow = value.getValue("rejectBelow").jsonPrimitive.content.toDoubleOrNull()
+            ?: error("embedding.rejectBelow must be a number")
+        require(rejectBelow > 0.0 && rejectBelow < 1.0) { "embedding.rejectBelow must be inside (0, 1)" }
+        val queryPrefix = value.requiredNormalizedText("queryPrefix", 200)
+        val encoderPath = value.requiredText("encoderPath")
+        require(isSafeRelativePath(encoderPath)) { "Unsafe embedding.encoderPath" }
+        val encoderSha = value.requiredText("encoderSha256")
+        require(hashPattern.matches(encoderSha)) { "embedding.encoderSha256 must be lowercase hexadecimal" }
+        val encoderUrl = value.requiredText("encoderSourceUrl")
+        return PackEmbedding(
+            model, dim, quant, normalized, table, count, rejectBelow, queryPrefix,
+            encoderPath, encoderSha, encoderUrl,
+        )
     }
 
     private fun isSafeRelativePath(path: String): Boolean {

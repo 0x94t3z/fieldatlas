@@ -39,13 +39,33 @@ fun buildAnswerPresentation(answer: String, sourceCount: Int): AnswerPresentatio
     )
 }
 
-fun researchActivityLabel(phase: ResearchPhase): String = when (phase) {
-    ResearchPhase.Idle -> "Ready for a question"
-    ResearchPhase.Searching -> "Searching your library"
-    ResearchPhase.Generating -> "Writing from sources"
-    ResearchPhase.Complete -> "Answer ready"
-    ResearchPhase.Insufficient -> "More evidence needed"
-    ResearchPhase.Error -> "Research needs attention"
+fun researchActivityLabel(
+    phase: ResearchPhase,
+    retrievalProgress: Double = 0.0,
+    promptRead: Pair<Int, Int>? = null,
+    tokensWritten: Int = 0,
+): String {
+    val readSuffix = promptRead
+        ?.takeIf { (read, total) -> total > 0 && read <= total && tokensWritten == 0 }
+        ?.let { (read, total) -> " ($read/$total tokens read)" }
+        .orEmpty()
+    return when (phase) {
+        ResearchPhase.Idle -> "Ready for a question"
+        ResearchPhase.Planning -> "Generating search keywords$readSuffix"
+        ResearchPhase.Searching -> if (retrievalProgress >= 0.02) {
+            "Searching your library (${(retrievalProgress * 100).toInt().coerceIn(1, 99)}%)"
+        } else {
+            "Searching your library"
+        }
+        ResearchPhase.Generating -> when {
+            tokensWritten > 0 -> "Writing from sources ($tokensWritten tokens written)"
+            readSuffix.isNotEmpty() -> "Reading from sources$readSuffix"
+            else -> "Writing from sources"
+        }
+        ResearchPhase.Complete -> "Answer ready"
+        ResearchPhase.Insufficient -> "More evidence needed"
+        ResearchPhase.Error -> "Research needs attention"
+    }
 }
 
 fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchMetricsModel {
