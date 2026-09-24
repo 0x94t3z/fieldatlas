@@ -1,2 +1,2 @@
-    versionCode=5 minSdk=33 targetSdk=36
-    versionName=1.1.2
+    versionCode=6 minSdk=33 targetSdk=36
+    versionName=1.1.3

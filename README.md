@@ -68,7 +68,7 @@ Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.2 APK](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/releases/field-atlas-v1.1.2.apk).
+1. Download the signed [Field Atlas 1.1.3 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.3/field-atlas-v1.1.3.apk).
 2. Download or build the two packs: one model `.fapack` and one knowledge `.fapack`.
 3. Copy the APK and both `.fapack` files to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
@@ -79,7 +79,7 @@ Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b
 9. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
 10. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-The release APK SHA-256 is `8d92d9119a2c8fbbe9c5b9e25a71762e25b0edb2012e6a49274f5770ae8820c1`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+The release APK SHA-256 is `5df7becfd11e3ce875fd24b467c6436e2fc186c1086581a41c2c23438c527293`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 
