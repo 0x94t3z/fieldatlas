@@ -82,9 +82,9 @@ The repository provides deterministic knowledge/model pack builders plus immutab
 
 The authentic device demo is published in the repository and linked from the public Farcaster post at `https://farcaster.xyz/0x94t3z.eth/0x9538cba8`. The post links the public repository and briefly describes the local-model and local-knowledge approach.
 
-## B31-16 — BLOCKED
+## B31-16 — PASS
 
-The current public recording shows offline operation, local inference, a cited explanation, and its exact supporting source passage. It contains one seasons query, not the several examples requested by the bounty, and therefore does not yet establish the difficult-query bar through a public X or Farcaster post.
+The public Farcaster thread demonstrates offline local inference with cited evidence across multiple research tasks: cross-source water comparison, water-safety reasoning, and solar-storage reasoning. The thread links the public repository and explains the local-model/local-knowledge approach; the posted recordings are named `cross-source-water-proof.mp4`, `water-safety-proof.mp4`, and `solar-storage-proof.mp4`.
 
 ## B31-17 — PASS
 
