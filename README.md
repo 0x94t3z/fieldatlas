@@ -24,7 +24,7 @@ Public proof: [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8).
 
 - `app/` — native Kotlin/Jetpack Compose Android application and tests
 - `third_party/llama.cpp/` — exact pinned on-device inference runtime
-- `packtool/` and `fixtures/` — deterministic offline knowledge-pack builder and starter corpus
+- `packtool/` and `fixtures/` — deterministic offline knowledge-pack builder and curated reference corpus
 - `models/` — immutable model provenance and checksum configuration
 - `benchmarks/` — frozen research-quality questions and paired scorer
 - `scripts/` — toolchain, asset, APK, and physical-device verification commands
@@ -56,19 +56,19 @@ The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c86
 Field Atlas needs one user-supplied local file for the full research workflow:
 
 - a model pack, built from the documented Qwen3 1.7B GGUF model
-- the APK's bundled Starter Evidence knowledge pack, installed automatically on first launch
+- the APK's bundled Reference knowledge pack, installed automatically on first launch
 
-The model pack lets Field Atlas answer offline. The bundled knowledge pack lets it retrieve local passages, add citations, and open exact supporting sources. The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The starter knowledge pack can also be reproduced locally:
+The model pack lets Field Atlas answer offline. The bundled Reference pack lets it retrieve local passages, add citations, and open exact supporting sources. The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The bundled Reference pack can be reproduced locally:
 
 ```sh
-./scripts/build_starter_pack.sh
+./scripts/build_reference_pack.sh
 ```
 
-Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b`. Build the model pack using the verified steps in [MODELS.md](MODELS.md). The starter corpus proves the citation workflow but is not broad coverage; questions outside it fall back to an uncited offline model answer. Its exact scope and licensing are in [DATASETS.md](DATASETS.md).
+Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Reference pack is focused coverage, not a comprehensive encyclopedia; questions outside it fall back to an uncited offline model answer. Its exact scope and licensing are in [DATASETS.md](DATASETS.md).
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.4 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.4/field-atlas-v1.1.4.apk).
+1. Download the signed [Field Atlas 1.1.6 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.6/field-atlas-v1.1.6.apk).
 2. Download or build the model `.fapack`.
 3. Copy the APK and model `.fapack` to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
@@ -78,7 +78,7 @@ Its SHA-256 is `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b
 8. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
 9. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-The release APK SHA-256 is `951c66746830813a8874ab011e35b3d0b06d6752e5d1006b5c678c6cdf8be40d`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+The release APK SHA-256 is `3b9edba447cfad6e777e2243ab3ae9f9b75973493c6ebc8a7993aafbad654783`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 

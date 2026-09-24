@@ -59,7 +59,11 @@ class AppContainer(context: Context) {
     }
 
     suspend fun installBundledKnowledgeIfNeeded() {
-        if (registry.list().any { it.type == PackType.KNOWLEDGE }) return
+        val installed = registry.list()
+        if (installed.any { it.id == BUNDLED_KNOWLEDGE_ID && it.version == BUNDLED_KNOWLEDGE_VERSION }) return
+        installed.filter { it.id == LEGACY_STARTER_ID }.forEach { legacy ->
+            registry.remove(legacy.id, legacy.version)
+        }
         appContext.assets.open(BUNDLED_KNOWLEDGE_ASSET).use { bundled ->
             importer.import(bundled, appContext.filesDir.usableSpace)
         }
@@ -155,6 +159,9 @@ class AppContainer(context: Context) {
         const val SYSTEM_PROMPT =
             "Use only the evidence supplied in each user prompt. Explain, compare, synthesize, " +
                 "preserve conflicts and uncertainty, and cite factual claims with [S#]. Never use external knowledge."
-        const val BUNDLED_KNOWLEDGE_ASSET = "fieldatlas-starter-1.0.0.fapack"
+        const val BUNDLED_KNOWLEDGE_ASSET = "fieldatlas-reference-1.0.0.fapack"
+        const val BUNDLED_KNOWLEDGE_ID = "fieldatlas-reference"
+        const val BUNDLED_KNOWLEDGE_VERSION = "1.0.0"
+        const val LEGACY_STARTER_ID = "fieldatlas-starter"
     }
 }

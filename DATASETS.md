@@ -1,5 +1,17 @@
 # Field Atlas datasets
 
+## Bundled Reference pack
+
+`fixtures/reference/documents.jsonl` contains twelve compact project-authored CC0 reference notes covering seasons, water, solar storage, evidence comparison, Formula One, cars, batteries, climate, computing, networks, health information, and historical evidence. It is the pack bundled into the current Android build. It is focused reference coverage, not a comprehensive encyclopedia.
+
+Build it with:
+
+```sh
+./scripts/build_reference_pack.sh
+```
+
+The build is deterministic and preserves document IDs, titles, provenance, license, and source passages for local citations.
+
 ## Starter evidence pack
 
 `fixtures/starter/documents.jsonl` contains four small, project-authored CC0 documents. It exists to prove deterministic pack construction, Android import, FTS5 retrieval, citation display, the required seasons smoke query, and the offline workflow. It is not broad coverage. Questions outside this pack can still be answered by the offline model, but those answers are uncited and are not treated as source-backed research.

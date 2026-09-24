@@ -86,7 +86,7 @@ fun SetupScreen(
                 )
             }
             item { PackRequirementCard("1", "1. Add model pack", hasModel, "Runs AI on this device.", fieldPanelColor) }
-            item { PackRequirementCard("2", "2. Built-in knowledge", hasKnowledge, "Installed with Field Atlas.", fieldPanelColor) }
+            item { PackRequirementCard("2", "2. Built-in reference", hasKnowledge, "Installed with Field Atlas.", fieldPanelColor) }
             item {
                 Button(
                     onClick = onImportPack,
@@ -136,7 +136,7 @@ private fun SetupHeader() {
         )
         FieldAtlasHeader(
             title = "Pack your atlas",
-            subtitle = "Import one local model. Field Atlas includes starter knowledge.",
+            subtitle = "Import one local model. Field Atlas includes reference knowledge.",
         )
     }
 }

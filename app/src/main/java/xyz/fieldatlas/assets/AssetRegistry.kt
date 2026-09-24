@@ -34,6 +34,15 @@ class AssetRegistry(private val storageRoot: File) {
         writeUnlocked((current + asset).sortedWith(compareBy(InstalledAsset::id, InstalledAsset::version)))
     }
 
+    suspend fun remove(id: String, version: String): Boolean = mutex.withLock {
+        val current = readUnlocked()
+        val removed = current.firstOrNull { it.id == id && it.version == version } ?: return@withLock false
+        val updated = current.filterNot { it.id == id && it.version == version }
+        writeUnlocked(updated)
+        File(removed.rootPath).deleteRecursively()
+        true
+    }
+
     private fun readUnlocked(): List<InstalledAsset> {
         if (!registryFile.exists()) return emptyList()
         return Json.parseToJsonElement(registryFile.readText()).jsonArray.map { element ->
