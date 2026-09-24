@@ -1,6 +1,6 @@
 # Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. The next signed package is Field Atlas 1.1.4 (`versionCode` 7); it was not installed during this cleanup because the device was disconnected.
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed Field Atlas 1.1.4 package (`versionCode` 7) was installed in place and launched successfully. The bundled Starter Evidence knowledge set appeared automatically in Library.
 
 ## Exact tested artifact
 
@@ -12,7 +12,7 @@ Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X684
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The signed 1.1.3 APK was the last installed and launched on the connected device. The 1.1.4 package is the next release candidate and still needs a connected-device installation record.
+The 1.1.4 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Starter Evidence knowledge set.
 
 ## Radios-off run
 
