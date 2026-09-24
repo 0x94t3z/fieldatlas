@@ -86,9 +86,9 @@ The authentic device demo is published in the repository and linked from the pub
 
 The current public recording shows offline operation, local inference, a cited explanation, and its exact supporting source passage. It contains one seasons query, not the several examples requested by the bounty, and therefore does not yet establish the difficult-query bar through a public X or Farcaster post.
 
-## B31-17 — BLOCKED
+## B31-17 — PASS
 
-No POIDH claim transaction is recorded.
+The POIDH claim transaction and relevant screenshot are recorded in `docs/compliance/bounty-31.json`.
 
 ## B31-18 — PASS
 
