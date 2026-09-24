@@ -14,6 +14,8 @@ X6840 running Android 16 (API 36).
 | Benchmark | `benchmarks/questions-v2.json` |
 | Knowledge | `fieldatlas-reference` 1.0.0 |
 
+The signed APK and checksum are published as assets on the [Field Atlas v1.1.7 GitHub release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.7).
+
 The APK is signed with the project release key and was installed with ADB on
 the device. The v2 benchmark has not yet been exported from this 1.1.7 device
 installation; the prior 1.1.6 export remains explicitly a v1 run.
