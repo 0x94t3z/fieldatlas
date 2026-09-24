@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.io.File
@@ -33,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private val setupViewModel: SetupViewModel by viewModels { container.setupViewModelFactory }
     private val researchViewModel: ResearchViewModel by viewModels { container.researchViewModelFactory }
     private val benchmarkViewModel: BenchmarkViewModel by viewModels { container.benchmarkViewModelFactory }
+    private val benchmarkVisible = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
-            var showBenchmark by rememberSaveable { mutableStateOf(false) }
+            val showBenchmark by benchmarkVisible
             val appNavigation = rememberFieldAtlasNavigationState()
             val scope = rememberCoroutineScope()
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
@@ -82,7 +82,7 @@ class MainActivity : ComponentActivity() {
                                 benchmarkExporter.launch("fieldatlas-benchmark-${safeTimestamp(run.startedAt)}.json")
                             }
                         },
-                        onBack = { showBenchmark = false },
+                        onBack = { benchmarkVisible.value = false },
                     )
                 }
                 return@setContent
@@ -121,7 +121,7 @@ class MainActivity : ComponentActivity() {
                 },
                 onOpenBenchmark = {
                     benchmarkWasOpened = true
-                    showBenchmark = true
+                    benchmarkVisible.value = true
                 },
             )
         }
@@ -131,6 +131,16 @@ class MainActivity : ComponentActivity() {
         researchViewModel.cancelResearch()
         if (benchmarkWasOpened) benchmarkViewModel.stop()
         super.onStop()
+    }
+
+    @Deprecated("Use the activity back dispatcher; retained for Android hardware-back compatibility")
+    override fun onBackPressed() {
+        if (benchmarkVisible.value) {
+            benchmarkVisible.value = false
+            benchmarkViewModel.stop()
+            return
+        }
+        super.onBackPressed()
     }
 
     private var benchmarkWasOpened = false
