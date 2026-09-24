@@ -48,7 +48,7 @@ The APK audit found no Google Play Services or Firebase packages. Instrumentatio
 
 ## B31-07 — PASS
 
-The physical-device record includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. Field Atlas now also supports uncited offline-model answers when no matching local source is retrieved. The starter corpus remains intentionally narrow and these results do not establish broad or frontier-level research quality.
+The physical-device record includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. Field Atlas now also supports uncited offline-model answers when no matching local source is retrieved. The Reference pack is focused rather than comprehensive, and these results do not establish broad or frontier-level research quality.
 
 ## B31-08 — PASS
 
@@ -60,7 +60,7 @@ The reviewed tree is public at `https://github.com/0x94t3z/fieldatlas`.
 
 ## B31-10 — PASS
 
-The tree contains source, exact submodule gitlink, deterministic pack builders, the ready-to-import starter knowledge pack, CI, toolchain bootstrap, model/data provenance, release gates, and reproduction instructions. A healthy-network clean clone initializes the pinned llama.cpp submodule recursively.
+The tree contains source, exact submodule gitlink, deterministic pack builders, the bundled Reference knowledge pack, CI, toolchain bootstrap, model/data provenance, release gates, and reproduction instructions. A healthy-network clean clone initializes the pinned llama.cpp submodule recursively.
 
 ## B31-11 — PASS
 

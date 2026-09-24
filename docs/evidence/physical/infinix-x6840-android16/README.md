@@ -1,6 +1,6 @@
 # Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed Field Atlas 1.1.4 package (`versionCode` 7) was installed in place and launched successfully. The bundled Starter Evidence knowledge set appeared automatically in Library.
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed Field Atlas 1.1.6 package (`versionCode` 9) was installed in place and launched successfully. The bundled Field Atlas Reference knowledge set appeared automatically in Library.
 
 ## Exact tested artifact
 
@@ -8,11 +8,11 @@ Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X684
 - SHA-256: `951c66746830813a8874ab011e35b3d0b06d6752e5d1006b5c678c6cdf8be40d`.
 - Offline APK audit: passed.
 - Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
-- Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
+- Knowledge pack: Field Atlas Reference, 45.06 KB.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The 1.1.4 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Starter Evidence knowledge set.
+The 1.1.6 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set.
 
 ## Radios-off run
 
@@ -46,7 +46,7 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 [![Animated preview of the Field Atlas physical-device demo](field-atlas-claim-preview.gif)](field-atlas-current-demo.mp4)
 
-The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the 1.1.1 Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. Select the animated preview if the video player is unavailable.
+The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlier Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. The current 1.1.6 Reference pack is documented separately from this historical recording.
 
 ### Demo overview
 
@@ -54,7 +54,7 @@ The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the 1.1.1 
 
 ## Additional multi-query evidence
 
-These follow-up runs used the same installed signed APK, local Qwen model, starter knowledge pack, airplane mode, and disabled Wi-Fi. The raw portrait recordings retain the real inference wait rather than replacing it with simulated output.
+These follow-up runs used the earlier installed signed APK, local Qwen model, Starter Evidence pack, airplane mode, and disabled Wi-Fi. The raw portrait recordings retain the real inference wait rather than replacing it with simulated output; they are historical evidence and do not claim to demonstrate the current Reference pack.
 
 ### Water-treatment limitation
 
