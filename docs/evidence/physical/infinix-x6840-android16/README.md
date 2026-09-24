@@ -1,18 +1,18 @@
 # Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. On 2026-09-24 the signed installed package was upgraded in place to `xyz.fieldatlas` version 1.1.3 (`versionCode` 6).
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. The next signed package is Field Atlas 1.1.4 (`versionCode` 7); it was not installed during this cleanup because the device was disconnected.
 
 ## Exact tested artifact
 
 - Signed APK: 49,145,506 bytes.
-- SHA-256: `5df7becfd11e3ce875fd24b467c6436e2fc186c1086581a41c2c23438c527293`.
+- SHA-256: `951c66746830813a8874ab011e35b3d0b06d6752e5d1006b5c678c6cdf8be40d`.
 - Offline APK audit: passed.
 - Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
 - Knowledge pack: Field Atlas Starter Evidence, 24.58 KB.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The signed 1.1.3 APK was installed and launched on the connected device on 2026-09-24. Its package manager record reports `versionCode` 6 and `versionName` 1.1.3.
+The signed 1.1.3 APK was the last installed and launched on the connected device. The 1.1.4 package is the next release candidate and still needs a connected-device installation record.
 
 ## Radios-off run
 

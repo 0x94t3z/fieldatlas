@@ -58,6 +58,14 @@ class AppContainer(context: Context) {
         mutablePacks.value = registry.list()
     }
 
+    suspend fun installBundledKnowledgeIfNeeded() {
+        if (registry.list().any { it.type == PackType.KNOWLEDGE }) return
+        appContext.assets.open(BUNDLED_KNOWLEDGE_ASSET).use { bundled ->
+            importer.import(bundled, appContext.filesDir.usableSpace)
+        }
+        refreshPacks()
+    }
+
     suspend fun importPack(uri: Uri): InstalledAsset = importer.import(uri).also { refreshPacks() }
 
     suspend fun loadModel() {
@@ -147,5 +155,6 @@ class AppContainer(context: Context) {
         const val SYSTEM_PROMPT =
             "Use only the evidence supplied in each user prompt. Explain, compare, synthesize, " +
                 "preserve conflicts and uncertainty, and cite factual claims with [S#]. Never use external knowledge."
+        const val BUNDLED_KNOWLEDGE_ASSET = "fieldatlas-starter-1.0.0.fapack"
     }
 }

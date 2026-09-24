@@ -86,7 +86,7 @@ fun SetupScreen(
                 )
             }
             item { PackRequirementCard("1", "1. Add model pack", hasModel, "Runs AI on this device.", fieldPanelColor) }
-            item { PackRequirementCard("2", "2. Add knowledge pack", hasKnowledge, "Provides searchable knowledge.", fieldPanelColor) }
+            item { PackRequirementCard("2", "2. Built-in knowledge", hasKnowledge, "Installed with Field Atlas.", fieldPanelColor) }
             item {
                 Button(
                     onClick = onImportPack,
@@ -136,7 +136,7 @@ private fun SetupHeader() {
         )
         FieldAtlasHeader(
             title = "Pack your atlas",
-            subtitle = "Two files make research available without a connection.",
+            subtitle = "Import one local model. Field Atlas includes starter knowledge.",
         )
     }
 }
@@ -210,7 +210,7 @@ private fun OfflineByDesignNote(background: androidx.compose.ui.graphics.Color) 
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "After both packs are added, turn off Wi-Fi and mobile data. Field Atlas works entirely from files on your phone.",
+                    "After the model is imported, turn off Wi-Fi and mobile data. Field Atlas works entirely from files on your phone.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )

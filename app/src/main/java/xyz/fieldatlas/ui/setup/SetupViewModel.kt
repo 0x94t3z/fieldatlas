@@ -22,6 +22,8 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
 
     init {
         viewModelScope.launch {
+            runCatching { container.installBundledKnowledgeIfNeeded() }
+                .onFailure { error -> mutableState.value = mutableState.value.copy(error = error.message ?: "Built-in knowledge could not be installed") }
             container.refreshPacks()
             container.packs.collect { packs -> mutableState.value = mutableState.value.copy(packs = packs) }
         }
