@@ -27,11 +27,24 @@ class FtsQuery private constructor(
                 .distinct()
                 .toList()
             if (terms.isEmpty()) return null
+            val searchableTerms = terms.map(::searchableTerm)
             return FtsQuery(
                 normalizedInput = capped,
-                matchExpression = terms.joinToString(" AND ") { term -> "\"$term\"" },
-                fallbackExpression = terms.joinToString(" OR ") { term -> "\"$term\"" },
+                matchExpression = searchableTerms.joinToString(" AND "),
+                fallbackExpression = searchableTerms.joinToString(" OR "),
             )
+        }
+
+        private fun searchableTerm(term: String): String {
+            val stem = when {
+                term.length > 4 && term.endsWith("ies") -> term.dropLast(3) + "y"
+                term.length > 4 && term.endsWith("es") -> term.dropLast(2)
+                term.length > 3 && term.endsWith("s") -> term.dropLast(1)
+                term.length > 4 && term.endsWith("ing") -> term.dropLast(3)
+                term.length > 4 && term.endsWith("ed") -> term.dropLast(2)
+                else -> term
+            }
+            return "\"$stem\"*"
         }
 
         private val STOP_WORDS = setOf(

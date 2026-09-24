@@ -8,11 +8,11 @@ import org.junit.Test
 class FtsQueryTest {
     @Test fun operatorsBecomeLiteralTerms() {
         assertEquals(
-            "\"climate\" AND \"title\"",
+            "\"climate\"* AND \"title\"*",
             FtsQuery.from("climate OR title:\"x\"")!!.matchExpression,
         )
         assertEquals(
-            "\"climate\" OR \"title\"",
+            "\"climate\"* OR \"title\"*",
             FtsQuery.from("climate OR title:\"x\"")!!.fallbackExpression,
         )
     }
@@ -23,23 +23,23 @@ class FtsQueryTest {
 
     @Test fun unicodeRemainsSearchable() {
         assertEquals(
-            "\"energi\" AND \"terbarukan\"",
+            "\"energi\"* AND \"terbarukan\"*",
             FtsQuery.from("Energi terbarukan")!!.matchExpression,
         )
     }
 
     @Test fun compatibilityCharactersAreNormalized() {
-        assertEquals("\"field\" AND \"atlas\"", FtsQuery.from("Ｆｉｅｌｄ Atlas")!!.matchExpression)
+        assertEquals("\"field\"* AND \"atla\"*", FtsQuery.from("Ｆｉｅｌｄ Atlas")!!.matchExpression)
     }
 
     @Test fun oneCharacterTermsAreRemoved() {
-        assertEquals("\"bb\"", FtsQuery.from("a BB 1")!!.matchExpression)
+        assertEquals("\"bb\"*", FtsQuery.from("a BB 1")!!.matchExpression)
     }
 
     @Test fun naturalLanguageStopWordsAreRemovedAndTermsDeduplicated() {
         val query = FtsQuery.from("Why are seasons not caused by Earth Sun distance seasons")!!
         assertEquals(
-            "\"seasons\" AND \"caused\" AND \"earth\" AND \"sun\" AND \"distance\"",
+            "\"season\"* AND \"caus\"* AND \"earth\"* AND \"sun\"* AND \"distance\"*",
             query.matchExpression,
         )
     }
@@ -47,7 +47,7 @@ class FtsQueryTest {
     @Test fun inputIsCappedAt512CodePointsWithoutSplittingSurrogates() {
         val input = "word " + "😀".repeat(507) + " excluded"
         val query = FtsQuery.from(input)!!
-        assertEquals("\"word\"", query.matchExpression)
+        assertEquals("\"word\"*", query.matchExpression)
         assertTrue(query.normalizedInput.codePointCount(0, query.normalizedInput.length) <= 512)
     }
 }
