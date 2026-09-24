@@ -2,6 +2,7 @@ package xyz.fieldatlas
 
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,6 +37,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (benchmarkVisible.value) {
+                    benchmarkVisible.value = false
+                    benchmarkViewModel.stop()
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
         setContent {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
@@ -131,16 +143,6 @@ class MainActivity : ComponentActivity() {
         researchViewModel.cancelResearch()
         if (benchmarkWasOpened) benchmarkViewModel.stop()
         super.onStop()
-    }
-
-    @Deprecated("Use the activity back dispatcher; retained for Android hardware-back compatibility")
-    override fun onBackPressed() {
-        if (benchmarkVisible.value) {
-            benchmarkVisible.value = false
-            benchmarkViewModel.stop()
-            return
-        }
-        super.onBackPressed()
     }
 
     private var benchmarkWasOpened = false
