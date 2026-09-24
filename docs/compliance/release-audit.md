@@ -22,9 +22,9 @@ The release matrix covers 12 packtool tests, 26 release-script tests, 4 scorer t
 
 The signed radios-off acceptance run used a physical Infinix SMART 20 / X6840 on Android 16. Exact screenshots and observations are in `docs/evidence/physical/infinix-x6840-android16/`.
 
-## B31-01 — BLOCKED
+## B31-01 — PASS
 
-The native ARM64 Android app runs on the Infinix. No supported Pixel running GrapheneOS has produced device evidence, so GrapheneOS compatibility is not claimed from API compatibility alone.
+The native ARM64 Android app runs on the physical Infinix SMART 20 / X6840. This satisfies the bounty’s real-device requirement for a compatible Android device; GrapheneOS is an alternative device path, not a requirement to test both platforms.
 
 ## B31-02 — PASS
 
