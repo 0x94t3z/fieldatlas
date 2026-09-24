@@ -83,6 +83,9 @@ cd third_party/llama.cpp && git apply ../../scripts/patches/ai-chat-generation-f
 
 A prebuilt debug APK with the full vector-search stack is in
 [`releases/field-atlas-v1.1.1-vector.apk`](releases/field-atlas-v1.1.1-vector.apk) (git LFS).
+The prebuilt biology vector pack — 708k chunks with int8 embeddings and the on-device
+query encoder, the most expensive artifact to regenerate (a full-corpus embedding run) —
+is in [`releases/packs/`](releases/packs/) (git LFS); install it from the Library screen.
 
 ## Install and use
 
