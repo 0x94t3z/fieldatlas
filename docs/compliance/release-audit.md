@@ -94,6 +94,10 @@ No POIDH claim transaction is recorded.
 
 The verified Field Notebook source and its current Infinix device record are public on `main`. The existing `v1.1.1` tag remains immutable on the earlier release; the current source is identified by its public commit rather than rewriting that tag.
 
+## POIDH claim record
+
+The submitted claim transaction is [`0x9c8dfc4d137d17052393baefc4cca108a2d3be160bb0461216fd94801a357ce9`](https://etherscan.io/tx/0x9c8dfc4d137d17052393baefc4cca108a2d3be160bb0461216fd94801a357ce9). The reviewed repository is [`0x94t3z/fieldatlas`](https://github.com/0x94t3z/fieldatlas), the functional release is [Field Atlas v1.1.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.6), and the public demo post is [the Field Atlas Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8). Current Reference-pack device evidence is [documented in the repository](../evidence/current-reference-v1.1.6/README.md).
+
 ## B31-19 — PASS
 
 Project-authored corpus licensing, upstream notices, dependency versions, release signing, malicious-permission checks, private-path scans, secret scans, and exact-artifact audits are documented. Apache Commons Compress is updated to 1.28.0. This is a local compliance review, not a warranty or issuer determination.
