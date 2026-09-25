@@ -1,13 +1,16 @@
 package xyz.fieldatlas.ui.research
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +32,7 @@ import xyz.fieldatlas.ui.theme.StatusTone
 fun AnswerScreen(
     state: ResearchUiState,
     onBack: () -> Unit,
+    onAskAnother: () -> Unit,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
 ) {
     BackHandler(onBack = onBack)
@@ -68,6 +72,13 @@ fun AnswerScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (state.keywords.isNotEmpty()) {
+                        Text(
+                            "Searched for: ${state.keywords.joinToString(", ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     FieldAtlasStatusPill("Offline", StatusTone.Positive)
                 }
             }
@@ -88,10 +99,29 @@ fun AnswerScreen(
                     FieldAtlasCard(Modifier.fillMaxWidth()) {
                         Text("Sources", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "$sourceLabel available. Select a numbered citation in the answer to inspect its passage.",
+                            "$sourceLabel available. Select a numbered citation in the answer, or a source below, to inspect its passage.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        // Every source used for this answer, numbered exactly as the answer's
+                        // [S#] markers reference them.
+                        state.sources.forEachIndexed { index, evidence ->
+                            Text(
+                                buildString {
+                                    append("${index + 1}: ${evidence.title}")
+                                    // Why this source is here: the query terms that matched it,
+                                    // or the cosine when the pack embedding found it.
+                                    evidence.matchedBy?.let { append("  ·  $it") }
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .fillMaxWidth()
+                                    // Same passage inspector as the in-answer [S#] markers.
+                                    .clickable { onCitation(index) },
+                            )
+                        }
                     }
                 }
             }
@@ -119,6 +149,11 @@ fun AnswerScreen(
                             }
                         }
                     }
+                }
+            }
+            item {
+                OutlinedButton(onClick = onAskAnother, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                    Text("Ask another question")
                 }
             }
             item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 24.dp)) }

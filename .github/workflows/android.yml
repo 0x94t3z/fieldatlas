@@ -25,6 +25,10 @@ jobs:
           packages: platform-tools
       - name: Install pinned Android toolchain
         run: ./scripts/install_toolchain.sh
+      - name: Apply pinned llama.cpp runtime patch
+        run: |
+          cd third_party/llama.cpp
+          patch -p1 < ../../scripts/patches/ai-chat-generation-fixes.patch
       - name: Test deterministic tooling
         run: |
           python3 -m unittest scripts.tests.test_android_sdk -v

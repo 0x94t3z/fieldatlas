@@ -7,9 +7,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -35,6 +41,10 @@ fun ResearchScreen(
     inferenceState: InferenceState,
     collectionCount: Int,
     suggestions: List<String> = emptyList(),
+    voiceState: VoiceUiState = VoiceUiState(),
+    onMicClick: () -> Unit = {},
+    diagnosticsText: String = "",
+    onClearDiagnostics: () -> Unit = {},
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onStop: () -> Unit,
@@ -67,24 +77,55 @@ fun ResearchScreen(
                 value = state.question,
                 onValueChange = onQuestionChange,
                 label = { Text("Research question") },
-                placeholder = { Text("Explain a topic, compare evidence, or examine a claim") },
+                placeholder = {
+                    Text(
+                        suggestions.firstOrNull()?.let { "e.g. $it" }
+                            ?: "Explain a topic, compare evidence, or examine a claim",
+                    )
+                },
                 enabled = !state.isRunning,
                 minLines = 4,
+                trailingIcon = {
+                    when (voiceState.phase) {
+                        VoicePhase.Idle -> androidx.compose.material3.IconButton(
+                            onClick = onMicClick,
+                            modifier = Modifier.semantics { contentDescription = "Dictate with microphone" },
+                        ) {
+                            Icon(Icons.Outlined.Mic, contentDescription = "Dictate")
+                        }
+                        VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 16.dp).size(22.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        VoicePhase.Recording -> androidx.compose.material3.IconButton(
+                            onClick = onMicClick,
+                            modifier = Modifier.semantics { contentDescription = "Stop recording" },
+                        ) {
+                            Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
+                        }
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Research question" },
                 shape = MaterialTheme.shapes.medium,
             )
-        }
-        if (suggestions.isNotEmpty() && !state.isRunning) {
-            item {
-                FieldAtlasCard(Modifier.fillMaxWidth()) {
-                    Text("Try an inquiry", style = MaterialTheme.typography.titleMedium)
-                    suggestions.take(3).forEach { suggestion ->
-                        TextButton(
-                            onClick = { onQuestionChange(suggestion) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(suggestion, modifier = Modifier.fillMaxWidth()) }
-                    }
+            when (voiceState.phase) {
+                VoicePhase.Recording -> Column(Modifier.padding(top = 6.dp)) {
+                    LinearProgressIndicator(
+                        progress = { voiceState.level },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 4.dp),
+                    )
+                    Text(
+                        "Listening — tap the stop button when you finish. Your words land in the box above.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
+                VoicePhase.Processing -> Text(
+                    "Writing down what I heard…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                else -> Unit
             }
         }
         item {
@@ -108,6 +149,13 @@ fun ResearchScreen(
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    if (state.keywords.isNotEmpty()) {
+                        Text(
+                            "Searched for: ${state.keywords.joinToString(", ")}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     FieldAtlasPrimaryButton(
                         text = "Read answer",
                         onClick = onOpenAnswer,
@@ -133,6 +181,27 @@ fun ResearchScreen(
                 MessageCard("Research needs attention", detail ?: "Try again after preparing the on-device model.")
             }
         }
+        item {
+            OutlinedTextField(
+                value = diagnosticsText,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Diagnostics") },
+                placeholder = { Text("No errors so far") },
+                minLines = 1,
+                maxLines = 6,
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Diagnostics" },
+                shape = MaterialTheme.shapes.medium,
+            )
+            if (diagnosticsText.isNotEmpty()) {
+                TextButton(
+                    onClick = onClearDiagnostics,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Clear diagnostics")
+                }
+            }
+        }
         item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 18.dp)) }
     }
 }
@@ -147,7 +216,14 @@ private fun ResearchAction(
 ) {
     if (state.isRunning || inferenceState == InferenceState.Generating) {
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text(researchActivityLabel(state.phase), fontWeight = FontWeight.SemiBold)
+            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten, state.retrievalVectorMatches), fontWeight = FontWeight.SemiBold)
+            if (state.keywords.isNotEmpty()) {
+                Text(
+                    "Searching for: ${state.keywords.joinToString(", ")}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             LinearProgressIndicator(Modifier.fillMaxWidth())
             OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 Text("Stop")

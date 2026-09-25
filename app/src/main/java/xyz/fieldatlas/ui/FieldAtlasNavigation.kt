@@ -8,7 +8,7 @@ import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 
-enum class PrimaryDestination { Research, Library, More }
+enum class PrimaryDestination { Research, Library, History, More }
 
 sealed interface DetailDestination {
     data object Answer : DetailDestination

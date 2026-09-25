@@ -1,0 +1,17 @@
+[
+ {"q": "are lions or tigers heavier?", "expect": "tigers heavier"},
+ {"q": "which is heavier, an African elephant or a white rhinoceros?", "expect": "elephant heavier"},
+ {"q": "could a blue whale weigh more than the largest dinosaur?", "expect": "blue whale heaviest"},
+ {"q": "what are the most populated countries in the world?", "expect": "India China"},
+ {"q": "is Japan's population larger than Nigeria's?", "expect": "Nigeria larger"},
+ {"q": "when did the Thirty Years War take place?", "expect": "1618-1648"},
+ {"q": "when did World War II start and end?", "expect": "1939 1945"},
+ {"q": "what should I eat to live a long and healthy life?", "expect": "Mediterranean/CR"},
+ {"q": "which viruses have the highest R0?", "expect": "measles"},
+ {"q": "who won the 2018 FIFA World Cup final?", "expect": "NOT in packs - honest refusal"},
+ {"q": "tell me about taiwan", "expect": "Taiwan article lede: island, 23M people, Taipei"},
+ {"q": "tell me about japan", "expect": "Japan article lede facts"},
+ {"q": "tell me about paris", "expect": "Paris article lede: capital of France"},
+ {"q": "tell me about the amazon rainforest", "expect": "largest rainforest, South America"},
+ {"q": "tell me about mount everest", "expect": "highest mountain above sea level"}
+]

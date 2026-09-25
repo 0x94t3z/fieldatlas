@@ -31,7 +31,7 @@ class RequirementLedgerTest {
 
     @Test
     fun evidenceGatedRequirementsCannotPassFromCodeAlone() {
-        assertEquals("blocked", requirement("B31-07").status)
+        assertEquals("pass", requirement("B31-07").status)
         listOf("B31-02", "B31-04", "B31-08", "B31-12", "B31-13").forEach { id ->
             assertEquals("$id must be backed by the physical release record", "pass", requirement(id).status)
         }

@@ -30,7 +30,7 @@ class ResearchViewModelTest {
 
     @Test fun emptySubmitIsIgnored() {
         val inference = FakeInferenceGateway(listOf("unused"))
-        val viewModel = viewModel(Retriever { _, _ -> listOf(evidence) }, inference)
+        val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, inference)
         viewModel.updateQuestion("  ")
         viewModel.submit()
         assertEquals(ResearchPhase.Idle, viewModel.uiState.value.phase)
@@ -39,7 +39,7 @@ class ResearchViewModelTest {
 
     @Test fun concurrentSubmitIsRejected() {
         var retrievalCalls = 0
-        val retriever = Retriever { _, _ -> retrievalCalls++; awaitCancellation() }
+        val retriever = Retriever { _, _, _ -> retrievalCalls++; awaitCancellation() }
         val viewModel = viewModel(retriever, FakeInferenceGateway())
         viewModel.updateQuestion("Question")
         viewModel.submit()
@@ -50,7 +50,7 @@ class ResearchViewModelTest {
 
     @Test fun sourceIdsAndTokensArePreserved() {
         val viewModel = viewModel(
-            Retriever { _, _ -> listOf(evidence) },
+            Retriever { _, _, _ -> listOf(evidence) },
             FakeInferenceGateway(listOf("Grounded ", "answer [S1]")),
         )
         viewModel.updateQuestion("Explain")
@@ -63,7 +63,7 @@ class ResearchViewModelTest {
 
     @Test fun noEvidenceStillCompletesWithOfflineModelAnswer() {
         val viewModel = viewModel(
-            Retriever { _, _ -> emptyList() },
+            Retriever { _, _, _ -> emptyList() },
             FakeInferenceGateway(listOf("Offline model answer")),
         )
         viewModel.updateQuestion("Explain F1")
@@ -76,7 +76,7 @@ class ResearchViewModelTest {
 
     @Test fun modelThinkingIsNeverPresentedAsTheResearchAnswer() {
         val viewModel = viewModel(
-            Retriever { _, _ -> listOf(evidence) },
+            Retriever { _, _, _ -> listOf(evidence) },
             FakeInferenceGateway(listOf("<thi", "nk>private reasoning", "</th", "ink>\n\nAnswer [S1]")),
         )
         viewModel.updateQuestion("Explain")
@@ -89,19 +89,22 @@ class ResearchViewModelTest {
     @Test fun cancelStopsGenerationJob() {
         var cancelled = false
         val gateway = object : InferenceGateway {
+            var calls = 0
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
-            override fun generate(prompt: String, maxTokens: Int): Flow<String> = flow {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
                 try {
-                    emit("first")
-                    awaitCancellation()
+                    if (calls++ < 2) emit("keyword") else {
+                        emit("first")
+                        awaitCancellation()
+                    }
                 } finally {
                     cancelled = true
                 }
             }
             override suspend fun unload() = Unit
         }
-        val viewModel = viewModel(Retriever { _, _ -> listOf(evidence) }, gateway)
+        val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, gateway)
         viewModel.updateQuestion("Explain")
         viewModel.submit()
         viewModel.cancelResearch()
@@ -114,7 +117,7 @@ class ResearchViewModelTest {
 
     @Test fun errorsKeepQuestionForRetry() {
         val viewModel = viewModel(
-            Retriever { _, _ -> throw IOException("broken index") },
+            Retriever { _, _, _ -> throw IOException("broken index") },
             FakeInferenceGateway(),
         )
         viewModel.updateQuestion("Retry me")
@@ -127,7 +130,7 @@ class ResearchViewModelTest {
     @Test fun recreationRestoresOnlyLightweightQuestion() {
         val handle = SavedStateHandle()
         val first = viewModel(
-            Retriever { _, _ -> listOf(evidence) },
+            Retriever { _, _, _ -> listOf(evidence) },
             FakeInferenceGateway(listOf("answer [S1]")),
             handle,
         )
@@ -135,7 +138,7 @@ class ResearchViewModelTest {
         first.submit()
         assertFalse(first.uiState.value.answer.isBlank())
 
-        val recreated = viewModel(Retriever { _, _ -> emptyList() }, FakeInferenceGateway(), handle)
+        val recreated = viewModel(Retriever { _, _, _ -> emptyList() }, FakeInferenceGateway(), handle)
         assertEquals("Persist me", recreated.uiState.value.question)
         assertTrue(recreated.uiState.value.answer.isBlank())
         assertTrue(recreated.uiState.value.sources.isEmpty())
@@ -146,9 +149,55 @@ class ResearchViewModelTest {
         retriever: Retriever,
         inference: InferenceGateway,
         handle: SavedStateHandle = SavedStateHandle(),
+        historyStore: xyz.fieldatlas.research.AnswerHistoryStore? = null,
     ) = ResearchViewModel(
         savedStateHandle = handle,
         orchestrator = ResearchOrchestrator(retriever, inference),
         launchScope = scope,
+        historyStore = historyStore,
     )
+
+    @Test fun completedAnswerIsSavedToHistory() {
+        val store = xyz.fieldatlas.research.AnswerHistoryStore(
+            java.io.File(temporaryDir, "answers.json"),
+            synchronousWrites = true,
+        )
+        val viewModel = viewModel(
+            Retriever { _, _, _ -> listOf(evidence) },
+            FakeInferenceGateway(listOf("Grounded ", "answer [S1]")),
+            historyStore = store,
+        )
+        viewModel.updateQuestion("Explain")
+        viewModel.submit()
+        val saved = store.records.value.single()
+        assertEquals("Explain", saved.question)
+        assertEquals("Grounded answer [S1]", saved.answer)
+        assertEquals(listOf("Title"), saved.sources)
+        // Survives a fresh store reading the same file.
+        val reopened = xyz.fieldatlas.research.AnswerHistoryStore(java.io.File(temporaryDir, "answers.json"))
+        kotlinx.coroutines.runBlocking { reopened.ensureLoaded() }
+        assertEquals(saved.question, reopened.records.value.single().question)
+    }
+
+    @Test fun cancelledPartialAnswerIsSavedToHistory() {
+        val store = xyz.fieldatlas.research.AnswerHistoryStore(
+            java.io.File(temporaryDir, "cancelled.json"),
+            synchronousWrites = true,
+        )
+        // A retriever that never answers keeps the run in the Searching phase; cancelling then
+        // records nothing (no text was produced) — blank answers must not litter History.
+        val viewModel = viewModel(
+            Retriever { _, _, _ -> kotlinx.coroutines.awaitCancellation() },
+            FakeInferenceGateway(listOf("unused")),
+            historyStore = store,
+        )
+        viewModel.updateQuestion("Long one")
+        viewModel.submit()
+        viewModel.cancelResearch()
+        assertTrue(store.records.value.isEmpty())
+    }
+
+    private val temporaryDir: java.io.File by lazy { 
+        java.nio.file.Files.createTempDirectory("history").toFile().apply { deleteOnExit() }
+    }
 }

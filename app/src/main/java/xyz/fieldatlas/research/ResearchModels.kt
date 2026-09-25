@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 enum class ResearchCompletion { Complete, Cancelled }
 
 sealed interface ResearchEvent {
+    data class Planning(val query: String) : ResearchEvent
+    data class Keywords(val terms: List<String>) : ResearchEvent
     data class Searching(val query: String) : ResearchEvent
     data class Sources(val evidence: List<Evidence>) : ResearchEvent
     data class Token(val text: String) : ResearchEvent

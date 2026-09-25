@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Field Atlas</string>
     <string name="nav_research">Research</string>
+    <string name="nav_history">History</string>
+    <string name="history_title">Previous answers</string>
+    <string name="history_empty">Answers you generate will be saved here, newest first.</string>
     <string name="nav_library">Library</string>
     <string name="nav_more">More</string>
 </resources>

@@ -18,7 +18,7 @@ class FakeInferenceGateway(private val tokens: List<String> = emptyList()) : Inf
         mutableState.value = InferenceState.Ready
     }
 
-    override fun generate(prompt: String, maxTokens: Int): Flow<String> = flow {
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
         require(prompt.isNotBlank()) { "prompt must not be blank" }
         require(maxTokens > 0) { "maxTokens must be positive" }
         generateCalls++

@@ -32,8 +32,9 @@ fun deriveSetupNextAction(packs: List<InstalledAsset>, importing: Boolean): Setu
 fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
     title = title,
     kind = when (type) {
-        PackType.MODEL -> "Model"
-        PackType.KNOWLEDGE -> "Knowledge"
+        PackType.MODEL -> "Answer model"
+        PackType.KNOWLEDGE -> "Knowledge data"
+        PackType.AUDIO -> "Audio model"
     },
     size = formatBytes(installedBytes),
     version = version,

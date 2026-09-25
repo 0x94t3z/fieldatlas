@@ -195,6 +195,7 @@ class FieldAtlasAppTest {
                         ),
                         onBack = {},
                         onCitation = {},
+                        onAskAnother = {},
                     )
                 }
             }

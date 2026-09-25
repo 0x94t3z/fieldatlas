@@ -1,0 +1,17 @@
+{
+  "converter": "Q4_K_M artifact published by bartowski (commit 7d26695454df6de5fbcce2e58681e62dae06ce43) from Qwen/Qwen3.5-2B at Hugging Face revision 15852e8c16360a2fea060d615a32b45270f8a8fc",
+  "expectedSha256": "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8",
+  "id": "qwen3.5-2b-q4-k-m",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Compact candidate: ARM64 CPU inference on the pinned runtime's 8192-token context; qwen35 architecture verified to load at the pinned commit; the model thinks by default upstream, but its chat template's empty-thinking branch applies under the app's native formatter, so the full generation budget goes to the cited answer; 1.4 GB artifact - validate memory on the target 4 GB phone",
+  "quantizer": "Q4_K_M artifact published by bartowski; expected upstream SHA-256 57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8",
+  "sourceUrls": [
+    "https://huggingface.co/Qwen/Qwen3.5-2B",
+    "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/blob/7d26695454df6de5fbcce2e58681e62dae06ce43/Qwen_Qwen3.5-2B-Q4_K_M.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "Qwen3.5 2B — Q4_K_M Compact",
+  "upstreamModel": "Qwen/Qwen3.5-2B",
+  "version": "1.0.0"
+}

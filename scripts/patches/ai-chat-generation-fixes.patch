@@ -1,0 +1,557 @@
+diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+index 03ab96c..b762a8f 100644
+--- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
++++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+@@ -30,7 +30,7 @@ constexpr int   N_THREADS_HEADROOM      = 2;
+ 
+ constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;
+ constexpr int   OVERFLOW_HEADROOM       = 4;
+-constexpr int   BATCH_SIZE              = 512;
++constexpr int   BATCH_SIZE              = 256;
+ constexpr float DEFAULT_SAMPLER_TEMP    = 0.3f;
+ 
+ static llama_model                      * g_model;
+@@ -39,9 +39,13 @@ static llama_batch                        g_batch;
+ static common_chat_templates_ptr          g_chat_templates;
+ static common_sampler                   * g_sampler;
+ 
++// Field Atlas: native -> Java prefill progress (processed, total) while a prompt is decoded.
++static jobject                           g_progress_receiver = nullptr;
++static jmethodID                         g_progress_method   = nullptr;
++
+ extern "C"
+ JNIEXPORT void JNICALL
+-Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unused*/, jstring nativeLibDir) {
++Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject thiz, jstring nativeLibDir) {
+     // Set llama log handler to Android
+     llama_log_set(aichat_android_log_callback, nullptr);
+ 
+@@ -53,6 +57,15 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
+ 
+     // Initialize backends
+     llama_backend_init();
++
++    // Field Atlas: cache the callback target so batched prompt decodes can report progress.
++    g_progress_receiver = env->NewGlobalRef(thiz);
++    jclass clazz = env->GetObjectClass(thiz);
++    g_progress_method = env->GetMethodID(clazz, "onNativePromptProgressNative", "(II)V");
++    env->DeleteLocalRef(clazz);
++    if (!g_progress_receiver || !g_progress_method) {
++        LOGw("Prompt progress callback unavailable on the Kotlin side");
++    }
+     LOGi("Backend initiated; Log handler set.");
+ }
+ 
+@@ -104,9 +117,16 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
+     return context;
+ }
+ 
+-static common_sampler *new_sampler(float temp) {
++static common_sampler *new_sampler(float temp, uint32_t seed) {
+     common_params_sampling sparams;
+     sparams.temp = temp;
++    sparams.seed = seed;
++    // Field Atlas: small quantized models (notably MiniCPM5-1B Q4) fall into verbatim echo
++    // loops at plain temperature sampling - repeating "S3 does not contain the answer" until
++    // the token budget dies. A mild repetition penalty breaks those loops without visibly
++    // harming grounded answers.
++    sparams.penalty_repeat = 1.10f;
++    sparams.penalty_last_n = 128;
+     return common_sampler_init(g_model, sparams);
+ }
+ 
+@@ -118,10 +138,22 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
+     g_context = context;
+     g_batch = llama_batch_init(BATCH_SIZE, 0, 1);
+     g_chat_templates = common_chat_templates_init(g_model, "");
+-    g_sampler = new_sampler(DEFAULT_SAMPLER_TEMP);
++    g_sampler = new_sampler(DEFAULT_SAMPLER_TEMP, LLAMA_DEFAULT_SEED);
+     return 0;
+ }
+ 
++// Field Atlas: reseed the sampler for one generation turn. Two keyword-planner turns with
++// different seeds surface genuinely different candidate terms (temperature alone reuses the
++// same stream position); -1 restores the random default. Safe between turns only.
++extern "C"
++JNIEXPORT void JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_setSamplerSeedNative(JNIEnv * /*env*/, jobject /*unused*/, jint seed) {
++    if (g_sampler != nullptr) {
++        common_sampler_free(g_sampler);
++    }
++    g_sampler = new_sampler(DEFAULT_SAMPLER_TEMP, seed >= 0 ? (uint32_t) seed : LLAMA_DEFAULT_SEED);
++}
++
+ static std::string get_backend() {
+     std::vector<std::string> backends;
+     for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
+@@ -257,11 +289,14 @@ constexpr const char *ROLE_USER         = "user";
+ constexpr const char *ROLE_ASSISTANT    = "assistant";
+ 
+ static std::vector<common_chat_msg> chat_msgs;
++// Field Atlas: last full template render of chat_msgs, used to extract each turn's delta
++static std::string rendered_prompt;
+ static llama_pos system_prompt_position;
+ static llama_pos current_position;
+ 
+ static void reset_long_term_states(const bool clear_kv_cache = true) {
+     chat_msgs.clear();
++    rendered_prompt.clear();
+     system_prompt_position = 0;
+     current_position = 0;
+ 
+@@ -290,8 +325,48 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
+     common_chat_msg new_msg;
+     new_msg.role = role;
+     new_msg.content = content;
+-    auto formatted = common_chat_format_single(
+-            g_chat_templates.get(), chat_msgs, new_msg, role == ROLE_USER, /* use_jinja */ false);
++    // Field Atlas patch: use the Jinja formatter so generation-prompt logic carried in the
++    // GGUF's own chat_template (e.g. empty-thinking seeding) is honoured, not just the SPM
++    // approximation which drops template tails.
++    // Templates may raise_exception() during rendering (Qwen3.5 rejects system-only
++    // histories); jinja rethrows as a C++ exception, which must never escape into JNI.
++    // Field Atlas: render the WHOLE history through the template (not the incremental diff
++    // helper, whose past-prefix render raises on templates like Qwen3.5 that reject
++    // system-only histories) and return only the newly added suffix to encode.
++    std::vector<common_chat_msg> next_msgs = chat_msgs;
++    next_msgs.push_back(new_msg);
++    std::string full;
++    bool ok = true;
++    try {
++        common_chat_templates_inputs inputs;
++        inputs.messages              = next_msgs;
++        inputs.use_jinja             = true;
++        inputs.add_generation_prompt = role == ROLE_USER;
++        inputs.enable_thinking       = false;
++        full = common_chat_templates_apply(g_chat_templates.get(), inputs).prompt;
++    } catch (const std::exception & error) {
++        LOGe("%s: chat template formatting failed for role %s: %s", __func__, role.c_str(), error.what());
++        ok = false;
++    } catch (...) {
++        LOGe("%s: chat template formatting failed for role %s: unknown exception", __func__, role.c_str());
++        ok = false;
++    }
++    if (!ok) {
++        if (role == ROLE_SYSTEM) {
++            // System-only render was rejected (e.g. Qwen3.5 "No user query found"). Keep the
++            // message in history so it renders with the user turn instead; encode nothing now.
++            chat_msgs.push_back(new_msg);
++        }
++        return "";
++    }
++    std::string formatted;
++    if (full.size() >= rendered_prompt.size() &&
++        full.compare(0, rendered_prompt.size(), rendered_prompt) == 0) {
++        formatted = full.substr(rendered_prompt.size());
++    } else {
++        formatted = full;  // history diverged from the cached prefix: encode everything
++    }
++    rendered_prompt = full;
+     chat_msgs.push_back(new_msg);
+     LOGi("%s: Formatted and added %s message: \n%s\n", __func__, role.c_str(), formatted.c_str());
+     return formatted;
+@@ -318,7 +393,8 @@ static int decode_tokens_in_batches(
+         llama_batch &batch,
+         const llama_tokens &tokens,
+         const llama_pos start_pos,
+-        const bool compute_last_logit = false) {
++        const bool compute_last_logit = false,
++        JNIEnv *env = nullptr) {
+     // Process tokens in batches using the global batch
+     LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
+     for (int i = 0; i < (int) tokens.size(); i += BATCH_SIZE) {
+@@ -346,32 +422,40 @@ static int decode_tokens_in_batches(
+             LOGe("%s: llama_decode failed w/ %d", __func__, decode_result);
+             return 1;
+         }
++
++        // Field Atlas: report prefill progress so the UI can show "x/y tokens read".
++        if (env != nullptr && g_progress_receiver != nullptr && g_progress_method != nullptr) {
++            env->CallVoidMethod(
++                g_progress_receiver, g_progress_method,
++                (jint) (i + cur_batch_size), (jint) tokens.size());
++        }
+     }
+     return 0;
+ }
+ 
+-extern "C"
+-JNIEXPORT jint JNICALL
+-Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
+-        JNIEnv *env,
+-        jobject /*unused*/,
+-        jstring jsystem_prompt
+-) {
++// Field Atlas patch: shared implementation of "start a fresh conversation with this system
++// prompt", reused by processSystemPrompt and resetConversation below.
++static int apply_system_prompt(const std::string &raw_system_prompt) {
+     // Reset long-term & short-term states
+     reset_long_term_states();
+     reset_short_term_states();
+ 
+-    // Obtain system prompt from JEnv
+-    const auto *system_prompt = env->GetStringUTFChars(jsystem_prompt, nullptr);
+-    LOGd("%s: System prompt received: \n%s", __func__, system_prompt);
+-    std::string formatted_system_prompt(system_prompt);
++    LOGd("%s: System prompt received: \n%s", __func__, raw_system_prompt.c_str());
++    std::string formatted_system_prompt(raw_system_prompt);
+ 
+     // Format system prompt if applicable
+     const bool has_chat_template = common_chat_templates_was_explicit(g_chat_templates.get());
+     if (has_chat_template) {
+-        formatted_system_prompt = chat_add_and_format(ROLE_SYSTEM, system_prompt);
++        formatted_system_prompt = chat_add_and_format(ROLE_SYSTEM, raw_system_prompt);
++        if (formatted_system_prompt.empty()) {
++            // Field Atlas: the template rejected a system-only render (e.g. Qwen3.5 raises
++            // "No user query found in messages."). The system message is still in chat_msgs,
++            // so it will be rendered together with the user turn - decode nothing now.
++            LOGi("%s: template rejected system-only rendering; deferring it to the user turn", __func__);
++            system_prompt_position = current_position = 0;
++            return 0;
++        }
+     }
+-    env->ReleaseStringUTFChars(jsystem_prompt, system_prompt);
+ 
+     // Tokenize system prompt
+     const auto system_tokens = common_tokenize(g_context, formatted_system_prompt,
+@@ -399,6 +483,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
+     return 0;
+ }
+ 
++extern "C"
++JNIEXPORT jint JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
++        JNIEnv *env,
++        jobject /*unused*/,
++        jstring jsystem_prompt
++) {
++    const auto *system_prompt = env->GetStringUTFChars(jsystem_prompt, nullptr);
++    const std::string prompt_copy(system_prompt);
++    env->ReleaseStringUTFChars(jsystem_prompt, system_prompt);
++    return apply_system_prompt(prompt_copy);
++}
++
++// Field Atlas patch: reset conversation (KV cache + chat messages) and re-apply the system
++// prompt. Kotlin binds this as InferenceEngineImpl.resetConversationNative.
++extern "C"
++JNIEXPORT jint JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_resetConversationNative(
++        JNIEnv *env,
++        jobject /*unused*/,
++        jstring jsystem_prompt
++) {
++    const auto *system_prompt = env->GetStringUTFChars(jsystem_prompt, nullptr);
++    const std::string prompt_copy(system_prompt);
++    env->ReleaseStringUTFChars(jsystem_prompt, system_prompt);
++    return apply_system_prompt(prompt_copy);
++}
++
+ extern "C"
+ JNIEXPORT jint JNICALL
+ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -438,14 +550,17 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+     }
+ 
+     // Decode user tokens in batches
+-    if (decode_tokens_in_batches(g_context, g_batch, user_tokens, current_position, true)) {
++    if (decode_tokens_in_batches(g_context, g_batch, user_tokens, current_position, true, env)) {
+         LOGe("%s: llama_decode() failed!", __func__);
+         return 2;
+     }
+ 
+     // Update position
+     current_position += user_prompt_size;
+-    stop_generation_position = current_position + user_prompt_size + n_predict;
++    // Field Atlas patch: current_position already includes the user prompt; the upstream
++    // formula added user_prompt_size a second time, inflating every generation budget by
++    // the prompt length (e.g. 512 requested -> ~1857 emitted for a ~1.3k token prompt).
++    stop_generation_position = current_position + n_predict;
+     return 0;
+ }
+ 
+@@ -563,3 +678,120 @@ JNIEXPORT void JNICALL
+ Java_com_arm_aichat_internal_InferenceEngineImpl_shutdown(JNIEnv *, jobject /*unused*/) {
+     llama_backend_free();
+ }
++
++// ---------------------------------------------------------------------------
++// Field Atlas: embedding encoder for vector-capable knowledge packs.
++//
++// The encoder (e.g. BAAI/bge-small-en-v1.5 GGUF shipped inside the pack) is a second,
++// tiny model with its own globals — independent of the chat model above, so Library
++// changes can swap the encoder while an answer model stays loaded. Mirrors the verified
++// offline pipeline: single sequence, logits on the last token, pooled sequence embedding
++// (CLS pooling from the GGUF), L2-normalized output. See tools/build_vector_pack.py for
++// the corpus side of the same recipe.
++// ---------------------------------------------------------------------------
++
++static llama_model                     * g_encoder_model   = nullptr;
++static llama_context                   * g_encoder_context = nullptr;
++
++extern "C"
++JNIEXPORT jboolean JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_loadEncoderNative(
++        JNIEnv * env, jobject /*unused*/, jstring jpath) {
++    const char * path = env->GetStringUTFChars(jpath, nullptr);
++    std::string model_path(path);
++    env->ReleaseStringUTFChars(jpath, path);
++    if (g_encoder_context) {
++        llama_free(g_encoder_context);
++        g_encoder_context = nullptr;
++    }
++    if (g_encoder_model) {
++        llama_model_free(g_encoder_model);
++        g_encoder_model = nullptr;
++    }
++    llama_model_params mparams = llama_model_default_params();
++    mparams.n_gpu_layers = 0;
++    g_encoder_model = llama_model_load_from_file(model_path.c_str(), mparams);
++    if (!g_encoder_model) {
++        LOG_ERR("%s: failed to load encoder %s\n", __func__, model_path.c_str());
++        return JNI_FALSE;
++    }
++    const int train_ctx = llama_model_n_ctx_train(g_encoder_model);
++    llama_context_params cparams = llama_context_default_params();
++    cparams.n_ctx         = (uint32_t) std::max(64, train_ctx);
++    cparams.n_batch       = (uint32_t) std::max(64, train_ctx);
++    cparams.n_ubatch      = (uint32_t) std::max(64, train_ctx);
++    cparams.n_seq_max     = 1;
++    cparams.embeddings    = true;   // pooled sequence embeddings (honors the GGUF pooling type)
++    cparams.flash_attn    = false;
++    g_encoder_context = llama_init_from_model(g_encoder_model, cparams);
++    if (!g_encoder_context) {
++        LOG_ERR("%s: failed to create encoder context\n", __func__);
++        llama_model_free(g_encoder_model);
++        g_encoder_model = nullptr;
++        return JNI_FALSE;
++    }
++    LOG_INF("%s: encoder loaded (%s, dim=%d, train_ctx=%d)\n",
++            __func__, model_path.c_str(), llama_model_n_embd(g_encoder_model), train_ctx);
++    return JNI_TRUE;
++}
++
++extern "C"
++JNIEXPORT void JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_unloadEncoderNative(JNIEnv *, jobject /*unused*/) {
++    if (g_encoder_context) { llama_free(g_encoder_context);        g_encoder_context = nullptr; }
++    if (g_encoder_model)   { llama_model_free(g_encoder_model);    g_encoder_model   = nullptr; }
++}
++
++extern "C"
++JNIEXPORT jfloatArray JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_embedNative(JNIEnv * env, jobject, jstring jtext) {
++    if (!g_encoder_model || !g_encoder_context) return nullptr;
++    const llama_vocab * vocab  = llama_model_get_vocab(g_encoder_model);
++    const int           dim    = llama_model_n_embd(g_encoder_model);
++    const int           max_tokens = std::max(8, llama_model_n_ctx_train(g_encoder_model) - 4);
++
++    const char * text = env->GetStringUTFChars(jtext, nullptr);
++    std::string input(text);
++    env->ReleaseStringUTFChars(jtext, text);
++
++    std::vector<llama_token> tokens(dim + max_tokens + 8);
++    int n_tokens = llama_tokenize(vocab, input.c_str(), (int32_t) input.size(),
++                                  tokens.data(), (int32_t) tokens.size(),
++                                  /* add_bos = */ true, /* special = */ true);
++    if (n_tokens < 0) {
++        n_tokens = -n_tokens;
++        if (n_tokens > max_tokens) n_tokens = max_tokens;
++        n_tokens = llama_tokenize(vocab, input.c_str(), (int32_t) input.size(),
++                                  tokens.data(), n_tokens, true, true);
++    }
++    if (n_tokens <= 0 || n_tokens > max_tokens) {
++        n_tokens = std::min(n_tokens, max_tokens);
++        if (n_tokens <= 0) return nullptr;
++    }
++    tokens.resize(n_tokens);
++
++    llama_batch batch = llama_batch_init(n_tokens, 0, 1);
++    for (int i = 0; i < n_tokens; i++) {
++        common_batch_add(batch, tokens[i], (llama_pos) i, /* seq_id = */ 0,
++                         /* logits = */ i + 1 == n_tokens);
++    }
++    jfloatArray result = nullptr;
++    if (llama_encode(g_encoder_context, batch) == 0) {
++        const float * embedding = llama_get_embeddings_seq(g_encoder_context, 0);
++        if (embedding) {
++            float norm = 0.0f;
++            for (int j = 0; j < dim; j++) norm += embedding[j] * embedding[j];
++            norm = std::sqrt(norm);
++            std::vector<jfloat> normalized(dim);
++            for (int j = 0; j < dim; j++) {
++                normalized[j] = norm > 0.0f ? (jfloat) (embedding[j] / norm) : 0.0f;
++            }
++            result = env->NewFloatArray(dim);
++            if (result) env->SetFloatArrayRegion(result, 0, dim, normalized.data());
++        }
++    } else {
++        LOG_ERR("%s: encoder forward pass failed\n", __func__);
++    }
++    llama_batch_free(batch);
++    return result;
++}
+diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
+index 26c1668..3cc840b 100644
+--- a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
++++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
+@@ -4,6 +4,9 @@ import com.arm.aichat.InferenceEngine.State
+ import kotlinx.coroutines.flow.Flow
+ import kotlinx.coroutines.flow.StateFlow
+ 
++/** Prefill progress reported while a prompt is being decoded: `processed` of `total` tokens. */
++data class PromptProgress(val processed: Int, val total: Int)
++
+ /**
+  * Interface defining the core LLM inference operations.
+  */
+@@ -30,6 +33,40 @@ interface InferenceEngine {
+      */
+     fun sendUserPrompt(message: String, predictLength: Int = DEFAULT_PREDICT_LENGTH): Flow<String>
+ 
++    /**
++     * Field Atlas addition: live progress while the engine is *reading* (decoding) a prompt,
++     * or null when no prompt decode is in flight.
++     */
++    val promptProgress: StateFlow<PromptProgress?>
++
++    /**
++     * Field Atlas addition: clears all conversation history (KV cache and chat message state)
++     * and re-applies [systemPrompt], so the next [sendUserPrompt] sees a clean model turn.
++     */
++    fun resetConversation(systemPrompt: String)
++
++    /**
++     * Reseeds the sampler for the next turn (Field Atlas: dual keyword passes use
++     * different seeds; -1 restores the random default). Call only between turns.
++     */
++    fun setSamplerSeed(seed: Int)
++
++    /**
++     * Field Atlas addition: loads the embedding encoder GGUF shipped inside vector-capable
++     * knowledge packs. Independent of the chat model — loading the chat model does not drop
++     * the encoder and vice versa. Returns false when the native side cannot load it.
++     */
++    fun loadEncoder(pathToModel: String): Boolean = false
++
++    /** Field Atlas addition: releases the encoder model loaded by [loadEncoder]. */
++    fun unloadEncoder() {}
++
++    /**
++     * Field Atlas addition: encodes [text] into a unit-normalized embedding using the model
++     * from [loadEncoder]; null when no encoder is loaded. Synchronous — call from an IO pool.
++     */
++    fun embed(text: String): FloatArray? = null
++
+     /**
+      * Runs a benchmark with the specified parameters.
+      */
+diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
+index a293796..85d9895 100644
+--- a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
++++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
+@@ -3,6 +3,7 @@ package com.arm.aichat.internal
+ import android.content.Context
+ import android.util.Log
+ import com.arm.aichat.InferenceEngine
++import com.arm.aichat.PromptProgress
+ import com.arm.aichat.UnsupportedArchitectureException
+ import com.arm.aichat.internal.InferenceEngineImpl.Companion.getInstance
+ import dalvik.annotation.optimization.FastNative
+@@ -75,6 +76,18 @@ internal class InferenceEngineImpl private constructor(
+             }
+     }
+ 
++    /**
++     * Field Atlas: prefill progress plumbing (native reports "processed/total" mid-decode).
++     */
++    private val _promptProgress = MutableStateFlow<PromptProgress?>(null)
++    override val promptProgress: StateFlow<PromptProgress?> = _promptProgress.asStateFlow()
++
++    /** Invoked from native code (ai_chat.cpp) on the thread decoding the prompt. */
++    @Suppress("unused", "UNUSED_PARAMETER")
++    private fun onNativePromptProgressNative(processed: Int, total: Int) {
++        _promptProgress.value = PromptProgress(processed, total)
++    }
++
+     /**
+      * JNI methods
+      * @see ai_chat.cpp
+@@ -100,6 +113,10 @@ internal class InferenceEngineImpl private constructor(
+     @FastNative
+     private external fun processUserPrompt(userPrompt: String, predictLength: Int): Int
+ 
++    private external fun resetConversationNative(systemPrompt: String): Int
++
++    private external fun setSamplerSeedNative(seed: Int)
++
+     @FastNative
+     private external fun generateNextToken(): String?
+ 
+@@ -109,6 +126,16 @@ internal class InferenceEngineImpl private constructor(
+     @FastNative
+     private external fun shutdown()
+ 
++    // Field Atlas: embedding encoder (chunk_vectors knowledge packs) — separate native globals
++    // from the chat model, so the answer model and encoder coexist.
++    @FastNative
++    private external fun loadEncoderNative(modelPath: String): Boolean
++
++    @FastNative
++    private external fun unloadEncoderNative()
++
++    private external fun embedNative(text: String): FloatArray?
++
+     private val _state =
+         MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
+     override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
+@@ -214,6 +241,24 @@ internal class InferenceEngineImpl private constructor(
+     /**
+      * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
+      */
++    override fun resetConversation(systemPrompt: String) {
++        check(_state.value is InferenceEngine.State.ModelReady) {
++            "Conversation reset requires a ready model"
++        }
++        resetConversationNative(systemPrompt).let { result ->
++            if (result != 0) {
++                throw IllegalStateException("Failed to reset conversation: $result")
++            }
++        }
++    }
++
++    override fun setSamplerSeed(seed: Int) {
++        check(_state.value is InferenceEngine.State.ModelReady) {
++            "Sampler reseeding requires a ready model"
++        }
++        setSamplerSeedNative(seed)
++    }
++
+     override fun sendUserPrompt(
+         message: String,
+         predictLength: Int,
+@@ -227,6 +272,7 @@ internal class InferenceEngineImpl private constructor(
+             Log.i(TAG, "Sending user prompt...")
+             _readyForSystemPrompt = false
+             _state.value = InferenceEngine.State.ProcessingUserPrompt
++            _promptProgress.value = null
+ 
+             processUserPrompt(message, predictLength).let { result ->
+                 if (result != 0) {
+@@ -262,6 +308,17 @@ internal class InferenceEngineImpl private constructor(
+     /**
+      * Benchmark the model
+      */
++    // Field Atlas: embedding encoder entry points (see InferenceEngine for semantics).
++    override fun loadEncoder(pathToModel: String): Boolean =
++        runCatching { loadEncoderNative(pathToModel) }.getOrDefault(false)
++
++    override fun unloadEncoder() {
++        runCatching { unloadEncoderNative() }
++    }
++
++    override fun embed(text: String): FloatArray? =
++        runCatching { embedNative(text) }.getOrNull()
++
+     override suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int): String =
+         withContext(llamaDispatcher) {
+             check(_state.value is InferenceEngine.State.ModelReady) {

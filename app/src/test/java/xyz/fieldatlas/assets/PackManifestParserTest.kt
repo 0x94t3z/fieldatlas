@@ -30,6 +30,17 @@ class PackManifestParserTest {
         assertEquals(3L, parsed.artifacts.single().bytes)
     }
 
+    @Test fun parsesAudioPackManifest() {
+        val parsed = PackManifestParser.parse(
+            manifest(artifact = """{"path":"audio-model/conf/model.conf","bytes":3,"sha256":"${"a".repeat(64)}"}""", type = "AUDIO")
+                .encodeToByteArray(),
+        )
+        assertEquals(PackType.AUDIO, parsed.type)
+    }
+
+    @Test fun rejectsDiscoveryOnAudioPack() =
+        rejects(manifest(type = "AUDIO", discovery = """{"table":"t","columns":["a"]}"""))
+
     @Test fun rejectsUnknownRootField() = rejects(manifest().replace("\"schemaVersion\": 1,", "\"schemaVersion\": 1, \"extra\": true,"))
     @Test fun rejectsUnknownArtifactField() = rejects(manifest().replace("\"bytes\":3", "\"bytes\":3,\"extra\":true"))
     @Test fun rejectsUnsupportedSchema() = rejects(manifest().replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"))
@@ -44,6 +55,46 @@ class PackManifestParserTest {
     @Test fun rejectsBackslashPath() = rejects(manifest().replace("model.gguf", "models\\\\model.gguf"))
     @Test fun rejectsBlankPathSegment() = rejects(manifest().replace("model.gguf", "models//model.gguf"))
     @Test fun rejectsBlankMetadata() = rejects(manifest().replace("Qwen compact", " "))
+
+    private val embeddingJson =
+        """{"model":"BAAI/bge-small-en-v1.5","dim":384,"quant":"int8-symmetric-per-vector",
+           "normalized":true,"table":"chunk_vectors","count":708813,"rejectBelow":0.68,
+           "queryPrefix":"Represent this sentence for searching relevant passages: ",
+           "encoderPath":"encoder.gguf","encoderSha256":"${"c".repeat(64)}",
+           "encoderSourceUrl":"https://huggingface.co/QuantFactory/bge-small-en-v1.5-GGUF"}"""
+
+    private fun knowledgeManifest(embedding: String?) = manifest(
+        artifact = """{"path":"content.sqlite","bytes":9,"sha256":"${"a".repeat(64)}"}""",
+        type = "KNOWLEDGE",
+        discovery = """{"coverageSummary":"s","exampleQuestions":["q"],"coverageLevel":"broad"}""",
+    ).let { text ->
+        if (embedding == null) text else text.replace(
+            "\"artifacts\":", "\"embedding\": $embedding, \"artifacts\":",
+        )
+    }
+
+    @Test fun parsesKnowledgePackWithEmbedding() {
+        val parsed = PackManifestParser.parse(knowledgeManifest(embeddingJson).encodeToByteArray())
+        val embedding = parsed.embedding!!
+        assertEquals("BAAI/bge-small-en-v1.5", embedding.model)
+        assertEquals(384, embedding.dim)
+        assertEquals("chunk_vectors", embedding.table)
+        assertEquals(708813L, embedding.count)
+        assertEquals(0.68, embedding.rejectBelow, 1e-9)
+        assertEquals("encoder.gguf", embedding.encoderPath)
+    }
+
+    @Test fun rejectsEmbeddingOnModelPack() =
+        rejects(manifest().replace("\"artifacts\":", "\"embedding\": $embeddingJson, \"artifacts\":"))
+
+    @Test fun rejectsUnknownEmbeddingField() =
+        rejects(knowledgeManifest(embeddingJson.replace("\"dim\":384", "\"dim\":384,\"extra\":1")))
+
+    @Test fun rejectsRejectBelowOutOfRange() =
+        rejects(knowledgeManifest(embeddingJson.replace("\"rejectBelow\":0.68", "\"rejectBelow\":1.5")))
+
+    @Test fun rejectsBadTableName() =
+        rejects(knowledgeManifest(embeddingJson.replace("\"table\":\"chunk_vectors\"", "\"table\":\"vectors; DROP\"")))
 
     @Test fun rejectsDuplicateArtifactPaths() {
         val item = """{"path":"same.bin","bytes":1,"sha256":"${"b".repeat(64)}"}"""

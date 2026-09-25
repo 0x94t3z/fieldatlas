@@ -37,6 +37,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                 container.importPack(uri)
                 mutableState.value.copy(importing = false)
             } catch (error: Exception) {
+                container.errorBus.report("Pack import", error)
                 mutableState.value.copy(importing = false, error = error.message ?: "Import failed")
             }
         }

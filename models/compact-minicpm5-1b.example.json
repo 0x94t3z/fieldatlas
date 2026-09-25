@@ -1,0 +1,17 @@
+{
+  "converter": "Published by openbmb from openbmb/MiniCPM5-1B at Hugging Face revision 3d55fac80935ae6456986ad2384b5cbcc4d6c948",
+  "expectedSha256": "81b64d05a23b17b34c475f42b3e72fbde62d4b92cc34541f7a8031d0752deafa",
+  "id": "minicpm5-1b-q4-k-m",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Compact candidate: ARM64 CPU inference on the pinned runtime's 8192-token context; llama-architecture; NOTE: emits reasoning tokens by default (enable_thinking defaults on) which consume the generation budget before the cited answer",
+  "quantizer": "Q4_K_M artifact published by openbmb; expected upstream SHA-256 81b64d05a23b17b34c475f42b3e72fbde62d4b92cc34541f7a8031d0752deafa",
+  "sourceUrls": [
+    "https://huggingface.co/openbmb/MiniCPM5-1B",
+    "https://huggingface.co/openbmb/MiniCPM5-1B-GGUF/blob/3d55fac80935ae6456986ad2384b5cbcc4d6c948/MiniCPM5-1B-Q4_K_M.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "MiniCPM5 1B — Q4_K_M Compact",
+  "upstreamModel": "openbmb/MiniCPM5-1B",
+  "version": "1.0.0"
+}

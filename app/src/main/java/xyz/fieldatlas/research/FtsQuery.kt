@@ -5,6 +5,7 @@ import java.util.Locale
 
 class FtsQuery private constructor(
     val normalizedInput: String,
+    val terms: List<String>,
     val matchExpression: String,
     val fallbackExpression: String,
 ) {
@@ -30,6 +31,7 @@ class FtsQuery private constructor(
             val searchableTerms = terms.map(::searchableTerm)
             return FtsQuery(
                 normalizedInput = capped,
+                terms = terms,
                 matchExpression = searchableTerms.joinToString(" AND "),
                 fallbackExpression = searchableTerms.joinToString(" OR "),
             )
@@ -52,6 +54,11 @@ class FtsQuery private constructor(
             "could", "did", "do", "does", "for", "from", "how", "if", "in", "is", "it", "its",
             "not", "of", "on", "or", "should", "that", "the", "then", "these", "this", "those",
             "to", "was", "were", "what", "when", "where", "who", "why", "with", "would",
+            // conversational wrappers: no retrieval value, and question terms now merge into
+            // the same query as model keywords, so they must not carry filler either
+            "about", "compare", "compared", "describe", "explain", "find", "give", "versus",
+            "show", "tell", "me", "my", "mine", "our", "ours", "us", "please", "provide",
+            "write", "vs",
         )
     }
 }

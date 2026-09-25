@@ -45,7 +45,29 @@ class ResearchPresentationTest {
     @Test fun generationLabelsUsePlainResearchLanguage() {
         assertEquals("Ready for a question", researchActivityLabel(ResearchPhase.Idle))
         assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching))
+        assertEquals("Searching your library (47%)", researchActivityLabel(ResearchPhase.Searching, 0.47))
+        assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching, 0.004))
+        assertEquals(
+            "Searching your library (+3 concept matches, 42%)",
+            researchActivityLabel(ResearchPhase.Searching, 0.42, vectorMatches = 3),
+        )
         assertEquals("Writing from sources", researchActivityLabel(ResearchPhase.Generating))
+        assertEquals(
+            "Writing from sources (85 tokens written)",
+            researchActivityLabel(ResearchPhase.Generating, tokensWritten = 85),
+        )
+        assertEquals(
+            "Reading from sources (123/2374 tokens read)",
+            researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374),
+        )
+        assertEquals(
+            "Writing from sources (85 tokens written)",
+            researchActivityLabel(ResearchPhase.Generating, promptRead = 2374 to 2374, tokensWritten = 85),
+        )
+        assertEquals(
+            "Generating search keywords (12/58 tokens read)",
+            researchActivityLabel(ResearchPhase.Planning, promptRead = 12 to 58),
+        )
         assertEquals("Answer ready", researchActivityLabel(ResearchPhase.Complete))
         assertEquals("More evidence needed", researchActivityLabel(ResearchPhase.Insufficient))
         assertEquals("Research needs attention", researchActivityLabel(ResearchPhase.Error))

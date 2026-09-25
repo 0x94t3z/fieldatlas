@@ -6,6 +6,10 @@
 
 Field Atlas answers with an on-device model and uses its bundled or imported local knowledge packs when it can ground a response in citations. If no matching local source is found, it can still give an uncited offline model answer and labels that path clearly. It has no network permission, makes no remote inference or search requests, and does not require Google Play Services. User-supplied packs are selected from local storage and verified before installation.
 
+The current source also includes optional offline voice input, selectable local model
+packs, LLM-assisted query expansion, and vector-aware retrieval with keyword fallback.
+All of these paths stay on the device; voice audio and research questions are not uploaded.
+
 The signed Android release has been exercised offline on a physical Infinix X6840. Reproducible checks cover the app, pack format, native runtime, offline policy, and release artifacts.
 
 ## Demo
@@ -66,6 +70,33 @@ The model pack lets Field Atlas answer offline. The bundled Reference pack lets 
 
 Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Reference pack is focused coverage, not a comprehensive encyclopedia; questions outside it fall back to an uncited offline model answer. Its exact scope and licensing are in [DATASETS.md](DATASETS.md).
 
+## Regenerating the full research stack
+
+The heavyweight data — model packs, knowledge packs, embeddings — is not committed;
+[`tools/`](tools/README.md) regenerates every pack deterministically from pinned sources:
+
+- `tools/build_model_packs.py` builds the Qwen3 / Qwen3.5 / MiniCPM5 model packs and the
+  Vosk audio pack from the registry in `models/*.example.json` (sha256-pinned downloads).
+- `tools/wiki_mini_build.py` rebuilds the wikipedia-mini knowledge pack from the Wikimedia
+  dump (vital-article snapshot in `tools/wiki_vital_titles.json`, live-refreshable).
+- `tools/build_vector_pack.py` turns an embedding TSV into a vector-capable knowledge pack
+  (int8 `chunk_vectors` table + embedded BGE-small query encoder), enabling on-device
+  semantic search with keyword fallback.
+- `tools/content2fapack.py` / `tools/fapack_convert.py` convert raw corpora or any JSONL
+  document spool into knowledge packs.
+
+This checkout uses the pinned llama.cpp commit plus the small Field Atlas runtime patch
+required by the model-preparation and vector-search APIs. CI applies it automatically;
+for a local native build, apply it once (see [scripts/patches/README.md](scripts/patches/README.md)):
+
+```sh
+cd third_party/llama.cpp && git apply ../../scripts/patches/ai-chat-generation-fixes.patch
+```
+
+Large model, audio, and vector-pack artifacts are intentionally not committed. Their
+checksums and reproducible download/build instructions live in `MODELS.md`, `DATASETS.md`,
+and `tools/README.md`.
+
 ## Install and use
 
 1. Download the signed [Field Atlas 1.1.10 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.10/fieldatlas-1.1.10.apk).
@@ -76,7 +107,8 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Ref
 6. Open Research, tap **Prepare for research**, enter a question, then tap **Start research**.
 7. Read the answer and select a numbered citation to inspect its exact supporting passage.
 8. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
-9. Open **More** for privacy details, the guided device benchmark, diagnostics export, and **Release model memory**.
+9. Optional: grant microphone access to use offline voice input. Open **More** for privacy
+   details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
 The release APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 

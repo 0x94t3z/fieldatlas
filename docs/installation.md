@@ -11,6 +11,11 @@ Install the APK from the phone's file manager. Field Atlas installs its Referenc
 
 The app does not download packs by itself because the installed Android app has no network permission. Download or build the model pack on a desktop first, then copy it to the phone over USB, Nearby Share, or another file-transfer method.
 
+Field Atlas can also keep more than one verified model pack. Choose the active model in
+Library; switching remains local and works with radios off. If you enable voice input,
+Android asks for microphone permission and Vosk transcribes on-device using the bundled
+speech model. No audio or text is sent to a server.
+
 ## APK
 
 Download the signed [Field Atlas 1.1.10 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.10/fieldatlas-1.1.10.apk), verify the SHA-256 published beside it, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.

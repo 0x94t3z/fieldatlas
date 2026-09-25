@@ -21,14 +21,14 @@ class AssetPresentationTest {
 
     @Test fun knowledgeCardOmitsDemoCoverageCopy() {
         val card = knowledge(CoverageLevel.DEMO).toAssetCardModel()
-        assertEquals("Knowledge", card.kind)
+        assertEquals("Knowledge data", card.kind)
         assertNull(card.coverageLabel)
         assertNull(card.coverageSummary)
     }
 
     @Test fun modelCardKeepsItsIdentity() {
         val card = model().toAssetCardModel()
-        assertEquals("Model", card.kind)
+        assertEquals("Answer model", card.kind)
     }
 
     private fun model() = asset("model", PackType.MODEL, null)

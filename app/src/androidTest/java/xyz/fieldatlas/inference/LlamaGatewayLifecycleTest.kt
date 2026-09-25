@@ -61,6 +61,12 @@ class LlamaGatewayLifecycleTest {
         private val waitAfterTokens: Boolean = false,
     ) : InferenceEngine {
         override val state = MutableStateFlow(initialState)
+
+        override val promptProgress = MutableStateFlow<com.arm.aichat.PromptProgress?>(null)
+
+        override fun resetConversation(systemPrompt: String) = Unit
+
+        override fun setSamplerSeed(seed: Int) = Unit
         val calls = mutableListOf<String>()
         var cleanUpCalls = 0
 
