@@ -2,6 +2,12 @@ diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llam
 index 03ab96c..b762a8f 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
+@@ -9,4 +9,5 @@
+ #include "logging.h"
+ #include "chat.h"
+ #include "common.h"
++#include "log.h"
+ #include "llama.h"
 @@ -30,7 +30,7 @@ constexpr int   N_THREADS_HEADROOM      = 2;
  
  constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;
@@ -317,7 +323,7 @@ index 03ab96c..b762a8f 100644
 +    cparams.n_ubatch      = (uint32_t) std::max(64, train_ctx);
 +    cparams.n_seq_max     = 1;
 +    cparams.embeddings    = true;   // pooled sequence embeddings (honors the GGUF pooling type)
-+    cparams.flash_attn    = false;
++    cparams.flash_attn_type = LLAMA_FLASH_ATTN_TYPE_DISABLED;
 +    g_encoder_context = llama_init_from_model(g_encoder_model, cparams);
 +    if (!g_encoder_context) {
 +        LOG_ERR("%s: failed to create encoder context\n", __func__);
@@ -367,7 +373,7 @@ index 03ab96c..b762a8f 100644
 +
 +    llama_batch batch = llama_batch_init(n_tokens, 0, 1);
 +    for (int i = 0; i < n_tokens; i++) {
-+        common_batch_add(batch, tokens[i], (llama_pos) i, /* seq_id = */ 0,
++        common_batch_add(batch, tokens[i], (llama_pos) i, /* seq_id = */ {0},
 +                         /* logits = */ i + 1 == n_tokens);
 +    }
 +    jfloatArray result = nullptr;
