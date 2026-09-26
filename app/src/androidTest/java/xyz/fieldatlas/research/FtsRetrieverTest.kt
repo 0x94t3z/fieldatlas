@@ -64,7 +64,11 @@ class FtsRetrieverTest {
         // is the rarest covered word - it leads; the article a question is about must never be
         // starved out of the pack's top picks by term-frequency junk.
         val allies = retriever.search("allies history records", 5)
-        assertEquals("doc-j:0000", allies.first().chunkId)
+        assertEquals(
+            "ranked allies results: ${allies.map { it.chunkId to it.score }}",
+            "doc-j:0000",
+            allies.first().chunkId,
+        )
 
         val war = retriever.search("world war allies winners records", 5)
         assertTrue(
@@ -95,9 +99,10 @@ class FtsRetrieverTest {
         assertEquals(setOf("Source E", "Source F"), results.map { it.source }.toSet())
     }
 
-    @Test fun strictRetrievalDoesNotCitePartialComparisonMatches() = withRetriever { retriever ->
+    @Test fun comparisonRetrievalPreservesEvidenceFromBothSides() = withRetriever { retriever ->
         val results = retriever.search("Compare solar and wind for a local grid", 5)
-        assertTrue(results.isEmpty())
+        assertTrue("missing solar evidence: ${results.map { it.chunkId }}", results.any { it.documentId == "doc-a" })
+        assertTrue("missing wind evidence: ${results.map { it.chunkId }}", results.any { it.documentId == "doc-b" })
     }
 
     @Test fun operatorsAndUnicodeAreSafeBoundQueries() = withRetriever { retriever ->

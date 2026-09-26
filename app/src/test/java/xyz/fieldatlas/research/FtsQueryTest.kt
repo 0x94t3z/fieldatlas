@@ -6,6 +6,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FtsQueryTest {
+    @Test
+    fun `modal filler cannot retrieve unrelated evidence`() {
+        assertEquals(
+            listOf("water", "contain", "pathogens"),
+            FtsQuery.from("water that may contain pathogens")!!.terms,
+        )
+    }
+
     @Test fun operatorsBecomeLiteralTerms() {
         assertEquals(
             "\"climate\"* AND \"title\"*",
@@ -34,6 +42,10 @@ class FtsQueryTest {
 
     @Test fun oneCharacterTermsAreRemoved() {
         assertEquals("\"bb\"*", FtsQuery.from("a BB 1")!!.matchExpression)
+    }
+
+    @Test fun iesWordsKeepAnFtsCompatiblePrefix() {
+        assertEquals("\"alli\"*", FtsQuery.from("allies")!!.matchExpression)
     }
 
     @Test fun naturalLanguageStopWordsAreRemovedAndTermsDeduplicated() {

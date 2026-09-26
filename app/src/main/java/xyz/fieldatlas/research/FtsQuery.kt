@@ -39,7 +39,10 @@ class FtsQuery private constructor(
 
         private fun searchableTerm(term: String): String {
             val stem = when {
-                term.length > 4 && term.endsWith("ies") -> term.dropLast(3) + "y"
+                // FTS uses prefix matching, not a linguistic stemmer. Keep the shared spelling
+                // prefix (alli* -> allies) instead of rewriting ies to y (ally* cannot match
+                // "allies" in a unicode61 index).
+                term.length > 4 && term.endsWith("ies") -> term.dropLast(2)
                 term.length > 4 && term.endsWith("es") -> term.dropLast(2)
                 term.length > 3 && term.endsWith("s") -> term.dropLast(1)
                 term.length > 4 && term.endsWith("ing") -> term.dropLast(3)
@@ -52,8 +55,9 @@ class FtsQuery private constructor(
         private val STOP_WORDS = setOf(
             "a", "an", "and", "are", "as", "at", "be", "been", "being", "but", "by", "can",
             "could", "did", "do", "does", "for", "from", "how", "if", "in", "is", "it", "its",
-            "not", "of", "on", "or", "should", "that", "the", "then", "these", "this", "those",
-            "to", "was", "were", "what", "when", "where", "who", "why", "with", "would",
+            "may", "might", "must", "not", "of", "on", "or", "shall", "should", "that", "the",
+            "then", "these", "this", "those", "to", "was", "were", "what", "when", "where",
+            "who", "why", "will", "with", "would",
             // conversational wrappers: no retrieval value, and question terms now merge into
             // the same query as model keywords, so they must not carry filler either
             "about", "compare", "compared", "describe", "explain", "find", "give", "versus",

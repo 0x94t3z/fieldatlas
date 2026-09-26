@@ -121,7 +121,7 @@ class FieldAtlasAppTest {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
 
-        compose.onNodeWithText("Read answer").performClick()
+        compose.waitUntil { compose.onAllNodesWithText("Answer from 1 source").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithContentDescription("Back").assertExists().performClick()
         compose.onNodeWithText("Answer from 1 source").assertExists()
@@ -133,7 +133,7 @@ class FieldAtlasAppTest {
     @Test fun citationOpensExactPassage() {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
-        compose.onNodeWithText("Read answer").performClick()
+        compose.waitUntil { compose.onAllNodesWithText("Answer from 1 source").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
         compose.onNodeWithText("Source details").performClick()
@@ -166,7 +166,9 @@ class FieldAtlasAppTest {
                 )
             }
         }
-        compose.onNodeWithText("Read answer").performClick()
+        compose.waitUntil {
+            compose.onAllNodesWithText("Different kinds of protection").fetchSemanticsNodes().isNotEmpty()
+        }
         compose.onNodeWithText("Different kinds of protection").assertExists()
         compose.onNodeWithText("# Different kinds of protection").assertDoesNotExist()
         compose.onNodeWithText("slow water", substring = true).assertExists()
@@ -174,9 +176,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("Long field observation", substring = true).assertExists()
         compose.onNodeWithContentDescription("Open source 1").assertExists()
         compose.onNodeWithContentDescription("Open source 8").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Why do seasons change?").performClick()
-        compose.runOnIdle { assertEquals("Why do seasons change?", capturedQuestion) }
+        compose.runOnIdle { assertEquals("", capturedQuestion) }
     }
 
     @Test fun compactAnswerKeepsAllEightCitationActionsAvailable() {
@@ -206,12 +206,8 @@ class FieldAtlasAppTest {
     @Test fun libraryShowsBytesHashAndLicense() {
         render()
         compose.onNodeWithText("Library").performClick()
-        compose.onAllNodesWithText("Verification details")[0].performClick()
-        compose.onNodeWithText("Verification details").performClick()
-        compose.onNodeWithText("License: Apache-2.0").assertExists()
-        compose.onNodeWithText("License: CC0-1.0").assertExists()
-        compose.onNodeWithText("SHA-256: ${"a".repeat(64)}").assertExists()
-        compose.onNodeWithText("SHA-256: ${"b".repeat(64)}").assertExists()
+        compose.onNodeWithText("Apache-2.0 · SHA-256: ${"a".repeat(64)}").assertExists()
+        compose.onNodeWithText("CC0-1.0 · SHA-256: ${"b".repeat(64)}").assertExists()
         compose.onAllNodesWithText("KB", substring = true).assertCountEquals(2)
     }
 

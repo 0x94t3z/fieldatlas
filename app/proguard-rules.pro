@@ -11,3 +11,10 @@
 -dontwarn org.tukaani.xz.MemoryLimitException
 -dontwarn org.tukaani.xz.SingleXZInputStream
 -dontwarn org.tukaani.xz.XZInputStream
+
+# llama.android resolves this Kotlin callback by its exact JVM name/signature
+# from JNI. It is private and otherwise appears unused to R8, so release builds
+# must preserve it even though debug builds work without this rule.
+-keepclassmembers class com.arm.aichat.internal.InferenceEngineImpl {
+    private void onNativePromptProgressNative(int, int);
+}

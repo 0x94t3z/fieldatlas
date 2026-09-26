@@ -4,7 +4,7 @@
 
 Field Atlas uses local files only. Before opening the app for the first time, put these two files on the phone:
 
-- `fieldatlas-1.1.10.apk` - the Android app
+- the latest signed `fieldatlas-*.apk` from GitHub Releases
 - `qwen3-1.7b-q4-k-m-1.0.0.fapack` - the local model pack
 
 Install the APK from the phone's file manager. Field Atlas installs its Reference knowledge pack automatically on first launch. Then tap **Choose model pack** and select the model `.fapack`.
@@ -18,7 +18,7 @@ speech model. No audio or text is sent to a server.
 
 ## APK
 
-Download the signed [Field Atlas 1.1.10 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.10/fieldatlas-1.1.10.apk), verify the SHA-256 published beside it, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
+Download the latest signed APK from [Field Atlas releases](https://github.com/0x94t3z/fieldatlas/releases/latest), verify the SHA-256 published beside it, and sideload it. For local testing, the Android toolchain signs `app/build/outputs/apk/debug/app-debug.apk` with the local debug key. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
 
 ## Packs
 
@@ -26,7 +26,7 @@ The Field Atlas Reference pack is bundled in the APK and installed into app-priv
 
 Create the model pack with the commands in [`MODELS.md`](../MODELS.md). That process downloads the pinned `Qwen3-1.7B-Q4_K_M.gguf`, verifies its hash, and wraps it as `qwen3-1.7b-q4-k-m-1.0.0.fapack`. Field Atlas imports that `.fapack` file, not the raw `.gguf`.
 
-On first launch, Field Atlas installs the bundled Reference pack. Tap **Choose model pack** and select the model `.fapack`. Model import can take longer than a normal copy because Field Atlas streams and verifies every declared byte. The app does not load the model automatically. Once the model is imported and the bundled knowledge appears in Library, open Research and tap **Prepare for research**. A first load may take tens of seconds on a low-end phone.
+On first launch, Field Atlas installs the bundled Reference pack. Tap **Choose model pack** and select the model `.fapack`. Model import can take longer than a normal copy because Field Atlas streams and verifies every declared byte. Once the model and bundled knowledge appear in Library, Field Atlas prepares the selected model automatically. A first load may take tens of seconds on a low-end phone; **Prepare for research** remains available if preparation needs to be retried.
 
 The bundled Reference pack is visibly labelled **Focused coverage**. Its suggested questions describe only its installed scope; it is not a claim of comprehensive coverage. If a question has no matching local source, Field Atlas can still answer from the offline model, but the answer is shown without local citations.
 

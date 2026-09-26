@@ -23,7 +23,7 @@ class QueryExpansionTest {
         assertTrue(prompt.contains("What causes heart attacks?"))
         assertTrue(prompt.contains("/no_think"))
         assertTrue(prompt.contains("comma-separated"))
-        assertTrue(prompt.contains("at least 8"))
+        assertTrue(prompt.contains("4 to 6"))
     }
 
     @Test
@@ -62,6 +62,17 @@ class QueryExpansionTest {
         assertEquals(
             listOf("tiger", "lion", "weight", "comparison"),
             QueryExpansion.parse("tiger lion weight comparison tiger lion weight"),
+        )
+    }
+
+    @Test
+    fun `parse drops generic planner noise that would retrieve unrelated documents`() {
+        assertEquals(
+            listOf("boiling", "filtration", "pathogen", "dissolved metal"),
+            QueryExpansion.parse(
+                "boiling, filtration, process, method, pathogen, information, dissolved metal, " +
+                    "procedure, analysis, quality, technique",
+            ),
         )
     }
 }

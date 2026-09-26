@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import java.io.File
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
@@ -152,15 +153,15 @@ class MainActivity : ComponentActivity() {
                 onAskAnotherQuestion = { researchViewModel.startNewQuestion() },
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
-                    scope.launch {
+                    lifecycleScope.launch {
                         runCatching { container.loadModel() }
-                            .onFailure { container.errorBus.report("Model", it) }
+                            .onFailure { reportUnlessCancelled("Model", it) }
                     }
                 },
                 onUnloadModel = {
-                    scope.launch {
+                    lifecycleScope.launch {
                         runCatching { container.unloadModel() }
-                            .onFailure { container.errorBus.report("Model", it) }
+                            .onFailure { reportUnlessCancelled("Model", it) }
                     }
                 },
                 onExportDiagnostics = { includeQuestion ->
@@ -185,21 +186,21 @@ class MainActivity : ComponentActivity() {
                     benchmarkVisible.value = true
                 },
                 onToggleResearch = { asset, enabled ->
-                    scope.launch {
+                    lifecycleScope.launch {
                         runCatching { container.setPackEnabled(asset, enabled) }
-                            .onFailure { container.errorBus.report("Library", it) }
+                            .onFailure { reportUnlessCancelled("Library", it) }
                     }
                 },
                 onActivateModel = { asset ->
-                    scope.launch {
+                    lifecycleScope.launch {
                         runCatching { container.setActiveModel(asset) }
-                            .onFailure { container.errorBus.report("Model", it) }
+                            .onFailure { reportUnlessCancelled("Model", it) }
                     }
                 },
                 onDeletePack = { asset ->
-                    scope.launch {
+                    lifecycleScope.launch {
                         runCatching { container.deletePack(asset) }
-                            .onFailure { container.errorBus.report("Library", it) }
+                            .onFailure { reportUnlessCancelled("Library", it) }
                     }
                 },
             )
@@ -215,6 +216,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private var benchmarkWasOpened = false
+
+    private fun reportUnlessCancelled(area: String, failure: Throwable) {
+        if (failure !is kotlinx.coroutines.CancellationException) {
+            container.errorBus.report(area, failure)
+        }
+    }
 
     private fun transferExport(
         scope: kotlinx.coroutines.CoroutineScope,

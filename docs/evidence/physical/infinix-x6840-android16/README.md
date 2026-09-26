@@ -1,20 +1,25 @@
 # Field Atlas physical-device record
 
-Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. The device reported `Infinix X6840`. The historical 1.1.6 package is retained below; the current signed Field Atlas 1.1.10 package (`versionCode` 13) was installed in place on 2026-09-24 and launched successfully. The bundled Field Atlas Reference knowledge set appeared automatically in Library.
+Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. On 2026-09-26, the signed 1.2.0 integration build was installed over the existing app and tested with the preserved local assets. The device reported `Infinix X6840`. This build is not tagged or published as a GitHub release.
 
 ## Current reviewed artifact
 
-- Signed APK: 49,155,300 bytes (`Field Atlas v1.1.10`).
-- SHA-256: `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d`.
+- Signed integration APK: 93,528,063 bytes (`1.2.0`, `versionCode` 14).
+- SHA-256: `5eed91fca8af33cceee44c48c8dae68b8aeb7686c9dcbcba6658a261bfaa8fcc`.
 - Offline APK audit: passed.
-- Model: Qwen3 1.7B Q4_K_M Compact, 1.28 GB.
-- Knowledge pack: Field Atlas Reference, 45.06 KB.
+- Selected model: Qwen3.5 2B Q4_K_M Compact, 1.4 GB.
+- Enabled knowledge: Biology & longevity vector pack, 1.57 GB.
+- Retained but inactive: Qwen3 1.7B model and Field Atlas Reference pack.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 
-The current 1.1.10 APK was installed and launched on the connected device. The Research screen reported one installed collection, and Library showed the bundled Field Atlas Reference knowledge set. The exact release hash is also recorded in `docs/releases/field-atlas-1.1.10.md`.
+The integration APK was installed and launched on the connected device with airplane mode enabled, Wi-Fi disabled, and no data connection. The earlier Qwen3/Reference water-treatment comparison exercised the on-device keyword planner, local retrieval, answer generation, clickable citation, and exact local source passage. The planner produced the specific terms `boiling`, `filtration`, `pathogens`, and `metals`; the answer used one relevant local source rather than unrelated partial matches. No crash or Field Atlas ANR occurred in that acceptance run.
 
-The current-build review page with the Reference-pack screenshot is [here](../../current-reference-v1.1.6/README.md).
+The later fork-stack check verified exact download hashes, imported and selected `Qwen3.5 2B — Q4_K_M Compact`, enabled `Biology & longevity (world_knowledge)`, disabled Field Atlas Reference, and completed model preparation. It intentionally stopped before research generation, so this record does not present the earlier answer as a Qwen3.5/vector result.
+
+The integration candidate passed 176 JVM tests, release lint, the offline APK policy, signature verification, and all 30 connected Android tests on this device. The source is ready for `main`, but no release asset or tag is claimed.
+
+The Reference-pack review page is [here](../../current-reference-v1.1.6/README.md); its directory name is retained for stable links.
 
 ## Radios-off run
 
@@ -38,7 +43,7 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 ## Memory observation
 
-`current-app-meminfo.txt` records a 2,099,224 KiB total PSS observation for the loaded current app process. This is about 2.0 GiB, below the 12 GB environment ceiling. It is a field observation, not a performance guarantee.
+`current-app-meminfo.txt` records a 1,580,107 KiB total PSS observation after Qwen3.5 preparation. This is about 1.5 GiB, below the 12 GB environment ceiling. It is a field observation, not a performance guarantee.
 
 ## Video
 
@@ -48,7 +53,7 @@ Airplane mode was enabled and Wi-Fi and mobile data were disabled before launchi
 
 [![Animated preview of the Field Atlas physical-device demo](field-atlas-claim-preview.gif)](field-atlas-current-demo.mp4)
 
-The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlier Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. The recording predates the 1.1.10 retrieval and hardware-back fixes and remains historical evidence.
+The complete recording is a 46.97-second 1920 × 1080 H.264 demo from the earlier Infinix run. It shows the Field Atlas branding, offline research flow, installed local model and knowledge pack, radios-off operation, the seasons question, local answer generation, cited answer, and local grounding. The recording predates the current retrieval, voice, model-selection, vector-search, and history changes and remains historical evidence.
 
 ### Demo overview
 

@@ -157,7 +157,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
     private fun ftsTerm(term: String): String {
         val clean = term.replace("\"", "")
         val stem = when {
-            clean.length > 4 && clean.endsWith("ies") -> clean.dropLast(3) + "y"
+            clean.length > 4 && clean.endsWith("ies") -> clean.dropLast(2)
             clean.length > 4 && clean.endsWith("es") -> clean.dropLast(2)
             clean.length > 3 && clean.endsWith("s") -> clean.dropLast(1)
             clean.length > 4 && clean.endsWith("ing") -> clean.dropLast(3)

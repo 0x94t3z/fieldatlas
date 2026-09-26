@@ -43,6 +43,7 @@ Requirements are JDK 17, Gradle 8.13, Android Gradle Plugin 8.11.1, Kotlin 2.1.0
 git clone --recurse-submodules https://github.com/0x94t3z/fieldatlas.git
 cd fieldatlas
 env -i PATH="$PATH" ./scripts/install_toolchain.sh
+git -C third_party/llama.cpp apply ../../scripts/patches/ai-chat-generation-fixes.patch
 ./gradlew --no-configuration-cache \
   :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease
 ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
@@ -99,24 +100,24 @@ and `tools/README.md`.
 
 ## Install and use
 
-1. Download the signed [Field Atlas 1.1.10 APK](https://github.com/0x94t3z/fieldatlas/releases/download/v1.1.10/fieldatlas-1.1.10.apk).
+1. Download the latest signed Field Atlas APK from [GitHub Releases](https://github.com/0x94t3z/fieldatlas/releases/latest).
 2. Download or build the model `.fapack`.
 3. Copy the APK and model `.fapack` to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
 5. Open Field Atlas, tap **Choose model pack**, and select the model `.fapack`.
-6. Open Research, tap **Prepare for research**, enter a question, then tap **Start research**.
+6. Open Research and wait for the selected model to prepare automatically. Enter a question, then tap **Start research**. Use **Prepare for research** only if preparation needs to be retried.
 7. Read the answer and select a numbered citation to inspect its exact supporting passage.
 8. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
 9. Optional: grant microphone access to use offline voice input. Open **More** for privacy
    details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-The release APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d`. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+Each release publishes its APK checksum beside the APK. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 
 ## Architecture and privacy
 
-The Compose UI calls a research orchestrator that sanitizes an FTS5 query, retrieves bounded passages, packs a citation-constrained prompt when local sources exist, and streams llama.cpp output. When retrieval finds no matching local source, the orchestrator switches to an uncited offline-model prompt instead of making a network request. The model is loaded only after an explicit tap. Import rejects unknown manifest fields, unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes, duplicate versions, and storage-budget violations. Research questions remain on-device; diagnostic export excludes the latest question unless the user opts in.
+The Compose UI calls a research orchestrator that uses the selected local model to plan a short, specific retrieval query, searches bounded FTS5/vector passages, packs a citation-constrained prompt when local sources exist, and streams llama.cpp output. When retrieval finds no matching local source, the orchestrator switches to an uncited offline-model prompt instead of making a network request. The selected model prepares automatically after verified assets are available, with an explicit retry action if loading fails. Import rejects unknown manifest fields, unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes, duplicate versions, and storage-budget violations. Research questions remain on-device; diagnostic export excludes the latest question unless the user opts in.
 
 ## Verification
 

@@ -6,19 +6,21 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-The current public candidate is Field Atlas `1.1.10` (`versionCode` 13), rebuilt with the Reference-aligned `questions-v2.json` benchmark and the inflected-term retrieval fix. Its signed APK SHA-256 is `5bc392c3f18ac25d0797c93a6b4f2cd95452146942f659035cd861d1cd54799d` (also recorded in `docs/releases/field-atlas-1.1.10.md`). It uses the Field Notebook appearance in both Android-system light and dark themes. This build bundles and installs the focused Field Atlas Reference knowledge pack on first launch, including migration away from the legacy Starter Evidence pack, so users only import a model pack. Cited answers still require strict local-evidence matches; a question without a matching passage falls back to an explicitly uncited offline-model answer. JVM tests, release lint, signed assembly, offline policy, and physical installation pass.
+This audit covers the unreleased Field Atlas `1.2.0` integration candidate (`versionCode` 14). It applies the fork's offline-research improvements to the existing Field Notebook UI: on-device LLM query planning, selectable answer-model packs, optional offline Vosk voice input, vector-aware retrieval with lexical fallback, answer history, and detailed progress. The bundled focused Field Atlas Reference pack still installs automatically. No tag or GitHub release is claimed for this candidate.
 
-The table below records the original hardware evidence session retained with the repository. The current reviewed artifact is the signed `1.1.10` APK above; older rows are retained only as provenance for the historical capture.
+Physical testing found and fixed three release-path defects before review: R8 removed a private JNI callback, native conversation resets could run on the Android main thread, and generic/modal retrieval terms could introduce unrelated citations. The final airplane-mode query used the specific planned terms `boiling`, `filtration`, `pathogens`, and `metals`, selected one relevant local passage, produced a clickable citation, and opened the exact source without a Field Atlas crash or ANR. Cited answers require local-evidence matches; a question without a match falls back to an explicitly uncited offline-model answer.
+
+The table below identifies the current candidate plus the large local model used in the physical run.
 
 | Artifact | Bytes | SHA-256 |
 | --- | ---: | --- |
-| Debug APK | 84,612,936 | `0e362502a0c82550f922861897984306d7915bd7bfa408919c679e43ff38d6c8` |
-| Unsigned release APK | 49,014,387 | `39d59da9295fd07d886f920104a0c0362a379c33884c6d5a88000df75f2c7f1d` |
-| Signed release APK | 49,022,579 | `13448e4b91ffc00971168a024dd74a808ac3394d14866c4858c85c2875a1b022` |
-| Historical Starter knowledge pack | 25,500 | `51769d845dc163aa4a56a15d9ad68eb3d65f12f1649d56b2105a906c9e0c453b` |
+| Signed 1.2.0 integration APK | 93,528,063 | `5eed91fca8af33cceee44c48c8dae68b8aeb7686c9dcbcba6658a261bfaa8fcc` |
+| Bundled Field Atlas Reference pack | 45,976 | `75e5fea70d94ea17803f4e77699796d0837926d2372b11883ba6806a37e76816` |
 | Qwen3 1.7B model pack | 1,282,441,304 | `e4ac4b6b68d55b1846c70fc877ef142954669cb8e04b85d4a74e4838430ae60b` |
+| Qwen3.5 2B model pack | 1,396,200,903 | `50326d8d18578faef80cdfd4b72ade8d090085dc57847b58bf385753eaec94c8` |
+| Biology vector knowledge pack | 1,567,877,980 | `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01` |
 
-The release matrix covers 12 packtool tests, 26 release-script tests, 4 scorer tests, 96 JVM tests, 29 connected Android tests on the Infinix X6840, release lint, debug/unsigned/signed assembly, signature identity, offline APK policy, and release-reflection retention. Candidate APKs are ARM64/API 33+ and contain no network permission. The signed APK uses v2 signing and certificate SHA-256 `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
+The release matrix covers 12 packtool tests, 26 repository-script tests, 4 scorer tests, 176 JVM tests, and 30 connected Android tests on the Infinix X6840, plus release lint, debug/signed assembly, signature identity, and the offline APK policy. The candidate is ARM64/API 33+ and contains no network permission. The signed APK uses v2 signing and certificate SHA-256 `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`.
 
 The signed radios-off acceptance run used a physical Infinix SMART 20 / X6840 on Android 16. Exact screenshots and observations are in `docs/evidence/physical/infinix-x6840-android16/`.
 
@@ -28,11 +30,11 @@ The native ARM64 Android app runs on the physical Infinix SMART 20 / X6840. This
 
 ## B31-02 — PASS
 
-The successful loaded-model run occurred on a device with 3,831,080 KiB physical memory. The current retained observation reports 2,099,224 KiB total PSS, 116,047 KiB total RSS, and 2,048,864 KiB swap PSS, below the 12 GB environment ceiling. This is one field observation rather than a peak-memory guarantee.
+The device reports 3,831,080 KiB physical memory. With Qwen3.5 selected and prepared, the retained observation reports 1,580,107 KiB total PSS, 142,867 KiB total RSS, and 1,509,572 KiB swap PSS, below the 12 GB environment ceiling. This is one field observation rather than a peak-memory guarantee.
 
 ## B31-03 — PASS
 
-`StorageBudget` enforces a 50,000,000,000-byte installed cap plus archive/extraction headroom. Overflow and low-space behavior are tested; the imported model plus bundled Reference pack total about 1.283 GB. The Starter row above is historical provenance only.
+`StorageBudget` enforces a 50,000,000,000-byte installed cap plus archive/extraction headroom. Overflow and low-space behavior are tested. Both answer models, the bundled Reference pack, and the biology vector pack remain well below 50 GB. The Starter artifact is historical provenance only.
 
 ## B31-04 — PASS
 
@@ -48,7 +50,7 @@ The APK audit found no Google Play Services or Firebase packages. Instrumentatio
 
 ## B31-07 — PASS
 
-The physical-device record includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and a cross-source treatment recommendation synthesized from three retrieved passages with interactive citations. Field Atlas now also supports uncited offline-model answers when no matching local source is retrieved. The Reference pack is focused rather than comprehensive, and these results do not establish broad or frontier-level research quality.
+The physical-device record includes a seasons explanation, a qualified water-treatment comparison, solar-storage reasoning, and earlier cross-source synthesis evidence. The integration device run demonstrates the new LLM query planner while rejecting unrelated partial matches and opening the exact supporting passage. Field Atlas also supports uncited offline-model answers when no matching source is retrieved. The Reference pack is focused rather than comprehensive, and these results do not establish broad or frontier-level research quality.
 
 ## B31-08 — PASS
 
@@ -68,7 +70,7 @@ The tree contains source, exact submodule gitlink, deterministic pack builders, 
 
 ## B31-12 — PASS
 
-The signed release installed, loaded the real Qwen model, retrieved local evidence, and completed cited inference with radios disabled on physical Infinix X6840 hardware.
+The signed integration build installed in place, retained the earlier Qwen3/Reference acceptance assets, and preserved their cited radios-off result. The pinned Qwen3.5 pack and fork biology vector pack were subsequently checksum-verified, imported, selected, and prepared on the same device; the Reference pack was disabled. A full Qwen3.5/vector answer run was intentionally not claimed or repeated during this bounded audit.
 
 ## B31-13 — PASS
 
@@ -92,7 +94,7 @@ The POIDH claim transaction and relevant screenshot are recorded in `docs/compli
 
 ## B31-18 — PASS
 
-The verified Field Notebook source and its current Infinix device record are public on `main`. The existing `v1.1.1` tag remains immutable on the earlier release; the current source is identified by its public commit rather than rewriting that tag.
+The version reviewed at claim time remains in the immutable `v1.1.10` release. This `1.2.0` integration source is published on `main` by the audited commit but has no release tag or downloadable release asset yet.
 
 
 ## B31-19 — PASS

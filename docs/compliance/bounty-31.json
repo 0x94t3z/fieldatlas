@@ -2,7 +2,7 @@
   "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
-  "lastAuditedAt": "2026-09-24",
+  "lastAuditedAt": "2026-09-26",
   "requirements": [
     { "id": "B31-01", "obligation": "Run on compatible Android or GrapheneOS hardware", "status": "pass", "evidence": ["docs/device-testing.md", "docs/evidence/physical/infinix-x6840-android16/"] },
     { "id": "B31-02", "obligation": "Stay within a maximum 12 GB RAM environment", "status": "pass", "evidence": ["app/src/main/java/xyz/fieldatlas/diagnostics/AndroidDiagnosticsCollector.kt", "docs/evidence/physical/infinix-x6840-android16/current-app-meminfo.txt", "docs/evidence/physical/infinix-x6840-android16/README.md"] },

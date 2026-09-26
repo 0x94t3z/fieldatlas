@@ -1,1 +1,1 @@
-3b9edba447cfad6e777e2243ab3ae9f9b75973493c6ebc8a7993aafbad654783  releases/field-atlas-v1.1.6.apk
+5eed91fca8af33cceee44c48c8dae68b8aeb7686c9dcbcba6658a261bfaa8fcc  field-atlas-current-signed.apk

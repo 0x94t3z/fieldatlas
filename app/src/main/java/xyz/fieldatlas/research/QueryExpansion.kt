@@ -15,10 +15,26 @@ import java.util.Locale
 internal object QueryExpansion {
     /** Hard token cap for the keyword turn — it must never eat into the answer budget. */
     const val GENERATION_BUDGET = 96
-    const val MAX_TERMS = 10
+    const val MAX_TERMS = 6
     private const val MAX_TERM_CHARS = 48
 
     private val LEADING_NOISE = Regex("^[\\d.+)\\-*•\"'’‘`\\s]+")
+    // These generic planner additions match almost every broad corpus and can displace the
+    // entities the user actually asked about. They are filtered only from model-generated
+    // expansion; the user's original terms are merged separately and always remain eligible.
+    private val PLANNER_NOISE = setOf(
+        "answer",
+        "analysis",
+        "information",
+        "method",
+        "overview",
+        "process",
+        "procedure",
+        "question",
+        "quality",
+        "technique",
+        "topic",
+    )
 
     /**
      * Persona for the keyword turn only. The research system prompt forbids external knowledge,
@@ -36,13 +52,13 @@ internal object QueryExpansion {
     fun prompt(question: String): String = "/no_think\n" +
         "You are the search planner for an offline document search engine. Do not answer.\n" +
         "Question: ${question.trim()}\n" +
-        "Write search keywords: first the essential content words of the question, dropping " +
+        "Write search keywords: use only the essential content words of the question, dropping " +
         "words like 'tell', 'me', 'about'; then close synonyms and terms that documents " +
         "answering it would actually use, in any morphological form; then, if you know from " +
         "general knowledge which named articles, species, records or lists documents would cite, " +
         "add their exact names as keywords too (for a tallest-animal question add the names of the " +
-        "candidate species). Aim for at least 8 " +
-        "distinct keywords - broader coverage beats safe obvious ones - up to $MAX_TERMS total.\n" +
+        "candidate species). Return 4 to $MAX_TERMS specific terms. Never pad the list with generic " +
+        "words such as process, method, analysis, quality, information, overview, or technique.\n" +
         "Reply with exactly one comma-separated line. No sentences, no numbering, no quotes."
 
     /**
@@ -63,6 +79,7 @@ internal object QueryExpansion {
             .map { term -> term.lowercase(Locale.ROOT) }
             .filter { term ->
                 term.isNotBlank() &&
+                    term !in PLANNER_NOISE &&
                     term.codePointCount(0, term.length) <= MAX_TERM_CHARS &&
                     term.count { it == ' ' } <= 2
             }
@@ -75,7 +92,10 @@ internal object QueryExpansion {
         // individual words, deduplicated, which is exactly what a keyword list is anyway.
         return cleaned.lowercase(Locale.ROOT)
             .split(Regex("[^\\p{L}\\p{N}]+"))
-            .filter { it.codePointCount(0, it.length) in 2..MAX_TERM_CHARS }
+            .filter {
+                it !in PLANNER_NOISE &&
+                    it.codePointCount(0, it.length) in 2..MAX_TERM_CHARS
+            }
             .distinct()
             .take(MAX_TERMS)
     }

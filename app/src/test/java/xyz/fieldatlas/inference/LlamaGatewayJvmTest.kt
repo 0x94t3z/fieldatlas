@@ -78,6 +78,18 @@ class LlamaGatewayJvmTest {
         )
     }
 
+    @Test fun nativeLoadAndGenerationNeverRunOnTheCollectorThread() = runBlocking {
+        val collectorThread = Thread.currentThread().id
+        val engine = FakeEngine()
+        val gateway = LlamaInferenceGateway(engine)
+
+        gateway.load("/m.gguf", "sys")
+        gateway.generate("question", 4).toList()
+
+        assertTrue(engine.loadThread != collectorThread)
+        assertTrue(engine.resetThread != collectorThread)
+    }
+
     private class FakeEngine(
         override val promptProgress: kotlinx.coroutines.flow.StateFlow<com.arm.aichat.PromptProgress?> =
             kotlinx.coroutines.flow.MutableStateFlow(null),
@@ -87,8 +99,11 @@ class LlamaGatewayJvmTest {
         override val state = MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Initialized)
         val calls = mutableListOf<String>()
         var cleanUpCalls = 0
+        var loadThread = -1L
+        var resetThread = -1L
 
         override suspend fun loadModel(pathToModel: String) {
+            loadThread = Thread.currentThread().id
             calls += "load:$pathToModel"
             state.value = InferenceEngine.State.ModelReady
         }
@@ -110,6 +125,7 @@ class LlamaGatewayJvmTest {
         }
 
         override fun resetConversation(systemPrompt: String) {
+            resetThread = Thread.currentThread().id
             calls += "reset:$systemPrompt"
         }
 

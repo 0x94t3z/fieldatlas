@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -59,7 +60,9 @@ class LlamaInferenceGateway internal constructor(
                 is InferenceEngine.State.Error -> throw initialized.exception
                 else -> Unit
             }
-            withContext(NonCancellable) {
+            // Native model loading and system-prompt prefill are CPU-heavy synchronous calls.
+            // Keep them off the UI thread even when load() is launched from a ViewModel scope.
+            withContext(NonCancellable + Dispatchers.Default) {
                 engine.loadModel(modelPath)
                 engine.setSystemPrompt(systemPrompt)
             }
@@ -117,7 +120,7 @@ class LlamaInferenceGateway internal constructor(
                 throw IllegalStateException(LlamaStateMapper.sanitize(error), error)
             }
         }
-    }
+    }.flowOn(Dispatchers.Default)
 
     override suspend fun unload() = lifecycleMutex.withLock {
         check(state.value is InferenceState.Ready || state.value is InferenceState.Failed) {
