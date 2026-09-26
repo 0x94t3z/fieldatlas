@@ -1,40 +1,37 @@
 # Field Atlas models
 
-## Default compact candidate
+## Recommended answer model
 
-Field Atlas is configured for `Qwen3-1.7B-Q4_K_M.gguf` from `ggml-org/Qwen3-1.7B-GGUF`, pinned at Hugging Face revision `daeb8e2d528a760970442092f6bf1e55c3b659eb`.
+The current Field Atlas setup uses `Qwen_Qwen3.5-2B-Q4_K_M.gguf`, published by bartowski from `Qwen/Qwen3.5-2B`. The GGUF is pinned at revision `7d26695454df6de5fbcce2e58681e62dae06ce43`.
 
-- Upstream model: `Qwen/Qwen3-1.7B`
+- Upstream model: `Qwen/Qwen3.5-2B`
 - License: Apache-2.0
-- GGUF size: approximately 1.28 GB
-- Expected SHA-256: `d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5`
-- Quantization: Q4_K_M, published by ggml-org
+- GGUF size: approximately 1.40 GB
+- Expected GGUF SHA-256: `57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8`
+- Expected `.fapack` SHA-256: `50326d8d18578faef80cdfd4b72ade8d090085dc57847b58bf385753eaec94c8`
+- Quantization: Q4_K_M, published by bartowski
 - Runtime: llama.cpp commit `60081bb2b5b3294165a4d67c5cbeebe74c868014`
-- Runtime context: 8,192 tokens, hard-coded by that pinned Android example
-- Sampling: temperature 0.3, inherited from the pinned Android example
+- Runtime context and sampling: configured by the current app and pinned runtime, not by the model pack
 
-Download and verify on a desktop:
+Build the verified pack on a computer from the repository root:
 
 ```sh
-curl -L --fail \
-  -o Qwen3-1.7B-Q4_K_M.gguf \
-  'https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/resolve/daeb8e2d528a760970442092f6bf1e55c3b659eb/Qwen3-1.7B-Q4_K_M.gguf?download=true'
+python3 tools/build_model_packs.py \
+  --pack qwen3.5-2b-q4-k-m \
+  --out-dir build/packs/model \
+  --cache-dir build/model-cache
 printf '%s  %s\n' \
-  d2387ca2dbfee2ffabce7120d3770dadca0b293052bc2f0e138fdc940d9bc7b5 \
-  Qwen3-1.7B-Q4_K_M.gguf | shasum -a 256 -c -
-python3 scripts/model_manifest.py \
-  --model Qwen3-1.7B-Q4_K_M.gguf \
-  --config models/compact-qwen3-1.7b.example.json \
-  --output qwen3-1.7b-q4-k-m-1.0.0.fapack
+  50326d8d18578faef80cdfd4b72ade8d090085dc57847b58bf385753eaec94c8 \
+  build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack | shasum -a 256 -c -
 ```
 
-The output file to copy to Android is `qwen3-1.7b-q4-k-m-1.0.0.fapack`. Field Atlas imports this model pack through **Choose model pack**. The raw `Qwen3-1.7B-Q4_K_M.gguf` is only an input to the pack builder.
+Copy `build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack` to Android and import it through **Choose model pack**. Do not select the raw `.gguf` in the app.
 
-The builder streams the model, rejects a hash mismatch, and stores the verified GGUF without compression or a managed-memory copy. Model weights are not committed to Git.
+The builder downloads the pinned GGUF, rejects a hash mismatch, and stores it uncompressed in a deterministic pack. Model weights are not committed to Git. The exact upstream sources and runtime profile are in [`models/compact-qwen3.5-2b.example.json`](models/compact-qwen3.5-2b.example.json).
 
 ## Limits and validation status
 
-The 1.7B model is a speed/quality compromise, not a frontier model. It can miss nuance, make reasoning errors, or fail citation formatting. Retrieval grounding reduces but does not eliminate hallucination. The pinned runtime's 8,192-token KV cache is material on a 4 GB device. It completed the cited radios-off acceptance query on an Infinix SMART 20 / X6840; the measured run is preserved in [`docs/evidence/physical/infinix-x6840-android16/`](docs/evidence/physical/infinix-x6840-android16/). No GrapheneOS result or frontier-quality claim is inferred from that device run.
+Qwen3.5 2B is a compact offline model, not a frontier model. It can miss nuance, make reasoning errors, or produce unsupported claims. Retrieval grounding reduces but does not eliminate hallucination. The Qwen3.5 pack was checksum-verified, imported, selected, and prepared on an Infinix SMART 20 / X6840; this alone does not establish answer quality or GrapheneOS compatibility. The older Qwen3 1.7B acceptance result remains identified as historical in [`docs/evidence/physical/infinix-x6840-android16/`](docs/evidence/physical/infinix-x6840-android16/).
 
 ## Additional verified pack definitions
 
@@ -42,9 +39,6 @@ Field Atlas can install multiple model packs and select one in Library. The foll
 registry files pin the exact upstream revision, artifact SHA-256, license, quantization,
 and runtime profile used by the deterministic pack builder:
 
-- `models/compact-qwen3.5-2b.example.json` — Qwen3.5 2B Q4_K_M, Apache-2.0,
-  approximately 1.4 GB. The pinned pack was checksum-verified, imported, selected, and
-  prepared on the Infinix; no full answer run is claimed for it yet.
 - `models/compact-minicpm5-1b.example.json` — MiniCPM5 1B Q4_K_M, Apache-2.0;
   upstream thinking remains enabled and can consume the answer budget.
 - `models/compact-minicpm5-1b-nothink.example.json` — the same published MiniCPM5

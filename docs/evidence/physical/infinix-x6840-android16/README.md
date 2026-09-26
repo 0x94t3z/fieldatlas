@@ -2,14 +2,14 @@
 
 Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. On 2026-09-26, the signed 1.2.0 integration build was installed over the existing app and tested with the preserved local assets. The device reported `Infinix X6840`. This build is not tagged or published as a GitHub release.
 
-## Current reviewed artifact
+## Reviewed 1.2.0 artifact (historical)
 
 - Signed integration APK: 93,528,063 bytes (`1.2.0`, `versionCode` 14).
 - SHA-256: `5eed91fca8af33cceee44c48c8dae68b8aeb7686c9dcbcba6658a261bfaa8fcc`.
 - Offline APK audit: passed.
 - Selected model: Qwen3.5 2B Q4_K_M Compact, 1.4 GB.
 - Enabled knowledge: Biology & longevity vector pack, 1.57 GB.
-- Retained but inactive: Qwen3 1.7B model and Field Atlas Reference pack.
+- At the time of this record, Qwen3 1.7B and the Field Atlas Reference pack were retained but inactive. The current device's answer-model selection can differ from this snapshot.
 
 The recorded package version, APK checksum, Android release, and airplane-mode state are retained as adjacent text files.
 

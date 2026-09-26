@@ -19,9 +19,9 @@ performs before accepting a pack).
 Examples:
   tools/build_model_packs.py --pack all                       # build all, download as needed
   tools/build_model_packs.py --pack qwen3.5-2b-q4-k-m         # one pack
-  # Offline test: fake the downloads with local files and a scratch cache:
-  tools/build_model_packs.py --pack all --cache-dir /tmp/fapack-cache \
-      --url qwen3-1.7b-q4-k-m=file:///home/v/fieldatlas/model-cache/Qwen3-1.7B-Q4_K_M.gguf ...
+  # Offline test: use a previously verified local file and a scratch cache:
+  tools/build_model_packs.py --pack qwen3.5-2b-q4-k-m --cache-dir /tmp/fapack-cache \
+      --url qwen3.5-2b-q4-k-m=file:///path/to/Qwen_Qwen3.5-2B-Q4_K_M.gguf
 """
 import argparse
 import hashlib

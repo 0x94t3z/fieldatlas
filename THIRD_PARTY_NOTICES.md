@@ -5,7 +5,6 @@ This file is a navigation index for significant source and runtime components. I
 | Component | Pinned version | License | Upstream license |
 | --- | --- | --- | --- |
 | `ggml-org/llama.cpp` | commit `60081bb2b5b3294165a4d67c5cbeebe74c868014` | MIT | [llama.cpp LICENSE](https://github.com/ggml-org/llama.cpp/blob/60081bb2b5b3294165a4d67c5cbeebe74c868014/LICENSE) |
-| `ggml-org/Qwen3-1.7B-GGUF` | revision `daeb8e2d528a760970442092f6bf1e55c3b659eb` | Apache-2.0 | [pinned model card](https://huggingface.co/ggml-org/Qwen3-1.7B-GGUF/blob/daeb8e2d528a760970442092f6bf1e55c3b659eb/README.md) |
 | `Qwen/Qwen3.5-2B` / bartowski GGUF | revisions pinned in `models/compact-qwen3.5-2b.example.json` | Apache-2.0 | [Qwen3.5-2B model card](https://huggingface.co/Qwen/Qwen3.5-2B) |
 | `openbmb/MiniCPM5-1B` | revisions pinned in `models/compact-minicpm5-1b*.example.json` | Apache-2.0 | [MiniCPM5-1B model card](https://huggingface.co/openbmb/MiniCPM5-1B) |
 | Vosk Android | `0.3.47` | Apache-2.0 | [Vosk API repository](https://github.com/alphacep/vosk-api) |

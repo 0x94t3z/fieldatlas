@@ -7,13 +7,20 @@ the latest source edits. Its device measurements demonstrate that exact older AP
 not every change on `main`. New source must pass the checks below and be matched
 to a newly installed, tested APK before it is described as a reviewed release.
 
-For the current source checkout, local checks on 2026-09-26 passed 200 Android
-JVM tests, 12 packtool tests, 26 script tests, 6 benchmark-scorer tests, and 1
-travel-builder test, plus release lint, release assembly, and the offline APK
-audit. The locally built unsigned release APK passed the offline audit with
-SHA-256 `67c72c54422b0330ea670e51adecdb3e2be4aa767b45bc701d2faf355d13b5c5`.
+The broader 2026-09-26 check passed 200 Android JVM tests, 12 packtool tests,
+26 script tests, 6 benchmark-scorer tests, 1 travel-builder test, release lint,
+release assembly, and the offline APK audit. After the voice fix, 203 Android
+JVM tests, a release build, and the offline APK audit passed; the model-guide
+update also passed 26 script tests and 1 tool test. The resulting unsigned APK
+passed the offline audit with
+SHA-256 `0247f35b5ad9319c165a775d58b16f289f68c73aae97d3d8178a2e609143adb8`.
 It is not an installable signed release and these checks do not substitute for a
 fresh real-device run or a current quality benchmark.
+
+A separate debug package passed one Vosk microphone start/stop smoke test and one
+Research-screen UI test on the Infinix. Those checks do not validate spoken-word
+accuracy or the new minified release on-device; the installed signed app remains
+the earlier 1.2.0 build.
 
 ## Automated checks
 

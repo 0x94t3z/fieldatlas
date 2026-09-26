@@ -68,7 +68,7 @@ The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c86
 
 Field Atlas needs one user-supplied local file for the full research workflow:
 
-- a model pack, built from the documented Qwen3 1.7B GGUF model
+- the recommended Qwen3.5 2B model pack, built from the pinned GGUF in [MODELS.md](MODELS.md)
 - the APK's bundled Reference knowledge pack, installed automatically on first launch
 
 The model pack lets Field Atlas answer offline. The bundled Reference pack lets it retrieve local passages, add citations, and open exact supporting sources. The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The bundled Reference pack can be reproduced locally:
@@ -84,8 +84,8 @@ Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Ref
 The heavyweight data — model packs, knowledge packs, embeddings — is not committed;
 [`tools/`](tools/README.md) regenerates every pack deterministically from pinned sources:
 
-- `tools/build_model_packs.py` builds the Qwen3 / Qwen3.5 / MiniCPM5 model packs and the
-  Vosk audio pack from the registry in `models/*.example.json` (sha256-pinned downloads).
+- `tools/build_model_packs.py` builds the recommended Qwen3.5 pack, optional MiniCPM5
+  packs, and Vosk audio packs from the SHA-256-pinned registry in `models/*.example.json`.
 - `tools/wiki_mini_build.py` rebuilds the wikipedia-mini knowledge pack from the Wikimedia
   dump (vital-article snapshot in `tools/wiki_vital_titles.json`, live-refreshable).
 - `tools/build_vector_pack.py` turns an embedding TSV into a vector-capable knowledge pack
@@ -110,8 +110,8 @@ and `tools/README.md`.
 
 ## Install and use
 
-1. Download the latest signed Field Atlas APK from [GitHub Releases](https://github.com/0x94t3z/fieldatlas/releases/latest).
-2. Download or build the model `.fapack`.
+1. For the current Qwen3.5 source build, build and install the debug APK above. The latest [signed release](https://github.com/0x94t3z/fieldatlas/releases/latest) may be older; follow its tagged instructions until a new signed build is published.
+2. Build the Qwen3.5 model `.fapack` using [MODELS.md](MODELS.md).
 3. Copy the APK and model `.fapack` to the Android phone.
 4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
 5. Open Field Atlas, tap **Choose model pack**, and select the model `.fapack`.
@@ -121,7 +121,7 @@ and `tools/README.md`.
 9. Optional: grant microphone access to use offline voice input. Open **More** for privacy
    details, the guided device benchmark, diagnostics export, and **Release model memory**.
 
-Each release publishes its APK checksum beside the APK. For a local build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
+Each release publishes its APK checksum beside the APK. For this source build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
 
 Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
 
