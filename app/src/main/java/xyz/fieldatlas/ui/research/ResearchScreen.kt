@@ -61,7 +61,7 @@ fun ResearchScreen(
     ) {
         item {
             FieldAtlasPageHeader(
-                title = "What are you investigating?",
+                title = "What are you\ninvestigating?",
                 subtitle = "Ask across the knowledge saved on this phone.",
                 modifier = Modifier.padding(top = 22.dp),
             )
@@ -86,48 +86,58 @@ fun ResearchScreen(
                     )
                 },
                 enabled = !state.isRunning,
-                minLines = 4,
-                trailingIcon = {
-                    when (voiceState.phase) {
-                        VoicePhase.Idle -> androidx.compose.material3.IconButton(
-                            onClick = onMicClick,
-                            modifier = Modifier.semantics { contentDescription = "Dictate with microphone" },
-                        ) {
-                            Icon(Icons.Outlined.Mic, contentDescription = "Dictate")
-                        }
-                        VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(
-                            modifier = Modifier.padding(end = 16.dp).size(22.dp),
-                            strokeWidth = 2.dp,
-                        )
-                        VoicePhase.Recording -> androidx.compose.material3.IconButton(
-                            onClick = onMicClick,
-                            modifier = Modifier.semantics { contentDescription = "Stop recording" },
-                        ) {
-                            Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
-                        }
-                    }
-                },
+                minLines = 3,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Research question" },
                 shape = MaterialTheme.shapes.medium,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = onMicClick,
+                    enabled = !state.isRunning &&
+                        (voiceState.phase == VoicePhase.Idle || voiceState.phase == VoicePhase.Recording),
+                ) {
+                    when (voiceState.phase) {
+                        VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                        VoicePhase.Recording -> Icon(Icons.Filled.Stop, contentDescription = null)
+                        VoicePhase.Idle -> Icon(Icons.Outlined.Mic, contentDescription = null)
+                    }
+                    Text(
+                        when (voiceState.phase) {
+                            VoicePhase.Idle -> "Speak question"
+                            VoicePhase.Starting -> "Preparing voice…"
+                            VoicePhase.Recording -> "Stop recording"
+                            VoicePhase.Processing -> "Transcribing…"
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
             when (voiceState.phase) {
-                VoicePhase.Recording -> Column(Modifier.padding(top = 6.dp)) {
+                VoicePhase.Recording -> Column {
                     LinearProgressIndicator(
                         progress = { voiceState.level },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 4.dp),
                     )
                     Text(
-                        "Listening — tap the stop button when you finish. Your words land in the box above.",
+                        "Listening — tap Stop recording when you finish.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                VoicePhase.Processing -> Text(
-                    "Writing down what I heard…",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 else -> Unit
+            }
+            voiceState.error?.let { error ->
+                Text(
+                    error,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
         }
         item {
@@ -186,24 +196,21 @@ fun ResearchScreen(
                 MessageCard("Research needs attention", detail ?: "Try again after preparing the on-device model.")
             }
         }
-        item {
-            OutlinedTextField(
-                value = diagnosticsText,
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Diagnostics") },
-                placeholder = { Text("No errors so far") },
-                minLines = 1,
-                maxLines = 6,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Diagnostics" },
-                shape = MaterialTheme.shapes.medium,
-            )
-            if (diagnosticsText.isNotEmpty()) {
-                TextButton(
-                    onClick = onClearDiagnostics,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Clear diagnostics")
+        if (diagnosticsText.isNotBlank()) {
+            item {
+                FieldAtlasCard(Modifier.fillMaxWidth()) {
+                    Text("App notice", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        diagnosticsText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(
+                        onClick = onClearDiagnostics,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Dismiss")
+                    }
                 }
             }
         }

@@ -102,6 +102,8 @@ class FieldAtlasAppTest {
         render(researchState = ResearchUiState(question = "Explain evidence"))
         compose.onNodeWithText("Start research").assertIsEnabled()
         compose.onNodeWithContentDescription("Research question").assertExists()
+        compose.onNodeWithText("Speak question").assertExists()
+        compose.onNodeWithText("Diagnostics").assertDoesNotExist()
     }
 
     @Test fun runningResearchKeepsStopVisible() {

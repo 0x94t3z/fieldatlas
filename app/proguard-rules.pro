@@ -18,3 +18,11 @@
 -keepclassmembers class com.arm.aichat.internal.InferenceEngineImpl {
     private void onNativePromptProgressNative(int, int);
 }
+
+# Vosk uses JNA, whose native bridge looks up Pointer.peer and other members by
+# their original JVM names. Without these rules the minified APK fails when the
+# user taps the microphone ("Can't obtain peer field ID").
+-keep class com.sun.jna.* { *; }
+-keep class * extends com.sun.jna.* { *; }
+-keepclassmembers class * extends com.sun.jna.* { public *; }
+-dontwarn java.awt.*

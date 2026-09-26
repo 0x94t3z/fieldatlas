@@ -95,12 +95,10 @@ class ResearchViewModelVoiceTest {
     }
 
     @Test fun failedStartReturnsToIdleAndReportsWhy() {
-        val reported = mutableListOf<String>()
-        val (model, _) = viewModel(FakeTranscriber("text", failStart = true), reported)
+        val (model, _) = viewModel(FakeTranscriber("text", failStart = true))
         model.onMicClick()
         assertEquals(VoicePhase.Idle, model.voiceState.value.phase)
         assertTrue(model.voiceState.value.error!!.contains("Could not start recording"))
-        assertTrue(reported.single().contains("Could not start recording"))
         // The error clears as soon as a fresh capture begins.
         model.onMicClick()
         assertEquals(null, model.voiceState.value.error)
@@ -112,5 +110,13 @@ class ResearchViewModelVoiceTest {
         model.onMicClick()
         model.onMicClick()
         assertEquals("kept", model.uiState.value.question)
+        assertTrue(model.voiceState.value.error!!.contains("No speech was detected"))
+    }
+
+    @Test fun deniedPermissionShowsActionableVoiceMessage() {
+        val (model, _) = viewModel(FakeTranscriber("unused"))
+        model.onMicrophonePermissionDenied()
+        assertTrue(model.voiceState.value.error!!.contains("Android settings"))
+        assertEquals(VoicePhase.Idle, model.voiceState.value.phase)
     }
 }

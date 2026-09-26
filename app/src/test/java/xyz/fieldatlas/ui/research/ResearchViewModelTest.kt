@@ -74,6 +74,37 @@ class ResearchViewModelTest {
         assertEquals(ResearchPhase.Complete, state.phase)
     }
 
+    @Test fun editingACompletedQuestionHidesItsOldAnswer() {
+        val viewModel = viewModel(
+            Retriever { _, _, _ -> listOf(evidence) },
+            FakeInferenceGateway(listOf("Answer [S1]")),
+        )
+        viewModel.updateQuestion("First question")
+        viewModel.submit()
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+
+        viewModel.updateQuestion("Second question")
+        val state = viewModel.uiState.value
+        assertEquals("Second question", state.question)
+        assertEquals(ResearchPhase.Idle, state.phase)
+        assertTrue(state.answer.isEmpty())
+        assertTrue(state.sources.isEmpty())
+    }
+
+    @Test fun askAnotherQuestionStartsWithAnEmptyInput() {
+        val handle = SavedStateHandle()
+        val viewModel = viewModel(
+            Retriever { _, _, _ -> listOf(evidence) },
+            FakeInferenceGateway(listOf("Answer [S1]")),
+            handle,
+        )
+        viewModel.updateQuestion("Old question")
+        viewModel.submit()
+        viewModel.startNewQuestion()
+        assertEquals("", viewModel.uiState.value.question)
+        assertEquals("", handle.get<String>("research.question"))
+    }
+
     @Test fun modelThinkingIsNeverPresentedAsTheResearchAnswer() {
         val viewModel = viewModel(
             Retriever { _, _, _ -> listOf(evidence) },

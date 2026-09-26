@@ -103,11 +103,18 @@ class ResearchViewModel(
      * parked into the question box — the user still presses Start research.
      */
     fun onMicClick() {
+        if (mutableUiState.value.isRunning) return
         when (mutableVoiceState.value.phase) {
             VoicePhase.Idle -> startVoiceCapture()
-            VoicePhase.Starting, VoicePhase.Recording -> stopVoiceCapture()
-            VoicePhase.Processing -> Unit
+            VoicePhase.Recording -> stopVoiceCapture()
+            VoicePhase.Starting, VoicePhase.Processing -> Unit
         }
+    }
+
+    fun onMicrophonePermissionDenied() {
+        mutableVoiceState.value = VoiceUiState(
+            error = "Allow microphone access in Android settings to use offline dictation.",
+        )
     }
 
     private fun startVoiceCapture() {
@@ -128,8 +135,8 @@ class ResearchViewModel(
             }.exceptionOrNull()
             if (startFailure != null || activeTranscriber !== transcriber) {
                 activeTranscriber = null
+                runCatching { transcriber.cancel() }
                 val reason = startFailure?.let { "Could not start recording: ${it.message ?: it.javaClass.simpleName}" }
-                reason?.let(onError)
                 mutableVoiceState.value = VoiceUiState(error = reason)
                 return@launch
             }
@@ -144,24 +151,28 @@ class ResearchViewModel(
             val result = runCatching { transcriber.stop() }
             activeTranscriber = null
             val transcript = result.getOrDefault("")
-            result.exceptionOrNull()?.let { failure ->
-                onError("The recording stopped early: ${failure.message ?: failure.javaClass.simpleName}")
-            }
             if (transcript.isNotBlank()) {
                 val existing = mutableUiState.value.question.trim()
                 updateQuestion(((if (existing.isEmpty()) "" else "$existing ") + transcript).trim())
             }
+            val failure = result.exceptionOrNull()
             mutableVoiceState.value = VoiceUiState(
-                error = result.exceptionOrNull()?.let {
+                error = failure?.let {
                     "The recording stopped early: ${it.message ?: it.javaClass.simpleName}"
-                },
+                } ?: if (transcript.isBlank()) "No speech was detected. Try speaking again." else null,
             )
         }
     }
 
     fun updateQuestion(question: String) {
         savedStateHandle[QUESTION_KEY] = question
-        mutableUiState.value = mutableUiState.value.copy(question = question)
+        mutableUiState.update { state ->
+            if (state.phase == ResearchPhase.Complete && question != state.question) {
+                ResearchUiState(question = question)
+            } else {
+                state.copy(question = question)
+            }
+        }
     }
 
     fun submit() {
@@ -234,9 +245,8 @@ class ResearchViewModel(
         researchJob?.cancel()
         researchJob = null
         rawAnswer.clear()
-        mutableUiState.value = ResearchUiState(
-            question = savedStateHandle.get<String>(QUESTION_KEY).orEmpty(),
-        )
+        savedStateHandle[QUESTION_KEY] = ""
+        mutableUiState.value = ResearchUiState()
     }
 
     fun cancelResearch() {

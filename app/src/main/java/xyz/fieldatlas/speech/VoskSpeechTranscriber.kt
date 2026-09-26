@@ -60,67 +60,82 @@ class VoskSpeechTranscriber(
             error("The microphone could not be opened")
         }
         recorder = audio
-        audio.startRecording()
-        val model = acquireModel()
-        val recogniser = Recognizer(model, SAMPLE_RATE)
-        recogniser.setWords(false)
-        heard.setLength(0)
-        recognizer = recogniser
-        capturing.set(true)
-        captureThread = Thread {
-            // A short silence lead-in gives the recogniser acoustic context before the
-            // first real samples; feeding speech as the very first bytes clips word one.
-            recogniser.acceptWaveForm(ByteArray(WARMUP_BYTES), WARMUP_BYTES)
-            val samples = ShortArray(SAMPLES_PER_CHUNK)
-            while (capturing.get() && !Thread.currentThread().isInterrupted) {
-                val read = audio.read(samples, 0, samples.size)
-                if (read <= 0) continue
-                var sumOfSquares = 0.0
-                for (index in 0 until read) {
-                    val normalised = samples[index] / 32768.0
-                    sumOfSquares += normalised * normalised
-                }
-                val rms = sqrt(sumOfSquares / read)
-                // Small speech sits well below a raw full-scale RMS; a gain keeps
-                // the meter responsive without letting silence read as a peak.
-                onLevel(min(1f, (rms * 6.0).toFloat()))
-                if (recogniser.acceptWaveForm(samples, read)) {
-                    recogniser.result.jsonToText()?.let { segment ->
-                        if (heard.isNotEmpty()) heard.append(' ')
-                        heard.append(segment)
+        try {
+            audio.startRecording()
+            val model = acquireModel()
+            val recogniser = Recognizer(model, SAMPLE_RATE)
+            recogniser.setWords(false)
+            heard.setLength(0)
+            recognizer = recogniser
+            capturing.set(true)
+            captureThread = Thread {
+                // A short silence lead-in gives the recogniser acoustic context before the
+                // first real samples; feeding speech as the very first bytes clips word one.
+                recogniser.acceptWaveForm(ByteArray(WARMUP_BYTES), WARMUP_BYTES)
+                val samples = ShortArray(SAMPLES_PER_CHUNK)
+                while (capturing.get() && !Thread.currentThread().isInterrupted) {
+                    val read = audio.read(samples, 0, samples.size)
+                    if (read <= 0) continue
+                    var sumOfSquares = 0.0
+                    for (index in 0 until read) {
+                        val normalised = samples[index] / 32768.0
+                        sumOfSquares += normalised * normalised
                     }
-                    recogniser.reset()
+                    val rms = sqrt(sumOfSquares / read)
+                    // Small speech sits well below a raw full-scale RMS; a gain keeps
+                    // the meter responsive without letting silence read as a peak.
+                    onLevel(min(1f, (rms * 6.0).toFloat()))
+                    if (recogniser.acceptWaveForm(samples, read)) {
+                        recogniser.result.jsonToText()?.let { segment ->
+                            if (heard.isNotEmpty()) heard.append(' ')
+                            heard.append(segment)
+                        }
+                        recogniser.reset()
+                    }
                 }
+            }.apply {
+                name = "fieldatlas-voice"
+                isDaemon = true
+                start()
             }
-        }.apply {
-            name = "fieldatlas-voice"
-            isDaemon = true
-            start()
+        } catch (failure: Throwable) {
+            capturing.set(false)
+            runCatching { audio.stop() }
+            captureThread?.join(THREAD_JOIN_MILLIS)
+            captureThread = null
+            audio.release()
+            recorder = null
+            recognizer?.close()
+            recognizer = null
+            throw failure
         }
     }
 
     override suspend fun stop(): String = withContext(Dispatchers.IO) {
         val audio = recorder ?: return@withContext ""
         capturing.set(false)
+        runCatching { audio.stop() }
         captureThread?.join(THREAD_JOIN_MILLIS)
         captureThread = null
-        val transcript = buildString {
-            if (heard.isNotEmpty()) append(heard)
-            recognizer?.finalResult?.jsonToText()?.let { final ->
-                if (isNotEmpty()) append(' ')
-                append(final)
-            }
-        }.trim()
-        audio.stop()
-        audio.release()
-        recorder = null
-        recognizer?.close()
-        recognizer = null
-        transcript
+        try {
+            buildString {
+                if (heard.isNotEmpty()) append(heard)
+                recognizer?.finalResult?.jsonToText()?.let { final ->
+                    if (isNotEmpty()) append(' ')
+                    append(final)
+                }
+            }.trim()
+        } finally {
+            audio.release()
+            recorder = null
+            recognizer?.close()
+            recognizer = null
+        }
     }
 
     override suspend fun cancel() {
         capturing.set(false)
+        recorder?.let { runCatching { it.stop() } }
         captureThread?.join(THREAD_JOIN_MILLIS)
         captureThread = null
         recorder?.release()
@@ -160,6 +175,8 @@ class VoskSpeechTranscriber(
         private fun acquireCachedModel(key: String, load: () -> Model): Model {
             cachedModel?.let { if (cachedKey == key) return it }
             cachedModel?.close()
+            cachedModel = null
+            cachedKey = null
             return load().also { cachedModel = it; cachedKey = key }
         }
     }

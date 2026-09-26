@@ -71,7 +71,10 @@ class MainActivity : ComponentActivity() {
             val diagnosticsNotices by container.errorBus.notices.collectAsStateWithLifecycle()
             val microphonePermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
-            ) { granted -> if (granted) researchViewModel.onMicClick() }
+            ) { granted ->
+                if (granted) researchViewModel.onMicClick()
+                else researchViewModel.onMicrophonePermissionDenied()
+            }
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
             val showBenchmark by benchmarkVisible
             LaunchedEffect(inferenceState) {
