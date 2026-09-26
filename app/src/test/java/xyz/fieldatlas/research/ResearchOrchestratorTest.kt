@@ -62,42 +62,90 @@ class ResearchOrchestratorTest {
         val metrics = events.last() as ResearchEvent.Complete
         assertTrue(metrics.metrics.citedSourceIds.isEmpty())
         assertFalse(metrics.metrics.hasUnmappedCitation)
-        assertEquals(3, inference.generateCalls)
+        assertEquals(2, inference.generateCalls)
+    }
+
+    @Test fun outOfScopeCollectionsSkipRedundantKeywordPlanning() = runBlocking {
+        val inference = FakeInferenceGateway(listOf("General offline answer"))
+        var searches = 0
+        val retriever = object : Retriever {
+            override fun hasEligiblePacks(query: String) = false
+            override suspend fun search(
+                query: String,
+                limit: Int,
+                onProgress: suspend (SearchProgress) -> Unit,
+            ): List<Evidence> {
+                searches++
+                return emptyList()
+            }
+        }
+        val events = ResearchOrchestrator(retriever, inference).research("Why do hemispheres have opposite seasons?").toList()
+        assertEquals(1, searches)
+        assertEquals(1, inference.generateCalls)
+        assertTrue(events.none { it is ResearchEvent.Planning })
+        assertTrue(events.last() is ResearchEvent.Complete)
     }
 
     @Test fun modelKeywordsDriveTheFirstRetrievalAndDropFillerWords() = runBlocking {
         val queries = mutableListOf<String>()
         val retriever = Retriever { query, _, _ ->
             queries += query
-            if (query.contains("virus")) listOf(evidence) else emptyList()
+            if (query.contains("infection")) listOf(evidence.copy(text = "Viruses and infection")) else emptyList()
         }
         val events = ResearchOrchestrator(
             retriever,
             FakeInferenceGateway(listOf("virus, viral, infection")),
         ).research("Tell me about viruses").toList()
         assertTrue(events.any { it is ResearchEvent.Sources })
-        assertEquals(1, queries.size)
-        assertTrue(queries[0].contains("virus"))
-        assertTrue(queries[0].contains("infection"))
-        assertFalse(queries[0].contains("tell"))
+        assertEquals(2, queries.size)
+        assertTrue(queries[1].contains("virus"))
+        assertTrue(queries[1].contains("infection"))
+        assertFalse(queries[1].contains("tell"))
     }
 
-    @Test fun fabricatedKeywordsShareTheQueryWithQuestionTerms() = runBlocking {
+    @Test fun strongRawQuestionHitSkipsKeywordPlanning() = runBlocking {
         val queries = mutableListOf<String>()
         val retriever = Retriever { query, _, _ ->
             queries += query
-            if (query.lowercase().contains("grounded")) listOf(evidence) else emptyList()
+            if (query.lowercase().contains("grounded")) listOf(evidence.copy(text = "Grounded question fact")) else emptyList()
         }
         val events = ResearchOrchestrator(
             retriever,
             FakeInferenceGateway(listOf("fabricated nonsense")),
         ).research("Grounded question").toList()
         assertTrue(events.any { it is ResearchEvent.Sources })
-        // Merged retrieval: invented keywords no longer get a query of their own that can
-        // drown the question's real entities — both ride together from the first attempt.
+        // A direct raw hit avoids the slow planner entirely, so fabricated model keywords never
+        // get a chance to dilute the user's own terms.
         assertEquals(1, queries.size)
-        assertTrue(queries[0].contains("fabricated"))
-        assertTrue(queries[0].contains("grounded"))
+        assertTrue(queries[0].lowercase().contains("grounded"))
+        assertFalse(queries[0].contains("fabricated"))
+    }
+
+    @Test fun relevantSourceSurvivesAfterUnrelatedPackFillsTheFirstPage() = runBlocking {
+        val unrelated = List(8) { index ->
+            evidence.copy(
+                documentId = "biology-$index",
+                chunkId = "biology-$index:0000",
+                text = "Earth's geomagnetic field changes over seasons",
+                matchedBy = "keyword: earth, seasons",
+            )
+        }
+        val relevant = evidence.copy(
+            documentId = "seasons",
+            chunkId = "seasons:0000",
+            text = "Earth's axial tilt gives opposite hemispheres different seasons",
+            matchedBy = "keyword: earth, hemispheres, opposite, seasons",
+        )
+        var requestedLimit = 0
+        val retriever = Retriever { _, limit, _ ->
+            requestedLimit = limit
+            (unrelated + relevant).take(limit)
+        }
+        val events = ResearchOrchestrator(retriever, FakeInferenceGateway(listOf("[S1]")))
+            .research("Why do Earth's hemispheres have opposite seasons?").toList()
+        assertEquals(24, requestedLimit)
+        assertEquals(listOf("seasons"), events.filterIsInstance<ResearchEvent.Sources>()
+            .single().evidence.map { it.documentId })
     }
 
     @Test fun streamsSourcesTokensAndCitationMetrics() = runBlocking {
@@ -109,7 +157,7 @@ class ResearchOrchestratorTest {
             monotonicMillis = { tick.also { tick += 10 } },
         ).research("Explain", maxOutputTokens = 64).toList()
 
-        assertTrue(events[0] is ResearchEvent.Planning)
+        assertTrue(events[0] is ResearchEvent.Searching)
         assertTrue(events.filterIsInstance<ResearchEvent.Searching>().isNotEmpty())
         assertTrue(events[events.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
         assertEquals(listOf("Answer ", "[S1]", " and [S9]"),
@@ -146,7 +194,7 @@ class ResearchOrchestratorTest {
             override suspend fun unload() = Unit
         }
         ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway)
-            .research("Explain").take(3).toList()
+            .research("Explain").take(4).toList()
         assertTrue(cancelled)
     }
 

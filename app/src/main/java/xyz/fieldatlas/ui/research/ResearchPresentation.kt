@@ -3,6 +3,7 @@ package xyz.fieldatlas.ui.research
 import java.util.Locale
 import xyz.fieldatlas.research.ResearchCompletion as DomainResearchCompletion
 import xyz.fieldatlas.research.ResearchMetrics
+import xyz.fieldatlas.research.AnswerText
 import xyz.fieldatlas.ui.markdown.MarkdownBlock
 import xyz.fieldatlas.ui.markdown.MarkdownInline
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
@@ -25,11 +26,17 @@ data class AnswerPresentation(
     val unavailableCitations: Set<Int>,
 )
 
+/** A short, non-interactive draft. Citation chips become actionable in the final answer. */
+fun draftAnswerPreview(answer: String): String = AnswerText.visible(answer)
+    .take(650)
+    .replace(Regex("\\[S[0-9#]*]?", RegexOption.IGNORE_CASE), "")
+    .replace(Regex("[ \\t]{2,}"), " ")
+    .trim()
+
 fun buildAnswerPresentation(answer: String, sourceCount: Int): AnswerPresentation {
     val blocks = parseAnswerMarkdown(answer)
     val citations = blocks.flatMap(MarkdownBlock::inlineContent)
-        .filterIsInstance<MarkdownInline.Citation>()
-        .map(MarkdownInline.Citation::number)
+        .flatMap(MarkdownInline::citationNumbers)
         .toSet()
     val lastAvailable = sourceCount.coerceAtLeast(0)
     return AnswerPresentation(
@@ -45,6 +52,7 @@ fun researchActivityLabel(
     promptRead: Pair<Int, Int>? = null,
     tokensWritten: Int = 0,
     vectorMatches: Int = 0,
+    hasSources: Boolean = true,
 ): String {
     val readSuffix = promptRead
         ?.takeIf { (read, total) -> total > 0 && read <= total && tokensWritten == 0 }
@@ -59,10 +67,14 @@ fun researchActivityLabel(
         } else {
             "Searching your library"
         }
-        ResearchPhase.Generating -> when {
+        ResearchPhase.Generating -> if (hasSources) when {
             tokensWritten > 0 -> "Writing from sources ($tokensWritten tokens written)"
             readSuffix.isNotEmpty() -> "Reading from sources$readSuffix"
             else -> "Writing from sources"
+        } else when {
+            tokensWritten > 0 -> "Writing an offline answer ($tokensWritten tokens written)"
+            readSuffix.isNotEmpty() -> "Reading the question$readSuffix"
+            else -> "Writing an offline answer"
         }
         ResearchPhase.Complete -> "Answer ready"
         ResearchPhase.Insufficient -> "More evidence needed"
@@ -72,7 +84,7 @@ fun researchActivityLabel(
 
 fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchMetricsModel {
     val citedCount = metrics.citedSourceIds.size.coerceAtMost(sourceCount.coerceAtLeast(0))
-    val rate = if (metrics.totalMillis > 0) {
+    val rate = if (metrics.totalMillis > 0 && metrics.generatedTokenCount > 0) {
         String.format(
             Locale.ROOT,
             "%.1f tok/s",
@@ -85,7 +97,8 @@ fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchM
         retrieval = formatDuration(metrics.retrievalMillis),
         firstToken = metrics.timeToFirstTokenMillis?.let(::formatDuration),
         total = formatDuration(metrics.totalMillis),
-        tokenCount = "${metrics.generatedTokenCount} generated tokens",
+        tokenCount = if (metrics.generatedTokenCount == 0) "No model generation" else
+            "${metrics.generatedTokenCount} generated tokens",
         tokenRate = rate,
         citationCoverage = if (sourceCount == 0) "No local sources cited" else "$citedCount of $sourceCount sources cited",
         hasUnmappedCitation = metrics.hasUnmappedCitation,
@@ -104,4 +117,15 @@ private fun MarkdownBlock.inlineContent(): List<MarkdownInline> = when (this) {
     is MarkdownBlock.ListBlock -> items.flatten()
     is MarkdownBlock.Quote -> content
     is MarkdownBlock.CodeBlock -> emptyList()
+    is MarkdownBlock.Table -> headers.flatten() + rows.flatten().flatten()
+    MarkdownBlock.ThematicBreak -> emptyList()
+}
+
+private fun MarkdownInline.citationNumbers(): List<Int> = when (this) {
+    is MarkdownInline.Citation -> listOf(number)
+    is MarkdownInline.Strong -> content.flatMap(MarkdownInline::citationNumbers)
+    is MarkdownInline.Emphasis -> content.flatMap(MarkdownInline::citationNumbers)
+    is MarkdownInline.Strikethrough -> content.flatMap(MarkdownInline::citationNumbers)
+    is MarkdownInline.Link -> label.flatMap(MarkdownInline::citationNumbers)
+    is MarkdownInline.Text, is MarkdownInline.Code -> emptyList()
 }

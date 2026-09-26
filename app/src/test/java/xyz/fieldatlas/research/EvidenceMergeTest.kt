@@ -3,10 +3,13 @@ package xyz.fieldatlas.research
 import java.io.File
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import xyz.fieldatlas.assets.CoverageLevel
+import xyz.fieldatlas.assets.PackDiscovery
 
 class EvidenceMergeTest {
     @get:Rule
@@ -20,6 +23,15 @@ class EvidenceMergeTest {
         text = "body $documentId $chunkId",
         score = score,
     )
+
+    @Test
+    fun `out of scope or empty packs do not crash merge`() {
+        assertEquals(emptyList<Evidence>(), MultiKnowledgeRetriever.mergeEvidence(listOf(emptyList()), limit = 8))
+        val relevant = evidence("doc", "1", "reference", score = -4.0)
+        assertEquals(listOf(relevant), MultiKnowledgeRetriever.mergeEvidence(
+            listOf(emptyList(), listOf(relevant), emptyList()), limit = 8,
+        ))
+    }
 
     @Test
     fun `merged evidence leads with the strongest bm25 matches`() {
@@ -75,6 +87,44 @@ class EvidenceMergeTest {
         val merged = MultiKnowledgeRetriever.mergeEvidence(listOf(encyclopedia, topical), limit = 3)
 
         assertEquals(listOf(-60.0, -30.0, -50.0), merged.map { evidence -> evidence.score })
+    }
+
+    @Test
+    fun `irrelevant pack cannot reserve slots ahead of relevant evidence`() {
+        val question = "Why do Earth's hemispheres have opposite seasons?"
+        val incidental = (1..3).map { index ->
+            evidence("medical-$index", "1", "biology", -100.0 + index).copy(
+                title = "Earth and seasonal medical trends",
+                text = "Medical reports from Earth vary by season.",
+            )
+        }
+        val useful = (1..3).map { index ->
+            evidence("tilt-$index", "1", "geography", -12.0 + index).copy(
+                title = "Earth's opposite hemispheres and seasons",
+                text = "Earth's axial tilt gives opposite hemispheres different seasons.",
+            )
+        }
+
+        val merged = MultiKnowledgeRetriever.mergeRelevantEvidence(
+            listOf(incidental, useful), question, question, limit = 3,
+        )
+
+        assertEquals(listOf("tilt-1", "tilt-2", "tilt-3"), merged.map(Evidence::documentId))
+    }
+
+    @Test
+    fun `expanded search is judged against the original question`() {
+        val relevant = evidence("myocardial", "1", "medical", -8.0).copy(
+            title = "Cardiac event treatment",
+            text = "A heart attack is a cardiac event requiring urgent assessment.",
+        )
+        val result = MultiKnowledgeRetriever.mergeRelevantEvidence(
+            listOf(listOf(relevant)),
+            query = "heart attack cardiac event myocardial infarction emergency treatment",
+            question = "Explain a heart attack",
+            limit = 4,
+        )
+        assertEquals(listOf(relevant), result)
     }
 
     @Test
@@ -155,5 +205,45 @@ class EvidenceMergeTest {
         val results = runBlocking { retriever.search("   ", limit = 5) }
         assertTrue(results.isEmpty())
         assertEquals(0, opens)
+    }
+
+    @Test
+    fun `focused vector packs are skipped outside documented coverage`() {
+        val biology = PackDiscovery(
+            coverageSummary = "Biology, medicine, cells, organisms and ecology",
+            exampleQuestions = listOf("How does a cell divide?"),
+            coverageLevel = CoverageLevel.FOCUSED,
+        )
+        assertTrue(MultiKnowledgeRetriever.shouldSearchVectors(biology, "How do cells divide?"))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(biology, "Why are Earth's seasons opposite?"))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(biology, "How do cells divide?"))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchPack(biology, "Why are Earth's seasons opposite?"))
+
+        val installedBiology = biology.copy(
+            coverageSummary = "PubMed abstracts (longevity, biodefense, indoor air), Fight Aging archive, longevity databases.",
+            exampleQuestions = listOf("What does rapamycin do in aging studies?"),
+            coverageLevel = CoverageLevel.BROAD,
+        )
+        assertFalse(MultiKnowledgeRetriever.shouldSearchPack(
+            installedBiology, "Why do Earth's hemispheres have opposite seasons?", "world-knowledge-biology",
+        ))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
+            installedBiology, "What does rapamycin do in aging studies?", "world-knowledge-biology",
+        ))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
+            installedBiology, "tell me about indonesian", "world-knowledge-biology",
+        ))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(installedBiology, "tell me about indonesian"))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
+            installedBiology, "Why are Earth's seasons opposite?", "wikipedia-general",
+        ))
+
+        val retriever = MultiKnowledgeRetriever(
+            databaseFiles = { listOf(java.io.File("/packs/world-knowledge-biology/1.2.0/content.sqlite")) },
+            packDiscoveries = { listOf(installedBiology) },
+        )
+        assertFalse(retriever.hasEligiblePacks("Why are Earth's seasons opposite?"))
+        assertTrue(retriever.hasEligiblePacks("What does rapamycin do in aging studies?"))
+        assertTrue(retriever.hasEligiblePacks("tell me about indonesian"))
     }
 }

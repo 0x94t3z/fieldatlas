@@ -12,6 +12,10 @@ data class InstalledAssetSummary(
     val type: PackType,
     val installedBytes: Long,
     val manifestSha256: String,
+    /** Whether this knowledge pack participated in retrieval for the exported run. */
+    val enabled: Boolean = true,
+    /** Whether this was the selected model/audio pack for the exported run. */
+    val active: Boolean = false,
 )
 
 @Serializable

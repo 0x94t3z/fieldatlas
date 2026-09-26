@@ -2,12 +2,26 @@
 
 Field Atlas treats release claims as evidence gates. The repository checks unit behavior, deterministic pack creation, manifest safety, native assembly, Android lint, release retention, and APK offline policy.
 
+The signed 1.2.0 APK in the [release audit](compliance/release-audit.md) predates
+the latest source edits. Its device measurements demonstrate that exact older APK,
+not every change on `main`. New source must pass the checks below and be matched
+to a newly installed, tested APK before it is described as a reviewed release.
+
+For the current source checkout, local checks on 2026-09-26 passed 200 Android
+JVM tests, 12 packtool tests, 26 script tests, 6 benchmark-scorer tests, and 1
+travel-builder test, plus release lint, release assembly, and the offline APK
+audit. The locally built unsigned release APK passed the offline audit with
+SHA-256 `67c72c54422b0330ea670e51adecdb3e2be4aa767b45bc701d2faf355d13b5c5`.
+It is not an installable signed release and these checks do not substitute for a
+fresh real-device run or a current quality benchmark.
+
 ## Automated checks
 
 ```sh
 python3 -m unittest discover packtool/tests
 python3 -m unittest discover scripts/tests
 python3 -m unittest discover benchmarks/tests
+python3 -m unittest discover tools/tests
 ./gradlew --no-configuration-cache :app:testDebugUnitTest :app:lintRelease
 ./gradlew --no-configuration-cache :app:assembleRelease
 ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk

@@ -56,7 +56,15 @@ object DiagnosticsProvider {
         notices: List<String> = emptyList(),
     ): DiagnosticsSnapshot {
         val summaries = assets.map {
-            InstalledAssetSummary(it.id, it.version, it.type, it.installedBytes, it.manifestSha256)
+            InstalledAssetSummary(
+                it.id,
+                it.version,
+                it.type,
+                it.installedBytes,
+                it.manifestSha256,
+                enabled = it.enabled,
+                active = it.active,
+            )
         }.sortedWith(compareBy(InstalledAssetSummary::id, InstalledAssetSummary::version))
         val total = summaries.fold(0L) { sum, asset -> Math.addExact(sum, asset.installedBytes) }
         return DiagnosticsSnapshot(

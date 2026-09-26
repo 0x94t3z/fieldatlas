@@ -12,6 +12,9 @@ QUESTION_FIELDS = {
     "id", "category", "prompt", "answerable", "requiredEvidence", "prohibitedClaims", "scoringNotes"
 }
 RESULT_FIELDS = {"questionId", "answer"}
+DEVICE_RESULT_REQUIRED_FIELDS = {
+    "questionId", "prompt", "state", "answer", "evidenceChunkIds", "metrics", "error"
+}
 ABSTENTION_MARKERS = ("insufficient evidence", "cannot determine", "not enough evidence")
 CITATION = re.compile(r"\[S[1-9][0-9]*\]")
 
@@ -59,11 +62,25 @@ def _validate_benchmark(benchmark: object) -> list[dict[str, object]]:
 
 
 def _validate_results(results: object, expected_ids: set[str]) -> dict[str, str]:
-    rows = _require_root(results, "results")
+    if not isinstance(results, dict) or results.get("schemaVersion") != 1 or not isinstance(results.get("results"), list):
+        raise BenchmarkError("invalid results root")
+    root_fields = set(results)
+    simple_export = root_fields == {"schemaVersion", "results"}
+    device_export = {"schemaVersion", "runId", "startedAt", "artifacts", "diagnosticsSha256", "results"} <= root_fields
+    if not simple_export and not device_export:
+        raise BenchmarkError("invalid results root")
+    rows = results["results"]
     parsed: dict[str, str] = {}
     for index, row in enumerate(rows):
-        if not isinstance(row, dict) or set(row) != RESULT_FIELDS:
+        if not isinstance(row, dict):
             raise BenchmarkError(f"invalid result fields at index {index}")
+        fields = set(row)
+        is_simple_row = fields == RESULT_FIELDS
+        is_device_row = DEVICE_RESULT_REQUIRED_FIELDS <= fields
+        if not is_simple_row and not is_device_row:
+            raise BenchmarkError(f"invalid result fields at index {index}")
+        if is_device_row and row["state"] != "COMPLETE":
+            raise BenchmarkError(f"device result is not complete at index {index}")
         identifier = row["questionId"]
         answer = row["answer"]
         if not isinstance(identifier, str) or not isinstance(answer, str):

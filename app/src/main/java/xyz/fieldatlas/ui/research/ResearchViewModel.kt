@@ -200,17 +200,21 @@ class ResearchViewModel(
                             tokensWritten = mutableUiState.value.tokensWritten + if (marker) 0 else 1,
                         )
                     }
-                    is ResearchEvent.Complete -> mutableUiState.value.copy(
-                        phase = ResearchPhase.Complete,
-                        metrics = event.metrics,
-                        completion = ResearchCompletion.Complete,
-                    ).also {
-                        val state = mutableUiState.value
-                        historyStore?.record(
-                            question = state.question,
-                            answer = state.answer,
-                            sources = state.sources.map { evidence -> evidence.title },
-                        )
+                    is ResearchEvent.Complete -> {
+                        val finalAnswer = AnswerText.finalized(rawAnswer.toString(), mutableUiState.value.sources.size)
+                        mutableUiState.value.copy(
+                            answer = finalAnswer,
+                            phase = ResearchPhase.Complete,
+                            metrics = event.metrics,
+                            completion = ResearchCompletion.Complete,
+                        ).also {
+                            val state = it
+                            historyStore?.record(
+                                question = state.question,
+                                answer = state.answer,
+                                sources = state.sources.map { evidence -> evidence.title },
+                            )
+                        }
                     }
                     is ResearchEvent.InsufficientEvidence -> mutableUiState.value.copy(
                         phase = ResearchPhase.Insufficient,

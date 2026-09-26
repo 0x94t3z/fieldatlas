@@ -29,6 +29,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.inference.InferenceState
+import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
+import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
@@ -139,13 +141,16 @@ fun ResearchScreen(
         }
         if (state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {
             item {
+                val citedSourceCount = buildAnswerPresentation(state.answer, state.sources.size)
+                    .availableCitations.size
                 FieldAtlasCard(Modifier.fillMaxWidth()) {
                     Text("Answer ready", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        if (state.sources.isEmpty()) {
+                        if (citedSourceCount == 0) {
                             "Written by the offline model without local citations."
                         } else {
-                            "Written from ${state.sources.size} installed ${if (state.sources.size == 1) "source" else "sources"}."
+                            "Written from $citedSourceCount cited local " +
+                                if (citedSourceCount == 1) "source." else "sources."
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -216,7 +221,7 @@ private fun ResearchAction(
 ) {
     if (state.isRunning || inferenceState == InferenceState.Generating) {
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten, state.retrievalVectorMatches), fontWeight = FontWeight.SemiBold)
+            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten, state.retrievalVectorMatches, state.sources.isNotEmpty()), fontWeight = FontWeight.SemiBold)
             if (state.keywords.isNotEmpty()) {
                 Text(
                     "Searching for: ${state.keywords.joinToString(", ")}",
@@ -227,6 +232,16 @@ private fun ResearchAction(
             LinearProgressIndicator(Modifier.fillMaxWidth())
             OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 Text("Stop")
+            }
+            val draft = draftAnswerPreview(state.answer)
+            if (draft.isNotEmpty()) {
+                Text("Answer in progress", style = MaterialTheme.typography.titleMedium)
+                AnswerMarkdownRenderer(
+                    blocks = parseAnswerMarkdown(draft),
+                    sourceCount = 0,
+                    onCitation = {},
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
         return

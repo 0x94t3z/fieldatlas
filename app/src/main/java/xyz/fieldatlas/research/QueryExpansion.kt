@@ -14,7 +14,7 @@ import java.util.Locale
  */
 internal object QueryExpansion {
     /** Hard token cap for the keyword turn — it must never eat into the answer budget. */
-    const val GENERATION_BUDGET = 96
+    const val GENERATION_BUDGET = 48
     const val MAX_TERMS = 6
     private const val MAX_TERM_CHARS = 48
 

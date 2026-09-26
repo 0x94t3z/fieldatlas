@@ -12,6 +12,8 @@ import java.security.MessageDigest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import xyz.fieldatlas.assets.AssetImporter
 import xyz.fieldatlas.assets.AssetRegistry
 import xyz.fieldatlas.assets.InstalledAsset
@@ -43,6 +45,10 @@ class AppContainer(context: Context) {
     private val registry = AssetRegistry(appContext.filesDir)
     private val importer = AssetImporter(appContext)
     private val mutablePacks = MutableStateFlow<List<InstalledAsset>>(emptyList())
+    private val refreshMutex = Mutex()
+    private val encoderMutex = Mutex()
+    private var loadedEncoderPath: String? = null
+    private var encoderSynchronized = false
     /** Every user-visible failure in the app is collected here and shown in one field. */
     val errorBus = AppErrorBus()
 
@@ -62,23 +68,41 @@ class AppContainer(context: Context) {
     val packs: StateFlow<List<InstalledAsset>> = mutablePacks.asStateFlow()
     val inference: InferenceGateway = LlamaInferenceGateway(appContext)
 
-    suspend fun refreshPacks() {
-        mutablePacks.value = registry.list()
-        syncEncoder()
+    suspend fun refreshPacks() = refreshMutex.withLock {
+        val installed = registry.list()
+        val nextEncoder = encoderPath(installed)
+        // The encoder is lazy: the first relevant vector lookup loads it after the chat model
+        // has prepared. Release an old encoder when its pack is switched off or replaced.
+        if (encoderSynchronized && loadedEncoderPath != null && loadedEncoderPath != nextEncoder) {
+            encoderMutex.withLock {
+                runCatching { inference.setEncoder(null) }
+                    .onSuccess {
+                        loadedEncoderPath = null
+                        encoderSynchronized = true
+                    }
+            }
+        }
+        mutablePacks.value = installed
     }
 
-    /**
-     * Loads the embedding encoder shipped inside the first enabled vector-capable knowledge
-     * pack (all current vector packs share one bge-small encoder, so first-enabled is a stable
-     * pick). No-op safe: without an encoder the retriever simply stays keyword-only.
-     */
-    private suspend fun syncEncoder() {
-        val carrier = packs.value.firstOrNull { asset ->
+    private fun encoderPath(installed: List<InstalledAsset>): String? {
+        val carrier = installed.firstOrNull { asset ->
             asset.type == PackType.KNOWLEDGE && asset.enabled && asset.embedding != null &&
                 File(File(asset.rootPath), asset.embedding.encoderPath).isFile
         }
-        val encoder = carrier?.embedding?.let { File(File(carrier.rootPath), it.encoderPath).absolutePath }
-        runCatching { inference.setEncoder(encoder) }
+        return carrier?.embedding?.let { File(File(carrier.rootPath), it.encoderPath).absolutePath }
+    }
+
+    /** Load the enabled pack's encoder only when a routed vector search actually requests it. */
+    private suspend fun embedForSearch(text: String): FloatArray? = encoderMutex.withLock {
+        val encoder = encoderPath(packs.value) ?: return@withLock null
+        if (!encoderSynchronized || encoder != loadedEncoderPath) {
+            val loaded = runCatching { inference.setEncoder(encoder) }.isSuccess
+            if (!loaded) return@withLock null
+            loadedEncoderPath = encoder
+            encoderSynchronized = true
+        }
+        inference.embed(text)
     }
 
     suspend fun installBundledKnowledgeIfNeeded() {
@@ -179,14 +203,21 @@ class AppContainer(context: Context) {
     private val retriever: Retriever = MultiKnowledgeRetriever(
         databaseFiles = { knowledgeSources().map { source -> source.first } },
         packEmbeddings = { knowledgeSources().map { source -> source.second } },
-        embed = { text -> inference.embed(text) },
+        packDiscoveries = { knowledgeSources().map { source -> source.third } },
+        embed = { text -> embedForSearch(text) },
     )
 
-    /** Enabled knowledge packs: (database file, embedding metadata) in registry order. */
-    private fun knowledgeSources(): List<Pair<java.io.File, xyz.fieldatlas.assets.PackEmbedding?>> =
+    /** Enabled knowledge packs and their local retrieval metadata in registry order. */
+    private fun knowledgeSources(): List<Triple<java.io.File, xyz.fieldatlas.assets.PackEmbedding?, xyz.fieldatlas.assets.PackDiscovery?>> =
         packs.value
             .filter { it.type == PackType.KNOWLEDGE && it.enabled }
-            .map { knowledge -> java.io.File(knowledge.rootPath, "content.sqlite") to knowledge.embedding }
+            .map { knowledge ->
+                Triple(
+                    java.io.File(knowledge.rootPath, "content.sqlite"),
+                    knowledge.embedding,
+                    knowledge.discovery,
+                )
+            }
 
     suspend fun setPackEnabled(asset: InstalledAsset, enabled: Boolean) {
         registry.setEnabled(asset.id, asset.version, enabled)
@@ -228,7 +259,15 @@ class AppContainer(context: Context) {
                 questions = benchmarkQuestions,
                 orchestrator = researchOrchestrator,
                 artifacts = packs.value.map {
-                    InstalledAssetSummary(it.id, it.version, it.type, it.installedBytes, it.manifestSha256)
+                    InstalledAssetSummary(
+                        it.id,
+                        it.version,
+                        it.type,
+                        it.installedBytes,
+                        it.manifestSha256,
+                        enabled = it.enabled,
+                        active = it.active,
+                    )
                 },
                 diagnosticsSha256 = sha256(DiagnosticsProvider.toJson(snapshot)),
                 onError = { message -> errorBus.report("Benchmark", message) },

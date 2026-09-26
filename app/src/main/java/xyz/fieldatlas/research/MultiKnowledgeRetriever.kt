@@ -6,9 +6,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.fieldatlas.assets.PackEmbedding
+import xyz.fieldatlas.assets.PackDiscovery
+import xyz.fieldatlas.assets.CoverageLevel
 
 /**
- * Searches every enabled knowledge pack and merges the results into one ranking.
+ * Searches eligible enabled knowledge packs and merges the results into one ranking.
  *
  * Each pack carries its own FTS5 database. BM25 scores are negative and more negative means
  * a stronger match, but the raw scale is corpus-dependent (vocabulary size, document length,
@@ -33,12 +35,28 @@ class MultiKnowledgeRetriever(
      * pack). [embed] encodes a query string with the pack's queryPrefix already prepended.
      */
     private val packEmbeddings: () -> List<PackEmbedding?> = { emptyList() },
+    /** Coverage metadata, index-aligned with [databaseFiles], used to avoid foreign-domain scans. */
+    private val packDiscoveries: () -> List<PackDiscovery?> = { emptyList() },
     private val embed: suspend (String) -> FloatArray? = { null },
 ) : Retriever {
     private val opened = ConcurrentHashMap<String, KnowledgeDatabase>()
 
+    override fun hasEligiblePacks(query: String): Boolean {
+        val discoveries = runCatching(packDiscoveries).getOrDefault(emptyList())
+        return databaseFiles().withIndex().any { (index, file) ->
+            shouldSearchPack(discoveries.getOrNull(index), query, file.parentFile?.parentFile?.name.orEmpty())
+        }
+    }
+
     override suspend fun search(
         query: String,
+        limit: Int,
+        onProgress: suspend (SearchProgress) -> Unit,
+    ): List<Evidence> = searchForQuestion(query, query, limit, onProgress)
+
+    suspend fun searchForQuestion(
+        query: String,
+        question: String,
         limit: Int,
         onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> = withContext(ioDispatcher) {
@@ -46,15 +64,23 @@ class MultiKnowledgeRetriever(
         if (FtsQuery.from(query) == null) return@withContext emptyList()
         val files = databaseFiles()
         val embeddings = runCatching(packEmbeddings).getOrDefault(emptyList())
+        val discoveries = runCatching(packDiscoveries).getOrDefault(emptyList())
         val total = files.size.coerceAtLeast(1)
         var vectorMatches = 0
         val runs = files.mapIndexed { index, file ->
+            val discovery = discoveries.getOrNull(index)
+            if (!shouldSearchPack(discovery, query, file.parentFile?.parentFile?.name.orEmpty())) {
+                onProgress(SearchProgress((index + 1.0) / total, vectorMatches))
+                return@mapIndexed emptyList<Evidence>()
+            }
             runCatching {
                 val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
                 val keyword = FtsRetriever(database).search(query, limit) { inner ->
                     onProgress(SearchProgress((index + inner.fraction.coerceIn(0.0, 1.0)) / total, vectorMatches))
                 }
-                val (run, hits) = keyword.withVectorEvidence(database, embeddings.getOrNull(index), query, limit)
+                val embedding = embeddings.getOrNull(index)
+                    ?.takeIf { shouldSearchVectors(discovery, query) }
+                val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
                 vectorMatches += hits
                 run
             }.getOrElse { error ->
@@ -65,7 +91,7 @@ class MultiKnowledgeRetriever(
             }
         }
         onProgress(SearchProgress(1.0, vectorMatches))
-        mergeEvidence(runs, limit)
+        mergeRelevantEvidence(runs, query, question, limit)
     }
 
     /**
@@ -99,6 +125,36 @@ class MultiKnowledgeRetriever(
         /** Sentinel score anchoring vector hits below (stronger than) any bm25 score. */
         internal const val VECTOR_FLOOR = -100_000.0
 
+        /** Focused collections, and the externally packaged biology corpus whose manifest says
+         * BROAD despite its narrow PubMed/longevity coverage, must not force incidental matches
+         * into unrelated questions. Other BROAD packs remain available across topics. */
+        internal fun shouldSearchPack(discovery: PackDiscovery?, query: String, packId: String = ""): Boolean {
+            if (discovery == null) return true
+            if (discovery.coverageLevel != CoverageLevel.FOCUSED && packId != "world-knowledge-biology") return true
+            // Coverage descriptions are not an index of every name in a pack. For a
+            // single-topic lookup, try cheap keyword search even when the summary has no
+            // overlap; the post-retrieval relevance gate still rejects unrelated passages.
+            if (FtsQuery.from(query)?.terms?.size == 1) return true
+            return shouldSearchVectors(discovery, query)
+        }
+
+        /**
+         * A focused vector pack is expensive to scan and harmful outside its documented scope.
+         * Use its own summary/examples as a cheap local router. General-domain packs still
+         * receive keyword retrieval even when their vectors are skipped.
+         */
+        internal fun shouldSearchVectors(discovery: PackDiscovery?, query: String): Boolean {
+            if (discovery == null) return true
+            val queryTerms = FtsQuery.from(query)?.terms.orEmpty().filter { it.length >= 3 }.toSet()
+            if (queryTerms.isEmpty()) return false
+            val coverage = buildString {
+                append(discovery.coverageSummary)
+                discovery.exampleQuestions.forEach { append(' '); append(it) }
+            }
+            val coverageTerms = FtsQuery.from(coverage)?.terms.orEmpty().toSet()
+            return queryTerms.any(coverageTerms::contains)
+        }
+
         /**
          * Places vector evidence ahead of keyword evidence for one pack: vector hits are
          * re-scored onto a floor far below any realistic bm25 (preserving their order), and
@@ -120,12 +176,31 @@ class MultiKnowledgeRetriever(
                 seen.add(Triple(evidence.documentId, evidence.chunkId, evidence.source))
             }
         }
+
+        /** A pack earns merge slots only for passages relevant to the original question. */
+        internal fun mergeRelevantEvidence(
+            runs: List<List<Evidence>>,
+            query: String,
+            question: String,
+            limit: Int,
+        ): List<Evidence> {
+            val questionTerms = FtsQuery.from(question)?.terms.orEmpty()
+            val expandedTerms = FtsQuery.from(query)?.terms.orEmpty()
+                .filterNot(questionTerms::contains)
+            val eligible = runs.map { run ->
+                EvidenceRelevance.keep(run, questionTerms, expandedTerms, question)
+            }
+            return mergeEvidence(eligible, limit)
+        }
+
         /**
          * Merges per-pack result lists. Documents are deduplicated on (documentId, chunkId,
          * source) — two packs installed from the same corpus keep identical rows only when
          * they genuinely hold the same chunk.
          */
         fun mergeEvidence(runs: List<List<Evidence>>, limit: Int): List<Evidence> {
+            val activeRuns = runs.filter { it.isNotEmpty() }
+            if (activeRuns.isEmpty()) return emptyList()
             val seen = HashSet<Triple<String, String, String>>()
             fun isFresh(evidence: Evidence) =
                 seen.add(Triple(evidence.documentId, evidence.chunkId, evidence.source))
@@ -147,7 +222,7 @@ class MultiKnowledgeRetriever(
             // ~10) must not be buried under a weak pack's junk: best-vs-best shifts say
             // nothing about where a pack's second-best belongs, so rank itself earns slots.
             for (rank in 0 until minOf(quota, 2)) {
-                for (run in runs) {
+                for (run in activeRuns) {
                     if (selected.size >= limit) break
                     val evidence = run.getOrNull(rank) ?: continue
                     val key = Triple(evidence.documentId, evidence.chunkId, evidence.source)
@@ -161,7 +236,7 @@ class MultiKnowledgeRetriever(
             // overflows the limit, and pack order alone would let the last pack's title-boosted
             // article lose to a pack listed earlier. Rank 2 enters by pack-RELATIVE strength.
             if (quota >= 3) {
-                runs.mapNotNull { run ->
+                activeRuns.mapNotNull { run ->
                     run.getOrNull(2)?.let { evidence -> evidence to evidence.score - run.minOf { it.score } }
                 }.sortedBy { (_, shift) -> shift }.forEach { (evidence, shift) ->
                     val key = Triple(evidence.documentId, evidence.chunkId, evidence.source)
@@ -177,7 +252,7 @@ class MultiKnowledgeRetriever(
             // Fill orders GLOBALLY by relative shift: the previous pack-sequential fill let
             // the first-listed pack's leftovers claim every remaining slot before an
             // encyclopaedia's rank-3 title article (boosted, tiny relative shift) could speak.
-            runs.flatMap { run ->
+            activeRuns.flatMap { run ->
                 val best = run.minOf { evidence -> evidence.score }
                 run.withIndex()
                     .filter { (rank, _) -> rank >= quota }

@@ -105,7 +105,7 @@ class BenchmarkViewModel(
                 questionId = result.question.id,
                 prompt = result.question.prompt,
                 state = state,
-                answer = AnswerText.visible(result.answer.toString()),
+                answer = AnswerText.finalized(result.answer.toString(), result.evidenceChunkIds.size),
                 evidenceChunkIds = result.evidenceChunkIds,
                 metrics = result.metrics,
                 error = error,

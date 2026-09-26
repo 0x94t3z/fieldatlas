@@ -24,4 +24,24 @@ object AnswerText {
         }
         return visible.toString().trimStart()
     }
+
+    /** Normalizes model citation variants and removes placeholders that cannot open a source. */
+    fun finalized(raw: String, sourceCount: Int): String {
+        val sourceRange = 1..sourceCount.coerceAtLeast(0)
+        return visible(raw)
+            // Small models commonly emit [1] despite being asked for [S1]. Normalize it so the
+            // same citation chip and source navigation work instead of showing dead punctuation.
+            .replace(Regex("(?<![\\p{L}\\p{N}])\\[([1-9][0-9]*)]")) { match ->
+                val number = match.groupValues[1].toInt()
+                if (number in sourceRange) "[S$number]" else ""
+            }
+            .replace(Regex("\\[S#]", RegexOption.IGNORE_CASE), "")
+            .replace(Regex("\\[S([1-9][0-9]*)]", RegexOption.IGNORE_CASE)) { match ->
+                val number = match.groupValues[1].toInt()
+                if (number in sourceRange) "[S$number]" else ""
+            }
+            .replace(Regex("[ \\t]+(?=[.,;:])"), "")
+            .replace(Regex("[ \\t]{2,}"), " ")
+            .trim()
+    }
 }

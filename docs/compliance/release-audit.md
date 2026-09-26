@@ -6,7 +6,7 @@ Statuses are evidence gates, not aspirations. `PASS` means the named artifact ex
 
 ## Candidate verification
 
-This audit covers the unreleased Field Atlas `1.2.0` integration candidate (`versionCode` 14). It applies the fork's offline-research improvements to the existing Field Notebook UI: on-device LLM query planning, selectable answer-model packs, optional offline Vosk voice input, vector-aware retrieval with lexical fallback, answer history, and detailed progress. The bundled focused Field Atlas Reference pack still installs automatically. No tag or GitHub release is claimed for this candidate.
+This audit records the earlier signed Field Atlas `1.2.0` integration APK (`versionCode` 14), identified by its checksum below. Later source changes in this repository—including conditional query planning, relevance-filtered pack merging, Markdown answer polish, and an optional Wikivoyage builder—are **not** covered by that APK's hash or its physical-device run. Do not treat this historical audit as release approval for the later source tree. No tag or GitHub release is claimed for the integration APK.
 
 Physical testing found and fixed three release-path defects before review: R8 removed a private JNI callback, native conversation resets could run on the Android main thread, and generic/modal retrieval terms could introduce unrelated citations. The final airplane-mode query used the specific planned terms `boiling`, `filtration`, `pathogens`, and `metals`, selected one relevant local passage, produced a clickable citation, and opened the exact source without a Field Atlas crash or ANR. Cited answers require local-evidence matches; a question without a match falls back to an explicitly uncited offline-model answer.
 

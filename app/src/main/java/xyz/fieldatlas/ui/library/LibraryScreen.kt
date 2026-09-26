@@ -35,7 +35,6 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Button
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
@@ -44,6 +43,7 @@ import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
+import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 
@@ -205,7 +205,7 @@ private fun AssetCard(
                 Text(
                     model.title,
                     style = MaterialTheme.typography.titleMedium,
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = FieldAtlasEditorial,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                 )

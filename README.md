@@ -7,10 +7,18 @@
 Field Atlas answers with an on-device model and uses its bundled or imported local knowledge packs when it can ground a response in citations. If no matching local source is found, it can still give an uncited offline model answer and labels that path clearly. It has no network permission, makes no remote inference or search requests, and does not require Google Play Services. User-supplied packs are selected from local storage and verified before installation.
 
 The current source also includes optional offline voice input, selectable local model
-packs, LLM-assisted query expansion, and vector-aware retrieval with keyword fallback.
+packs, conditional on-device query expansion when initial retrieval is weak, and
+vector-aware retrieval with keyword fallback. Retrieved passages are checked for
+relevance before packs receive answer slots; unmatched questions use the uncited
+model-only path. Simple, source-backed restaurant lookups can list dated local
+Wikivoyage entries without waiting for model generation. These newer source changes
+are not part of the signed release linked below.
 All of these paths stay on the device; voice audio and research questions are not uploaded.
 
-The signed Android release has been exercised offline on a physical Infinix X6840. Reproducible checks cover the app, pack format, native runtime, offline policy, and release artifacts.
+The signed Android release has been exercised offline on a physical Infinix X6840.
+The demo below records an earlier build; it is not footage of every current source
+feature. Current development evidence and its limits are in
+[verification](docs/verification.md).
 
 ## Demo
 
@@ -83,6 +91,8 @@ The heavyweight data — model packs, knowledge packs, embeddings — is not com
 - `tools/build_vector_pack.py` turns an embedding TSV into a vector-capable knowledge pack
   (int8 `chunk_vectors` table + embedded BGE-small query encoder), enabling on-device
   semantic search with keyword fallback.
+- `tools/build_wikivoyage_eat_pack.py` builds a dated, searchable restaurant pack from
+  Wikivoyage's structured Eat listings for offline city lookups.
 - `tools/content2fapack.py` / `tools/fapack_convert.py` convert raw corpora or any JSONL
   document spool into knowledge packs.
 
@@ -117,7 +127,17 @@ Detailed procedures are in [installation](docs/installation.md), [device testing
 
 ## Architecture and privacy
 
-The Compose UI calls a research orchestrator that uses the selected local model to plan a short, specific retrieval query, searches bounded FTS5/vector passages, packs a citation-constrained prompt when local sources exist, and streams llama.cpp output. When retrieval finds no matching local source, the orchestrator switches to an uncited offline-model prompt instead of making a network request. The selected model prepares automatically after verified assets are available, with an explicit retry action if loading fails. Import rejects unknown manifest fields, unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes, duplicate versions, and storage-budget violations. Research questions remain on-device; diagnostic export excludes the latest question unless the user opts in.
+The Compose UI first searches the original question across eligible local packs. If
+that produces no relevant passage, the selected local model generates a short query
+expansion and retrieval tries once more. Only passages relevant to the original
+question can enter the answer prompt; otherwise the app gives an uncited offline
+model answer. Source-backed simple restaurant lookups use a faster, unranked listing
+path with local citations and freshness caveats. Other answers stream from llama.cpp.
+The selected model prepares automatically after verified assets are available, with
+an explicit retry action if loading fails. Import rejects unknown manifest fields,
+unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes,
+duplicate versions, and storage-budget violations. Research questions remain
+on-device; diagnostic export excludes the latest question unless the user opts in.
 
 ## Verification
 

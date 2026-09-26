@@ -1,6 +1,6 @@
 # Field Atlas paired benchmark — 2026-09-24
 
-This is the recorded exploratory comparison for the current Field Atlas
+This is the recorded exploratory comparison for the historical Field Atlas
 Reference build (`1.1.6`, Qwen3 1.7B Q4_K_M) against OpenRouter's dynamic
 `openrouter/free` route.
 

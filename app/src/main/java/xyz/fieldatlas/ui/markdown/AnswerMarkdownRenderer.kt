@@ -8,9 +8,11 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,8 +28,10 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 
 @Composable
 fun AnswerMarkdownRenderer(
@@ -75,7 +79,10 @@ fun AnswerMarkdownRenderer(
                 ) {
                     InlineBlock(
                         content = block.content,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontStyle = FontStyle.Italic),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontFamily = FieldAtlasEditorial,
+                            fontStyle = FontStyle.Italic,
+                        ),
                         sourceCount = sourceCount,
                         onCitation = onCitation,
                         modifier = Modifier.padding(16.dp),
@@ -86,14 +93,75 @@ fun AnswerMarkdownRenderer(
                         color = MaterialTheme.colorScheme.surfaceVariant,
                         shape = MaterialTheme.shapes.small,
                     ) {
-                        Text(
-                            text = block.code,
-                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(14.dp),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                        )
+                        Column {
+                            block.language?.takeIf(String::isNotBlank)?.let { language ->
+                                Text(
+                                    text = language.uppercase(),
+                                    modifier = Modifier.padding(start = 14.dp, top = 10.dp, end = 14.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Text(
+                                text = block.code,
+                                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(14.dp),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
+                            )
+                        }
                     }
                 }
+                is MarkdownBlock.Table -> MarkdownTable(block, sourceCount, onCitation)
+                MarkdownBlock.ThematicBreak -> HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun MarkdownTable(
+    table: MarkdownBlock.Table,
+    sourceCount: Int,
+    onCitation: (Int) -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 6.dp)) {
+            TableRow(table.headers, header = true, sourceCount, onCitation)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            table.rows.forEachIndexed { index, row ->
+                TableRow(row, header = false, sourceCount, onCitation)
+                if (index != table.rows.lastIndex) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TableRow(
+    cells: List<List<MarkdownInline>>,
+    header: Boolean,
+    sourceCount: Int,
+    onCitation: (Int) -> Unit,
+) {
+    Row {
+        cells.forEach { cell ->
+            InlineBlock(
+                content = cell,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = if (header) FontWeight.Bold else FontWeight.Normal,
+                ),
+                sourceCount = sourceCount,
+                onCitation = onCitation,
+                modifier = Modifier
+                    .widthIn(min = 132.dp, max = 220.dp)
+                    .padding(horizontal = 12.dp, vertical = 9.dp),
+            )
         }
     }
 }
@@ -157,6 +225,7 @@ private fun headingStyle(level: Int): TextStyle = when (level) {
 @Composable
 private fun annotatedText(content: List<MarkdownInline>): AnnotatedString {
     val codeBackground = MaterialTheme.colorScheme.surfaceVariant
+    val linkColor = MaterialTheme.colorScheme.primary
     return buildAnnotatedString {
         fun appendInline(inline: MarkdownInline) {
             when (inline) {
@@ -167,9 +236,18 @@ private fun annotatedText(content: List<MarkdownInline>): AnnotatedString {
                 is MarkdownInline.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                     inline.content.forEach(::appendInline)
                 }
+                is MarkdownInline.Strikethrough -> withStyle(
+                    SpanStyle(textDecoration = TextDecoration.LineThrough),
+                ) { inline.content.forEach(::appendInline) }
                 is MarkdownInline.Code -> withStyle(
                     SpanStyle(fontFamily = FontFamily.Monospace, background = codeBackground),
                 ) { append(inline.value) }
+                is MarkdownInline.Link -> withStyle(
+                    SpanStyle(
+                        color = linkColor,
+                        textDecoration = TextDecoration.Underline,
+                    ),
+                ) { inline.label.forEach(::appendInline) }
                 is MarkdownInline.Citation -> Unit
             }
         }
@@ -182,6 +260,8 @@ private fun List<MarkdownInline>.citations(): List<MarkdownInline.Citation> = fl
         is MarkdownInline.Citation -> listOf(inline)
         is MarkdownInline.Strong -> inline.content.citations()
         is MarkdownInline.Emphasis -> inline.content.citations()
+        is MarkdownInline.Strikethrough -> inline.content.citations()
+        is MarkdownInline.Link -> inline.label.citations()
         else -> emptyList()
     }
 }

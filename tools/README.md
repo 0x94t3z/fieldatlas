@@ -15,6 +15,7 @@ and deterministic: the same inputs always produce byte-identical packs.
 | `build_model_packs.py` | `models/compact-*.example.json` registry + GGUFs | MODEL / AUDIO packs (Qwen3, Qwen3.5, MiniCPM5, Vosk) |
 | `fapack_convert.py` | any JSONL document spool | any KNOWLEDGE pack (generic converter, usage documented in its docstring) |
 | `build_vector_pack.py` | fapack + embeddings TSV + encoder GGUF | vector-capable KNOWLEDGE pack (int8 `chunk_vectors` + embedded query encoder) |
+| `build_wikivoyage_eat_pack.py` | English Wikivoyage pages-articles XML dump | dated, individually searchable restaurant listings |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
 
 Paths follow the working-tree convention: `REPO` = the fieldatlas repository (holds
@@ -30,6 +31,19 @@ python3 tools/build_model_packs.py --pack all
 # wikipedia mini from scratch (clones the Wikimedia dump, runs WikiExtractor, selects
 # vital + filler articles under a pinned text budget):
 python3 tools/wiki_mini_build.py --fetch-vital
+
+# offline travel coverage from an extracted Wikivoyage corpus. This uses the same verified
+# knowledge-pack format; restaurant/POI claims remain limited to the dump's publication date:
+python3 tools/content2fapack.py wikivoyage --out ../fapacks --keep-jsonl
+
+# For city-specific restaurant lookups, build one document per Wikivoyage Eat listing.
+# Download the source on a computer, then transfer the resulting .fapack to the phone.
+curl -L https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
+  -o enwikivoyage-20260901-pages-articles.xml.bz2
+python3 tools/build_wikivoyage_eat_pack.py \
+  --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
+  --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
+  --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773
 
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
 python3 tools/build_vector_pack.py \

@@ -30,6 +30,12 @@ On first launch, Field Atlas installs the bundled Reference pack. Tap **Choose m
 
 The bundled Reference pack is visibly labelled **Focused coverage**. Its suggested questions describe only its installed scope; it is not a claim of comprehensive coverage. If a question has no matching local source, Field Atlas can still answer from the offline model, but the answer is shown without local citations.
 
+An optional dated Wikivoyage places-to-eat pack can be built on a computer using
+the pinned dump and command in [DATASETS.md](../DATASETS.md). Transfer its resulting
+`.fapack` to the phone and import it from Library. It is not bundled with the APK
+or available as a GitHub release asset. Its listings may be stale; Field Atlas
+does not verify whether a venue is currently open or has a current menu.
+
 To update a pack, use a new manifest version. Existing versions are never silently overwritten. Android's uninstall flow removes the app and its app-private packs; keep the original `.fapack` files elsewhere if they are needed again.
 
 ## Troubleshooting

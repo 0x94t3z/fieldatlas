@@ -10,11 +10,14 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import xyz.fieldatlas.R
 
 object FieldAtlasColors {
     val PaperBackground = Color(0xFFF3EFE5)
@@ -23,6 +26,16 @@ object FieldAtlasColors {
     val MenuSelection = Color(0xFF595267)
     val OnMenuSelection = Color(0xFFF1EAFF)
 }
+
+/** Bundled so the notebook identity does not depend on an OEM's generic serif fallback. */
+val FieldAtlasEditorial = FontFamily(
+    Font(R.font.source_serif_4_variable, weight = FontWeight.Normal),
+    Font(R.font.source_serif_4_variable, weight = FontWeight.Medium),
+    Font(R.font.source_serif_4_variable, weight = FontWeight.SemiBold),
+    Font(R.font.source_serif_4_variable, weight = FontWeight.Bold),
+    Font(R.font.source_serif_4_italic_variable, weight = FontWeight.Normal, style = FontStyle.Italic),
+    Font(R.font.source_serif_4_italic_variable, weight = FontWeight.SemiBold, style = FontStyle.Italic),
+)
 
 private val FieldNotebookColors = lightColorScheme(
     primary = FieldAtlasColors.ForestGreen,
@@ -70,20 +83,20 @@ private val FieldNotebookDarkColors = darkColorScheme(
 
 private val FieldAtlasTypography = Typography(
     displaySmall = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FieldAtlasEditorial,
         fontWeight = FontWeight.SemiBold,
         fontSize = 36.sp,
         lineHeight = 40.sp,
         letterSpacing = (-0.4).sp,
     ),
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FieldAtlasEditorial,
         fontWeight = FontWeight.SemiBold,
         fontSize = 30.sp,
         lineHeight = 35.sp,
     ),
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Serif,
+        fontFamily = FieldAtlasEditorial,
         fontWeight = FontWeight.SemiBold,
         fontSize = 26.sp,
         lineHeight = 31.sp,

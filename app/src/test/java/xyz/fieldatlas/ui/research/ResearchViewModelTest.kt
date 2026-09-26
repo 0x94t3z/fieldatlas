@@ -89,15 +89,12 @@ class ResearchViewModelTest {
     @Test fun cancelStopsGenerationJob() {
         var cancelled = false
         val gateway = object : InferenceGateway {
-            var calls = 0
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
                 try {
-                    if (calls++ < 2) emit("keyword") else {
-                        emit("first")
-                        awaitCancellation()
-                    }
+                    emit("first")
+                    awaitCancellation()
                 } finally {
                     cancelled = true
                 }

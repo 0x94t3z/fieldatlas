@@ -29,22 +29,19 @@ class BenchmarkViewModelTest {
     @Test fun stopPreservesEvidenceAndPartialAnswerAndMarksCurrentCancelled() {
         val cancelled = AtomicBoolean(false)
         val gateway = object : InferenceGateway {
-            var calls = 0
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
                 try {
-                    if (calls++ < 2) emit("keyword") else {
-                        emit("partial")
-                        awaitCancellation()
-                    }
+                    emit("partial")
+                    awaitCancellation()
                 } finally {
                     cancelled.set(true)
                 }
             }
             override suspend fun unload() = Unit
         }
-        val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Fact", 1.0)
+        val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Prompt q1 Fact", 1.0)
         val viewModel = BenchmarkViewModel(
             questions = listOf(question("q1"), question("q2")),
             orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway),
@@ -76,7 +73,7 @@ class BenchmarkViewModelTest {
             }
             override suspend fun unload() = Unit
         }
-        val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Fact", 1.0)
+        val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Prompt q1 Fact", 1.0)
         val viewModel = BenchmarkViewModel(
             questions = listOf(question("q1")),
             orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway),

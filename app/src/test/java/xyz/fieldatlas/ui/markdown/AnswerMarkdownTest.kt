@@ -122,4 +122,31 @@ Wetlands **slow water** and *spread peaks* [S1].
             block,
         )
     }
+
+    @Test
+    fun parsesNotebookFormattingWithoutLeavingControlSyntax() {
+        val blocks = parseAnswerMarkdown(
+            "## Summary\n[Local source](offline://source) supports ~~an old claim~~ **a revised claim**.\n\n---",
+        )
+
+        assertEquals("Summary", blocks[0].plainText())
+        assertEquals(
+            "Local source supports an old claim a revised claim.",
+            blocks[1].plainText(),
+        )
+        assertEquals(MarkdownBlock.ThematicBreak, blocks[2])
+    }
+
+    @Test
+    fun parsesMarkdownTableAsStructuredContent() {
+        val block = parseAnswerMarkdown(
+            "| Option | Tradeoff |\n| --- | --- |\n| Solar | **Intermittent** [S1] |\n| Wind | Variable |",
+        ).single() as MarkdownBlock.Table
+
+        assertEquals("Option", MarkdownBlock.Paragraph(block.headers[0]).plainText())
+        assertEquals("Tradeoff", MarkdownBlock.Paragraph(block.headers[1]).plainText())
+        assertEquals("Solar", MarkdownBlock.Paragraph(block.rows[0][0]).plainText())
+        assertTrue(block.rows[0][1].toString().contains("Strong"))
+        assertTrue(block.rows[0][1].toString().contains("Citation(number=1)"))
+    }
 }

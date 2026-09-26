@@ -6,9 +6,14 @@ object PromptBuilder {
     private const val MIN_CONTEXT_TOKENS = 128
     private const val MAX_CONTEXT_TOKENS = 32_768
     private const val POLICY = """/no_think
-You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with [S#] at the end of each claim. Where evidence gives explicit numbers or direct comparisons, prefer them over relative statements. If the evidence does not contain the answer, say that in one sentence and stop."""
+You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with the exact source number, such as [S1] or [S2], at the end of each claim. Never output the placeholder [S#] and never cite a number absent from the evidence. Where evidence gives explicit numbers or direct comparisons, prefer them over relative statements. If the evidence does not contain the answer, say that in one sentence and stop."""
+    private const val VENUE_POLICY = """
+For places to eat, name only venues in the evidence. A dietary match must be stated in the evidence, not guessed from cuisine. If asked for the best places but the evidence has no comparative ranking, present them as unranked listings, not verified best choices. Say what date the listing or source shows; do not claim current opening hours, reviews, availability, or a 'best' ranking unless the evidence supports it."""
     private const val MODEL_ONLY_POLICY = """/no_think
-You are an offline assistant running entirely on this phone. No matching local sources were found. Answer from the model's offline knowledge only. Be concise, explain uncertainty, do not invent citations, and say when a current or source-backed answer would need an installed knowledge pack."""
+You are an offline assistant running entirely on this phone. No matching local sources were found. Answer from the model's offline knowledge only. Do not invent citations. For a stable conceptual question, give the direct explanation in one or two short paragraphs, ideally under 150 words. Do not add a generic disclaimer about missing packs or current data. Mention missing local evidence only when the question requires current, private, location-specific, or source-backed facts. State meaningful uncertainty without repeating yourself."""
+    private const val MODEL_ONLY_VENUE_POLICY = """
+For a request naming local restaurants or cafes, explain that you cannot recommend specific current venues without an installed local travel pack. Do not invent venue names."""
+    private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|vegan|vegetarian)\\b")
 
     fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
@@ -33,6 +38,7 @@ You are an offline assistant running entirely on this phone. No matching local s
         }
         val prompt = buildString {
             append(POLICY)
+            if (VENUE_QUESTION.containsMatchIn(question)) append(VENUE_POLICY)
             append("\n\nQUESTION:\n")
             append(question.trim())
             append("\n\nEVIDENCE:\n")
@@ -46,6 +52,7 @@ You are an offline assistant running entirely on this phone. No matching local s
         require(question.isNotBlank()) { "question must not be blank" }
         val prompt = buildString {
             append(MODEL_ONLY_POLICY)
+            if (VENUE_QUESTION.containsMatchIn(question)) append(MODEL_ONLY_VENUE_POLICY)
             append("\n\nQUESTION:\n")
             append(question.trim())
             append("\n\nANSWER:")

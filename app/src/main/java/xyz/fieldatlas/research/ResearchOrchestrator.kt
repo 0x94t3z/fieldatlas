@@ -54,18 +54,27 @@ class ResearchOrchestrator(
             val startedAt = monotonicMillis()
             _searchProgress.value = 0.0
             _vectorMatches.value = 0
-            emit(ResearchEvent.Planning(question))
-            // Query understanding runs before retrieval: the loaded model turns "Tell me about
-            // viruses" into the terms documents actually use (virus, viral, infection), because
-            // FTS5 AND-matching over the user's raw phrasing mostly matches filler words. The
-            // raw question remains an automatic second attempt whenever the keyword search is
-            // empty or the model turn fails, so a weak model turn can never lose a retrieval the
-            // old lexical path would have found.
-            // Raw pass: two planner turns with different sampler seeds; the union of their
-            // terms is strictly better recall than one sample, and keyword turns stay a small
-            // slice of query time (see KEYWORD_SEEDS).
-            val terms = LinkedHashSet<String>()
-            for (seed in KEYWORD_SEEDS) {
+            val questionTerms = FtsQuery.from(question)?.terms.orEmpty()
+            // Retrieval merges several packs before the relevance gate runs. Request enough
+            // candidates that unrelated packs cannot consume every slot ahead of a relevant
+            // passage; the prompt still receives at most resultLimit sources.
+            val candidateLimit = minOf(50, resultLimit * 3)
+            emit(ResearchEvent.Searching(question))
+            var evidence = EvidenceRelevance.keep(
+                retriever.searchForQuestion(question, question, candidateLimit) { progress ->
+                    _searchProgress.value = progress.fraction
+                    _vectorMatches.value = progress.vectorMatches
+                },
+                questionTerms,
+                question = question,
+            ).take(resultLimit)
+
+            // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
+            // answer immediately; only a weak first pass spends one short model turn finding
+            // synonyms. This removes the two 96-token planning turns that dominated phone time.
+            var keywords = emptyList<String>()
+            if (evidence.isEmpty() && retriever.hasEligiblePacks(question)) {
+                emit(ResearchEvent.Planning(question))
                 try {
                     val raw = StringBuilder()
                     inference
@@ -73,40 +82,49 @@ class ResearchOrchestrator(
                             QueryExpansion.prompt(question),
                             QueryExpansion.GENERATION_BUDGET,
                             QueryExpansion.SYSTEM_PROMPT,
-                            seed = seed,
+                            seed = KEYWORD_SEED,
                         )
                         .collect { token -> raw.append(token) }
-                    terms += QueryExpansion.parse(raw.toString())
+                    keywords = QueryExpansion.parse(raw.toString())
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {
-                    // keep whatever the earlier pass produced; empties fall back to the question
+                    // The model-only answer below is still useful when planning fails.
                 }
-                if (terms.size >= QueryExpansion.MAX_TERMS) break
-            }
-            val keywords = terms.take(QueryExpansion.MAX_TERMS).toList()
-            if (keywords.isNotEmpty()) emit(ResearchEvent.Keywords(keywords))
-            var evidence = emptyList<Evidence>()
-            emit(ResearchEvent.Searching(question))
-            // Keyword and question terms retrieve together: the planner's synonyms ("myocardial
-            // infarction") and the question's own entities ("Singapore") compete on equal footing
-            // in the retriever's rarest-term conjunctions.
-            val questionTerms = FtsQuery.from(question)?.terms.orEmpty()
-            // Question terms LEAD the merged query: they are the user's own words for the
-            // entities in play, while planner keywords are guesses. Term order is an importance
-            // signal downstream (coverage pass order, title-boost tie-breaks), so the question
-            // must speak first - planner synonyms fill in breadth behind it.
-            val merged = (questionTerms + keywords).distinct()
-            if (merged.isNotEmpty()) {
-                evidence = retriever.search(merged.joinToString(" "), resultLimit) { progress ->
-                    _searchProgress.value = progress.fraction
-                    _vectorMatches.value = progress.vectorMatches
+                if (keywords.isNotEmpty()) {
+                    emit(ResearchEvent.Keywords(keywords))
+                    emit(ResearchEvent.Searching(question))
+                    _searchProgress.value = 0.0
+                    _vectorMatches.value = 0
+                    val merged = (questionTerms + keywords).distinct()
+                    evidence = EvidenceRelevance.keep(
+                        retriever.searchForQuestion(merged.joinToString(" "), question, candidateLimit) { progress ->
+                            _searchProgress.value = progress.fraction
+                            _vectorMatches.value = progress.vectorMatches
+                        },
+                        questionTerms,
+                        keywords,
+                        question,
+                    ).take(resultLimit)
                 }
-            }
-            if (evidence.isEmpty()) {
-                evidence = retriever.search(question, resultLimit)
             }
             val retrievalFinishedAt = monotonicMillis()
+            VenueLookup.answer(question, evidence)?.let { venue ->
+                emit(ResearchEvent.Sources(venue.sources))
+                val answerAt = monotonicMillis()
+                emit(ResearchEvent.Token(venue.answer))
+                emit(ResearchEvent.Complete(
+                    ResearchMetrics(
+                        retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                        timeToFirstTokenMillis = elapsed(startedAt, answerAt),
+                        totalMillis = elapsed(startedAt, monotonicMillis()),
+                        generatedTokenCount = 0,
+                        citedSourceIds = venue.sources.indices.map { "S${it + 1}" }.toSet(),
+                        hasUnmappedCitation = false,
+                    ),
+                ))
+                return@flow
+            }
             val packed = if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
@@ -161,7 +179,6 @@ class ResearchOrchestrator(
     private companion object {
         val CITATION_PATTERN = Regex("\\[S([1-9][0-9]*)]")
 
-        /** Two distinct planner samples; the union of their keywords drives retrieval. */
-        val KEYWORD_SEEDS = intArrayOf(17, 89)
+        const val KEYWORD_SEED = 17
     }
 }

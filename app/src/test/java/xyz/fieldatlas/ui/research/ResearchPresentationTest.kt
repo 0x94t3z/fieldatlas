@@ -17,6 +17,9 @@ class ResearchPresentationTest {
 
         val modelOnly = formatResearchMetrics(metrics(totalMillis = 1_000, tokens = 10), sourceCount = 0)
         assertEquals("No local sources cited", modelOnly.citationCoverage)
+        val sourceOnly = formatResearchMetrics(metrics(totalMillis = 1_000, tokens = 0), sourceCount = 1)
+        assertEquals("No model generation", sourceOnly.tokenCount)
+        assertNull(sourceOnly.tokenRate)
     }
 
     @Test fun exposesUnmappedCitationAsAWarningInsteadOfAConfidenceClaim() {
@@ -42,6 +45,15 @@ class ResearchPresentationTest {
         assertEquals(setOf(1), model.unavailableCitations)
     }
 
+    @Test fun citationsNestedInMarkdownStylesRemainAvailable() {
+        val model = buildAnswerPresentation(
+            "**Strong [S1]** and *qualified [S2]* with [linked [S3]](offline://source)",
+            sourceCount = 3,
+        )
+
+        assertEquals(setOf(1, 2, 3), model.availableCitations)
+    }
+
     @Test fun generationLabelsUsePlainResearchLanguage() {
         assertEquals("Ready for a question", researchActivityLabel(ResearchPhase.Idle))
         assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching))
@@ -52,6 +64,12 @@ class ResearchPresentationTest {
             researchActivityLabel(ResearchPhase.Searching, 0.42, vectorMatches = 3),
         )
         assertEquals("Writing from sources", researchActivityLabel(ResearchPhase.Generating))
+        assertEquals("Writing an offline answer", researchActivityLabel(ResearchPhase.Generating, hasSources = false))
+        assertEquals(
+            "Reading the question (123/2374 tokens read)",
+            researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374, hasSources = false),
+        )
+        assertEquals("**Axial tilt** explains seasons.", draftAnswerPreview("**Axial tilt** [S1] explains seasons."))
         assertEquals(
             "Writing from sources (85 tokens written)",
             researchActivityLabel(ResearchPhase.Generating, tokensWritten = 85),

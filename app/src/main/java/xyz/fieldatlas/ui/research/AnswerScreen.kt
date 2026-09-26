@@ -2,13 +2,22 @@ package xyz.fieldatlas.ui.research
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -18,12 +27,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
+import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -37,127 +49,301 @@ fun AnswerScreen(
 ) {
     BackHandler(onBack = onBack)
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
+    val citedNumbers = presentation.availableCitations.sorted()
+    val citedNumberSet = citedNumbers.toSet()
+    val citedSources = citedNumbers.mapNotNull { number ->
+        state.sources.getOrNull(number - 1)?.let { number to it }
+    }
+    val otherSources = state.sources.mapIndexedNotNull { index, evidence ->
+        val number = index + 1
+        if (number in citedNumberSet) null else number to evidence
+    }
+    val citedSourceGroups = groupAnswerSources(citedSources)
+    val otherSourceGroups = groupAnswerSources(otherSources)
+    var showOtherSources by rememberSaveable { mutableStateOf(false) }
     var showPerformance by rememberSaveable { mutableStateOf(false) }
-    val sourceLabel = if (state.sources.size == 1) "1 source" else "${state.sources.size} sources"
-    val hasSources = state.sources.isNotEmpty()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize()) {
             FieldAtlasTopBar(title = "Research answer", onBack = onBack)
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-            item {
-                Text(
-                    text = state.question.ifBlank { "Research result" },
-                    style = MaterialTheme.typography.headlineLarge,
-                )
-            }
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (hasSources) "Answer from $sourceLabel" else "Offline model answer",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        if (hasSources) {
-                            "Generated on this device from your installed knowledge."
-                        } else {
-                            "No matching local source was found, so this answer is uncited."
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (state.keywords.isNotEmpty()) {
-                        Text(
-                            "Searched for: ${state.keywords.joinToString(", ")}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    FieldAtlasStatusPill("Offline", StatusTone.Positive)
-                }
-            }
-            item {
-                FieldAtlasCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.background,
-                ) {
-                    AnswerMarkdownRenderer(
-                        blocks = presentation.blocks,
-                        sourceCount = state.sources.size,
-                        onCitation = onCitation,
-                    )
-                }
-            }
-            if (state.sources.isNotEmpty()) {
                 item {
-                    FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        Text("Sources", style = MaterialTheme.typography.titleMedium)
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        AnswerSectionLabel("Field note")
                         Text(
-                            "$sourceLabel available. Select a numbered citation in the answer, or a source below, to inspect its passage.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            text = state.question.ifBlank { "Research result" },
+                            style = MaterialTheme.typography.headlineLarge,
                         )
-                        // Every source used for this answer, numbered exactly as the answer's
-                        // [S#] markers reference them.
-                        state.sources.forEachIndexed { index, evidence ->
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                             Text(
-                                buildString {
-                                    append("${index + 1}: ${evidence.title}")
-                                    // Why this source is here: the query terms that matched it,
-                                    // or the cosine when the pack embedding found it.
-                                    evidence.matchedBy?.let { append("  ·  $it") }
+                                text = when (citedSourceGroups.size) {
+                                    0 -> "No linked local source · answered offline"
+                                    1 -> "1 cited local source · answered offline"
+                                    else -> "${citedSourceGroups.size} cited local sources · answered offline"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier
-                                    .padding(top = 6.dp)
-                                    .fillMaxWidth()
-                                    // Same passage inspector as the in-answer [S#] markers.
-                                    .clickable { onCitation(index) },
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.align(Alignment.CenterVertically),
                             )
+                            FieldAtlasStatusPill("Offline", StatusTone.Positive)
                         }
                     }
                 }
-            }
-            state.metrics?.let { metrics ->
-                val model = formatResearchMetrics(metrics, state.sources.size)
+                item { AnswerSectionLabel("Answer") }
                 item {
-                    FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        FieldAtlasInformationAction(
-                            label = if (showPerformance) "Hide performance details" else "Performance details",
-                            onClick = { showPerformance = !showPerformance },
-                            expanded = showPerformance,
+                    FieldAtlasCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ) {
+                        AnswerMarkdownRenderer(
+                            blocks = presentation.blocks,
+                            sourceCount = state.sources.size,
+                            onCitation = onCitation,
                         )
-                        if (showPerformance) {
-                            Text("Retrieval ${model.retrieval}")
-                            model.firstToken?.let { Text("First word $it") }
-                            Text("Total ${model.total} · ${model.tokenCount}")
-                            model.tokenRate?.let { Text(it) }
-                            Text(model.citationCoverage)
-                            if (model.hasUnmappedCitation) {
-                                Text(
-                                    "One citation could not be matched to an installed source.",
-                                    color = MaterialTheme.colorScheme.error,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
+                    }
+                }
+                if (state.sources.isNotEmpty()) {
+                    item { AnswerSectionLabel("Sources") }
+                    if (citedSources.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Cited in this answer",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        items(citedSourceGroups.size, key = { "cited:${citedSourceGroups[it].key}" }) { index ->
+                            AnswerSourceCard(citedSourceGroups[index], onCitation)
+                        }
+                    }
+                    if (otherSources.isNotEmpty()) {
+                        item {
+                            AnswerDisclosure(
+                                label = otherSourceLabel(otherSources.size, showOtherSources),
+                                expanded = showOtherSources,
+                                onClick = { showOtherSources = !showOtherSources },
+                            )
+                        }
+                        if (showOtherSources) {
+                            items(otherSourceGroups.size, key = { "other:${otherSourceGroups[it].key}" }) { index ->
+                                AnswerSourceCard(otherSourceGroups[index], onCitation)
                             }
                         }
                     }
                 }
-            }
-            item {
-                OutlinedButton(onClick = onAskAnother, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                    Text("Ask another question")
+                state.metrics?.let { metrics ->
+                    val model = formatResearchMetrics(metrics, state.sources.size)
+                    item {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = MaterialTheme.shapes.medium,
+                        ) {
+                            Column {
+                                AnswerDisclosureContent(
+                                    label = if (showPerformance) "Hide performance details" else "Performance details",
+                                    onClick = { showPerformance = !showPerformance },
+                                    expanded = showPerformance,
+                                )
+                                if (showPerformance) {
+                                    Column(
+                                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                                    ) {
+                                        state.keywords.takeIf(List<String>::isNotEmpty)?.let { keywords ->
+                                            Text(
+                                                "Searched for: ${keywords.joinToString(", ")}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                        Text("Retrieval ${model.retrieval}", style = MaterialTheme.typography.bodySmall)
+                                        model.firstToken?.let {
+                                            Text("First word $it", style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        Text(
+                                            "Total ${model.total} · ${model.tokenCount}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                        model.tokenRate?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
+                                        Text(model.citationCoverage, style = MaterialTheme.typography.bodySmall)
+                                        if (model.hasUnmappedCitation) {
+                                            Text(
+                                                "One citation could not be matched to an installed source.",
+                                                color = MaterialTheme.colorScheme.error,
+                                                fontWeight = FontWeight.SemiBold,
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-            }
-            item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 24.dp)) }
+                item {
+                    OutlinedButton(
+                        onClick = onAskAnother,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    ) {
+                        Text("Ask another question")
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun AnswerSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+    )
+}
+
+@Composable
+private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit) {
+    val evidence = group.entries.first().second
+    val iconBackground = if (isSystemInDarkTheme()) {
+        MaterialTheme.colorScheme.surfaceVariant
+    } else {
+        FieldAtlasColors.SageWash
+    }
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable { onCitation(group.entries.first().first - 1) },
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(
+                modifier = Modifier.size(40.dp),
+                color = iconBackground,
+                shape = MaterialTheme.shapes.small,
+            ) {
+                Icon(
+                    Icons.Outlined.Description,
+                    contentDescription = null,
+                    modifier = Modifier.padding(9.dp),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    evidence.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    evidence.source,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    group.entries.forEach { (number, _) ->
+                        Surface(
+                            modifier = Modifier.clickable { onCitation(number - 1) },
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = MaterialTheme.shapes.extraSmall,
+                        ) {
+                            Text(
+                                "[$number]",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                    }
+                    evidence.matchedBy?.takeIf { it.startsWith("concept match") }?.let { match ->
+                        Text(
+                            match.replaceFirst("concept match", "semantic match"),
+                            modifier = Modifier.align(Alignment.CenterVertically),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = "Open source",
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        AnswerDisclosureContent(label, expanded, onClick)
+    }
+}
+
+@Composable
+private fun AnswerDisclosureContent(label: String, expanded: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        if (expanded) {
+            Text("−", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+        } else {
+            Icon(
+                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+private data class AnswerSourceGroup(
+    val key: String,
+    val entries: List<Pair<Int, Evidence>>,
+)
+
+private fun groupAnswerSources(sources: List<Pair<Int, Evidence>>): List<AnswerSourceGroup> =
+    sources.groupBy { (_, evidence) -> Triple(evidence.documentId, evidence.title, evidence.source) }
+        .map { (key, entries) -> AnswerSourceGroup(key.toString(), entries) }
+
+private fun otherSourceLabel(count: Int, expanded: Boolean): String {
+    val noun = if (count == 1) "passage" else "passages"
+    return if (expanded) "Hide $count other retrieved $noun" else "$count other retrieved $noun"
 }

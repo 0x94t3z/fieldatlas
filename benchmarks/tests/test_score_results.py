@@ -60,6 +60,43 @@ class ScoreResultsTest(unittest.TestCase):
         with self.assertRaises(BenchmarkError):
             score_pair(benchmark, results, results)
 
+    def test_android_device_export_is_accepted_directly(self):
+        benchmark = {"schemaVersion": 1, "questions": [self.question()]}
+        device = {
+            "schemaVersion": 1,
+            "runId": "physical-run",
+            "startedAt": "2026-09-26T00:00:00Z",
+            "artifacts": [],
+            "diagnosticsSha256": "0" * 64,
+            "results": [{
+                "questionId": "q1",
+                "prompt": "Question?",
+                "state": "COMPLETE",
+                "answer": "Alpha and beta [S1].",
+                "evidenceChunkIds": ["doc:1"],
+                "metrics": None,
+                "error": None,
+            }],
+        }
+        baseline = {"schemaVersion": 1, "results": [{"questionId": "q1", "answer": "Alpha and beta [S1]."}]}
+        self.assertEqual(1.0, score_pair(benchmark, device, baseline)["offline"]["overall"])
+
+    def test_incomplete_android_device_export_is_rejected(self):
+        benchmark = {"schemaVersion": 1, "questions": [self.question()]}
+        device = {
+            "schemaVersion": 1,
+            "runId": "physical-run",
+            "startedAt": "2026-09-26T00:00:00Z",
+            "artifacts": [],
+            "diagnosticsSha256": "0" * 64,
+            "results": [{
+                "questionId": "q1", "prompt": "Question?", "state": "FAILED", "answer": "",
+                "evidenceChunkIds": [], "metrics": None, "error": "failed",
+            }],
+        }
+        with self.assertRaises(BenchmarkError):
+            score_pair(benchmark, device, device)
+
 
 if __name__ == "__main__":
     unittest.main()

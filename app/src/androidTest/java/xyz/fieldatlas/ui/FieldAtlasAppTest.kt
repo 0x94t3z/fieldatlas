@@ -121,10 +121,10 @@ class FieldAtlasAppTest {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
 
-        compose.waitUntil { compose.onAllNodesWithText("Answer from 1 source").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil { compose.onAllNodesWithText("1 cited local source · answered offline").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithContentDescription("Back").assertExists().performClick()
-        compose.onNodeWithText("Answer from 1 source").assertExists()
+        compose.onNodeWithText("1 cited local source · answered offline").assertExists()
         compose.onNodeWithText("Library").assertDoesNotExist()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Library").assertExists()
@@ -133,7 +133,7 @@ class FieldAtlasAppTest {
     @Test fun citationOpensExactPassage() {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
-        compose.waitUntil { compose.onAllNodesWithText("Answer from 1 source").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil { compose.onAllNodesWithText("1 cited local source · answered offline").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
         compose.onNodeWithText("Source details").performClick()

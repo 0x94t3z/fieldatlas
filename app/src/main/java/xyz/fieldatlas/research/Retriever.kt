@@ -1,6 +1,9 @@
 package xyz.fieldatlas.research
 
 fun interface Retriever {
+    /** Whether a search for this question could reach any enabled local collection. */
+    fun hasEligiblePacks(query: String): Boolean = true
+
     /**
      * [onProgress] receives a monotonically increasing 0.0-1.0 estimate of retrieval work
      * completed plus how many matches so far came from vector (concept) search rather than
@@ -9,9 +12,20 @@ fun interface Retriever {
     suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence>
 }
 
+/** Specialized multi-pack filtering; other retrievers retain their existing search contract. */
+suspend fun Retriever.searchForQuestion(
+    query: String,
+    question: String,
+    limit: Int,
+    onProgress: suspend (SearchProgress) -> Unit,
+): List<Evidence> = if (this is MultiKnowledgeRetriever) {
+    searchForQuestion(query, question, limit, onProgress)
+} else {
+    search(query, limit, onProgress)
+}
+
 /** Retrieval progress: work fraction plus the running count of vector-search matches. */
 data class SearchProgress(val fraction: Double, val vectorMatches: Int = 0)
 
 /** Callers without a progress interest keep the two-argument shape. */
 suspend fun Retriever.search(query: String, limit: Int): List<Evidence> = search(query, limit) { }
-

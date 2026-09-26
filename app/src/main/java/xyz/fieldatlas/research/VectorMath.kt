@@ -50,12 +50,23 @@ object VectorMath {
         rowIds: Sequence<Long>,
         readBlob: (Long) -> ByteArray?,
     ): List<Pair<Long, Double>> {
+        return topK(query, dim, limit, rowIds.mapNotNull { rowId ->
+            readBlob(rowId)?.let { rowId to it }
+        })
+    }
+
+    /** Single-pass variant used by SQLite so a large vector pack needs one cursor, not N queries. */
+    fun topK(
+        query: FloatArray,
+        dim: Int,
+        limit: Int,
+        rows: Sequence<Pair<Long, ByteArray>>,
+    ): List<Pair<Long, Double>> {
         require(limit > 0)
         val bestIds = LongArray(limit)
         val bestScores = DoubleArray(limit) { Double.NEGATIVE_INFINITY }
         var filled = 0
-        for (rowId in rowIds) {
-            val blob = readBlob(rowId) ?: continue
+        for ((rowId, blob) in rows) {
             val score = cosine(query, blob, dim) ?: continue
             if (filled < limit) {
                 bestIds[filled] = rowId

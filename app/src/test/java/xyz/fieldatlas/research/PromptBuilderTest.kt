@@ -37,8 +37,24 @@ class PromptBuilderTest {
 
         assertTrue(packed.sources.isEmpty())
         assertTrue(packed.prompt.contains("offline knowledge only"))
-        assertTrue(packed.prompt.contains("do not invent citations"))
+        assertTrue(packed.prompt.contains("Do not invent citations"))
+        assertTrue(packed.prompt.contains("under 150 words"))
+        assertTrue(packed.prompt.contains("Do not add a generic disclaimer"))
         assertTrue(packed.prompt.contains("Explain F1"))
+    }
+
+    @Test fun venueRecommendationsRequireNamedEvidenceAndSourceDates() {
+        val source = Evidence(
+            "eat-a", "eat-a:0000", "Chiang Mai — Green Plate", "Wikivoyage",
+            "Vegan dishes. Listing last checked: 2026-08-01", -1.0,
+        )
+        val question = "Best vegan restaurants in Chiang Mai?"
+        val grounded = PromptBuilder.build(question, listOf(source), 512).prompt
+        val unsupported = PromptBuilder.buildModelOnly(question).prompt
+
+        assertTrue(grounded.contains("name only venues in the evidence"))
+        assertTrue(grounded.contains("date the listing or source shows"))
+        assertTrue(unsupported.contains("Do not invent venue names"))
     }
 
     @Test fun truncationPreservesCitationMappingAndSurrogatePairs() {

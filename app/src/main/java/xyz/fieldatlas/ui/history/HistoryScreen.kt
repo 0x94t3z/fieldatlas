@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -24,6 +25,9 @@ import java.text.DateFormat
 import java.util.Date
 import xyz.fieldatlas.R
 import xyz.fieldatlas.research.AnswerRecord
+import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
+import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
+import xyz.fieldatlas.ui.markdown.plainText
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 
 /**
@@ -51,6 +55,13 @@ fun HistoryScreen(records: List<AnswerRecord>) {
         ) {
             items(records, key = { record -> record.createdAtEpochMs }) { record ->
                 var expanded by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
+                val answerBlocks = remember(record.answer) { parseAnswerMarkdown(record.answer) }
+                val answerPreview = remember(answerBlocks) {
+                    answerBlocks.joinToString("\n") { block -> block.plainText() }
+                        .replace(Regex("\\[S\\d+]", RegexOption.IGNORE_CASE), "")
+                        .replace(Regex("[ \\t]+"), " ")
+                        .trim()
+                }
                 FieldAtlasCard(Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
                     Column {
                         Text(record.question, style = MaterialTheme.typography.titleMedium)
@@ -59,13 +70,22 @@ fun HistoryScreen(records: List<AnswerRecord>) {
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Text(
-                            record.answer,
-                            style = MaterialTheme.typography.bodyMedium,
-                            maxLines = if (expanded) Int.MAX_VALUE else 3,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 6.dp),
-                        )
+                        if (expanded) {
+                            AnswerMarkdownRenderer(
+                                blocks = answerBlocks,
+                                sourceCount = 0,
+                                onCitation = {},
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        } else {
+                            Text(
+                                answerPreview,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
                         Text(
                             if (expanded && record.sources.isNotEmpty()) {
                                 "${record.sources.size} sources: " + record.sources.joinToString(" · ")

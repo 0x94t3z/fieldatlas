@@ -87,16 +87,18 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     internal fun vectorSearch(query: FloatArray, dim: Int, limit: Int): List<Evidence> {
         if (!hasVectorTable()) return emptyList()
         val top = synchronized(database) {
-            val ids = ArrayList<Long>()
-            database.prepare("SELECT rowid FROM chunk_vectors ORDER BY rowid").use { statement ->
-                while (statement.step()) ids += statement.getLong(0)
-            }
-            database.prepare("SELECT quant FROM chunk_vectors WHERE rowid = ?").use { statement ->
-                VectorMath.topK(query, dim, limit, ids.asSequence()) { rowId ->
-                    statement.reset()
-                    statement.bindLong(1, rowId)
-                    if (statement.step()) statement.getBlob(0) else null
-                }
+            // Read vectors in one sequential cursor. The previous implementation issued a
+            // separate indexed SELECT for every row (700k+ queries for the biology pack), which
+            // made one phone lookup spend roughly a minute in retrieval alone.
+            database.prepare("SELECT rowid, quant FROM chunk_vectors ORDER BY rowid").use { statement ->
+                VectorMath.topK(
+                    query = query,
+                    dim = dim,
+                    limit = limit,
+                    rows = sequence {
+                        while (statement.step()) yield(statement.getLong(0) to statement.getBlob(1))
+                    },
+                )
             }
         }
         if (top.isEmpty()) return emptyList()

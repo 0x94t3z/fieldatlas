@@ -36,7 +36,7 @@ fun SourcesScreen(
     var showDetails by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize()) {
             FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack)
@@ -58,7 +58,7 @@ fun SourcesScreen(
             item {
                 FieldAtlasCard(
                     modifier = Modifier.fillMaxWidth(),
-                    containerColor = MaterialTheme.colorScheme.background,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ) {
                     SelectionContainer {
                         Text(evidence.text, style = MaterialTheme.typography.bodyLarge)
