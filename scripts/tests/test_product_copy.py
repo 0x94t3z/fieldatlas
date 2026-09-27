@@ -22,7 +22,11 @@ def product_copy() -> str:
     kotlin_literals = []
     for path in sorted(ui_root.rglob("*.kt")):
         source = path.read_text(encoding="utf-8")
-        kotlin_literals.extend(re.findall(r'"(?:\\.|[^"\\])*"', source))
+        kotlin_literals.extend(
+            literal for literal in re.findall(r'"(?:\\.|[^"\\])*"', source)
+            # This is punctuation-normalizing regex syntax, not visible product copy.
+            if literal != r'"\\s+([.,;:!?])"'
+        )
     resources = (ROOT / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8")
     return "\n".join(kotlin_literals) + "\n" + resources
 
@@ -54,9 +58,9 @@ class ProductCopyTest(unittest.TestCase):
 
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertTrue(readme.startswith("# Field Atlas\n"))
-        self.assertIn("Offline Research for Android", readme)
-        self.assertIn("Answers grounded in what you carry.", readme)
+        self.assertIn('<h1 align="center">Field Atlas</h1>', readme)
+        self.assertIn("Ask questions from the knowledge saved on your Android phone", readme)
+        self.assertIn("There is no account, search API, remote inference", readme)
         self.assertNotIn("AI-powered", readme.casefold())
 
     def test_public_markdown_uses_spaced_field_atlas_name(self):

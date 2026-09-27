@@ -179,6 +179,16 @@ class ResearchOrchestratorTest {
         assertFalse(metrics.hasUnmappedCitation)
     }
 
+    @Test fun normalizedNumericCitationCountsAsCitedSource() = runBlocking {
+        val events = ResearchOrchestrator(
+            Retriever { _, _, _ -> listOf(evidence) },
+            FakeInferenceGateway(listOf("Supported [1]. Invalid [S#].")),
+        ).research("Explain").toList()
+        val metrics = (events.last() as ResearchEvent.Complete).metrics
+        assertEquals(setOf("S1"), metrics.citedSourceIds)
+        assertTrue(metrics.hasUnmappedCitation)
+    }
+
     @Test fun cancellationStopsTokenFlow() = runBlocking {
         var cancelled = false
         val gateway = object : InferenceGateway {

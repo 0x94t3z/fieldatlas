@@ -1,6 +1,6 @@
 # Evaluation
 
-`benchmarks/questions-v2.json` freezes 18 questions aligned with the bundled Field Atlas Reference pack: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
+`benchmarks/questions-v2.json` freezes 18 historical questions aligned with the former Field Atlas Reference pack: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. That pack is no longer bundled, so a fresh run with only the current model or with the optional biology pack is a different test configuration. Do not compare its score to Reference-pack results as if the evidence were unchanged. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
 
 Each answer is scored for required evidence phrases, prohibited claims, citations, and appropriate abstention. This mechanical rubric is deliberately reproducible but cannot replace human review of correctness or prose quality.
 
@@ -22,7 +22,7 @@ Report every response, category mean, overall mean, and the offline-to-baseline 
 
 ## Capture a local-device run
 
-1. Install the verified model and knowledge packs, prepare the model from Research, then open **More → Open device benchmark**.
+1. Install the verified model and any knowledge packs being evaluated, prepare the model from Research, then open **More → Open device benchmark**.
 2. Confirm the exact frozen prompt shown for the next row and tap **Run next**. The app advances only one question per tap. A stopped row retains its partial answer and evidence identifiers as `CANCELLED`.
 3. Complete all 18 rows and use **Export benchmark evidence**. The exported `BenchmarkRun` includes the frozen prompt, raw answer, evidence chunk identifiers, measurements, installed artifact hashes, and a SHA-256 identity for the diagnostics snapshot.
 4. Preserve that rich export as device evidence. The scorer accepts the Android export directly,

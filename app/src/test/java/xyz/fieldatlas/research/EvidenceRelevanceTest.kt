@@ -114,4 +114,48 @@ class EvidenceRelevanceTest {
             ),
         )
     }
+
+    @Test fun `general travel listing from another city is not evidence for Berlin`() {
+        val berlin = evidence("Destination: Berlin\nCategory: See\nPlace: City Museum\nHistory museum", "keyword: berlin, museum")
+            .copy(documentId = "wv-place-berlin")
+        val hamburg = evidence("Destination: Hamburg\nCategory: See\nPlace: Harbor Museum\nRoad to Berlin", "keyword: berlin, museum")
+            .copy(documentId = "wv-place-hamburg")
+
+        assertEquals(
+            listOf(berlin),
+            EvidenceRelevance.keep(
+                listOf(hamburg, berlin), listOf("museum", "berlin"),
+                question = "Which museums are in Berlin?",
+            ),
+        )
+    }
+
+    @Test fun `museum request excludes hotels and restaurants in the same city`() {
+        fun place(id: String, category: String, name: String) =
+            evidence("Destination: Berlin\nCategory: $category\nPlace: $name\nNear Berlin Museum", "keyword: berlin, museum")
+                .copy(documentId = "wv-place-$id")
+        val museum = place("museum", "See", "Berlin Museum")
+        val hotel = place("hotel", "Sleep", "Museum Hotel")
+        val restaurant = place("restaurant", "Eat", "Museum Cafe")
+
+        assertEquals(
+            listOf(museum),
+            EvidenceRelevance.keep(
+                listOf(hotel, restaurant, museum), listOf("museum", "berlin"),
+                question = "Which museums are in Berlin?",
+            ),
+        )
+    }
+
+    @Test fun `lookup wording does not require listed or which to appear in a place passage`() {
+        val museum = evidence("Destination: Berlin\nCategory: See\nPlace: City Museum", "keyword: berlin, museum")
+            .copy(documentId = "wv-place-berlin-museum")
+        assertEquals(
+            listOf(museum),
+            EvidenceRelevance.keep(
+                listOf(museum), listOf("which", "museums", "listed", "berlin"),
+                question = "Which museums are listed in Berlin?",
+            ),
+        )
+    }
 }

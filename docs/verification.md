@@ -22,6 +22,30 @@ Research-screen UI test on the Infinix. Those checks do not validate spoken-word
 accuracy or the new minified release on-device; the installed signed app remains
 the earlier 1.2.0 build.
 
+On 2026-09-27, a later debug build passed Android JVM tests and a focused on-device
+model-only Research UI test. On the Infinix, the exact former bundled Reference
+pack was retired from that debug package while Qwen3.5 remained installed; the
+Research screen showed `0 collections` and disclosed that uncited model answers
+remain available. The checksum-matched fork biology vector pack was then imported
+separately and appeared enabled in Library beside the selected Qwen3.5 model.
+This was not a timed answer-quality run or a signed release test.
+
+A focused 2026-09-27 debug smoke check imported the separately built, SHA-256-verified
+Wikivoyage Eat pack onto the same Infinix alongside Qwen3.5 and the biology pack.
+For “Best vegan restaurants in Berlin?”, the app returned four clickable local
+listing citations in 3.31 seconds total with no model generation. The answer now
+distinguishes listings that mention vegan options from fully vegan restaurants and
+shows listing check dates (or that none was recorded). Opening source 3 showed the
+exact Chay Viet passage describing a vegetarian restaurant with vegan dishes.
+This is one historical,
+source-backed city lookup—not proof of current restaurant quality, broad travel
+coverage, or improved answers on difficult general questions. The Wikivoyage pack
+remains a local optional artifact, not a published release download.
+
+A separate [short raw development clip](evidence/development/README.md) records the already-ready Berlin answer and a tap into its matching local source. It is an interaction sample, not a capture of the measured 3.31-second search from start to finish.
+
+The broader keyword-only Wikivoyage pack was built from the same pinned dump and passed pack verification. Its 351,581,170-byte artifact imported into Library on the Infinix with Qwen3.5 and the biology pack installed; airplane mode was on and Wi-Fi off. A first café lookup on the preceding debug build entered slow model generation, and Android showed an app-not-responding dialog. After a source-only fast path was added and the updated debug APK installed, “Which cafes are listed in Chiang Mai?” returned three cited listings and “Which museums are listed in Berlin?” returned four. Café citation 1 opened the matching saved Wikivoyage passage with a listing check date. This is a two-question lookup smoke check, not a broad quality benchmark, a fresh-data guarantee, or proof that complex model-generated research avoids the earlier stall. No release or public travel-data asset has been published from this experiment.
+
 ## Automated checks
 
 ```sh

@@ -10,8 +10,10 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.security.MessageDigest
 import java.util.UUID
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.compress.archivers.zip.ZipMethod
@@ -34,13 +36,17 @@ class AssetImporter private constructor(
 
     private val importMutex = Mutex()
 
-    suspend fun import(uri: Uri): InstalledAsset {
+    suspend fun import(uri: Uri): InstalledAsset = withContext(Dispatchers.IO) {
         val resolver = context?.contentResolver ?: throw AssetImportException("No ContentResolver configured")
         val input = resolver.openInputStream(uri) ?: throw AssetImportException("Unable to open pack URI")
-        return input.use { import(it, storageRoot.usableSpace) }
+        input.use { import(it, storageRoot.usableSpace) }
     }
 
-    suspend fun import(input: InputStream, freeBytes: Long): InstalledAsset = importMutex.withLock {
+    suspend fun import(input: InputStream, freeBytes: Long): InstalledAsset = withContext(Dispatchers.IO) {
+        importOnIo(input, freeBytes)
+    }
+
+    private suspend fun importOnIo(input: InputStream, freeBytes: Long): InstalledAsset = importMutex.withLock {
         if (freeBytes < 0) {
             throw AssetImportException("Invalid free-space value", budgetDecision = BudgetDecision.InvalidSize)
         }

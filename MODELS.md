@@ -1,5 +1,16 @@
 # Field Atlas models
 
+[Back to the overview](README.md) · [Phone setup](docs/installation.md)
+
+A **model pack** is the large local file that lets Field Atlas generate answers. The app accepts a verified `.fapack`, not a raw `.gguf`. Choose the instructions that match your APK:
+
+| App | Model to use | Where to get instructions |
+| --- | --- | --- |
+| [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
+| Current source/debug build | Qwen3.5 2B | The build steps below |
+
+No model pack is bundled with the APK or attached to the public release. Building a pack currently needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
+
 ## Recommended answer model
 
 The current Field Atlas setup uses `Qwen_Qwen3.5-2B-Q4_K_M.gguf`, published by bartowski from `Qwen/Qwen3.5-2B`. The GGUF is pinned at revision `7d26695454df6de5fbcce2e58681e62dae06ce43`.

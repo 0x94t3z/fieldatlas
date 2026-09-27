@@ -73,9 +73,8 @@ fun FieldAtlasApp(
     onActivateModel: (InstalledAsset) -> Unit = {},
     onDeletePack: (InstalledAsset) -> Unit = {},
 ) {
-    val ready = packs.any { it.type == PackType.MODEL } && packs.any { it.type == PackType.KNOWLEDGE }
-    val knowledgePack = packs.firstOrNull { it.type == PackType.KNOWLEDGE && it.enabled }
-        ?: packs.firstOrNull { it.type == PackType.KNOWLEDGE }
+    val ready = packs.any { it.type == PackType.MODEL }
+    val enabledKnowledge = packs.filter { it.type == PackType.KNOWLEDGE && it.enabled }
     val menuBackground = if (isSystemInDarkTheme()) null else FieldAtlasColors.SageWash
     var autoPreparationStarted by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(ready, inferenceState) {
@@ -131,7 +130,9 @@ fun FieldAtlasApp(
                             evidence = source,
                             sourceNumber = detail.index + 1,
                             sourceCount = researchState.sources.size,
-                            packLicense = knowledgePack?.license,
+                            // With several active packs the evidence does not carry its pack ID;
+                            // omitting this field is safer than crediting the wrong license.
+                            packLicense = enabledKnowledge.singleOrNull()?.license,
                             onBack = closeDetail,
                         )
                     }
@@ -174,8 +175,8 @@ fun FieldAtlasApp(
                     PrimaryDestination.Research -> ResearchScreen(
                         state = researchState,
                         inferenceState = inferenceState,
-                        collectionCount = packs.count { it.type == PackType.KNOWLEDGE && it.enabled },
-                        suggestions = knowledgePack?.discovery?.exampleQuestions.orEmpty(),
+                        collectionCount = enabledKnowledge.size,
+                        suggestions = enabledKnowledge.flatMap { it.discovery?.exampleQuestions.orEmpty() },
                         voiceState = voiceState,
                         onMicClick = onMicClick,
                         diagnosticsText = diagnosticsText,
@@ -186,7 +187,11 @@ fun FieldAtlasApp(
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
                     )
-                    PrimaryDestination.Library -> LibraryScreen(packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack)
+                    PrimaryDestination.Library -> LibraryScreen(
+                        packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,
+                        importing = importing,
+                        importError = setupError,
+                    )
                     PrimaryDestination.History -> HistoryScreen(historyRecords)
                     PrimaryDestination.More -> MoreScreen(
                         proof = proof,

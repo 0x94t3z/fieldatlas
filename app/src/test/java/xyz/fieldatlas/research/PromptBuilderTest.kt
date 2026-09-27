@@ -52,9 +52,22 @@ class PromptBuilderTest {
         val grounded = PromptBuilder.build(question, listOf(source), 512).prompt
         val unsupported = PromptBuilder.buildModelOnly(question).prompt
 
-        assertTrue(grounded.contains("name only venues in the evidence"))
+        assertTrue(grounded.contains("name only places in the evidence"))
         assertTrue(grounded.contains("date the listing or source shows"))
-        assertTrue(unsupported.contains("Do not invent venue names"))
+        assertTrue(unsupported.contains("Do not invent place names"))
+    }
+
+    @Test fun travelPlaceRecommendationsNeedNamedEvidence() {
+        val source = Evidence(
+            "wv-place-museum", "wv-place-museum:0000", "Berlin — City Museum", "Wikivoyage",
+            "Destination: Berlin\nCategory: See\nPlace: City Museum", -1.0,
+        )
+        val question = "Which museums are in Berlin?"
+
+        assertTrue(PromptBuilder.build(question, listOf(source), 512).prompt
+            .contains("name only places in the evidence"))
+        assertTrue(PromptBuilder.buildModelOnly(question).prompt
+            .contains("Do not invent place names"))
     }
 
     @Test fun truncationPreservesCitationMappingAndSurrogatePairs() {

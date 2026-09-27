@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -35,6 +36,22 @@ class AssetImporterJvmTest {
         assertTrue(File(installed.rootPath, "docs/content.txt").readBytes().contentEquals(payload))
         assertEquals(listOf(installed), registry.list())
         assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun packBytesAreReadOffTheCallingThread() = runBlocking {
+        val caller = Thread.currentThread()
+        val reader = AtomicReference<Thread?>()
+        val bytes = pack("background import".encodeToByteArray())
+        val input = object : ByteArrayInputStream(bytes) {
+            override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                reader.compareAndSet(null, Thread.currentThread())
+                return super.read(buffer, offset, length)
+            }
+        }
+
+        AssetImporter(temporaryFolder.newFolder("background")).import(input, Long.MAX_VALUE)
+
+        assertTrue("Pack verification must not block the UI caller", reader.get() !== caller)
     }
 
     @Test fun corruptPayloadLeavesPriorVersionAndRegistryUntouched() = runBlocking {

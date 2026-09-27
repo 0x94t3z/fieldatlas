@@ -105,15 +105,14 @@ class AppContainer(context: Context) {
         inference.embed(text)
     }
 
-    suspend fun installBundledKnowledgeIfNeeded() {
-        val installed = registry.list()
-        if (installed.any { it.id == BUNDLED_KNOWLEDGE_ID && it.version == BUNDLED_KNOWLEDGE_VERSION }) return
-        installed.filter { it.id == LEGACY_STARTER_ID }.forEach { legacy ->
-            registry.remove(legacy.id, legacy.version)
-        }
-        appContext.assets.open(BUNDLED_KNOWLEDGE_ASSET).use { bundled ->
-            importer.import(bundled, appContext.filesDir.usableSpace)
-        }
+    suspend fun retireBundledReferenceIfPresent() {
+        // Remove only the exact app-bundled artifact. Never delete a user's imported pack
+        // merely because it happens to reuse the same ID or version.
+        registry.list().firstOrNull { asset ->
+            asset.id == BUNDLED_REFERENCE_ID &&
+                asset.version == BUNDLED_REFERENCE_VERSION &&
+                asset.manifestSha256 == BUNDLED_REFERENCE_MANIFEST_SHA256
+        }?.let { registry.remove(it.id, it.version) }
         refreshPacks()
     }
 
@@ -178,10 +177,6 @@ class AppContainer(context: Context) {
         refreshPacks()
         if (reload) loadModel()
     }
-
-    fun hasResearchAssets(assets: List<InstalledAsset> = packs.value): Boolean =
-        assets.any { it.type == PackType.MODEL } &&
-            assets.any { it.type == PackType.KNOWLEDGE && it.enabled }
 
     fun proof(metrics: ResearchMetrics?, completion: ResearchCompletion?): ProofModel =
         ProofMapper.map(diagnosticsSnapshot(metrics, completion, null, false))
@@ -289,11 +284,12 @@ class AppContainer(context: Context) {
             .joinToString("") { "%02x".format(it) }
 
         const val SYSTEM_PROMPT =
-            "Use only the evidence supplied in each user prompt. Explain, compare, synthesize, " +
-                "preserve conflicts and uncertainty, and cite factual claims with [S#]. Never use external knowledge."
-        const val BUNDLED_KNOWLEDGE_ASSET = "fieldatlas-reference-1.0.0.fapack"
-        const val BUNDLED_KNOWLEDGE_ID = "fieldatlas-reference"
-        const val BUNDLED_KNOWLEDGE_VERSION = "1.0.0"
-        const val LEGACY_STARTER_ID = "fieldatlas-starter"
+            "You are an offline assistant on this phone. Follow the current research prompt: " +
+                "use supplied sources when present, otherwise answer from model knowledge. " +
+                "Never invent citations, claim internet access, or present changing facts as verified current facts."
+        const val BUNDLED_REFERENCE_ID = "fieldatlas-reference"
+        const val BUNDLED_REFERENCE_VERSION = "1.0.0"
+        const val BUNDLED_REFERENCE_MANIFEST_SHA256 =
+            "ce49309d7d1ad2d89c05fb313b132df6315ce6a3c3d6f34cd5df21e42dd230fa"
     }
 }

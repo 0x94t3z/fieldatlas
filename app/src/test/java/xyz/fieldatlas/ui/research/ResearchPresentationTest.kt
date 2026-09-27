@@ -45,6 +45,12 @@ class ResearchPresentationTest {
         assertEquals(setOf(1), model.unavailableCitations)
     }
 
+    @Test fun answerCardUsesRealBodyTextWithoutMarkdownOrCitationMarkers() {
+        val answer = "# What the evidence says\n\n**Axial tilt** explains opposite seasons [S1]."
+        assertEquals("Axial tilt explains opposite seasons.", answerCardPreview(answer))
+        assertEquals("", answerCardPreview(""))
+    }
+
     @Test fun citationsNestedInMarkdownStylesRemainAvailable() {
         val model = buildAnswerPresentation(
             "**Strong [S1]** and *qualified [S2]* with [linked [S3]](offline://source)",

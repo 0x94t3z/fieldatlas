@@ -1,144 +1,83 @@
-# Field Atlas
+<p align="center">
+  <img src="docs/branding/field-atlas-launcher-icon-1024.png" alt="Field Atlas app icon" width="112" height="112">
+</p>
 
-**Offline Research for Android**
+<h1 align="center">Field Atlas</h1>
 
-*Answers grounded in what you carry.*
+<p align="center">Ask questions from the knowledge saved on your Android phone—even with no connection.</p>
 
-Field Atlas answers with an on-device model and uses its bundled or imported local knowledge packs when it can ground a response in citations. If no matching local source is found, it can still give an uncited offline model answer and labels that path clearly. It has no network permission, makes no remote inference or search requests, and does not require Google Play Services. User-supplied packs are selected from local storage and verified before installation.
+<p align="center">
+  <a href="#get-started">Get started</a> ·
+  <a href="#watch-it-work">Watch the demo</a> ·
+  <a href="docs/installation.md">Setup help</a> ·
+  <a href="docs/verification.md">What we tested</a>
+</p>
 
-The current source also includes optional offline voice input, selectable local model
-packs, conditional on-device query expansion when initial retrieval is weak, and
-vector-aware retrieval with keyword fallback. Retrieved passages are checked for
-relevance before packs receive answer slots; unmatched questions use the uncited
-model-only path. Simple, source-backed restaurant lookups can list dated local
-Wikivoyage entries without waiting for model generation. These newer source changes
-are not part of the signed release linked below.
-All of these paths stay on the device; voice audio and research questions are not uploaded.
+Field Atlas runs a language model on the phone. You can also add local knowledge collections; when one contains a relevant passage, the answer can show a numbered citation that opens that passage. There is no account, search API, remote inference, Google Play Services requirement, or Android network permission.
 
-The signed Android release has been exercised offline on a physical Infinix X6840.
-The demo below records an earlier build; it is not footage of every current source
-feature. Current development evidence and its limits are in
-[verification](docs/verification.md).
+## At a glance
 
-## Demo
+| | What it means |
+| --- | --- |
+| **Works offline** | Questions, local search, and answer generation stay on the device. Download or transfer the files you need *before* going offline. |
+| **Model first** | A compatible `.fapack` model is required. It can answer without a knowledge collection, but that answer has no local citation. |
+| **Collections are optional** | A knowledge `.fapack` adds searchable passages on specific topics. Tap a numbered citation to inspect the passage behind it. |
+| **Android** | ARM64 phone, Android 13 (API 33) or newer. Tested on a physical Infinix X6840; other devices may differ. |
 
-<video src="https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4" controls width="720">
-  <a href="https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4">Play the Field Atlas demo</a>
+## Watch it work
+
+The [original 47-second Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4) shows airplane mode, an installed model and knowledge collection, an offline answer, and a source opened from a citation. It is **historical footage**, not a recording of the latest development UI.
+
+<video src="docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4" controls width="360">
+  <a href="docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4">Play the Infinix demo</a>
 </video>
 
-[![Field Atlas offline Android demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](https://github.com/0x94t3z/fieldatlas/raw/refs/heads/main/docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
+[![Preview of the original offline Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
 
-The recording shows Field Atlas running on a physical Infinix Android phone with radios off, using its installed local model and knowledge pack to produce a cited answer. Select the animated preview if your Markdown viewer does not display the video player. Additional unedited [multi-query device evidence](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) covers water safety, solar storage, and a cross-source treatment recommendation.
+The [newer 11-second development clip](docs/evidence/development/infinix-berlin-vegan-lookup.mp4) shows a Berlin restaurant question, an already-ready cited answer, and a tap into its local Wikivoyage passage. It does **not** show a fresh search running or verify that the restaurant is still open. More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available too.
 
-Public proof: [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8).
+## Get started
 
-## Project layout
+> **Know which version you are using.** As checked on 2026-09-27, the latest public [signed release is v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10). The newer Qwen3.5, voice, vector-search, and restaurant-lookup changes in this repository are **not** in that download. A v1.2.0 integration APK was tested on the Infinix but was not published as a GitHub release. See [version status](#version-status).
 
-- `app/` — native Kotlin/Jetpack Compose Android application and tests
-- `third_party/llama.cpp/` — exact pinned on-device inference runtime
-- `packtool/` and `fixtures/` — deterministic offline knowledge-pack builder and curated reference corpus
-- `models/` — immutable model provenance and checksum configuration
-- `benchmarks/` — frozen research-quality questions and paired scorer
-- `scripts/` — toolchain, asset, APK, and physical-device verification commands
-- `docs/` — installation, evaluation, device testing, verification, and physical-device evidence
-- `.github/workflows/` — reproducible CI build and release audit
+For the public signed release:
 
-## Build
+1. [Download the APK from v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) on a computer or your phone. The release also provides its checksum.
+2. Get the **model `.fapack` for that same version** using the [v1.1.10 model instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md). A raw `.gguf`, `.sha256` checksum, or knowledge pack is not a model pack. **There is no ready-made model pack attached to the release**, so this step currently needs a computer and the documented pack builder.
+3. Copy the APK and model pack to the phone. Open the APK in the phone's file manager and approve the Android install prompt.
+4. Open Field Atlas, choose the **model pack**, and wait for it to verify and prepare. Ask a question in **Research**.
+5. Want answers linked to saved sources? Add a compatible **knowledge pack** in **Library**. If an answer has a numbered citation, tap it to read the supporting passage.
 
-Requirements are JDK 17, Gradle 8.13, Android Gradle Plugin 8.11.1, Kotlin 2.1.0, Compose BOM 2025.06.01, Android SDK 36, Build Tools 35.0.0, NDK 29.0.13113456, CMake 3.31.6, and Git submodules. Exact Maven versions live in `gradle/libs.versions.toml`.
+**Phone → install APK → import model pack → ask offline → optionally add a knowledge pack → inspect citations.**
 
-```sh
-git clone --recurse-submodules https://github.com/0x94t3z/fieldatlas.git
-cd fieldatlas
-env -i PATH="$PATH" ./scripts/install_toolchain.sh
-git -C third_party/llama.cpp apply ../../scripts/patches/ai-chat-generation-fixes.patch
-./gradlew --no-configuration-cache \
-  :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease
-./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
-```
+This is not yet a one-tap install: the model file is large and must be prepared separately. If setup fails, use the plain-language [installation and troubleshooting guide](docs/installation.md). The current unpublished source build and its Qwen3.5 model have [separate instructions](docs/installation.md#current-development-build); do not mix its files with the v1.1.10 APK.
 
-`install_toolchain.sh` discovers an existing SDK from `ANDROID_HOME`,
-`ANDROID_SDK_ROOT`, `sdkmanager`, or the supported Homebrew location. It validates
-the pinned packages and writes the repository-local, git-ignored
-`local.properties`; it does not edit shell profiles.
+## Models, collections, and citations
 
-The pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c868014`. The release APK contains ARM64 libraries only and supports Android API 33 or newer.
+| File | Required? | What it does | What it cannot prove |
+| --- | --- | --- | --- |
+| Model `.fapack` | Yes | Generates answers on the phone. | An uncited model answer is not evidence that a claim is true. |
+| Knowledge `.fapack` | No | Supplies local passages the app can search and cite. | A citation only supports what its passage actually says. |
+| Audio pack | No | Supports optional offline speech input in compatible builds. | It does not add factual knowledge. |
 
-## Prepare offline assets
+For example, the optional [Wikivoyage places-to-eat collection](DATASETS.md#wikivoyage-places-to-eat-optional-build) contains dated listings. A new [broader travel pack builder](DATASETS.md#broader-travel-places-keyword-only-builder) covers other place types without the expensive vector-generation step. Its full pack built and imported on a phone; simple offline café and museum lookup smoke checks returned cited listings. Broad answer quality remains unmeasured. Neither pack can check today's opening hours, menu, quality, or whether a place still exists. A biology collection is useful for biology; it is not a travel guide. Field Atlas falls back to an **uncited model answer** when no relevant local source is found.
 
-Field Atlas needs one user-supplied local file for the full research workflow:
+## Version status
 
-- the recommended Qwen3.5 2B model pack, built from the pinned GGUF in [MODELS.md](MODELS.md)
-- the APK's bundled Reference knowledge pack, installed automatically on first launch
+| Version | Public download? | What the evidence covers |
+| --- | --- | --- |
+| [v1.1.10 signed release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Downloadable APK and checksum. Use the setup instructions at that tag. |
+| v1.2.0 integration APK | No | Tested on an Infinix; [historical audit](docs/compliance/release-audit.md). Not a downloadable release. |
+| Current source / debug build | No signed release yet | Qwen3.5, optional voice and vector retrieval, UI updates, and the dated restaurant lookup are under development. See [verification](docs/verification.md); do not assume older demo footage proves every new feature. |
 
-The model pack lets Field Atlas answer offline. The bundled Reference pack lets it retrieve local passages, add citations, and open exact supporting sources. The app imports `.fapack` files. The raw `.gguf` model is used to create the model pack first; selecting the raw `.gguf` in the Android app is not the expected install path. The exact model-pack command is in [MODELS.md](MODELS.md). The bundled Reference pack can be reproduced locally:
+The [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) shows the original public demo. The repository evidence is linked above. A useful offline answer on one phone is not an independent quality benchmark or a guarantee for every Android device.
 
-```sh
-./scripts/build_reference_pack.sh
-```
+## For developers and data builders
 
-Build the model pack using the verified steps in [MODELS.md](MODELS.md). The Reference pack is focused coverage, not a comprehensive encyclopedia; questions outside it fall back to an uncited offline model answer. Its exact scope and licensing are in [DATASETS.md](DATASETS.md).
+- [Build the Android app](docs/building.md)
+- [Recommended model and other model definitions](MODELS.md)
+- [Knowledge collections, their sources, and freshness](DATASETS.md)
+- [Create your own `.fapack` collection](tools/README.md)
+- [Testing, benchmark limits, and physical-device evidence](docs/verification.md)
 
-## Regenerating the full research stack
-
-The heavyweight data — model packs, knowledge packs, embeddings — is not committed;
-[`tools/`](tools/README.md) regenerates every pack deterministically from pinned sources:
-
-- `tools/build_model_packs.py` builds the recommended Qwen3.5 pack, optional MiniCPM5
-  packs, and Vosk audio packs from the SHA-256-pinned registry in `models/*.example.json`.
-- `tools/wiki_mini_build.py` rebuilds the wikipedia-mini knowledge pack from the Wikimedia
-  dump (vital-article snapshot in `tools/wiki_vital_titles.json`, live-refreshable).
-- `tools/build_vector_pack.py` turns an embedding TSV into a vector-capable knowledge pack
-  (int8 `chunk_vectors` table + embedded BGE-small query encoder), enabling on-device
-  semantic search with keyword fallback.
-- `tools/build_wikivoyage_eat_pack.py` builds a dated, searchable restaurant pack from
-  Wikivoyage's structured Eat listings for offline city lookups.
-- `tools/content2fapack.py` / `tools/fapack_convert.py` convert raw corpora or any JSONL
-  document spool into knowledge packs.
-
-This checkout uses the pinned llama.cpp commit plus the small Field Atlas runtime patch
-required by the model-preparation and vector-search APIs. CI applies it automatically;
-for a local native build, apply it once (see [scripts/patches/README.md](scripts/patches/README.md)):
-
-```sh
-cd third_party/llama.cpp && git apply ../../scripts/patches/ai-chat-generation-fixes.patch
-```
-
-Large model, audio, and vector-pack artifacts are intentionally not committed. Their
-checksums and reproducible download/build instructions live in `MODELS.md`, `DATASETS.md`,
-and `tools/README.md`.
-
-## Install and use
-
-1. For the current Qwen3.5 source build, build and install the debug APK above. The latest [signed release](https://github.com/0x94t3z/fieldatlas/releases/latest) may be older; follow its tagged instructions until a new signed build is published.
-2. Build the Qwen3.5 model `.fapack` using [MODELS.md](MODELS.md).
-3. Copy the APK and model `.fapack` to the Android phone.
-4. Open the APK from the phone's file manager and install it. Android may ask to allow installs from that file manager.
-5. Open Field Atlas, tap **Choose model pack**, and select the model `.fapack`.
-6. Open Research and wait for the selected model to prepare automatically. Enter a question, then tap **Start research**. Use **Prepare for research** only if preparation needs to be retried.
-7. Read the answer and select a numbered citation to inspect its exact supporting passage.
-8. Turn on airplane mode when testing offline behavior. Field Atlas has no network permission, so research works from the files on the phone.
-9. Optional: grant microphone access to use offline voice input. Open **More** for privacy
-   details, the guided device benchmark, diagnostics export, and **Release model memory**.
-
-Each release publishes its APK checksum beside the APK. For this source build, transfer the installable debug APK at `app/build/outputs/apk/debug/app-debug.apk`. The unsigned release artifact is for reproducibility checks and is not installable.
-
-Detailed procedures are in [installation](docs/installation.md), [device testing](docs/device-testing.md), and [evaluation](docs/evaluation.md).
-
-## Architecture and privacy
-
-The Compose UI first searches the original question across eligible local packs. If
-that produces no relevant passage, the selected local model generates a short query
-expansion and retrieval tries once more. Only passages relevant to the original
-question can enter the answer prompt; otherwise the app gives an uncited offline
-model answer. Source-backed simple restaurant lookups use a faster, unranked listing
-path with local citations and freshness caveats. Other answers stream from llama.cpp.
-The selected model prepares automatically after verified assets are available, with
-an explicit retry action if loading fails. Import rejects unknown manifest fields,
-unsafe ZIP paths, compression, encryption, undeclared files, bad sizes, bad hashes,
-duplicate versions, and storage-budget violations. Research questions remain
-on-device; diagnostic export excludes the latest question unless the user opts in.
-
-## Verification
-
-Unit, pack reproducibility, manifest, lint, native assembly, APK offline-policy, and physical-device results are tracked in [verification](docs/verification.md). Release assets include checksums so the installed build can be matched to the reviewed artifact.
+The app is native Kotlin/Jetpack Compose with a pinned local llama.cpp runtime. The pack tools, tests, and offline-policy checks are in this repository. Large model and collection files are not committed; their sources and checksums are documented so they can be rebuilt or verified.

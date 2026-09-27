@@ -1,8 +1,26 @@
 # Field Atlas datasets
 
-## Bundled Reference pack
+[Back to the overview](README.md) · [Phone setup](docs/installation.md)
 
-`fixtures/reference/documents.jsonl` contains twelve compact project-authored CC0 reference notes covering seasons, water, solar storage, evidence comparison, Formula One, cars, batteries, climate, computing, networks, health information, and historical evidence. It is the pack bundled into the current Android build. It is focused reference coverage, not a comprehensive encyclopedia.
+A **knowledge pack** is a saved collection the app can search when answering. It is optional: the model can still answer without one, but there will be no local source citation. A pack only covers the topics in its own data; it does not refresh itself while the phone is offline.
+
+| Collection | What it covers | Included in the current APK? | Main caution |
+| --- | --- | --- | --- |
+| Biology vector pack | Biology and longevity passages | No; import separately | Not general or travel coverage. |
+| Wikivoyage places to eat | Dated restaurant listings from a 2026 dump | No; build and import separately | Listings and opening details can be stale. |
+| Wikivoyage places (new builder) | Dated See, Do, Eat, Drink, Sleep, and Buy listings | No; build and import separately | Wider travel scope, still not a current recommendation service. |
+| Wikipedia mini (keyword search) | General background from selected articles | No; build and import separately | Snapshot coverage; no live or private facts. |
+| Historical Reference and Starter fixtures | Small sets used to reproduce older tests | No longer the current built-in knowledge | Not a broad encyclopedia. |
+
+**For non-developers:** the public v1.1.10 release is different from the current source build: it bundles its own small Reference collection. Use the [version-matched install guide](docs/installation.md) before choosing a pack. The sections below give source, license, checksum, and build details for people who want to inspect or recreate the data.
+
+## Biology vector pack (optional)
+
+The [fork's biology vector pack](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs) is a separate 1.2.0 `.fapack` with local int8 passage embeddings and a local query encoder. It covers biology and longevity sources, not general travel or all of Wikipedia. Its published SHA-256 is `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01`. Download it separately, verify the hash, then import it through Library. It is not bundled into the APK. The exact corpus scope and source attributions remain in that pack's manifest and passages.
+
+## Historical Reference fixture
+
+`fixtures/reference/documents.jsonl` contains twelve compact project-authored CC0 reference notes covering seasons, water, solar storage, evidence comparison, Formula One, cars, batteries, climate, computing, networks, health information, and historical evidence. This remains a reproducibility fixture for the historical v2 benchmark; it is no longer bundled into the Android app. It is focused coverage, not a comprehensive encyclopedia.
 
 Build it with:
 
@@ -17,6 +35,16 @@ The build is deterministic and preserves document IDs, titles, provenance, licen
 `tools/build_wikivoyage_eat_pack.py` converts the pinned [1 September 2026 English Wikivoyage pages dump](https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2) into one local document per `Eat` listing. Each document retains its destination, venue name, description, listing update date when present, page revision date, and a permalink to that revision. The text license is [CC BY-SA 4.0](https://en.wikivoyage.org/wiki/Wikivoyage:Copyleft). The dump SHA-256 is `c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`.
 
 The verified local build contains 79,566 listings in a 55,047,040-byte `.fapack` (SHA-256 `adf90e6b4dfbf1da0e538862400130071c49dc56cf5d81ea005e0f5a7a141e73`). This pack is an optional build artifact, not bundled with the APK or published as a release asset. Listings can be incomplete or stale; a dated mention of a vegan option does not establish current opening, menu, or quality. The exact build command is in [tools/README.md](tools/README.md).
+
+## Broader travel places (keyword-only builder)
+
+`tools/build_wikivoyage_places_pack.py` uses the same pinned English Wikivoyage dump and extracts six listing types: See, Do, Eat, Drink, Sleep, and Buy. Each place keeps its destination, category, address or directions, description, available hours and price, coordinates when supplied, listing check date when supplied, page revision date, and source permalink. The resulting `.fapack` uses FTS5 keyword search—**no embedding or vector build is required**. The app has a fast, source-only path for simple restaurant, café, museum, hotel, bar, and shop lookups; complex questions still use the normal research path.
+
+The full local build contains 401,826 listings and 405,849 searchable chunks in a 351,581,170-byte `.fapack` (SHA-256 `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac`). Pack verification passed, and it imported on the Infinix. An initial café lookup on the preceding debug build fell into slow model generation and triggered an Android not-responding dialog. After the fast-path fix, offline phone smoke checks returned three cited café listings for Chiang Mai and four cited museum listings for Berlin; opening café citation 1 showed the matching saved passage. This artifact is **not** an available public download or a broad answer-quality result. The [build command](tools/README.md#typical-flows) and the dump hash above make it reproducible. Like the Eat-only pack, it cannot establish current opening, quality, or a present-day “best” ranking. It is separate from the Eat-only pack; installing both may yield duplicate restaurant evidence.
+
+## Wikipedia mini (keyword-only builder)
+
+`tools/wiki_mini_build.py` selects a bounded set of articles from a Wikipedia dump and creates a general-background `.fapack` with FTS5 search. It does not require generating embeddings. See the [tool instructions](tools/README.md#typical-flows). It is a builder, not a bundled or published pack; its actual size, content, phone performance, and answer quality must be checked on the resulting artifact before making coverage claims. The source text is CC BY-SA 4.0, with attribution retained per document.
 
 ## Starter evidence pack
 

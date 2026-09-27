@@ -1,49 +1,50 @@
-# Installation
+# Install Field Atlas
 
-## Simple Android Setup
+[Back to the overview](../README.md)
 
-Field Atlas uses local files only. This page describes the current source build, which supports the Qwen3.5 pack. Before opening it for the first time, put these two files on the phone:
+Field Atlas does not download a model for you. **Have the APK and the matching model `.fapack` ready before going offline.** The model is roughly 1–1.5 GB, so allow time and free storage for the transfer and import.
 
-- an APK built from this source checkout using the [build instructions](../README.md#build)
-- `qwen3.5-2b-q4-k-m-1.0.0.fapack` - the recommended local model pack
+## Choose your path
 
-Install the APK from the phone's file manager. Field Atlas installs its Reference knowledge pack automatically on first launch. Then tap **Choose model pack** and select the model `.fapack`.
+| If you want to… | Use this | Important difference |
+| --- | --- | --- |
+| Try the published Android app | [Signed v1.1.10 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Use its **Qwen3 1.7B** model pack instructions. Its focused Reference collection is bundled. |
+| Test the newest source features | [Build the current debug APK](building.md) | Use the **Qwen3.5 2B** model pack. Knowledge collections are separate. This is not the signed public release. |
 
-The app does not download packs by itself because the installed Android app has no network permission. Download or build the model pack on a desktop first, then copy it to the phone over USB, Nearby Share, or another file-transfer method.
+Do not install the old APK and follow the new Qwen3.5 instructions, or expect the public release to have the newer UI, voice, vector search, or restaurant lookup. Check the package version in **More** if you are unsure.
 
-Field Atlas can also keep more than one verified model pack. Choose the active model in
-Library; switching remains local and works with radios off. If you enable voice input,
-Android asks for microphone permission and Vosk transcribes on-device using the bundled
-speech model. No audio or text is sent to a server.
+## Published release: phone setup
 
-## APK
+1. Download `fieldatlas-1.1.10.apk` from the [v1.1.10 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10). Its `.sha256` file lets you check that the download is intact.
+2. On a computer, follow the [v1.1.10 model instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) to create `qwen3-1.7b-q4-k-m-1.0.0.fapack`. The release does **not** attach a ready-to-import model pack. This is the least beginner-friendly step today; a computer is currently required.
+3. Copy the APK and `.fapack` to the phone with a USB cable or your preferred file-transfer method.
+4. Open the APK in the phone's Files app. If Android asks, allow that Files app to install it.
+5. Open Field Atlas. Tap **Choose model pack**, select `qwen3-1.7b-q4-k-m-1.0.0.fapack`, and wait while it verifies the file. In the public release, the small Reference knowledge collection is already bundled.
+6. Open **Research**. If the model is not ready, tap **Prepare for research** and wait. Ask a question, then tap **Start research**.
+7. When an answer has a numbered citation, tap it to inspect the local supporting passage. An answer without a matched local source is labelled as uncited.
 
-For the current source build, use `app/build/outputs/apk/debug/app-debug.apk`; Android signs it with a local debug key. Its package is separate from the published signed app. [GitHub Releases](https://github.com/0x94t3z/fieldatlas/releases/latest) may contain an older build: use that release's own model instructions, not this Qwen3.5 setup, until a Qwen3.5-capable signed APK is published and tested. The unsigned release artifact exists only for reproducible inspection; never present it as installable. On the phone, open the APK through the system file manager and approve that file manager as an unknown-app source only when Android asks. Field Atlas needs no account, Play Services, or network permission.
+Turn on airplane mode if you want to test the offline behavior. Field Atlas has no Android network permission, so it cannot fetch a missing model or new facts while offline.
 
-## Packs
+## Current development build
 
-The Field Atlas Reference pack is bundled in the APK and installed into app-private storage on first launch. Its provenance and reproducible build are documented in [DATASETS.md](../DATASETS.md). Advanced users can still import a different knowledge `.fapack` from the file picker.
+The source in this checkout is ahead of the published release. Developers can [build a debug APK](building.md) at `app/build/outputs/apk/debug/app-debug.apk`; it installs as `xyz.fieldatlas.debug` alongside the signed app. It uses the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md). Copy **both** files to the phone, install the debug APK, and choose that model pack in the app.
 
-Create the model pack with the commands in [`MODELS.md`](../MODELS.md). That process downloads the pinned Qwen3.5 2B GGUF, verifies its hash, and wraps it as `qwen3.5-2b-q4-k-m-1.0.0.fapack`. Field Atlas imports that `.fapack` file, not the raw `.gguf`.
+The current build needs **only the model pack** to answer questions. A knowledge pack is optional and adds local source passages and citations for its own topic. You can import one from **Library**. The [biology vector pack](../DATASETS.md#biology-vector-pack-optional) covers biology and longevity; the [Wikivoyage places-to-eat pack](../DATASETS.md#wikivoyage-places-to-eat-optional-build) contains dated venue listings. Neither is bundled or attached to a public release. The app imports `.fapack`, not raw `.gguf` files.
 
-On first launch, Field Atlas installs the bundled Reference pack. Tap **Choose model pack** and select the model `.fapack`. Model import can take longer than a normal copy because Field Atlas streams and verifies every declared byte. Once the model and bundled knowledge appear in Library, Field Atlas prepares the selected model automatically. A first load may take tens of seconds on a low-end phone; **Prepare for research** remains available if preparation needs to be retried.
+Developers can also build a [broader keyword-only Wikivoyage places pack](../DATASETS.md#broader-travel-places-keyword-only-builder) or a [Wikipedia mini pack](../DATASETS.md#wikipedia-mini-keyword-only-builder). Neither needs a vector-embedding run. The full travel pack built and imported on the Infinix; simple café and museum lookup smoke checks passed on the latest debug build. The Wikipedia mini pack has not been phone-tested. Neither is published for non-developer download.
 
-The bundled Reference pack is visibly labelled **Focused coverage**. Its suggested questions describe only its installed scope; it is not a claim of comprehensive coverage. If a question has no matching local source, Field Atlas can still answer from the offline model, but the answer is shown without local citations.
+Voice input in the current build uses a bundled English Vosk speech model and, if you choose to use it, microphone permission. It works on-device. You can keep more than one verified model and switch the active one in Library. The newer answer flow prepares a selected model automatically; **Prepare for research** is a retry if loading needs help.
 
-An optional dated Wikivoyage places-to-eat pack can be built on a computer using
-the pinned dump and command in [DATASETS.md](../DATASETS.md). Transfer its resulting
-`.fapack` to the phone and import it from Library. It is not bundled with the APK
-or available as a GitHub release asset. Its listings may be stale; Field Atlas
-does not verify whether a venue is currently open or has a current menu.
+## Common problems
 
-To update a pack, use a new manifest version. Existing versions are never silently overwritten. Android's uninstall flow removes the app and its app-private packs; keep the original `.fapack` files elsewhere if they are needed again.
+| What you see | What to check |
+| --- | --- |
+| “Unsupported file” or model import fails | Select the **model `.fapack`**, not a raw `.gguf`, `.sha256` file, or knowledge pack. Use the model instructions matching your APK version. |
+| Hash or verification failure | Recopy or redownload the file, then verify its checksum on the computer. Do not bypass verification. |
+| Not enough space | Leave room for the downloaded archive, installed model, and Android's working space. |
+| Model takes time to load | The first preparation can take tens of seconds on a modest phone. Let it finish; if it fails, retry from Research and check **More → diagnostics**. |
+| Answer has no citation | The model can answer without local evidence. Add a relevant knowledge collection for source-backed answers; a collection on another topic will not help. |
+| A venue answer might be stale | The offline pack cannot check live opening hours, menus, or whether a place still exists. Read the listing date and confirm details separately when online. |
+| Phone gets hot or slow | Stop generation, release model memory from **More**, and allow the phone to cool. |
 
-## Troubleshooting
-
-- **Hash mismatch:** delete the transferred file, download or copy it again, and verify the desktop hash.
-- **Insufficient space:** keep enough free space for the archive plus its extracted payload and safety reserve.
-- **Model import failure:** confirm the selected file is the model `.fapack`, not the raw `.gguf`, a knowledge pack, or a `.sha256` checksum file.
-- **Model load failure after import:** confirm the model pack was built from the documented Q4_K_M GGUF artifact and export redacted diagnostics.
-- **Slow or hot device:** stop generation, unload the model, allow the phone to cool, and record the failure rather than hiding it.
-- **No Research button:** both verified pack types must be installed and the model must reach Ready.
-- **Need diagnostics:** open **More** for technical details, redacted export, and the device benchmark.
+Imported packs live in app-private storage. Uninstalling the app removes them, so keep your original `.fapack` files if you may need to reinstall. The unsigned release APK made by a local build is for inspection only; do not sideload it. See [verification](verification.md) for what was actually tested on a device.

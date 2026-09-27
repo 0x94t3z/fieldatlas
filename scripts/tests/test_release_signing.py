@@ -31,8 +31,8 @@ class ReleaseSigningTest(unittest.TestCase):
         unsigned = "app/build/outputs/apk/release/app-release-unsigned.apk"
         self.assertIn(f"./scripts/verify_offline.sh {unsigned}", workflow)
         self.assertIn(unsigned, workflow)
-        self.assertIn("unsigned release artifact exists only for reproducible inspection", installation)
-        self.assertIn("never present it as installable", installation)
+        self.assertIn("unsigned release APK made by a local build is for inspection only", installation)
+        self.assertIn("do not sideload it", installation)
 
 
 if __name__ == "__main__":

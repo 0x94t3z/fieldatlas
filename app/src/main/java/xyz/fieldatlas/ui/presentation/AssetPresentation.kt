@@ -6,7 +6,6 @@ import xyz.fieldatlas.assets.PackType
 
 sealed interface SetupNextAction {
     data object ChooseModel : SetupNextAction
-    data object ChooseKnowledge : SetupNextAction
     data object OpenResearch : SetupNextAction
     data object Importing : SetupNextAction
 }
@@ -25,7 +24,6 @@ data class AssetCardModel(
 fun deriveSetupNextAction(packs: List<InstalledAsset>, importing: Boolean): SetupNextAction = when {
     importing -> SetupNextAction.Importing
     packs.none { it.type == PackType.MODEL } -> SetupNextAction.ChooseModel
-    packs.none { it.type == PackType.KNOWLEDGE } -> SetupNextAction.ChooseKnowledge
     else -> SetupNextAction.OpenResearch
 }
 

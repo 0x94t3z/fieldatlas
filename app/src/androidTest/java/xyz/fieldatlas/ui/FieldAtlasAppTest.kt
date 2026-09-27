@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -39,6 +40,7 @@ import xyz.fieldatlas.ui.research.ResearchPhase
 import xyz.fieldatlas.ui.research.AnswerScreen
 import xyz.fieldatlas.ui.research.ResearchScreen
 import xyz.fieldatlas.ui.research.ResearchUiState
+import xyz.fieldatlas.ui.library.LibraryScreen
 import xyz.fieldatlas.ui.proof.BenchmarkScreen
 import xyz.fieldatlas.ui.proof.BenchmarkUiState
 import xyz.fieldatlas.ui.setup.SetupScreen
@@ -53,7 +55,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("Pack your atlas").assertExists()
         compose.onNodeWithText("No cloud").assertExists()
         compose.onNodeWithText("1. Add model pack").assertExists()
-        compose.onNodeWithText("2. Built-in reference").assertExists()
+        compose.onNodeWithText("2. Knowledge pack (optional)").assertExists()
         compose.onNodeWithText("turn off Wi-Fi and mobile data", substring = true).assertExists()
         compose.onNodeWithText("Choose model pack").assertExists().assertHasClickAction()
     }
@@ -102,8 +104,49 @@ class FieldAtlasAppTest {
         render(researchState = ResearchUiState(question = "Explain evidence"))
         compose.onNodeWithText("Start research").assertIsEnabled()
         compose.onNodeWithContentDescription("Research question").assertExists()
-        compose.onNodeWithText("Speak question").assertExists()
+        compose.onNodeWithContentDescription("Speak question").assertExists()
         compose.onNodeWithText("Diagnostics").assertDoesNotExist()
+    }
+
+    @Test fun modelWithoutKnowledgeCanResearchWithClearSourceDisclosure() {
+        render(packs = listOf(verifiedPacks().first()), researchState = ResearchUiState(question = "Tell me about birds"))
+        compose.onNodeWithText("Start research").assertIsEnabled()
+        compose.onNodeWithText("0 collections").assertExists()
+        compose.onNodeWithText("Add a knowledge pack in Library", substring = true).assertExists()
+    }
+
+    @Test fun libraryShowsNonBlockingPackVerificationState() {
+        compose.setContent {
+            FieldAtlasTheme {
+                LibraryScreen(verifiedPacks(), onImportPack = {}, importing = true)
+            }
+        }
+        compose.onNodeWithText("Verifying pack on this device…")
+            .assertExists().assertIsNotEnabled()
+    }
+
+    @Test fun finishedResearchShowsRealPreviewWithoutASecondStartButton() {
+        compose.setContent {
+            FieldAtlasTheme {
+                ResearchScreen(
+                    state = ResearchUiState(
+                        question = "Why do seasons differ?",
+                        answer = "**Axial tilt** explains opposite seasons [S1].",
+                        phase = ResearchPhase.Complete,
+                    ),
+                    inferenceState = InferenceState.Ready,
+                    collectionCount = 1,
+                    onQuestionChange = {},
+                    onSubmit = {},
+                    onStop = {},
+                    onPrepareModel = {},
+                    onOpenAnswer = {},
+                )
+            }
+        }
+        compose.onNodeWithText("Read answer").assertExists()
+        compose.onNodeWithText("Start research").assertDoesNotExist()
+        compose.onNodeWithText("Axial tilt explains opposite seasons.").assertExists()
     }
 
     @Test fun runningResearchKeepsStopVisible() {

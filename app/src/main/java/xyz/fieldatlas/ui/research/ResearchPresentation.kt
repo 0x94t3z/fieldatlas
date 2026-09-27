@@ -7,6 +7,7 @@ import xyz.fieldatlas.research.AnswerText
 import xyz.fieldatlas.ui.markdown.MarkdownBlock
 import xyz.fieldatlas.ui.markdown.MarkdownInline
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
+import xyz.fieldatlas.ui.markdown.plainText
 
 typealias ResearchCompletion = DomainResearchCompletion
 
@@ -32,6 +33,21 @@ fun draftAnswerPreview(answer: String): String = AnswerText.visible(answer)
     .replace(Regex("\\[S[0-9#]*]?", RegexOption.IGNORE_CASE), "")
     .replace(Regex("[ \\t]{2,}"), " ")
     .trim()
+
+/** A real answer excerpt for the Research card, without raw Markdown or citation syntax. */
+fun answerCardPreview(answer: String): String {
+    val blocks = parseAnswerMarkdown(AnswerText.visible(answer))
+    val firstBody = blocks.firstOrNull {
+        it is MarkdownBlock.Paragraph || it is MarkdownBlock.ListBlock || it is MarkdownBlock.Quote
+    } ?: blocks.firstOrNull()
+    val text = firstBody?.plainText()
+        ?.replace(Regex("\\[S\\d+]"), "")
+        ?.replace(Regex("\\s+"), " ")
+        ?.replace(Regex("\\s+([.,;:!?])"), "$1")
+        ?.trim()
+        .orEmpty()
+    return if (text.length <= 170) text else text.take(169).trimEnd() + "…"
+}
 
 fun buildAnswerPresentation(answer: String, sourceCount: Int): AnswerPresentation {
     val blocks = parseAnswerMarkdown(answer)

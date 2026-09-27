@@ -152,8 +152,7 @@ class ResearchOrchestrator(
                 emit(ResearchEvent.Token(token))
             }
             val finishedAt = monotonicMillis()
-            val markers = CITATION_PATTERN.findAll(output).map { "S${it.groupValues[1]}" }.toSet()
-            val mapped = packed.sources.map { it.citationId }.toSet()
+            val citations = AnswerText.citationAudit(output.toString(), packed.sources.size)
             emit(
                 ResearchEvent.Complete(
                     ResearchMetrics(
@@ -161,8 +160,8 @@ class ResearchOrchestrator(
                         timeToFirstTokenMillis = firstTokenAt?.let { elapsed(startedAt, it) },
                         totalMillis = elapsed(startedAt, finishedAt),
                         generatedTokenCount = generatedTokenCount,
-                        citedSourceIds = markers intersect mapped,
-                        hasUnmappedCitation = (markers - mapped).isNotEmpty(),
+                        citedSourceIds = citations.citedSourceIds,
+                        hasUnmappedCitation = citations.hasUnmappedCitation,
                     ),
                 ),
             )
@@ -177,8 +176,6 @@ class ResearchOrchestrator(
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
 
     private companion object {
-        val CITATION_PATTERN = Regex("\\[S([1-9][0-9]*)]")
-
         const val KEYWORD_SEED = 17
     }
 }

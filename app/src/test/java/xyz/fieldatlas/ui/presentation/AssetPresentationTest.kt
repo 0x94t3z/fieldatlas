@@ -11,7 +11,7 @@ import xyz.fieldatlas.assets.PackType
 class AssetPresentationTest {
     @Test fun missingPacksNameTheNextUsefulAction() {
         assertEquals(SetupNextAction.ChooseModel, deriveSetupNextAction(emptyList(), false))
-        assertEquals(SetupNextAction.ChooseKnowledge, deriveSetupNextAction(listOf(model()), false))
+        assertEquals(SetupNextAction.OpenResearch, deriveSetupNextAction(listOf(model()), false))
         assertEquals(
             SetupNextAction.OpenResearch,
             deriveSetupNextAction(listOf(model(), knowledge(CoverageLevel.DEMO)), false),

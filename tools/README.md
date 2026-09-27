@@ -16,6 +16,7 @@ and deterministic: the same inputs always produce byte-identical packs.
 | `fapack_convert.py` | any JSONL document spool | any KNOWLEDGE pack (generic converter, usage documented in its docstring) |
 | `build_vector_pack.py` | fapack + embeddings TSV + encoder GGUF | vector-capable KNOWLEDGE pack (int8 `chunk_vectors` + embedded query encoder) |
 | `build_wikivoyage_eat_pack.py` | English Wikivoyage pages-articles XML dump | dated, individually searchable restaurant listings |
+| `build_wikivoyage_places_pack.py` | the same pinned English Wikivoyage dump | keyword-only See, Do, Eat, Drink, Sleep, and Buy listings |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
 
 Paths follow the working-tree convention: `REPO` = the fieldatlas repository (holds
@@ -41,6 +42,14 @@ python3 tools/content2fapack.py wikivoyage --out ../fapacks --keep-jsonl
 curl -L https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   -o enwikivoyage-20260901-pages-articles.xml.bz2
 python3 tools/build_wikivoyage_eat_pack.py \
+  --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
+  --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
+  --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773
+
+# For wider travel coverage, build the keyword-only general places pack from the same
+# verified dump. No embedding run or vector encoder is needed. The full artifact has
+# not yet been measured on a physical device.
+python3 tools/build_wikivoyage_places_pack.py \
   --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
   --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,8 @@ fun LibraryScreen(
     onToggleResearch: (InstalledAsset, Boolean) -> Unit = { _, _ -> },
     onActivateModel: (InstalledAsset) -> Unit = {},
     onDeletePack: (InstalledAsset) -> Unit = {},
+    importing: Boolean = false,
+    importError: String? = null,
 ) {
     val models = packs.filter { it.type == PackType.MODEL }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
@@ -104,7 +107,13 @@ fun LibraryScreen(
                 )
             }
             item { SectionLabel("Knowledge data") }
-            if (knowledge.isEmpty()) item { EmptyLibraryNote("No knowledge pack installed") }
+            if (knowledge.isEmpty()) {
+                item {
+                    EmptyLibraryNote(
+                        "No knowledge pack installed. You can still ask the offline model; add a pack for source-backed answers.",
+                    )
+                }
+            }
             if (knowledge.isNotEmpty()) {
                 item {
                     Text(
@@ -150,8 +159,27 @@ fun LibraryScreen(
                 )
             }
             item {
-                OutlinedButton(onClick = onImportPack, modifier = Modifier.fillMaxWidth()) {
-                    Text("Import another pack")
+                OutlinedButton(
+                    onClick = onImportPack,
+                    enabled = !importing,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (importing) {
+                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    }
+                    Text(if (importing) "Verifying pack on this device…" else "Import another pack")
+                }
+            }
+            if (importError != null) {
+                item {
+                    FieldAtlasCard(Modifier.fillMaxWidth()) {
+                        Text(
+                            "This pack could not be imported.",
+                            color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(importError, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
         }
