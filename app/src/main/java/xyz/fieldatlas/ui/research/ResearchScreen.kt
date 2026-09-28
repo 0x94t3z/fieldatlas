@@ -3,13 +3,20 @@ package xyz.fieldatlas.ui.research
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -20,20 +27,34 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableLongStateOf
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -59,24 +80,29 @@ fun ResearchScreen(
     suggestions: List<String> = emptyList(),
     voiceState: VoiceUiState = VoiceUiState(),
     onMicClick: () -> Unit = {},
-    onImportPack: () -> Unit = {},
-    diagnosticsText: String = "",
-    onClearDiagnostics: () -> Unit = {},
+    onCameraClick: () -> Unit = {},
+    onPhotosClick: () -> Unit = {},
+    onFilesClick: () -> Unit = {},
+    attachmentNotice: String? = null,
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onStop: () -> Unit,
     onPrepareModel: () -> Unit,
     onOpenAnswer: () -> Unit,
+    onAskAnotherQuestion: () -> Unit = {},
     listState: LazyListState = rememberLazyListState(),
 ) {
     val scope = rememberCoroutineScope()
+    var attachmentMenuOpen by rememberSaveable { mutableStateOf(false) }
+    var questionFocused by remember { mutableStateOf(false) }
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
+    var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
     // Keep the first-run examples focused on the bounty's research task rather than
     // mirroring whichever pack happens to be installed on the device.
     val exampleQuestions = listOf(
         "Tell me the best vegan restaurants in Berlin",
         "What are the best museums to visit in Tokyo?",
-        "Summarise my travel notes about Japan",
+        "Tell me about Japan's history",
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -85,8 +111,16 @@ fun ResearchScreen(
     ) {
         item {
             FieldAtlasPageHeader(
-                title = "What are you investigating today?",
-                subtitle = "Ask across the knowledge saved on this phone.",
+                title = when {
+                    state.isRunning -> "Research in progress"
+                    hasReadyAnswer -> "Your research"
+                    else -> "What are you investigating today?"
+                },
+                subtitle = when {
+                    state.isRunning -> "Working on this phone."
+                    hasReadyAnswer -> "Read your answer or explore another question."
+                    else -> "Ask across the knowledge saved on this phone."
+                },
                 modifier = Modifier.padding(top = 22.dp),
             )
         }
@@ -100,7 +134,7 @@ fun ResearchScreen(
                 )
             }
         }
-        if (collectionCount == 0) {
+        if (collectionCount == 0 && !hasReadyAnswer) {
             item {
                 Text(
                     "Answers can come from your offline model. Add a knowledge pack in Library for source-backed answers.",
@@ -109,58 +143,147 @@ fun ResearchScreen(
                 )
             }
         }
-        item {
-            Box(Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = state.question,
-                    onValueChange = onQuestionChange,
-                    placeholder = { Text("Explain a topic, compare evidence, or examine a claim") },
-                    enabled = !state.isRunning,
-                    minLines = 4,
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Research question" },
-                    shape = MaterialTheme.shapes.medium,
-                )
-                Surface(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 8.dp).size(48.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                ) {
-                    IconButton(
-                        onClick = onMicClick,
-                        enabled = !state.isRunning &&
-                            (voiceState.phase == VoicePhase.Idle || voiceState.phase == VoicePhase.Recording),
+        if (hasReadyAnswer && !editReadyQuestion) {
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(state.question, style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f))
+                    TextButton(onClick = { editReadyQuestion = true }) { Text("Edit") }
+                }
+            }
+        } else if (state.isRunning) {
+            item {
+                Text(state.question, style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
+            }
+        } else item {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium,
+                color = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+                    Color.White
+                } else {
+                    MaterialTheme.colorScheme.surface
+                },
+                border = BorderStroke(
+                    if (questionFocused) 2.dp else 1.dp,
+                    if (questionFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                ),
+            ) {
+                Column {
+                    BasicTextField(
+                        value = state.question,
+                        onValueChange = onQuestionChange,
+                        enabled = !state.isRunning,
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp)
+                            .onFocusChanged { questionFocused = it.isFocused }
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                            .semantics { contentDescription = "Research question" },
+                        decorationBox = { innerTextField ->
+                            Box {
+                                if (state.question.isEmpty()) {
+                                    Text(
+                                        "Explain a topic, compare evidence, or examine a claim",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        },
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        when (voiceState.phase) {
-                            VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-                            VoicePhase.Recording -> Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
-                            VoicePhase.Idle -> Icon(Icons.Outlined.Mic, contentDescription = "Speak question")
+                        Box {
+                            IconButton(
+                                onClick = { attachmentMenuOpen = true },
+                                enabled = !state.isRunning,
+                                modifier = Modifier.size(48.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                ),
+                            ) {
+                                Icon(
+                                    FieldAtlasIcons.AttachFile,
+                                    contentDescription = "Add attachment",
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = attachmentMenuOpen,
+                                onDismissRequest = { attachmentMenuOpen = false },
+                                modifier = Modifier.width(120.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                containerColor = MaterialTheme.colorScheme.background,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                shadowElevation = 6.dp,
+                            ) {
+                                AttachmentMenuItem("Camera", FieldAtlasIcons.Camera) {
+                                    attachmentMenuOpen = false
+                                    onCameraClick()
+                                }
+                                AttachmentMenuItem("Photos", FieldAtlasIcons.Photo) {
+                                    attachmentMenuOpen = false
+                                    onPhotosClick()
+                                }
+                                AttachmentMenuItem("Files", FieldAtlasIcons.Document) {
+                                    attachmentMenuOpen = false
+                                    onFilesClick()
+                                }
+                            }
+                        }
+                        Spacer(Modifier.weight(1f))
+                        Surface(
+                            shape = CircleShape,
+                            color = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
+                                lerp(MaterialTheme.colorScheme.primaryContainer, Color.White, 0.45f)
+                            } else {
+                                MaterialTheme.colorScheme.primaryContainer
+                            },
+                        ) {
+                            IconButton(
+                                onClick = onMicClick,
+                                enabled = !state.isRunning &&
+                                    (voiceState.phase == VoicePhase.Idle || voiceState.phase == VoicePhase.Recording),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                ),
+                            ) {
+                                when (voiceState.phase) {
+                                    VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                                    VoicePhase.Recording -> Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
+                                    VoicePhase.Idle -> Icon(Icons.Outlined.Mic, contentDescription = "Speak question")
+                                }
+                            }
                         }
                     }
                 }
-                TextButton(
-                    onClick = onImportPack,
-                    enabled = !state.isRunning,
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 8.dp, bottom = 4.dp),
-                ) {
-                    Icon(FieldAtlasIcons.AttachFile, contentDescription = null, modifier = Modifier.size(21.dp))
-                    androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
-                    Text("Add files")
-                }
+            }
+            attachmentNotice?.let { notice ->
+                Text(notice, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             when (voiceState.phase) {
-                VoicePhase.Recording -> Column {
-                    LinearProgressIndicator(
-                        progress = { voiceState.level },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 4.dp),
-                    )
+                VoicePhase.Recording -> Row(
+                    modifier = Modifier.padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
                     Text(
-                        "Listening — tap the stop icon when you finish.",
+                        "Listening… tap stop when finished.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 VoicePhase.Starting, VoicePhase.Processing -> Text(
                     if (voiceState.phase == VoicePhase.Starting) "Preparing offline voice…" else "Transcribing on this device…",
+                    modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -169,6 +292,7 @@ fun ResearchScreen(
             voiceState.error?.let { error ->
                 Text(
                     error,
+                    modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -211,7 +335,7 @@ fun ResearchScreen(
                             Text("Answer ready", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 if (citedSourceCount == 0) {
-                                    "Written by the offline model."
+                                    "Model-generated · no sources cited"
                                 } else {
                                     "Written from $citedSourceCount cited local " +
                                         if (citedSourceCount == 1) "source." else "sources."
@@ -220,25 +344,16 @@ fun ResearchScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        FieldAtlasStatusPill(
-                            state = StatusTone.Neutral,
-                            text = state.metrics?.totalMillis?.let(::formatElapsed) ?: "Just now",
-                        )
+                    }
+                    state.metrics?.totalMillis?.let { duration ->
+                        Text("Completed in ${formatElapsed(duration)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     val preview = answerCardPreview(state.answer)
                     if (preview.isNotEmpty()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Icon(
-                                FieldAtlasIcons.Document,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp),
-                            )
-                            Text(preview, style = MaterialTheme.typography.bodyMedium)
-                        }
+                        Text(preview, style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp))
                     }
                     FieldAtlasPrimaryButton(
                         text = "Read answer",
@@ -248,8 +363,16 @@ fun ResearchScreen(
                     )
                 }
             }
+            item {
+                TextButton(onClick = {
+                    onAskAnotherQuestion()
+                    scope.launch { listState.animateScrollToItem(0) }
+                }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Ask another question")
+                }
+            }
         }
-        if (exampleQuestions.isNotEmpty() && !state.isRunning) {
+        if (exampleQuestions.isNotEmpty() && !state.isRunning && !hasReadyAnswer) {
             item {
                 Text(
                     "Try an example",
@@ -326,24 +449,6 @@ fun ResearchScreen(
                 MessageCard("Research needs attention", detail ?: "Try again after preparing the on-device model.")
             }
         }
-        if (diagnosticsText.isNotBlank()) {
-            item {
-                FieldAtlasCard(Modifier.fillMaxWidth()) {
-                    Text("App notice", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        diagnosticsText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    TextButton(
-                        onClick = onClearDiagnostics,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Dismiss")
-                    }
-                }
-            }
-        }
         item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 18.dp)) }
     }
 }
@@ -355,6 +460,31 @@ private fun formatElapsed(totalMillis: Long): String {
 }
 
 @Composable
+private fun AttachmentMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
+    DropdownMenuItem(
+        text = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+        },
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 12.dp),
+    )
+}
+
+@Composable
 private fun ResearchAction(
     state: ResearchUiState,
     inferenceState: InferenceState,
@@ -363,22 +493,35 @@ private fun ResearchAction(
     onPrepareModel: () -> Unit,
 ) {
     if (state.isRunning || inferenceState == InferenceState.Generating) {
+        var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
+        LaunchedEffect(state.startedAtNanos) {
+            val start = state.startedAtNanos ?: return@LaunchedEffect
+            while (true) {
+                elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
+                delay(1_000)
+            }
+        }
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text(researchActivityLabel(state.phase, state.retrievalProgress, state.promptRead, state.tokensWritten, state.retrievalVectorMatches, state.sources.isNotEmpty()), fontWeight = FontWeight.SemiBold)
-            if (state.keywords.isNotEmpty()) {
-                Text(
-                    "Searching for: ${state.keywords.joinToString(", ")}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(when (state.phase) {
+                    ResearchPhase.Planning -> "Understanding your question…"
+                    ResearchPhase.Searching -> "Searching saved sources…"
+                    else -> "Writing your answer…"
+                }, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                TextButton(onClick = onStop) { Text("Stop") }
+            }
+            if (state.startedAtNanos != null) {
+                Text("${formatElapsed(elapsedMillis)} elapsed", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             LinearProgressIndicator(Modifier.fillMaxWidth())
-            OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                Text("Stop")
+            if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
+                Text("Model-generated · no supporting sources found",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             val draft = draftAnswerPreview(state.answer)
             if (draft.isNotEmpty()) {
-                Text("Answer in progress", style = MaterialTheme.typography.titleMedium)
                 AnswerMarkdownRenderer(
                     blocks = parseAnswerMarkdown(draft),
                     sourceCount = 0,

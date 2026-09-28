@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -29,13 +31,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.NoteAdd
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
+import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
+import xyz.fieldatlas.ui.presentation.formatAssetBytes
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
@@ -54,10 +59,19 @@ fun LibraryScreen(
     onDeletePack: (InstalledAsset) -> Unit = {},
     importing: Boolean = false,
     importError: String? = null,
+    availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
+    knowledgeDownloadKey: String? = null,
+    knowledgeDownloadedBytes: Long = 0,
+    knowledgeDownloadError: String? = null,
+    onDownloadKnowledge: (KnowledgeCatalogEntry) -> Unit = {},
+    onCancelKnowledgeDownload: () -> Unit = {},
 ) {
     val models = packs.filter { it.type == PackType.MODEL }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
     val speech = packs.filter { it.type == PackType.AUDIO }
+    val available = availableKnowledge
+        .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
+        .sortedWith(compareByDescending<KnowledgeCatalogEntry> { it.recommended }.thenBy { it.title })
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()
@@ -75,13 +89,15 @@ fun LibraryScreen(
                 )
             }
             item {
-                FieldAtlasPrimaryButton(
-                    text = if (importing) "Verifying pack…" else "Import a pack",
+                OutlinedButton(
                     onClick = onImportPack,
-                    enabled = !importing,
+                    enabled = !importing && knowledgeDownloadKey == null,
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = FieldAtlasIcons.Import,
-                )
+                ) {
+                    Icon(Icons.Outlined.NoteAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Text(if (importing) "Verifying pack…" else "Import a pack",
+                        modifier = Modifier.padding(start = 8.dp))
+                }
             }
             if (importError != null) {
                 item {
@@ -97,7 +113,7 @@ fun LibraryScreen(
             if (models.size > 1) {
                 item {
                     Text(
-                        "Choosing a model replaces the one in use; switching while a model is loaded releases it and loads the selection.",
+                        "Choose one model to use for answers.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -116,14 +132,14 @@ fun LibraryScreen(
             if (knowledge.isEmpty()) {
                 item {
                     EmptyLibraryNote(
-                        "No knowledge pack installed. You can still ask the offline model; add a pack for source-backed answers.",
+                        "No collection installed. Add one for local sources and citations; the model still works without it.",
                     )
                 }
             }
             if (knowledge.isNotEmpty()) {
                 item {
                     Text(
-                        "Research draws evidence from every collection you leave on.",
+                        "Use enabled collections as sources.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -137,6 +153,29 @@ fun LibraryScreen(
                     onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
                     onDelete = { onDeletePack(asset) },
                 )
+            }
+            if (available.isNotEmpty()) {
+                item { SectionLabel("Available to download") }
+                items(available.size, key = { "available:${available[it].id}:${available[it].version}" }) { index ->
+                    val candidate = available[index]
+                    KnowledgeDownloadCard(
+                        pack = candidate,
+                        downloading = knowledgeDownloadKey == "${candidate.id}:${candidate.version}",
+                        busy = importing || knowledgeDownloadKey != null,
+                        downloadedBytes = knowledgeDownloadedBytes,
+                        onDownload = { onDownloadKnowledge(candidate) },
+                        onCancel = onCancelKnowledgeDownload,
+                    )
+                }
+            }
+            if (knowledgeDownloadError != null) {
+                item {
+                    FieldAtlasCard(Modifier.fillMaxWidth()) {
+                        Text("Collection download did not finish", color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold)
+                        Text(knowledgeDownloadError, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
             item { SectionLabel("Audio models") }
             if (speech.isEmpty()) {
@@ -158,6 +197,86 @@ fun LibraryScreen(
         }
     }
 }
+
+@Composable
+private fun KnowledgeDownloadCard(
+    pack: KnowledgeCatalogEntry,
+    downloading: Boolean,
+    busy: Boolean,
+    downloadedBytes: Long,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            FieldAtlasIconTile(FieldAtlasIcons.Document, size = 52.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(pack.title, style = MaterialTheme.typography.titleMedium,
+                    fontFamily = FieldAtlasEditorial,
+                    fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${formatAssetBytes(pack.bytes)} · version ${pack.version}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Text(pack.description, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (pack.recommended) {
+            Text("Recommended", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary)
+        }
+        if (downloading) {
+            val installing = downloadedBytes >= pack.bytes
+            if (installing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                LinearProgressIndicator(
+                    progress = { (downloadedBytes.toFloat() / pack.bytes).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(if (installing) "Verifying and installing · keep app open" else
+                    "${downloadedBytes / 1_000_000} / ${pack.bytes / 1_000_000} MB · keep app open",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!installing) TextButton(onClick = onCancel) { Text("Cancel") }
+            }
+        } else {
+            FieldAtlasPrimaryButton(
+                text = "Download collection",
+                onClick = { confirmDownload = true },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = FieldAtlasIcons.Import,
+            )
+        }
+    }
+    if (confirmDownload) {
+        AlertDialog(
+            onDismissRequest = { confirmDownload = false },
+            title = { Text("Download ${pack.title}?") },
+            text = {
+                Text("This uses ${formatAssetBytes(pack.bytes)} of internet data and needs about " +
+                    "${sizeGb(pack.bytes * 2 + 512_000_000L)} GB free while installing. " +
+                    "Afterward, the collection works offline.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDownload = false
+                    onDownload()
+                }) { Text("Download") }
+            },
+            dismissButton = { TextButton(onClick = { confirmDownload = false }) { Text("Not now") } },
+        )
+    }
+}
+
+private fun sizeGb(bytes: Long): String = String.format("%.1f", bytes / 1_000_000_000.0)
 
 @Composable
 private fun SectionLabel(text: String) {

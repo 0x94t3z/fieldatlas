@@ -7,7 +7,6 @@ data class ManifestSnapshot(
 
 object OfflineManifestPolicy {
     private val forbiddenPermissions = setOf(
-        "android.permission.INTERNET",
         "android.permission.CHANGE_NETWORK_STATE",
         "android.permission.CHANGE_WIFI_STATE",
     )

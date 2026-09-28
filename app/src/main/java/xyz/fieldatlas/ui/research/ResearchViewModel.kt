@@ -32,6 +32,7 @@ data class VoiceUiState(
 
 data class ResearchUiState(
     val question: String = "",
+    val startedAtNanos: Long? = null,
     val answer: String = "",
     val sources: List<Evidence> = emptyList(),
     val keywords: List<String> = emptyList(),
@@ -122,7 +123,7 @@ class ResearchViewModel(
             mutableVoiceState.value = VoiceUiState(VoicePhase.Starting)
             val transcriber = runCatching { createTranscriber() }.getOrNull()
             if (transcriber == null) {
-                mutableVoiceState.value = VoiceUiState(error = "Voice capture is not available on this build.")
+                mutableVoiceState.value = VoiceUiState(error = "Voice input isn't available on this phone right now.")
                 return@launch
             }
             activeTranscriber = transcriber
@@ -181,6 +182,7 @@ class ResearchViewModel(
         rawAnswer.clear()
         mutableUiState.value = ResearchUiState(
             question = question,
+            startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
         )
         researchJob = scope.launch {

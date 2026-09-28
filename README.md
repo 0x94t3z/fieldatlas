@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/branding/field-atlas-launcher-icon-1024.png" alt="Field Atlas app icon" width="112" height="112">
+  <img src="docs/branding/field-atlas-readme-icon.svg" alt="Field Atlas app icon" width="112" height="112">
 </p>
 
 <h1 align="center">Field Atlas</h1>
@@ -13,15 +13,15 @@
   <a href="docs/verification.md">What we tested</a>
 </p>
 
-Field Atlas runs a language model on the phone. You can also add local knowledge collections; when one contains a relevant passage, the answer can show a numbered citation that opens that passage. There is no account, search API, remote inference, Google Play Services requirement, or Android network permission.
+Field Atlas runs a language model on the phone. You can also add local knowledge collections; when one contains a relevant passage, the answer can show a numbered citation that opens that passage. There is no account, search API, remote inference, or Google Play Services requirement. The current development build requests internet access only for user-started model or collection downloads; research uses installed files.
 
 ## At a glance
 
 | | What it means |
 | --- | --- |
 | **Works offline** | Questions, local search, and answer generation stay on the device. Download or transfer the files you need *before* going offline. |
-| **Model first** | A compatible `.fapack` model is required. It can answer without a knowledge collection, but that answer has no local citation. |
-| **Collections are optional** | A knowledge `.fapack` adds searchable passages on specific topics. Tap a numbered citation to inspect the passage behind it. |
+| **Model first** | The current development build can download its pinned model or import a compatible `.fapack`. It can answer without a knowledge collection, but that answer has no local citation. |
+| **Collections are optional** | The current development build offers a recommended biology download in Library, or you can import another compatible knowledge `.fapack`. A collection adds searchable passages on its own topic; tap a numbered citation to inspect one. |
 | **Android** | ARM64 phone, Android 13 (API 33) or newer. Tested on a physical Infinix X6840; other devices may differ. |
 
 ## Watch it work
@@ -68,7 +68,7 @@ For example, the optional [Wikivoyage places-to-eat collection](DATASETS.md#wiki
 | --- | --- | --- |
 | [v1.1.10 signed release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Downloadable APK and checksum. Use the setup instructions at that tag. |
 | v1.2.0 integration APK | No | Tested on an Infinix; [historical audit](docs/compliance/release-audit.md). Not a downloadable release. |
-| Current source / debug build | No signed release yet | Qwen3.5, optional voice and vector retrieval, UI updates, and the dated restaurant lookup are under development. See [verification](docs/verification.md); do not assume older demo footage proves every new feature. |
+| Current source / debug build | No signed public release yet | Qwen3.5, user-started model download, an optional catalog-listed biology download, voice and vector retrieval, UI updates, and the dated restaurant lookup are under development. The in-app download paths are not yet phone-verified. See [verification](docs/verification.md); do not assume older demo footage proves every new feature. |
 
 The [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) shows the original public demo. The repository evidence is linked above. A useful offline answer on one phone is not an independent quality benchmark or a guarantee for every Android device.
 

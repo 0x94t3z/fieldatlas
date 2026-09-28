@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "packs": [
+    {
+      "id": "wikivoyage-places",
+      "version": "2026.09.1",
+      "title": "Travel places",
+      "description": "Restaurants, hotels, sights, and shops · September 2026. Listings may be outdated.",
+      "license": "CC-BY-SA-4.0",
+      "bytes": 351581170,
+      "sha256": "1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac",
+      "url": "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-travel-2026.09.1/wikivoyage-places-2026.09.1.fapack",
+      "recommended": true
+    },
+    {
+      "id": "world-knowledge-biology",
+      "version": "1.2.0",
+      "title": "Biology & longevity",
+      "description": "Biology and longevity passages with local vector search. Not a general encyclopedia or travel guide.",
+      "license": "public-data; see pack sources",
+      "bytes": 1567877980,
+      "sha256": "0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01",
+      "url": "https://media.githubusercontent.com/media/vbuterin/fieldatlas/vector-search/releases/packs/world-knowledge-biology-1.2.0.fapack",
+      "recommended": true
+    }
+  ]
+}

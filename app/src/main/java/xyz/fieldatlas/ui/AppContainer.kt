@@ -18,6 +18,10 @@ import xyz.fieldatlas.assets.AssetImporter
 import xyz.fieldatlas.assets.AssetRegistry
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
+import xyz.fieldatlas.assets.RecommendedModelDownload
+import xyz.fieldatlas.assets.KnowledgeCatalog
+import xyz.fieldatlas.assets.KnowledgeCatalogEntry
+import xyz.fieldatlas.assets.KnowledgePackDownload
 import xyz.fieldatlas.benchmark.BenchmarkQuestionSet
 import xyz.fieldatlas.inference.InferenceGateway
 import xyz.fieldatlas.inference.InferenceState
@@ -44,6 +48,11 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val registry = AssetRegistry(appContext.filesDir)
     private val importer = AssetImporter(appContext)
+    private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry)
+    val knowledgeCatalog = appContext.assets.open("knowledge/catalog.json").bufferedReader().use { reader ->
+        KnowledgeCatalog.parse(reader.readText()).packs
+    }
+    private val knowledgePackDownload = KnowledgePackDownload(appContext.filesDir, registry, importer)
     private val mutablePacks = MutableStateFlow<List<InstalledAsset>>(emptyList())
     private val refreshMutex = Mutex()
     private val encoderMutex = Mutex()
@@ -117,6 +126,22 @@ class AppContainer(context: Context) {
     }
 
     suspend fun importPack(uri: Uri): InstalledAsset = importer.import(uri).also { refreshPacks() }
+
+    suspend fun downloadRecommendedModel(onProgress: (Long) -> Unit): InstalledAsset =
+        recommendedModelDownload.install(onProgress).also { refreshPacks() }
+
+    suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset {
+        require(knowledgeCatalog.any { it.id == pack.id && it.version == pack.version && it == pack }) {
+            "Collection is not in the verified app catalog"
+        }
+        val installed = knowledgePackDownload.install(pack, onProgress)
+        // Keep older versions available for rollback, but don't search duplicate editions.
+        registry.list().filter { it.type == PackType.KNOWLEDGE && it.id == pack.id &&
+            it.version != pack.version && it.enabled
+        }.forEach { registry.setEnabled(it.id, it.version, false) }
+        refreshPacks()
+        return installed
+    }
 
     suspend fun loadModel() {
         if (inference.state.value is InferenceState.Failed) inference.unload()

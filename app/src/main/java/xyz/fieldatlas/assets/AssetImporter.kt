@@ -46,17 +46,58 @@ class AssetImporter private constructor(
         importOnIo(input, freeBytes)
     }
 
+    /** Import a download already staged in app-private storage without copying the large ZIP again. */
+    suspend fun importArchive(
+        archive: File,
+        expectedId: String,
+        expectedVersion: String,
+        expectedType: PackType,
+    ): InstalledAsset = withContext(Dispatchers.IO) {
+        importMutex.withLock {
+            requireImport(archive.isFile, "Downloaded pack is missing")
+            val session = createSession()
+            try {
+                processArchive(archive, session, storageRoot.usableSpace,
+                    Triple(expectedId, expectedVersion, expectedType))
+            } finally {
+                session.deleteRecursively()
+            }
+        }
+    }
+
     private suspend fun importOnIo(input: InputStream, freeBytes: Long): InstalledAsset = importMutex.withLock {
         if (freeBytes < 0) {
             throw AssetImportException("Invalid free-space value", budgetDecision = BudgetDecision.InvalidSize)
         }
-        val stagingBase = File(storageRoot, "pack-staging").apply { mkdirs() }
-        val session = File(stagingBase, UUID.randomUUID().toString())
+        val session = createSession()
         try {
-            requireImport(session.mkdir(), "Unable to create staging directory")
             val archive = File(session, "incoming.fapack")
             val archiveBytes = spoolArchive(input, archive, freeBytes)
-            ZipFile.builder().setFile(archive).get().use { zip ->
+            processArchive(archive, session, freeBytes - archiveBytes)
+        } catch (error: AssetImportException) {
+            throw error
+        } catch (error: Exception) {
+            throw AssetImportException("Pack import failed", error)
+        } finally {
+            session.deleteRecursively()
+        }
+    }
+
+    private fun createSession(): File {
+        val stagingBase = File(storageRoot, "pack-staging").apply { mkdirs() }
+        val session = File(stagingBase, UUID.randomUUID().toString())
+        requireImport(session.mkdir(), "Unable to create staging directory")
+        return session
+    }
+
+    private suspend fun processArchive(
+        archive: File,
+        session: File,
+        freeBytesForExtraction: Long,
+        expected: Triple<String, String, PackType>? = null,
+    ): InstalledAsset {
+        try {
+            return ZipFile.builder().setFile(archive).get().use { zip ->
                 val entries = zip.entries.toBoundedList(MAX_ARCHIVE_ENTRIES)
                 requireImport(entries.isNotEmpty(), "Pack is empty")
                 val manifestEntry = entries.first()
@@ -67,11 +108,18 @@ class AssetImporter private constructor(
                 } catch (error: InvalidPackManifestException) {
                     throw AssetImportException("Invalid manifest", error)
                 }
+                if (expected != null) {
+                    requireImport(
+                        manifest.id == expected.first && manifest.version == expected.second &&
+                            manifest.type == expected.third,
+                        "Downloaded pack does not match its catalog entry",
+                    )
+                }
                 val incomingBytes = checkedTotal(manifest.artifacts)
                 val decision = StorageBudget.evaluate(
                     registry.totalInstalledBytes(),
                     incomingBytes,
-                    freeBytes - archiveBytes,
+                    freeBytesForExtraction,
                 )
                 if (decision != BudgetDecision.Allowed) {
                     throw AssetImportException("Pack violates storage budget: $decision", budgetDecision = decision)
@@ -120,8 +168,6 @@ class AssetImporter private constructor(
             throw error
         } catch (error: Exception) {
             throw AssetImportException("Pack import failed", error)
-        } finally {
-            session.deleteRecursively()
         }
     }
 

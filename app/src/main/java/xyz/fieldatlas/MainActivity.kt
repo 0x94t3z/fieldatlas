@@ -1,6 +1,8 @@
 package xyz.fieldatlas
 
 import android.os.Bundle
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.ComponentActivity
@@ -12,8 +14,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import java.io.File
@@ -84,6 +87,7 @@ class MainActivity : ComponentActivity() {
             }
             val appNavigation = rememberFieldAtlasNavigationState()
             val scope = rememberCoroutineScope()
+            var attachmentNotice by rememberSaveable { mutableStateOf<String?>(null) }
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
             val proof = remember(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
                 container.proof(researchState.metrics, researchState.completion)
@@ -91,6 +95,43 @@ class MainActivity : ComponentActivity() {
             val packPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.OpenDocument(),
             ) { uri -> if (uri != null) setupViewModel.importPack(uri) }
+            val researchFilePicker = rememberLauncherForActivityResult(
+                ActivityResultContracts.OpenDocument(),
+            ) { uri ->
+                if (uri != null) {
+                    val name = attachmentName(uri)
+                    val type = contentResolver.getType(uri).orEmpty()
+                    attachmentNotice = if (isResearchFileTypeSupported(name, type)) {
+                        "$name selected, but it won't be used in the answer. Research uses your question only."
+                    } else {
+                        "Unsupported file type. Choose a text file, PDF, or image."
+                    }
+                }
+            }
+            val researchPhotoPicker = rememberLauncherForActivityResult(
+                ActivityResultContracts.GetContent(),
+            ) { uri ->
+                if (uri != null) attachmentNotice =
+                    "Photo selected, but it won't be used in the answer. Research uses your question only."
+            }
+            val researchCamera = rememberLauncherForActivityResult(
+                ActivityResultContracts.TakePicturePreview(),
+            ) { bitmap ->
+                if (bitmap != null) {
+                    scope.launch {
+                        val saved = withContext(Dispatchers.IO) {
+                            runCatching {
+                                File(cacheDir, "research-camera.png").outputStream().use { output ->
+                                    check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output))
+                                }
+                            }.isSuccess
+                        }
+                        attachmentNotice = if (saved) {
+                            "Photo captured, but it won't be used in the answer. Research uses your question only."
+                        } else "Could not save the camera photo."
+                    }
+                }
+            }
             val diagnosticsExporter = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
@@ -138,6 +179,13 @@ class MainActivity : ComponentActivity() {
             FieldAtlasApp(
                 packs = setupState.packs,
                 importing = setupState.importing,
+                downloading = setupState.downloading,
+                downloadedBytes = setupState.downloadedBytes,
+                offerKnowledge = setupState.offerKnowledge,
+                availableKnowledge = container.knowledgeCatalog,
+                knowledgeDownloadKey = setupState.knowledgeDownloadKey,
+                knowledgeDownloadedBytes = setupState.knowledgeDownloadedBytes,
+                knowledgeDownloadError = setupState.knowledgeError,
                 setupError = setupState.error,
                 researchState = researchState,
                 historyRecords = historyRecords,
@@ -145,6 +193,11 @@ class MainActivity : ComponentActivity() {
                 proof = proof,
                 navigation = appNavigation,
                 onImportPack = { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
+                onDownloadModel = setupViewModel::downloadRecommendedModel,
+                onCancelDownload = setupViewModel::cancelDownload,
+                onDismissKnowledgeOffer = setupViewModel::dismissKnowledgeOffer,
+                onDownloadKnowledge = setupViewModel::downloadKnowledge,
+                onCancelKnowledgeDownload = setupViewModel::cancelKnowledgeDownload,
                 onQuestionChange = researchViewModel::updateQuestion,
                 onSubmit = researchViewModel::submit,
                 voiceState = voiceState,
@@ -157,6 +210,14 @@ class MainActivity : ComponentActivity() {
                         microphonePermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
+                onCameraClick = { researchCamera.launch(null) },
+                onPhotosClick = { researchPhotoPicker.launch("image/*") },
+                onFilesClick = {
+                    researchFilePicker.launch(arrayOf(
+                        "text/*", "application/pdf", "image/*", "application/json", "application/xml",
+                    ))
+                },
+                attachmentNotice = attachmentNotice,
                 diagnosticsText = diagnosticsNotices.joinToString("\n") { "[${it.area}] ${it.message}" },
                 onClearDiagnostics = container.errorBus::clear,
                 onAskAnotherQuestion = { researchViewModel.startNewQuestion() },
@@ -257,6 +318,19 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun safeTimestamp(value: String): String = value.replace(Regex("[^0-9A-Za-z]+"), "-").trim('-')
+
+    private fun attachmentName(uri: Uri): String = runCatching {
+        contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) cursor.getString(0) else null
+        }
+    }.getOrNull()?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "File"
+
+    private fun isResearchFileTypeSupported(name: String, mimeType: String): Boolean {
+        val extension = name.substringAfterLast('.', "").lowercase()
+        return mimeType.startsWith("text/") || mimeType.startsWith("image/") ||
+            mimeType in setOf("application/pdf", "application/json", "application/xml") ||
+            extension in setOf("txt", "md", "markdown", "csv", "tsv", "json", "xml", "pdf", "png", "jpg", "jpeg", "webp", "gif")
+    }
 
     private companion object {
         const val BENCHMARK_EXPORT = "benchmark"

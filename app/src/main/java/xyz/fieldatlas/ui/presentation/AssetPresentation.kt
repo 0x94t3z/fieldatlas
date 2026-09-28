@@ -28,13 +28,18 @@ fun deriveSetupNextAction(packs: List<InstalledAsset>, importing: Boolean): Setu
 }
 
 fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
-    title = title,
+    title = when (id) {
+        "qwen3.5-2b-q4-k-m" -> "Qwen3.5 2B"
+        "world-knowledge-biology" -> "Biology & longevity"
+        "wikivoyage-places" -> "Travel places"
+        else -> title
+    },
     kind = when (type) {
         PackType.MODEL -> "Answer model"
         PackType.KNOWLEDGE -> "Knowledge data"
         PackType.AUDIO -> "Audio model"
     },
-    size = formatBytes(installedBytes),
+    size = formatAssetBytes(installedBytes),
     version = version,
     license = license,
     coverageLabel = null,
@@ -42,11 +47,11 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
     manifestSha256 = manifestSha256,
 )
 
-private fun formatBytes(bytes: Long): String {
+internal fun formatAssetBytes(bytes: Long): String {
     val formatter = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }
     return when {
         bytes >= 1_000_000_000 -> "${formatter.format(bytes / 1_000_000_000.0)} GB"
-        bytes >= 1_000_000 -> "${formatter.format(bytes / 1_000_000.0)} MB"
+        bytes >= 1_000_000 -> "${formatter.format(kotlin.math.ceil(bytes / 1_000_000.0))} MB"
         bytes >= 1_000 -> "${formatter.format(bytes / 1_000.0)} KB"
         else -> "$bytes B"
     }

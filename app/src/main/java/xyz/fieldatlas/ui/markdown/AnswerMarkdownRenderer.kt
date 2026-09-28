@@ -29,6 +29,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
@@ -178,7 +180,12 @@ private fun InlineBlock(
     val citations = content.citations()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
         if (text.isNotBlank()) {
-            SelectionContainer { Text(text = text, style = style) }
+            SelectionContainer {
+                Text(text = text, style = style.copy(
+                    lineBreak = LineBreak.Paragraph,
+                    hyphens = Hyphens.Auto,
+                ))
+            }
         }
         if (citations.isNotEmpty()) {
             FlowRow(
@@ -230,7 +237,7 @@ private fun annotatedText(content: List<MarkdownInline>): AnnotatedString {
         fun appendInline(inline: MarkdownInline) {
             when (inline) {
                 is MarkdownInline.Text -> append(inline.value)
-                is MarkdownInline.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                is MarkdownInline.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
                     inline.content.forEach(::appendInline)
                 }
                 is MarkdownInline.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {

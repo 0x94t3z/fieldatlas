@@ -58,14 +58,14 @@ python3 -m unittest discover tools/tests
 ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-The offline-policy audit rejects network permissions, cleartext traffic, common network clients, Firebase and Google Play Services integrations, unexpected ABIs, and missing native inference libraries.
+The current development APK has `INTERNET` permission solely for user-started model and knowledge-pack downloads. The APK audit still rejects cleartext traffic, network-control permissions, common remote-service clients, unexpected ABIs, and missing native inference libraries. This static check does not prove the new provisioning paths or offline research behavior; both still need a fresh physical-device test before release.
 
 ## Resource boundaries
 
 - Android API 33 or newer, ARM64 only.
 - `StorageBudget` caps all installed packs at 50,000,000,000 bytes and keeps extraction headroom.
 - Model weights remain in app-private storage and are mapped by the local llama.cpp runtime.
-- The app requests no network permission and core use does not depend on Google Play Services.
+- The historical signed release requested no network permission. The current development build requests `INTERNET` for explicit model provisioning; core research remains local by design and does not depend on Google Play Services. This change has not yet been phone-verified.
 
 ## Physical-device record
 

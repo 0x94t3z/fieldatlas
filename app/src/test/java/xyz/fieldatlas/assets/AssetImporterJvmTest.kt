@@ -38,6 +38,31 @@ class AssetImporterJvmTest {
         assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
     }
 
+    @Test fun downloadedArchiveInstallsWithoutAnotherFullSizeCopy() = runBlocking {
+        val root = temporaryFolder.newFolder("downloaded")
+        val archive = File(root, "downloaded.fapack").apply {
+            writeBytes(pack("offline knowledge".encodeToByteArray()))
+        }
+        val installed = AssetImporter(root).importArchive(archive, "demo", "1", PackType.KNOWLEDGE)
+
+        assertEquals("demo", installed.id)
+        assertTrue(archive.isFile)
+        assertTrue(File(installed.rootPath, "docs/content.txt").isFile)
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun downloadedArchiveRejectsWrongCatalogIdentity() = runBlocking {
+        val root = temporaryFolder.newFolder("wrong-catalog-id")
+        val archive = File(root, "downloaded.fapack").apply {
+            writeBytes(pack("offline knowledge".encodeToByteArray()))
+        }
+        assertThrows(AssetImportException::class.java) {
+            runBlocking { AssetImporter(root).importArchive(archive, "another-pack", "1", PackType.KNOWLEDGE) }
+        }
+        assertTrue(AssetRegistry(root).list().isEmpty())
+        assertFalse(File(root, "packs/demo/1").exists())
+    }
+
     @Test fun packBytesAreReadOffTheCallingThread() = runBlocking {
         val caller = Thread.currentThread()
         val reader = AtomicReference<Thread?>()

@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -34,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.R
 import xyz.fieldatlas.assets.InstalledAsset
+import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.research.AnswerRecord
 import xyz.fieldatlas.inference.InferenceState
@@ -57,16 +60,32 @@ import xyz.fieldatlas.ui.theme.FieldAtlasColors
 fun FieldAtlasApp(
     packs: List<InstalledAsset>,
     importing: Boolean,
+    downloading: Boolean = false,
+    downloadedBytes: Long = 0,
+    offerKnowledge: Boolean = false,
+    availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
+    knowledgeDownloadKey: String? = null,
+    knowledgeDownloadedBytes: Long = 0,
+    knowledgeDownloadError: String? = null,
     setupError: String?,
     researchState: ResearchUiState,
     historyRecords: List<AnswerRecord> = emptyList(),
     proof: ProofModel,
     navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
     onImportPack: () -> Unit,
+    onDownloadModel: () -> Unit = {},
+    onCancelDownload: () -> Unit = {},
+    onDismissKnowledgeOffer: () -> Unit = {},
+    onDownloadKnowledge: (KnowledgeCatalogEntry) -> Unit = {},
+    onCancelKnowledgeDownload: () -> Unit = {},
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     voiceState: VoiceUiState = VoiceUiState(),
     onMicClick: () -> Unit = {},
+    onCameraClick: () -> Unit = {},
+    onPhotosClick: () -> Unit = {},
+    onFilesClick: () -> Unit = {},
+    attachmentNotice: String? = null,
     diagnosticsText: String = "",
     onClearDiagnostics: () -> Unit = {},
     onAskAnotherQuestion: () -> Unit = {},
@@ -105,11 +124,47 @@ fun FieldAtlasApp(
     }
     FieldAtlasTheme {
         if (!ready) {
-            SetupScreen(packs, importing, setupError, onImportPack)
+            SetupScreen(
+                packs = packs,
+                importing = importing,
+                downloading = downloading,
+                downloadedBytes = downloadedBytes,
+                error = setupError,
+                onImportPack = onImportPack,
+                onDownloadModel = onDownloadModel,
+                onCancelDownload = onCancelDownload,
+            )
             return@FieldAtlasTheme
         }
 
         val closeDetail = { navigation.back(); Unit }
+        if (offerKnowledge) {
+            val suggested = availableKnowledge.firstOrNull { it.recommended }
+            AlertDialog(
+                onDismissRequest = onDismissKnowledgeOffer,
+                title = { Text("Add a knowledge collection?") },
+                text = {
+                    Text(
+                        if (suggested != null) {
+                            "The model is ready. ${suggested.title} adds local sources for its topic. " +
+                                "Open Library to download it, or start researching without a collection."
+                        } else {
+                            "The model is ready. You can import a collection in Library for local sources, " +
+                                "or start researching now."
+                        },
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        onDismissKnowledgeOffer()
+                        navigation.select(PrimaryDestination.Library)
+                    }) { Text("Open library") }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismissKnowledgeOffer) { Text("Start researching") }
+                },
+            )
+        }
         val detail = navigation.detail
         if (detail != null) {
             when (detail) {
@@ -118,6 +173,12 @@ fun FieldAtlasApp(
                     onBack = closeDetail,
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
                     onCitation = navigation::openSource,
+                    travelCollectionAvailable = availableKnowledge.any { it.id == "wikivoyage-places" } &&
+                        packs.none { it.id == "wikivoyage-places" },
+                    onOpenLibrary = {
+                        navigation.back()
+                        navigation.select(PrimaryDestination.Library)
+                    },
                 )
                 is DetailDestination.Source -> {
                     val source = researchState.sources.getOrNull(detail.index)
@@ -202,22 +263,32 @@ fun FieldAtlasApp(
                         suggestions = enabledKnowledge.flatMap { it.discovery?.exampleQuestions.orEmpty() },
                         voiceState = voiceState,
                         onMicClick = onMicClick,
-                        onImportPack = onImportPack,
-                        diagnosticsText = diagnosticsText,
-                        onClearDiagnostics = onClearDiagnostics,
+                        onCameraClick = onCameraClick,
+                        onPhotosClick = onPhotosClick,
+                        onFilesClick = onFilesClick,
+                        attachmentNotice = attachmentNotice,
                         onQuestionChange = onQuestionChange,
                         onSubmit = onSubmit,
                         onStop = onStop,
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
+                        onAskAnotherQuestion = onAskAnotherQuestion,
                     )
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,
                         importing = importing,
                         importError = setupError,
+                        availableKnowledge = availableKnowledge,
+                        knowledgeDownloadKey = knowledgeDownloadKey,
+                        knowledgeDownloadedBytes = knowledgeDownloadedBytes,
+                        knowledgeDownloadError = knowledgeDownloadError,
+                        onDownloadKnowledge = onDownloadKnowledge,
+                        onCancelKnowledgeDownload = onCancelKnowledgeDownload,
                     )
                     PrimaryDestination.History -> HistoryScreen(historyRecords)
                     PrimaryDestination.More -> MoreScreen(
+                        diagnosticsText = diagnosticsText,
+                        onClearDiagnostics = onClearDiagnostics,
                         proof = proof,
                         inferenceState = inferenceState,
                         onPrepareModel = onLoadModel,

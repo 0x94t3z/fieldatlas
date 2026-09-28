@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
@@ -20,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.inference.InferenceState
@@ -27,6 +30,7 @@ import xyz.fieldatlas.proof.ProofFact
 import xyz.fieldatlas.proof.ProofModel
 import xyz.fieldatlas.proof.ProofState
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
@@ -42,6 +46,8 @@ fun MoreScreen(
     onReleaseModel: () -> Unit,
     onExportDiagnostics: (Boolean) -> Unit,
     onOpenBenchmark: () -> Unit,
+    diagnosticsText: String = "",
+    onClearDiagnostics: () -> Unit = {},
 ) {
     var showModel by rememberSaveable { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable { mutableStateOf(false) }
@@ -49,12 +55,13 @@ fun MoreScreen(
     var includeQuestion by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             FieldAtlasPageHeader(
                 title = "More",
-                subtitle = "Privacy, local research tools, and app details.",
+                subtitle = "Privacy, model settings, and app details.",
                 modifier = Modifier.padding(top = 18.dp, bottom = 4.dp),
             )
         }
@@ -63,10 +70,10 @@ fun MoreScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     FieldAtlasIconTile(FieldAtlasIcons.Lock)
-                    Column(Modifier.weight(1f)) {
-                        Text("Privacy & offline use", style = MaterialTheme.typography.titleMedium)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("Privacy & offline use")
                         Text(
-                            "No account, cloud service, or network permission.",
+                            "No account needed. Download online, then research entirely on your phone.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -76,16 +83,17 @@ fun MoreScreen(
         }
         item {
             FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().clickable { showModel = !showModel },
+                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showModel = !showModel },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Model)
-                    Column(Modifier.weight(1f)) {
-                        Text("Local model", style = MaterialTheme.typography.titleMedium)
+                    FieldAtlasIconTile(FieldAtlasIcons.Archive)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("Answer model")
                         Text(modelStatus(inferenceState), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
+                        modifier = Modifier.rotate(if (showModel) 90f else 0f),
                         contentDescription = if (showModel) "Hide model actions" else "Show model actions")
                 }
                 if (showModel) {
@@ -103,7 +111,7 @@ fun MoreScreen(
                         FieldAtlasPrimaryButton("Prepare model", onPrepareModel, Modifier.fillMaxWidth())
                     } else if (inferenceState == InferenceState.Ready) {
                         OutlinedButton(onClick = onReleaseModel, modifier = Modifier.fillMaxWidth()) {
-                            Text("Release model memory")
+                            Text("Free up memory")
                         }
                     }
                 }
@@ -115,9 +123,9 @@ fun MoreScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     FieldAtlasIconTile(FieldAtlasIcons.Benchmark)
-                    Column(Modifier.weight(1f)) {
-                        Text("Device benchmark", style = MaterialTheme.typography.titleMedium)
-                        Text("Test the frozen 18 questions on this device.",
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("Performance check")
+                        Text("Compare speed and answers across 18 questions.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -127,20 +135,28 @@ fun MoreScreen(
         }
         item {
             FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().clickable { showDiagnostics = !showDiagnostics },
+                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showDiagnostics = !showDiagnostics },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     FieldAtlasIconTile(FieldAtlasIcons.Diagnostics)
-                    Column(Modifier.weight(1f)) {
-                        Text("Export diagnostics", style = MaterialTheme.typography.titleMedium)
-                        Text("Save a device record without sharing it automatically.",
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("Troubleshooting")
+                        Text("View recent issues or save a support report.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
+                        modifier = Modifier.rotate(if (showDiagnostics) 90f else 0f),
                         contentDescription = if (showDiagnostics) "Hide export options" else "Show export options")
                 }
                 if (showDiagnostics) {
+                    if (diagnosticsText.isNotBlank()) {
+                        Text("Recent technical details", style = MaterialTheme.typography.titleSmall)
+                        Text("These may describe an earlier issue that has already been resolved.",
+                            style = MaterialTheme.typography.bodySmall)
+                        Text(diagnosticsText, style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = onClearDiagnostics) { Text("Clear details") }
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -150,23 +166,24 @@ fun MoreScreen(
                         Switch(checked = includeQuestion, onCheckedChange = { includeQuestion = it })
                     }
                     TextButton(onClick = { onExportDiagnostics(includeQuestion) }) {
-                        Text("Export diagnostics")
+                        Text("Save support report")
                     }
                 }
             }
         }
         item {
             FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().clickable { showTechnical = !showTechnical },
+                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showTechnical = !showTechnical },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     FieldAtlasIconTile(FieldAtlasIcons.Info)
-                    Column(Modifier.weight(1f)) {
-                        Text("App and device details", style = MaterialTheme.typography.titleMedium)
-                        Text("Offline and device checks", style = MaterialTheme.typography.bodySmall,
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("App & device")
+                        Text("Saved files, memory, and offline checks.", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
+                        modifier = Modifier.rotate(if (showTechnical) 90f else 0f),
                         contentDescription = if (showTechnical) "Hide details" else "Show details")
                 }
                 if (showTechnical) {
@@ -175,6 +192,12 @@ fun MoreScreen(
             }
         }
     }
+}
+
+@Composable
+private fun MoreCardTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.titleMedium,
+        fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
@@ -191,11 +214,11 @@ private fun ProofRow(fact: ProofFact) {
 }
 
 private fun modelStatus(state: InferenceState): String = when (state) {
-    InferenceState.Idle -> "The model is installed and can be prepared when needed."
-    InferenceState.Loading -> "Preparing the local model…"
-    InferenceState.Ready -> "The local model is ready."
-    InferenceState.Generating -> "Research is running on this phone."
-    is InferenceState.Failed -> "The local model needs attention."
+    InferenceState.Idle -> "Saved on this phone. Ready to load."
+    InferenceState.Loading -> "Preparing your model…"
+    InferenceState.Ready -> "Ready for offline research."
+    InferenceState.Generating -> "Writing your answer…"
+    is InferenceState.Failed -> "Couldn't load. Tap to try again."
 }
 
 private fun stateLabel(state: ProofState): String = when (state) {

@@ -24,8 +24,8 @@ permissions=$($apkanalyzer manifest permissions "$apk")
 packages=$($apkanalyzer dex packages "$apk")
 files=$($apkanalyzer files list "$apk")
 
-if grep -Fq 'android.permission.INTERNET' <<<"$permissions"; then
-  echo "FAIL: APK requests INTERNET permission" >&2
+if ! grep -Fq 'android.permission.INTERNET' <<<"$permissions"; then
+  echo "FAIL: APK is missing INTERNET permission needed for user-initiated model provisioning" >&2
   exit 1
 fi
 if grep -Fq 'android.permission.ACCESS_NETWORK_STATE' <<<"$permissions"; then
@@ -72,7 +72,7 @@ fi
 
 bytes=$(wc -c <"$apk" | tr -d ' ')
 sha256=$(shasum -a 256 "$apk" | awk '{print $1}')
-echo "PASS: offline APK audit"
+echo "PASS: offline-core APK packaging audit (network behavior still requires device verification)"
 echo "bytes=$bytes"
 echo "sha256=$sha256"
 echo "abi=arm64-v8a"

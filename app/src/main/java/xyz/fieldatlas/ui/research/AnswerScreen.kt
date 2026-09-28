@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,6 +29,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,7 +39,7 @@ import xyz.fieldatlas.ui.sourceDisplayName
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasIcons
+import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -47,9 +50,14 @@ fun AnswerScreen(
     onBack: () -> Unit,
     onAskAnother: () -> Unit,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
+    onOpenLibrary: () -> Unit = {},
+    travelCollectionAvailable: Boolean = false,
 ) {
     BackHandler(onBack = onBack)
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
+    val suggestTravel = travelCollectionAvailable && Regex(
+        "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
+    ).containsMatchIn(state.question)
     val citedNumbers = presentation.availableCitations.sorted()
     val citedNumberSet = citedNumbers.toSet()
     val citedSources = citedNumbers.mapNotNull { number ->
@@ -79,7 +87,7 @@ fun AnswerScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(
                             text = state.question.ifBlank { "Research result" },
-                            style = MaterialTheme.typography.headlineLarge,
+                            style = MaterialTheme.typography.headlineMedium,
                         )
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -87,7 +95,8 @@ fun AnswerScreen(
                         ) {
                             Text(
                                 text = when (citedSourceGroups.size) {
-                                    0 -> "Model answer · no local citations"
+                                    0 -> if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
+                                        else "Model-generated · sources not cited"
                                     1 -> "1 cited local source"
                                     else -> "${citedSourceGroups.size} cited local sources"
                                 },
@@ -99,7 +108,22 @@ fun AnswerScreen(
                         }
                     }
                 }
-                item { AnswerSectionLabel("Answer") }
+                if (state.sources.isEmpty()) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(if (suggestTravel) {
+                                "No saved travel sources support this answer. Place names and recommendations may be inaccurate."
+                            } else {
+                                "This answer isn't verified against saved sources. Add a relevant collection for source-backed research."
+                            },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            androidx.compose.material3.TextButton(onClick = onOpenLibrary) {
+                                Text(if (suggestTravel) "Add travel collection" else "Browse knowledge collections")
+                            }
+                        }
+                    }
+                }
                 item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                         AnswerMarkdownRenderer(
@@ -112,7 +136,7 @@ fun AnswerScreen(
                 if (state.sources.isNotEmpty()) {
                     item { AnswerSectionLabel("Sources") }
                     if (citedSources.isNotEmpty()) {
-                        item {
+                        if (otherSources.isNotEmpty()) item {
                             Text(
                                 "Cited in this answer",
                                 style = MaterialTheme.typography.bodySmall,
@@ -148,7 +172,7 @@ fun AnswerScreen(
                         ) {
                             Column {
                                 AnswerDisclosureContent(
-                                    label = if (showPerformance) "Hide performance details" else "Performance details",
+                                    label = "Answer details",
                                     onClick = { showPerformance = !showPerformance },
                                     expanded = showPerformance,
                                 )
@@ -219,7 +243,10 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
         FieldAtlasColors.SageWash
     }
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onCitation(group.entries.first().first - 1) },
+        modifier = Modifier.fillMaxWidth()
+            .clickable(onClickLabel = "Open source ${group.entries.first().first}") {
+                onCitation(group.entries.first().first - 1)
+            },
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
     ) {
@@ -233,17 +260,23 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                 color = iconBackground,
                 shape = MaterialTheme.shapes.small,
             ) {
-                Icon(
-                    FieldAtlasIcons.Document,
-                    contentDescription = null,
-                    modifier = Modifier.padding(9.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = group.entries.first().first.toString(),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Source ${group.entries.first().first}"
+                        },
+                    )
+                }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
                     evidence.title,
                     style = MaterialTheme.typography.bodyLarge,
+                    fontFamily = FieldAtlasEditorial,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -255,31 +288,24 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                FlowRow(
+                if (group.entries.size > 1) FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
-                    group.entries.forEach { (number, _) ->
+                    group.entries.drop(1).forEach { (number, _) ->
                         Surface(
-                            modifier = Modifier.clickable { onCitation(number - 1) },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                                .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) },
                             color = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                             shape = MaterialTheme.shapes.extraSmall,
                         ) {
-                            Text(
-                                "[$number]",
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                style = MaterialTheme.typography.labelMedium,
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Text("[$number]",
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelMedium)
+                            }
                         }
-                    }
-                    evidence.matchedBy?.takeIf { it.startsWith("concept match") }?.let { match ->
-                        Text(
-                            match.replaceFirst("concept match", "semantic match"),
-                            modifier = Modifier.align(Alignment.CenterVertically),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
                     }
                 }
             }

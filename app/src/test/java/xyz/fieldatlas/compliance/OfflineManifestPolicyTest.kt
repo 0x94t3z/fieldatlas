@@ -5,9 +5,9 @@ import org.junit.Test
 
 class OfflineManifestPolicyTest {
     @Test
-    fun acceptsAnAppWithoutNetworkPermissionOrCleartextTraffic() {
+    fun acceptsProvisioningPermissionWithoutCleartextTraffic() {
         val snapshot = ManifestSnapshot(
-            permissions = setOf("android.permission.VIBRATE"),
+            permissions = setOf("android.permission.INTERNET"),
             usesCleartextTraffic = false,
         )
 
@@ -15,9 +15,8 @@ class OfflineManifestPolicyTest {
     }
 
     @Test
-    fun rejectsEveryPermissionThatCanOpenNetworkSockets() {
+    fun rejectsNetworkControlPermissions() {
         val dangerous = listOf(
-            "android.permission.INTERNET",
             "android.permission.CHANGE_NETWORK_STATE",
             "android.permission.CHANGE_WIFI_STATE",
         )
