@@ -88,6 +88,14 @@ class MainActivity : ComponentActivity() {
             val appNavigation = rememberFieldAtlasNavigationState()
             val scope = rememberCoroutineScope()
             var attachmentNotice by rememberSaveable { mutableStateOf<String?>(null) }
+            var pendingCameraPath by rememberSaveable { mutableStateOf<String?>(null) }
+            val attachmentContainer = container
+            fun attach(uri: Uri, name: String) {
+                try {
+                    researchViewModel.addAttachment(name) { attachmentContainer.stageAttachment(uri, name) }
+                    attachmentNotice = null
+                } catch (error: Exception) { attachmentNotice = xyz.fieldatlas.attachments.attachmentError(error) }
+            }
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
             val proof = remember(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
                 container.proof(researchState.metrics, researchState.completion)
@@ -99,37 +107,29 @@ class MainActivity : ComponentActivity() {
                 ActivityResultContracts.OpenDocument(),
             ) { uri ->
                 if (uri != null) {
-                    val name = attachmentName(uri)
-                    val type = contentResolver.getType(uri).orEmpty()
-                    attachmentNotice = if (isResearchFileTypeSupported(name, type)) {
-                        "$name selected, but it won't be used in the answer. Research uses your question only."
-                    } else {
-                        "Unsupported file type. Choose a text file, PDF, or image."
-                    }
+                    attach(uri, attachmentName(uri))
                 }
             }
             val researchPhotoPicker = rememberLauncherForActivityResult(
                 ActivityResultContracts.GetContent(),
             ) { uri ->
-                if (uri != null) attachmentNotice =
-                    "Photo selected, but it won't be used in the answer. Research uses your question only."
+                if (uri != null) attach(uri, attachmentName(uri))
             }
             val researchCamera = rememberLauncherForActivityResult(
-                ActivityResultContracts.TakePicturePreview(),
-            ) { bitmap ->
-                if (bitmap != null) {
-                    scope.launch {
-                        val saved = withContext(Dispatchers.IO) {
-                            runCatching {
-                                File(cacheDir, "research-camera.png").outputStream().use { output ->
-                                    check(bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output))
-                                }
-                            }.isSuccess
-                        }
-                        attachmentNotice = if (saved) {
-                            "Photo captured, but it won't be used in the answer. Research uses your question only."
-                        } else "Could not save the camera photo."
-                    }
+                ActivityResultContracts.TakePicture(),
+            ) { saved ->
+                val file = pendingCameraPath?.let(::File)
+                pendingCameraPath = null
+                if (file != null && file.parentFile?.canonicalFile == File(cacheDir, "research-camera").canonicalFile) {
+                    if (saved) {
+                        try {
+                            researchViewModel.addAttachment("Camera photo.jpg") {
+                                try { attachmentContainer.stageAttachment(Uri.fromFile(file), "Camera photo.jpg") }
+                                finally { file.delete() }
+                            }
+                            attachmentNotice = null
+                        } catch (error: Exception) { file.delete(); attachmentNotice = xyz.fieldatlas.attachments.attachmentError(error) }
+                    } else file.delete()
                 }
             }
             val diagnosticsExporter = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -210,14 +210,28 @@ class MainActivity : ComponentActivity() {
                         microphonePermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                     }
                 },
-                onCameraClick = { researchCamera.launch(null) },
+                onCameraClick = {
+                    try {
+                        xyz.fieldatlas.attachments.AttachmentPolicy.checkCount(researchState.attachments.size)
+                        val folder = File(cacheDir, "research-camera").apply { mkdirs() }
+                        val file = File.createTempFile("capture-", ".jpg", folder)
+                        pendingCameraPath = file.absolutePath
+                        researchCamera.launch(androidx.core.content.FileProvider.getUriForFile(this@MainActivity, "$packageName.research-files", file))
+                    } catch (_: Exception) {
+                        pendingCameraPath?.let { File(it).delete() }
+                        pendingCameraPath = null
+                        attachmentNotice = "Could not open the camera. Check the attachment limit, or choose a photo instead."
+                    }
+                },
                 onPhotosClick = { researchPhotoPicker.launch("image/*") },
                 onFilesClick = {
                     researchFilePicker.launch(arrayOf(
-                        "text/*", "application/pdf", "image/*", "application/json", "application/xml",
+                        "text/plain", "text/markdown", "text/csv", "application/pdf", "image/jpeg", "image/png", "image/webp", "application/json",
                     ))
                 },
                 attachmentNotice = attachmentNotice,
+                onRemoveAttachment = researchViewModel::removeAttachment,
+                onRetryAttachment = researchViewModel::retryAttachment,
                 diagnosticsText = diagnosticsNotices.joinToString("\n") { "[${it.area}] ${it.message}" },
                 onClearDiagnostics = container.errorBus::clear,
                 onAskAnotherQuestion = { researchViewModel.startNewQuestion() },

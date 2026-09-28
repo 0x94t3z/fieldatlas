@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.sourceDisplayName
+import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
@@ -156,6 +157,11 @@ fun AnswerScreen(
                             )
                         }
                         if (showOtherSources) {
+                            item {
+                                Text("These passages were provided to the model but were not cited in this answer.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                             items(otherSourceGroups.size, key = { "other:${otherSourceGroups[it].key}" }) { index ->
                                 AnswerSourceCard(otherSourceGroups[index], onCitation)
                             }
@@ -237,6 +243,7 @@ private fun AnswerSectionLabel(text: String) {
 @Composable
 private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit) {
     val evidence = group.entries.first().second
+    val source = sourcePresentation(evidence)
     val iconBackground = if (isSystemInDarkTheme()) {
         MaterialTheme.colorScheme.surfaceVariant
     } else {
@@ -276,13 +283,13 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                 Text(
                     evidence.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontFamily = FieldAtlasEditorial,
+                    fontFamily = if (source.isAttachment) MaterialTheme.typography.bodyLarge.fontFamily else FieldAtlasEditorial,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = if (source.isAttachment) 1 else 2,
+                    overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
                 Text(
-                    sourceDisplayName(evidence.source),
+                    if (source.isAttachment) source.metadata else sourceDisplayName(evidence.source),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

@@ -1,0 +1,9 @@
+Offline printed-English OCR for Field Atlas
+
+Tesseract4Android 4.9.0: Copyright 2019 Adaptech s.r.o., Robert Posel.
+Tesseract OCR 5.5.1 and tessdata_fast English trained data: Apache License 2.0.
+Leptonica 1.85.0, libpng 1.6.48, and libjpeg 9f: see accompanying license texts.
+This software is based in part on the work of the Independent JPEG Group.
+
+License texts are included in the licenses/ subdirectory.
+Sources, pinned revisions and checksums: docs/attachments.md in the Field Atlas repository.

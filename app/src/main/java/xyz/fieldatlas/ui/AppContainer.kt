@@ -48,6 +48,20 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val registry = AssetRegistry(appContext.filesDir)
     private val importer = AssetImporter(appContext)
+    val attachmentStore = xyz.fieldatlas.attachments.AttachmentStore(File(appContext.cacheDir, "research-attachments")).also { it.clearAbandoned() }
+    private val attachmentReader = xyz.fieldatlas.attachments.AndroidAttachmentReader(appContext)
+    suspend fun stageAttachment(uri: Uri, name: String): xyz.fieldatlas.attachments.AttachmentInput {
+        var staged: xyz.fieldatlas.attachments.AttachmentInput? = null
+        try {
+            return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val job = kotlinx.coroutines.currentCoroutineContext()[kotlinx.coroutines.Job]
+                appContext.contentResolver.openInputStream(uri)?.use { stream ->
+                    attachmentStore.stage(name, stream) { if (job?.isActive == false) throw kotlinx.coroutines.CancellationException() }
+                        .also { staged = it }
+                } ?: throw xyz.fieldatlas.attachments.AttachmentException("This file is not available offline. Save it on your device and try again.")
+            }
+        } catch (error: Throwable) { staged?.let { attachmentStore.remove(it.localFile) }; throw error }
+    }
     private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry)
     val knowledgeCatalog = appContext.assets.open("knowledge/catalog.json").bufferedReader().use { reader ->
         KnowledgeCatalog.parse(reader.readText()).packs
@@ -266,6 +280,8 @@ class AppContainer(context: Context) {
                 },
                 onError = { message -> errorBus.report("Research", message) },
                 historyStore = answerHistory,
+                attachmentReader = attachmentReader,
+                cleanupAttachment = attachmentStore::remove,
             ) as T
         }
     }

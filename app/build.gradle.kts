@@ -22,6 +22,8 @@ if (hasAnyReleaseSigningInput && !hasAllReleaseSigningInputs) {
 android {
     namespace = "xyz.fieldatlas"
     compileSdk = 36
+    // Allow testing the signed release on a phone without installing a second debug app.
+    testBuildType = providers.gradleProperty("fieldatlasTestBuildType").getOrElse("debug")
 
     defaultConfig {
         applicationId = "xyz.fieldatlas"
@@ -51,8 +53,10 @@ android {
         }
         release {
             signingConfig = signingConfigs.findByName("ownerRelease")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Instrumentation directly calls app APIs that R8 may otherwise inline/remove.
+            // Normal release builds remain fully optimized.
+            isMinifyEnabled = testBuildType != "release"
+            isShrinkResources = testBuildType != "release"
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
@@ -84,6 +88,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.commons.compress)
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
     implementation("com.alphacephei:vosk-android:0.3.47")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

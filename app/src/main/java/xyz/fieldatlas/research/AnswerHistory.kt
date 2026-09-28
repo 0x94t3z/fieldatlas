@@ -11,13 +11,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
-/** One saved answer. Titles (not full evidence) are kept so the history can show provenance. */
+/** Bounded excerpts preserve attachment citations; older title-only records remain readable. */
 @Serializable
 data class AnswerRecord(
     val question: String,
     val answer: String,
     val createdAtEpochMs: Long,
     val sources: List<String> = emptyList(),
+    val evidence: List<Evidence> = emptyList(),
 )
 
 /**
@@ -45,21 +46,26 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
         }
     }
 
-    fun record(question: String, answer: String, sources: List<String>) {
+    fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList()) {
         if (answer.isBlank()) return
         val entry = AnswerRecord(
             question = question.trim(),
             answer = answer,
             createdAtEpochMs = System.currentTimeMillis(),
             sources = sources,
+            evidence = evidence,
         )
-        val updated = synchronized(lock) {
+        synchronized(lock) {
             (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }
         }
         val write = Runnable {
             runCatching {
-                file.parentFile?.mkdirs()
-                file.writeText(json.encodeToString(ListSerializer(AnswerRecord.serializer()), updated))
+                synchronized(lock) {
+                    file.parentFile?.mkdirs()
+                    val pending = File(file.parentFile, "${file.name}.tmp")
+                    pending.writeText(json.encodeToString(ListSerializer(AnswerRecord.serializer()), mutableRecords.value))
+                    check(pending.renameTo(file))
+                }
             }
         }
         if (synchronousWrites) write.run() else Thread(write).apply { isDaemon = true; start() }

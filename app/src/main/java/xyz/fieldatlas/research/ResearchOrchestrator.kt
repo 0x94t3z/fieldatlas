@@ -39,6 +39,7 @@ class ResearchOrchestrator(
         resultLimit: Int = 8,
         contextTokenBudget: Int = 2_048,
         maxOutputTokens: Int = 1_536,
+        attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment> = emptyList(),
     ): Flow<ResearchEvent> = flow {
         if (question.isBlank()) {
             emit(ResearchEvent.Failed("Question must not be blank"))
@@ -60,20 +61,22 @@ class ResearchOrchestrator(
             // passage; the prompt still receives at most resultLimit sources.
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
-            var evidence = EvidenceRelevance.keep(
+            val includeLibrary = attachments.isEmpty() || AttachmentScope.includesLibrary(question)
+            var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit) { progress ->
                     _searchProgress.value = progress.fraction
                     _vectorMatches.value = progress.vectorMatches
                 },
                 questionTerms,
                 question = question,
-            ).take(resultLimit)
+            ).take(resultLimit) else emptyList()
+            if (!includeLibrary) _searchProgress.value = 1.0
 
             // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (evidence.isEmpty() && retriever.hasEligiblePacks(question)) {
+            if (attachments.isEmpty() && evidence.isEmpty() && retriever.hasEligiblePacks(question)) {
                 emit(ResearchEvent.Planning(question))
                 try {
                     val raw = StringBuilder()
@@ -109,7 +112,7 @@ class ResearchOrchestrator(
                 }
             }
             val retrievalFinishedAt = monotonicMillis()
-            VenueLookup.answer(question, evidence)?.let { venue ->
+            (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
                 val answerAt = monotonicMillis()
                 emit(ResearchEvent.Token(venue.answer))
@@ -125,7 +128,11 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
-            val packed = if (evidence.isEmpty()) {
+            val outputBudget = if (attachments.isEmpty()) maxOutputTokens else minOf(maxOutputTokens, inference.contextWindowTokens / 4).coerceAtLeast(1)
+            val packed = if (attachments.isNotEmpty()) {
+                AttachmentEvidence.pack(question, AttachmentEvidence.select(question, attachments, maxOf(resultLimit, attachments.size)), evidence,
+                    minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget)
+            } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
                 PromptBuilder.build(question, evidence, contextTokenBudget)
@@ -145,7 +152,7 @@ class ResearchOrchestrator(
             var firstTokenAt: Long? = null
             var generatedTokenCount = 0
             val output = StringBuilder()
-            inference.generate(packed.prompt, maxOutputTokens).collect { token ->
+            inference.generate(packed.prompt, outputBudget).collect { token ->
                 if (firstTokenAt == null) firstTokenAt = monotonicMillis()
                 generatedTokenCount++
                 output.append(token)

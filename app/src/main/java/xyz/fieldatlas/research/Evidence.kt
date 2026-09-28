@@ -1,5 +1,6 @@
 package xyz.fieldatlas.research
 
+@kotlinx.serialization.Serializable
 data class Evidence(
     val documentId: String,
     val chunkId: String,

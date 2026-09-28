@@ -18,6 +18,8 @@ before the first build (the APK's .so silently lacks the features otherwise).
 
 ## What the patch contains
 
+The current patch also removes native prompt/token text logging, so private attachment contents are not intentionally written to logcat. Keep this patch applied when building the attachment feature.
+
 `ai-chat-generation-fixes.patch` (three files, in the Android example library):
 
 * **ai_chat.cpp** — conversation/generation correctness: chat-template application

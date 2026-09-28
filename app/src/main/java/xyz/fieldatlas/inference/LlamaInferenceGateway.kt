@@ -30,6 +30,9 @@ class LlamaInferenceGateway internal constructor(
 
     private val lifecycleMutex = Mutex()
     private var loadedSystemPrompt: String? = null
+    override var contextWindowTokens: Int = 2048
+        private set
+    override val promptOverheadTokens: Int get() = (loadedSystemPrompt?.toByteArray()?.size ?: 512) + 512
     private val mutableState = MutableStateFlow(LlamaStateMapper.map(engine.state.value))
 
     /** Prefill progress straight from the native engine ("x/y tokens read"). */
@@ -64,6 +67,11 @@ class LlamaInferenceGateway internal constructor(
             // Keep them off the UI thread even when load() is launched from a ViewModel scope.
             withContext(NonCancellable + Dispatchers.Default) {
                 engine.loadModel(modelPath)
+                contextWindowTokens = runCatching {
+                    java.io.File(modelPath).inputStream().use {
+                        com.arm.aichat.gguf.GgufMetadataReader.create().readStructuredMetadata(it).dimensions?.contextLength
+                    }?.coerceIn(1, 8192) ?: 2048
+                }.getOrDefault(2048)
                 engine.setSystemPrompt(systemPrompt)
             }
             loadedSystemPrompt = systemPrompt

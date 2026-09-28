@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 interface InferenceGateway {
+    val contextWindowTokens: Int get() = 8192
+    val promptOverheadTokens: Int get() = 1024
     val state: StateFlow<InferenceState>
 
     /** Live prompt-prefill progress while a prompt is being read; null when idle. */

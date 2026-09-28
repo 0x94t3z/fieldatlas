@@ -64,6 +64,8 @@ For example, the optional [Wikivoyage places-to-eat collection](DATASETS.md#wiki
 
 ## Version status
 
+Current source also supports [research with local documents and photos](docs/attachments.md): text extraction stays on the phone and selected excerpts become cited sources. This new attachment path is not yet device-verified or included in the public APK.
+
 | Version | Public download? | What the evidence covers |
 | --- | --- | --- |
 | [v1.1.10 signed release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Downloadable APK and checksum. Use the setup instructions at that tag. |

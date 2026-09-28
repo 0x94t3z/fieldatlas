@@ -84,6 +84,8 @@ fun ResearchScreen(
     onPhotosClick: () -> Unit = {},
     onFilesClick: () -> Unit = {},
     attachmentNotice: String? = null,
+    onRemoveAttachment: (String) -> Unit = {},
+    onRetryAttachment: (String) -> Unit = {},
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onStop: () -> Unit,
@@ -94,6 +96,9 @@ fun ResearchScreen(
 ) {
     val scope = rememberCoroutineScope()
     var attachmentMenuOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.canAddAttachment) {
+        if (!state.canAddAttachment) attachmentMenuOpen = false
+    }
     var questionFocused by remember { mutableStateOf(false) }
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
     var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
@@ -154,8 +159,12 @@ fun ResearchScreen(
             }
         } else if (state.isRunning) {
             item {
-                Text(state.question, style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Your question", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(state.question, style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth())
+                }
             }
         } else item {
             Surface(
@@ -172,6 +181,7 @@ fun ResearchScreen(
                 ),
             ) {
                 Column {
+                    AttachmentRows(state.attachments, !state.isRunning, onRemoveAttachment, onRetryAttachment)
                     BasicTextField(
                         value = state.question,
                         onValueChange = onQuestionChange,
@@ -180,7 +190,7 @@ fun ResearchScreen(
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp)
                             .onFocusChanged { questionFocused = it.isFocused }
-                            .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                            .padding(start = 16.dp, end = 16.dp, top = if (state.attachments.isEmpty()) 16.dp else 10.dp)
                             .semantics { contentDescription = "Research question" },
                         decorationBox = { innerTextField ->
                             Box {
@@ -202,7 +212,7 @@ fun ResearchScreen(
                         Box {
                             IconButton(
                                 onClick = { attachmentMenuOpen = true },
-                                enabled = !state.isRunning,
+                                enabled = state.canAddAttachment,
                                 modifier = Modifier.size(48.dp),
                                 colors = IconButtonDefaults.iconButtonColors(
                                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -215,7 +225,7 @@ fun ResearchScreen(
                                 )
                             }
                             DropdownMenu(
-                                expanded = attachmentMenuOpen,
+                                expanded = attachmentMenuOpen && state.canAddAttachment,
                                 onDismissRequest = { attachmentMenuOpen = false },
                                 modifier = Modifier.width(120.dp),
                                 shape = RoundedCornerShape(16.dp),
@@ -311,12 +321,7 @@ fun ResearchScreen(
         }
         if (hasReadyAnswer) {
             item {
-                val citedSourceCount = Regex("\\[(\\d+)]")
-                    .findAll(state.answer)
-                    .mapNotNull { it.groupValues.getOrNull(1)?.toIntOrNull() }
-                    .filter { it in 1..state.sources.size }
-                    .distinct()
-                    .count()
+                val citedSourceCount = readyCitationCount(state.answer, state.sources.size)
                 FieldAtlasCard(Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -344,16 +349,21 @@ fun ResearchScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
-                    state.metrics?.totalMillis?.let { duration ->
-                        Text("Completed in ${formatElapsed(duration)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        state.metrics?.totalMillis?.let { duration ->
+                            FieldAtlasStatusPill(
+                                text = formatResearchElapsed(duration),
+                                state = StatusTone.Neutral,
+                                modifier = Modifier.semantics { contentDescription = "Completed in ${formatResearchElapsed(duration)}" },
+                            )
+                        }
                     }
                     val preview = answerCardPreview(state.answer)
                     if (preview.isNotEmpty()) {
-                        Text(preview, style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp))
+                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Icon(FieldAtlasIcons.Document, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                            Text(preview, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        }
                     }
                     FieldAtlasPrimaryButton(
                         text = "Read answer",
@@ -453,12 +463,6 @@ fun ResearchScreen(
     }
 }
 
-private fun formatElapsed(totalMillis: Long): String {
-    if (totalMillis < 60_000) return "Just now"
-    val seconds = totalMillis / 1_000
-    return "${seconds / 60}m ${seconds % 60}s"
-}
-
 @Composable
 private fun AttachmentMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
     DropdownMenuItem(
@@ -511,7 +515,7 @@ private fun ResearchAction(
                 TextButton(onClick = onStop) { Text("Stop") }
             }
             if (state.startedAtNanos != null) {
-                Text("${formatElapsed(elapsedMillis)} elapsed", style = MaterialTheme.typography.bodySmall,
+                Text("${formatResearchElapsed(elapsedMillis)} elapsed", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -536,7 +540,7 @@ private fun ResearchAction(
         InferenceState.Ready -> FieldAtlasPrimaryButton(
             text = "Start research",
             onClick = onSubmit,
-            enabled = state.question.isNotBlank(),
+            enabled = state.canSubmit,
             modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp),
             leadingIcon = FieldAtlasIcons.ResearchSparkles,
             leadingIconSize = 26.dp,

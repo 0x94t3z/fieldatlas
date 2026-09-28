@@ -11,6 +11,15 @@ import xyz.fieldatlas.ui.markdown.plainText
 
 typealias ResearchCompletion = DomainResearchCompletion
 
+internal fun readyCitationCount(answer: String, sourceCount: Int): Int =
+    buildAnswerPresentation(answer, sourceCount).availableCitations.size
+
+internal fun formatResearchElapsed(totalMillis: Long): String {
+    val seconds = totalMillis.coerceAtLeast(0) / 1_000
+    if (seconds < 60) return "${seconds}s"
+    return "${seconds / 60}m ${seconds % 60}s"
+}
+
 data class ResearchMetricsModel(
     val retrieval: String,
     val firstToken: String?,

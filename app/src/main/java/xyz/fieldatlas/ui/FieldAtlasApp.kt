@@ -86,6 +86,8 @@ fun FieldAtlasApp(
     onPhotosClick: () -> Unit = {},
     onFilesClick: () -> Unit = {},
     attachmentNotice: String? = null,
+    onRemoveAttachment: (String) -> Unit = {},
+    onRetryAttachment: (String) -> Unit = {},
     diagnosticsText: String = "",
     onClearDiagnostics: () -> Unit = {},
     onAskAnotherQuestion: () -> Unit = {},
@@ -202,7 +204,7 @@ fun FieldAtlasApp(
                             sourceCount = researchState.sources.size,
                             // With several active packs the evidence does not carry its pack ID;
                             // omitting this field is safer than crediting the wrong license.
-                            packLicense = enabledKnowledge.singleOrNull()?.license,
+                            packLicense = if (source.documentId.startsWith("attachment:")) null else enabledKnowledge.singleOrNull()?.license,
                             onBack = closeDetail,
                         )
                     }
@@ -267,6 +269,8 @@ fun FieldAtlasApp(
                         onPhotosClick = onPhotosClick,
                         onFilesClick = onFilesClick,
                         attachmentNotice = attachmentNotice,
+                        onRemoveAttachment = onRemoveAttachment,
+                        onRetryAttachment = onRetryAttachment,
                         onQuestionChange = onQuestionChange,
                         onSubmit = onSubmit,
                         onStop = onStop,

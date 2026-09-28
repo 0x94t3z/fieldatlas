@@ -1,6 +1,7 @@
 package xyz.fieldatlas.ui.history
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,6 +51,20 @@ import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
  */
 @Composable
 fun HistoryScreen(records: List<AnswerRecord>) {
+    var savedSource by remember { mutableStateOf<xyz.fieldatlas.research.Evidence?>(null) }
+    savedSource?.let { evidence ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { savedSource = null },
+            title = { Text(evidence.title) },
+            text = {
+                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
+                    Text(evidence.source, style = MaterialTheme.typography.labelLarge)
+                    Text(evidence.text, style = MaterialTheme.typography.bodyMedium)
+                }
+            },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { savedSource = null }) { Text("Close") } },
+        )
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
         FieldAtlasPageHeader(
             title = stringResource(R.string.history_title),
@@ -125,8 +140,8 @@ fun HistoryScreen(records: List<AnswerRecord>) {
                         if (expanded) {
                             AnswerMarkdownRenderer(
                                 blocks = answerBlocks,
-                                sourceCount = 0,
-                                onCitation = {},
+                                sourceCount = record.evidence.size,
+                                onCitation = { savedSource = record.evidence.getOrNull(it) },
                                 modifier = Modifier.fillMaxWidth(),
                             )
                         } else {
@@ -138,9 +153,11 @@ fun HistoryScreen(records: List<AnswerRecord>) {
                             )
                         }
                         if (expanded && record.sources.isNotEmpty()) {
-                            Text("Saved source titles", style = MaterialTheme.typography.titleSmall)
-                            record.sources.forEach { source ->
-                                Text("• $source", style = MaterialTheme.typography.bodySmall,
+                            Text(if (record.evidence.isEmpty()) "Saved source titles" else "Saved sources", style = MaterialTheme.typography.titleSmall)
+                            record.sources.forEachIndexed { index, source ->
+                                if (index < record.evidence.size) {
+                                    androidx.compose.material3.TextButton(onClick = { savedSource = record.evidence[index] }) { Text("${index + 1}. $source") }
+                                } else Text("• $source", style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }

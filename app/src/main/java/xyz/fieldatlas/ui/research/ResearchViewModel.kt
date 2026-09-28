@@ -19,6 +19,8 @@ import xyz.fieldatlas.research.ResearchEvent
 import xyz.fieldatlas.research.ResearchMetrics
 import xyz.fieldatlas.research.ResearchOrchestrator
 import xyz.fieldatlas.speech.SpeechTranscriber
+import xyz.fieldatlas.attachments.*
+import java.io.File
 
 enum class ResearchPhase { Idle, Planning, Searching, Generating, Complete, Insufficient, Error }
 
@@ -31,6 +33,7 @@ data class VoiceUiState(
 )
 
 data class ResearchUiState(
+    val attachments: List<AttachmentUiState> = emptyList(),
     val question: String = "",
     val startedAtNanos: Long? = null,
     val answer: String = "",
@@ -46,6 +49,8 @@ data class ResearchUiState(
     val completion: ResearchCompletion? = null,
     val error: String? = null,
 ) {
+    val canAddAttachment: Boolean get() = !isRunning && attachments.size < AttachmentPolicy.MAX_COUNT
+    val canSubmit: Boolean get() = question.isNotBlank() && !isRunning && attachments.all { it.phase == AttachmentPhase.Ready }
     val isRunning: Boolean get() = phase == ResearchPhase.Planning ||
         phase == ResearchPhase.Searching ||
         phase == ResearchPhase.Generating
@@ -58,11 +63,23 @@ class ResearchViewModel(
     private val createTranscriber: () -> SpeechTranscriber = { error("Speech capture is unavailable") },
     private val onError: (String) -> Unit = {},
     private val historyStore: AnswerHistoryStore? = null,
+    attachmentReader: AttachmentReader = AttachmentReader { throw AttachmentException("Attachments are unavailable.") },
+    cleanupAttachment: (File) -> Unit = {},
 ) : ViewModel() {
     private val scope = launchScope ?: viewModelScope
     private val mutableUiState = MutableStateFlow(
         ResearchUiState(question = savedStateHandle.get<String>(QUESTION_KEY).orEmpty()),
     )
+    private val attachmentSession = AttachmentSession(scope, attachmentReader, cleanupAttachment)
+    fun addAttachment(name: String, load: suspend () -> AttachmentInput) {
+        if (mutableUiState.value.isRunning) return
+        if (mutableUiState.value.phase == ResearchPhase.Complete) {
+            mutableUiState.value = ResearchUiState(question = mutableUiState.value.question, attachments = attachmentSession.state.value)
+        }
+        attachmentSession.add(name, load)
+    }
+    fun removeAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.remove(id) }
+    fun retryAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.retry(id) }
     val uiState: StateFlow<ResearchUiState> = mutableUiState.asStateFlow()
     private var researchJob: Job? = null
     private val rawAnswer = StringBuilder()
@@ -71,6 +88,7 @@ class ResearchViewModel(
     private var activeTranscriber: SpeechTranscriber? = null
 
     init {
+        scope.launch { attachmentSession.state.collect { attachments -> mutableUiState.update { it.copy(attachments = attachments) } } }
         scope.launch {
             orchestrator.promptProgress.collect { progress: PromptProgress? ->
                 mutableUiState.update { state ->
@@ -169,7 +187,7 @@ class ResearchViewModel(
         savedStateHandle[QUESTION_KEY] = question
         mutableUiState.update { state ->
             if (state.phase == ResearchPhase.Complete && question != state.question) {
-                ResearchUiState(question = question)
+                ResearchUiState(question = question, attachments = attachmentSession.state.value)
             } else {
                 state.copy(question = question)
             }
@@ -178,15 +196,16 @@ class ResearchViewModel(
 
     fun submit() {
         val question = mutableUiState.value.question
-        if (question.isBlank() || researchJob?.isActive == true) return
+        if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
         rawAnswer.clear()
         mutableUiState.value = ResearchUiState(
             question = question,
+            attachments = attachmentSession.state.value,
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
         )
         researchJob = scope.launch {
-            orchestrator.research(question).collect { event ->
+            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }).collect { event ->
                 mutableUiState.value = when (event) {
                     is ResearchEvent.Planning -> mutableUiState.value.copy(
                         phase = ResearchPhase.Planning,
@@ -226,6 +245,7 @@ class ResearchViewModel(
                                 question = state.question,
                                 answer = state.answer,
                                 sources = state.sources.map { evidence -> evidence.title },
+                                evidence = if (state.attachments.isNotEmpty()) state.sources else emptyList(),
                             )
                         }
                     }
@@ -244,6 +264,7 @@ class ResearchViewModel(
 
     /** Clears the finished answer so the screen returns to a fresh-asking state. */
     fun startNewQuestion() {
+        attachmentSession.clear()
         researchJob?.cancel()
         researchJob = null
         rawAnswer.clear()
@@ -263,6 +284,7 @@ class ResearchViewModel(
                 question = state.question,
                 answer = state.answer,
                 sources = state.sources.map { evidence -> evidence.title },
+                evidence = if (state.attachments.isNotEmpty()) state.sources else emptyList(),
             )
             mutableUiState.value = state.copy(
                 phase = ResearchPhase.Idle,
@@ -272,6 +294,7 @@ class ResearchViewModel(
     }
 
     override fun onCleared() {
+        attachmentSession.clear()
         researchJob?.cancel()
         activeTranscriber?.let { transcriber ->
             activeTranscriber = null

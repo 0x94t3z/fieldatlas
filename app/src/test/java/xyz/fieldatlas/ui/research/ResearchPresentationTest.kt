@@ -7,6 +7,15 @@ import org.junit.Test
 import xyz.fieldatlas.research.ResearchMetrics
 
 class ResearchPresentationTest {
+    @Test fun readyCardCountsActualCitationSyntaxAndIgnoresUnavailableSources() {
+        assertEquals(2, readyCitationCount("Sources [S1], [S2], [S2], [S9].", 4))
+        assertEquals(0, readyCitationCount("No citations", 4))
+    }
+    @Test fun elapsedTimeIsADurationNotARelativeTimestamp() {
+        assertEquals("0s", formatResearchElapsed(0))
+        assertEquals("12s", formatResearchElapsed(12_400))
+        assertEquals("1m 5s", formatResearchElapsed(65_000))
+    }
     @Test fun formatsMeasuredRateWithoutInventingMissingValues() {
         val measured = formatResearchMetrics(metrics(totalMillis = 2_000, tokens = 10), sourceCount = 2)
         assertEquals("5.0 tok/s", measured.tokenRate)

@@ -4,19 +4,23 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
@@ -24,6 +28,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -33,6 +39,7 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 
 @Composable
@@ -176,27 +183,20 @@ private fun InlineBlock(
     onCitation: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val text = annotatedText(content)
-    val citations = content.citations()
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    val text = annotatedText(content, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primary, sourceCount)
+    val inlineCitations = content.citations().filter { it.number in 1..sourceCount }.distinctBy { it.number }
+        .associate { citation ->
+            "citation:${citation.number}" to InlineTextContent(
+                Placeholder((citation.number.toString().length * 0.6f + 1.6f).em, 1.4.em, PlaceholderVerticalAlign.TextCenter),
+            ) { CitationChip(citation.number, onCitation) }
+        }
+    Column(modifier) {
         if (text.isNotBlank()) {
             SelectionContainer {
-                Text(text = text, style = style.copy(
+                Text(text = text, inlineContent = inlineCitations, style = style.copy(
                     lineBreak = LineBreak.Paragraph,
-                    hyphens = Hyphens.Auto,
+                    hyphens = Hyphens.None,
                 ))
-            }
-        }
-        if (citations.isNotEmpty()) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                verticalArrangement = Arrangement.spacedBy(7.dp),
-            ) {
-                citations.forEach { citation ->
-                    if (citation.number in 1..sourceCount) {
-                        CitationChip(citation.number, onCitation)
-                    }
-                }
             }
         }
     }
@@ -205,7 +205,7 @@ private fun InlineBlock(
 @Composable
 private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
     Surface(
-        modifier = Modifier
+        modifier = Modifier.fillMaxSize()
             .clip(MaterialTheme.shapes.extraSmall)
             .clickable { onCitation(number - 1) }
             .semantics { contentDescription = "Open source $number" },
@@ -213,11 +213,11 @@ private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         shape = MaterialTheme.shapes.extraSmall,
     ) {
-        Text(
+        Box(contentAlignment = Alignment.Center) { Text(
             text = "[$number]",
-            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = 3.dp),
             style = MaterialTheme.typography.labelLarge,
-        )
+        ) }
     }
 }
 
@@ -229,10 +229,7 @@ private fun headingStyle(level: Int): TextStyle = when (level) {
     else -> MaterialTheme.typography.titleMedium
 }
 
-@Composable
-private fun annotatedText(content: List<MarkdownInline>): AnnotatedString {
-    val codeBackground = MaterialTheme.colorScheme.surfaceVariant
-    val linkColor = MaterialTheme.colorScheme.primary
+internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color, linkColor: Color, sourceCount: Int): AnnotatedString {
     return buildAnnotatedString {
         fun appendInline(inline: MarkdownInline) {
             when (inline) {
@@ -255,7 +252,9 @@ private fun annotatedText(content: List<MarkdownInline>): AnnotatedString {
                         textDecoration = TextDecoration.Underline,
                     ),
                 ) { inline.label.forEach(::appendInline) }
-                is MarkdownInline.Citation -> Unit
+                is MarkdownInline.Citation -> if (inline.number in 1..sourceCount) {
+                    appendInlineContent("citation:${inline.number}", "[${inline.number}]")
+                }
             }
         }
         content.forEach(::appendInline)

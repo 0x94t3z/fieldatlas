@@ -67,8 +67,12 @@ class FieldAtlasAppTest {
                     SetupScreen(
                         emptyList(),
                         false,
+                        false,
+                        0L,
                         null,
                         onImportPack = {},
+                        onDownloadModel = {},
+                        onCancelDownload = {},
                         listState = rememberLazyListState(initialFirstVisibleItemIndex = 4),
                     )
                 }
