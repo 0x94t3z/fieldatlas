@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,9 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.research.Evidence
+import xyz.fieldatlas.ui.sourceDisplayName
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
-import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
+import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -68,15 +69,14 @@ fun AnswerScreen(
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize()) {
-            FieldAtlasTopBar(title = "Research answer", onBack = onBack)
+            FieldAtlasTopBar(title = "Answer", onBack = onBack)
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, bottom = 24.dp),
+                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        AnswerSectionLabel("Field note")
                         Text(
                             text = state.question.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineLarge,
@@ -87,9 +87,9 @@ fun AnswerScreen(
                         ) {
                             Text(
                                 text = when (citedSourceGroups.size) {
-                                    0 -> "No linked local source · answered offline"
-                                    1 -> "1 cited local source · answered offline"
-                                    else -> "${citedSourceGroups.size} cited local sources · answered offline"
+                                    0 -> "Model answer · no local citations"
+                                    1 -> "1 cited local source"
+                                    else -> "${citedSourceGroups.size} cited local sources"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -101,10 +101,7 @@ fun AnswerScreen(
                 }
                 item { AnswerSectionLabel("Answer") }
                 item {
-                    FieldAtlasCard(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ) {
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                         AnswerMarkdownRenderer(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
@@ -207,10 +204,9 @@ fun AnswerScreen(
 @Composable
 private fun AnswerSectionLabel(text: String) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Bold,
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
     )
 }
 
@@ -238,7 +234,7 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                 shape = MaterialTheme.shapes.small,
             ) {
                 Icon(
-                    Icons.Outlined.Description,
+                    FieldAtlasIcons.Document,
                     contentDescription = null,
                     modifier = Modifier.padding(9.dp),
                     tint = MaterialTheme.colorScheme.primary,
@@ -253,7 +249,7 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    evidence.source,
+                    sourceDisplayName(evidence.source),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

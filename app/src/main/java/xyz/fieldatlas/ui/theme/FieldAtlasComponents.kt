@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -29,11 +31,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 
 enum class StatusTone { Neutral, Positive, Attention }
 
@@ -84,6 +88,7 @@ fun FieldAtlasStatusPill(
     modifier: Modifier = Modifier,
     containerColor: Color? = null,
     contentColor: Color? = null,
+    icon: ImageVector? = null,
 ) {
     val defaultColors = when (state) {
         StatusTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
@@ -96,11 +101,14 @@ fun FieldAtlasStatusPill(
         contentColor = contentColor ?: defaultColors.second,
         shape = MaterialTheme.shapes.small,
     ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(horizontal = 11.dp, vertical = 7.dp),
-            style = MaterialTheme.typography.labelLarge,
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+        ) {
+            if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Text(text = text, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }
 
@@ -108,6 +116,7 @@ fun FieldAtlasStatusPill(
 fun FieldAtlasCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentPadding: androidx.compose.ui.unit.Dp = 18.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Card(
@@ -116,10 +125,26 @@ fun FieldAtlasCard(
         shape = MaterialTheme.shapes.medium,
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            modifier = Modifier.fillMaxWidth().padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(10.dp),
             content = content,
         )
+    }
+}
+
+@Composable
+fun FieldAtlasIconTile(
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 40.dp,
+) {
+    Surface(
+        modifier = modifier.size(size),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.padding(size / 4))
     }
 }
 
@@ -129,6 +154,9 @@ fun FieldAtlasPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    leadingIcon: ImageVector? = null,
+    leadingIconSize: Dp = 18.dp,
+    trailingIcon: ImageVector? = null,
 ) {
     Button(
         onClick = onClick,
@@ -137,7 +165,15 @@ fun FieldAtlasPrimaryButton(
         shape = MaterialTheme.shapes.medium,
         contentPadding = ButtonDefaults.ContentPadding,
     ) {
+        if (leadingIcon != null) {
+            Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(leadingIconSize))
+            androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
+        }
         Text(text, style = MaterialTheme.typography.labelLarge)
+        if (trailingIcon != null) {
+            androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
+            Icon(trailingIcon, contentDescription = null, modifier = Modifier.size(18.dp))
+        }
     }
 }
 

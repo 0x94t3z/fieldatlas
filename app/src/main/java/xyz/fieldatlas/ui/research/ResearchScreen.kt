@@ -1,6 +1,7 @@
 package xyz.fieldatlas.ui.research
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +16,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,20 +26,26 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
+import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
@@ -54,6 +59,7 @@ fun ResearchScreen(
     suggestions: List<String> = emptyList(),
     voiceState: VoiceUiState = VoiceUiState(),
     onMicClick: () -> Unit = {},
+    onImportPack: () -> Unit = {},
     diagnosticsText: String = "",
     onClearDiagnostics: () -> Unit = {},
     onQuestionChange: (String) -> Unit,
@@ -65,7 +71,13 @@ fun ResearchScreen(
 ) {
     val scope = rememberCoroutineScope()
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
-    val exampleQuestions = suggestions.filter(String::isNotBlank).distinct().take(3)
+    // Keep the first-run examples focused on the bounty's research task rather than
+    // mirroring whichever pack happens to be installed on the device.
+    val exampleQuestions = listOf(
+        "Tell me the best vegan restaurants in Berlin",
+        "What are the best museums to visit in Tokyo?",
+        "Summarise my travel notes about Japan",
+    )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         state = listState,
@@ -80,9 +92,11 @@ fun ResearchScreen(
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldAtlasStatusPill("Offline", StatusTone.Positive)
+                FieldAtlasStatusPill("Offline", StatusTone.Positive,
+                    icon = FieldAtlasIcons.Offline)
                 FieldAtlasStatusPill(
                     if (collectionCount == 1) "1 collection" else "$collectionCount collections",
+                    icon = FieldAtlasIcons.Database,
                 )
             }
         }
@@ -96,43 +110,43 @@ fun ResearchScreen(
             }
         }
         item {
-            OutlinedTextField(
-                value = state.question,
-                onValueChange = onQuestionChange,
-                label = { Text("Research question") },
-                placeholder = {
-                    Text(
-                        suggestions.firstOrNull()?.let { "e.g. $it" }
-                            ?: "Explain a topic, compare evidence, or examine a claim",
-                    )
-                },
-                enabled = !state.isRunning,
-                minLines = 3,
-                trailingIcon = {
+            Box(Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = state.question,
+                    onValueChange = onQuestionChange,
+                    placeholder = { Text("Explain a topic, compare evidence, or examine a claim") },
+                    enabled = !state.isRunning,
+                    minLines = 4,
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Research question" },
+                    shape = MaterialTheme.shapes.medium,
+                )
+                Surface(
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 10.dp, end = 8.dp).size(48.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                ) {
                     IconButton(
                         onClick = onMicClick,
                         enabled = !state.isRunning &&
                             (voiceState.phase == VoicePhase.Idle || voiceState.phase == VoicePhase.Recording),
                     ) {
                         when (voiceState.phase) {
-                            VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                            )
-                            VoicePhase.Recording -> Icon(
-                                Icons.Filled.Stop,
-                                contentDescription = "Stop recording",
-                            )
-                            VoicePhase.Idle -> Icon(
-                                Icons.Outlined.Mic,
-                                contentDescription = "Speak question",
-                            )
+                            VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                            VoicePhase.Recording -> Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
+                            VoicePhase.Idle -> Icon(Icons.Outlined.Mic, contentDescription = "Speak question")
                         }
                     }
-                },
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Research question" },
-                shape = MaterialTheme.shapes.medium,
-            )
+                }
+                TextButton(
+                    onClick = onImportPack,
+                    enabled = !state.isRunning,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 8.dp, bottom = 4.dp),
+                ) {
+                    Icon(FieldAtlasIcons.AttachFile, contentDescription = null, modifier = Modifier.size(21.dp))
+                    androidx.compose.foundation.layout.Spacer(Modifier.width(6.dp))
+                    Text("Add files")
+                }
+            }
             when (voiceState.phase) {
                 VoicePhase.Recording -> Column {
                     LinearProgressIndicator(
@@ -173,27 +187,44 @@ fun ResearchScreen(
         }
         if (hasReadyAnswer) {
             item {
-                val citedSourceCount = buildAnswerPresentation(state.answer, state.sources.size)
-                    .availableCitations.size
+                val citedSourceCount = Regex("\\[(\\d+)]")
+                    .findAll(state.answer)
+                    .mapNotNull { it.groupValues.getOrNull(1)?.toIntOrNull() }
+                    .filter { it in 1..state.sources.size }
+                    .distinct()
+                    .count()
                 FieldAtlasCard(Modifier.fillMaxWidth()) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Icon(
-                            Icons.Outlined.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ) {
+                            Icon(FieldAtlasIcons.Check, contentDescription = null, modifier = Modifier.padding(8.dp))
+                        }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("Answer ready", style = MaterialTheme.typography.titleLarge)
+                            Text(
+                                if (citedSourceCount == 0) {
+                                    "Written by the offline model."
+                                } else {
+                                    "Written from $citedSourceCount cited local " +
+                                        if (citedSourceCount == 1) "source." else "sources."
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        FieldAtlasStatusPill(
+                            state = StatusTone.Neutral,
+                            text = state.metrics?.totalMillis?.let(::formatElapsed) ?: "Just now",
                         )
-                        Text("Answer ready", style = MaterialTheme.typography.titleLarge)
                     }
-                    Text(
-                        if (citedSourceCount == 0) {
-                            "Written by the offline model without local citations."
-                        } else {
-                            "Written from $citedSourceCount cited local " +
-                                if (citedSourceCount == 1) "source." else "sources."
-                        },
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
                     val preview = answerCardPreview(state.answer)
                     if (preview.isNotEmpty()) {
                         Row(
@@ -201,7 +232,7 @@ fun ResearchScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
                             Icon(
-                                Icons.Outlined.Description,
+                                FieldAtlasIcons.Document,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp),
@@ -213,6 +244,7 @@ fun ResearchScreen(
                         text = "Read answer",
                         onClick = onOpenAnswer,
                         modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = FieldAtlasIcons.ChevronRight,
                     )
                 }
             }
@@ -220,8 +252,8 @@ fun ResearchScreen(
         if (exampleQuestions.isNotEmpty() && !state.isRunning) {
             item {
                 Text(
-                    "Try an example from your library",
-                    style = MaterialTheme.typography.titleMedium,
+                    "Try an example",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -234,14 +266,44 @@ fun ResearchScreen(
                                 onQuestionChange(question)
                                 scope.launch { listState.animateScrollToItem(0) }
                             },
-                            modifier = Modifier.width(190.dp).heightIn(min = 110.dp),
+                            modifier = Modifier.width(148.dp).heightIn(min = 132.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         ) {
-                            Text(
-                                question,
-                                modifier = Modifier.padding(16.dp),
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                val exampleIcon = when (index) {
+                                    0 -> FieldAtlasIcons.Food
+                                    1 -> FieldAtlasIcons.Place
+                                    else -> FieldAtlasIcons.Document
+                                }
+                                val iconBackground = when (exampleIcon) {
+                                    FieldAtlasIcons.Place -> Color(0xFFEAE3FA)
+                                    FieldAtlasIcons.Document -> Color(0xFFFFE8C2)
+                                    else -> MaterialTheme.colorScheme.primaryContainer
+                                }
+                                val iconTint = when (exampleIcon) {
+                                    FieldAtlasIcons.Place -> Color(0xFF6B4BA3)
+                                    FieldAtlasIcons.Document -> Color(0xFF9A5A00)
+                                    else -> MaterialTheme.colorScheme.onPrimaryContainer
+                                }
+                                Surface(
+                                    modifier = Modifier.size(34.dp),
+                                    color = iconBackground,
+                                    shape = MaterialTheme.shapes.small,
+                                ) {
+                                    Icon(exampleIcon, contentDescription = null,
+                                        tint = iconTint,
+                                        modifier = Modifier.padding(8.dp))
+                                }
+                                Text(
+                                    question,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 5,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
                     }
                 }
@@ -286,6 +348,12 @@ fun ResearchScreen(
     }
 }
 
+private fun formatElapsed(totalMillis: Long): String {
+    if (totalMillis < 60_000) return "Just now"
+    val seconds = totalMillis / 1_000
+    return "${seconds / 60}m ${seconds % 60}s"
+}
+
 @Composable
 private fun ResearchAction(
     state: ResearchUiState,
@@ -326,7 +394,9 @@ private fun ResearchAction(
             text = "Start research",
             onClick = onSubmit,
             enabled = state.question.isNotBlank(),
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp),
+            leadingIcon = FieldAtlasIcons.ResearchSparkles,
+            leadingIconSize = 26.dp,
         )
         InferenceState.Loading -> FieldAtlasCard(Modifier.fillMaxWidth()) {
             Text("Preparing research tools")

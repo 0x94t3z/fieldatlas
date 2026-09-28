@@ -23,8 +23,8 @@ object FieldAtlasColors {
     val PaperBackground = Color(0xFFF3EFE5)
     val ForestGreen = Color(0xFF285D49)
     val SageWash = Color(0xFFE8E9DE)
-    val MenuSelection = Color(0xFF595267)
-    val OnMenuSelection = Color(0xFFF1EAFF)
+    val MenuSelection = Color(0xFF203D34)
+    val OnMenuSelection = Color.White
 }
 
 /** Bundled so the notebook identity does not depend on an OEM's generic serif fallback. */

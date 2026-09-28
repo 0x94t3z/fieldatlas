@@ -34,7 +34,7 @@ The [original 47-second Infinix demo](docs/evidence/physical/infinix-x6840-andro
 
 [![Preview of the original offline Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
 
-The [newer 11-second development clip](docs/evidence/development/infinix-berlin-vegan-lookup.mp4) shows a Berlin restaurant question, an already-ready cited answer, and a tap into its local Wikivoyage passage. It does **not** show a fresh search running or verify that the restaurant is still open. More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available too.
+More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available. These recordings are historical evidence, not a benchmark of the current development build.
 
 ## Get started
 

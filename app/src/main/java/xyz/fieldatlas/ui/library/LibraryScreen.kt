@@ -9,17 +9,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,15 +27,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
@@ -43,10 +37,13 @@ import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
-import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
+import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
+import xyz.fieldatlas.ui.theme.FieldAtlasIcons
+import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
+import xyz.fieldatlas.ui.theme.StatusTone
+import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 
 @Composable
 fun LibraryScreen(
@@ -73,21 +70,30 @@ fun LibraryScreen(
             item {
                 FieldAtlasHeader(
                     title = "Library",
-                    subtitle = "Installed knowledge sets the boundary for evidence-backed answers.",
+                    subtitle = "Models and knowledge saved on this phone.",
                     modifier = Modifier.padding(top = 20.dp),
                 )
             }
-            item { SectionLabel("Answer models") }
-            if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
-            if (activeModel != null) {
+            item {
+                FieldAtlasPrimaryButton(
+                    text = if (importing) "Verifying pack…" else "Import a pack",
+                    onClick = onImportPack,
+                    enabled = !importing,
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = FieldAtlasIcons.Import,
+                )
+            }
+            if (importError != null) {
                 item {
-                    Text(
-                        "In use: ${activeModel.title} · version ${activeModel.version}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    FieldAtlasCard(Modifier.fillMaxWidth()) {
+                        Text("This pack could not be imported.", color = MaterialTheme.colorScheme.error,
+                            fontWeight = FontWeight.SemiBold)
+                        Text(importError, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
             }
+            item { SectionLabel("Model") }
+            if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
             if (models.size > 1) {
                 item {
                     Text(
@@ -106,7 +112,7 @@ fun LibraryScreen(
                     onDelete = { onDeletePack(asset) },
                 )
             }
-            item { SectionLabel("Knowledge data") }
+            item { SectionLabel("Knowledge collections") }
             if (knowledge.isEmpty()) {
                 item {
                     EmptyLibraryNote(
@@ -140,15 +146,6 @@ fun LibraryScreen(
                     )
                 }
             }
-            if (speech.isNotEmpty() && activeSpeech != null) {
-                item {
-                    Text(
-                        "In use for dictation: ${activeSpeech.title} · version ${activeSpeech.version}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
             items(speech.size, key = { "audio:${speech[it].id}:${speech[it].version}" }) { index ->
                 val asset = speech[index]
                 AssetCard(
@@ -158,30 +155,6 @@ fun LibraryScreen(
                     onDelete = { onDeletePack(asset) },
                 )
             }
-            item {
-                OutlinedButton(
-                    onClick = onImportPack,
-                    enabled = !importing,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    if (importing) {
-                        CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    }
-                    Text(if (importing) "Verifying pack on this device…" else "Import another pack")
-                }
-            }
-            if (importError != null) {
-                item {
-                    FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        Text(
-                            "This pack could not be imported.",
-                            color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(importError, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
         }
     }
 }
@@ -189,10 +162,9 @@ fun LibraryScreen(
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text.uppercase(),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-        fontWeight = FontWeight.Bold,
+        text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
     )
 }
 
@@ -206,106 +178,57 @@ private fun AssetCard(
     onDelete: (() -> Unit)? = null,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
-    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-    val iconBackground = if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant else FieldAtlasColors.SageWash
     val icon = when {
-        model.kind.equals("answer model", ignoreCase = true) -> Icons.Outlined.Inventory2
+        model.kind.equals("answer model", ignoreCase = true) -> FieldAtlasIcons.Archive
         model.kind.equals("audio model", ignoreCase = true) -> Icons.Outlined.Mic
-        else -> Icons.Outlined.Description
+        else -> FieldAtlasIcons.Document
     }
-    // Family tint for the metadata lines: the Library sections already name the family, so
-    // the kind label was dropped from the text and the colour alone carries it — green for
-    // answer models, blue for knowledge data, purple for audio models.
-    val familyTint = when {
-        model.kind.equals("answer model", ignoreCase = true) -> androidx.compose.ui.graphics.Color(0xFF4C9A6A)
-        model.kind.equals("audio model", ignoreCase = true) -> androidx.compose.ui.graphics.Color(0xFF8E6BB8)
-        else -> androidx.compose.ui.graphics.Color(0xFF4A87B0)
-    }
-    FieldAtlasCard(Modifier.fillMaxWidth()) {
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(modifier = Modifier.size(44.dp), color = iconBackground, shape = MaterialTheme.shapes.small) {
-                Icon(icon, contentDescription = null, modifier = Modifier.padding(10.dp), tint = MaterialTheme.colorScheme.primary)
-            }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            FieldAtlasIconTile(icon, size = 52.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     model.title,
                     style = MaterialTheme.typography.titleMedium,
                     fontFamily = FieldAtlasEditorial,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
                 )
                 Text(
                     "${model.size} · version ${model.version}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = familyTint,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.primary,
                 )
-                // License plus the manifest hash on one unwrapped line (the tail is
-                // ellipsised, never wrapped). Double-tap copies the FULL 64-character hash —
-                // it replaced the old expandable "Verification details" section to keep each
-                // row shorter; the family section already says what kind of pack this is.
-                var justCopied by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
-                Text(
-                    if (justCopied) "SHA-256 copied: ${model.manifestSha256}"
-                    else "${model.license} · SHA-256: ${model.manifestSha256}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = familyTint,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .pointerInput(model.manifestSha256) {
-                            detectTapGestures(onDoubleTap = {
-                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(model.manifestSha256))
-                                justCopied = true
-                            })
-                        },
-                )
-                if (justCopied) {
-                    LaunchedEffect(model.title, model.version, Unit) {
-                        kotlinx.coroutines.delay(1_500)
-                        justCopied = false
-                    }
-                }
             }
-            // Right column of the one-row card: control on top, Delete beneath, both
-            // kept tight so this column never exceeds the icon/text columns — card height
-            // stays content-driven.
-            Column(
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                when {
-                    onToggleResearch != null -> Switch(checked = enabled, onCheckedChange = onToggleResearch)
-                    selectedModel -> Icon(
-                        Icons.Outlined.Check,
-                        contentDescription = "Selected model",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    onActivateModel != null -> Button(
-                        onClick = onActivateModel,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 16.dp, vertical = 2.dp,
-                        ),
-                    ) {
-                        Text("Use")
+            if (onDelete != null) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    when {
+                        selectedModel -> Icon(FieldAtlasIcons.Check, contentDescription = "In use", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                        onActivateModel != null -> TextButton(onClick = onActivateModel) { Text("Use model") }
+                        onToggleResearch != null -> Switch(
+                            checked = enabled,
+                            onCheckedChange = onToggleResearch,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.surface,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                checkedBorderColor = MaterialTheme.colorScheme.primary,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                            ),
+                        )
                     }
-                }
-                if (onDelete != null) {
                     TextButton(
                         onClick = { confirmDelete = true },
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 8.dp, vertical = 0.dp,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
                         ),
-                    ) {
-                        Text("Delete", color = MaterialTheme.colorScheme.error)
-                    }
+                    ) { Text("Delete") }
                 }
             }
         }

@@ -5,21 +5,28 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -75,8 +82,10 @@ fun FieldAtlasApp(
 ) {
     val ready = packs.any { it.type == PackType.MODEL }
     val enabledKnowledge = packs.filter { it.type == PackType.KNOWLEDGE && it.enabled }
-    val menuBackground = if (isSystemInDarkTheme()) null else FieldAtlasColors.SageWash
-    var autoPreparationStarted by rememberSaveable { mutableStateOf(false) }
+    val darkTheme = isSystemInDarkTheme()
+    // Loading state belongs to the live inference gateway. Do not restore a stale "started"
+    // flag after process death, when the new gateway is Idle again.
+    var autoPreparationStarted by remember { mutableStateOf(false) }
     LaunchedEffect(ready, inferenceState) {
         when {
             !ready -> autoPreparationStarted = false
@@ -144,28 +153,42 @@ fun FieldAtlasApp(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                NavigationBar(containerColor = menuBackground ?: MaterialTheme.colorScheme.surface) {
-                    PrimaryDestination.entries.forEach { item ->
-                        val itemLabel = primaryLabel(item)
-                        NavigationBarItem(
-                            selected = navigation.primary == item,
-                            onClick = { navigation.select(item) },
-                            modifier = Modifier.semantics { contentDescription = itemLabel },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = FieldAtlasColors.OnMenuSelection,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                indicatorColor = FieldAtlasColors.MenuSelection,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                            icon = {
-                                Icon(
-                                    imageVector = primaryIcon(item),
-                                    contentDescription = itemLabel,
+                Box(
+                    Modifier.fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background)
+                        .navigationBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 6.dp,
+                    ) {
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            windowInsets = WindowInsets(0, 0, 0, 0),
+                        ) {
+                            PrimaryDestination.entries.forEach { item ->
+                                val itemLabel = primaryLabel(item)
+                                NavigationBarItem(
+                                    selected = navigation.primary == item,
+                                    onClick = { navigation.select(item) },
+                                    modifier = Modifier.semantics { contentDescription = itemLabel },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = if (darkTheme) MaterialTheme.colorScheme.onPrimaryContainer else FieldAtlasColors.OnMenuSelection,
+                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                        indicatorColor = if (darkTheme) MaterialTheme.colorScheme.primaryContainer else FieldAtlasColors.MenuSelection,
+                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    icon = {
+                                        Icon(primaryIcon(item), contentDescription = itemLabel)
+                                    },
+                                    label = { Text(itemLabel) },
                                 )
-                            },
-                            label = { Text(itemLabel) },
-                        )
+                            }
+                        }
                     }
                 }
             },
@@ -179,6 +202,7 @@ fun FieldAtlasApp(
                         suggestions = enabledKnowledge.flatMap { it.discovery?.exampleQuestions.orEmpty() },
                         voiceState = voiceState,
                         onMicClick = onMicClick,
+                        onImportPack = onImportPack,
                         diagnosticsText = diagnosticsText,
                         onClearDiagnostics = onClearDiagnostics,
                         onQuestionChange = onQuestionChange,

@@ -115,6 +115,12 @@ class MainActivity : ComponentActivity() {
                         inferenceState = inferenceState,
                         onRunNext = benchmarkViewModel::runNext,
                         onStop = benchmarkViewModel::stop,
+                        onPrepareModel = {
+                            lifecycleScope.launch {
+                                runCatching { container.loadModel() }
+                                    .onFailure { reportUnlessCancelled("Model", it) }
+                            }
+                        },
                         onExport = { run ->
                             scope.launch {
                                 withContext(Dispatchers.IO) {

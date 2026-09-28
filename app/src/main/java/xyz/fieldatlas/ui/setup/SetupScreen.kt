@@ -2,24 +2,21 @@ package xyz.fieldatlas.ui.setup
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,11 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,7 +42,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
-import xyz.fieldatlas.ui.theme.StatusStrip
+import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 
 @Composable
 fun SetupScreen(
@@ -79,28 +72,17 @@ fun SetupScreen(
                 SetupHeader()
             }
             item {
-                StatusStrip(
-                    listOf("No account", "No cloud", "No Google services"),
-                    containerColor = fieldPanelColor,
-                    contentColor = MaterialTheme.colorScheme.primary,
+                PackRequirementCard(
+                    "1", "Import model pack", hasModel, "Select a model that runs on your device.",
+                    fieldPanelColor, actionLabel(nextAction), onImportPack,
+                    nextAction != SetupNextAction.Importing && nextAction != SetupNextAction.OpenResearch,
                 )
             }
-            item { PackRequirementCard("1", "1. Add model pack", hasModel, "Runs AI on this device.", fieldPanelColor) }
-            item { PackRequirementCard("2", "2. Knowledge pack (optional)", hasKnowledge, "Add one later in Library for cited answers.", fieldPanelColor) }
             item {
-                Button(
-                    onClick = onImportPack,
-                    enabled = nextAction != SetupNextAction.Importing && nextAction != SetupNextAction.OpenResearch,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp),
-                    shape = RoundedCornerShape(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                ) {
-                    if (nextAction == SetupNextAction.Importing) {
-                        CircularProgressIndicator(strokeWidth = 2.dp)
-                    } else {
-                        Text(actionLabel(nextAction))
-                    }
-                }
+                PackRequirementCard(
+                    "2", "Knowledge pack optional", hasKnowledge,
+                    "Add one later in Library for source-backed answers.", fieldPanelColor,
+                )
             }
             item { OfflineByDesignNote(fieldPanelColor) }
             if (error != null) {
@@ -135,8 +117,8 @@ private fun SetupHeader() {
             letterSpacing = 4.sp,
         )
         FieldAtlasHeader(
-            title = "Pack your atlas",
-            subtitle = "Import a local model to start. Add knowledge packs for cited answers.",
+            title = "Set up Field Atlas",
+            subtitle = "Import a model pack to start. Knowledge packs are optional and add cited answers.",
         )
     }
 }
@@ -148,6 +130,9 @@ private fun PackRequirementCard(
     ready: Boolean,
     detail: String,
     iconBackground: androidx.compose.ui.graphics.Color,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+    actionEnabled: Boolean = true,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -155,40 +140,29 @@ private fun PackRequirementCard(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shape = MaterialTheme.shapes.medium,
     ) {
-        Row(
-            Modifier.padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                color = iconBackground,
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Icon(
-                    if (number == "1") Icons.Outlined.Inventory2 else Icons.Outlined.Description,
-                    contentDescription = null,
-                    modifier = Modifier.padding(12.dp),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Text(if (ready) "Ready and verified" else detail, style = MaterialTheme.typography.bodyMedium)
-            }
-            if (ready) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    modifier = Modifier.size(30.dp),
-                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(38.dp),
+                    color = iconBackground,
                     shape = CircleShape,
                 ) {
-                    Icon(
-                        FieldAtlasIcons.Check,
-                        contentDescription = "$title ready",
-                        modifier = Modifier.padding(7.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        if (ready) Icon(FieldAtlasIcons.Check, contentDescription = "$title ready",
+                            modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        else Text(number, style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
                 }
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(if (ready) "Ready and verified" else detail, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            if (actionLabel != null && onAction != null) {
+                FieldAtlasPrimaryButton(actionLabel, onAction, Modifier.fillMaxWidth(),
+                    enabled = actionEnabled, trailingIcon = FieldAtlasIcons.Import)
             }
         }
     }

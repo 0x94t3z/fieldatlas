@@ -52,7 +52,7 @@ class FieldAtlasAppTest {
     @Test fun firstLaunchShowsSetupAndAccessibleImport() {
         render(packs = emptyList())
         compose.onNodeWithText("FIELD ATLAS").assertExists()
-        compose.onNodeWithText("Pack your atlas").assertExists()
+        compose.onNodeWithText("Set up Field Atlas").assertExists()
         compose.onNodeWithText("No cloud").assertExists()
         compose.onNodeWithText("1. Add model pack").assertExists()
         compose.onNodeWithText("2. Knowledge pack (optional)").assertExists()
@@ -294,12 +294,13 @@ class FieldAtlasAppTest {
                     inferenceState = InferenceState.Ready,
                     onRunNext = {},
                     onStop = {},
+                    onPrepareModel = {},
                     onExport = {},
                     onBack = { backed = true },
                 )
             }
         }
-        compose.onNodeWithText("0 / 18 completed").assertExists()
+        compose.onNodeWithText("0 of 18 recorded").assertExists()
         compose.onNodeWithText("What causes Earth's seasons?").assertExists()
         compose.onNodeWithText("Run next").assertHasClickAction().assertIsEnabled()
         compose.onNodeWithContentDescription("Back").performClick()
