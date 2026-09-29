@@ -59,7 +59,7 @@ class ProductCopyTest(unittest.TestCase):
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn('<h1 align="center">Field Atlas</h1>', readme)
-        self.assertIn("Ask questions from the knowledge saved on your Android phone", readme)
+        self.assertIn("Research, explore, and question the knowledge on your phone—even offline.", readme)
         self.assertIn("There is no account, search API, remote inference", readme)
         self.assertNotIn("AI-powered", readme.casefold())
 

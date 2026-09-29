@@ -4,6 +4,24 @@ import { readFileSync } from 'node:fs';
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
 const apk = `${release}/download/v1.2.0-rc.1/fieldatlas.apk`;
 
+test('social previews use the public domain and a downloadable 1200 by 630 PNG', async ({ page, request }) => {
+  await page.goto('/');
+  const site = 'https://www.getfieldatlas.com/';
+  const preview = `${site}assets/social-card.png`;
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', site);
+  await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', site);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', preview);
+  await expect(page.locator('meta[name="twitter:image"]')).toHaveAttribute('content', preview);
+  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+  const response = await request.get('/assets/social-card.png');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/png');
+  const png = await response.body();
+  expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(png.readUInt32BE(16)).toBe(1200);
+  expect(png.readUInt32BE(20)).toBe(630);
+});
+
 test('scroll reveals replay on re-entry and respect reduced motion', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');

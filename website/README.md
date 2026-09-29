@@ -40,7 +40,7 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of five public files to `dist/`.
+headers. `build.mjs` copies an explicit allowlist of six public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.
@@ -56,9 +56,20 @@ After deployment, check `/`, `/styles.css`, and `/assets/compass.svg`; also conf
 SITE_URL=https://your-actual-deployment.vercel.app npm test --prefix website
 ```
 
-Add a canonical URL and `og:url` only once the actual public hostname is known.
-Social title/description are present; no unsupported SVG social-image preview is
-claimed. The SVGs are the favicon/logo and decorative page artwork.
+The canonical URL is `https://www.getfieldatlas.com/`. Open Graph and Twitter
+metadata use an absolute URL for `assets/social-card.png`, a 1200 × 630 PNG.
+If the public domain changes, update the canonical URL, `og:url`, and both image
+URLs together. Social platforms may retain cached previews after deployment.
+
+To edit the card, update `tools/social-card.html`, then run from the repo root:
+
+```sh
+node website/tools/render-social-card.mjs
+```
+
+The renderer uses the same installed browser as the tests. Commit the generated
+PNG along with its source. Production builds copy the PNG without needing a
+browser; the renderer and HTML template are excluded from the public build.
 
 `motion.js` loads the local compass SVG into the page for continuous needle and
 headline animation. There is no on-page motion control. The SVG file remains
