@@ -40,7 +40,7 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of six public files to `dist/`.
+headers. `build.mjs` copies an explicit allowlist of nine public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.
@@ -60,6 +60,11 @@ The canonical URL is `https://www.getfieldatlas.com/`. Open Graph and Twitter
 metadata use an absolute URL for `assets/social-card.png`, a 1200 × 630 PNG.
 If the public domain changes, update the canonical URL, `og:url`, and both image
 URLs together. Social platforms may retain cached previews after deployment.
+
+The favicon uses `assets/compass.svg`, with root-level ICO/PNG fallbacks and an
+Apple touch icon. To regenerate these from the same logo, run
+`node website/tools/render-icons.mjs` and commit the generated icons. These are
+separate from the social preview; chat apps may still use their own generic link icon.
 
 To edit the card, update `tools/social-card.html`, then run from the repo root:
 
