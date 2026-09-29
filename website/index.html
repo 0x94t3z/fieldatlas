@@ -24,10 +24,12 @@
   <meta name="twitter:image:alt" content="Field Atlas — Knowledge, wherever you go. Offline research for Android, with compass artwork.">
   <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
-  <link rel="icon" type="image/svg+xml" sizes="any" href="/assets/compass.svg">
+  <link rel="icon" type="image/svg+xml" sizes="any" href="/assets/atlas.svg?v=932dcce1">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
   <script src="motion.js" defer></script>
+  <script src="community.js" defer></script>
+  <script src="navigation.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -43,8 +45,9 @@
   </defs></svg>
   <div class="page-shell">
     <header class="site-header">
-      <a class="wordmark" href="#" aria-label="Field Atlas home"><img src="assets/compass.svg" width="36" height="36" alt=""><span>Field Atlas</span></a>
-      <nav aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#collections">Collections</a><a href="#faq">FAQ</a><a class="nav-download" href="#download">Get the app <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></nav>
+      <a class="wordmark" href="#" aria-label="Field Atlas home"><img src="assets/atlas.svg?v=932dcce1" width="36" height="36" alt=""><span>Field Atlas</span></a>
+      <button type="button" id="menu-toggle" aria-expanded="false" aria-controls="site-navigation" hidden><span>Menu</span><svg class="icon menu-bars" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="icon menu-close" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+      <nav id="site-navigation" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#collections">Collections</a><a href="#faq">FAQ</a><a href="#community">Community</a><a class="nav-download" href="#download">Get the app <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></nav>
     </header>
     <main id="main" tabindex="-1">
       <section class="hero" aria-labelledby="hero-title">
@@ -57,7 +60,7 @@
           <a class="text-link github-link" href="https://github.com/0x94t3z/fieldatlas">View source on GitHub <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
         </div>
         <div class="hero-art" aria-hidden="true">
-          <div class="atlas-frame"><img src="assets/atlas.svg" width="640" height="700" alt="" fetchpriority="high"><div class="atlas-label"><span>FIELD ATLAS</span><span>OFFLINE RESEARCH</span></div></div>
+          <div class="atlas-frame"><img src="assets/compass.svg?v=abe66699" width="640" height="700" alt="" fetchpriority="high"><div class="atlas-label"><span>FIELD ATLAS</span><span>OFFLINE RESEARCH</span></div></div>
           <div class="field-tag"><span class="tag-icon"><svg class="icon"><use href="#book"/></svg></span><div><strong>Saved on your phone.</strong><span>Available when you’re offline.</span></div></div>
         </div>
       </section>
@@ -107,8 +110,35 @@
           <details><summary>How do I install or update it?</summary><div><p>Open the downloaded APK and follow Android’s installation prompts. Public releases use the same project signing key. A locally test-signed build cannot be updated with the public APK; preserve your data before considering a reinstall. <a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">See the installation notes.</a></p></div></details>
         </div>
       </section>
+      <section class="community-section" id="community" aria-labelledby="community-title">
+        <p class="eyebrow">05 / COMMUNITY</p>
+        <div class="community-card">
+        <div class="community-copy">
+          <h2 id="community-title">Community token</h2>
+          <p>A community-created token on Bankr. Creator fees go to the Field Atlas developer. You don’t need to buy or hold it to use the app.</p>
+          <div class="community-risk" role="note" aria-label="Token risk warning">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+            <p>Not financial advice or a promise of ongoing token support. Tokens can lose all their value.</p>
+          </div>
+        </div>
+        <div class="community-details">
+          <div class="token-meta"><label for="token-address">Contract address</label><span class="token-chain"><img src="assets/base.ico" width="14" height="14" alt="">Base</span></div>
+          <div class="token-address-row">
+            <input id="token-address" aria-label="Full contract address" value="0xb462a5039a540883508ee37b5cf3999647557ba3" readonly spellcheck="false">
+            <span class="token-short" aria-hidden="true" hidden>0xb462…57ba3</span>
+            <button type="button" id="copy-address" aria-label="Copy full contract address" hidden><svg class="icon copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/></svg><svg class="icon copy-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
+          </div>
+          <div class="platform-links">
+            <a href="https://bankr.bot/terminal/trade?out=0xb462a5039a540883508ee37b5cf3999647557ba3&amp;chain=base" target="_blank" rel="noopener noreferrer"><img src="assets/bankr.svg" width="20" height="20" alt="">Bankr <span aria-hidden="true">↗</span></a>
+            <a href="https://dexscreener.com/base/0xb462a5039a540883508ee37b5cf3999647557ba3" target="_blank" rel="noopener noreferrer"><img src="assets/dexscreener.png" width="20" height="20" alt="">Dex Screener <span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="platform-note">External platforms · Not required for the app</p>
+          <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+        </div>
+        </div>
+      </section>
     </main>
-    <footer class="site-footer"><div><a class="wordmark" href="#"><img src="assets/compass.svg" width="32" height="32" alt=""><span>Field Atlas</span></a><p>Offline research for Android.</p></div><div class="footer-links"><a href="https://github.com/0x94t3z/fieldatlas">GitHub</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">Setup help</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">Release notes</a></div><span class="footer-note">OPEN SOURCE.<br>NO ACCOUNT REQUIRED.</span></footer>
+    <footer class="site-footer"><div><a class="wordmark" href="#"><img src="assets/atlas.svg?v=932dcce1" width="32" height="32" alt=""><span>Field Atlas</span></a><p>Offline research for Android.</p></div><div class="footer-links"><a href="https://github.com/0x94t3z/fieldatlas">GitHub</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">Setup help</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">Release notes</a></div><span class="footer-note">Open source. No account required.</span></footer>
   </div>
 </body>
 </html>

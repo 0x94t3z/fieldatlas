@@ -1,1 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108"><rect width="108" height="108" rx="18" fill="#0B493A"/><path fill="#E9FFF4" d="M54 20a34 34 0 1 1 0 68 34 34 0 1 1 0-68Z"/><path fill="#18A67E" d="m54 29 13 25-13 25-13-25Z"/><path fill="#0B493A" d="m54 37 6 17-6-3-6 3Z"/><path fill="#0B493A" d="M32 53h10v3H32Zm34 0h10v3H66Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 700" fill="none">
+  <defs>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse"><path d="M64 0H0V64" stroke="#bccdc0" stroke-opacity=".3"/></pattern>
+    <radialGradient id="ground"><stop stop-color="#c8dbcb"/><stop offset="1" stop-color="#e6e9dc"/></radialGradient>
+    <linearGradient id="needle" x1="220" y1="480" x2="400" y2="195" gradientUnits="userSpaceOnUse"><stop stop-color="#163f32"/><stop offset="1" stop-color="#247c5a"/></linearGradient>
+    <filter id="shadow" x="-100%" y="-60%" width="300%" height="250%"><feGaussianBlur stdDeviation="15"/></filter>
+  </defs>
+  <rect width="640" height="700" rx="8" fill="url(#ground)"/>
+  <rect width="640" height="700" rx="8" fill="url(#grid)"/>
+  <g stroke="#819c86" stroke-opacity=".25" stroke-width="1.1">
+    <path d="M-40 92C96 182 180-78 370 84S555 127 680 39"/><path d="M-40 114C96 204 180-56 370 106S555 149 680 61"/><path d="M-40 136C96 226 180-34 370 128S555 171 680 83"/><path d="M-40 158C96 248 180-12 370 150S555 193 680 105"/><path d="M-40 180C96 270 180 10 370 172S555 215 680 127"/>
+    <path d="M-60 511C82 384 134 641 296 495S548 433 686 548"/><path d="M-60 533C82 406 134 663 296 517S548 455 686 570"/><path d="M-60 555C82 428 134 685 296 539S548 477 686 592"/><path d="M-60 577C82 450 134 707 296 561S548 499 686 614"/><path d="M-60 599C82 472 134 729 296 583S548 521 686 636"/><path d="M-60 621C82 494 134 751 296 605S548 543 686 658"/>
+    <path d="M-20 368C88 266 138 460 269 365S421 278 475 327 592 342 663 238" stroke-dasharray="3 7"/>
+  </g>
+  <!-- Shift the complete compass from y=342 to the artwork's midpoint, y=350. -->
+  <g transform="translate(0 8)">
+  <circle cx="320" cy="342" r="201" stroke="#718e78" stroke-opacity=".3"/>
+  <circle id="compass-face" cx="320" cy="342" r="170" fill="#f6f4e9" fill-opacity=".72" stroke="#879d88" stroke-width="1.2"/>
+  <circle cx="320" cy="342" r="157" stroke="#91a792" stroke-dasharray="1 12"/>
+  <path d="M320 159v19m0 328v19M137 342h19m328 0h19" stroke="#4e705d" stroke-width="2"/>
+  <path d="M218 239l9 9m186 186 9 9m-204 0 9-9m186-186 9-9" stroke="#76957e"/>
+  <ellipse cx="330" cy="392" rx="54" ry="123" transform="rotate(32 330 392)" fill="#1d5037" fill-opacity=".19" filter="url(#shadow)"/>
+  <g id="compass-needle" transform="rotate(25 320 342)">
+    <path d="M320 210 369 342 320 474 271 342Z" fill="url(#needle)"/>
+    <path d="M320 210 369 342 320 342Z" fill="#34916c"/>
+    <path d="M320 474 271 342 320 342Z" fill="#e5eee0"/>
+    <circle cx="320" cy="342" r="7" fill="#f5f3e9" stroke="#24533e" stroke-width="2"/>
+  </g>
+  <g fill="#3f614c" font-family="monospace" font-size="13" text-anchor="middle"><text x="320" y="139">N</text><text x="320" y="554">S</text><text x="117" y="347">W</text><text x="523" y="347">E</text></g>
+  </g>
+  <g stroke="#527359" stroke-opacity=".5"><path d="M30 48V30h18m544 0h18v18M30 652v18h18m544 0h18v-18"/></g>
+</svg>

@@ -6,8 +6,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 test('build publishes only the public allowlist', () => {
   execFileSync(process.execPath, ['build.mjs'], { cwd: new URL('../', import.meta.url) });
   const dist = new URL('../dist/', import.meta.url);
-  assert.deepEqual(readdirSync(dist).sort(), ['apple-touch-icon.png', 'assets', 'favicon.ico', 'favicon.png', 'index.html', 'motion.js', 'styles.css']);
-  assert.deepEqual(readdirSync(new URL('assets/', dist)).sort(), ['atlas.svg', 'compass.svg', 'social-card.png']);
+  assert.deepEqual(readdirSync(dist).sort(), ['apple-touch-icon.png', 'assets', 'community.js', 'favicon.ico', 'favicon.png', 'index.html', 'motion.js', 'navigation.js', 'styles.css']);
+  assert.deepEqual(readdirSync(new URL('assets/', dist)).sort(), ['atlas.svg', 'bankr.svg', 'base.ico', 'compass.svg', 'dexscreener.png', 'social-card.png']);
   assert.match(readFileSync(new URL('index.html', dist), 'utf8'), /Knowledge,/);
 });
 

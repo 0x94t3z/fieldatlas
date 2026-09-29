@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 
 // Render the existing vector logo; production only copies the checked-in icons.
 const root = new URL('../', import.meta.url);
-const svg = await readFile(new URL('assets/compass.svg', root), 'utf8');
+const svg = await readFile(new URL('assets/atlas.svg', root), 'utf8');
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
 try {
   const images = [];

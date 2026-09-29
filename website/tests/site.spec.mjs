@@ -4,6 +4,110 @@ import { readFileSync } from 'node:fs';
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
 const apk = `${release}/download/v1.2.0-rc.1/fieldatlas.apk`;
 
+test('renamed artwork bypasses old asset URLs and retains its original placement', async ({ page, request }) => {
+  await page.goto('/');
+  for (const logo of await page.locator('.wordmark img').all()) {
+    await expect(logo).toHaveAttribute('src', /assets\/atlas\.svg\?v=[a-f0-9]+$/);
+    const response = await request.get(await logo.getAttribute('src'));
+    expect(await response.text()).toContain('viewBox="0 0 108 108"');
+  }
+  await expect(page.locator('.atlas-frame #compass-needle')).toBeVisible();
+  await expect(page.locator('.atlas-frame > svg')).toHaveAttribute('viewBox', '0 0 640 700');
+  await expect(page.locator('link[rel="icon"][type="image/svg+xml"]')).toHaveAttribute('href', /atlas\.svg\?v=[a-f0-9]+$/);
+});
+
+test('mobile menu opens, closes on navigation and Escape, and keeps the header compact', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  const toggle = page.getByRole('button', { name: 'Menu', exact: true });
+  const nav = page.getByRole('navigation');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(nav).toBeHidden();
+  expect((await page.locator('.site-header').boundingBox()).height).toBeLessThan(110);
+  await toggle.click();
+  await expect(nav).toBeVisible();
+  await nav.getByRole('link', { name: 'Community' }).click();
+  await expect(page).toHaveURL(/#community$/);
+  await expect(nav).toBeHidden();
+  await expect(page.locator('#community > .eyebrow')).toHaveText('05 / COMMUNITY');
+  await toggle.click();
+  await page.keyboard.press('Escape');
+  await expect(nav).toBeHidden();
+  await expect(toggle).toBeFocused();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(nav).toBeVisible();
+  await expect(toggle).toBeHidden();
+});
+
+test('status indicators pulse without moving and stay still with reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const dot = page.locator('.status-dot').first();
+  await expect(dot).toHaveCSS('animation-name', 'status-lamp');
+  const states = await dot.evaluate(el => {
+    const animation = el.getAnimations()[0];
+    animation.pause();
+    animation.currentTime = 0;
+    const bright = Number(getComputedStyle(el).opacity);
+    const before = el.getBoundingClientRect();
+    animation.currentTime = 1400;
+    const dim = Number(getComputedStyle(el).opacity);
+    const after = el.getBoundingClientRect();
+    return { bright, dim, sameSize: before.width === after.width && before.height === after.height };
+  });
+  expect(states.bright).toBe(1);
+  expect(states.dim).toBeLessThan(.3);
+  expect(states.sameSize).toBe(true);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(dot).toHaveCSS('animation-name', 'none');
+  await expect(dot).toHaveCSS('opacity', '1');
+});
+
+test('community navigation leads below FAQ and platform links keep the supplied address', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('navigation').getByRole('link', { name: 'Community' }).click();
+  await expect(page).toHaveURL(/#community$/);
+  const section = page.locator('#community');
+  await expect(section.getByRole('heading')).toHaveText('Community token');
+  expect(await section.evaluate(el => el.previousElementSibling.id)).toBe('faq');
+  await expect(section.getByRole('link', { name: 'Bankr' })).toHaveAttribute('href', 'https://bankr.bot/terminal/trade?out=0xb462a5039a540883508ee37b5cf3999647557ba3&chain=base');
+  await expect(section.getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', 'https://dexscreener.com/base/0xb462a5039a540883508ee37b5cf3999647557ba3');
+  for (const img of await section.locator('img').all()) {
+    expect(await img.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);
+  }
+});
+
+test('community copies the full address and reports clipboard failure', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/');
+  const copy = page.getByRole('button', { name: 'Copy full contract address' });
+  await page.clock.install();
+  await copy.click();
+  await expect(copy).toBeEnabled();
+  await expect(copy.locator('.copy-check')).toBeVisible();
+  await expect(copy.locator('.copy-glyph')).toBeHidden();
+  await expect(page.locator('#copy-status')).toBeEmpty();
+  await expect(page.getByText('Address copied', { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('0xb462a5039a540883508ee37b5cf3999647557ba3');
+  await page.clock.fastForward(1500);
+  await expect(copy.locator('.copy-check')).toBeHidden();
+  await expect(copy.locator('.copy-glyph')).toBeVisible();
+  await page.evaluate(() => Object.defineProperty(navigator.clipboard, 'writeText', { value: () => Promise.reject(new Error('denied')) }));
+  await copy.click();
+  await expect(copy.locator('.copy-check')).toBeHidden();
+  await expect(page.locator('#copy-status')).toHaveText('Couldn’t copy. Select the address to copy it manually.');
+  await expect(page.locator('#copy-status')).toHaveCSS('clip-path', 'none');
+  await expect(page.locator('#token-address')).toHaveValue('0xb462a5039a540883508ee37b5cf3999647557ba3');
+});
+
+test('community address remains accessible without JavaScript', async ({ browser }) => {
+  const page = await browser.newPage({ javaScriptEnabled: false });
+  await page.goto(process.env.SITE_URL || 'http://127.0.0.1:4173');
+  await expect(page.locator('#token-address')).toHaveValue('0xb462a5039a540883508ee37b5cf3999647557ba3');
+  await expect(page.getByRole('button', { name: 'Copy full contract address' })).toBeHidden();
+  await page.close();
+});
+
 test('social previews use the public domain and a downloadable 1200 by 630 PNG', async ({ page, request }) => {
   await page.goto('/');
   const site = 'https://www.getfieldatlas.com/';
@@ -43,7 +147,7 @@ test('scroll reveals replay on re-entry and respect reduced motion', async ({ pa
 
 test('needle facets meet at the small center circle', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/assets/atlas.svg');
+  await page.goto('/assets/compass.svg');
   const joins = await page.locator('#compass-needle path').evaluateAll(paths => {
     const hub = paths[0].parentElement.querySelector('circle');
     const x = hub.cx.baseVal.value, y = hub.cy.baseVal.value;
@@ -92,7 +196,7 @@ test('headline loops visibly without animation controls and respects reduced mot
 });
 
 test('failed motion enhancement leaves readable content and working download links', async ({ page }) => {
-  await page.route('**/assets/atlas.svg', route => route.request().resourceType() === 'fetch'
+  await page.route('**/assets/compass.svg*', route => route.request().resourceType() === 'fetch'
     ? route.fulfill({ status: 503, body: '' }) : route.fallback());
   await page.goto('/');
   await expect(page.locator('.atlas-frame > img')).toBeVisible();
@@ -145,6 +249,7 @@ test.beforeEach(async ({ page }) => {
   if (process.env.SITE_URL) return;
   // Exercise the same content policy locally as on the public deployment.
   await page.route('**/*', async route => {
+    if (route.request().resourceType() !== 'document') return route.continue();
     const response = await route.fetch();
     await route.fulfill({ response, headers: { ...response.headers(), 'content-security-policy': csp } });
   });
@@ -189,6 +294,7 @@ for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    if (width <= 760) await page.getByRole('button', { name: 'Menu', exact: true }).click();
     await expect(page.getByRole('navigation').getByRole('link', { name: 'FAQ' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Download for Android', exact: true }).first()).toBeVisible();
   });

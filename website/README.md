@@ -40,7 +40,7 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of nine public files to `dist/`.
+headers. `build.mjs` copies an explicit allowlist of fourteen public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.
@@ -49,7 +49,7 @@ Alternatively, after authenticating with the Vercel CLI, run `vercel` from
 `website/` for a preview. Confirm the account/project before production deployment.
 Local `.vercel/` metadata is ignored. Never commit credentials.
 
-After deployment, check `/`, `/styles.css`, and `/assets/compass.svg`; also confirm
+After deployment, check `/`, `/styles.css`, and `/assets/atlas.svg`; also confirm
 `/package.json` and `/tests/site.spec.mjs` return 404. To smoke-test a public URL:
 
 ```sh
@@ -61,8 +61,11 @@ metadata use an absolute URL for `assets/social-card.png`, a 1200 × 630 PNG.
 If the public domain changes, update the canonical URL, `og:url`, and both image
 URLs together. Social platforms may retain cached previews after deployment.
 
-The favicon uses `assets/compass.svg`, with root-level ICO/PNG fallbacks and an
-Apple touch icon. To regenerate these from the same logo, run
+The favicon uses `assets/atlas.svg`, with root-level ICO/PNG fallbacks and an
+Apple touch icon. An asset-content version in the page URL avoids cached artwork from before the
+filename swap. `assets/compass.svg` is the large hero illustration; its URL is
+versioned too. Keep these versions in sync when changing either SVG.
+To regenerate the favicon fallbacks from the same logo, run
 `node website/tools/render-icons.mjs` and commit the generated icons. These are
 separate from the social preview; chat apps may still use their own generic link icon.
 
@@ -89,6 +92,17 @@ All animation styles are in `styles.css`. CSP allows only same-origin scripts,
 styles, images, and fetches; it does not allow inline scripts or styles.
 
 ## Updating the app download
+
+The Community section has its own numbered label and divider below FAQ, separately
+from downloads. On mobile, `navigation.js` adds an expandable menu that closes on
+selection or Escape. Without JavaScript, navigation links remain visible. Its contract
+address is available without JavaScript; `community.js` adds clipboard copying
+with a brief checkmark on success and visible failure feedback. No success text
+or extra row is added. Bankr and Dex Screener open only on user clicks.
+Their icons are hosted locally, sourced from `https://bankr.bot/favicon.svg` and
+`https://dexscreener.com/favicon.png`; the Base network icon comes from
+`https://www.base.org/favicon.ico`. These marks identify external platforms,
+not partnerships. Preserve the independent-launch and fee disclosure when editing.
 
 The website currently targets **v1.2.0-rc.1**, explicitly marked **Prerelease**.
 It must not use `/releases/latest`, which may point to an older stable release.
