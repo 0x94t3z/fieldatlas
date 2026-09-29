@@ -4,6 +4,22 @@ import { readFileSync } from 'node:fs';
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
 const apk = `${release}/download/v1.2.0-rc.1/fieldatlas.apk`;
 
+test('needle facets meet at the small center circle', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/assets/atlas.svg');
+  const joins = await page.locator('#compass-needle path').evaluateAll(paths => {
+    const hub = paths[0].parentElement.querySelector('circle');
+    const x = hub.cx.baseVal.value, y = hub.cy.baseVal.value;
+    return paths.slice(1).map(path => {
+      const tip = path.getPointAtLength(0);
+      // The closing edge should run directly from the hub to the tip.
+      const join = path.getPointAtLength(path.getTotalLength() - Math.hypot(tip.x - x, tip.y - y));
+      return Math.hypot(join.x - x, join.y - y);
+    });
+  });
+  for (const distance of joins) expect(distance).toBeLessThan(.1);
+});
+
 test('compass is centered and only its needle rotates', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/assets/atlas.svg');

@@ -27,8 +27,8 @@
   <ellipse cx="330" cy="392" rx="54" ry="123" transform="rotate(32 330 392)" fill="#1d5037" fill-opacity=".19" filter="url(#shadow)"/>
   <g id="compass-needle">
     <path d="M320 210 369 342 320 474 271 342Z" fill="url(#needle)"/>
-    <path d="m320 210 49 132-49-21Z" fill="#34916c"/>
-    <path d="m320 474-49-132 49-21Z" fill="#e5eee0"/>
+    <path d="M320 210 369 342 320 342Z" fill="#34916c"/>
+    <path d="M320 474 271 342 320 342Z" fill="#e5eee0"/>
     <circle cx="320" cy="342" r="7" fill="#f5f3e9" stroke="#24533e" stroke-width="2"/>
   </g>
   <g fill="#3f614c" font-family="monospace" font-size="13" text-anchor="middle"><text x="320" y="139">N</text><text x="320" y="554">S</text><text x="117" y="347">W</text><text x="523" y="347">E</text></g>
