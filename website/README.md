@@ -1,8 +1,9 @@
 # Field Atlas website
 
 Static branding and download site. This folder deploys independently from the
-Android app. It uses local SVG artwork and system fonts; no client JavaScript,
-analytics, account system, cookies, or external font requests.
+Android app. It uses local SVG artwork and system fonts, with no analytics,
+account system, cookies, or external font requests. A small optional script
+controls animation; downloads, navigation, and FAQ work without JavaScript.
 
 ## Preview and verify
 
@@ -39,7 +40,7 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of four public files to `dist/`.
+headers. `build.mjs` copies an explicit allowlist of five public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.
@@ -59,9 +60,17 @@ Add a canonical URL and `og:url` only once the actual public hostname is known.
 Social title/description are present; no unsupported SVG social-image preview is
 claimed. The SVGs are the favicon/logo and decorative page artwork.
 
-The compass needle rotates slowly unless Reduce Motion is enabled. Its SVG style
-block is authorized by an exact SHA-256 hash in `vercel.json`, not `unsafe-inline`.
-If that style block changes, update the CSP hash and rerun the browser tests.
+`motion.js` loads the local compass SVG into the page for continuous needle and
+headline animation. There is no on-page motion control. The SVG file remains
+the single artwork source. If the script or SVG request fails, the page stays
+static and usable. Reduce Motion disables animation, and background tabs pause it.
+Feature cards, setup steps, collections, and FAQ rows also ease into view on
+scroll and replay when they re-enter. IntersectionObserver tracks stationary
+containers; only their children move. Content is never fully hidden, and keyboard
+focus stops the reveal on the focused container. Without JavaScript or observer
+support, these sections remain static.
+All animation styles are in `styles.css`. CSP allows only same-origin scripts,
+styles, images, and fetches; it does not allow inline scripts or styles.
 
 ## Updating the app download
 

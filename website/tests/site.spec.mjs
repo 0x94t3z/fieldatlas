@@ -4,6 +4,25 @@ import { readFileSync } from 'node:fs';
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
 const apk = `${release}/download/v1.2.0-rc.1/fieldatlas.apk`;
 
+test('scroll reveals replay on re-entry and respect reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const card = page.locator('.collection-card').first();
+  const title = card.locator('h3');
+  const scrollToCard = () => card.evaluate(el => window.scrollTo({
+    top: scrollY + el.getBoundingClientRect().top - 100, behavior: 'instant'
+  }));
+  await scrollToCard();
+  await expect(title).toHaveCSS('animation-name', 'scroll-reveal');
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await expect(title).toHaveCSS('animation-name', 'none');
+  await scrollToCard();
+  await expect(title).toHaveCSS('animation-name', 'scroll-reveal');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(title).toHaveCSS('animation-name', 'none');
+  await expect(title).toHaveCSS('opacity', '1');
+});
+
 test('needle facets meet at the small center circle', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/assets/atlas.svg');
@@ -22,7 +41,7 @@ test('needle facets meet at the small center circle', async ({ page }) => {
 
 test('compass is centered and only its needle rotates', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' });
-  await page.goto('/assets/atlas.svg');
+  await page.goto('/');
   const center = await page.locator('#compass-face').evaluate(el => {
     const svg = el.ownerSVGElement.getBoundingClientRect();
     const circle = el.getBoundingClientRect();
@@ -37,6 +56,31 @@ test('compass is centered and only its needle rotates', async ({ page }) => {
   await expect.poll(() => page.locator('#compass-needle').evaluate(el => getComputedStyle(el).transform)).not.toBe(before);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await expect(page.locator('#compass-needle')).toHaveCSS('animation-name', 'none');
+});
+
+test('headline loops visibly without animation controls and respects reduced motion', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.goto('/');
+  const lines = page.locator('.headline-line');
+  await expect(lines).toHaveCount(3);
+  await expect(lines.first()).toHaveCSS('animation-iteration-count', 'infinite');
+  for (const line of await lines.all()) await expect(line).toHaveCSS('opacity', '1');
+  await expect(page.getByRole('button', { name: /animations/i })).toHaveCount(0);
+  await expect(lines.first()).toHaveCSS('animation-play-state', 'running');
+  await expect(page.locator('#compass-needle')).toHaveCSS('animation-play-state', 'running');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(lines.first()).toHaveCSS('animation-name', 'none');
+  await expect(page.locator('#compass-needle')).toHaveCSS('animation-name', 'none');
+});
+
+test('failed motion enhancement leaves readable content and working download links', async ({ page }) => {
+  await page.route('**/assets/atlas.svg', route => route.request().resourceType() === 'fetch'
+    ? route.fulfill({ status: 503, body: '' }) : route.fallback());
+  await page.goto('/');
+  await expect(page.locator('.atlas-frame > img')).toBeVisible();
+  await expect(page.locator('.motion-toggle')).toBeHidden();
+  await expect(page.locator('.headline-line').first()).toHaveCSS('animation-name', 'none');
+  await expect(page.getByRole('link', { name: 'Download for Android', exact: true }).first()).toHaveAttribute('href', apk);
 });
 
 test('entrance motion is finite and content stays visible', async ({ page }) => {
@@ -105,6 +149,8 @@ test('navigation and FAQ work with JavaScript disabled', async ({ browser }) => 
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(process.env.SITE_URL || 'http://127.0.0.1:4173');
+  await expect(page.locator('.motion-toggle')).toBeHidden();
+  await expect(page.locator('.headline-line').first()).toHaveCSS('animation-name', 'none');
   await page.getByRole('navigation').getByRole('link', { name: 'How it works' }).click();
   await expect(page).toHaveURL(/#how-it-works$/);
   // The hash changes before smooth scrolling completes. Wait for the destination
