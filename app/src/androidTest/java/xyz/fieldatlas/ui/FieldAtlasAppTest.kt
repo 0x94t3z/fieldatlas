@@ -51,13 +51,11 @@ class FieldAtlasAppTest {
 
     @Test fun firstLaunchShowsSetupAndAccessibleImport() {
         render(packs = emptyList())
-        compose.onNodeWithText("FIELD ATLAS").assertExists()
         compose.onNodeWithText("Set up Field Atlas").assertExists()
-        compose.onNodeWithText("No cloud").assertExists()
-        compose.onNodeWithText("1. Add model pack").assertExists()
-        compose.onNodeWithText("2. Knowledge pack (optional)").assertExists()
-        compose.onNodeWithText("turn off Wi-Fi and mobile data", substring = true).assertExists()
-        compose.onNodeWithText("Choose model pack").assertExists().assertHasClickAction()
+        compose.onNodeWithText("Download once. Research offline.").assertExists()
+        compose.onNodeWithContentDescription("Download Qwen3.5 2B").assertExists().assertHasClickAction()
+        compose.onNodeWithText("Import a saved pack").performScrollTo().assertHasClickAction()
+        compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
     }
 
     @Test fun setupPrimaryActionRemainsVisibleAtLargeFontOnNarrowPhone() {
@@ -78,8 +76,7 @@ class FieldAtlasAppTest {
                 }
             }
         }
-        compose.onNodeWithText("Choose model pack")
-            .assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
     }
 
     @Test fun researchPrimaryActionRemainsReachableAtLargeFontOnNarrowPhone() {
@@ -264,12 +261,12 @@ class FieldAtlasAppTest {
         var opened = false
         render(onOpenBenchmark = { opened = true })
         compose.onNodeWithText("More").performClick()
-        compose.onNodeWithText("Private by design").assertExists()
-        compose.onNodeWithText("Technical details").performClick()
+        compose.onNodeWithText("Privacy & offline use").assertExists()
+        compose.onNodeWithText("App & device").performScrollTo().performClick()
         compose.onNodeWithText("Internet permission").assertExists()
         compose.onNodeWithText("Absent").assertExists()
         compose.onNodeWithText("Pass · Manifest audit").assertExists()
-        compose.onNodeWithText("Open device benchmark").performScrollTo().performClick()
+        compose.onNodeWithText("Performance check").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(opened) }
     }
 

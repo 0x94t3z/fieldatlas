@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -111,7 +112,14 @@ fun SourcesScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        FieldAtlasIconTile(FieldAtlasIcons.Document, size = 32.dp)
+                        FieldAtlasIconTile(
+                            if (evidence.source.startsWith("http://") || evidence.source.startsWith("https://")) {
+                                Icons.Outlined.Link
+                            } else {
+                                FieldAtlasIcons.Document
+                            },
+                            size = 32.dp,
+                        )
                         SelectionContainer(Modifier.weight(1f)) {
                             Text(evidence.source, style = MaterialTheme.typography.bodySmall)
                         }

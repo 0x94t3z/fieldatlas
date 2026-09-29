@@ -64,6 +64,9 @@ fun FieldAtlasApp(
     downloadedBytes: Long = 0,
     offerKnowledge: Boolean = false,
     availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
+    catalogRefreshing: Boolean = false,
+    catalogError: String? = null,
+    onRefreshCatalog: () -> Unit = {},
     knowledgeDownloadKey: String? = null,
     knowledgeDownloadedBytes: Long = 0,
     knowledgeDownloadError: String? = null,
@@ -125,7 +128,7 @@ fun FieldAtlasApp(
         }
     }
     FieldAtlasTheme {
-        if (!ready) {
+        if (!ready || offerKnowledge) {
             SetupScreen(
                 packs = packs,
                 importing = importing,
@@ -135,38 +138,21 @@ fun FieldAtlasApp(
                 onImportPack = onImportPack,
                 onDownloadModel = onDownloadModel,
                 onCancelDownload = onCancelDownload,
+                availableKnowledge = availableKnowledge,
+                catalogRefreshing = catalogRefreshing,
+                catalogError = catalogError,
+                onRefreshCatalog = onRefreshCatalog,
+                knowledgeDownloadKey = knowledgeDownloadKey,
+                knowledgeDownloadedBytes = knowledgeDownloadedBytes,
+                knowledgeError = knowledgeDownloadError,
+                onDownloadKnowledge = onDownloadKnowledge,
+                onCancelKnowledgeDownload = onCancelKnowledgeDownload,
+                onContinue = onDismissKnowledgeOffer,
             )
             return@FieldAtlasTheme
         }
 
         val closeDetail = { navigation.back(); Unit }
-        if (offerKnowledge) {
-            val suggested = availableKnowledge.firstOrNull { it.recommended }
-            AlertDialog(
-                onDismissRequest = onDismissKnowledgeOffer,
-                title = { Text("Add a knowledge collection?") },
-                text = {
-                    Text(
-                        if (suggested != null) {
-                            "The model is ready. ${suggested.title} adds local sources for its topic. " +
-                                "Open Library to download it, or start researching without a collection."
-                        } else {
-                            "The model is ready. You can import a collection in Library for local sources, " +
-                                "or start researching now."
-                        },
-                    )
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onDismissKnowledgeOffer()
-                        navigation.select(PrimaryDestination.Library)
-                    }) { Text("Open library") }
-                },
-                dismissButton = {
-                    TextButton(onClick = onDismissKnowledgeOffer) { Text("Start researching") }
-                },
-            )
-        }
         val detail = navigation.detail
         if (detail != null) {
             when (detail) {
@@ -283,6 +269,9 @@ fun FieldAtlasApp(
                         importing = importing,
                         importError = setupError,
                         availableKnowledge = availableKnowledge,
+                        catalogRefreshing = catalogRefreshing,
+                        catalogError = catalogError,
+                        onRefreshCatalog = onRefreshCatalog,
                         knowledgeDownloadKey = knowledgeDownloadKey,
                         knowledgeDownloadedBytes = knowledgeDownloadedBytes,
                         knowledgeDownloadError = knowledgeDownloadError,

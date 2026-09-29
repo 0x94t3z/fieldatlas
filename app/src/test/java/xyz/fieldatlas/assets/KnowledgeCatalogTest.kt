@@ -7,6 +7,25 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KnowledgeCatalogTest {
+    @Test fun rejectsMalformedEntriesAndUnsupportedSchema() {
+        val valid = KnowledgeCatalogRepositoryTest.catalog("astronomy")
+        for (invalid in listOf(valid.replace("edition-a", "../unsafe"),
+            valid.replace("a".repeat(64), "not-a-hash"), valid.replace("https://", "http://"),
+            valid.replace("schemaVersion\":1", "schemaVersion\":2"))) {
+            assertThrows(IllegalArgumentException::class.java) { KnowledgeCatalog.parse(invalid) }
+        }
+    }
+    @Test fun rejectsEmptyOrOversizedCatalogsAndAcceptsBoundary() {
+        assertThrows(IllegalArgumentException::class.java) {
+            KnowledgeCatalog.parse("""{"schemaVersion":1,"packs":[]}""")
+        }
+        val entries = (1..500).joinToString(",") { KnowledgeCatalogRepositoryTest.entry("pack-$it") }
+        assertEquals(500, KnowledgeCatalog.parse("""{"schemaVersion":1,"packs":[$entries]}""").packs.size)
+        assertThrows(IllegalArgumentException::class.java) {
+            KnowledgeCatalog.parse("""{"schemaVersion":1,"packs":[$entries,${KnowledgeCatalogRepositoryTest.entry("extra")}]}""")
+        }
+    }
+
     @Test fun bundledCatalogContainsVerifiedBiologyPack() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "world-knowledge-biology" }

@@ -11,6 +11,18 @@ import xyz.fieldatlas.ui.markdown.plainText
 
 typealias ResearchCompletion = DomainResearchCompletion
 
+internal fun researchProgressHeading(phase: ResearchPhase, answer: String, hasSources: Boolean): String =
+    when (phase) {
+        ResearchPhase.Planning -> "Understanding your question…"
+        ResearchPhase.Searching -> "Searching saved sources…"
+        ResearchPhase.Generating -> when {
+            answer.isNotBlank() -> "Writing your answer…"
+            hasSources -> "Reading saved sources…"
+            else -> "Preparing your answer…"
+        }
+        else -> "Writing your answer…"
+    }
+
 internal fun readyCitationCount(answer: String, sourceCount: Int): Int =
     buildAnswerPresentation(answer, sourceCount).availableCitations.size
 
@@ -55,7 +67,10 @@ fun answerCardPreview(answer: String): String {
         ?.replace(Regex("\\s+([.,;:!?])"), "$1")
         ?.trim()
         .orEmpty()
-    return if (text.length <= 170) text else text.take(169).trimEnd() + "…"
+    val labelled = if (answer.startsWith("## Model explanation—not verified against saved sources")) {
+        "Model explanation (unverified): $text"
+    } else text
+    return if (labelled.length <= 170) labelled else labelled.take(169).trimEnd() + "…"
 }
 
 fun buildAnswerPresentation(answer: String, sourceCount: Int): AnswerPresentation {
@@ -93,9 +108,9 @@ fun researchActivityLabel(
             "Searching your library"
         }
         ResearchPhase.Generating -> if (hasSources) when {
-            tokensWritten > 0 -> "Writing from sources ($tokensWritten tokens written)"
+            tokensWritten > 0 -> "Writing an offline answer ($tokensWritten tokens written)"
             readSuffix.isNotEmpty() -> "Reading from sources$readSuffix"
-            else -> "Writing from sources"
+            else -> "Writing an offline answer"
         } else when {
             tokensWritten > 0 -> "Writing an offline answer ($tokensWritten tokens written)"
             readSuffix.isNotEmpty() -> "Reading the question$readSuffix"

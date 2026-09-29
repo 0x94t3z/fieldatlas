@@ -5,6 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+// One maintained question file; the APK copy is generated, never hand-edited.
+val generatedBenchmarkAssets = layout.buildDirectory.dir("generated/benchmarkAssets")
+val syncBenchmarkAssets by tasks.registering(Sync::class) {
+    from(rootProject.file("benchmarks/questions.json"))
+    into(generatedBenchmarkAssets.map { it.dir("benchmark") })
+}
+
 val releaseSigningInputs = mapOf(
     "FIELDATLAS_KEYSTORE_PATH" to providers.environmentVariable("FIELDATLAS_KEYSTORE_PATH").orNull,
     "FIELDATLAS_STORE_PASSWORD" to providers.environmentVariable("FIELDATLAS_STORE_PASSWORD").orNull,
@@ -20,6 +27,7 @@ if (hasAnyReleaseSigningInput && !hasAllReleaseSigningInputs) {
 }
 
 android {
+    sourceSets.getByName("main").assets.srcDir(generatedBenchmarkAssets)
     namespace = "xyz.fieldatlas"
     compileSdk = 36
     // Allow testing the signed release on a phone without installing a second debug app.
@@ -76,6 +84,26 @@ android {
 
     packaging {
         jniLibs.useLegacyPackaging = true
+    }
+}
+
+tasks.named("preBuild").configure { dependsOn(syncBenchmarkAssets) }
+
+// Opt-in host runner uses the same SQLite version, with desktop JNI instead of Android JNI.
+// Nothing from this configuration is included in the APK or ordinary unit tests.
+val desktopSqlite by configurations.creating
+dependencies {
+    desktopSqlite("androidx.sqlite:sqlite-jvm:${libs.versions.sqlite.get()}") { isTransitive = false }
+    desktopSqlite("androidx.sqlite:sqlite-bundled-jvm:${libs.versions.sqlite.get()}") { isTransitive = false }
+}
+tasks.withType<Test>().configureEach {
+    if (!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank()) {
+        doFirst {
+            classpath = desktopSqlite + classpath.filter {
+                !it.name.startsWith("sqlite-") && it.name != "sqlite.jar"
+            }
+        }
+        outputs.upToDateWhen { false }
     }
 }
 

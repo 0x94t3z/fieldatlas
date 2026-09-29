@@ -7,6 +7,10 @@ import org.junit.Test
 import xyz.fieldatlas.research.ResearchMetrics
 
 class ResearchPresentationTest {
+    @Test fun modelWarningSurvivesTheReadyCardPreview() {
+        val answer = "## Model explanation—not verified against saved sources\n\nGeneral background.\n\n## From saved sources\n\n- A quote [S1]"
+        assertEquals("Model explanation (unverified): General background.", answerCardPreview(answer))
+    }
     @Test fun readyCardCountsActualCitationSyntaxAndIgnoresUnavailableSources() {
         assertEquals(2, readyCitationCount("Sources [S1], [S2], [S2], [S9].", 4))
         assertEquals(0, readyCitationCount("No citations", 4))
@@ -78,7 +82,7 @@ class ResearchPresentationTest {
             "Searching your library (+3 concept matches, 42%)",
             researchActivityLabel(ResearchPhase.Searching, 0.42, vectorMatches = 3),
         )
-        assertEquals("Writing from sources", researchActivityLabel(ResearchPhase.Generating))
+        assertEquals("Writing an offline answer", researchActivityLabel(ResearchPhase.Generating))
         assertEquals("Writing an offline answer", researchActivityLabel(ResearchPhase.Generating, hasSources = false))
         assertEquals(
             "Reading the question (123/2374 tokens read)",
@@ -86,7 +90,7 @@ class ResearchPresentationTest {
         )
         assertEquals("**Axial tilt** explains seasons.", draftAnswerPreview("**Axial tilt** [S1] explains seasons."))
         assertEquals(
-            "Writing from sources (85 tokens written)",
+            "Writing an offline answer (85 tokens written)",
             researchActivityLabel(ResearchPhase.Generating, tokensWritten = 85),
         )
         assertEquals(
@@ -94,7 +98,7 @@ class ResearchPresentationTest {
             researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374),
         )
         assertEquals(
-            "Writing from sources (85 tokens written)",
+            "Writing an offline answer (85 tokens written)",
             researchActivityLabel(ResearchPhase.Generating, promptRead = 2374 to 2374, tokensWritten = 85),
         )
         assertEquals(

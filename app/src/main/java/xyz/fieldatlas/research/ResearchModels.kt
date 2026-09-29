@@ -10,7 +10,7 @@ sealed interface ResearchEvent {
     data class Keywords(val terms: List<String>) : ResearchEvent
     data class Searching(val query: String) : ResearchEvent
     data class Sources(val evidence: List<Evidence>) : ResearchEvent
-    data class Token(val text: String) : ResearchEvent
+    data class Token(val text: String, val replace: Boolean = false) : ResearchEvent
     data class Complete(val metrics: ResearchMetrics) : ResearchEvent
     data class InsufficientEvidence(val reason: String) : ResearchEvent
     data class Failed(val message: String) : ResearchEvent
@@ -31,4 +31,5 @@ data class PromptSource(val citationId: String, val evidence: Evidence)
 data class PackedPrompt(
     val prompt: String,
     val sources: List<PromptSource>,
+    val mixedAnswer: Boolean = false,
 )

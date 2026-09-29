@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
@@ -24,13 +25,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.proof.ProofFact
 import xyz.fieldatlas.proof.ProofModel
 import xyz.fieldatlas.proof.ProofState
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
@@ -56,24 +57,27 @@ fun MoreScreen(
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
         contentPadding = PaddingValues(bottom = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
             FieldAtlasPageHeader(
                 title = "More",
-                subtitle = "Privacy, model settings, and app details.",
+                subtitle = "Settings and app details.",
                 modifier = Modifier.padding(top = 18.dp, bottom = 4.dp),
             )
         }
         item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+            FieldAtlasCard(Modifier.fillMaxWidth(),
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                contentPadding = 12.dp) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Lock)
+                    Icon(FieldAtlasIcons.Lock, contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Privacy & offline use")
                         Text(
-                            "No account needed. Download online, then research entirely on your phone.",
+                            "Download online. Research offline. No account needed.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -82,18 +86,18 @@ fun MoreScreen(
             }
         }
         item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showModel = !showModel },
+            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showModel = !showModel },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Archive)
+                    FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Answer model")
                         Text(modelStatus(inferenceState), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.rotate(if (showModel) 90f else 0f),
+                        modifier = Modifier.size(20.dp).rotate(if (showModel) 90f else 0f),
                         contentDescription = if (showModel) "Hide model actions" else "Show model actions")
                 }
                 if (showModel) {
@@ -119,34 +123,34 @@ fun MoreScreen(
         }
         item {
             FieldAtlasCard(Modifier.fillMaxWidth().clickable(onClick = onOpenBenchmark),
-                contentPadding = 14.dp) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = 12.dp) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Benchmark)
+                    FieldAtlasIconTile(FieldAtlasIcons.Benchmark, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Performance check")
-                        Text("Compare speed and answers across 18 questions.",
+                        Text("Check answer quality and speed.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(FieldAtlasIcons.ChevronRight, contentDescription = null)
+                    Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
         }
         item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showDiagnostics = !showDiagnostics },
+            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showDiagnostics = !showDiagnostics },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Diagnostics)
+                    FieldAtlasIconTile(FieldAtlasIcons.Diagnostics, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Troubleshooting")
-                        Text("View recent issues or save a support report.",
+                        Text("Recent issues and support reports.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.rotate(if (showDiagnostics) 90f else 0f),
+                        modifier = Modifier.size(20.dp).rotate(if (showDiagnostics) 90f else 0f),
                         contentDescription = if (showDiagnostics) "Hide export options" else "Show export options")
                 }
                 if (showDiagnostics) {
@@ -172,18 +176,18 @@ fun MoreScreen(
             }
         }
         item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { showTechnical = !showTechnical },
+            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showTechnical = !showTechnical },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Info)
+                    FieldAtlasIconTile(FieldAtlasIcons.Info, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("App & device")
-                        Text("Saved files, memory, and offline checks.", style = MaterialTheme.typography.bodySmall,
+                        Text("Storage, memory, and offline checks.", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.rotate(if (showTechnical) 90f else 0f),
+                        modifier = Modifier.size(20.dp).rotate(if (showTechnical) 90f else 0f),
                         contentDescription = if (showTechnical) "Hide details" else "Show details")
                 }
                 if (showTechnical) {
@@ -197,7 +201,7 @@ fun MoreScreen(
 @Composable
 private fun MoreCardTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium,
-        fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold)
+        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable

@@ -1,12 +1,79 @@
 package xyz.fieldatlas.research
 
 object AnswerText {
+    private const val MODEL_LABEL = "Model explanation—not verified against saved sources"
+    private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)+)[.!]?\\s*$", RegexOption.IGNORE_CASE)
+
+    /**
+     * Mixed answers fail closed: only a verbatim quotation from the cited passage gets
+     * a source link. This validates attribution, not the truth or completeness of a source.
+     * Everything else remains useful model text, explicitly unverified and uncited.
+     */
+    fun mixed(raw: String, sources: List<Evidence>): String {
+        val model = mutableListOf<String>()
+        val quotes = mutableListOf<String>()
+        var sourceSection = false
+        val text = normalizeReferences(visible(raw))
+        val lines = text.lines()
+        lines.forEachIndexed { index, line ->
+            val heading = line.trim().trim('#', '*', ' ', ':').lowercase()
+            when (heading) {
+                "from saved sources" -> sourceSection = true
+                "model explanation", MODEL_LABEL.lowercase() -> sourceSection = false
+                else -> {
+                    // Hold a heading while it is streaming, rather than showing it as prose.
+                    if (index == lines.lastIndex && heading.isNotEmpty() &&
+                        listOf("from saved sources", "model explanation").any { it.startsWith(heading) }) {
+                        return@forEachIndexed
+                    }
+                    val match = if (sourceSection) quoteLine.matchEntire(line.trim()) else null
+                    val quote = match?.groupValues?.get(1).orEmpty()
+                    val normalizedQuote = normalizeQuote(quote)
+                    val verifiedNumbers = citationPattern.findAll(match?.groupValues?.get(2).orEmpty())
+                        .mapNotNull { it.groupValues[1].toIntOrNull() }
+                        .distinct().filter { number ->
+                            val passage = sources.getOrNull(number - 1)?.text
+                            passage != null && normalizedQuote.length >= 12 &&
+                                !citationPattern.containsMatchIn(quote) && !placeholderPattern.containsMatchIn(quote) &&
+                                normalizeQuote(EvidenceRelevance.passageText(passage)).contains(normalizedQuote)
+                        }.toList()
+                    if (verifiedNumbers.isNotEmpty()) {
+                        quotes += "- \"$quote\" " + verifiedNumbers.joinToString("") { "[S$it]" }
+                    } else {
+                        val uncited = finalized(line, 0)
+                            .replace(Regex("\\[(?:S)?[0-9#]*$", RegexOption.IGNORE_CASE), "")
+                            .trim()
+                        if (uncited.isNotEmpty()) model += uncited
+                    }
+                }
+            }
+        }
+        return listOfNotNull(
+            model.takeIf { it.isNotEmpty() }?.let { "## $MODEL_LABEL\n\n" + it.joinToString("\n") },
+            quotes.takeIf { it.isNotEmpty() }?.let { "## From saved sources\n\n" + it.distinct().joinToString("\n") },
+        ).joinToString("\n\n")
+    }
+
+    private fun normalizeQuote(value: String): String = value.replace(Regex("\\s+"), " ").trim()
     private const val THINK_OPEN = "<think>"
     private const val THINK_CLOSE = "</think>"
-    private val citationPattern = Regex("(?<![\\p{L}\\p{N}])\\[(?:S)?([0-9]+)]", RegexOption.IGNORE_CASE)
+    private val citationPattern = Regex("\\[(?:S)?([+-]?\\p{Nd}+)]", RegexOption.IGNORE_CASE)
     private val placeholderPattern = Regex("\\[S#]", RegexOption.IGNORE_CASE)
+    private val parenthesizedReferences = Regex(
+        "\\(\\s*(?:sources?\\s*:\\s*)?S[+-]?\\p{Nd}+(?:\\s*[,;]\\s*S[+-]?\\p{Nd}+)*\\s*\\)",
+        RegexOption.IGNORE_CASE,
+    )
+    private val sourceNumber = Regex("S([+-]?\\p{Nd}+)", RegexOption.IGNORE_CASE)
+
+    // Only explicit S-number references qualify; ordinary parentheses remain prose.
+    // Normalize before attribution checks, never instead of them.
+    private fun normalizeReferences(text: String): String = parenthesizedReferences.replace(text) { group ->
+        sourceNumber.findAll(group.value).joinToString("") { "[S${it.groupValues[1]}]" }
+    }
 
     data class CitationAudit(val citedSourceIds: Set<String>, val hasUnmappedCitation: Boolean)
+
+    internal fun citationMarkerCount(raw: String): Int = citationPattern.findAll(normalizeReferences(visible(raw))).count()
 
     fun visible(raw: String): String {
         val visible = StringBuilder()
@@ -32,7 +99,7 @@ object AnswerText {
     /** Normalizes model citation variants and removes placeholders that cannot open a source. */
     fun finalized(raw: String, sourceCount: Int): String {
         val sourceRange = 1..sourceCount.coerceAtLeast(0)
-        return visible(raw)
+        return normalizeReferences(visible(raw))
             // Small models commonly emit [1] despite being asked for [S1]. Normalize it so the
             // same citation chip and source navigation work instead of showing dead punctuation.
             .replace(citationPattern) { match ->
@@ -48,7 +115,7 @@ object AnswerText {
 
     /** Uses the same citation rules as [finalized], so metrics describe clickable sources. */
     fun citationAudit(raw: String, sourceCount: Int): CitationAudit {
-        val visible = visible(raw)
+        val visible = normalizeReferences(visible(raw))
         val validRange = 1..sourceCount.coerceAtLeast(0)
         val cited = linkedSetOf<String>()
         var unmapped = placeholderPattern.containsMatchIn(visible)

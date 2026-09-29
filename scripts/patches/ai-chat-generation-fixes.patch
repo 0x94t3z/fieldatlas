@@ -489,18 +489,21 @@ index 26c166872..3cc840b6b 100644
       * Runs a benchmark with the specified parameters.
       */
 diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
-index a293796f9..85d989502 100644
+index a293796f9..3ddcb3d9d 100644
 --- a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
 +++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
-@@ -3,6 +3,7 @@ package com.arm.aichat.internal
+@@ -3,9 +3,9 @@ package com.arm.aichat.internal
  import android.content.Context
  import android.util.Log
  import com.arm.aichat.InferenceEngine
 +import com.arm.aichat.PromptProgress
  import com.arm.aichat.UnsupportedArchitectureException
  import com.arm.aichat.internal.InferenceEngineImpl.Companion.getInstance
- import dalvik.annotation.optimization.FastNative
-@@ -75,6 +76,18 @@ internal class InferenceEngineImpl private constructor(
+-import dalvik.annotation.optimization.FastNative
+ import kotlinx.coroutines.CancellationException
+ import kotlinx.coroutines.CoroutineScope
+ import kotlinx.coroutines.Dispatchers
+@@ -75,40 +75,56 @@ internal class InferenceEngineImpl private constructor(
              }
      }
 
@@ -518,28 +521,48 @@ index a293796f9..85d989502 100644
 +
      /**
       * JNI methods
++     * Use ordinary JNI transitions: model I/O and decoding can run for seconds.
++     * Optimized transitions keep ART's mutator lock held and can stall GC and UI input.
       * @see ai_chat.cpp
-@@ -100,6 +113,10 @@ internal class InferenceEngineImpl private constructor(
-     @FastNative
+      */
+-    @FastNative
+     private external fun init(nativeLibDir: String)
+
+-    @FastNative
+     private external fun load(modelPath: String): Int
+
+-    @FastNative
+     private external fun prepare(): Int
+
+-    @FastNative
+     private external fun systemInfo(): String
+
+-    @FastNative
+     private external fun benchModel(pp: Int, tg: Int, pl: Int, nr: Int): String
+
+-    @FastNative
+     private external fun processSystemPrompt(systemPrompt: String): Int
+
+-    @FastNative
      private external fun processUserPrompt(userPrompt: String, predictLength: Int): Int
 
+-    @FastNative
 +    private external fun resetConversationNative(systemPrompt: String): Int
 +
 +    private external fun setSamplerSeedNative(seed: Int)
 +
-     @FastNative
      private external fun generateNextToken(): String?
 
-@@ -109,6 +126,16 @@ internal class InferenceEngineImpl private constructor(
-     @FastNative
+-    @FastNative
+     private external fun unload()
+
+-    @FastNative
      private external fun shutdown()
 
 +    // Field Atlas: embedding encoder (chunk_vectors knowledge packs) — separate native globals
 +    // from the chat model, so the answer model and encoder coexist.
-+    @FastNative
 +    private external fun loadEncoderNative(modelPath: String): Boolean
 +
-+    @FastNative
 +    private external fun unloadEncoderNative()
 +
 +    private external fun embedNative(text: String): FloatArray?
@@ -547,7 +570,7 @@ index a293796f9..85d989502 100644
      private val _state =
          MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
      override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
-@@ -214,6 +241,24 @@ internal class InferenceEngineImpl private constructor(
+@@ -214,6 +230,24 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
       */
@@ -572,7 +595,7 @@ index a293796f9..85d989502 100644
      override fun sendUserPrompt(
          message: String,
          predictLength: Int,
-@@ -227,6 +272,7 @@ internal class InferenceEngineImpl private constructor(
+@@ -227,6 +261,7 @@ internal class InferenceEngineImpl private constructor(
              Log.i(TAG, "Sending user prompt...")
              _readyForSystemPrompt = false
              _state.value = InferenceEngine.State.ProcessingUserPrompt
@@ -580,7 +603,7 @@ index a293796f9..85d989502 100644
 
              processUserPrompt(message, predictLength).let { result ->
                  if (result != 0) {
-@@ -262,6 +308,17 @@ internal class InferenceEngineImpl private constructor(
+@@ -262,6 +297,17 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Benchmark the model
       */

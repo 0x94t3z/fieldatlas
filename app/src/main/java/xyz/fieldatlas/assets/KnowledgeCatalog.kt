@@ -7,8 +7,9 @@ import java.net.URI
 @Serializable
 data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCatalogEntry>) {
     companion object {
-        fun parse(json: String): KnowledgeCatalog = Json.decodeFromString<KnowledgeCatalog>(json).also { catalog ->
+        fun parse(json: String): KnowledgeCatalog = Json { ignoreUnknownKeys = true }.decodeFromString<KnowledgeCatalog>(json).also { catalog ->
             require(catalog.schemaVersion == 1) { "Unsupported knowledge catalog version" }
+            require(catalog.packs.size in 1..500) { "Invalid catalog entry count" }
             require(catalog.packs.map { it.id to it.version }.distinct().size == catalog.packs.size) {
                 "Knowledge catalog contains duplicate pack versions"
             }

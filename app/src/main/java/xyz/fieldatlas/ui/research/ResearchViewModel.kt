@@ -225,6 +225,7 @@ class ResearchViewModel(
                         // answer token and must not light up the written counter, or the
                         // read-progress label would be hidden from the first millisecond.
                         val marker = event.text.isEmpty()
+                        if (event.replace) rawAnswer.clear()
                         rawAnswer.append(event.text)
                         mutableUiState.value.copy(
                             answer = AnswerText.visible(rawAnswer.toString()),

@@ -262,21 +262,31 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                color = iconBackground,
-                shape = MaterialTheme.shapes.small,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = group.entries.first().first.toString(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.semantics {
-                            contentDescription = "Source ${group.entries.first().first}"
-                        },
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                group.entries.forEach { (number, _) ->
+                    Box(
+                        modifier = Modifier.size(48.dp)
+                            .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            modifier = Modifier.size(40.dp),
+                            color = iconBackground,
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = number.toString(),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.semantics {
+                                        contentDescription = "Source $number"
+                                    },
+                                )
+                            }
+                        }
+                    }
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -295,26 +305,6 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (group.entries.size > 1) FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    group.entries.drop(1).forEach { (number, _) ->
-                        Surface(
-                            modifier = Modifier.heightIn(min = 48.dp)
-                                .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) },
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = MaterialTheme.shapes.extraSmall,
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text("[$number]",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-                    }
-                }
             }
             Icon(
                 Icons.AutoMirrored.Outlined.KeyboardArrowRight,

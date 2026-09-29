@@ -58,7 +58,7 @@ class BenchmarkViewModelTest {
         val result = viewModel.state.value.run.results.single()
         assertTrue(cancelled.get())
         assertEquals(BenchmarkResultState.CANCELLED, result.state)
-        assertEquals("partial", result.answer)
+        assertEquals("## Model explanation—not verified against saved sources\n\npartial", result.answer)
         assertEquals(listOf("doc:0000"), result.evidenceChunkIds)
         assertEquals("q2", viewModel.state.value.nextQuestion?.id)
     }
@@ -86,7 +86,7 @@ class BenchmarkViewModelTest {
 
         viewModel.runNext()
 
-        assertEquals("Visible answer [S1]", viewModel.state.value.run.results.single().answer)
+        assertEquals("## Model explanation—not verified against saved sources\n\nVisible answer", viewModel.state.value.run.results.single().answer)
     }
 
     private fun question(id: String) = BenchmarkQuestion(

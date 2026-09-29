@@ -60,6 +60,9 @@ fun LibraryScreen(
     importing: Boolean = false,
     importError: String? = null,
     availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
+    catalogRefreshing: Boolean = false,
+    catalogError: String? = null,
+    onRefreshCatalog: () -> Unit = {},
     knowledgeDownloadKey: String? = null,
     knowledgeDownloadedBytes: Long = 0,
     knowledgeDownloadError: String? = null,
@@ -154,6 +157,7 @@ fun LibraryScreen(
                     onDelete = { onDeletePack(asset) },
                 )
             }
+            item { xyz.fieldatlas.ui.theme.CatalogRefresh(catalogRefreshing, catalogError, onRefreshCatalog) }
             if (available.isNotEmpty()) {
                 item { SectionLabel("Available to download") }
                 items(available.size, key = { "available:${available[it].id}:${available[it].version}" }) { index ->
@@ -199,7 +203,7 @@ fun LibraryScreen(
 }
 
 @Composable
-private fun KnowledgeDownloadCard(
+internal fun KnowledgeDownloadCard(
     pack: KnowledgeCatalogEntry,
     downloading: Boolean,
     busy: Boolean,

@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +60,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -123,10 +125,10 @@ fun ResearchScreen(
                 },
                 subtitle = when {
                     state.isRunning -> "Working on this phone."
-                    hasReadyAnswer -> "Read your answer or explore another question."
+                    hasReadyAnswer -> "Your answer is ready to read."
                     else -> "Ask across the knowledge saved on this phone."
                 },
-                modifier = Modifier.padding(top = 22.dp),
+                modifier = Modifier.padding(top = if (state.isRunning || hasReadyAnswer) 16.dp else 22.dp),
             )
         }
         item {
@@ -148,23 +150,12 @@ fun ResearchScreen(
                 )
             }
         }
-        if (hasReadyAnswer && !editReadyQuestion) {
+        if (state.isRunning || (hasReadyAnswer && !editReadyQuestion)) {
             item {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(state.question, style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.weight(1f))
-                    TextButton(onClick = { editReadyQuestion = true }) { Text("Edit") }
-                }
-            }
-        } else if (state.isRunning) {
-            item {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Your question", style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(state.question, style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth())
-                }
+                ResearchQuestionPanel(
+                    question = state.question,
+                    onEdit = if (hasReadyAnswer && !state.isRunning) ({ editReadyQuestion = true }) else null,
+                )
             }
         } else item {
             Surface(
@@ -342,8 +333,8 @@ fun ResearchScreen(
                                 if (citedSourceCount == 0) {
                                     "Model-generated · no sources cited"
                                 } else {
-                                    "Written from $citedSourceCount cited local " +
-                                        if (citedSourceCount == 1) "source." else "sources."
+                                    "$citedSourceCount local " +
+                                        if (citedSourceCount == 1) "source cited." else "sources cited."
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -351,7 +342,7 @@ fun ResearchScreen(
                         }
                         state.metrics?.totalMillis?.let { duration ->
                             FieldAtlasStatusPill(
-                                text = formatResearchElapsed(duration),
+                                text = "Took ${formatResearchElapsed(duration)}",
                                 state = StatusTone.Neutral,
                                 modifier = Modifier.semantics { contentDescription = "Completed in ${formatResearchElapsed(duration)}" },
                             )
@@ -362,7 +353,8 @@ fun ResearchScreen(
                         Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Icon(FieldAtlasIcons.Document, contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                            Text(preview, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Text(preview, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                                maxLines = 3, overflow = TextOverflow.Ellipsis)
                         }
                     }
                     FieldAtlasPrimaryButton(
@@ -464,6 +456,32 @@ fun ResearchScreen(
 }
 
 @Composable
+internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+    ) {
+        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Your question", modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (onEdit != null) {
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Outlined.Edit, contentDescription = "Edit question",
+                            modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            Text(question, modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.SansSerif,
+                fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
+@Composable
 private fun AttachmentMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
     DropdownMenuItem(
         text = {
@@ -507,18 +525,17 @@ private fun ResearchAction(
         }
         FieldAtlasCard(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(when (state.phase) {
-                    ResearchPhase.Planning -> "Understanding your question…"
-                    ResearchPhase.Searching -> "Searching saved sources…"
-                    else -> "Writing your answer…"
-                }, modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                Text(researchProgressHeading(state.phase, state.answer, state.sources.isNotEmpty()),
+                    modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
                 TextButton(onClick = onStop) { Text("Stop") }
             }
             if (state.startedAtNanos != null) {
                 Text("${formatResearchElapsed(elapsedMillis)} elapsed", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            LinearProgressIndicator(Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer)
             if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
                 Text("Model-generated · no supporting sources found",
                     style = MaterialTheme.typography.bodySmall,
@@ -547,7 +564,9 @@ private fun ResearchAction(
         )
         InferenceState.Loading -> FieldAtlasCard(Modifier.fillMaxWidth()) {
             Text("Preparing research tools")
-            LinearProgressIndicator(Modifier.fillMaxWidth())
+            LinearProgressIndicator(Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.primaryContainer)
         }
         InferenceState.Idle -> FieldAtlasPrimaryButton(
             text = "Prepare for research",

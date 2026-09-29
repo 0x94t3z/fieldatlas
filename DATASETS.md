@@ -1,5 +1,11 @@
 # Field Atlas datasets
 
+## Adding future collections
+
+The development app accepts independently produced knowledge packs using the supported fapack manifest and SQLite schema. A topic need not have a hardcoded app entry. The canonical download catalog is `app/src/main/assets/knowledge/catalog.json`; publishing compatible entries to that file on the project repository's main branch lets users discover them through explicit **Refresh collections**. Refresh is optional provisioning, not background research networking. Installed packs work independently of catalog availability.
+
+Keyword search is the compatibility fallback. The current vector reader supports normalized `int8-symmetric-per-vector` blobs in `chunk_vectors`. Packs using another layout or an encoder incompatible with the active encoder remain keyword-only. Encoder identity is checked again when encoding to avoid mixing vector spaces if enabled packs change mid-query. This is not support for arbitrary model/embedding formats. Pack content does not override citation or answer policies.
+
 [Back to the overview](README.md) · [Phone setup](docs/installation.md)
 
 A **knowledge pack** is a saved collection the app can search when answering. It is optional: the model can still answer without one, but there will be no local source citation. A pack only covers the topics in its own data; it does not refresh itself while the phone is offline.

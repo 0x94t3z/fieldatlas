@@ -128,6 +128,21 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
+            if (attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
+                // A source-only request cannot be satisfied by unsupported model knowledge.
+                // Finish normally so history and answer navigation retain the existing flow.
+                val answerAt = monotonicMillis()
+                emit(ResearchEvent.Token("I couldn't find supporting saved sources for this question. Add a relevant collection or file and try again."))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, answerAt),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             val outputBudget = if (attachments.isEmpty()) maxOutputTokens else minOf(maxOutputTokens, inference.contextWindowTokens / 4).coerceAtLeast(1)
             val packed = if (attachments.isNotEmpty()) {
                 AttachmentEvidence.pack(question, AttachmentEvidence.select(question, attachments, maxOf(resultLimit, attachments.size)), evidence,
@@ -156,10 +171,14 @@ class ResearchOrchestrator(
                 if (firstTokenAt == null) firstTokenAt = monotonicMillis()
                 generatedTokenCount++
                 output.append(token)
-                emit(ResearchEvent.Token(token))
+                emit(if (packed.mixedAnswer) {
+                    ResearchEvent.Token(AnswerText.mixed(output.toString(), packed.sources.map { it.evidence }), replace = true)
+                } else ResearchEvent.Token(token))
             }
             val finishedAt = monotonicMillis()
-            val citations = AnswerText.citationAudit(output.toString(), packed.sources.size)
+            val attributed = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), packed.sources.map { it.evidence }) else output.toString()
+            val citations = AnswerText.citationAudit(attributed, packed.sources.size)
+            val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
             emit(
                 ResearchEvent.Complete(
                     ResearchMetrics(
@@ -168,7 +187,8 @@ class ResearchOrchestrator(
                         totalMillis = elapsed(startedAt, finishedAt),
                         generatedTokenCount = generatedTokenCount,
                         citedSourceIds = citations.citedSourceIds,
-                        hasUnmappedCitation = citations.hasUnmappedCitation,
+                        hasUnmappedCitation = citations.hasUnmappedCitation || rawCitations.hasUnmappedCitation ||
+                            AnswerText.citationMarkerCount(attributed) < AnswerText.citationMarkerCount(output.toString()),
                     ),
                 ),
             )

@@ -54,7 +54,7 @@ class FtsQuery private constructor(
 
         private val STOP_WORDS = setOf(
             "a", "an", "and", "are", "as", "at", "be", "been", "being", "but", "by", "can",
-            "could", "did", "do", "does", "for", "from", "how", "if", "in", "is", "it", "its",
+            "could", "did", "do", "does", "for", "from", "have", "has", "had", "how", "if", "in", "is", "it", "its",
             "may", "might", "must", "not", "of", "on", "or", "shall", "should", "that", "the",
             "then", "these", "this", "those", "to", "was", "were", "what", "when", "where",
             "who", "why", "will", "with", "would",

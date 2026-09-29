@@ -176,13 +176,18 @@ class MainActivity : ComponentActivity() {
                 return@setContent
             }
 
+            val catalogState by container.catalogState.collectAsStateWithLifecycle()
             FieldAtlasApp(
                 packs = setupState.packs,
                 importing = setupState.importing,
                 downloading = setupState.downloading,
                 downloadedBytes = setupState.downloadedBytes,
                 offerKnowledge = setupState.offerKnowledge,
-                availableKnowledge = container.knowledgeCatalog,
+                availableKnowledge = xyz.fieldatlas.assets.catalogWithActiveDownload(
+                    catalogState.packs, setupState.activeKnowledgeDownload),
+                catalogRefreshing = catalogState.refreshing,
+                catalogError = catalogState.error,
+                onRefreshCatalog = { scope.launch { container.refreshKnowledgeCatalog() } },
                 knowledgeDownloadKey = setupState.knowledgeDownloadKey,
                 knowledgeDownloadedBytes = setupState.knowledgeDownloadedBytes,
                 knowledgeDownloadError = setupState.knowledgeError,

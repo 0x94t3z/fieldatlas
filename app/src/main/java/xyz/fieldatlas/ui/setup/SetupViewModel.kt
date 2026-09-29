@@ -20,10 +20,16 @@ data class SetupUiState(
     val downloadedBytes: Long = 0,
     val offerKnowledge: Boolean = false,
     val knowledgeDownloadKey: String? = null,
+    val activeKnowledgeDownload: KnowledgeCatalogEntry? = null,
     val knowledgeDownloadedBytes: Long = 0,
     val knowledgeError: String? = null,
     val error: String? = null,
-)
+) {
+    internal fun startImport() = copy(importing = true, error = null, knowledgeError = null)
+    internal fun finishImport(hadModel: Boolean, installedType: xyz.fieldatlas.assets.PackType) =
+        copy(importing = false, offerKnowledge = offerKnowledge || (!hadModel && installedType == xyz.fieldatlas.assets.PackType.MODEL))
+    internal fun startKnowledgeDownload(key: String) = copy(knowledgeDownloadKey = key, knowledgeDownloadedBytes = 0, knowledgeError = null, error = null)
+}
 
 class SetupViewModel(private val container: AppContainer) : ViewModel() {
     private val mutableState = MutableStateFlow(SetupUiState())
@@ -48,14 +54,11 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
         if (mutableState.value.importing || mutableState.value.downloading ||
             mutableState.value.knowledgeDownloadKey != null) return
         viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(importing = true, error = null)
+            mutableState.value = mutableState.value.startImport()
             mutableState.value = try {
                 val hadModel = mutableState.value.packs.any { it.type == xyz.fieldatlas.assets.PackType.MODEL }
                 val installed = container.importPack(uri)
-                mutableState.value.copy(
-                    importing = false,
-                    offerKnowledge = !hadModel && installed.type == xyz.fieldatlas.assets.PackType.MODEL,
-                )
+                mutableState.value.finishImport(hadModel, installed.type)
             } catch (error: Exception) {
                 container.errorBus.report("Pack import", error)
                 mutableState.value.copy(importing = false,
@@ -97,11 +100,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
         ) return
         val key = "${pack.id}:${pack.version}"
         knowledgeJob = viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(
-                knowledgeDownloadKey = key,
-                knowledgeDownloadedBytes = 0,
-                knowledgeError = null,
-            )
+            mutableState.value = mutableState.value.startKnowledgeDownload(key).copy(activeKnowledgeDownload = pack)
             try {
                 container.downloadKnowledge(pack) { bytes ->
                     mutableState.value = mutableState.value.copy(knowledgeDownloadedBytes = bytes)
@@ -114,7 +113,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                     )
                 }
             } finally {
-                mutableState.value = mutableState.value.copy(knowledgeDownloadKey = null)
+                mutableState.value = mutableState.value.copy(knowledgeDownloadKey = null, activeKnowledgeDownload = null)
             }
         }
     }

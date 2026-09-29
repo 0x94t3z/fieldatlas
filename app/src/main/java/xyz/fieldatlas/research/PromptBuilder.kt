@@ -5,48 +5,63 @@ object PromptBuilder {
     private const val EVIDENCE_PERCENT = 65
     private const val MIN_CONTEXT_TOKENS = 128
     private const val MAX_CONTEXT_TOKENS = 32_768
+    private const val MAX_EXCERPT_CHARS = 700
     private const val POLICY = """/no_think
 You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with the exact source number, such as [S1] or [S2], at the end of each claim. Never output the placeholder [S#] and never cite a number absent from the evidence. Where evidence gives explicit numbers or direct comparisons, prefer them over relative statements. If the evidence does not contain the answer, say that in one sentence and stop."""
+    private const val MIXED_POLICY = """/no_think
+Act as a careful offline research assistant. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Use relevant excerpts and your knowledge to explain the topic, without citations. Distinguish background knowledge from uncertain interpretation. Preserve relevant conflicts and limitations; never force unrelated findings into an explanation just because they mention the same country or word. A museum description or one narrow study is not a general overview of its topic. Do not guess current or private facts. If the saved excerpts cover only part of the question, state that limitation briefly; do not imply they support the whole explanation.
+If an excerpt directly helps answer the question, optionally append "From saved sources" followed by useful exact quotations, one per line: "quotation" [S1]. Use only the matching source number. Keep qualifications and conflicts. Do not cite paraphrases, titles, or index keywords. Ignore unrelated studies. Do not repeat these instructions."""
     private const val VENUE_POLICY = """
 For local places, name only places in the evidence. A dietary match must be stated in the evidence, not guessed from cuisine. If asked for the best places but the evidence has no comparative ranking, present them as unranked listings, not verified best choices. Say what date the listing or source shows; do not claim current opening hours, reviews, availability, or a 'best' ranking unless the evidence supports it."""
     private const val MODEL_ONLY_POLICY = """/no_think
-You are an offline assistant running entirely on this phone. No matching local sources were found. Answer from the model's offline knowledge only. Do not invent citations. For a stable conceptual question, give the direct explanation in one or two short paragraphs, ideally under 150 words. Do not add a generic disclaimer about missing packs or current data. Mention missing local evidence only when the question requires current, private, location-specific, or source-backed facts. State meaningful uncertainty without repeating yourself."""
+Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them."""
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
-    private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|hotels?|hostels?|museums?|attractions?|sights?)\\b")
+    private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|hotels?|hostels?|museums?|attractions?|sights?|bars?|shops?|stores?)\\b")
     private val LOCAL_PLACE_REQUEST = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|near|around|in)\\b")
+    private val SOURCE_ONLY_REQUEST = Regex("(?i)\\b(summari[sz]e|according to|(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?))\\b")
 
     fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         require(contextTokenBudget in MIN_CONTEXT_TOKENS..MAX_CONTEXT_TOKENS) {
             "contextTokenBudget must be between $MIN_CONTEXT_TOKENS and $MAX_CONTEXT_TOKENS"
         }
-        val evidenceBudget = contextTokenBudget.toLong() * CHARS_PER_TOKEN * EVIDENCE_PERCENT / 100
+        val scholarly = evidence.isNotEmpty() && evidence.any {
+            it.text.contains(Regex("(?im)^\\s*MeSH:"))
+        }
+        val sourceLimit = if (scholarly) 4 else evidence.size
+        val evidenceBudget = (contextTokenBudget.toLong() * CHARS_PER_TOKEN * EVIDENCE_PERCENT / 100)
+            .let { if (scholarly) minOf(it, 3_000L) else it }
         var remaining = evidenceBudget.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val sources = mutableListOf<PromptSource>()
         val blocks = mutableListOf<String>()
-        evidence.forEach { item ->
-            if (remaining <= 0) return@forEach
+        evidence.forEachIndexed { _, item ->
+            if (remaining <= 0 || sources.size >= sourceLimit) return@forEachIndexed
             val citationId = "S${sources.size + 1}"
-            val prefix = "[$citationId]\nTitle: ${item.title}\nSource: ${item.source}\nChunk: ${item.chunkId}\nText: "
-            if (prefix.length >= remaining) return@forEach
-            val text = takeWholeCodePoints(item.text, remaining - prefix.length)
-            if (text.isBlank()) return@forEach
+            // Full metadata and passage remain in PromptSource for the source viewer.
+            val prefix = "[$citationId]\nTitle: ${compactMetadata(item.title)}\nSource: ${compactMetadata(item.source)}\nExcerpt: "
+            val text = relevantExcerpt(question, EvidenceRelevance.passageText(item.text))
+            if (text.isBlank()) return@forEachIndexed
             val block = prefix + text
+            // Never split a sentence or separate a claim from its adjacent qualification
+            // to meet a quota. Omit an oversized unit rather than distort its meaning.
+            if (block.length > remaining) return@forEachIndexed
             blocks += block
             sources += PromptSource(citationId, item)
             remaining -= block.length
         }
         val prompt = buildString {
-            append(POLICY)
+            append(if (allowsModelExplanation(question)) MIXED_POLICY else POLICY)
+            append("\nEvidence contains selected excerpts, not complete documents. Do not infer that omitted information is absent from the full source.")
+            if (sources.size < evidence.size) append(" Some retrieved passages could not fit; do not claim this is a complete synthesis of all retrieved evidence.")
             if (VENUE_QUESTION.containsMatchIn(question)) append(VENUE_POLICY)
-            append("\n\nQUESTION:\n")
-            append(question.trim())
             append("\n\nEVIDENCE:\n")
             append(blocks.joinToString("\n\n"))
+            append("\n\nQUESTION:\n")
+            append(question.trim())
             append("\n\nANSWER:")
         }
-        return PackedPrompt(prompt, sources)
+        return PackedPrompt(prompt, sources, mixedAnswer = allowsModelExplanation(question))
     }
 
     fun buildModelOnly(question: String): PackedPrompt {
@@ -59,8 +74,11 @@ For a request seeking specific current local places, explain that you cannot ver
             append(question.trim())
             append("\n\nANSWER:")
         }
-        return PackedPrompt(prompt, emptyList())
+        return PackedPrompt(prompt, emptyList(), mixedAnswer = allowsModelExplanation(question))
     }
+
+    internal fun allowsModelExplanation(question: String): Boolean =
+        !VENUE_QUESTION.containsMatchIn(question) && !SOURCE_ONLY_REQUEST.containsMatchIn(question)
 
     private fun takeWholeCodePoints(value: String, maxChars: Int): String {
         if (maxChars <= 0) return ""
@@ -68,5 +86,29 @@ For a request seeking specific current local places, explain that you cannot ver
         var end = maxChars
         if (end > 0 && value[end - 1].isHighSurrogate()) end--
         return value.substring(0, end)
+    }
+
+    private fun compactMetadata(value: String): String =
+        if (value.length <= 96) value else takeWholeCodePoints(value, 95) + "…"
+
+    private fun relevantExcerpt(question: String, text: String): String {
+        if (text.length <= MAX_EXCERPT_CHARS) return text
+        val sentences = text.replace(Regex("[\\r\\n]+"), " ")
+            .split(Regex("(?<=[.!?。！？])\\s+"))
+            .filter(String::isNotBlank)
+        if (sentences.isEmpty()) return ""
+        val terms = FtsQuery.from(question)?.terms.orEmpty()
+        val anchor = sentences.indices.maxByOrNull { index ->
+            val words = Regex("[\\p{L}\\p{N}]+").findAll(sentences[index].lowercase())
+                .map { it.value }.toSet()
+            terms.count { it in words }
+        } ?: 0
+        // The anchor and immediate context are an indivisible unit. The target length
+        // is soft: keeping a qualification matters more than hitting a character cap.
+        val start = (anchor - 1).coerceAtLeast(0)
+        val end = (anchor + 1).coerceAtMost(sentences.lastIndex)
+        val excerpt = sentences.subList(start, end + 1).joinToString(" ")
+        return (if (start > 0) "… " else "") + excerpt +
+            (if (end < sentences.lastIndex) " …" else "")
     }
 }

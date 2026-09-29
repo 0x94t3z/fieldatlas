@@ -11,7 +11,7 @@ X6840 running Android 16 (API 36).
 | Version | `1.1.7` (`versionCode` 10) |
 | Signed APK | `app-release.apk` |
 | APK SHA-256 | `f0827b035e87775febabfebab0b41fea96f251c648b975a90ca7df19cfba0c06` |
-| Benchmark | `benchmarks/questions-v2.json` |
+| Benchmark | [historical question set](https://github.com/0x94t3z/fieldatlas/blob/v1.1.7/benchmarks/questions-v2.json) |
 | Knowledge | `fieldatlas-reference` 1.0.0 |
 
 The signed APK and checksum are published as assets on the [Field Atlas v1.1.7 GitHub release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.7).

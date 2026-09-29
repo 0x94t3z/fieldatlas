@@ -17,6 +17,37 @@ import xyz.fieldatlas.inference.InferenceGateway
 import xyz.fieldatlas.inference.InferenceState
 
 class ResearchOrchestratorTest {
+    @Test fun sourceOnlyRequestWithoutEvidenceDoesNotGenerateAnUnsupportedAnswer() = runBlocking {
+        val retriever = object : Retriever {
+            override fun hasEligiblePacks(query: String) = false
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit) = emptyList<Evidence>()
+        }
+        val inference = FakeInferenceGateway(listOf("An invented explanation with invented references."))
+        val events = ResearchOrchestrator(retriever, inference)
+            .research("According to my saved sources, what is the population of Atlantis today?").toList()
+        assertEquals(0, inference.generateCalls)
+        assertTrue(events.last() is ResearchEvent.Complete)
+        assertTrue(events.filterIsInstance<ResearchEvent.Token>().joinToString { it.text }.contains("saved sources"))
+        assertTrue(events.none { it is ResearchEvent.Sources })
+    }
+
+    @Test fun mixedGenerationCannotGiveModelClaimsClickableSourceLinks() = runBlocking {
+        val fact = Evidence("d", "c", "Mitosis", "Local", "Mitosis produces two cells.", -1.0)
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(fact) },
+            FakeInferenceGateway(listOf("Model explanation\nGeneral fact [S1].\n", "From saved sources\n\"Mitosis produces two cells.\" [S1]")))
+            .research("Explain mitosis").toList()
+        val answer = StringBuilder()
+        events.filterIsInstance<ResearchEvent.Token>().forEach {
+            if (it.replace) answer.clear()
+            answer.append(it.text)
+        }
+        assertTrue(answer.contains("not verified against saved sources"))
+        assertFalse(answer.contains("General fact [S1]"))
+        assertTrue(answer.contains("\"Mitosis produces two cells.\" [S1]"))
+        assertEquals(setOf("S1"), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
+        assertTrue((events.last() as ResearchEvent.Complete).metrics.hasUnmappedCitation)
+    }
+
     private val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Grounded fact", 1.0)
 
 
@@ -57,7 +88,8 @@ class ResearchOrchestratorTest {
         val inference = FakeInferenceGateway(listOf("General offline answer"))
         val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, inference)
             .research("Question").toList()
-        assertTrue(events.filterIsInstance<ResearchEvent.Token>().map { it.text }.contains("General offline answer"))
+        assertEquals("## Model explanation—not verified against saved sources\n\nGeneral offline answer",
+            events.filterIsInstance<ResearchEvent.Token>().last().text)
         assertTrue(events.none { it is ResearchEvent.Sources })
         val metrics = events.last() as ResearchEvent.Complete
         assertTrue(metrics.metrics.citedSourceIds.isEmpty())
@@ -90,7 +122,7 @@ class ResearchOrchestratorTest {
         val queries = mutableListOf<String>()
         val retriever = Retriever { query, _, _ ->
             queries += query
-            if (query.contains("infection")) listOf(evidence.copy(text = "Viruses and infection")) else emptyList()
+            if (query.contains("infection")) listOf(evidence.copy(text = "Viruses are infectious agents that reproduce inside host cells.")) else emptyList()
         }
         val events = ResearchOrchestrator(
             retriever,
@@ -160,11 +192,12 @@ class ResearchOrchestratorTest {
         assertTrue(events[0] is ResearchEvent.Searching)
         assertTrue(events.filterIsInstance<ResearchEvent.Searching>().isNotEmpty())
         assertTrue(events[events.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
-        assertEquals(listOf("Answer ", "[S1]", " and [S9]"),
-            events.filterIsInstance<ResearchEvent.Token>().map { it.text }.filter { it.isNotEmpty() })
+        assertEquals("## Model explanation—not verified against saved sources\n\nAnswer and",
+            events.filterIsInstance<ResearchEvent.Token>().last().text)
+        assertTrue(events.filterIsInstance<ResearchEvent.Token>().drop(1).all { it.replace })
         val metrics = (events.last() as ResearchEvent.Complete).metrics
         assertEquals(3, metrics.generatedTokenCount)
-        assertEquals(setOf("S1"), metrics.citedSourceIds)
+        assertEquals(emptySet<String>(), metrics.citedSourceIds)
         assertTrue(metrics.hasUnmappedCitation)
         assertTrue(metrics.timeToFirstTokenMillis != null)
     }
@@ -182,7 +215,7 @@ class ResearchOrchestratorTest {
     @Test fun normalizedNumericCitationCountsAsCitedSource() = runBlocking {
         val events = ResearchOrchestrator(
             Retriever { _, _, _ -> listOf(evidence) },
-            FakeInferenceGateway(listOf("Supported [1]. Invalid [S#].")),
+            FakeInferenceGateway(listOf("From saved sources\n\"Grounded fact\" [1]\nInvalid [S#].")),
         ).research("Explain").toList()
         val metrics = (events.last() as ResearchEvent.Complete).metrics
         assertEquals(setOf("S1"), metrics.citedSourceIds)

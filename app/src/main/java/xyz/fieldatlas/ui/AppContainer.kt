@@ -63,9 +63,13 @@ class AppContainer(context: Context) {
         } catch (error: Throwable) { staged?.let { attachmentStore.remove(it.localFile) }; throw error }
     }
     private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry)
-    val knowledgeCatalog = appContext.assets.open("knowledge/catalog.json").bufferedReader().use { reader ->
-        KnowledgeCatalog.parse(reader.readText()).packs
-    }
+    private val catalogRepository = xyz.fieldatlas.assets.KnowledgeCatalogRepository(
+        appContext.assets.open("knowledge/catalog.json").bufferedReader().use { KnowledgeCatalog.parse(it.readText()) },
+        File(appContext.filesDir, "knowledge-catalog.json"),
+        xyz.fieldatlas.assets.KnowledgeCatalogFetch()::fetch,
+    )
+    val catalogState = catalogRepository.state
+    suspend fun refreshKnowledgeCatalog() = catalogRepository.refresh()
     private val knowledgePackDownload = KnowledgePackDownload(appContext.filesDir, registry, importer)
     private val mutablePacks = MutableStateFlow<List<InstalledAsset>>(emptyList())
     private val refreshMutex = Mutex()
@@ -79,7 +83,7 @@ class AppContainer(context: Context) {
     val answerHistory = xyz.fieldatlas.research.AnswerHistoryStore(
         File(appContext.filesDir, "answers.json"),
     )
-    private val benchmarkQuestions = appContext.assets.open("benchmark/questions-v2.json")
+    private val benchmarkQuestions = appContext.assets.open("benchmark/questions.json")
         .bufferedReader(Charsets.UTF_8).use { reader ->
             Json.decodeFromString<BenchmarkQuestionSet>(reader.readText()).also {
                 require(it.schemaVersion == 1) { "Unsupported bundled benchmark schema" }
@@ -111,21 +115,28 @@ class AppContainer(context: Context) {
     private fun encoderPath(installed: List<InstalledAsset>): String? {
         val carrier = installed.firstOrNull { asset ->
             asset.type == PackType.KNOWLEDGE && asset.enabled && asset.embedding != null &&
+                xyz.fieldatlas.research.supportsVectorLayout(asset.embedding) &&
                 File(File(asset.rootPath), asset.embedding.encoderPath).isFile
         }
         return carrier?.embedding?.let { File(File(carrier.rootPath), it.encoderPath).absolutePath }
     }
 
     /** Load the enabled pack's encoder only when a routed vector search actually requests it. */
-    private suspend fun embedForSearch(text: String): FloatArray? = encoderMutex.withLock {
-        val encoder = encoderPath(packs.value) ?: return@withLock null
-        if (!encoderSynchronized || encoder != loadedEncoderPath) {
-            val loaded = runCatching { inference.setEncoder(encoder) }.isSuccess
-            if (!loaded) return@withLock null
-            loadedEncoderPath = encoder
-            encoderSynchronized = true
+    private suspend fun embedForSearch(expected: xyz.fieldatlas.assets.PackEmbedding, text: String): FloatArray? = encoderMutex.withLock {
+        val installed = packs.value
+        val encoder = encoderPath(installed) ?: return@withLock null
+        val active = installed.firstOrNull { asset ->
+            asset.embedding?.let { File(asset.rootPath, it.encoderPath).absolutePath == encoder } == true
+        }?.embedding
+        xyz.fieldatlas.research.encodeWithCompatibleEncoder(expected, active) {
+            if (!encoderSynchronized || encoder != loadedEncoderPath) {
+                val loaded = runCatching { inference.setEncoder(encoder) }.isSuccess
+                if (!loaded) return@encodeWithCompatibleEncoder null
+                loadedEncoderPath = encoder
+                encoderSynchronized = true
+            }
+            inference.embed(text)
         }
-        inference.embed(text)
     }
 
     suspend fun retireBundledReferenceIfPresent() {
@@ -145,10 +156,8 @@ class AppContainer(context: Context) {
         recommendedModelDownload.install(onProgress).also { refreshPacks() }
 
     suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset {
-        require(knowledgeCatalog.any { it.id == pack.id && it.version == pack.version && it == pack }) {
-            "Collection is not in the verified app catalog"
-        }
-        val installed = knowledgePackDownload.install(pack, onProgress)
+        val selected = catalogRepository.selectForDownload(pack)
+        val installed = knowledgePackDownload.install(selected, onProgress)
         // Keep older versions available for rollback, but don't search duplicate editions.
         registry.list().filter { it.type == PackType.KNOWLEDGE && it.id == pack.id &&
             it.version != pack.version && it.enabled
@@ -238,20 +247,28 @@ class AppContainer(context: Context) {
         databaseFiles = { knowledgeSources().map { source -> source.first } },
         packEmbeddings = { knowledgeSources().map { source -> source.second } },
         packDiscoveries = { knowledgeSources().map { source -> source.third } },
-        embed = { text -> embedForSearch(text) },
+        embedForPack = { expected, text -> embedForSearch(expected, text) },
     )
 
     /** Enabled knowledge packs and their local retrieval metadata in registry order. */
     private fun knowledgeSources(): List<Triple<java.io.File, xyz.fieldatlas.assets.PackEmbedding?, xyz.fieldatlas.assets.PackDiscovery?>> =
-        packs.value
+        packs.value.let { installed ->
+        val activeEncoder = encoderPath(installed)
+        val activeEmbedding = installed.firstOrNull { asset ->
+            asset.embedding?.let { File(asset.rootPath, it.encoderPath).absolutePath == activeEncoder } == true
+        }?.embedding
+        installed
             .filter { it.type == PackType.KNOWLEDGE && it.enabled }
             .map { knowledge ->
                 Triple(
                     java.io.File(knowledge.rootPath, "content.sqlite"),
-                    knowledge.embedding,
+                    knowledge.embedding?.takeIf { candidate ->
+                        activeEmbedding != null && xyz.fieldatlas.research.canShareQueryEncoder(candidate, activeEmbedding)
+                    },
                     knowledge.discovery,
                 )
             }
+        }
 
     suspend fun setPackEnabled(asset: InstalledAsset, enabled: Boolean) {
         registry.setEnabled(asset.id, asset.version, enabled)

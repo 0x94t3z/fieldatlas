@@ -216,34 +216,74 @@ class EvidenceMergeTest {
         )
         assertTrue(MultiKnowledgeRetriever.shouldSearchVectors(biology, "How do cells divide?"))
         assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(biology, "Why are Earth's seasons opposite?"))
-        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(biology, "How do cells divide?"))
-        assertFalse(MultiKnowledgeRetriever.shouldSearchPack(biology, "Why are Earth's seasons opposite?"))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack("How do cells divide?"))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack("Why are Earth's seasons opposite?"))
 
         val installedBiology = biology.copy(
             coverageSummary = "PubMed abstracts (longevity, biodefense, indoor air), Fight Aging archive, longevity databases.",
             exampleQuestions = listOf("What does rapamycin do in aging studies?"),
             coverageLevel = CoverageLevel.BROAD,
         )
-        assertFalse(MultiKnowledgeRetriever.shouldSearchPack(
-            installedBiology, "Why do Earth's hemispheres have opposite seasons?", "world-knowledge-biology",
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
+            "Why do Earth's hemispheres have opposite seasons?",
         ))
         assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
-            installedBiology, "What does rapamycin do in aging studies?", "world-knowledge-biology",
+            "What does rapamycin do in aging studies?",
         ))
         assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
-            installedBiology, "tell me about indonesian", "world-knowledge-biology",
+            "tell me about indonesian",
         ))
         assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(installedBiology, "tell me about indonesian"))
         assertTrue(MultiKnowledgeRetriever.shouldSearchPack(
-            installedBiology, "Why are Earth's seasons opposite?", "wikipedia-general",
+            "Why are Earth's seasons opposite?",
         ))
 
         val retriever = MultiKnowledgeRetriever(
             databaseFiles = { listOf(java.io.File("/packs/world-knowledge-biology/1.2.0/content.sqlite")) },
             packDiscoveries = { listOf(installedBiology) },
         )
-        assertFalse(retriever.hasEligiblePacks("Why are Earth's seasons opposite?"))
+        assertTrue(retriever.hasEligiblePacks("Why are Earth's seasons opposite?"))
         assertTrue(retriever.hasEligiblePacks("What does rapamycin do in aging studies?"))
         assertTrue(retriever.hasEligiblePacks("tell me about indonesian"))
+    }
+
+    @Test
+    fun `biology comparison remains searchable when terms are absent from discovery summary`() {
+        val discovery = PackDiscovery(
+            coverageSummary = "PubMed abstracts (longevity, biodefense, indoor air), Fight Aging archive, longevity databases.",
+            exampleQuestions = listOf("What does rapamycin do in aging studies?",
+                "Which genes are associated with human longevity in GenAge?"),
+            coverageLevel = CoverageLevel.BROAD,
+        )
+        val question = "Compare mitosis and meiosis. Explain how their different outcomes support growth and sexual reproduction."
+        val retriever = MultiKnowledgeRetriever(
+            databaseFiles = { listOf(java.io.File("/packs/world-knowledge-biology/1.2.0/content.sqlite")) },
+            packDiscoveries = { listOf(discovery) },
+        )
+        assertTrue(retriever.hasEligiblePacks(question))
+        assertTrue(MultiKnowledgeRetriever.shouldSearchPack(question))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(discovery, question))
+        assertFalse(retriever.hasEligiblePacks("?!"))
+        assertFalse(MultiKnowledgeRetriever(databaseFiles = { emptyList() }).hasEligiblePacks(question))
+    }
+
+    @Test
+    fun `search attempts every enabled keyword database despite nonmatching summaries`() = runBlocking {
+        val files = listOf(File("/packs/biology/content.sqlite"), File("/packs/travel/content.sqlite"))
+        val opened = mutableListOf<File>()
+        val discovery = PackDiscovery(
+            coverageSummary = "Longevity studies",
+            exampleQuestions = emptyList(),
+            coverageLevel = CoverageLevel.FOCUSED,
+        )
+        val retriever = MultiKnowledgeRetriever(
+            databaseFiles = { files },
+            packDiscoveries = { listOf(discovery, discovery) },
+            // Exercise actual routing without Android SQLite; a failed pack must not
+            // prevent attempting the next enabled pack.
+            open = { file -> opened += file; throw IllegalStateException("Unavailable test database") },
+        )
+        assertTrue(retriever.search("mitosis meiosis", 4).isEmpty())
+        assertEquals(files, opened)
     }
 }

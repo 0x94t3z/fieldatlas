@@ -6,7 +6,7 @@ Reference build (`1.1.6`, Qwen3 1.7B Q4_K_M) against OpenRouter's dynamic
 
 ## Result
 
-The same frozen 18-question set in `benchmarks/questions-v1.json` was run on
+The same frozen 18-question set in [the historical question set](https://github.com/0x94t3z/fieldatlas/blob/5f779be/benchmarks/questions-v1.json) was run on
 the Infinix device and then sent to the online baseline with temperature 0.
 The repository scorer reported:
 

@@ -6,6 +6,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FtsQueryTest {
+    @Test fun `auxiliary verbs do not become prefix queries`() {
+        assertEquals(listOf("hemispheres", "opposite", "seasons"),
+            FtsQuery.from("Why do hemispheres have opposite seasons?")!!.terms)
+        assertNull(FtsQuery.from("have has had"))
+    }
     @Test
     fun `modal filler cannot retrieve unrelated evidence`() {
         assertEquals(

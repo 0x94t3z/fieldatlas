@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.fieldatlas.assets.PackEmbedding
 import xyz.fieldatlas.assets.PackDiscovery
-import xyz.fieldatlas.assets.CoverageLevel
 
 /**
  * Searches eligible enabled knowledge packs and merges the results into one ranking.
@@ -35,17 +34,15 @@ class MultiKnowledgeRetriever(
      * pack). [embed] encodes a query string with the pack's queryPrefix already prepended.
      */
     private val packEmbeddings: () -> List<PackEmbedding?> = { emptyList() },
-    /** Coverage metadata, index-aligned with [databaseFiles], used to avoid foreign-domain scans. */
+    /** Coverage metadata, index-aligned with [databaseFiles], gates expensive vector scans only. */
     private val packDiscoveries: () -> List<PackDiscovery?> = { emptyList() },
     private val embed: suspend (String) -> FloatArray? = { null },
+    private val embedForPack: suspend (PackEmbedding, String) -> FloatArray? = { _, text -> embed(text) },
 ) : Retriever {
     private val opened = ConcurrentHashMap<String, KnowledgeDatabase>()
 
     override fun hasEligiblePacks(query: String): Boolean {
-        val discoveries = runCatching(packDiscoveries).getOrDefault(emptyList())
-        return databaseFiles().withIndex().any { (index, file) ->
-            shouldSearchPack(discoveries.getOrNull(index), query, file.parentFile?.parentFile?.name.orEmpty())
-        }
+        return shouldSearchPack(query) && databaseFiles().isNotEmpty()
     }
 
     override suspend fun search(
@@ -69,10 +66,6 @@ class MultiKnowledgeRetriever(
         var vectorMatches = 0
         val runs = files.mapIndexed { index, file ->
             val discovery = discoveries.getOrNull(index)
-            if (!shouldSearchPack(discovery, query, file.parentFile?.parentFile?.name.orEmpty())) {
-                onProgress(SearchProgress((index + 1.0) / total, vectorMatches))
-                return@mapIndexed emptyList<Evidence>()
-            }
             runCatching {
                 val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
                 val keyword = FtsRetriever(database).search(query, limit) { inner ->
@@ -110,8 +103,8 @@ class MultiKnowledgeRetriever(
         query: String,
         limit: Int,
     ): Pair<List<Evidence>, Int> {
-        if (embedding == null || !database.hasVectorTable()) return this to 0
-        val vector = runCatching { embed(embedding.queryPrefix + query) }.getOrNull()
+        if (embedding == null || !supportsVectorLayout(embedding) || !database.hasVectorTable()) return this to 0
+        val vector = runCatching { embedForPack(embedding, embedding.queryPrefix + query) }.getOrNull()
             ?: return this to 0
         if (vector.size != embedding.dim) return this to 0
         val hits = database
@@ -125,18 +118,9 @@ class MultiKnowledgeRetriever(
         /** Sentinel score anchoring vector hits below (stronger than) any bm25 score. */
         internal const val VECTOR_FLOOR = -100_000.0
 
-        /** Focused collections, and the externally packaged biology corpus whose manifest says
-         * BROAD despite its narrow PubMed/longevity coverage, must not force incidental matches
-         * into unrelated questions. Other BROAD packs remain available across topics. */
-        internal fun shouldSearchPack(discovery: PackDiscovery?, query: String, packId: String = ""): Boolean {
-            if (discovery == null) return true
-            if (discovery.coverageLevel != CoverageLevel.FOCUSED && packId != "world-knowledge-biology") return true
-            // Coverage descriptions are not an index of every name in a pack. For a
-            // single-topic lookup, try cheap keyword search even when the summary has no
-            // overlap; the post-retrieval relevance gate still rejects unrelated passages.
-            if (FtsQuery.from(query)?.terms?.size == 1) return true
-            return shouldSearchVectors(discovery, query)
-        }
+        /** A short discovery summary is not a vocabulary index. Search enabled packs with
+         * bounded FTS retrieval and let the existing relevance filter judge the passages. */
+        internal fun shouldSearchPack(query: String): Boolean = FtsQuery.from(query) != null
 
         /**
          * A focused vector pack is expensive to scan and harmful outside its documented scope.

@@ -223,11 +223,10 @@ private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
 
 @Composable
 private fun headingStyle(level: Int): TextStyle = when (level) {
-    1 -> MaterialTheme.typography.headlineLarge
-    2 -> MaterialTheme.typography.headlineMedium
-    3 -> MaterialTheme.typography.titleLarge
-    else -> MaterialTheme.typography.titleMedium
-}
+    1 -> MaterialTheme.typography.titleLarge
+    2 -> MaterialTheme.typography.titleMedium
+    else -> MaterialTheme.typography.titleSmall
+}.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
 
 internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color, linkColor: Color, sourceCount: Int): AnnotatedString {
     return buildAnnotatedString {

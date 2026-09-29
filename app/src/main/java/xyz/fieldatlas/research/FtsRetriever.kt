@@ -131,7 +131,8 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
 
         val picked = ArrayList<Evidence>()
         val chunksPerDocument = HashMap<String, Int>()
-        for (row in ranked) {
+        for (row in EvidenceRelevance.rankByPassage(ranked,
+            EvidenceRelevance.comparisonTerms(query).ifEmpty { sanitized.terms })) {
             if (picked.size >= limit) break
             val used = chunksPerDocument[row.documentId] ?: 0
             if (used >= MAX_CHUNKS_PER_DOCUMENT) continue
