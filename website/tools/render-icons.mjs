@@ -7,12 +7,13 @@ const svg = await readFile(new URL('assets/atlas.svg', root), 'utf8');
 const browser = await chromium.launch({ channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
 try {
   const images = [];
-  for (const size of [16, 32, 48, 180]) {
+  for (const size of [16, 32, 48, 180, 600]) {
     const page = await browser.newPage({ viewport: { width: size, height: size }, deviceScaleFactor: 1 });
     await page.setContent(`<style>html,body{margin:0;background:transparent}svg{display:block;width:100vw;height:100vh}</style>${svg}`);
     const png = await page.screenshot({ omitBackground: true });
     await page.close();
     if (size === 180) await writeFile(new URL('apple-touch-icon.png', root), png);
+    else if (size === 600) await writeFile(new URL('assets/social-icon.png', root), png);
     else images.push({ size, png });
     if (size === 48) await writeFile(new URL('favicon.png', root), png);
   }
@@ -32,7 +33,7 @@ try {
     offset += png.length;
   });
   await writeFile(new URL('favicon.ico', root), Buffer.concat([directory, ...images.map(({ png }) => png)]));
-  console.log('Rendered favicon.ico, favicon.png, and apple-touch-icon.png.');
+  console.log('Rendered favicon.ico, favicon.png, apple-touch-icon.png, and assets/social-icon.png.');
 } finally {
   await browser.close();
 }

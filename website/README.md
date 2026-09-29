@@ -56,16 +56,19 @@ After deployment, check `/`, `/styles.css`, and `/assets/atlas.svg`; also confir
 SITE_URL=https://your-actual-deployment.vercel.app npm test --prefix website
 ```
 
-The canonical URL is `https://www.getfieldatlas.com/`. Open Graph and Twitter
-metadata use an absolute URL for `assets/social-card.png`, a 1200 × 630 PNG.
-If the public domain changes, update the canonical URL, `og:url`, and both image
-URLs together. Social platforms may retain cached previews after deployment.
+The canonical URL is `https://www.getfieldatlas.com/`. Open Graph uses
+`assets/social-card.png`, a 1200 × 630 PNG. X uses a `summary` card with
+`assets/social-icon.png`, a 600 × 600 PNG of the Atlas mark, so compact link
+previews can show the icon instead of an empty thumbnail. If the public domain
+changes, update the canonical URL, `og:url`, and both image URLs together.
+Social platforms may retain cached previews after deployment; the website
+cannot force an existing X post to refresh.
 
 The favicon uses `assets/atlas.svg`, with root-level ICO/PNG fallbacks and an
 Apple touch icon. An asset-content version in the page URL avoids cached artwork from before the
 filename swap. `assets/compass.svg` is the large hero illustration; its URL is
 versioned too. Keep these versions in sync when changing either SVG.
-To regenerate the favicon fallbacks from the same logo, run
+To regenerate the favicon fallbacks and X preview icon from the same logo, run
 `node website/tools/render-icons.mjs` and commit the generated icons. These are
 separate from the social preview; chat apps may still use their own generic link icon.
 
