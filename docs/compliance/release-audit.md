@@ -2,6 +2,107 @@
 
 Updated 29 September 2026. **Owner approved a public prerelease, not a stable-readiness claim.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
+## October 2 keyword search I/O fix — not released
+
+The ~19 s LAN retrieval recorded below was disk I/O. The keyword query ranked every
+match by `(bm25, chunk_id)` while selecting whole rows, so SQLite read the content row
+(including passage text) of every matching chunk. "local", "area" and "network" each match
+16k–24k chunks in the Biology and Travel packs. The query now ranks with index-only data
+(rowid and bm25), takes the limit-th score as a cutoff, and reads content rows only at or
+above it. Exact ties still break by `chunk_id`: row order differs from `chunk_id` order at
+83 positions in the published Biology pack, so a rowid tie-break would not be equivalent.
+
+- Page reads from a fresh SQLite connection (a proxy for cold phone I/O): Biology
+  "local area network" 47,140 → 5,933; "aging rapamycin" 178,453 → 6,826; "cell"
+  112,727 → 5,865; Travel "local area network" 32,530 → 3,239.
+- Old and new SQL returned identical rows and order for 1,365 query/limit pairs (65
+  queries, including 60 random ones from each pack's own vocabulary, × 7 limits) on the
+  local Travel, Biology and Everyday reference databases. A new desktop SQLite test
+  covers tie groups inserted in reverse `chunk_id` order; it fails when the tie-break is
+  replaced with rowid order.
+- The title-candidate query still reads 1.9k–5.1k pages for these terms; not changed.
+- Verification: 411 JVM tests passed, three skipped (the two existing opt-in tests and
+  the new desktop SQLite test, which passed separately with desktop SQLite enabled), zero
+  failures/errors. Signed with the matching local-test key and installed in place
+  (`adb install -r`, data preserved); APK SHA-256
+  `e2e2f9602e0deb60eac0fc471334206930e736fbf1985910a914a8911b075357`. Offline packaging
+  audit and all 22 ARM64 ELF alignment checks passed.
+
+| Question / run | Retrieval before → after | Lead shown before → after | First word before → after |
+| --- | ---: | ---: | ---: |
+| Tell me about local area network / process-cold | 18.53 → 7.66 s | 23.0 → 12.2 s | 67.32 → 55.38 s |
+| Tell me about local area network / warm | 19.61 → 7.00 s | 23.6 → 8.6 s | 67.93 → 50.83 s |
+| What is buoyancy? / process-cold | 1.99 → 2.27 s | 6.7 → 8.6 s | 67.31 → 73.79 s |
+| What is buoyancy? / warm | 1.56 → 1.52 s | 3.6 → 3.4 s | 66.92 → 66.33 s |
+
+The same overview source and verbatim lead were selected in every run. Android reported
+no active default network. Single runs on one phone; buoyancy differences are within
+run-to-run variation and are not claimed as a change. Raw results: ignored
+`build/phone-release-check/search-io-device-matrix.json`.
+
+## October 2 source-first overview answers — not released
+
+The October 1 boat runs showed the model distorting a correctly retrieved passage.
+For "what is X" / "tell me about X" / "explain X" questions, the first sentences of the
+matching reference overview are now shown verbatim, with their citation, as soon as
+retrieval finishes and before model generation starts. The labelled, unverified model
+explanation then streams below them. If generation fails after the lead is shown, the
+cited lead is kept and the failure is stated; without a lead, failures behave as before.
+
+- Selection is deliberately narrow: only the first chunk of an overview section named by
+  the question, only sources actually packed into the prompt (so the citation number
+  matches), whole sentences only, and the opening sentence must name every subject term
+  and pass the existing definition check. Comparisons, source-only and venue questions
+  are unchanged.
+- Run against all 63 first overview chunks of the local Everyday reference 0.3.0 pack
+  (with "What is <title>?"): 53 produced a lead, and each was manually confirmed to be
+  a definition of the requested subject. The 10 without a lead included non-definitional
+  openings (e.g. "Most photosynthetic organisms…") and long appositives; those fall back
+  to the existing answer path. This checks selection precision, not answer correctness
+  or recall on unseen packs.
+- This doesn't change the model's accuracy. Model text below the lead keeps its
+  unverified label and can still be wrong; the lead only ensures the first thing shown
+  is the saved source's own wording.
+- Overview subjects now drop a leading "a"/"an" as well as "the", so "What is a boat?"
+  matches "Boat — Overview". This also applies to the existing overview relevance gate.
+- Verification: 410 JVM tests passed, two opt-in tests skipped, zero failures/errors
+  (ten new tests cover verbatim selection, citation numbering, later-chunk/incidental
+  rejection, leading articles, abbreviations, and generation failure with and without a
+  lead). Release Kotlin compilation and release lint passed with zero errors.
+
+### Phone check (Infinix X6840)
+
+Signed with the local-test key after confirming the installed certificate matched
+(`ca2642c7…`), then installed with `adb install -r`; app data was preserved. Final
+installed APK SHA-256:
+`8e8e33aec3b0922badd2056aa859a138eb4ef356e86e906b0d2de8b954cef946`. Offline packaging
+audit and all 22 ARM64 ELF alignment checks passed on that artifact. The four
+buoyancy/LAN runs used the preceding build (`6b307364…`), which differs only by the
+article fix. Android reported no active default network in every run; this is not a
+traffic audit.
+
+| Question / run | Lead shown | Retrieval | Model first word | Total |
+| --- | ---: | ---: | ---: | ---: |
+| What is buoyancy? / process-cold | 6.7 s | 1.99 s | 67.31 s | 116.82 s |
+| What is buoyancy? / warm | 3.6 s | 1.56 s | 66.92 s | 127.84 s |
+| Tell me about local area network / process-cold | 23.0 s | 18.53 s | 67.32 s | 106.81 s |
+| Tell me about local area network / warm | 23.6 s | 19.61 s | 67.93 s | 113.65 s |
+| What is a boat? / process-cold (final build) | 5.6 s | 4.06 s | 73.35 s | 112.12 s |
+
+- "Lead shown" is wall time from tapping Start research until uiautomator saw the
+  heading, polled at roughly 1–2 s resolution; the other columns are the app's metrics.
+- Every lead was the correct verbatim opening of the matching Wikipedia overview, and
+  the source list showed that overview as the cited source. Citation tapping was not
+  exercised in these runs. Model text below still contained errors: one buoyancy run said
+  buoyancy requires "a non-inertial reference frame (like gravity)", and a LAN run
+  described Wi-Fi as a wired LAN technology. Both stayed under the unverified label.
+- LAN retrieval took about 19 s against 2–4 s for buoyancy/boat, and the lead waits for
+  retrieval. The cause has not been investigated. The model sometimes repeats the lead
+  as a quotation in its own section; this is a cosmetic duplicate.
+- Raw results: ignored `build/phone-release-check/source-lead-device-matrix.json` and
+  `source-lead-article-device-matrix.json`. Single runs, not a latency distribution or
+  an answer-quality pass. No public release, commit or push was made.
+
 ## October 1 readiness follow-up — not released
 
 ### Answer diagnosis and retrieval correction

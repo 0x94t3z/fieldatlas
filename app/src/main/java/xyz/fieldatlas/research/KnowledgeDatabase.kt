@@ -190,13 +190,27 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         const val SCHEMA_VERSION = 1
         val EXPECTED_COLUMNS = listOf("chunk_id", "document_id", "title", "source", "text")
 
+        // Same rows and order as ranking every match by (bm25, chunk_id), but bm25 needs only
+        // the FTS index, while chunk_id/text live in the content table. Ranking whole rows read
+        // the content row of EVERY match: common words ("local area network") meant ~47k pages
+        // from the biology pack and ~19 s of phone retrieval. The cutoff is the limit-th best
+        // score, so only rows at or above it (the result plus any exact ties) are read, and
+        // ties still break by chunk_id; row order alone differs from chunk_id order in some
+        // published packs.
         private const val SEARCH_SQL = """
-            SELECT document_id, chunk_id, title, source, text,
-                   bm25(chunks_fts, 0.0, 0.0, 3.0, 0.0, 1.0) AS rank
-            FROM chunks_fts
-            WHERE chunks_fts MATCH ?
-            ORDER BY rank ASC, chunk_id COLLATE BINARY ASC
-            LIMIT ?
+            WITH ranked AS (
+                SELECT rowid AS id, bm25(chunks_fts, 0.0, 0.0, 3.0, 0.0, 1.0) AS rank
+                FROM chunks_fts
+                WHERE chunks_fts MATCH ?1
+            ), cutoff AS (
+                SELECT rank FROM ranked ORDER BY rank ASC LIMIT 1 OFFSET ?2 - 1
+            )
+            SELECT c.document_id, c.chunk_id, c.title, c.source, c.text, r.rank
+            FROM ranked AS r
+            JOIN chunks_fts AS c ON c.rowid = r.id
+            WHERE r.rank <= coalesce((SELECT rank FROM cutoff), 1e308)
+            ORDER BY r.rank ASC, c.chunk_id COLLATE BINARY ASC
+            LIMIT ?2
         """
 
         private const val TITLE_TITLES_SQL = """

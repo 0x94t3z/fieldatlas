@@ -10,6 +10,12 @@ sealed interface ResearchEvent {
     data class Keywords(val terms: List<String>) : ResearchEvent
     data class Searching(val query: String) : ResearchEvent
     data class Sources(val evidence: List<Evidence>) : ResearchEvent
+    /**
+     * Verbatim source text shown before model generation starts. It replaces any answer
+     * text so far; later replace tokens repeat it. Consumers must not count it as a
+     * generated token, or prefill progress would be hidden while the model is still reading.
+     */
+    data class Lead(val text: String) : ResearchEvent
     data class Token(val text: String, val replace: Boolean = false) : ResearchEvent
     data class Complete(val metrics: ResearchMetrics) : ResearchEvent
     data class InsufficientEvidence(val reason: String) : ResearchEvent

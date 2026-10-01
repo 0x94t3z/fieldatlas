@@ -219,6 +219,16 @@ class ResearchViewModel(
                         error = null,
                     )
                     is ResearchEvent.Sources -> mutableUiState.value.copy(sources = event.evidence)
+                    is ResearchEvent.Lead -> {
+                        // Shown while the model is still reading its prompt; tokensWritten
+                        // stays at zero so the prefill progress label remains visible.
+                        rawAnswer.clear()
+                        rawAnswer.append(event.text)
+                        mutableUiState.value.copy(
+                            answer = AnswerText.visible(rawAnswer.toString()),
+                            phase = ResearchPhase.Generating,
+                        )
+                    }
                     is ResearchEvent.Token -> {
                         // The orchestrator emits one empty marker token right after Sources to
                         // flip the phase while the prompt is still being READ; it is not an

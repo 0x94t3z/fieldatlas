@@ -65,6 +65,13 @@ class BenchmarkViewModel(
                         is ResearchEvent.Sources -> {
                             active?.evidenceChunkIds = event.evidence.map { it.chunkId }
                         }
+                        is ResearchEvent.Lead -> {
+                            active?.answer?.clear()
+                            active?.answer?.append(event.text)
+                            mutableState.value = mutableState.value.copy(
+                                currentAnswer = AnswerText.visible(active?.answer?.toString().orEmpty()),
+                            )
+                        }
                         is ResearchEvent.Token -> {
                             if (event.replace) active?.answer?.clear()
                             active?.answer?.append(event.text)

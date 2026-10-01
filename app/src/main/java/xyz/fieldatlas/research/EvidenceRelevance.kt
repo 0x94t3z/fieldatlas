@@ -180,17 +180,19 @@ object EvidenceRelevance {
 
     /** English overview heuristic, not semantic verification. Other question forms keep
      * the ordinary relevance checks; source-specific requests must not lose study findings. */
-    private fun overviewSubjects(question: String?): List<String> {
+    internal fun overviewSubjects(question: String?): List<String> {
         if (question == null || !PromptBuilder.allowsModelExplanation(question)) return emptyList()
         comparisonTerms(question).takeIf { it.size == 2 }?.let { return it }
         val definition = Regex("(?i)^\\s*(?:what is|what are|explain|describe|tell me about)\\s+([\\p{L}\\p{N} '-]+?)(?=\\s+and\\s+(?:how|why)\\b|[.!?]|$)")
             .find(question.replace('’', '\''))?.groupValues?.get(1)?.trim() ?: return emptyList()
         val words = definition.split(Regex("\\s+"))
         if (words.size !in 1..4 || words.first().lowercase() in setOf("how", "why", "whether", "my", "our", "this", "that", "these", "those")) return emptyList()
-        return listOf(definition.replace(Regex("(?i)^the\\s+"), ""))
+        // "What is a boat?" names the same topic as "Boat — Overview"; any leading article
+        // otherwise prevents the section title from matching.
+        return listOf(definition.replace(Regex("(?i)^(?:the|an?)\\s+"), ""))
     }
 
-    private fun hasOverviewStatement(item: Evidence, subjects: List<String>): Boolean {
+    internal fun hasOverviewStatement(item: Evidence, subjects: List<String>): Boolean {
         fun wordPattern(word: String): String {
             val base = word.lowercase()
             val forms = mutableSetOf(base, base + "s", base + "es")

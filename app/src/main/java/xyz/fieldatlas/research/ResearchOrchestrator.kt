@@ -173,24 +173,48 @@ class ResearchOrchestrator(
             } else {
                 emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
             }
-            // Field Atlas: an empty token flips the UI into the "writing" phase before the
-            // first real token arrives, so prefill progress can show as tokens read/written.
-            emit(ResearchEvent.Token(""))
+            // A verbatim overview opening is only composed with mixed answers, whose stream
+            // already replaces the whole answer on every token.
+            val lead = if (attachments.isEmpty() && packed.mixedAnswer) SourceLead.select(question, packed.sources) else null
+            if (lead != null) {
+                emit(ResearchEvent.Lead(lead.render()))
+            } else {
+                // Field Atlas: an empty token flips the UI into the "writing" phase before the
+                // first real token arrives, so prefill progress can show as tokens read/written.
+                emit(ResearchEvent.Token(""))
+            }
+            fun compose(modelText: String): String =
+                listOfNotNull(lead?.render(), modelText.takeIf(String::isNotBlank)).joinToString("\n\n")
 
             val attributionEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
             var firstTokenAt: Long? = null
             var generatedTokenCount = 0
             val output = StringBuilder()
-            inference.generate(packed.prompt, outputBudget).collect { token ->
-                if (firstTokenAt == null) firstTokenAt = monotonicMillis()
-                generatedTokenCount++
-                output.append(token)
-                emit(if (packed.mixedAnswer) {
-                    ResearchEvent.Token(AnswerText.mixed(output.toString(), attributionEvidence), replace = true)
-                } else ResearchEvent.Token(token))
+            var generationFailed = false
+            try {
+                inference.generate(packed.prompt, outputBudget).collect { token ->
+                    if (firstTokenAt == null) firstTokenAt = monotonicMillis()
+                    generatedTokenCount++
+                    output.append(token)
+                    emit(if (packed.mixedAnswer) {
+                        ResearchEvent.Token(compose(AnswerText.mixed(output.toString(), attributionEvidence)), replace = true)
+                    } else ResearchEvent.Token(token))
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                // The verbatim lead is already a useful, cited answer. Keep it rather than
+                // discarding it because the slower explanation failed; without a lead the
+                // failure still surfaces exactly as before.
+                if (lead == null) throw error
+                generationFailed = true
             }
             val finishedAt = monotonicMillis()
-            val attributed = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else output.toString()
+            val modelText = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else output.toString()
+            val attributed = if (generationFailed) {
+                compose(modelText) + "\n\n_The model explanation could not be completed._"
+            } else compose(modelText)
+            if (generationFailed) emit(ResearchEvent.Token(attributed, replace = true))
             val citations = AnswerText.citationAudit(attributed, packed.sources.size)
             val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
             emit(
@@ -202,7 +226,8 @@ class ResearchOrchestrator(
                         generatedTokenCount = generatedTokenCount,
                         citedSourceIds = citations.citedSourceIds,
                         hasUnmappedCitation = citations.hasUnmappedCitation || rawCitations.hasUnmappedCitation ||
-                            AnswerText.citationMarkerCount(attributed) < AnswerText.citationMarkerCount(output.toString()),
+                            // Compare model text only: the lead adds its own valid marker and would mask drops.
+                            AnswerText.citationMarkerCount(modelText) < AnswerText.citationMarkerCount(output.toString()),
                     ),
                 ),
             )

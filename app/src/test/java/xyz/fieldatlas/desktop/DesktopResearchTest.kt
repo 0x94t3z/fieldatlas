@@ -105,6 +105,7 @@ class DesktopResearchTest {
             ResearchOrchestrator(recordingRetriever, gateway).research(question).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
+                    is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }
                     is ResearchEvent.Token -> { if (event.replace) answer.clear(); answer.append(event.text) }
                     is ResearchEvent.Complete -> metrics = event.metrics
                     is ResearchEvent.Failed -> error = event.message
