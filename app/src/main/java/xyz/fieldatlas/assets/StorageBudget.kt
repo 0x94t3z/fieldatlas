@@ -9,6 +9,7 @@ sealed interface BudgetDecision {
 
 object StorageBudget {
     const val MAX_TOTAL_BYTES = 50_000_000_000L
+    const val METADATA_RESERVE_BYTES = 1_048_576L
 
     fun evaluate(currentBytes: Long, incomingBytes: Long, freeBytes: Long): BudgetDecision {
         if (currentBytes < 0 || incomingBytes < 0 || freeBytes < 0) return BudgetDecision.InvalidSize

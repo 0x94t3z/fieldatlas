@@ -247,6 +247,14 @@ class EvidenceMergeTest {
         assertTrue(retriever.hasEligiblePacks("tell me about indonesian"))
     }
 
+    @Test fun `small vector indexes do not need keywords in their discovery summary`() {
+        val discovery = PackDiscovery("Selected reference articles", emptyList(), CoverageLevel.FOCUSED)
+        assertTrue(MultiKnowledgeRetriever.shouldSearchVectors(discovery, "Why do boats float?", 2633))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(discovery, "Why do boats float?", 708813))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(discovery, "?!", 2633))
+        assertFalse(MultiKnowledgeRetriever.shouldSearchVectors(discovery, "Why do boats float?", 0))
+    }
+
     @Test
     fun `biology comparison remains searchable when terms are absent from discovery summary`() {
         val discovery = PackDiscovery(

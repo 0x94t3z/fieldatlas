@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -34,7 +35,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.research.Evidence
+import xyz.fieldatlas.research.AttachmentProvenance
 import xyz.fieldatlas.ui.sourceDisplayName
 import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
@@ -56,6 +59,8 @@ fun AnswerScreen(
 ) {
     BackHandler(onBack = onBack)
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
+    val isInputNotice = state.answer.isNotBlank() && state.answer ==
+        xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty())
     val suggestTravel = travelCollectionAvailable && Regex(
         "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
     ).containsMatchIn(state.question)
@@ -70,14 +75,19 @@ fun AnswerScreen(
     }
     val citedSourceGroups = groupAnswerSources(citedSources)
     val otherSourceGroups = groupAnswerSources(otherSources)
+    val hasUnverifiedUpload = citedSources.any { AttachmentProvenance.needsWarning(it.second) }
     var showOtherSources by rememberSaveable { mutableStateOf(false) }
     var showPerformance by rememberSaveable { mutableStateOf(false) }
+    val showPassagesFirst = state.sources.isNotEmpty() &&
+        state.answer.startsWith("## Model explanation—not verified against saved sources")
+    var showAllPassages by rememberSaveable(state.question) { mutableStateOf(false) }
+    val missingSubjects = xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             FieldAtlasTopBar(title = "Answer", onBack = onBack)
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
@@ -96,7 +106,8 @@ fun AnswerScreen(
                         ) {
                             Text(
                                 text = when (citedSourceGroups.size) {
-                                    0 -> if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
+                                    0 -> if (isInputNotice) "Research notice · no model generation"
+                                        else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
                                         else "Model-generated · sources not cited"
                                     1 -> "1 cited local source"
                                     else -> "${citedSourceGroups.size} cited local sources"
@@ -109,7 +120,7 @@ fun AnswerScreen(
                         }
                     }
                 }
-                if (state.sources.isEmpty()) {
+                if (state.sources.isEmpty() && !isInputNotice) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(if (suggestTravel) {
@@ -125,16 +136,49 @@ fun AnswerScreen(
                         }
                     }
                 }
+                if (hasUnverifiedUpload) item {
+                    Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.45f), shape = MaterialTheme.shapes.small) {
+                        Text("The cited upload contains an answer labeled as unverified. This explanation does not independently verify its claims.",
+                            Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+                if (showPassagesFirst) {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            AnswerSectionLabel("Saved passages")
+                            Text("Original retrieved text. These passages do not verify the explanation below.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (missingSubjects.isNotEmpty()) Text(
+                                "These retrieved passages do not mention: ${missingSubjects.joinToString(", ")}. The saved context may not cover both sides of your comparison.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    val previewCount = if (showAllPassages) state.sources.size else minOf(2, state.sources.size)
+                    items(previewCount, key = { "passage:$it" }) { index ->
+                        SavedPassagePreview(state.sources[index], index, onCitation)
+                    }
+                    if (state.sources.size > 2) item {
+                        AnswerDisclosure(
+                            label = if (showAllPassages) "Show fewer passages" else "Show all ${state.sources.size} passages",
+                            expanded = showAllPassages,
+                            onClick = { showAllPassages = !showAllPassages },
+                        )
+                    }
+                }
                 item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                         AnswerMarkdownRenderer(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
                             onCitation = onCitation,
+                            bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, lineHeight = 26.sp),
                         )
                     }
                 }
-                if (state.sources.isNotEmpty()) {
+                if (state.sources.isNotEmpty() && !showPassagesFirst) {
                     item { AnswerSectionLabel("Sources") }
                     if (citedSources.isNotEmpty()) {
                         if (otherSources.isNotEmpty()) item {
@@ -227,6 +271,25 @@ fun AnswerScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SavedPassagePreview(evidence: Evidence, index: Int, onCitation: (Int) -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open complete saved passage ${index + 1}") { onCitation(index) },
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("${index + 1} · ${evidence.title}", style = MaterialTheme.typography.titleSmall)
+            // Plain text, not model output or Markdown: source content cannot inject
+            // clickable citations. Ellipsis is visual only; opening retains full context.
+            Text(evidence.text, style = MaterialTheme.typography.bodyMedium,
+                maxLines = 6, overflow = TextOverflow.Ellipsis)
+            Text("Open full passage", style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary)
         }
     }
 }

@@ -6,12 +6,36 @@ import json
 import os
 from pathlib import Path
 import socket
+import sqlite3
 import subprocess
 import time
 import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def selected_evidence(path, databases, questions):
+    """Diagnostic only: copy unchanged passages from the hashed input database."""
+    if len(databases) != 1:
+        raise ValueError("Manual selection requires exactly one database")
+    selection = json.loads(path.read_text())
+    if not isinstance(selection, dict) or set(selection) != set(questions):
+        raise ValueError("Manual selection must cover exactly the requested questions")
+    result = {}
+    with sqlite3.connect(databases[0].as_uri() + "?mode=ro", uri=True) as db:
+        for question, ids in selection.items():
+            if not isinstance(ids, list) or any(not isinstance(i, str) for i in ids) or len(ids) != len(set(ids)):
+                raise ValueError("Selected chunk IDs must be a unique list of strings")
+            evidence = []
+            for chunk_id in ids:
+                rows = db.execute("SELECT document_id, chunk_id, title, source, text FROM chunks_fts WHERE chunk_id = ?", (chunk_id,)).fetchall()
+                if len(rows) != 1:
+                    raise ValueError(f"Expected exactly one passage for {chunk_id}")
+                evidence.append(dict(zip(["documentId", "chunkId", "title", "source", "text"], rows[0]), score=0.0,
+                                     matchedBy="manually selected diagnostic passage; not retrieval"))
+            result[question] = evidence
+    return result
 
 
 def validate_inputs(model, databases, server):
@@ -31,6 +55,9 @@ def main():
     parser.add_argument("--model", type=Path, default=ROOT / "build/model-cache/Qwen_Qwen3.5-2B-Q4_K_M.verified.gguf")
     parser.add_argument("--database", action="append", type=Path, help="Extracted content.sqlite; repeat for multiple packs")
     parser.add_argument("--model-only", action="store_true", help="Evaluate without collections")
+    parser.add_argument("--manual-selection", type=Path, help="Diagnostic JSON mapping exact questions to ordered chunk IDs; bypasses retrieval only")
+    parser.add_argument("--vector-fixture", type=Path, help="Diagnostic frozen query embeddings and matching vector-pack manifest; does not bypass retrieval")
+    parser.add_argument("--answer-policy", choices=["app", "source-only", "source-partial", "evidence-first", "bounded-summary"], default="app", help="Diagnostic policy override; source-only uses the existing app strict policy")
     parser.add_argument("--server", type=Path, default=ROOT / "build/desktop-llama/bin/llama-server")
     parser.add_argument("--output", type=Path, default=ROOT / "build/desktop-evaluation/report.json")
     parser.add_argument("--port", type=int, default=8127)
@@ -48,7 +75,8 @@ def main():
     databases = [db.resolve() for db in databases]
     try:
         validate_inputs(model, databases, server)
-    except ValueError as error:
+        manual = selected_evidence(args.manual_selection, databases, args.question) if args.manual_selection else None
+    except (ValueError, OSError, sqlite3.Error) as error:
         parser.error(str(error))
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / "build"):
@@ -67,9 +95,28 @@ def main():
     config = {
         "model": str(model), "databases": list(map(str, databases)),
         "questions": args.question, "output": str(output), "endpoint": endpoint,
+        "answerPolicy": args.answer_policy,
         "provenance": {"gitCommit": git("rev-parse", "HEAD"), "gitStatus": git("status", "--short"),
                        "appKotlinSha256": digest.hexdigest(), "serverCommand": command,
                        "llamaCommit": git("-C", "third_party/llama.cpp", "rev-parse", "HEAD")},
+    }
+    if args.vector_fixture:
+        fixture = json.loads(args.vector_fixture.read_text())
+        vector_database = Path(fixture["database"]).resolve()
+        if vector_database not in databases or hashlib.sha256(vector_database.read_bytes()).hexdigest() != fixture["databaseSha256"]:
+            parser.error("Vector fixture database does not match an enabled database")
+        config["vectorFixture"] = fixture
+        config["provenance"]["vectorFixtureSha256"] = hashlib.sha256(args.vector_fixture.read_bytes()).hexdigest()
+    if manual is not None:
+        config["manualEvidence"] = manual
+        config["provenance"]["manualSelectionSha256"] = hashlib.sha256(args.manual_selection.read_bytes()).hexdigest()
+        config["provenance"]["diagnosticMode"] = "manual passages; relevance gate and prompt packing unchanged; not retrieval accuracy"
+    config["provenance"]["diagnosticToolSha256"] = {
+        str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in [ROOT / "scripts/run_desktop_research.py",
+                     ROOT / "app/src/test/java/xyz/fieldatlas/desktop/DesktopResearchTest.kt",
+                     ROOT / "app/src/test/java/xyz/fieldatlas/desktop/DesktopGateway.kt"]
+        if path.is_file()
     }
     config_path = output.parent / "config.json"
     config_path.write_text(json.dumps(config, indent=2))

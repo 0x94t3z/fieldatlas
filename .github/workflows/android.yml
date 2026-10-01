@@ -31,10 +31,13 @@ jobs:
           patch -p1 < ../../scripts/patches/ai-chat-generation-fixes.patch
       - name: Test deterministic tooling
         run: |
+          python3 -m venv "$RUNNER_TEMP/reference-tests"
+          "$RUNNER_TEMP/reference-tests/bin/python" -m pip install -r tools/general_reference_requirements.txt
           python3 -m unittest scripts.tests.test_android_sdk -v
           python3 -m unittest discover -s scripts/tests -v
           python3 -m unittest discover -s packtool/tests -v
           python3 -m unittest discover -s benchmarks/tests -v
+          "$RUNNER_TEMP/reference-tests/bin/python" -m unittest discover -s tools/tests -v
       - name: Verify starter-pack reproducibility
         run: |
           ./scripts/build_starter_pack.sh
@@ -48,6 +51,8 @@ jobs:
         run: |
           ./scripts/verify_offline.sh app/build/outputs/apk/debug/app-debug.apk
           ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
+          python3 scripts/check_native_alignment.py app/build/outputs/apk/debug/app-debug.apk
+          python3 scripts/check_native_alignment.py app/build/outputs/apk/release/app-release-unsigned.apk
       - name: Write checksums
         run: |
           shasum -a 256 app/build/outputs/apk/release/app-release-unsigned.apk > app-release-unsigned.apk.sha256

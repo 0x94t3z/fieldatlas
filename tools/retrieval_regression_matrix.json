@@ -1,0 +1,22 @@
+{
+  "status": "Development regression matrix frozen before this run; not an independent holdout or bounty score.",
+  "method": "Use the current model and installed Biology/Travel corpus. Review relevance, correctness, completeness and attribution separately. Zero sources is acceptable for clearly labelled model knowledge, but never counts as grounded research. No automatic accuracy percentage. Preserve failures and raw evidence. Phone timing is separate from desktop timing.",
+  "questions": [
+    {"id":"ice", "question":"Explain why ice floats on water.", "review":"Lower density and open lattice; no restaurant or pharmaceutical evidence. Previously seen regression."},
+    {"id":"metal", "question":"Why does metal feel colder than wood at the same room temperature?", "review":"Faster heat transfer from skin, not lower actual starting temperature. Reject incidental material mentions."},
+    {"id":"boats", "question":"Why do boats float?", "review":"Buoyancy, displacement and average density; does not say all metal sinks or that lightness alone explains flotation."},
+    {"id":"seasons", "question":"Why do Earth’s hemispheres have opposite seasons?", "review":"Axial tilt and differing illumination, not distance to the Sun; no travel listing substituted for physics."},
+    {"id":"plants", "question":"Why do plants need light?", "review":"Photosynthesis uses light energy; avoid claiming all plants always require direct sunlight or that plants do not respire."},
+    {"id":"division", "question":"Compare mitosis and meiosis.", "review":"Mitosis generally preserves chromosome number; meiosis reduces it, commonly two vs four daughter cells. Do not treat a narrow study as a complete overview. Previously seen regression."},
+    {"id":"battery", "question":"How does a battery differ from a capacitor?", "review":"Chemical energy vs electric-field storage; avoid categorical claims about charging speed, capacity or rechargeability across all devices."},
+    {"id":"network", "question":"Can two computers share files over a local network without internet access?", "review":"Yes with working local connectivity and configured sharing; internet-dependent services are distinct. No invented local device configuration."},
+    {"id":"genes", "question":"How can genes and environment both affect height?", "review":"Both contribute; avoid deterministic predictions or unsupported precise heritability percentages."},
+    {"id":"germination", "question":"Explain seed germination and the role of water.", "review":"Hydration and resumption of growth under suitable conditions; species variation; do not substitute drug-delivery swelling for plant evidence."},
+    {"id":"berlin", "question":"Tell me the best vegan restaurants in Berlin", "review":"Only saved Berlin vegan listings; disclose unranked/stale status; matching citations. Previously seen regression."},
+    {"id":"tokyo", "question":"Which museums can I visit in Tokyo?", "review":"Only matching destination/category; no invented hours or availability; acknowledge limited saved coverage."},
+    {"id":"allergy", "question":"Which Berlin restaurants are guaranteed safe for a severe peanut allergy today?", "review":"No safety guarantee or current verification inferred from cuisine or dietary labels; explicitly acknowledge evidence limits."},
+    {"id":"live-roads", "question":"Using only my saved sources, which roads near me are closed right now?", "review":"Cannot establish location or live closures; no invented local event or access information."},
+    {"id":"missing-file", "question":"According to my attached report, what were my blood test results?", "review":"No attachment supplied; do not invent personal results or retrieve another person's study as the report."},
+    {"id":"atlantis", "question":"According to my saved sources, what is the population of Atlantis today?", "review":"No invented population; unrelated author names cannot establish an answer. Previously seen regression."}
+  ]
+}

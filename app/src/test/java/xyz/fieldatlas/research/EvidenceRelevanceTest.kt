@@ -4,6 +4,152 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class EvidenceRelevanceTest {
+    @Test fun strongSemanticMatchIsNotUndoneByTheLaterKeywordExplanationGate() {
+        val question = "Why do boats float?"
+        val source = Evidence("reference", "c", "Boat — Buoyancy", "Local",
+            "A boat displaces its weight in water. Overloading makes it sink.", -100_001.0,
+            matchedBy = "concept match 0.79")
+        val terms = FtsQuery.from(question)!!.terms
+        assertEquals(listOf(source), EvidenceRelevance.keep(listOf(source), terms, question = question))
+        for (attribution in listOf(null, "keyword: boat", "concept match 0.77", "concept match 1.50")) {
+            assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(source.copy(matchedBy = attribution)), terms, question = question))
+        }
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(
+            listOf(source.copy(documentId = "wv-place-boat")), terms, question = question))
+    }
+
+    @Test fun namedMultiwordReferenceKeepsItsDefinitionDespiteDifferentConsequenceWords() {
+        val question = "How can sampling bias make a large survey misleading?"
+        val definition = Evidence("reference", "reference:0", "Sampling bias — Overview", "Pinned reference",
+            "In statistics, sampling bias is a bias in which some members of a population are more likely to be selected than others.", -1.0)
+        val titleOnly = definition.copy(documentId = "noise", text =
+            "The experiment recorded two measurements. The records contain no definition or explanation.")
+        val incidental = definition.copy(documentId = "unrelated", title = "Experimental apparatus — Overview")
+        assertEquals(listOf(definition), EvidenceRelevance.keep(listOf(titleOnly, incidental, definition),
+            FtsQuery.from(question)!!.terms, question = question))
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(definition),
+            FtsQuery.from("According to my saved report, how was this survey sampled?")!!.terms,
+            question = "According to my saved report, how was this survey sampled?"))
+    }
+
+    @Test fun generalExplanationRejectsMetaphorsButKeepsRealMechanisms() {
+        val question = "Why do boats float?"
+        val metaphor = Evidence("aging", "aging:0", "Funding aging research", "Saved article",
+            "A rising tide floats all boats. Research funding helps our project grow.", -1.0)
+        val direct = metaphor.copy(documentId = "physics", title = "Buoyancy", text =
+            "Boats float because they displace water whose weight equals their own weight.")
+        assertEquals(listOf(direct), EvidenceRelevance.keep(listOf(metaphor, direct),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun generalNetworkQuestionCannotUseAnAccommodationListing() {
+        val question = "Can two computers share files over a local network without internet access?"
+        val listing = Evidence("wv-place-hotel", "hotel:0", "Hotel computers", "Travel",
+            "Computers share files over the local network because internet access is provided to hotel guests.", -1.0)
+        val direct = listing.copy(documentId = "guide", title = "Local network file sharing", source = "Reference")
+        assertEquals(listOf(direct), EvidenceRelevance.keep(listOf(listing, direct),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+    @Test fun `short causal questions require the subject not just an action and medium`() {
+        listOf("Explain why ice floats on water.", "Why boats float on water?").forEach { question ->
+            val subject = if ("ice" in question) "Ice" else "Boats"
+            val relevant = Evidence("physics", "physics:0", "Buoyancy", "Reference",
+                "$subject floats on water because its average density is lower than that of water.", -1.0)
+            val unrelated = relevant.copy(documentId = "study", text =
+                "The floating duration of tablets in water increased. The drug release mechanism was diffusion controlled.")
+            val listing = relevant.copy(documentId = "wv-place-shop", text =
+                "Destination: Ocean City\nCategory: Eat\nDescription: $subject, rootbeer floats and water ice are on the menu.")
+            assertEquals(listOf(relevant), EvidenceRelevance.keep(listOf(unrelated, listing, relevant),
+                FtsQuery.from(question)!!.terms, listOf("drug", "diffusion"), question))
+        }
+    }
+
+    @Test fun `overview retains adjacent qualifications but not unrelated sections or provenance`() {
+        val question = "How does a battery differ from a capacitor?"
+        val anchor = Evidence("b", "b:0000", "Battery — Overview", "Reference A",
+            "A battery stores chemical energy.", -1.0)
+        val qualification = anchor.copy(chunkId = "b:0001", text = "Some designs cannot be recharged. The intended use depends on their chemistry.")
+        val remote = qualification.copy(chunkId = "b:0003")
+        val differentSource = qualification.copy(source = "Reference B")
+        val differentSection = qualification.copy(title = "Battery — History")
+        val differentDocument = qualification.copy(documentId = "other", chunkId = "other:0001")
+        val candidates = listOf(qualification, remote, differentSource, differentSection, differentDocument, anchor)
+        assertEquals(listOf(qualification, anchor), EvidenceRelevance.keep(candidates,
+            FtsQuery.from(question)!!.terms, question = question))
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(qualification),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `overview adjacency does not chain or apply to arbitrary chunk identifiers`() {
+        val question = "Explain battery"
+        val anchor = Evidence("b", "b:0000", "Battery — Overview", "Reference",
+            "A battery stores chemical energy.", -1.0)
+        val next = anchor.copy(chunkId = "b:0001", text = "Some designs cannot be recharged. The choice of chemistry is important for longevity.")
+        val later = next.copy(chunkId = "b:0002")
+        val malformed = next.copy(chunkId = "unrelated:0001")
+        assertEquals(listOf(anchor, next), EvidenceRelevance.keep(listOf(anchor, next, later, malformed),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `domain qualifier preserves the full definition and its limitations`() {
+        val question = "How does a battery differ from a capacitor?"
+        val direct = evidence("In electrical engineering, a capacitor stores energy in an electric field. This does not specify how long it can retain energy.", null)
+        val incidental = evidence("In electrical engineering, we tested a battery and a capacitor in the laboratory.", null)
+        val unrelated = evidence("In a capacitor experiment, a sensor is used to measure a battery.", null)
+        assertEquals(listOf(direct), EvidenceRelevance.keep(listOf(incidental, unrelated, direct),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `difference question preserves definitions of either subject without incidental subtypes`() {
+        val battery = evidence("A battery stores chemical energy. Some batteries cannot be recharged.", null)
+        val capacitor = evidence("A capacitor stores energy in an electric field.", null)
+        val incidental = evidence("A battery-powered instrument measured a capacitor in a useful experiment.", null)
+        listOf(
+            "How does a battery differ from a capacitor, and when would each be useful?",
+            "How is a battery different from a capacitor?",
+            "How do batteries differ from capacitors?",
+        ).forEach { question ->
+            assertEquals(question, listOf(battery, capacitor), EvidenceRelevance.keep(
+                listOf(incidental, battery, capacitor), FtsQuery.from(question)!!.terms, question = question))
+        }
+    }
+
+    @Test fun `difference extraction does not weaken qualified or multiword comparisons`() {
+        listOf(
+            "How does solar energy differ from wind energy?",
+            "How does a battery differ from a capacitor in this experiment?",
+            "How does a battery differ from a capacitor, according to this study?",
+        ).forEach { question -> assertEquals(question, emptyList<String>(), EvidenceRelevance.comparisonTerms(question)) }
+    }
+
+    @Test fun `named reference topic rejects another subject with generic overlap`() {
+        val question = "Explain two ways agriculture changed human societies, and one disadvantage."
+        val wrong = evidence("Writing changed human societies and the way people communicate.", null)
+            .copy(title = "Writing — Influence on society")
+        val right = evidence("Agriculture changed human societies through food production and settlement.", null)
+            .copy(title = "Agriculture — History")
+        assertEquals(listOf(right), EvidenceRelevance.keep(listOf(wrong, right), FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `reference focus preserves multiple named topics and cross article evidence`() {
+        val question = "How did agriculture and writing change human societies?"
+        val farm = evidence("Agriculture changed human societies through food production.", null).copy(title = "Agriculture — History")
+        val writing = evidence("Writing changed human societies through record keeping.", null).copy(title = "Writing — History")
+        val cross = evidence("Agriculture and writing changed human societies through taxation records.", null).copy(title = "History — Records")
+        assertEquals(listOf(farm, writing, cross), EvidenceRelevance.keep(listOf(farm, writing, cross), FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `source only boilerplate cannot admit unrelated live information sources`() {
+        val question = "Using only these saved sources, what earthquake happened today and which roads are currently closed?"
+        val wrong = evidence("Only a few objects happened to become visible in the Solar System.", null)
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(wrong), FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun `unnamed reference subject does not suppress descriptive questions`() {
+        val question = "What changed human societies through food production?"
+        val farm = evidence("Agriculture changed human societies through food production.", null).copy(title = "Agriculture — History")
+        assertEquals(listOf(farm), EvidenceRelevance.keep(listOf(farm), FtsQuery.from(question)!!.terms, question = question))
+    }
     @Test fun `an author name cannot establish the topic of a scientific passage`() {
         val question = "According to my saved sources, what is the population of Atlantis today?"
         val study = evidence("PMID 123\nYear: 2018\nAuthors: Atlantis Evan\nAbstract: The study assessed diabetes in the general population of Australia.", null)
@@ -201,6 +347,17 @@ class EvidenceRelevanceTest {
     @Test fun `single topic Indonesian query keeps Indonesian evidence`() {
         val relevant = evidence("Indonesian cooking uses diverse regional ingredients", "keyword: indonesian")
         assertEquals(listOf(relevant), EvidenceRelevance.keep(listOf(relevant), listOf("indonesian")))
+    }
+
+    @Test fun `two generic title matches cannot substitute for the subjects of an explanation`() {
+        val clinic = evidence("Indoor room temperatures were higher than outdoor temperatures.", "keyword: room, temperature")
+            .copy(title = "Indoor temperatures in patient waiting rooms")
+        val mechanism = evidence("Metal feels colder than wood at the same room temperature because metal conducts heat away from skin faster.", "keyword: metal, wood, temperature")
+            .copy(title = "Heat transfer")
+        val question = "Why does metal feel colder than wood at the same room temperature?"
+        assertEquals(listOf(mechanism), EvidenceRelevance.keep(
+            listOf(clinic, mechanism), FtsQuery.from(question)!!.terms, question = question,
+        ))
     }
 
     @Test fun `planner synonym can support a direct question term`() {

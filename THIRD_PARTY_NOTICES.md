@@ -7,7 +7,7 @@ This file is a navigation index for significant source and runtime components. I
 | `ggml-org/llama.cpp` | commit `60081bb2b5b3294165a4d67c5cbeebe74c868014` | MIT | [llama.cpp LICENSE](https://github.com/ggml-org/llama.cpp/blob/60081bb2b5b3294165a4d67c5cbeebe74c868014/LICENSE) |
 | `Qwen/Qwen3.5-2B` / bartowski GGUF | revisions pinned in `models/compact-qwen3.5-2b.example.json` | Apache-2.0 | [Qwen3.5-2B model card](https://huggingface.co/Qwen/Qwen3.5-2B) |
 | `openbmb/MiniCPM5-1B` | revisions pinned in `models/compact-minicpm5-1b*.example.json` | Apache-2.0 | [MiniCPM5-1B model card](https://huggingface.co/openbmb/MiniCPM5-1B) |
-| Vosk Android | `0.3.47` | Apache-2.0 | [Vosk API repository](https://github.com/alphacep/vosk-api) |
+| Vosk Android | `0.3.75` | Apache-2.0 | [Vosk API repository](https://github.com/alphacep/vosk-api) |
 | Vosk small English speech model | `vosk-model-small-en-us-0.15` | Apache-2.0 | [Vosk models](https://alphacephei.com/vosk/models) |
 | BGE-small vector encoder | selected and pinned by each vector fapack manifest | MIT | [BGE-small model card](https://huggingface.co/BAAI/bge-small-en-v1.5) |
 | Source Serif 4 | current Google Fonts source | SIL Open Font License 1.1 | [`docs/licenses/source-serif-4-OFL.txt`](docs/licenses/source-serif-4-OFL.txt) |

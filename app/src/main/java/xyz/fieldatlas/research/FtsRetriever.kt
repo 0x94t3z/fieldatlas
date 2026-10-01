@@ -104,9 +104,13 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             alive.take(TITLE_TERM_SCAN)
                 .joinToString(" OR ") { term -> "title : \"" + term.replace("\"", "") + "\"*" },
         ).associateWith { candidate -> candidate.title.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).toHashSet() }
+        val comparisonSubjects = EvidenceRelevance.comparisonTerms(query)
         val nominated = alive.take(TITLE_TERM_SCAN).mapNotNull { term ->
             candidateIndex.entries.filter { (_, tokens) -> term in tokens }
-                .minByOrNull { (candidate, _) -> candidate.title.length }
+                .minWithOrNull(compareBy(
+                    { (candidate, _) -> comparisonTitlePriority(candidate.title, term, comparisonSubjects) },
+                    { (candidate, _) -> candidate.title.length },
+                ))
                 ?.let { entry -> frequencyOf(term) to entry.key }
         }.sortedBy { (frequency, _) -> frequency }
             .distinctBy { (_, candidate) -> candidate.title.lowercase() }
@@ -168,7 +172,13 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         return "\"$stem\"*"
     }
 
-    private companion object {
+    internal companion object {
+        /** For explicit two-subject comparisons, don't nominate a short History or
+         * Types section instead of the subject's introduction. Other searches retain
+         * their existing ranking. This is coverage selection, not claim verification. */
+        internal fun comparisonTitlePriority(title: String, term: String, subjects: List<String>): Int =
+            if (term in subjects && title.equals("$term — Overview", ignoreCase = true)) 0 else 1
+
         const val FREQUENCY_PROBE_CAP = 100_000
         const val CORE_TERMS = 5
         const val MAX_CHUNKS_PER_DOCUMENT = 2

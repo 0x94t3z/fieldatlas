@@ -26,7 +26,12 @@ data class ResearchMetrics(
     val hasUnmappedCitation: Boolean,
 )
 
-data class PromptSource(val citationId: String, val evidence: Evidence)
+data class PromptSource(
+    val citationId: String,
+    val evidence: Evidence,
+    /** Exact excerpt supplied to inference; evidence retains the original for source viewing. */
+    val excerpt: String = evidence.text,
+)
 
 data class PackedPrompt(
     val prompt: String,

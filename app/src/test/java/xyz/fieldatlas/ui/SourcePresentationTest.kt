@@ -5,6 +5,9 @@ import org.junit.Test
 import xyz.fieldatlas.research.Evidence
 
 class SourcePresentationTest {
+    @Test fun sourceCodeGetsAnAccurateLanguageLabel() {
+        assertEquals("Your file · Kotlin", sourcePresentation(attachment("main.kt", "Attached file · text · page 1")).metadata)
+    }
     @Test fun verifiedTypeOverridesMisleadingOrMissingExtension() {
         assertEquals("Your file · Image", sourcePresentation(attachment("scan.pdf", "Attached file · image · page 1 · recognized text")).metadata)
         assertEquals("Your file · PDF · Page 2", sourcePresentation(attachment("ticket", "Attached file · pdf · page 2")).metadata)

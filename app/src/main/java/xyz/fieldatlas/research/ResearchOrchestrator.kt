@@ -55,6 +55,18 @@ class ResearchOrchestrator(
             val startedAt = monotonicMillis()
             _searchProgress.value = 0.0
             _vectorMatches.value = 0
+            QuestionRequirements.response(question, attachments.isNotEmpty())?.let { answer ->
+                emit(ResearchEvent.Token(answer))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = 0,
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             val questionTerms = FtsQuery.from(question)?.terms.orEmpty()
             // Retrieval merges several packs before the relevance gate runs. Request enough
             // candidates that unrelated packs cannot consume every slot ahead of a relevant
@@ -76,7 +88,8 @@ class ResearchOrchestrator(
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (attachments.isEmpty() && evidence.isEmpty() && retriever.hasEligiblePacks(question)) {
+            if (attachments.isEmpty() && evidence.isEmpty() && retriever.hasEligiblePacks(question) &&
+                !EvidenceRelevance.isShortCausalQuestion(question)) {
                 emit(ResearchEvent.Planning(question))
                 try {
                     val raw = StringBuilder()
@@ -164,6 +177,7 @@ class ResearchOrchestrator(
             // first real token arrives, so prefill progress can show as tokens read/written.
             emit(ResearchEvent.Token(""))
 
+            val attributionEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
             var firstTokenAt: Long? = null
             var generatedTokenCount = 0
             val output = StringBuilder()
@@ -172,11 +186,11 @@ class ResearchOrchestrator(
                 generatedTokenCount++
                 output.append(token)
                 emit(if (packed.mixedAnswer) {
-                    ResearchEvent.Token(AnswerText.mixed(output.toString(), packed.sources.map { it.evidence }), replace = true)
+                    ResearchEvent.Token(AnswerText.mixed(output.toString(), attributionEvidence), replace = true)
                 } else ResearchEvent.Token(token))
             }
             val finishedAt = monotonicMillis()
-            val attributed = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), packed.sources.map { it.evidence }) else output.toString()
+            val attributed = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else output.toString()
             val citations = AnswerText.citationAudit(attributed, packed.sources.size)
             val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
             emit(

@@ -1,0 +1,11 @@
+{
+  "description": "Development coverage follow-up, not an unseen benchmark: retain the original 24 articles and add Spreadsheet and P-value after observed coverage gaps.",
+  "topics": {
+    "physical_science": ["Atom", "Energy", "Heat transfer", "Electric current"],
+    "earth_and_space": ["Plate tectonics", "Water cycle", "Solar System", "Atmosphere of Earth"],
+    "life_science": ["Cell (biology)", "Photosynthesis", "Genetics", "Ecosystem"],
+    "mathematics_and_evidence": ["Probability", "Statistical hypothesis test", "Scientific method", "Correlation and causation", "P-value"],
+    "computing": ["Algorithm", "Operating system", "Computer network", "Database", "Spreadsheet"],
+    "history_and_society": ["Industrial Revolution", "Agriculture", "Writing", "Geography"]
+  }
+}

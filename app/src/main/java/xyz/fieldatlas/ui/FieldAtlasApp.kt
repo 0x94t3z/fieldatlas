@@ -60,6 +60,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasColors
 fun FieldAtlasApp(
     packs: List<InstalledAsset>,
     importing: Boolean,
+    importingName: String? = null,
+    importingPack: xyz.fieldatlas.assets.PackImportInfo? = null,
     downloading: Boolean = false,
     downloadedBytes: Long = 0,
     offerKnowledge: Boolean = false,
@@ -77,6 +79,8 @@ fun FieldAtlasApp(
     navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
     onImportPack: () -> Unit,
     onDownloadModel: () -> Unit = {},
+    resumableModelBytes: Long = 0,
+    resumableKnowledgeBytes: (KnowledgeCatalogEntry) -> Long = { 0 },
     onCancelDownload: () -> Unit = {},
     onDismissKnowledgeOffer: () -> Unit = {},
     onDownloadKnowledge: (KnowledgeCatalogEntry) -> Unit = {},
@@ -132,11 +136,15 @@ fun FieldAtlasApp(
             SetupScreen(
                 packs = packs,
                 importing = importing,
+                importingName = importingName,
+                importingPack = importingPack,
                 downloading = downloading,
                 downloadedBytes = downloadedBytes,
                 error = setupError,
                 onImportPack = onImportPack,
                 onDownloadModel = onDownloadModel,
+                resumableModelBytes = resumableModelBytes,
+                resumableKnowledgeBytes = resumableKnowledgeBytes,
                 onCancelDownload = onCancelDownload,
                 availableKnowledge = availableKnowledge,
                 catalogRefreshing = catalogRefreshing,
@@ -188,10 +196,17 @@ fun FieldAtlasApp(
                             evidence = source,
                             sourceNumber = detail.index + 1,
                             sourceCount = researchState.sources.size,
+                            isCited = "S${detail.index + 1}" in xyz.fieldatlas.research.AnswerText.citationAudit(
+                                researchState.answer, researchState.sources.size).citedSourceIds,
                             // With several active packs the evidence does not carry its pack ID;
                             // omitting this field is safer than crediting the wrong license.
                             packLicense = if (source.documentId.startsWith("attachment:")) null else enabledKnowledge.singleOrNull()?.license,
                             onBack = closeDetail,
+                            original = researchState.attachments.firstOrNull {
+                                source.documentId == "attachment:${it.extracted?.id}"
+                            }?.let { attachment -> attachment.originalFile?.let { file ->
+                                attachment.kind?.let { kind -> xyz.fieldatlas.ui.sources.SourceOriginal(file, kind) }
+                            } },
                         )
                     }
                 }
@@ -267,6 +282,7 @@ fun FieldAtlasApp(
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,
                         importing = importing,
+                        modelDownloading = downloading,
                         importError = setupError,
                         availableKnowledge = availableKnowledge,
                         catalogRefreshing = catalogRefreshing,
@@ -275,6 +291,7 @@ fun FieldAtlasApp(
                         knowledgeDownloadKey = knowledgeDownloadKey,
                         knowledgeDownloadedBytes = knowledgeDownloadedBytes,
                         knowledgeDownloadError = knowledgeDownloadError,
+                        resumableKnowledgeBytes = resumableKnowledgeBytes,
                         onDownloadKnowledge = onDownloadKnowledge,
                         onCancelKnowledgeDownload = onCancelKnowledgeDownload,
                     )

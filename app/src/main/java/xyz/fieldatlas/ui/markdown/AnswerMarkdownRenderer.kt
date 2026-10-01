@@ -48,6 +48,7 @@ fun AnswerMarkdownRenderer(
     sourceCount: Int,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
+    bodyStyle: TextStyle = MaterialTheme.typography.bodyLarge,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         blocks.forEach { block ->
@@ -60,7 +61,7 @@ fun AnswerMarkdownRenderer(
                 )
                 is MarkdownBlock.Paragraph -> InlineBlock(
                     content = block.content,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = bodyStyle,
                     sourceCount = sourceCount,
                     onCitation = onCitation,
                 )
@@ -69,12 +70,12 @@ fun AnswerMarkdownRenderer(
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
                                 if (block.ordered) "${index + 1}." else "•",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = bodyStyle,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                             InlineBlock(
                                 content = item,
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = bodyStyle,
                                 sourceCount = sourceCount,
                                 onCitation = onCitation,
                                 modifier = Modifier.weight(1f),

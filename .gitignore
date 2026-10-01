@@ -21,6 +21,28 @@ website/dist/
 website/.vercel/
 __pycache__/
 *.pyc
-__pycache__/
-*.pyc
 !releases/packs/*.fapack
+
+# Local Android packages and profiling output (publish builds as release assets).
+*.apk
+*.aab
+*.apks
+*.idsig
+*.hprof
+*.heapdump
+
+# Local credentials; keep documented environment templates shareable.
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+
+# Python tooling environments and caches.
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

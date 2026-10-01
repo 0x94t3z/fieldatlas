@@ -1,5 +1,52 @@
 # Evaluation
 
+## Answer root-cause checks (October 1, local development)
+
+Artifacts are under `build/reasoning-diagnosis/`; none are a held-out accuracy score.
+Raw requests and responses were retained, including rejected experiments.
+
+- Excerpt selection used exact tokens even though retrieval accepted word variants.
+  A regression test reproduced selecting introductory history instead of the
+  explanatory paragraph. Excerpt paragraph/sentence ranking now uses the existing
+  retrieval term matching, keeping adjacent qualifications and original source text.
+- The original reference pack had the buoyancy explanation but no semantic index.
+  The new index retrieves it at approximately 0.79 cosine similarity. A later
+  lexical gate wrongly discarded strong semantic matches; that gate now honors
+  the pre-existing 0.78 threshold. Travel exclusions and explicit overview/comparison
+  constraints remain. Indexes of at most 10,000 entries may be searched without
+  matching a discovery-summary keyword; larger indexes retain scope routing.
+- `semantic-app/report.json` exercises actual Kotlin retrieval and generation on
+  eight existing reference questions plus the Berlin lookup. It retains the live
+  information refusal and travel behavior. The buoyancy core explanation improves,
+  but the model reverses the supplied boat/raft distinction. Other generated
+  inaccuracies remain. Better retrieval is not sufficient to certify generation.
+
+Three inference experiments were stopped early after failures, not completed
+benchmarks: enabling thinking produced no final answer within 1,536 tokens on
+all six completed thinking trials (`paired.json`); a shorter instruction prefix
+reproduced the LAN contradiction (`prompt-paired.json`, three completed pairs);
+a native 256-token reasoning budget still produced dimensional errors and
+irrelevant claims (`bounded.json`, two completed trials). No candidate setting
+was promoted. [Qwen's model card](https://huggingface.co/Qwen/Qwen3.5-2B) documents
+the thinking switch and warns about thinking loops in this model size.
+
+An additional model-only substitution recorded 18 responses: the same seven
+automatic-reference requests and two previous complete-context controls, each
+with seeds 17 and 29. The official LiquidAI LFM2.5-1.2B-Instruct Q6_K artifact
+matches SHA-256 `c5e895c191a066f6b26a8f09f10e94cdb799e579216f87df61a7e27beacd9a2b`
+at revision `8ed288026e23958ad9dfa92d53ed773a8eee7125`.
+`alternative-model.json` preserves inputs, sampling settings and complete outputs.
+The LAN answers improve, but database generalization, cell-division wording and
+heat-transfer claims still fail review. It is **not** a validated default replacement,
+and was not installed on the phone. Its [model card](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct)
+recommends retrieval tasks but cautions against knowledge-intensive use.
+
+For semantic diagnostics, `scripts/run_desktop_research.py --vector-fixture FILE`
+accepts frozen query vectors, embedding metadata and a database SHA-256. The actual
+Kotlin vector search/fusion/filtering still runs; source selection is not supplied
+by the fixture. Encoder queries are replayed, not recomputed by this desktop adapter.
+Unknown queries fall back to keywords. This is not full Android inference parity.
+
 `benchmarks/questions.json` freezes 18 historical questions aligned with the former Field Atlas Reference pack: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. That pack is no longer bundled, so a fresh run with only the current model or with the optional biology pack is a different test configuration. Do not compare its score to Reference-pack results as if the evidence were unchanged. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
 
 Each answer is scored for required evidence phrases, prohibited claims, citations, and appropriate abstention. This mechanical rubric is deliberately reproducible but cannot replace human review of correctness or prose quality.
@@ -43,6 +90,413 @@ that these checks establish release/bounty accuracy. Desktop keyword retrieval
 does not validate device inference, vector retrieval, or all languages.
 
 ### Desktop development loop (no phone)
+
+#### Claim-support development suite
+
+`tools/claim_support_cases.json` contains eight project-authored, fictional CC0
+cases: direct support, partial support, negation, conflicting sources, wrong-source
+citations, stale evidence, absent evidence, and partially unsupported compound
+claims. Each includes review criteria and labelled claim/citation probes. Labels
+describe support by the supplied passages, not whether a claim is true in the world.
+An in-range citation can still be irrelevant, contradicted, or insufficient.
+
+```sh
+python3 -m unittest discover -s scripts/tests -p 'test_claim_support.py'
+python3 scripts/run_claim_support.py --output-dir build/claim-support/new-run
+```
+
+Use a new output directory for each run; existing directories are never overwritten.
+`--prepare-only` builds the local fixtures without inference. `--answer-policy`
+accepts `app`, `source-only`, or `source-partial` for the existing diagnostic modes.
+No downloads or phone installation are performed. The tiny database is a test
+fixture, not a distributable knowledge pack. Its example.invalid source URLs are
+identifiers, not websites to fetch.
+
+The runner reuses the desktop app pipeline with manually selected passages, saves
+a fixture snapshot, and produces `report.json` plus `review.json`. Review is bound
+to fixture/report SHA-256 hashes. The review sheet starts **unreviewed**, even for
+completed runs. For each criterion, record pass/fail/uncertain with answer spans
+and source IDs; inspect the actual prompt to detect any relevance/packing omissions.
+Assess raw claim support, completeness, contradictions, and displayed attribution
+separately. Probe citation indices use fixture passage order; model citation indices
+use the actual packed prompt and may differ. Never substitute marker counts,
+substring overlap, or model self-grading for semantic review. These known development
+cases do not establish bounty accuracy or generalization to fresh questions.
+
+Initial app-policy baseline: `build/claim-support/app-baseline/report.json`
+(SHA-256 `82823eeb9e73f2b471a5daf24d4eb14e6b12ac82d8ab64b2b62036b2133d47e6`),
+fixture snapshot SHA-256
+`ffc64ab8642b39d12d11fb8227c743a063262e998cd5a48485b7845fb82c1349`.
+All eight executions completed; agent inspection found the requested core facts
+and uncertainty handling present. This is provisional inspection, not independent
+human validation; the generated review sheet remains unreviewed. The supplied
+short passages reached the answer prompts unchanged. The empty-evidence case
+used the deterministic evidence-gap response after a search-planning call, so its
+planner output must not be mistaken for a generated answer.
+
+Observed limitations to retain in future comparisons:
+
+- The parcel answer correctly compares 7 kg with 4 kg, then adds an unnecessary
+  caveat that the sources do not explicitly compare their weights.
+- Mixed-answer rendering removes paraphrase citations and leaves awkward
+  wording such as "According to Source,". The conflicting-notes question follows
+  the app's existing source-only route and retains correctly mapped citations.
+- The lamp quotation lacks a citation on its own line; the sensor quotation uses
+  an inline heading. Neither becomes a verified clickable quotation under the
+  current mixed-answer format rules.
+- The bridge answer refuses to infer today's opening status, but introduces a
+  current-date assertion not supplied by the fixture. Correct abstention on the
+  main question is not proof that every sentence is evidence-supported.
+
+These minimal fixtures isolate basic behaviors. Passing their requested content
+checks cannot erase the failures on longer real-source excerpts recorded in
+`DATASETS.md`. Before promoting a change, compare both suites and have claim-level
+review completed; do not tune only to these fictional examples.
+
+Attribution follow-up: `build/claim-support/attribution-fix/report.json` reproduces
+all eight raw baseline outputs exactly. Rendering now recognizes inline source
+headings and links an unnumbered quotation only when its complete text has one
+unique exact match in the available passages. Explicit incorrect citations are
+never reassigned; ambiguous, fabricated, incomplete, and overflowing-number
+references cannot create inferred links. The lamp and sensor cases now have
+correct quotation links, and the parcel answer no longer leaves "According to
+Source," after removing an unsupported paraphrase citation. These are attribution
+and display fixes, not a model-accuracy improvement. Unit tests cover these cases.
+
+The Biology/Travel regression at
+`build/desktop-evaluation/final-local-review/report.json` retains Berlin's four
+dated cited listings and the evidence-gap answer for a fictional current fact.
+The mitosis/meiosis explanation remains unverified; its categorical statement
+about recombination is not a general quality pass. The ordinary JVM suite, release
+build, 34 script tests, 14 tools tests and 12 pack-format tests passed in this local
+review. Device behavior remains untested because installation was deferred.
+
+The initial larger-model comparison attempt could not complete its download. It selected
+[bartowski's Qwen3.5 4B Q4_K_M](https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF),
+pinned to revision `4168f45a16a1290d65a4ec0fa312ae917a4c15d6`, with expected
+3,013,027,808 bytes and SHA-256
+`13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983`.
+The direct download failed with HTTP/2 stream cancellation; the resumable-provider
+attempt stalled at approximately 10 MB and was stopped. Neither incomplete file
+was loaded or treated as checksum-verified. Provenance and a checksum-verifying
+retry script remain in ignored `build/model-cache/`. No claim about 4B answer
+quality, device performance or compatibility follows from this attempt. The app's
+recommended 2B model, model URL and checksum remain unchanged.
+
+### Completed 2B/4B desktop diagnostic
+
+The follow-up download completed using bounded parallel byte ranges, followed by
+the full-file size and SHA-256 checks above. The verified 4B GGUF remains private
+under `build/model-cache/`; it is not a new app default or published download.
+The same local server loaded it successfully. Its log reports unused additional
+MTP tensors, so this run does not establish MTP support or Android compatibility.
+
+Both models completed eight authored support fixtures and seven known
+general-reference development questions. Fresh 2B baselines and 4B outputs live
+under `build/claim-support/model-comparison-{2b,4b}/` and
+`build/general-reference/evaluation/model-comparison-{2b,4b}/`. Each suite's
+`model-comparison-controls.json` confirms matching app/tool hashes, database
+hashes, answer policy, llama commit, and **identical actual requests for all 15
+questions**, including supplied passages and sampling settings. The server binary
+was unchanged (`3c8deb8c4971ed4fa10577950c271dd8b7148b20df214baa80d5c3a6c03cbc0d`).
+The plan was frozen before 4B generation in
+`build/model-cache/comparison-plan.json`.
+
+Qualitative agent review, not independent human scoring or an accuracy benchmark:
+
+- Heat transfer: 4B supplies all three examples and the correct vacuum mechanism;
+  2B omitted a radiation example and contrasted photons with particles.
+- Local networks: 4B still introduces confusing overlay/address-resolution
+  language and an unnecessary gateway condition. This is not a clean answer.
+- Agriculture: 4B removes the baseline's fabricated quotation and explicitly
+  rejects universal benefit, but still makes broad historical generalizations.
+- Current earthquake/road closures: both correctly return the same evidence gap.
+- Water cycle: 4B explicitly explains the release of latent heat in condensation,
+  improving the baseline's explanation.
+- Database/spreadsheet: 4B retains the misleading emphasis on semi-structured or
+  unstructured data as the defining database category. The failure is unresolved.
+- Genes/environment: 4B drops the baseline's unrelated CO2/heart-attack material.
+  Its percentages appear in the supplied passage, but its framing of heritability
+  still needs care; source agreement is not proof that an explanation is complete
+  or scientifically precise.
+- Small support fixtures: both retain the main facts, conflicts and unknowns.
+  4B is often more repetitive; its sensor answer adds "only" beyond what the note
+  establishes. The lamp/sensor quotation links seen with 2B are not reproduced
+  in 4B's visible format, while 4B provides a linked historical bridge quotation.
+
+In these single desktop runs, model-call time for the six generated research
+answers was approximately 6–8 seconds with 2B versus 27–46 seconds with 4B. These
+are observations, not controlled device-speed benchmarks: there were no repeated
+timing trials, thermal controls, or Android memory/battery measurements. The
+no-evidence case's model-call time is planning, not a generated final answer.
+
+Decision: do not promote 4B or the candidate reference pack. Larger capacity helps
+some cases but does not resolve evidence relevance, overgeneralization or output
+format compliance. Keep the default model unchanged and prioritize evidence
+selection and claim-level review before any model-default decision. Phone testing
+and installation remain explicitly deferred. All owned download/inference
+processes exited after this comparison.
+
+The claim-support runner now accepts `--model /absolute/path/to/model.gguf` for
+reproducible alternatives; omitting it preserves the existing default. Its new
+argument-forwarding test passes with the full 35-test script suite. The 14
+knowledge-builder tests also pass. No app production code changed in this
+comparison, and no new release was published.
+
+### Rejected grounding-policy candidates (October 1)
+
+Two additional opt-in desktop policies were tested after the difference-question
+retrieval fix, with 2B and the same paragraph-pack database. They are **diagnostic
+only**, not production instructions:
+
+- `--answer-policy evidence-first`: request exact quotations before a short
+  source-bounded explanation. Reports:
+  `build/general-reference/evaluation/evidence-first/report.json`.
+- `--answer-policy bounded-summary`: remove the quotation task and request a
+  short explanation of supported parts plus explicit gaps. Reports:
+  `build/general-reference/evaluation/bounded-summary/report.json`.
+
+Both ran all seven known development questions. Checks confirmed identical
+production-code hashes, model/database identities, generation settings, and
+packed evidence and question suffixes against `qualified-difference-subjects`.
+Only the mixed-answer instructions changed; source-only requests, planning and
+model-only calls were untouched. Unit tests protect those boundaries.
+
+Neither candidate is acceptable for promotion. Evidence-first correctly notices
+the missing spreadsheet definition but alters quotations with ellipses or changed
+wording, retains irrelevant genetics material and adds questionable agriculture
+claims. The existing exact-quote attribution gate keeps those altered quotations
+uncited; it does not validate the remaining explanation. Bounded-summary produces
+a direct contradiction in the heat answer: "All three mechanisms can occur in a
+vacuum". It also supplies spreadsheet claims despite the missing evidence rather
+than identifying that gap. Shorter answers and more source-related wording are
+not correctness improvements by themselves.
+
+The app's answer policies, model and attribution behavior remain unchanged. These
+negative results do not complete the grounding work. A future claim-checking
+stage needs its own support/contradiction/gap tests; a matching citation number or
+quoted substring must not be treated as verification of generated paraphrases.
+No new app release or phone installation follows from this experiment.
+
+### Experimental claim-support checker
+
+`scripts/check_claim_support.py` tests a separate local inference call for one
+claim and its cited passages. It does not generate an answer, split an answer
+into claims, rewrite claims, or run inside the Android app. Expected labels and
+review criteria never enter inference requests. Default fixtures combine the
+13 probes in `tools/claim_support_cases.json` with 13 additional probes in
+`tools/claim_checker_cases.json` (scope, conditions, uncertainty, contradictions,
+conflicting reports and source-embedded instructions).
+
+```sh
+python3 scripts/check_claim_support.py \
+  --output-dir build/claim-checker/new-run
+```
+
+Use a new output directory for every run. `--fixtures` accepts repeatable authored
+fixture files and `--model` selects a local GGUF without changing the app default.
+Reports retain exact requests, raw responses, fixture copies/hashes, model and
+server hashes, and partial results on failure. The runner owns a loopback-only
+server and stops only that process. A busy port is rejected; `--port` can choose
+another port without reusing a running server.
+
+The checker rejects invalid source numbers before inference. Its response parser
+accepts only a strict three-way JSON verdict: supported, contradicted or
+insufficient. Supported/contradicted verdicts require exact quotations from the
+specified passages. Malformed JSON, duplicate keys, fabricated quotations and
+unmapped source IDs become invalid responses, never support. **This validates
+format and attribution, not entailment.** A model can still quote a real passage
+while drawing an unsupported conclusion. Such failures are counted explicitly.
+
+Two runs use the original 26 authored probes at
+`build/claim-checker/{2b,4b}-first-pass/report.json`. Another 12 probes were frozen
+in `build/claim-checker/packed-regressions.json` using the exact excerpts from six
+known research requests, with the originating report hash retained. Their runs
+are at `build/claim-checker/{2b,4b}-packed-regressions/report.json`. The source
+passages remain private build artifacts, not a new published dataset. These are
+development checks, not independent validation or a score for whole answers.
+
+Completed comparison (same requests, labels, fixture hashes and checker code for
+both models; no prompt tuning between models):
+
+| Model | Checks | Full-label matches | False support | Missed supported claims | Invalid responses |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 2B | 38 | 24 | 5 | 3 | 5 |
+| 4B | 38 | 33 | 0 | 1 | 2 |
+
+Each total includes one deterministic invalid-citation check, rather than an
+inference call. "False support" means an unsupported or contradicted claim was
+accepted after response validation. Invalid responses fail closed and count as
+misses when the claim was supported; the columns therefore overlap. Full-label
+matches also distinguish contradiction from insufficient evidence, which neither
+model handles perfectly.
+
+2B falsely accepts an undated capacity as the latest value, an unmeasured pump
+as silent, a subtype property as universal, thermal conduction/convection through
+a perfect vacuum, and a primary energy source as the only possible source.
+The first three occur despite exact, correctly attributed quotations. It catches
+the simplified fictional mechanism contradiction but fails the comparable
+real-excerpt case, so short-fixture success does not generalize to longer context.
+
+4B produces no accepted false support in these cases, but a supported database
+claim fails because its quotation introduces an ellipsis that is not in the
+passage. Its subtype-gap response also violates the response contract. This is
+promising development evidence, not verification reliability: the cases were
+authored/reviewed by the agent, the actual research requests are already-known
+regressions, and neither claim extraction, answer coverage/relevance, independent
+holdouts nor phone performance was tested. A cited source can itself be wrong.
+
+Decision: retain the checker as an experimental development tool. Do not enable
+automatic answer acceptance, rewriting, deletion or a "verified" badge. The app
+continues using its existing 2B model and attribution behavior. All owned local
+inference processes stopped after the comparison. The 41 script tests pass,
+including strict verdict parsing and false-support accounting; no new app build,
+publication or installation was needed for this test-only work.
+
+### Frozen inference controls (October 1)
+
+After consulting [Qwen's model card](https://huggingface.co/Qwen/Qwen3.5-2B#best-practices)
+and the [Sufficient Context study](https://arxiv.org/abs/2411.06037), two known failures
+(database/spreadsheet and algorithm/program) were frozen before generation. This is
+diagnosis, not an unseen accuracy benchmark. `scripts/run_inference_controls.py`
+replays exact final requests, retaining complete raw responses, input/model/server
+hashes, token budgets and seeds. It never promotes a model or assigns an accuracy score.
+
+The first matrix has three conditions (model-only, automatic retrieval, manually
+selected passages still passed through production filtering/packing), two samplers,
+and seeds 17/29/43: 36 generations. The existing settings are temperature 0.3,
+top-k 40, top-p .95, min-p .05, repetition penalty 1.10. The alternative uses Qwen's
+non-thinking text sampling values: temperature 1, top-k 20, top-p 1, min-p 0,
+presence penalty 2 and repetition penalty 1. The existing 128-token penalty window
+remains; this is an adaptation to llama.cpp, not framework-independent parity.
+Messages, output limits, thinking configuration and evidence are identical between
+samplers for each condition. Model-only uses the app's model-only policy, so it is
+not a pure evidence-removal ablation with otherwise identical instructions.
+
+Preflight exposed a selection limitation: the database's non-relational classification
+and spreadsheet use cases disappeared even from manually selected candidates, because
+the overview relevance gate required a defining sentence. An additional frozen
+control bypassed filtering and excerpt selection, inserting the four complete original
+database/spreadsheet chunks within the existing evidence budget. The two algorithm
+chunks were already complete. This added 12 generations; its six algorithm requests
+and answers duplicate the previous manual-context condition and are not independent
+new cases. Total: 48 recorded generations on **two** known questions.
+
+Agent review observations (not independent human scoring):
+
+- Both sampling configurations continued producing materially wrong claims. Automatic
+  database answers still generalized relational structures to databases overall.
+- Complete database context helped some answers acknowledge advanced spreadsheet uses
+  or avoid the blanket multiple-table definition, but did not reliably eliminate
+  overgeneralization. Existing sampler seed 29 still described manual recalculation
+  despite supplied text explaining that manual recalculation is unnecessary.
+- Manual algorithm context did not cure source interpretation: existing sampler seed
+  17 reversed the termination distinction; recommended sampler seed 29 invented named
+  references and attributed absent statements to S1. Other seeds also contained errors.
+- All 48 responses ended with `stop`, not output-budget truncation. No latency conclusion:
+  this was desktop inference, with local build activity during part of the run.
+- **Decision:** no sampling or model change in the app. Improve contextual selection
+  and source quality, but do not assume these alone fix generation. Automatic judging
+  remains disabled. The prior release gate is not passed.
+
+Private reproducibility artifacts: `build/release-controls/plan.json`,
+`selection.json`, `comparison/report.json`, `complete-context-plan.json`,
+`complete-context-requests.json`, and `complete-comparison/report.json`.
+The complete-context input is explicitly marked FROZEN_REQUEST, not a successful
+app run. Its preparation retains original chunk text and records database/selection
+hashes. No competitor data or remotely generated answer was used.
+
+### Coverage follow-up and release gate (October 1)
+
+Coverage work uses the seven existing general-reference queries plus all four
+`tools/answer_review_questions.json` queries. These are used development cases,
+not an unseen benchmark. The 0.3.0 candidate adds two articles without refreshing
+the original 24 revisions. An initial coverage-only run and a separate title-selection
+run isolate data changes from retrieval changes; reports are recorded in DATASETS.md.
+
+Mixed-answer UI now puts original retrieved passage previews before the generated
+explanation. Previews render plain source text, retain full context through the source
+viewer, and explicitly do not certify the explanation. The first two appear initially;
+the remaining passages are expandable. For the supported narrow comparison grammar,
+a missing subject word produces a gap notice based on passage text, not the title.
+Absence is a lexical warning; presence never earns a complete-coverage badge.
+
+The candidate cannot be promoted until all of these release checks pass:
+
+- Review every complete answer, not selected claims: no material contradictions,
+  invented evidence, or unjustified universal claims on the fixed development set.
+- Judge question coverage separately: missing comparisons or requested examples
+  fail usefulness even if the answer honestly states a gap.
+- Review support against actual packed excerpts, and factual correctness separately.
+  Exact quotation and a model checker cannot certify either alone.
+- Preserve the missing-current-information refusal and existing travel behavior.
+- Pass unit tests, release build, and on-device source navigation, accessibility,
+  offline performance and cancellation checks. Device work remains deferred.
+- Before public quality claims, freeze a separate holdout and obtain independent
+  review. Do not relabel repeatedly tuned development questions as a holdout.
+
+Current gate is **NOT PASSED**: database generalization and the algorithm contradiction
+remain; device UI tests are not executed. The candidate pack stays development-only.
+
+Verification: the three existing biology/travel/missing-source regression answers
+are byte-identical to their previous run. Two offline candidate builds produced
+byte-identical `.fapack` files. Script tests (46) and reference-builder tests (14)
+passed. The final full JVM suite and release build passed; the Android UI test
+compiled but was not run on a device. Local evaluation servers were stopped.
+
+### Fresh complete-answer check (October 1)
+
+`tools/answer_review_questions.json` froze four new development questions before
+generation: ecosystem roles, algorithms versus programs, atomic structure/mass,
+and p-value limits. They were not selected or changed after seeing outputs.
+They are now used development cases, not an untouched holdout. The unchanged 2B
+app pipeline generated their answers against the same paragraph reference pilot:
+`build/answer-review/fresh-2b/report.json`.
+
+`scripts/prepare_answer_review.py` prepares a review sheet from completed reports.
+It preserves every non-whitespace character in answer blocks with exact offsets,
+keeps adjacent bullets together, and automatically excludes only the two known
+app display headings from factual review. **It is not an atomic-claim extractor.**
+A block can contain several assertions, all of which require support. This avoids
+selecting only convenient claims but does not solve semantic decomposition.
+
+For export, every block requires a label and reason, and every answer requires
+a separate question-coverage review. `--source-report` checks the original hash,
+question, answer and packed passages; changed or dropped text is rejected. Empty
+evidence is not silently counted as a verified case. Labels are agent judgements,
+not independent human review. The atom answer's provisional supported label is
+based on agreement with the supplied excerpts, including their mass wording;
+its scientific precision and loose orbit/cloud language need separate review.
+
+The reviewed answers are at `build/answer-review/fresh-2b/review.json`. Their
+labels were assigned before checker inference; exported probes are at
+`build/answer-review/fresh-2b/checks.json`. Re-export with origin validation at
+`bound-checks.json` is byte-identical. Checker inputs contain the complete answer
+blocks and all actually packed passages, but no gold labels or review reasons.
+This tests whole-block support, not whether each generated citation is correctly
+placed. The 4B checker output is at
+`build/answer-review/fresh-4b-checker/report.json`.
+
+Results: one unsupported block accepted, three invalid responses, and the one
+provisionally supported block missed. In particular:
+
+- The p-value answer adds general claims not established by the single packed
+  coin-toss example. 4B nevertheless marks the whole block supported and supplies
+  valid quotations. Exact attribution therefore does not establish full support.
+- The algorithm answer says an implementation description gives exact machine
+  states. The passage explicitly says it does not. The raw checker verdict still
+  says supported; only its malformed quotation causes rejection by the parser.
+- The ecosystem and atom blocks also fail quote validation, through changed
+  wording, ellipses or incorrect source mapping. These are not successful semantic
+  detections and must not be scored as such.
+
+Decision: the earlier isolated-claim results do **not** justify automatic checking
+of complete answers. Keep the checker experimental, with no verified badge,
+rewriting, claim removal, Android integration or model-default change. Supported
+sentences inside rejected blocks have not been separately certified. The 46
+script tests pass, including lossless block coverage and origin binding; this
+does not constitute an answer-quality pass. All owned inference processes exited.
+Phone installation/performance testing remains deferred.
 
 Use `scripts/run_desktop_research.py` to run the current app's Kotlin orchestrator,
 multi-pack keyword retrieval, prompt builder, venue routing, and answer attribution
@@ -89,6 +543,41 @@ are therefore not meaningful desktop performance measurements; use server usage/
 timings for desktop diagnostics only. It does not validate attachments/OCR, UI,
 phone memory, battery, network isolation, or phone latency. Final phone checks
 remain required. Model self-grading is not used as proof of correctness.
+
+#### Manual-evidence diagnostic
+
+To isolate retrieval from downstream generation, pass
+`--manual-selection build/path/selection.json` with exactly one `--database`.
+The JSON object maps each exact requested question to an ordered array of chunk
+IDs from that database. Empty arrays explicitly supply no evidence. The launcher
+rejects missing or duplicate IDs and copies the original passage and metadata
+without rewriting them. The report records the selection hash and evidence mode.
+
+This bypasses automatic retrieval only: the app's relevance gate, result limit,
+excerpt selection, prompt budget, generation, and answer attribution still apply.
+Inspect the recorded inference request, not just the supplied passage list, to
+verify what reached the model. Manual selection is not guaranteed sufficient or
+unbiased and is not a retrieval-quality score. Keep questions, model, database,
+app source and inference settings identical in the automatic control; save each
+report in its own directory. Run Gradle evaluations and unit tests sequentially
+because they share Gradle's test-result files.
+
+For an instruction-only comparison, add `--answer-policy source-only`. This
+test-only switch substitutes the existing `PromptBuilder` strict policy for the
+instructions before the evidence disclaimer. The complete packed evidence,
+question, system message and generation settings remain unchanged. Planning and
+model-only calls are not modified. Default `--answer-policy app` leaves all
+prompts unchanged. The report records the selected policy and actual requests.
+`--answer-policy source-partial` is a separate test-only candidate requiring
+supported parts to be answered and unsupported parts to be identified individually.
+It does not change evidence selection or supply additional facts. Treat results
+on the development questions used to design it as exploratory, not held-out validation.
+
+This does **not** switch the production answer-attribution mode: a question that
+normally uses mixed answers still goes through mixed-answer display processing.
+Review `calls[].rawAnswer` for generation and citation support, and `visibleAnswer`
+separately for the UI result. A source number does not establish that the cited
+passage supports the claim. This diagnostic is not a shippable policy/UI change.
 
 ### Overview-relevance development checks
 

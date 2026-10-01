@@ -17,6 +17,10 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.compress.archivers.zip.ZipMethod
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
+import kotlinx.coroutines.CancellationException
+
+data class PackImportInfo(val id: String, val title: String, val type: PackType)
 
 class AssetImportException(
     message: String,
@@ -28,13 +32,29 @@ class AssetImporter private constructor(
     private val storageRoot: File,
     private val registry: AssetRegistry,
     private val context: Context?,
+    private val footprint: StorageFootprint,
 ) {
     constructor(storageRoot: File, registry: AssetRegistry = AssetRegistry(storageRoot)) :
-        this(storageRoot, registry, null)
+        this(storageRoot, registry, null, StorageFootprint { listOf(storageRoot) })
 
-    constructor(context: Context) : this(context.filesDir, AssetRegistry(context.filesDir), context)
+    constructor(context: Context) : this(context.filesDir, AssetRegistry(context.filesDir), context, StorageFootprint.forApp(context))
 
     private val importMutex = Mutex()
+
+    /** Read only the bounded first entry for presentation; the real import still validates every artifact. */
+    suspend fun inspect(uri: Uri): PackImportInfo? = withContext(Dispatchers.IO) {
+        try {
+            context?.contentResolver?.openInputStream(uri)?.use { inspect(it) }
+        } catch (cancelled: CancellationException) { throw cancelled
+        } catch (_: Exception) { null }
+    }
+
+    internal fun inspect(input: InputStream): PackImportInfo = ZipArchiveInputStream(input).use { zip ->
+        val entry = zip.nextZipEntry ?: throw AssetImportException("Pack is empty")
+        validateEntry(entry, "manifest.json")
+        val manifest = PackManifestParser.parse(readManifest(zip, entry))
+        PackImportInfo(manifest.id, manifest.title, manifest.type)
+    }
 
     suspend fun import(uri: Uri): InstalledAsset = withContext(Dispatchers.IO) {
         val resolver = context?.contentResolver ?: throw AssetImportException("No ContentResolver configured")
@@ -117,8 +137,8 @@ class AssetImporter private constructor(
                 }
                 val incomingBytes = checkedTotal(manifest.artifacts)
                 val decision = StorageBudget.evaluate(
-                    registry.totalInstalledBytes(),
-                    incomingBytes,
+                    maxOf(footprint.bytes(), registry.totalInstalledBytes()),
+                    Math.addExact(incomingBytes, StorageBudget.METADATA_RESERVE_BYTES),
                     freeBytesForExtraction,
                 )
                 if (decision != BudgetDecision.Allowed) {
@@ -173,6 +193,7 @@ class AssetImporter private constructor(
 
     private fun spoolArchive(input: InputStream, archive: File, freeBytes: Long): Long {
         var copied = 0L
+        val initialBytes = footprint.bytes()
         FileOutputStream(archive).use { output ->
             val buffer = ByteArray(COPY_BUFFER_BYTES)
             while (true) {
@@ -184,14 +205,11 @@ class AssetImporter private constructor(
                 } catch (error: ArithmeticException) {
                     throw AssetImportException("Pack size overflow", error, BudgetDecision.InvalidSize)
                 }
-                if (copied > freeBytes || copied > StorageBudget.MAX_TOTAL_BYTES) {
+                val decision = StorageBudget.evaluate(initialBytes, copied, freeBytes)
+                if (decision != BudgetDecision.Allowed) {
                     throw AssetImportException(
                         "Insufficient space to stage pack",
-                        budgetDecision = if (copied > freeBytes) {
-                            BudgetDecision.InsufficientFreeSpace
-                        } else {
-                            BudgetDecision.ExceedsGlobalLimit
-                        },
+                        budgetDecision = decision,
                     )
                 }
                 output.write(buffer, 0, read)

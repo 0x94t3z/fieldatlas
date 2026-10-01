@@ -72,7 +72,7 @@ class MultiKnowledgeRetriever(
                     onProgress(SearchProgress((index + inner.fraction.coerceIn(0.0, 1.0)) / total, vectorMatches))
                 }
                 val embedding = embeddings.getOrNull(index)
-                    ?.takeIf { shouldSearchVectors(discovery, query) }
+                    ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
                 val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
                 vectorMatches += hits
                 run
@@ -127,10 +127,13 @@ class MultiKnowledgeRetriever(
          * Use its own summary/examples as a cheap local router. General-domain packs still
          * receive keyword retrieval even when their vectors are skipped.
          */
-        internal fun shouldSearchVectors(discovery: PackDiscovery?, query: String): Boolean {
-            if (discovery == null) return true
+        internal fun shouldSearchVectors(discovery: PackDiscovery?, query: String, vectorCount: Long? = null): Boolean {
             val queryTerms = FtsQuery.from(query)?.terms.orEmpty().filter { it.length >= 3 }.toSet()
             if (queryTerms.isEmpty()) return false
+            // A small index is cheap to scan. Its discovery summary cannot enumerate
+            // every synonym; applying a keyword router defeats semantic retrieval.
+            if (vectorCount != null && vectorCount in 1..10_000) return true
+            if (discovery == null) return true
             val coverage = buildString {
                 append(discovery.coverageSummary)
                 discovery.exampleQuestions.forEach { append(' '); append(it) }

@@ -117,7 +117,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.commons.compress)
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
-    implementation("com.alphacephei:vosk-android:0.3.47")
+    // 0.3.47 ships a 4-KB-aligned libvosk.so; verify the final APK's ELF segments in CI.
+    implementation("com.alphacephei:vosk-android:0.3.75")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)

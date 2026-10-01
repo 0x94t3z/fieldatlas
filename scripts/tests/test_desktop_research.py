@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import tempfile
 import io
 import json
+import sqlite3
 
 SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "run_desktop_research.py"
 spec = importlib.util.spec_from_file_location("desktop_research", SCRIPT)
@@ -13,6 +14,30 @@ spec.loader.exec_module(desktop)
 
 
 class DesktopResearchTests(unittest.TestCase):
+    def test_manual_selection_preserves_passages_and_order_and_rejects_invalid_ids(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory).resolve()
+            database = root / "content.sqlite"
+            selection = root / "selection.json"
+            with sqlite3.connect(database) as db:
+                db.execute("CREATE TABLE chunks_fts(document_id,chunk_id,title,source,text)")
+                db.executemany("INSERT INTO chunks_fts VALUES(?,?,?,?,?)", [
+                    ("doc", "a", "Title", "https://example.org", "Original A"),
+                    ("doc", "b", "Title", "https://example.org", "Original B"),
+                ])
+            selection.write_text(json.dumps({"question": ["b", "a"]}))
+            rows = desktop.selected_evidence(selection, [database], ["question"])["question"]
+            self.assertEqual(["Original B", "Original A"], [row["text"] for row in rows])
+            self.assertEqual(["b", "a"], [row["chunkId"] for row in rows])
+            for ids in [["missing"], ["a", "a"], [1], "a"]:
+                selection.write_text(json.dumps({"question": ids}))
+                with self.assertRaises(ValueError):
+                    desktop.selected_evidence(selection, [database], ["question"])
+            with self.assertRaises(ValueError):
+                desktop.selected_evidence(selection, [], ["question"])
+            with self.assertRaises(ValueError):
+                desktop.selected_evidence(selection, [database], ["other question"])
+
     def test_missing_inputs_fail_before_starting_server(self):
         with self.assertRaisesRegex(ValueError, "Model"):
             desktop.validate_inputs(pathlib.Path("/missing/model.gguf"), [], pathlib.Path("/missing/server"))

@@ -28,10 +28,15 @@ if ! grep -Fq 'android.permission.INTERNET' <<<"$permissions"; then
   echo "FAIL: APK is missing INTERNET permission needed for user-initiated model provisioning" >&2
   exit 1
 fi
-if grep -Fq 'android.permission.ACCESS_NETWORK_STATE' <<<"$permissions"; then
-  echo "FAIL: APK requests ACCESS_NETWORK_STATE permission" >&2
-  exit 1
-fi
+# Setup observes connectivity so it can describe download availability. This
+# read-only permission does not grant network control or prove zero traffic.
+# Keep rejecting permissions that modify connectivity instead.
+for permission in CHANGE_NETWORK_STATE CHANGE_WIFI_STATE WRITE_SETTINGS; do
+  if grep -Fq "android.permission.$permission" <<<"$permissions"; then
+    echo "FAIL: APK requests network/system control permission: $permission" >&2
+    exit 1
+  fi
+done
 if ! grep -Eq 'android:usesCleartextTraffic="false"|android:usesCleartextTraffic="0"' <<<"$manifest"; then
   echo "FAIL: merged manifest does not explicitly disable cleartext traffic" >&2
   exit 1

@@ -58,6 +58,7 @@ fun LibraryScreen(
     onActivateModel: (InstalledAsset) -> Unit = {},
     onDeletePack: (InstalledAsset) -> Unit = {},
     importing: Boolean = false,
+    modelDownloading: Boolean = false,
     importError: String? = null,
     availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
     catalogRefreshing: Boolean = false,
@@ -68,6 +69,7 @@ fun LibraryScreen(
     knowledgeDownloadError: String? = null,
     onDownloadKnowledge: (KnowledgeCatalogEntry) -> Unit = {},
     onCancelKnowledgeDownload: () -> Unit = {},
+    resumableKnowledgeBytes: (KnowledgeCatalogEntry) -> Long = { 0 },
 ) {
     val models = packs.filter { it.type == PackType.MODEL }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
@@ -94,7 +96,7 @@ fun LibraryScreen(
             item {
                 OutlinedButton(
                     onClick = onImportPack,
-                    enabled = !importing && knowledgeDownloadKey == null,
+                    enabled = !importing && !modelDownloading && knowledgeDownloadKey == null,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Icon(Icons.Outlined.NoteAdd, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -165,8 +167,9 @@ fun LibraryScreen(
                     KnowledgeDownloadCard(
                         pack = candidate,
                         downloading = knowledgeDownloadKey == "${candidate.id}:${candidate.version}",
-                        busy = importing || knowledgeDownloadKey != null,
+                        busy = importing || modelDownloading || knowledgeDownloadKey != null,
                         downloadedBytes = knowledgeDownloadedBytes,
+                        resumableBytes = resumableKnowledgeBytes(candidate),
                         onDownload = { onDownloadKnowledge(candidate) },
                         onCancel = onCancelKnowledgeDownload,
                     )
@@ -208,6 +211,7 @@ internal fun KnowledgeDownloadCard(
     downloading: Boolean,
     busy: Boolean,
     downloadedBytes: Long,
+    resumableBytes: Long = 0,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
 ) {
@@ -228,6 +232,11 @@ internal fun KnowledgeDownloadCard(
         }
         Text(pack.description, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!downloading && resumableBytes > 0) {
+            Text("${formatAssetBytes(resumableBytes)} saved · ready to resume",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary)
+        }
         if (pack.recommended) {
             Text("Recommended", style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary)
@@ -244,15 +253,15 @@ internal fun KnowledgeDownloadCard(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically) {
-                Text(if (installing) "Verifying and installing · keep app open" else
-                    "${downloadedBytes / 1_000_000} / ${pack.bytes / 1_000_000} MB · keep app open",
+                Text(if (installing) "Verifying and installing in background" else
+                    "${downloadedBytes / 1_000_000} / ${pack.bytes / 1_000_000} MB · continues in background",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!installing) TextButton(onClick = onCancel) { Text("Cancel") }
+                if (!installing) TextButton(onClick = onCancel) { Text("Pause") }
             }
         } else {
             FieldAtlasPrimaryButton(
-                text = "Download collection",
+                text = if (resumableBytes > 0) "Resume download" else "Download collection",
                 onClick = { confirmDownload = true },
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
@@ -263,9 +272,12 @@ internal fun KnowledgeDownloadCard(
     if (confirmDownload) {
         AlertDialog(
             onDismissRequest = { confirmDownload = false },
-            title = { Text("Download ${pack.title}?") },
+            title = { Text("${if (resumableBytes > 0) "Resume" else "Download"} ${pack.title}?") },
             text = {
-                Text("This uses ${formatAssetBytes(pack.bytes)} of internet data and needs about " +
+                Text((if (resumableBytes > 0)
+                    "${formatAssetBytes(resumableBytes)} is saved. About ${formatAssetBytes(pack.bytes - resumableBytes.coerceIn(0, pack.bytes))} remains if the server supports resume; otherwise the full download may be needed. "
+                    else "Uses ${formatAssetBytes(pack.bytes)} of internet data. ") +
+                    "Installation needs about " +
                     "${sizeGb(pack.bytes * 2 + 512_000_000L)} GB free while installing. " +
                     "Afterward, the collection works offline.")
             },
@@ -273,7 +285,7 @@ internal fun KnowledgeDownloadCard(
                 TextButton(onClick = {
                     confirmDownload = false
                     onDownload()
-                }) { Text("Download") }
+                }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
             },
             dismissButton = { TextButton(onClick = { confirmDownload = false }) { Text("Not now") } },
         )

@@ -1,0 +1,11 @@
+{
+  "description": "Field Atlas independent everyday-reference selection. Source articles come directly from Wikimedia, not another submission. This is a bounded preview, not comprehensive coverage.",
+  "topics": {
+    "physical_science": ["Atom", "Energy", "Heat transfer", "Electric current", "Buoyancy", "Density", "Thermal conduction", "Thermal insulation", "Electric battery", "Capacitor", "Pressure", "Friction", "Boat"],
+    "earth_and_space": ["Plate tectonics", "Water cycle", "Solar System", "Atmosphere of Earth", "Season", "Axial tilt", "Climate", "Weather", "Tide", "Groundwater"],
+    "life_science": ["Cell (biology)", "Photosynthesis", "Genetics", "Ecosystem", "Mitosis", "Meiosis", "Germination", "Pollination", "Biodiversity", "Natural selection"],
+    "mathematics_and_evidence": ["Probability", "Statistical hypothesis test", "Scientific method", "Correlation and causation", "P-value", "Sampling bias", "Measurement uncertainty", "Randomized controlled trial"],
+    "computing": ["Algorithm", "Operating system", "Computer network", "Database", "Spreadsheet", "Local area network", "Internet", "Domain Name System", "Backup", "Encryption", "File sharing"],
+    "history_and_society": ["Industrial Revolution", "Agriculture", "Writing", "Geography", "Printing press", "Sanitation", "Public transport", "Time zone"]
+  }
+}

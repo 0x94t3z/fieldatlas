@@ -20,7 +20,54 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
 
 class AssetImporterJvmTest {
+    @Test fun unregisteredCacheCountsAgainstArchiveStagingBudget() = runBlocking {
+        val root = temporaryFolder.newFolder("quota-staging")
+        val bytes = pack("payload".encodeToByteArray())
+        val cache = File(root, "unregistered-cache")
+        java.io.RandomAccessFile(cache, "rw").use { it.setLength(StorageBudget.MAX_TOTAL_BYTES - bytes.size + 1) }
+        val registry = AssetRegistry(root)
+        val error = assertThrows(AssetImportException::class.java) {
+            runBlocking { AssetImporter(root, registry).import(ByteArrayInputStream(bytes), Long.MAX_VALUE) }
+        }
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        assertTrue(registry.list().isEmpty())
+        assertTrue(cache.exists())
+    }
+
+    @Test fun extractionCountsBothStagedArchiveAndExistingFiles() = runBlocking {
+        val root = temporaryFolder.newFolder("quota-extraction")
+        val bytes = pack("payload".encodeToByteArray())
+        val cache = File(root, "existing-data")
+        java.io.RandomAccessFile(cache, "rw").use {
+            it.setLength(StorageBudget.MAX_TOTAL_BYTES - bytes.size - StorageBudget.METADATA_RESERVE_BYTES)
+        }
+        val registry = AssetRegistry(root)
+        val error = assertThrows(AssetImportException::class.java) {
+            runBlocking { AssetImporter(root, registry).import(ByteArrayInputStream(bytes), Long.MAX_VALUE) }
+        }
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        assertTrue(registry.list().isEmpty())
+        assertFalse(File(root, "packs/demo/1").exists())
+        assertTrue(cache.exists())
+    }
+
     @get:Rule val temporaryFolder = TemporaryFolder()
+
+    @Test fun inspectionReadsManifestWithoutInstallingAnything() = runBlocking {
+        val root = temporaryFolder.newFolder("inspect")
+        val info = AssetImporter(root).inspect(ByteArrayInputStream(pack("content".toByteArray())))
+        assertEquals(PackType.KNOWLEDGE, info.type)
+        assertEquals("demo", info.id)
+        assertTrue(AssetRegistry(root).list().isEmpty())
+        assertFalse(File(root, "packs").exists())
+    }
+
+    @Test fun inspectionRejectsNonPackInput() {
+        val root = temporaryFolder.newFolder("inspect-invalid")
+        assertThrows(Exception::class.java) {
+            AssetImporter(root).inspect(ByteArrayInputStream("not a pack".toByteArray()))
+        }
+    }
 
     @Test fun validPackInstallsPayloadAndRegistryAtomically() = runBlocking {
         val root = temporaryFolder.newFolder("valid")

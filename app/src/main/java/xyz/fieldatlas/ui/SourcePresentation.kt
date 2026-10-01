@@ -16,7 +16,7 @@ internal fun sourcePresentation(evidence: Evidence): SourcePresentation {
     val type = when (verifiedKind) {
         "pdf" -> "PDF"
         "image" -> "Image"
-        "text" -> extension.takeIf { it in setOf("TXT", "MD", "CSV", "JSON") } ?: "Text"
+        "text" -> if (xyz.fieldatlas.attachments.TextFileTypes.supports(evidence.title)) xyz.fieldatlas.attachments.TextFileTypes.label(evidence.title) else "Text"
         else -> extension.takeIf { it in setOf("TXT", "PDF", "MD", "CSV", "JSON", "JPG", "JPEG", "PNG", "WEBP", "HEIC") } ?: "File"
     }
     val page = if (type == "PDF") Regex("page (\\d+)", RegexOption.IGNORE_CASE).find(evidence.source)?.groupValues?.get(1) else null

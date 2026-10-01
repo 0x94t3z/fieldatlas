@@ -7,6 +7,39 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PromptBuilderTest {
+    @Test fun paragraphSelectionUsesTheSameWordVariantsAsRetrieval() {
+        val history = "The archive records the history of this invention. ".repeat(15).trim()
+        val mechanism = "A boat floats because the upward buoyant force balances its weight."
+        val caveat = "However, overloading can make it sink."
+        val source = Evidence("d", "c", "Boat — Principles", "Local", "$history\n\n$mechanism\n\n$caveat", -1.0)
+        val packed = PromptBuilder.build("Why do boats float?", listOf(source), 2048)
+        assertTrue(packed.prompt.contains(mechanism))
+        assertTrue(packed.prompt.contains(caveat))
+        assertFalse(packed.prompt.contains(history))
+        assertEquals(source, packed.sources.single().evidence)
+    }
+
+    @Test fun sentenceSelectionUsesWordVariantsAndKeepsAdjacentCaveat() {
+        val history = "Historical records describe the invention. ".repeat(40)
+        val mechanism = "A battery stores energy through chemical reactions."
+        val caveat = "However, usable capacity depends on the operating conditions."
+        val source = Evidence("d", "c", "Energy storage", "Local", "$history$mechanism $caveat", -1.0)
+        val packed = PromptBuilder.build("How do batteries store energy?", listOf(source), 2048)
+        assertTrue(packed.prompt.contains(mechanism))
+        assertTrue(packed.prompt.contains(caveat))
+    }
+
+    @Test fun requestedOverviewRetainsIndependentParagraphsWithinBudget() {
+        val body = "A battery stores chemical energy. " + "Different designs serve different applications. ".repeat(16) +
+            "\n\nRechargeability depends on chemistry, not the device's size."
+        val item = Evidence("b", "b:0000", "Battery — Overview", "Reference", body, -1.0)
+        val packed = PromptBuilder.build("How does a battery differ from a capacitor?", listOf(item), 2048)
+        assertTrue(packed.prompt.contains(body))
+        assertEquals(listOf(item), packed.sources.map { it.evidence })
+        // A small budget must omit the unit rather than quietly remove its caveat.
+        assertTrue(PromptBuilder.build("Explain battery", listOf(item), 128).sources.isEmpty())
+    }
+
     @Test fun conceptualQuestionsPermitLabelledModelKnowledgeButVenueLookupsDoNot() {
         val fact = Evidence("d", "c", "Study", "Local", "Some relevant evidence.", -1.0)
         assertTrue(PromptBuilder.build("Explain mitosis", listOf(fact), 512).mixedAnswer)
@@ -121,6 +154,41 @@ class PromptBuilderTest {
         assertThrows(IllegalArgumentException::class.java) {
             PromptBuilder.build(" ", listOf(first), 512)
         }
+    }
+
+    @Test fun boundedParagraphRetainsDefinitionBeyondTwoSentenceWindow() {
+        val paragraph = "A network connects devices. " + "It uses shared protocols. ".repeat(25) +
+            "The internet is a global system of interconnected networks."
+        val source = first.copy(text = paragraph)
+        val packed = PromptBuilder.build("What is a network?", listOf(source), 2048)
+        assertTrue(packed.prompt.contains(paragraph))
+        assertEquals(source, packed.sources.single().evidence)
+    }
+
+    @Test fun paragraphSelectionKeepsCrossParagraphQualification() {
+        val claim = "The Luma treatment improved survival. " + "Measurements were recorded. ".repeat(26)
+        val caveat = "However, these results apply only to this trial, not all patients."
+        val source = first.copy(text = claim + "\n\n" + caveat + "\n\nArchive inventory only.")
+        val packed = PromptBuilder.build("Luma treatment survival", listOf(source), 2048)
+        assertTrue(packed.prompt.contains(claim + "\n\n" + caveat))
+        assertFalse(packed.prompt.contains("Archive inventory only."))
+    }
+
+    @Test fun oversizedConnectedParagraphsAreOmittedNotSeparated() {
+        val claim = "Luma treatment improved survival. " + "Trial details. ".repeat(50)
+        val caveat = "However, " + "qualification context ".repeat(100) + "the result does not apply to humans."
+        val packed = PromptBuilder.build("Luma treatment survival", listOf(first.copy(text = claim + "\n\n" + caveat), second), 512)
+        assertFalse(packed.prompt.contains(claim))
+        assertEquals(listOf(second), packed.sources.map { it.evidence })
+    }
+
+    @Test fun dependentParagraphRetainsItsAntecedent() {
+        val antecedent = "The first group received the experimental treatment."
+        val dependent = "These participants showed improved survival in the Luma trial. " +
+            "Follow-up details were recorded. ".repeat(25)
+        val source = first.copy(text = antecedent + "\n\n" + dependent)
+        val packed = PromptBuilder.build("Luma trial survival participants", listOf(source), 2048)
+        assertTrue(packed.prompt.contains(antecedent + "\n\n" + dependent.trimEnd()))
     }
 
     @Test fun longEvidenceKeepsRelevantExcerptAndFollowingQualification() {

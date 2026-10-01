@@ -7,15 +7,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.RecommendedModel
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
+import xyz.fieldatlas.assets.AssetDownloadKind
+import xyz.fieldatlas.assets.AssetDownloadStatus
 import xyz.fieldatlas.ui.AppContainer
 
 data class SetupUiState(
     val packs: List<InstalledAsset> = emptyList(),
     val importing: Boolean = false,
+    val importingName: String? = null,
+    val importingPack: xyz.fieldatlas.assets.PackImportInfo? = null,
     val downloading: Boolean = false,
     val downloadedBytes: Long = 0,
     val offerKnowledge: Boolean = false,
@@ -25,18 +28,25 @@ data class SetupUiState(
     val knowledgeError: String? = null,
     val error: String? = null,
 ) {
-    internal fun startImport() = copy(importing = true, error = null, knowledgeError = null)
+    internal fun startImport() = copy(importing = true, importingName = null, importingPack = null, error = null, knowledgeError = null)
     internal fun finishImport(hadModel: Boolean, installedType: xyz.fieldatlas.assets.PackType) =
-        copy(importing = false, offerKnowledge = offerKnowledge || (!hadModel && installedType == xyz.fieldatlas.assets.PackType.MODEL))
+        copy(importing = false, importingName = null, importingPack = null, offerKnowledge = offerKnowledge || (!hadModel && installedType == xyz.fieldatlas.assets.PackType.MODEL))
     internal fun startKnowledgeDownload(key: String) = copy(knowledgeDownloadKey = key, knowledgeDownloadedBytes = 0, knowledgeError = null, error = null)
+    internal fun withDownload(download: AssetDownloadStatus) = copy(
+        downloading = download.kind == AssetDownloadKind.MODEL,
+        downloadedBytes = if (download.kind == AssetDownloadKind.MODEL) download.downloadedBytes else 0,
+        knowledgeDownloadKey = download.pack?.let { "${it.id}:${it.version}" },
+        activeKnowledgeDownload = download.pack,
+        knowledgeDownloadedBytes = if (download.kind == AssetDownloadKind.KNOWLEDGE) download.downloadedBytes else 0,
+        knowledgeError = if (download.errorKind == AssetDownloadKind.KNOWLEDGE) download.error else null,
+        error = if (download.errorKind == AssetDownloadKind.MODEL) download.error else error,
+        offerKnowledge = offerKnowledge || download.offerKnowledge,
+    )
 }
 
 class SetupViewModel(private val container: AppContainer) : ViewModel() {
     private val mutableState = MutableStateFlow(SetupUiState())
     val state: StateFlow<SetupUiState> = mutableState.asStateFlow()
-    private var downloadJob: Job? = null
-    private var knowledgeJob: Job? = null
-
     init {
         viewModelScope.launch {
             runCatching { container.retireBundledReferenceIfPresent() }
@@ -48,79 +58,55 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
             container.refreshPacks()
             container.packs.collect { packs -> mutableState.value = mutableState.value.copy(packs = packs) }
         }
+        viewModelScope.launch {
+            container.backgroundDownloads.state.collect { download ->
+                mutableState.value = mutableState.value.withDownload(download)
+            }
+        }
     }
 
     fun importPack(uri: Uri) {
-        if (mutableState.value.importing || mutableState.value.downloading ||
-            mutableState.value.knowledgeDownloadKey != null) return
+        if (mutableState.value.importing || container.backgroundDownloads.state.value.active) return
         viewModelScope.launch {
             mutableState.value = mutableState.value.startImport()
+            val name = container.importFileName(uri)
+            mutableState.value = mutableState.value.copy(importingName = name)
+            val packInfo = container.inspectImportPack(uri)
+            mutableState.value = mutableState.value.copy(importingPack = packInfo)
             mutableState.value = try {
                 val hadModel = mutableState.value.packs.any { it.type == xyz.fieldatlas.assets.PackType.MODEL }
                 val installed = container.importPack(uri)
                 mutableState.value.finishImport(hadModel, installed.type)
             } catch (error: Exception) {
                 container.errorBus.report("Pack import", error)
-                mutableState.value.copy(importing = false,
+                mutableState.value.copy(importing = false, importingName = null, importingPack = null,
                     error = assetSetupError(error, AssetAction.PACK_IMPORT))
             }
         }
     }
 
     fun downloadRecommendedModel() {
-        if (mutableState.value.importing || mutableState.value.downloading ||
-            mutableState.value.knowledgeDownloadKey != null ||
+        if (mutableState.value.importing || container.backgroundDownloads.state.value.active ||
             mutableState.value.packs.any { it.id == RecommendedModel.id && it.version == RecommendedModel.version }
         ) return
-        downloadJob = viewModelScope.launch {
-            mutableState.value = mutableState.value.copy(downloading = true, downloadedBytes = 0, error = null)
-            try {
-                container.downloadRecommendedModel { bytes ->
-                    mutableState.value = mutableState.value.copy(downloadedBytes = bytes)
-                }
-                mutableState.value = mutableState.value.copy(offerKnowledge = true)
-            } catch (error: Exception) {
-                if (error !is kotlinx.coroutines.CancellationException) {
-                    container.errorBus.report("Model download", error)
-                    mutableState.value = mutableState.value.copy(
-                        error = assetSetupError(error, AssetAction.MODEL_DOWNLOAD))
-                }
-            } finally {
-                mutableState.value = mutableState.value.copy(downloading = false)
-            }
-        }
+        mutableState.value = mutableState.value.copy(error = null)
+        container.backgroundDownloads.startModel()
     }
 
-    fun cancelDownload() { downloadJob?.cancel() }
+    fun cancelDownload() { container.backgroundDownloads.cancel() }
 
     fun downloadKnowledge(pack: KnowledgeCatalogEntry) {
-        if (mutableState.value.importing || mutableState.value.downloading ||
-            mutableState.value.knowledgeDownloadKey != null ||
+        if (mutableState.value.importing || container.backgroundDownloads.state.value.active ||
             mutableState.value.packs.any { it.id == pack.id && it.version == pack.version }
         ) return
-        val key = "${pack.id}:${pack.version}"
-        knowledgeJob = viewModelScope.launch {
-            mutableState.value = mutableState.value.startKnowledgeDownload(key).copy(activeKnowledgeDownload = pack)
-            try {
-                container.downloadKnowledge(pack) { bytes ->
-                    mutableState.value = mutableState.value.copy(knowledgeDownloadedBytes = bytes)
-                }
-            } catch (error: Exception) {
-                if (error !is kotlinx.coroutines.CancellationException) {
-                    container.errorBus.report("Collection download", error)
-                    mutableState.value = mutableState.value.copy(
-                        knowledgeError = assetSetupError(error, AssetAction.COLLECTION_DOWNLOAD),
-                    )
-                }
-            } finally {
-                mutableState.value = mutableState.value.copy(knowledgeDownloadKey = null, activeKnowledgeDownload = null)
-            }
-        }
+        mutableState.value = mutableState.value.copy(error = null, knowledgeError = null)
+        container.backgroundDownloads.startKnowledge(pack)
     }
 
-    fun cancelKnowledgeDownload() { knowledgeJob?.cancel() }
+    fun cancelKnowledgeDownload() { container.backgroundDownloads.cancel() }
 
     fun dismissKnowledgeOffer() {
         mutableState.value = mutableState.value.copy(offerKnowledge = false)
+        container.backgroundDownloads.dismissKnowledgeOffer()
     }
 }

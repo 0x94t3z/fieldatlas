@@ -52,6 +52,8 @@ class FtsRetrieverTest {
             insert(database, "doc-h:0000", "doc-h", "War", "Source H", ("war world history " + "war war war war war ").repeat(6))
             insert(database, "doc-i:0000", "doc-i", "World War I", "Source I", "the war lasted from 1914 to 1918")
             insert(database, "doc-j:0000", "doc-j", "Allies of World War I", "Source J", "the allies entente france britain defeated the central powers")
+            insert(database, "ref-a:0000", "ref-a", "Agriculture — History", "Fixture A", "Agriculture changed human societies through food production and settlement.")
+            insert(database, "ref-b:0000", "ref-b", "Writing — Influence on society", "Fixture B", "Writing changed human societies through record keeping and communication.")
         }
     }
 
@@ -75,6 +77,14 @@ class FtsRetrieverTest {
             "the named war articles must stay inside the pack's answer set: " + war.map { it.chunkId },
             listOf("doc-i:0000", "doc-j:0000").all { it in war.map { evidence -> evidence.chunkId } },
         )
+    }
+
+    @Test fun namedReferenceSubjectSurvivesActualSqliteRetrieval() = withRetriever { retriever ->
+        val question = "Explain two ways agriculture changed human societies, and one disadvantage."
+        val candidates = retriever.search(question, 20)
+        assertTrue(candidates.any { it.documentId == "ref-a" })
+        val kept = EvidenceRelevance.keep(candidates, FtsQuery.from(question)!!.terms, question = question)
+        assertEquals(listOf("ref-a"), kept.map { it.documentId }.distinct())
     }
 
     @Test fun returnsRankedAttributedEvidence() = withRetriever { retriever ->

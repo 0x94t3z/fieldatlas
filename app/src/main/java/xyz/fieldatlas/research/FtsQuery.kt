@@ -62,7 +62,7 @@ class FtsQuery private constructor(
             // the same query as model keywords, so they must not carry filler either
             "about", "compare", "compared", "describe", "explain", "find", "give", "versus",
             "show", "tell", "me", "my", "mine", "our", "ours", "us", "please", "provide",
-            "write", "vs",
+            "write", "vs", "which", "only", "any", "each", "every", "using",
         )
     }
 }

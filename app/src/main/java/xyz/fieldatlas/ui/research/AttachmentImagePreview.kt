@@ -67,7 +67,7 @@ internal fun AttachmentThumbnail(file: File, name: String, modifier: Modifier = 
 }
 
 @Composable
-internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () -> Unit, onRemove: () -> Unit, onReadText: (() -> Unit)?) {
+internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () -> Unit, onRemove: () -> Unit, onReadText: (() -> Unit)?, showRemove: Boolean = true) {
     val image by localPreview(file, 2048)
     var scale by remember(file) { mutableFloatStateOf(1f) }
     var offset by remember(file) { mutableStateOf(Offset.Zero) }
@@ -108,7 +108,7 @@ internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () 
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     if (onReadText != null) TextButton(onClick = onReadText) { Text("Recognized text") }
                     else Spacer(Modifier.weight(1f))
-                    TextButton(onClick = onRemove, enabled = canRemove, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Remove image") }
+                    if (showRemove) TextButton(onClick = onRemove, enabled = canRemove, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Remove image") }
                 }
             }
         }

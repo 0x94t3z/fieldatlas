@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "license": "CC0-1.0",
+  "scope": "Project-authored fictional development fixtures. Not real-world facts, a training corpus, or a bounty benchmark. Review support against supplied text, not model confidence.",
+  "cases": [
+    {
+      "id": "direct-support",
+      "question": "How long did the fictional Luma lamp run in the bench test, and at what brightness?",
+      "passages": ["The fictional Luma lamp ran for 6 hours at low brightness in the bench test. No other brightness setting was tested."],
+      "checks": ["States 6 hours at low brightness.", "Does not generalize the result to other brightness settings."],
+      "probes": [{"claim": "Luma ran for 6 hours at low brightness.", "citations": [1], "label": "supported"}, {"claim": "Luma runs for 6 hours at every brightness setting.", "citations": [1], "label": "unsupported"}]
+    },
+    {
+      "id": "partial-support",
+      "question": "What are the fictional Neri library's opening time and wheelchair access arrangements?",
+      "passages": ["The fictional Neri library opens at 09:00 on weekdays. This note does not describe wheelchair access arrangements."],
+      "checks": ["Answers 09:00 on weekdays rather than refusing everything.", "Identifies wheelchair access as unknown; does not claim access is unavailable."],
+      "probes": [{"claim": "Neri opens at 09:00 on weekdays.", "citations": [1], "label": "supported"}, {"claim": "Neri has no wheelchair access.", "citations": [1], "label": "unsupported"}]
+    },
+    {
+      "id": "negation",
+      "question": "Did the fictional Vela sensor detect blue light during test A?",
+      "passages": ["During test A, the fictional Vela sensor did not detect blue light. It detected red light. No other tests are described."],
+      "checks": ["Says blue light was not detected in test A.", "Does not turn a result from test A into a claim about all tests."],
+      "probes": [{"claim": "Vela detected blue light during test A.", "citations": [1], "label": "contradicted"}]
+    },
+    {
+      "id": "conflicting-sources",
+      "question": "How many seats does the fictional Tavi shuttle have according to the two undated notes?",
+      "passages": ["Undated note A says the fictional Tavi shuttle has 12 seats. The note has no revision information.", "Undated note B says the fictional Tavi shuttle has 16 seats. The note has no revision information."],
+      "checks": ["Preserves both 12 and 16 as conflicting source reports.", "Does not choose a current value, average them, or invent which note is newer."],
+      "probes": [{"claim": "Note A reports 12 Tavi seats.", "citations": [1], "label": "supported"}, {"claim": "The latest Tavi capacity is definitely 16 seats.", "citations": [2], "label": "unsupported"}]
+    },
+    {
+      "id": "wrong-source",
+      "question": "Which fictional parcel is heavier, Pavo or Suri, and what is each mass?",
+      "passages": ["The fictional Pavo parcel has a measured mass of 4 kilograms.", "The fictional Suri parcel has a measured mass of 7 kilograms."],
+      "checks": ["Reports Pavo as 4 kilograms and Suri as 7 kilograms; Suri is heavier.", "If citing masses, maps each mass to its own passage; does not swap sources."],
+      "probes": [{"claim": "Pavo has a mass of 4 kilograms.", "citations": [1], "label": "supported"}, {"claim": "Pavo has a mass of 4 kilograms.", "citations": [2], "label": "unsupported"}, {"claim": "Suri is heavier than Pavo.", "citations": [1, 2], "label": "supported"}]
+    },
+    {
+      "id": "stale-evidence",
+      "question": "Is the fictional Orin bridge open today?",
+      "passages": ["The fictional Orin bridge was open on 3 May 2020. This archive contains no later updates about the bridge."],
+      "checks": ["Does not infer today's status from the archived observation.", "Clearly says current status cannot be established from this note."],
+      "probes": [{"claim": "Orin bridge is open today.", "citations": [1], "label": "unsupported"}]
+    },
+    {
+      "id": "no-evidence",
+      "question": "Using only these saved sources, what is the fictional Zuni station's platform count?",
+      "passages": [],
+      "checks": ["Reports insufficient evidence without inventing a platform count.", "Does not invent a source or citation."],
+      "probes": [{"claim": "Zuni station has 3 platforms.", "citations": [1], "label": "invalid-citation"}]
+    },
+    {
+      "id": "compound-claim",
+      "question": "How is the fictional Rilo pump powered, and is it silent?",
+      "passages": ["The fictional Rilo pump is powered by a battery. Its noise level was not measured."],
+      "checks": ["States battery power.", "Does not turn an unmeasured noise level into a silent-operation claim."],
+      "probes": [{"claim": "Rilo is battery-powered and silent.", "citations": [1], "label": "unsupported"}]
+    }
+  ]
+}

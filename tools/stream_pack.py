@@ -13,6 +13,10 @@ spools that is more than this machine has. This module produces byte-identical
 
 Uses only the packtool helpers that define the on-disk format, so manifest and zip
 bytes match the official builder exactly.
+
+An explicit chunker callback supports independently evaluated development packs.
+The default remains packtool.chunk_document; callers changing the callback must
+record their policy and validate its content boundaries separately.
 """
 
 from __future__ import annotations
@@ -105,9 +109,9 @@ def _rows_in_order(path: Path, index):
             yield _parse_row(fh.readline(), line_number)
 
 
-def _iter_chunks(index, path: Path):
+def _iter_chunks(index, path: Path, chunker=chunk_document):
     for document in _rows_in_order(path, index):
-        for chunk in chunk_document(document):
+        for chunk in chunker(document):
             yield (chunk.chunk_id, chunk.document_id, chunk.title, chunk.source, chunk.text)
 
 
@@ -163,6 +167,7 @@ def build_pack_streaming(
     example_questions: list[str] | None = None,
     coverage_level: str | None = None,
     fts_tokenizer: str = "unicode61",
+    chunker=chunk_document,
 ) -> BuildArtifacts:
     for name, value in (("pack_id", pack_id), ("version", version), ("title", title), ("license", license_id)):
         if not value.strip():
@@ -199,7 +204,7 @@ def build_pack_streaming(
     temporary = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
     try:
         database_path = temporary / "content.sqlite"
-        _build_database_streaming(database_path, _iter_chunks(index, input_path), fts_tokenizer)
+        _build_database_streaming(database_path, _iter_chunks(index, input_path, chunker), fts_tokenizer)
         database_size, database_hash = _digest(database_path)
         manifest = {
             "artifacts": [{"bytes": database_size, "path": "content.sqlite", "sha256": database_hash}],

@@ -45,6 +45,11 @@ class AttachmentPreviewTest {
                 error = "No readable text found.", kind = AttachmentKind.IMAGE, previewFile = file)
             compose.setContent { FieldAtlasTheme { AttachmentRows(listOf(item), true, { removed = it }, {}) } }
             compose.onNodeWithText(item.displayName).assertDoesNotExist()
+            compose.onNodeWithText("Check text").assertDoesNotExist()
+            compose.onNodeWithText("Read issue · Details").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Read issue for ${item.displayName}").performClick()
+            compose.onNodeWithText("Couldn’t read attachment").assertIsDisplayed()
+            compose.onNodeWithText("Close").performClick()
             compose.onNodeWithContentDescription("Preview ${item.displayName}").performClick()
             compose.onNodeWithText("Image preview").assertIsDisplayed()
             compose.waitUntil(5_000) {

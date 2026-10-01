@@ -22,6 +22,7 @@ import xyz.fieldatlas.assets.RecommendedModelDownload
 import xyz.fieldatlas.assets.KnowledgeCatalog
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.assets.KnowledgePackDownload
+import xyz.fieldatlas.assets.BackgroundAssetDownloads
 import xyz.fieldatlas.benchmark.BenchmarkQuestionSet
 import xyz.fieldatlas.inference.InferenceGateway
 import xyz.fieldatlas.inference.InferenceState
@@ -62,7 +63,9 @@ class AppContainer(context: Context) {
             }
         } catch (error: Throwable) { staged?.let { attachmentStore.remove(it.localFile) }; throw error }
     }
-    private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry)
+    private val storageFootprint = xyz.fieldatlas.assets.StorageFootprint.forApp(appContext)
+    private val provisioningMutex = Mutex()
+    private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry, storageFootprint)
     private val catalogRepository = xyz.fieldatlas.assets.KnowledgeCatalogRepository(
         appContext.assets.open("knowledge/catalog.json").bufferedReader().use { KnowledgeCatalog.parse(it.readText()) },
         File(appContext.filesDir, "knowledge-catalog.json"),
@@ -70,7 +73,8 @@ class AppContainer(context: Context) {
     )
     val catalogState = catalogRepository.state
     suspend fun refreshKnowledgeCatalog() = catalogRepository.refresh()
-    private val knowledgePackDownload = KnowledgePackDownload(appContext.filesDir, registry, importer)
+    private val knowledgePackDownload = KnowledgePackDownload(appContext.filesDir, registry, importer, storageFootprint)
+    val backgroundDownloads: BackgroundAssetDownloads by lazy { BackgroundAssetDownloads(appContext, this) }
     private val mutablePacks = MutableStateFlow<List<InstalledAsset>>(emptyList())
     private val refreshMutex = Mutex()
     private val encoderMutex = Mutex()
@@ -150,12 +154,25 @@ class AppContainer(context: Context) {
         refreshPacks()
     }
 
-    suspend fun importPack(uri: Uri): InstalledAsset = importer.import(uri).also { refreshPacks() }
+    suspend fun importFileName(uri: Uri): String? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        runCatching {
+            appContext.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+        }.getOrNull()
+    }
+
+    suspend fun importPack(uri: Uri): InstalledAsset = provisioningMutex.withLock {
+        importer.import(uri).also { refreshPacks() }
+    }
+    suspend fun inspectImportPack(uri: Uri) = importer.inspect(uri)
 
     suspend fun downloadRecommendedModel(onProgress: (Long) -> Unit): InstalledAsset =
-        recommendedModelDownload.install(onProgress).also { refreshPacks() }
+        provisioningMutex.withLock { recommendedModelDownload.install(onProgress).also { refreshPacks() } }
 
-    suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset {
+    fun resumableModelBytes(): Long = recommendedModelDownload.resumableBytes()
+    fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long = knowledgePackDownload.resumableBytes(pack)
+
+    suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset = provisioningMutex.withLock {
         val selected = catalogRepository.selectForDownload(pack)
         val installed = knowledgePackDownload.install(selected, onProgress)
         // Keep older versions available for rollback, but don't search duplicate editions.
@@ -163,7 +180,7 @@ class AppContainer(context: Context) {
             it.version != pack.version && it.enabled
         }.forEach { registry.setEnabled(it.id, it.version, false) }
         refreshPacks()
-        return installed
+        installed
     }
 
     suspend fun loadModel() {

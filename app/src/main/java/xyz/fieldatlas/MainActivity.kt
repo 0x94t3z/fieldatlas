@@ -44,6 +44,11 @@ class MainActivity : ComponentActivity() {
     private val benchmarkViewModel: BenchmarkViewModel by viewModels { container.benchmarkViewModelFactory }
     private val benchmarkVisible = mutableStateOf(false)
 
+    override fun onResume() {
+        super.onResume()
+        container.backgroundDownloads.resumeInterrupted()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -180,6 +185,8 @@ class MainActivity : ComponentActivity() {
             FieldAtlasApp(
                 packs = setupState.packs,
                 importing = setupState.importing,
+                importingName = setupState.importingName,
+                importingPack = setupState.importingPack,
                 downloading = setupState.downloading,
                 downloadedBytes = setupState.downloadedBytes,
                 offerKnowledge = setupState.offerKnowledge,
@@ -199,6 +206,8 @@ class MainActivity : ComponentActivity() {
                 navigation = appNavigation,
                 onImportPack = { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
                 onDownloadModel = setupViewModel::downloadRecommendedModel,
+                resumableModelBytes = container.resumableModelBytes(),
+                resumableKnowledgeBytes = container::resumableKnowledgeBytes,
                 onCancelDownload = setupViewModel::cancelDownload,
                 onDismissKnowledgeOffer = setupViewModel::dismissKnowledgeOffer,
                 onDownloadKnowledge = setupViewModel::downloadKnowledge,
@@ -230,9 +239,8 @@ class MainActivity : ComponentActivity() {
                 },
                 onPhotosClick = { researchPhotoPicker.launch("image/*") },
                 onFilesClick = {
-                    researchFilePicker.launch(arrayOf(
-                        "text/plain", "text/markdown", "text/csv", "application/pdf", "image/jpeg", "image/png", "image/webp", "application/json",
-                    ))
+                    // Providers often label code files as application/octet-stream. Validate bytes after selection.
+                    researchFilePicker.launch(arrayOf("*/*"))
                 },
                 attachmentNotice = attachmentNotice,
                 onRemoveAttachment = researchViewModel::removeAttachment,
@@ -346,7 +354,7 @@ class MainActivity : ComponentActivity() {
 
     private fun isResearchFileTypeSupported(name: String, mimeType: String): Boolean {
         val extension = name.substringAfterLast('.', "").lowercase()
-        return mimeType.startsWith("text/") || mimeType.startsWith("image/") ||
+        return xyz.fieldatlas.attachments.TextFileTypes.supports(name) || mimeType.startsWith("text/") || mimeType.startsWith("image/") ||
             mimeType in setOf("application/pdf", "application/json", "application/xml") ||
             extension in setOf("txt", "md", "markdown", "csv", "tsv", "json", "xml", "pdf", "png", "jpg", "jpeg", "webp", "gif")
     }

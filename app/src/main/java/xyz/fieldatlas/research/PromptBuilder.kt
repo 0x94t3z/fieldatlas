@@ -40,14 +40,20 @@ For a request seeking specific current local places, explain that you cannot ver
             val citationId = "S${sources.size + 1}"
             // Full metadata and passage remain in PromptSource for the source viewer.
             val prefix = "[$citationId]\nTitle: ${compactMetadata(item.title)}\nSource: ${compactMetadata(item.source)}\nExcerpt: "
-            val text = relevantExcerpt(question, EvidenceRelevance.passageText(item.text))
+            val passage = EvidenceRelevance.passageText(item.text)
+            // Bounded reference chunks can contain qualifications in independent
+            // paragraphs. Preserve them whole instead of selecting by word overlap.
+            // The shared evidence budget below still applies; never truncate to fit.
+            val text = if (EvidenceRelevance.isRequestedOverview(item, question) && passage.length <= 2_400) {
+                passage
+            } else relevantExcerpt(question, passage)
             if (text.isBlank()) return@forEachIndexed
             val block = prefix + text
             // Never split a sentence or separate a claim from its adjacent qualification
             // to meet a quota. Omit an oversized unit rather than distort its meaning.
             if (block.length > remaining) return@forEachIndexed
             blocks += block
-            sources += PromptSource(citationId, item)
+            sources += PromptSource(citationId, item, excerpt = text)
             remaining -= block.length
         }
         val prompt = buildString {
@@ -93,16 +99,32 @@ For a request seeking specific current local places, explain that you cannot ver
 
     private fun relevantExcerpt(question: String, text: String): String {
         if (text.length <= MAX_EXCERPT_CHARS) return text
+        // A sentence window can drop the definition or qualification that makes a
+        // matching sentence meaningful. Prefer a complete bounded paragraph when
+        // the source supplies paragraph boundaries; retain adjacent caveats too.
+        val terms = FtsQuery.from(question)?.terms.orEmpty()
+        fun hits(value: String): Int = EvidenceRelevance.termHits(value, terms)
+        val paragraphs = text.split(Regex("\\n\\s*\\n")).filter(String::isNotBlank)
+        val paragraphAnchor = paragraphs.indices.maxByOrNull { hits(paragraphs[it]) } ?: return ""
+        if (paragraphs[paragraphAnchor].length <= 1_200) {
+            val continuation = Regex("(?i)^\\s*(however|but|nevertheless|nonetheless|although|in contrast|this|these|those|it|they|such)\\b")
+            var start = paragraphAnchor
+            var end = paragraphAnchor
+            // Anaphoric paragraphs depend on the preceding paragraph. A following
+            // limitation can qualify the selected claim across a blank line.
+            while (start > 0 && continuation.containsMatchIn(paragraphs[start])) start--
+            while (end < paragraphs.lastIndex && continuation.containsMatchIn(paragraphs[end + 1])) end++
+            val excerpt = paragraphs.subList(start, end + 1).joinToString("\n\n")
+            // Keep the connected unit whole. The caller may omit it if it cannot
+            // fit, rather than silently removing the qualification to save space.
+            return (if (start > 0) "… " else "") + excerpt +
+                (if (end < paragraphs.lastIndex) " …" else "")
+        }
         val sentences = text.replace(Regex("[\\r\\n]+"), " ")
             .split(Regex("(?<=[.!?。！？])\\s+"))
             .filter(String::isNotBlank)
         if (sentences.isEmpty()) return ""
-        val terms = FtsQuery.from(question)?.terms.orEmpty()
-        val anchor = sentences.indices.maxByOrNull { index ->
-            val words = Regex("[\\p{L}\\p{N}]+").findAll(sentences[index].lowercase())
-                .map { it.value }.toSet()
-            terms.count { it in words }
-        } ?: 0
+        val anchor = sentences.indices.maxByOrNull { hits(sentences[it]) } ?: 0
         // The anchor and immediate context are an indivisible unit. The target length
         // is soft: keeping a qualification matters more than hitting a character cap.
         val start = (anchor - 1).coerceAtLeast(0)

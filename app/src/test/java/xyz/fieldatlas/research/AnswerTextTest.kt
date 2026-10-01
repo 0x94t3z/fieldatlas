@@ -6,6 +6,32 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class AnswerTextTest {
+    @Test fun `inline source heading preserves exact attribution`() {
+        val answer = AnswerText.mixed("**From saved sources:** \"Mitosis produces two cells.\" [S1]", listOf(passage))
+        assertTrue(answer.contains("## From saved sources"))
+        assertTrue(answer.contains("[S1]"))
+    }
+
+    @Test fun `unnumbered quote links only its unique exact source`() {
+        val raw = "From saved sources\n\"Mitosis produces two cells.\""
+        assertTrue(AnswerText.mixed(raw, listOf(passage)).contains("[S1]"))
+        assertFalse(AnswerText.mixed(raw, listOf(passage, passage)).contains("[S"))
+        assertFalse(AnswerText.mixed("From saved sources\n\"Mitosis produces four cells.\"", listOf(passage)).contains("[S"))
+    }
+
+    @Test fun `incomplete or explicitly invalid quotes cannot infer attribution`() {
+        for (suffix in listOf(" [S99]", " [S999999999999999999999999]", " [S#]", " [S", " extra assertion")) {
+            assertFalse(AnswerText.mixed("From saved sources\n\"Mitosis produces two cells.\"$suffix", listOf(passage)).contains("## From saved sources"))
+        }
+        assertFalse(AnswerText.mixed("From saved sources\n\"Mitosis produces two cells.", listOf(passage)).contains("[S1]"))
+    }
+
+    @Test fun `removed model citation leaves no dangling source attribution`() {
+        val answer = AnswerText.mixed("According to Source [S1], the claim needs checking.", listOf(passage))
+        assertTrue(answer.contains("the claim needs checking."))
+        assertFalse(answer.contains("According to Source"))
+        assertFalse(answer.contains("[S1]"))
+    }
     @Test fun `parenthesized references normalize into usable citations`() {
         assertEquals("Claim [S4]. More [S3][S8].", AnswerText.finalized("Claim (source: S4). More (S3, S8).", 8))
         assertEquals("Claim [S4].", AnswerText.finalized("Claim (s4).", 4))

@@ -1,0 +1,14 @@
+{
+  "status": "Development comparison frozen before fetching this selection; not an unseen benchmark or accuracy score.",
+  "questions": [
+    {"question": "Why do boats float?", "review": "Displaced water weight balances vessel weight; do not claim water is denser than steel or conflate volume with weight."},
+    {"question": "Can two computers share files over a local network without internet access?", "review": "Yes with local connectivity and compatible sharing services; no mandatory same OS, internet or proprietary license."},
+    {"question": "Compare mitosis and meiosis.", "review": "Distinguish number of divisions, chromosome complement and variation; do not universally equate four products with four functional gametes."},
+    {"question": "Why do Earth’s hemispheres have opposite seasons?", "review": "Axial tilt and opposite illumination at the same time, not Earth-Sun distance; avoid hemisphere/month inversion."},
+    {"question": "How does thermal insulation slow heat transfer?", "review": "Resistance to heat flow rather than producing heat; retain distinctions between transfer mechanisms."},
+    {"question": "Why does a DNS outage not necessarily stop file sharing on a local network?", "review": "Distinguish name resolution from local transport; addressing and service configuration affect availability."},
+    {"question": "How can sampling bias make a large survey misleading?", "review": "Selection can distort representation; sample size alone does not remove systematic bias."},
+    {"question": "Using only my saved sources, which roads near me are closed right now?", "review": "Do not invent current conditions or cite timeless references as live information."}
+  ],
+  "method": "Same unchanged app pipeline/model and questions, current Biology+Travel vs current packs plus preview. Review original selected passages and generated claims separately. No competitor benchmark or answers used."
+}

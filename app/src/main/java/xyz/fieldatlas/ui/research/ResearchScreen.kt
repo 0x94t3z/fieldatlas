@@ -179,9 +179,10 @@ fun ResearchScreen(
                         enabled = !state.isRunning,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp)
+                        modifier = Modifier.fillMaxWidth()
+                            .heightIn(min = 76.dp)
                             .onFocusChanged { questionFocused = it.isFocused }
-                            .padding(start = 16.dp, end = 16.dp, top = if (state.attachments.isEmpty()) 16.dp else 10.dp)
+                            .padding(horizontal = 16.dp, vertical = 16.dp)
                             .semantics { contentDescription = "Research question" },
                         decorationBox = { innerTextField ->
                             Box {
@@ -553,6 +554,18 @@ private fun ResearchAction(
         }
         return
     }
+    // Missing inputs can be explained without loading or running the language model.
+    if (xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty()) != null) {
+        FieldAtlasPrimaryButton(
+            text = "Start research",
+            onClick = onSubmit,
+            enabled = state.canSubmit,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp),
+            leadingIcon = FieldAtlasIcons.ResearchSparkles,
+            leadingIconSize = 26.dp,
+        )
+        return
+    }
     when (inferenceState) {
         InferenceState.Ready -> FieldAtlasPrimaryButton(
             text = "Start research",
@@ -563,7 +576,7 @@ private fun ResearchAction(
             leadingIconSize = 26.dp,
         )
         InferenceState.Loading -> FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text("Preparing research tools")
+            Text("Loading your saved model")
             LinearProgressIndicator(Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primaryContainer)

@@ -6,6 +6,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AttachmentPolicyTest {
+    @Test fun codeAndConfigurationFilesUseStrictTextValidation() {
+        for (name in listOf("main.kt", "script.py", "app.tsx", "config.yaml", "Dockerfile", "notes.txt", "diagram.svg")) {
+            assertEquals(AttachmentKind.TEXT, AttachmentPolicy.kind(name, "val greeting = \"hello\"".toByteArray()))
+            assertThrows(AttachmentException::class.java) { AttachmentPolicy.kind(name, byteArrayOf(0, 1, 2)) }
+        }
+        assertThrows(AttachmentException::class.java) { AttachmentPolicy.kind("program.exe", "MZ".toByteArray()) }
+    }
     @Test fun streamedLimitDoesNotTrustProviderSize() {
         assertEquals(20 * 1024 * 1024, AttachmentPolicy.readBounded(ByteArrayInputStream(ByteArray(20 * 1024 * 1024))).size)
         assertThrows(AttachmentException::class.java) {

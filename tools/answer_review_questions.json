@@ -1,0 +1,18 @@
+{
+  "scope": "Fresh development questions frozen before generation. Becomes a used development set after this run; not independent human validation.",
+  "model": "Existing default 2B, unchanged app policy and paragraph reference pilot",
+  "reviewRules": [
+    "Retain complete answers and all nonblank answer lines; do not select only convenient claims.",
+    "Label support against the exact packed excerpts, not a whole document or outside knowledge.",
+    "A multi-claim line needs support for every factual part.",
+    "Review coverage of the question separately from claim support.",
+    "Do not tune questions, prompts or gold labels after inspecting checker verdicts.",
+    "No automatic verified badge, rewriting, app integration or phone installation."
+  ],
+  "questions": [
+    {"id": "ecosystem-roles", "question": "How do producers and decomposers play different roles in an ecosystem? Include one example of each.", "coverage": ["Different roles", "Producer example", "Decomposer example"]},
+    {"id": "algorithm-code", "question": "What makes an algorithm different from a computer program? Explain whether an algorithm must be written in code.", "coverage": ["Algorithm versus program", "Whether code is required"]},
+    {"id": "atom-structure", "question": "How are the nucleus and electrons arranged in an atom, and where is most of its mass?", "coverage": ["Nucleus and electrons", "Mass distribution"]},
+    {"id": "p-value-limits", "question": "What can a low p-value establish about a hypothesis, and what can it not establish?", "coverage": ["Conditional interpretation", "Limits on conclusions"]}
+  ]
+}

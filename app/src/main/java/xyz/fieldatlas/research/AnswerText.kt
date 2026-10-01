@@ -2,18 +2,21 @@ package xyz.fieldatlas.research
 
 object AnswerText {
     private const val MODEL_LABEL = "Model explanation—not verified against saved sources"
-    private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)+)[.!]?\\s*$", RegexOption.IGNORE_CASE)
+    private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)*)[.!]?\\s*$", RegexOption.IGNORE_CASE)
+    private val inlineSourceHeading = Regex("(?im)^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?From saved sources(?:\\*\\*)?\\s*:(?:\\*\\*)?\\s*(?=[\"“])")
+    private val danglingAttribution = Regex("(?i)according to sources?\\s+(?:\\[(?:S)?[0-9]+]\\s*)+,\\s*")
 
     /**
      * Mixed answers fail closed: only a verbatim quotation from the cited passage gets
-     * a source link. This validates attribution, not the truth or completeness of a source.
+     * a source link. An unnumbered quote may link one unique exact passage match.
+     * This validates attribution, not the truth or completeness of a source.
      * Everything else remains useful model text, explicitly unverified and uncited.
      */
     fun mixed(raw: String, sources: List<Evidence>): String {
         val model = mutableListOf<String>()
         val quotes = mutableListOf<String>()
         var sourceSection = false
-        val text = normalizeReferences(visible(raw))
+        val text = inlineSourceHeading.replace(normalizeReferences(visible(raw)), "From saved sources\n")
         val lines = text.lines()
         lines.forEachIndexed { index, line ->
             val heading = line.trim().trim('#', '*', ' ', ':').lowercase()
@@ -29,18 +32,25 @@ object AnswerText {
                     val match = if (sourceSection) quoteLine.matchEntire(line.trim()) else null
                     val quote = match?.groupValues?.get(1).orEmpty()
                     val normalizedQuote = normalizeQuote(quote)
-                    val verifiedNumbers = citationPattern.findAll(match?.groupValues?.get(2).orEmpty())
+                    val hasExplicitCitation = !match?.groupValues?.get(2).isNullOrBlank()
+                    val explicitNumbers = citationPattern.findAll(match?.groupValues?.get(2).orEmpty())
                         .mapNotNull { it.groupValues[1].toIntOrNull() }
-                        .distinct().filter { number ->
-                            val passage = sources.getOrNull(number - 1)?.text
-                            passage != null && normalizedQuote.length >= 12 &&
-                                !citationPattern.containsMatchIn(quote) && !placeholderPattern.containsMatchIn(quote) &&
-                                normalizeQuote(EvidenceRelevance.passageText(passage)).contains(normalizedQuote)
-                        }.toList()
+                        .distinct().toList()
+                    val eligible = if (!hasExplicitCitation) sources.indices.map { it + 1 } else explicitNumbers
+                    val matches = eligible.filter { number ->
+                        val passage = sources.getOrNull(number - 1)?.text
+                        passage != null && normalizedQuote.length >= 12 &&
+                            !citationPattern.containsMatchIn(quote) && !placeholderPattern.containsMatchIn(quote) &&
+                            normalizeQuote(EvidenceRelevance.passageText(passage)).contains(normalizedQuote)
+                    }
+                    // Infer attribution only for an exact, uniquely matching quotation.
+                    // Explicit wrong citations never get reassigned to another source.
+                    val verifiedNumbers = if (hasExplicitCitation || matches.size == 1) matches else emptyList()
                     if (verifiedNumbers.isNotEmpty()) {
                         quotes += "- \"$quote\" " + verifiedNumbers.joinToString("") { "[S$it]" }
                     } else {
-                        val uncited = finalized(line, 0)
+                        val withoutDanglingAttribution = line.replace(danglingAttribution, "")
+                        val uncited = finalized(withoutDanglingAttribution, 0)
                             .replace(Regex("\\[(?:S)?[0-9#]*$", RegexOption.IGNORE_CASE), "")
                             .trim()
                         if (uncited.isNotEmpty()) model += uncited

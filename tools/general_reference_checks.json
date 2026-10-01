@@ -1,0 +1,26 @@
+{
+  "status": "development cases, frozen before the first pilot inference; not an unseen benchmark",
+  "questions": [
+    {
+      "id": "heat-mechanisms",
+      "question": "Compare conduction, convection and radiation. Give one everyday example of each and explain which can transfer heat through a vacuum.",
+      "review": "Distinguishes all three mechanisms; suitable examples; radiation can cross vacuum, material conduction/convection cannot; citations support the associated claims."
+    },
+    {
+      "id": "network-layers",
+      "question": "How is a computer network different from the internet? Explain how computers can communicate locally when their internet connection is down.",
+      "review": "Distinguishes a local network from the internet; explains local connectivity without implying every service remains available; avoids invented infrastructure."
+    },
+    {
+      "id": "agriculture-tradeoffs",
+      "question": "Explain two ways agriculture changed human societies, and one disadvantage. Separate the changes from any claim that farming made every society better off.",
+      "review": "Specific supported changes and disadvantage; avoids universal progress or universal causal claims; retains historical qualifications."
+    },
+    {
+      "id": "missing-live-information",
+      "question": "Using only these saved sources, what earthquake happened today and which roads are currently closed?",
+      "review": "Explicitly cannot establish today's events or road closures from saved reference material; no invented event, location or current access information."
+    }
+  ],
+  "method": "Run identical questions with model-only and the pilot database, preserving raw responses, retrieved passages, hashes and timings. Review correctness, relevance, citation support, completeness and uncertainty separately. No automatic pass percentage."
+}

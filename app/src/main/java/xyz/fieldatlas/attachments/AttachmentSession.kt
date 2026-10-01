@@ -16,6 +16,7 @@ data class AttachmentUiState(
     val phase: AttachmentPhase = AttachmentPhase.Reading,
     val extracted: ExtractedAttachment? = null, val error: String? = null,
     val kind: AttachmentKind? = null, val previewFile: File? = null,
+    val originalFile: File? = null,
 )
 
 /** Called from the UI dispatcher; extraction/staging delegates move expensive work off it. */
@@ -52,7 +53,7 @@ class AttachmentSession(
                 inputs[id] = input
                 loaders.remove(id)
                 ensureActive()
-                update(id) { it.copy(displayName = input.displayName, kind = input.kind,
+                update(id) { it.copy(displayName = input.displayName, kind = input.kind, originalFile = input.localFile,
                     previewFile = input.localFile.takeIf { input.kind == AttachmentKind.IMAGE }) }
                 val extracted = reader.read(input)
                 ensureActive()

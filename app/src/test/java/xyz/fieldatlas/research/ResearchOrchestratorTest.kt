@@ -17,6 +17,51 @@ import xyz.fieldatlas.inference.InferenceGateway
 import xyz.fieldatlas.inference.InferenceState
 
 class ResearchOrchestratorTest {
+    @Test fun citationCannotUseTextOmittedFromTheActualPrompt() = runBlocking {
+        val omitted = "The archive was opened in 1920."
+        val mechanism = "A boat floats because the upward buoyant force balances its weight."
+        val source = Evidence("boat", "boat:0", "Boat — Principles", "Local",
+            (omitted + " ").repeat(30) + "\n\n" + mechanism, -1.0)
+        val question = "Why do boats float?"
+        val packed = PromptBuilder.build(question, listOf(source), 2048)
+        assertFalse(packed.prompt.contains(omitted))
+        assertEquals(source, packed.sources.single().evidence)
+        assertTrue(packed.sources.single().excerpt.contains(mechanism))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(source) },
+            FakeInferenceGateway(listOf("From saved sources\n\"$omitted\" [S1]\n\"$mechanism\" [S1]")))
+            .research(question).toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertFalse(answer.contains("\"$omitted\" [S1]"))
+        assertTrue(answer.contains("\"$mechanism\" [S1]"))
+        assertEquals(source, events.filterIsInstance<ResearchEvent.Sources>().single().evidence.single())
+        assertTrue((events.last() as ResearchEvent.Complete).metrics.hasUnmappedCitation)
+    }
+
+    @Test fun missingAttachmentAndLiveLocationSkipBothRetrievalAndGeneration() = runBlocking {
+        val inference = FakeInferenceGateway(listOf("Must not be generated"))
+        val retriever = Retriever { _, _, _ -> error("Missing input must not search unrelated collections") }
+        for (question in listOf("According to my attached report, what were my blood test results?",
+            "Which roads near me are closed right now?")) {
+            val events = ResearchOrchestrator(retriever, inference).research(question).toList()
+            assertTrue(events.last() is ResearchEvent.Complete)
+            assertTrue(events.none { it is ResearchEvent.Sources || it is ResearchEvent.Planning })
+            assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+        }
+        assertEquals(0, inference.generateCalls)
+    }
+    @Test fun shortCausalQuestionRejectsQueryDriftWithoutExtraModelPlanning() = runBlocking {
+        var searches = 0
+        val unrelated = Evidence("study", "study:0", "Drug delivery", "Saved study",
+            "The floating duration of tablets in water increased with the treatment.", -1.0)
+        val inference = FakeInferenceGateway(listOf("Ice is less dense than liquid water."))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> searches++; listOf(unrelated) }, inference)
+            .research("Explain why ice floats on water.").toList()
+        assertEquals(1, searches)
+        assertEquals(1, inference.generateCalls)
+        assertTrue(events.none { it is ResearchEvent.Planning || it is ResearchEvent.Sources })
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
     @Test fun sourceOnlyRequestWithoutEvidenceDoesNotGenerateAnUnsupportedAnswer() = runBlocking {
         val retriever = object : Retriever {
             override fun hasEligiblePacks(query: String) = false
