@@ -13,6 +13,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.draw.scale
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.BasicTextField
@@ -73,6 +79,9 @@ import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
+import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
+import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
+import xyz.fieldatlas.ui.theme.TileTone
 
 @Composable
 fun ResearchScreen(
@@ -107,9 +116,9 @@ fun ResearchScreen(
     // Keep the first-run examples focused on the bounty's research task rather than
     // mirroring whichever pack happens to be installed on the device.
     val exampleQuestions = listOf(
-        "Tell me the best vegan restaurants in Berlin",
-        "What are the best museums to visit in Tokyo?",
-        "Tell me about Japan's history",
+        ExampleQuestion("Tell me the best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Sage),
+        ExampleQuestion("Best vegan restaurants near me", FieldAtlasIcons.Place, TileTone.Gold),
+        ExampleQuestion("Tell me about Japan's history", FieldAtlasIcons.Document, TileTone.Paper),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -240,12 +249,20 @@ fun ResearchScreen(
                             }
                         }
                         Spacer(Modifier.weight(1f))
+                        val recording = voiceState.phase == VoicePhase.Recording
+                        // The ring grows with the microphone level so speaking visibly registers.
+                        val pulse by animateFloatAsState(
+                            if (recording) 1f + voiceState.level.coerceIn(0f, 1f) * 0.18f else 1f,
+                            label = "micLevel",
+                        )
                         Surface(
                             shape = CircleShape,
-                            color = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-                                lerp(MaterialTheme.colorScheme.primaryContainer, Color.White, 0.45f)
-                            } else {
-                                MaterialTheme.colorScheme.primaryContainer
+                            modifier = Modifier.scale(pulse),
+                            color = when {
+                                recording -> MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.background.luminance() > 0.5f ->
+                                    lerp(MaterialTheme.colorScheme.primaryContainer, Color.White, 0.45f)
+                                else -> MaterialTheme.colorScheme.primaryContainer
                             },
                         ) {
                             IconButton(
@@ -253,7 +270,8 @@ fun ResearchScreen(
                                 enabled = !state.isRunning &&
                                     (voiceState.phase == VoicePhase.Idle || voiceState.phase == VoicePhase.Recording),
                                 colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    contentColor = if (recording) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.onPrimaryContainer,
                                 ),
                             ) {
                                 when (voiceState.phase) {
@@ -276,9 +294,9 @@ fun ResearchScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
+                    FieldAtlasStatusPill("Listening", StatusTone.Positive)
                     Text(
-                        "Listening… tap stop when finished.",
+                        "Tap stop when you finish.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -376,59 +394,28 @@ fun ResearchScreen(
             }
         }
         if (exampleQuestions.isNotEmpty() && !state.isRunning && !hasReadyAnswer) {
+            item { FieldAtlasSectionLabel("Try an example", Modifier.padding(top = 4.dp)) }
             item {
-                Text(
-                    "Try an example",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(exampleQuestions.size) { index ->
-                        val question = exampleQuestions[index]
-                        Card(
-                            onClick = {
-                                onQuestionChange(question)
-                                scope.launch { listState.animateScrollToItem(0) }
-                            },
-                            modifier = Modifier.width(148.dp).heightIn(min = 132.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                    Column {
+                        exampleQuestions.forEachIndexed { index, example ->
+                            if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)
+                                    .clickable(onClickLabel = "Use this example") {
+                                        onQuestionChange(example.question)
+                                        scope.launch { listState.animateScrollToItem(0) }
+                                    }
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                val exampleIcon = when (index) {
-                                    0 -> FieldAtlasIcons.Food
-                                    1 -> FieldAtlasIcons.Place
-                                    else -> FieldAtlasIcons.Document
-                                }
-                                val iconBackground = when (exampleIcon) {
-                                    FieldAtlasIcons.Place -> Color(0xFFEAE3FA)
-                                    FieldAtlasIcons.Document -> Color(0xFFFFE8C2)
-                                    else -> MaterialTheme.colorScheme.primaryContainer
-                                }
-                                val iconTint = when (exampleIcon) {
-                                    FieldAtlasIcons.Place -> Color(0xFF6B4BA3)
-                                    FieldAtlasIcons.Document -> Color(0xFF9A5A00)
-                                    else -> MaterialTheme.colorScheme.onPrimaryContainer
-                                }
-                                Surface(
-                                    modifier = Modifier.size(34.dp),
-                                    color = iconBackground,
-                                    shape = MaterialTheme.shapes.small,
-                                ) {
-                                    Icon(exampleIcon, contentDescription = null,
-                                        tint = iconTint,
-                                        modifier = Modifier.padding(8.dp))
-                                }
-                                Text(
-                                    question,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 5,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
+                                FieldAtlasIconTile(example.icon, size = 36.dp, tone = example.tone)
+                                Text(example.question, modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.bodyMedium)
+                                Icon(FieldAtlasIcons.ChevronRight, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
                             }
                         }
                     }
@@ -524,19 +511,22 @@ private fun ResearchAction(
                 delay(1_000)
             }
         }
+        val modelWriting = state.tokensWritten > 0
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(researchProgressHeading(state.phase, state.answer, state.sources.isNotEmpty()),
-                    modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
-                TextButton(onClick = onStop) { Text("Stop") }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // A source lead arrives before the model writes; until then the model is still reading.
+                Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty()),
+                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
+                if (state.startedAtNanos != null) {
+                    Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
+                }
+                OutlinedButton(onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp)) { Text("Stop") }
             }
-            if (state.startedAtNanos != null) {
-                Text("${formatResearchElapsed(elapsedMillis)} elapsed", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            LinearProgressIndicator(Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer)
+            ResearchSteps(researchSteps(state))
             if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
                 Text("Model-generated · no supporting sources found",
                     style = MaterialTheme.typography.bodySmall,
@@ -544,6 +534,7 @@ private fun ResearchAction(
             }
             val draft = draftAnswerPreview(state.answer)
             if (draft.isNotEmpty()) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 AnswerMarkdownRenderer(
                     blocks = parseAnswerMarkdown(draft),
                     sourceCount = 0,
@@ -592,6 +583,57 @@ private fun ResearchAction(
             modifier = Modifier.fillMaxWidth(),
         )
         InferenceState.Generating -> Unit
+    }
+}
+
+private data class ExampleQuestion(val question: String, val icon: ImageVector, val tone: TileTone)
+
+@Composable
+private fun ResearchSteps(steps: List<ResearchStep>) {
+    Column(Modifier.fillMaxWidth()) {
+        steps.forEachIndexed { index, step ->
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    StepMarker(step.status)
+                    if (index < steps.lastIndex) {
+                        Box(Modifier.width(2.dp).heightIn(min = 18.dp).height(if (step.status == StepStatus.Active) 34.dp else 20.dp)
+                            .background(if (step.status == StepStatus.Done) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant))
+                    }
+                }
+                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(step.title, style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (step.status == StepStatus.Pending) FontWeight.Normal else FontWeight.SemiBold,
+                        color = if (step.status == StepStatus.Pending) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurface)
+                    step.detail?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (step.status == StepStatus.Active) {
+                        val progress = step.progress
+                        if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
+                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                        else LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 3.dp),
+                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StepMarker(status: StepStatus) {
+    val primary = MaterialTheme.colorScheme.primary
+    when (status) {
+        StepStatus.Done -> Surface(Modifier.size(22.dp), shape = CircleShape, color = primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary) {
+            Icon(FieldAtlasIcons.Check, contentDescription = "Done", modifier = Modifier.padding(4.dp))
+        }
+        StepStatus.Active -> Box(Modifier.size(22.dp).border(2.dp, primary, CircleShape), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(8.dp).background(primary, CircleShape))
+        }
+        StepStatus.Pending -> Box(Modifier.size(22.dp).border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
     }
 }
 

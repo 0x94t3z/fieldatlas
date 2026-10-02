@@ -9,7 +9,8 @@ object ProofMapper {
             add(
                 ProofFact(
                     label = "Internet permission",
-                    value = if (snapshot.networkPermissionPresent) "Present" else "Absent",
+                    // Downloads of packs and the catalog are the only network use; research never connects.
+                    value = if (snapshot.networkPermissionPresent) "Present · downloads only" else "Absent",
                     origin = ProofOrigin.ManifestAudit,
                     state = if (snapshot.networkPermissionPresent) ProofState.Warning else ProofState.Pass,
                 ),

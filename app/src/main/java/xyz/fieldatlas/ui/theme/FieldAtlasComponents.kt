@@ -1,6 +1,12 @@
 package xyz.fieldatlas.ui.theme
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -13,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +36,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -123,6 +133,8 @@ fun FieldAtlasCard(
         modifier = modifier,
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = MaterialTheme.shapes.medium,
+        // A hairline keeps cards distinct from the paper without heavy shadows.
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(contentPadding),
@@ -132,16 +144,27 @@ fun FieldAtlasCard(
     }
 }
 
+/** Icon tile tints drawn only from the notebook palette: sage, gold, paper and forest. */
+enum class TileTone { Sage, Gold, Paper, Forest }
+
 @Composable
 fun FieldAtlasIconTile(
     icon: ImageVector,
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp = 40.dp,
+    tone: TileTone = TileTone.Sage,
 ) {
+    val colors = MaterialTheme.colorScheme
+    val (container, content) = when (tone) {
+        TileTone.Sage -> colors.primaryContainer to colors.onPrimaryContainer
+        TileTone.Gold -> colors.secondaryContainer to colors.onSecondaryContainer
+        TileTone.Paper -> colors.surfaceVariant to colors.onSurfaceVariant
+        TileTone.Forest -> colors.primary to colors.onPrimary
+    }
     Surface(
         modifier = modifier.size(size),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        color = container,
+        contentColor = content,
         shape = MaterialTheme.shapes.small,
     ) {
         Icon(icon, contentDescription = null, modifier = Modifier.padding(size / 4))
@@ -195,11 +218,114 @@ fun FieldAtlasInformationAction(
             modifier = Modifier.weight(1f).padding(start = 12.dp),
             style = MaterialTheme.typography.titleMedium,
         )
-        if (expanded) {
-            Text("−", style = MaterialTheme.typography.headlineMedium)
-        } else {
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = null)
+        FieldAtlasExpandIcon(expanded)
+    }
+}
+
+/** One chevron for every disclosure: down when closed, up when open. */
+@Composable
+fun FieldAtlasExpandIcon(
+    expanded: Boolean,
+    modifier: Modifier = Modifier,
+    tint: Color = androidx.compose.material3.LocalContentColor.current,
+) {
+    val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "expand")
+    Icon(
+        Icons.Outlined.KeyboardArrowDown,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier.size(22.dp).rotate(rotation),
+    )
+}
+
+/** A full-width tappable row that opens or closes a section below it. */
+@Composable
+fun FieldAtlasDisclosureRow(
+    label: String,
+    expanded: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp)
+            .clickable(onClickLabel = if (expanded) "Collapse" else "Expand", onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (leadingIcon != null) {
+            Icon(leadingIcon, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp))
         }
+        Text(
+            label,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.primary)
+    }
+}
+
+/**
+ * Small label that opens a group of rows or cards. Sentence case on purpose: screen readers
+ * spell out all-caps words letter by letter.
+ */
+@Composable
+fun FieldAtlasSectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        modifier = modifier,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** A label/value line for facts such as metrics, device details and structured excerpts. */
+@Composable
+fun FieldAtlasFactRow(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    labelWidth: Dp = 112.dp,
+    emphasized: Boolean = false,
+) {
+    Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            label,
+            modifier = Modifier.width(labelWidth),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (emphasized) FontWeight.SemiBold else FontWeight.Normal,
+        )
+    }
+}
+
+/** A coloured dot that marks a status next to its text label (never colour alone). */
+@Composable
+fun FieldAtlasStatusDot(tone: StatusTone, modifier: Modifier = Modifier) {
+    val color = when (tone) {
+        StatusTone.Positive -> MaterialTheme.colorScheme.primary
+        StatusTone.Attention -> Color(0xFFC9A85C)
+        StatusTone.Neutral -> MaterialTheme.colorScheme.outline
+    }
+    Box(modifier.size(8.dp).background(color, CircleShape))
+}
+
+/** The app's mark: a forest tile with a leaf, beside the editorial wordmark. */
+@Composable
+fun FieldAtlasBrandMark(modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        FieldAtlasIconTile(FieldAtlasIcons.Knowledge, size = 34.dp, tone = TileTone.Forest)
+        Text("Field Atlas", style = MaterialTheme.typography.titleLarge, fontFamily = FieldAtlasEditorial)
     }
 }
 

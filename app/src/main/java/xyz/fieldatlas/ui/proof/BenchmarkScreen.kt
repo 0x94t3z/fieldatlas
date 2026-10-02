@@ -50,9 +50,9 @@ fun BenchmarkScreen(
         completedCount.toFloat() / state.totalQuestions.toFloat()
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
-            FieldAtlasTopBar(title = "Device benchmark", onBack = onBack)
+            FieldAtlasTopBar(title = "Performance check", onBack = onBack)
             LazyColumn(
-                modifier = Modifier.weight(1f).padding(horizontal = 16.dp),
+                modifier = Modifier.weight(1f).padding(horizontal = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
             item {

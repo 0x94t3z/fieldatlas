@@ -18,3 +18,22 @@ class SourceTextContentTest {
         assertNull(formattedSourceJson("[".repeat(1000) + "]".repeat(1000)))
     }
 }
+
+class StructuredSourceFieldsTest {
+    @Test fun listingExcerptsBecomeLabelValueRows() {
+        val text = "Destination: Berlin/Mitte\nCategory: Eat\nPlace: Vedis\nAddress: Schönhauser Allee 142\n" +
+            "Listing last checked: 2020-10-25"
+        assertEquals(
+            listOf("Destination" to "Berlin/Mitte", "Category" to "Eat", "Place" to "Vedis",
+                "Address" to "Schönhauser Allee 142", "Listing last checked" to "2020-10-25"),
+            structuredSourceFields(text),
+        )
+    }
+
+    @Test fun proseAndShortExcerptsStayAsWritten() {
+        assertNull(structuredSourceFields("A boat is a watercraft. Note: it floats.\nIt is smaller than a ship.\nRafts differ."))
+        assertNull(structuredSourceFields("Place: Vedis\nCategory: Eat"))
+        // One prose line breaks the pattern, so nothing is reformatted.
+        assertNull(structuredSourceFields("Place: Vedis\nCategory: Eat\nthe owners also run a bakery"))
+    }
+}

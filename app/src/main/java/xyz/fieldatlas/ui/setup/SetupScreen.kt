@@ -19,6 +19,8 @@ import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.assets.RecommendedModel
 import xyz.fieldatlas.assets.PackImportInfo
 import xyz.fieldatlas.ui.theme.*
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import java.util.Locale
 
 @Composable
@@ -51,27 +53,38 @@ fun SetupScreen(
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState,
                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { FieldAtlasBrandMark(Modifier.padding(top = 6.dp, bottom = 4.dp)) }
                 item {
                     FieldAtlasHeader("Set up Field Atlas", "Download once. Research offline.")
                 }
+                item {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FieldAtlasStatusPill("Private", StatusTone.Positive, icon = FieldAtlasIcons.Lock)
+                        FieldAtlasStatusPill("Cited", StatusTone.Positive, icon = FieldAtlasIcons.Citation)
+                        FieldAtlasStatusPill("Offline", StatusTone.Positive, icon = FieldAtlasIcons.Offline)
+                    }
+                }
                 if (!online) item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(FieldAtlasIcons.Offline, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text("You’re offline. Import saved packs, or reconnect to download.",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    FieldAtlasCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        contentPadding = 12.dp) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(FieldAtlasIcons.Offline, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                            Text("You’re offline. Import saved packs, or reconnect to download.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+                        }
                     }
                 }
                 if (importing && importingPack?.type !in setOf(PackType.MODEL, PackType.KNOWLEDGE)) item {
                     SetupImportCard(importingPack?.title ?: "Saved pack", importingName, "Import in progress")
                 }
-                item { SetupSection("Model", "Required") }
+                item { SetupSection(1, "Answer model", "Required") }
                 item {
                     if (importing && importingPack?.type == PackType.MODEL) {
                         SetupImportCard(if (importingPack.id == RecommendedModel.id) "Qwen3.5 2B" else importingPack.title,
                             importingName, "Importing model", FieldAtlasIcons.Archive)
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == RecommendedModel.id) "Qwen3.5 2B" else model.title,
-                        icon = FieldAtlasIcons.Archive,
+                        icon = FieldAtlasIcons.Model,
                         bytes = RecommendedModel.bytes, installed = model != null,
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
@@ -82,7 +95,7 @@ fun SetupScreen(
                 }
                 item {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { SetupSection("Knowledge", "Optional") }
+                        Box(Modifier.weight(1f)) { SetupSection(2, "Knowledge", "Optional") }
                         TextButton(onClick = onRefreshCatalog, enabled = online && !catalogRefreshing) {
                             Text(if (catalogRefreshing) "Refreshing…" else "Refresh")
                         }
@@ -97,7 +110,7 @@ fun SetupScreen(
                     val pack = availableKnowledge[index]
                     if (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) {
                         SetupImportCard(importingPack.title, importingName, "Importing knowledge")
-                    } else SetupDownloadRow(pack.title, FieldAtlasIcons.Document, pack.bytes,
+                    } else SetupDownloadRow(pack.title, catalogIcon(pack.id), pack.bytes,
                         packs.any { it.type == PackType.KNOWLEDGE && it.id == pack.id && it.version == pack.version },
                         knowledgeDownloadKey == "${pack.id}:${pack.version}", busy || !online, knowledgeDownloadedBytes,
                         resumableKnowledgeBytes(pack),
@@ -123,6 +136,7 @@ fun SetupScreen(
                     }
                 } }
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!importing && !downloading && model == null) Text(
@@ -171,9 +185,15 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
 }
 
 @Composable
-private fun SetupSection(title: String, hint: String) {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+private fun SetupSection(step: Int, title: String, hint: String) {
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Surface(Modifier.size(24.dp), shape = androidx.compose.foundation.shape.CircleShape,
+            color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("$step", style = MaterialTheme.typography.labelLarge)
+            }
+        }
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text("· $hint", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -191,7 +211,7 @@ private fun SetupDownloadRow(
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(icon, size = 40.dp)
+            FieldAtlasIconTile(icon, size = 40.dp, tone = if (icon == FieldAtlasIcons.Place) TileTone.Gold else TileTone.Sage)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                 val status = if (installed) "Installed" else if (!downloading && resumableBytes > 0)
@@ -202,10 +222,21 @@ private fun SetupDownloadRow(
                 if (!installed && !downloading && blockedReason != null) Text(blockedReason,
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (installed) Icon(FieldAtlasIcons.Check, "Installed", tint = MaterialTheme.colorScheme.primary)
-            else if (!downloading) IconButton(onClick = { confirm = true }, enabled = !busy && blockedReason == null) {
-                Icon(FieldAtlasIcons.Import, if (resumableBytes > 0) "Resume $title" else "Download $title", tint = if (busy || blockedReason != null)
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f) else MaterialTheme.colorScheme.primary)
+            if (installed) FieldAtlasStatusPill("Installed", StatusTone.Positive, icon = FieldAtlasIcons.Check)
+            else if (!downloading) FilledTonalButton(
+                onClick = { confirm = true },
+                enabled = !busy && blockedReason == null,
+                contentPadding = PaddingValues(horizontal = 14.dp),
+                modifier = Modifier.heightIn(min = 40.dp).semantics {
+                    contentDescription = if (resumableBytes > 0) "Resume $title" else "Download $title"
+                },
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+            ) {
+                Icon(FieldAtlasIcons.Import, null, Modifier.size(18.dp))
+                Text(if (resumableBytes > 0) "Resume" else "Get", modifier = Modifier.padding(start = 6.dp))
             }
         }
         if (downloading) {
@@ -229,6 +260,12 @@ private fun SetupDownloadRow(
         confirmButton = { TextButton(enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
             Text(if (resumableBytes > 0) "Resume" else "Download") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Not now") } })
+}
+
+private fun catalogIcon(id: String): ImageVector = when {
+    listOf("voyage", "place", "osm", "travel").any { it in id } -> FieldAtlasIcons.Place
+    listOf("biology", "science", "longevity").any { it in id } -> FieldAtlasIcons.Knowledge
+    else -> FieldAtlasIcons.Document
 }
 
 private fun downloadSize(bytes: Long): String = if (bytes >= 1_000_000_000L)

@@ -38,6 +38,12 @@ import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
+import xyz.fieldatlas.ui.theme.FieldAtlasExpandIcon
+import xyz.fieldatlas.ui.theme.FieldAtlasStatusDot
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 
 @Composable
 fun MoreScreen(
@@ -72,12 +78,11 @@ fun MoreScreen(
                 contentPadding = 12.dp) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Icon(FieldAtlasIcons.Lock, contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                    FieldAtlasIconTile(FieldAtlasIcons.Privacy, size = 36.dp, tone = xyz.fieldatlas.ui.theme.TileTone.Forest)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Privacy & offline use")
                         Text(
-                            "Download online. Research offline. No account needed.",
+                            "Download online. Research offline. No account needed, and questions stay on this phone.",
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
@@ -90,27 +95,31 @@ fun MoreScreen(
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showModel = !showModel },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 36.dp)
+                    FieldAtlasIconTile(FieldAtlasIcons.Model, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Answer model")
                         Text(modelStatus(inferenceState), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.size(20.dp).rotate(if (showModel) 90f else 0f),
-                        contentDescription = if (showModel) "Hide model actions" else "Show model actions")
+                    FieldAtlasStatusPill(
+                        when (inferenceState) {
+                            InferenceState.Ready -> "Ready"
+                            InferenceState.Loading -> "Preparing"
+                            InferenceState.Generating -> "Researching"
+                            InferenceState.Idle -> "Not loaded"
+                            is InferenceState.Failed -> "Needs attention"
+                        },
+                        when (inferenceState) {
+                            InferenceState.Ready -> StatusTone.Positive
+                            is InferenceState.Failed -> StatusTone.Attention
+                            else -> StatusTone.Neutral
+                        },
+                    )
+                    FieldAtlasExpandIcon(showModel, Modifier.semantics {
+                        contentDescription = if (showModel) "Hide model actions" else "Show model actions"
+                    })
                 }
                 if (showModel) {
-                    FieldAtlasStatusPill(
-                    when (inferenceState) {
-                        InferenceState.Ready -> "Ready"
-                        InferenceState.Loading -> "Preparing"
-                        InferenceState.Generating -> "Researching"
-                        InferenceState.Idle -> "Not loaded"
-                        is InferenceState.Failed -> "Needs attention"
-                    },
-                    if (inferenceState == InferenceState.Ready) StatusTone.Positive else StatusTone.Neutral,
-                    )
                     if (inferenceState == InferenceState.Idle || inferenceState is InferenceState.Failed) {
                         FieldAtlasPrimaryButton("Prepare model", onPrepareModel, Modifier.fillMaxWidth())
                     } else if (inferenceState == InferenceState.Ready) {
@@ -129,7 +138,7 @@ fun MoreScreen(
                     FieldAtlasIconTile(FieldAtlasIcons.Benchmark, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Performance check")
-                        Text("Check answer quality and speed.",
+                        Text("18 questions · answer quality and speed.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -149,9 +158,9 @@ fun MoreScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.size(20.dp).rotate(if (showDiagnostics) 90f else 0f),
-                        contentDescription = if (showDiagnostics) "Hide export options" else "Show export options")
+                    FieldAtlasExpandIcon(showDiagnostics, Modifier.semantics {
+                        contentDescription = if (showDiagnostics) "Hide export options" else "Show export options"
+                    })
                 }
                 if (showDiagnostics) {
                     if (diagnosticsText.isNotBlank()) {
@@ -165,12 +174,15 @@ fun MoreScreen(
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Include latest question")
-                            Text("Off by default", style = MaterialTheme.typography.bodySmall)
+                            Text("Off by default", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = includeQuestion, onCheckedChange = { includeQuestion = it })
+                        Switch(checked = includeQuestion, onCheckedChange = { includeQuestion = it },
+                            modifier = Modifier.semantics { contentDescription = "Include latest question" })
                     }
-                    TextButton(onClick = { onExportDiagnostics(includeQuestion) }) {
-                        Text("Save support report")
+                    OutlinedButton(onClick = { onExportDiagnostics(includeQuestion) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(FieldAtlasIcons.Import, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Save support report", modifier = Modifier.padding(start = 8.dp))
                     }
                 }
             }
@@ -186,12 +198,16 @@ fun MoreScreen(
                         Text("Storage, memory, and offline checks.", style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Icon(FieldAtlasIcons.ChevronRight,
-                        modifier = Modifier.size(20.dp).rotate(if (showTechnical) 90f else 0f),
-                        contentDescription = if (showTechnical) "Hide details" else "Show details")
+                    FieldAtlasExpandIcon(showTechnical, Modifier.semantics {
+                        contentDescription = if (showTechnical) "Hide details" else "Show details"
+                    })
                 }
                 if (showTechnical) {
-                    (proof.offline + proof.device + proof.latestRun).forEach { fact -> ProofRow(fact) }
+                    val facts = proof.offline + proof.device + proof.latestRun
+                    facts.forEachIndexed { index, fact ->
+                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ProofRow(fact)
+                    }
                 }
             }
         }
@@ -206,14 +222,25 @@ private fun MoreCardTitle(text: String) {
 
 @Composable
 private fun ProofRow(fact: ProofFact) {
-    Column(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Text(fact.label, fontWeight = FontWeight.SemiBold)
-        Text(fact.value)
-        Text(
-            "${stateLabel(fact.state)} · ${originLabel(fact)}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        FieldAtlasStatusDot(
+            when (fact.state) {
+                ProofState.Pass -> StatusTone.Positive
+                ProofState.Warning -> StatusTone.Attention
+                ProofState.Info, ProofState.Missing -> StatusTone.Neutral
+            },
+            Modifier.padding(top = 7.dp),
         )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(fact.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                "${stateLabel(fact.state)} · ${originLabel(fact)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(fact.value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f))
     }
 }
 

@@ -38,6 +38,11 @@ import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
+import xyz.fieldatlas.ui.theme.TileTone
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.attachments.AttachmentKind
 import xyz.fieldatlas.attachments.TextFileTypes
 import xyz.fieldatlas.research.AttachmentProvenance
@@ -55,6 +60,8 @@ fun SourcesScreen(
     onBack: () -> Unit,
     original: SourceOriginal? = null,
     isCited: Boolean = true,
+    onPrevious: (() -> Unit)? = null,
+    onNext: (() -> Unit)? = null,
 ) {
     BackHandler(onBack = onBack)
     var showDetails by rememberSaveable(evidence.documentId, evidence.chunkId) { mutableStateOf(false) }
@@ -71,9 +78,14 @@ fun SourcesScreen(
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack)
+            FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack, action = {
+                IconButton(onClick = { clipboard.setText(AnnotatedString(evidence.text)) }) {
+                    Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy source text",
+                        modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+            })
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -81,13 +93,24 @@ fun SourcesScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                   if (original?.kind == AttachmentKind.IMAGE && original.file.isFile) {
                       AttachmentThumbnail(original.file, evidence.title, Modifier.size(56.dp)) { showOriginal = true }
-                  } else FieldAtlasIconTile(if (verifiedKind == "image") FieldAtlasIcons.Photo else FieldAtlasIcons.Document, size = 36.dp)
-                  Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                    SelectionContainer { Text(evidence.title, style = MaterialTheme.typography.titleLarge) }
+                  } else {
+                      val place = evidence.documentId.startsWith("wv-place-") || evidence.documentId.startsWith("osm-place-")
+                      FieldAtlasIconTile(
+                          when {
+                              verifiedKind == "image" -> FieldAtlasIcons.Photo
+                              place -> FieldAtlasIcons.Place
+                              else -> FieldAtlasIcons.Document
+                          },
+                          size = 40.dp,
+                          tone = if (place) TileTone.Gold else TileTone.Sage,
+                      )
+                  }
+                  Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SelectionContainer { Text(evidence.title, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 23.sp, lineHeight = 28.sp)) }
                     Text(
                         presentation.metadata,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                   }
                 }
@@ -111,10 +134,6 @@ fun SourcesScreen(
                             Text(if (presentation.isRecognizedText) "Recognized text" else "Source excerpt", style = MaterialTheme.typography.titleMedium)
                             Text(if (isCited) "Cited in this answer" else "Provided to the model · not cited",
                                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        IconButton(onClick = { clipboard.setText(AnnotatedString(evidence.text)) }, modifier = Modifier.size(48.dp)) {
-                            Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy source text",
-                                modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     if (AttachmentProvenance.needsWarning(evidence)) Text(
@@ -173,6 +192,22 @@ fun SourcesScreen(
                     }
                 }
             }
+            }
+            if (sourceCount > 1 && (onPrevious != null || onNext != null)) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                Row(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                        Icon(FieldAtlasIcons.Back, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Previous source", modifier = Modifier.padding(start = 8.dp))
+                    }
+                    OutlinedButton(onClick = { onNext?.invoke() }, enabled = onNext != null,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                        Text("Next source", modifier = Modifier.padding(end = 8.dp))
+                        Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                }
             }
         }
     }

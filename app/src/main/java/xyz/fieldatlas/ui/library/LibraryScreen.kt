@@ -50,6 +50,21 @@ import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
+import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
+import xyz.fieldatlas.ui.theme.TileTone
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 @Composable
 fun LibraryScreen(
@@ -114,6 +129,7 @@ fun LibraryScreen(
                     }
                 }
             }
+            if (packs.isNotEmpty()) item { StorageSummary(models, knowledge, speech) }
             item { SectionLabel("Model") }
             if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
             if (models.size > 1) {
@@ -129,6 +145,7 @@ fun LibraryScreen(
                 val asset = models[index]
                 AssetCard(
                     model = asset.toAssetCardModel(),
+                    visual = packVisual(asset),
                     selectedModel = asset == activeModel,
                     onActivateModel = if (asset == activeModel) null else ({ onActivateModel(asset) }),
                     onDelete = { onDeletePack(asset) },
@@ -145,7 +162,7 @@ fun LibraryScreen(
             if (knowledge.isNotEmpty()) {
                 item {
                     Text(
-                        "Use enabled collections as sources.",
+                        "Switched-on collections are searched for every question.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -155,6 +172,7 @@ fun LibraryScreen(
                 val asset = knowledge[index]
                 AssetCard(
                     model = asset.toAssetCardModel(),
+                    visual = packVisual(asset),
                     enabled = asset.enabled,
                     onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
                     onDelete = { onDeletePack(asset) },
@@ -197,6 +215,7 @@ fun LibraryScreen(
                 val asset = speech[index]
                 AssetCard(
                     model = asset.toAssetCardModel(),
+                    visual = packVisual(asset),
                     selectedModel = asset == activeSpeech,
                     onActivateModel = if (asset == activeSpeech) null else ({ onActivateModel(asset) }),
                     onDelete = { onDeletePack(asset) },
@@ -219,7 +238,7 @@ internal fun KnowledgeDownloadCard(
     var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(FieldAtlasIcons.Document, size = 52.dp)
+            FieldAtlasIconTile(FieldAtlasIcons.Document, size = 44.dp, tone = TileTone.Paper)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(pack.title, style = MaterialTheme.typography.titleMedium,
                     fontFamily = FieldAtlasEditorial,
@@ -297,16 +316,62 @@ private fun sizeGb(bytes: Long): String = String.format("%.1f", bytes / 1_000_00
 
 @Composable
 private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    FieldAtlasSectionLabel(text, Modifier.padding(top = 6.dp))
+}
+
+/** How a pack is drawn: its subject decides the icon and a palette tint. */
+internal data class PackVisual(val icon: ImageVector, val tone: TileTone)
+
+internal fun packVisual(asset: InstalledAsset): PackVisual {
+    val id = asset.id.lowercase()
+    return when {
+        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
+        asset.type == PackType.AUDIO -> PackVisual(Icons.Outlined.Mic, TileTone.Paper)
+        listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
+        listOf("biology", "science", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
+        else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
+    }
+}
+
+@Composable
+private fun StorageSummary(models: List<InstalledAsset>, knowledge: List<InstalledAsset>, speech: List<InstalledAsset>) {
+    val parts = listOf(
+        Triple("Models", models.sumOf { it.installedBytes }, MaterialTheme.colorScheme.primary),
+        Triple("Knowledge", knowledge.sumOf { it.installedBytes }, Color(0xFF8DB59E)),
+        Triple("Voice", speech.sumOf { it.installedBytes }, Color(0xFFC9A85C)),
+    ).filter { it.second > 0 }
+    val total = parts.sumOf { it.second }
+    if (total <= 0) return
+    val count = models.size + knowledge.size + speech.size
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("${formatAssetBytes(total)} on this phone", style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f))
+            Text(if (count == 1) "1 pack" else "$count packs", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+            parts.forEach { (_, bytes, color) ->
+                Box(Modifier.weight(bytes.toFloat().coerceAtLeast(total * 0.02f)).fillMaxHeight().background(color))
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            parts.forEach { (label, bytes, color) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(8.dp).background(color, CircleShape))
+                    Text("$label ${formatAssetBytes(bytes)}", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun AssetCard(
     model: AssetCardModel,
+    visual: PackVisual,
     enabled: Boolean = true,
     onToggleResearch: ((Boolean) -> Unit)? = null,
     selectedModel: Boolean = false,
@@ -314,19 +379,16 @@ private fun AssetCard(
     onDelete: (() -> Unit)? = null,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
-    val icon = when {
-        model.kind.equals("answer model", ignoreCase = true) -> FieldAtlasIcons.Archive
-        model.kind.equals("audio model", ignoreCase = true) -> Icons.Outlined.Mic
-        else -> FieldAtlasIcons.Document
-    }
+    var menuOpen by remember { mutableStateOf(false) }
+    // A switched-off collection stays readable but visibly inactive.
+    val inactive = onToggleResearch != null && !enabled
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // A switched-off collection stays readable but visibly inactive.
-            val inactive = onToggleResearch != null && !enabled
-            FieldAtlasIconTile(icon, size = 52.dp, modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
+            FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone,
+                modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
             Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     model.title,
@@ -337,38 +399,45 @@ private fun AssetCard(
                 Text(
                     "${model.size} · version ${model.version}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (onToggleResearch != null) Text(
+                    if (enabled) "Used in research" else "Not used in research",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            when {
+                selectedModel -> FieldAtlasStatusPill("In use", StatusTone.Positive, icon = FieldAtlasIcons.Check)
+                onActivateModel != null -> TextButton(onClick = onActivateModel) { Text("Use model") }
+                onToggleResearch != null -> Switch(
+                    checked = enabled,
+                    onCheckedChange = onToggleResearch,
+                    modifier = Modifier.semantics { contentDescription = "Use ${model.title} in research" },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.surface,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        checkedBorderColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                    ),
                 )
             }
             if (onDelete != null) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    when {
-                        selectedModel -> Icon(FieldAtlasIcons.Check, contentDescription = "In use", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                        onActivateModel != null -> TextButton(onClick = onActivateModel) { Text("Use model") }
-                        onToggleResearch != null -> Switch(
-                            checked = enabled,
-                            onCheckedChange = onToggleResearch,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.surface,
-                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                checkedBorderColor = MaterialTheme.colorScheme.primary,
-                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                                uncheckedBorderColor = MaterialTheme.colorScheme.outline,
-                            ),
+                // Deleting is rare, so it lives in the overflow menu rather than beside the toggle.
+                Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options for ${model.title}",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("Delete…") },
+                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                            onClick = { menuOpen = false; confirmDelete = true },
                         )
                     }
-                    // Deleting is rare and already confirmed in a dialog with the error colour;
-                    // the always-visible entry point stays quiet next to the everyday toggle.
-                    TextButton(
-                        onClick = { confirmDelete = true },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    ) { Text("Delete") }
                 }
             }
         }

@@ -13,7 +13,8 @@ fun CatalogRefresh(refreshing: Boolean, error: String?, onRefresh: () -> Unit) {
         TextButton(onClick = onRefresh, enabled = !refreshing) {
             Text(if (refreshing) "Refreshing collections…" else "Refresh collections")
         }
+        // Saved collections keep working, so a failed catalog refresh is information, not an error.
         if (error != null) Text(error, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.error)
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

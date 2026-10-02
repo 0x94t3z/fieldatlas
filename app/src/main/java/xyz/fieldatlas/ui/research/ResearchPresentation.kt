@@ -172,3 +172,54 @@ private fun MarkdownInline.citationNumbers(): List<Int> = when (this) {
     is MarkdownInline.Link -> label.flatMap(MarkdownInline::citationNumbers)
     is MarkdownInline.Text, is MarkdownInline.Code -> emptyList()
 }
+
+internal enum class StepStatus { Done, Active, Pending }
+
+internal data class ResearchStep(
+    val title: String,
+    val status: StepStatus,
+    val detail: String? = null,
+    /** 0..1 when the step can measure itself; null draws an indeterminate bar. */
+    val progress: Float? = null,
+)
+
+/**
+ * The three stages a question passes through on the phone. A source lead can appear before the
+ * model writes, so "writing" starts with the first model token, not with the first answer text.
+ */
+internal fun researchSteps(state: ResearchUiState): List<ResearchStep> {
+    val searched = state.phase == ResearchPhase.Generating || state.phase == ResearchPhase.Complete
+    val writing = state.tokensWritten > 0
+    val passages = state.sources.size
+    val search = ResearchStep(
+        title = "Search your collections",
+        status = if (searched) StepStatus.Done else StepStatus.Active,
+        detail = when {
+            searched -> when (passages) {
+                0 -> "No matching passages"
+                1 -> "1 passage found"
+                else -> "$passages passages found"
+            }
+            state.keywords.isNotEmpty() -> "Looking for ${state.keywords.take(4).joinToString(", ")}"
+            else -> null
+        },
+    )
+    val read = ResearchStep(
+        title = if (searched && passages == 0) "Prepare the model" else "Read the sources",
+        status = when {
+            writing -> StepStatus.Done
+            searched -> StepStatus.Active
+            else -> StepStatus.Pending
+        },
+        detail = state.promptRead?.takeIf { searched && !writing && it.second > 0 }
+            ?.let { (read, total) -> "${(read * 100L / total).coerceIn(0, 100)}% read" },
+        progress = state.promptRead?.takeIf { it.second > 0 }
+            ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) },
+    )
+    val write = ResearchStep(
+        title = "Write the answer",
+        status = if (writing) StepStatus.Active else StepStatus.Pending,
+        detail = if (writing) "${state.tokensWritten} tokens written" else null,
+    )
+    return listOf(search, read, write)
+}

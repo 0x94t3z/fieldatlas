@@ -202,6 +202,8 @@ fun FieldAtlasApp(
                             // omitting this field is safer than crediting the wrong license.
                             packLicense = if (source.documentId.startsWith("attachment:")) null else enabledKnowledge.singleOrNull()?.license,
                             onBack = closeDetail,
+                            onPrevious = if (detail.index > 0) ({ navigation.openSource(detail.index - 1); Unit }) else null,
+                            onNext = if (detail.index < researchState.sources.lastIndex) ({ navigation.openSource(detail.index + 1); Unit }) else null,
                             original = researchState.attachments.firstOrNull {
                                 source.documentId == "attachment:${it.extracted?.id}"
                             }?.let { attachment -> attachment.originalFile?.let { file ->
@@ -295,7 +297,11 @@ fun FieldAtlasApp(
                         onDownloadKnowledge = onDownloadKnowledge,
                         onCancelKnowledgeDownload = onCancelKnowledgeDownload,
                     )
-                    PrimaryDestination.History -> HistoryScreen(historyRecords)
+                    PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question ->
+                        onAskAnotherQuestion()
+                        onQuestionChange(question)
+                        navigation.select(PrimaryDestination.Research)
+                    })
                     PrimaryDestination.More -> MoreScreen(
                         diagnosticsText = diagnosticsText,
                         onClearDiagnostics = onClearDiagnostics,

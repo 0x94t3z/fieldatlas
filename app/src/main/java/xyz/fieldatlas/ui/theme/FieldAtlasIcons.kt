@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.theme
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,7 +25,8 @@ object FieldAtlasIcons {
     val Photo by icon("Photo", "M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h16V5H4zm3.5 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-2 9 4-4 2.5 2.5 3.5-4.5 4.5 6H5.5z")
     val Check by icon("Check", "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z")
     val Citation by icon("Citation", "M7.5 6A3.5 3.5 0 0 0 4 9.5V14a3 3 0 0 0 3 3h3v-6H6V9.5C6 8.67 6.67 8 7.5 8H10V6H7.5zm9 0A3.5 3.5 0 0 0 13 9.5V14a3 3 0 0 0 3 3h3v-6h-4V9.5c0-.83.67-1.5 1.5-1.5H19V6h-2.5z")
-    val Offline by icon("Offline", "M3 4.3 4.3 3 21 19.7 19.7 21l-2.4-2.4A7.98 7.98 0 0 1 12 20a8 8 0 0 1-8-8c0-1.8.6-3.46 1.6-4.78L3 4.3zm4.06 5.05A5.96 5.96 0 0 0 6 12a6 6 0 0 0 9.82 4.61L7.06 9.35zM12 4c1.8 0 3.46.6 4.78 1.6L15.32 7.06A5.96 5.96 0 0 0 12 6c-.55 0-1.08.07-1.58.22L8.86 4.66A8.1 8.1 0 0 1 12 4z")
+    // A crossed-out wifi reads as "no connection" at a glance; the earlier glyph did not.
+    val Offline: ImageVector get() = Icons.Outlined.WifiOff
     val Model by icon("Model", "M12 2 2 7v10l10 5 10-5V7L12 2zm0 2.24L19.76 8 12 11.88 4.24 8 12 4.24zM4 9.62l7 3.5v6.26l-7-3.5V9.62zm9 9.76v-6.26l7-3.5v6.26l-7 3.5z")
     val Archive by icon("Archive", "M4 4h16v4H4V4zm1 6h14v10H5V10zm3 2v2h8v-2H8z")
     val Knowledge by icon("Knowledge", "M20.5 3.5C12 3.4 5 6 3.5 12.5 2.6 16.4 5.2 20 9 20c7.6 0 11.7-9.5 11.5-16.5zM9 18c-2.7 0-4.1-2.1-3.5-4.8C6.6 8.9 11.5 6.2 18 5.6c-1 6.4-4.2 12.4-9 12.4zm-.8-1.5c3-4.1 5.6-6.1 8.4-7.8-4.3 1.1-7.6 3.7-10 7.2l1.6.6z")

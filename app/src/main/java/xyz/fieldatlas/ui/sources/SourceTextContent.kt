@@ -42,8 +42,35 @@ internal fun formattedSourceJson(text: String): String? {
     return formatted.takeIf { runCatching { Json.parseToJsonElement(text) }.isSuccess }
 }
 
+private val fieldLine = Regex("^([A-Z][A-Za-z /&'()-]{0,39}):\\s+(\\S.*)$")
+
+/**
+ * Pack excerpts built from structured data (travel listings, map places) are "Label: value"
+ * lines. Shown as a two-column table they scan far faster; any other text returns null and is
+ * shown as written. Copy still uses the original text.
+ */
+internal fun structuredSourceFields(text: String): List<Pair<String, String>>? {
+    val lines = text.lines().map(String::trim).filter(String::isNotEmpty)
+    if (lines.size < 3) return null
+    val fields = lines.map { line -> fieldLine.matchEntire(line)?.let { it.groupValues[1] to it.groupValues[2] } ?: return null }
+    return fields
+}
+
 @Composable
 internal fun SourceTextContent(text: String, language: String?, recognizedText: Boolean = false) {
+    val fields = remember(text, language, recognizedText) {
+        if (language == null && !recognizedText) structuredSourceFields(text) else null
+    }
+    if (fields != null) {
+        SelectionContainer {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                fields.forEach { (label, value) ->
+                    xyz.fieldatlas.ui.theme.FieldAtlasFactRow(label, value, emphasized = label == "Place")
+                }
+            }
+        }
+        return
+    }
     if (language == null) {
         var rawOcr by rememberSaveable(text) { mutableStateOf(false) }
         val readable = remember(text) { text.replace("\r\n", "\n").replace(Regex("\n[ \\t]*\n+"), "\n").trim() }

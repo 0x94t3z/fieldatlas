@@ -28,6 +28,18 @@ class FieldAtlasThemeTest {
         assertTrue(colors.primary.green > colors.primary.blue)
     }
 
+    @Test
+    fun containerSurfacesStayOnThePaperPalette() {
+        // Dialogs, menus and switch tracks read these; baseline Material values are lavender.
+        for (dark in listOf(false, true)) {
+            val colors = fieldAtlasColorScheme(dark)
+            listOf(colors.surfaceContainerLowest, colors.surfaceContainerLow, colors.surfaceContainer,
+                colors.surfaceContainerHigh, colors.surfaceContainerHighest, colors.tertiaryContainer).forEach {
+                assertTrue("$it leans purple", it.blue <= it.green + 0.01f)
+            }
+        }
+    }
+
     private fun contrastRatio(first: Color, second: Color): Float {
         val lighter = maxOf(first.luminance(), second.luminance())
         val darker = minOf(first.luminance(), second.luminance())

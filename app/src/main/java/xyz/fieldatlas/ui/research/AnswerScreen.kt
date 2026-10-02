@@ -47,6 +47,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
+import xyz.fieldatlas.ui.theme.FieldAtlasDisclosureRow
+import xyz.fieldatlas.ui.theme.FieldAtlasFactRow
 
 @Composable
 fun AnswerScreen(
@@ -101,22 +103,26 @@ fun AnswerScreen(
                             style = MaterialTheme.typography.headlineMedium,
                         )
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
-                                text = when (citedSourceGroups.size) {
-                                    0 -> if (isInputNotice) "Research notice · no model generation"
-                                        else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
-                                        else "Model-generated · sources not cited"
-                                    1 -> "1 cited local source"
-                                    else -> "${citedSourceGroups.size} cited local sources"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.align(Alignment.CenterVertically),
-                            )
-                            FieldAtlasStatusPill("Offline", StatusTone.Positive)
+                            val cited = citedSourceGroups.size
+                            if (cited > 0) {
+                                FieldAtlasStatusPill(
+                                    if (cited == 1) "1 cited local source" else "$cited cited local sources",
+                                    StatusTone.Positive,
+                                    icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Check,
+                                )
+                            } else {
+                                FieldAtlasStatusPill(
+                                    if (isInputNotice) "Research notice · no model generation"
+                                    else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
+                                    else "Model-generated · sources not cited",
+                                    StatusTone.Attention,
+                                )
+                            }
+                            FieldAtlasStatusPill("Offline", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Offline)
+                            state.metrics?.totalMillis?.let { FieldAtlasStatusPill(formatResearchElapsed(it)) }
                         }
                     }
                 }
@@ -229,25 +235,16 @@ fun AnswerScreen(
                                 if (showPerformance) {
                                     Column(
                                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp),
                                     ) {
                                         state.keywords.takeIf(List<String>::isNotEmpty)?.let { keywords ->
-                                            Text(
-                                                "Searched for: ${keywords.joinToString(", ")}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
+                                            FieldAtlasFactRow("Searched for", keywords.joinToString(", "))
                                         }
-                                        Text("Retrieval ${model.retrieval}", style = MaterialTheme.typography.bodySmall)
-                                        model.firstToken?.let {
-                                            Text("First word $it", style = MaterialTheme.typography.bodySmall)
-                                        }
-                                        Text(
-                                            "Total ${model.total} · ${model.tokenCount}",
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
-                                        model.tokenRate?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                                        Text(model.citationCoverage, style = MaterialTheme.typography.bodySmall)
+                                        FieldAtlasFactRow("Retrieval", model.retrieval)
+                                        model.firstToken?.let { FieldAtlasFactRow("First word", it) }
+                                        FieldAtlasFactRow("Total", "${model.total} · ${model.tokenCount}")
+                                        model.tokenRate?.let { FieldAtlasFactRow("Speed", it) }
+                                        FieldAtlasFactRow("Citations", model.citationCoverage)
                                         if (model.hasUnmappedCitation) {
                                             // Diagnostic, not a user error: the app already removed the
                                             // reference, so it reads as information rather than failure.
@@ -297,11 +294,7 @@ private fun SavedPassagePreview(evidence: Evidence, index: Int, onCitation: (Int
 
 @Composable
 private fun AnswerSectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-    )
+    xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel(text, Modifier.padding(top = 4.dp))
 }
 
 @Composable
@@ -392,29 +385,7 @@ private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Un
 
 @Composable
 private fun AnswerDisclosureContent(label: String, expanded: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        if (expanded) {
-            Text("−", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        } else {
-            Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-        }
-    }
+    FieldAtlasDisclosureRow(label, expanded, onClick)
 }
 
 private data class AnswerSourceGroup(
