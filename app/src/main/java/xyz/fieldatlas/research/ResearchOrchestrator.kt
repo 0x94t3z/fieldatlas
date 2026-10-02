@@ -98,8 +98,9 @@ class ResearchOrchestrator(
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
             val includeLibrary = attachments.isEmpty() || AttachmentScope.includesLibrary(question)
+            val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
-                retriever.searchForQuestion(question, question, candidateLimit) { progress ->
+                retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
                     _searchProgress.value = progress.fraction
                     _vectorMatches.value = progress.vectorMatches
                 },
@@ -152,7 +153,7 @@ class ResearchOrchestrator(
             // more precise keyword pass puts them in front of the general matches.
             if (attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
                 val focused = EvidenceRelevance.keep(
-                    retriever.searchForQuestion(query, question, candidateLimit) { progress ->
+                    retriever.searchForQuestion(query, question, candidateLimit, placesOnly = true) { progress ->
                         _searchProgress.value = progress.fraction
                     },
                     questionTerms,

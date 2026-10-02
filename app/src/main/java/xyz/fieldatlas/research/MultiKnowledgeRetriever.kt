@@ -4,7 +4,14 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.cancellation.CancellationException
 import xyz.fieldatlas.assets.PackEmbedding
 import xyz.fieldatlas.assets.PackDiscovery
 
@@ -40,6 +47,8 @@ class MultiKnowledgeRetriever(
     private val embedForPack: suspend (PackEmbedding, String) -> FloatArray? = { _, text -> embed(text) },
 ) : Retriever {
     private val opened = ConcurrentHashMap<String, KnowledgeDatabase>()
+    /** Packs are searched in parallel; the query encoder is one model and runs one call at a time. */
+    private val embedLock = Mutex()
 
     override fun hasEligiblePacks(query: String): Boolean {
         return shouldSearchPack(query) && databaseFiles().isNotEmpty()
@@ -56,36 +65,61 @@ class MultiKnowledgeRetriever(
         question: String,
         limit: Int,
         onProgress: suspend (SearchProgress) -> Unit,
+        placesOnly: Boolean = false,
     ): List<Evidence> = withContext(ioDispatcher) {
         require(limit in 1..50) { "Evidence limit must be between 1 and 50" }
         if (FtsQuery.from(query) == null) return@withContext emptyList()
-        val files = databaseFiles()
+        val allFiles = databaseFiles()
         val embeddings = runCatching(packEmbeddings).getOrDefault(emptyList())
         val discoveries = runCatching(packDiscoveries).getOrDefault(emptyList())
-        val total = files.size.coerceAtLeast(1)
-        var vectorMatches = 0
-        val runs = files.mapIndexed { index, file ->
-            val discovery = discoveries.getOrNull(index)
-            runCatching {
-                val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                val keyword = FtsRetriever(database).search(query, limit) { inner ->
-                    onProgress(SearchProgress((index + inner.fraction.coerceIn(0.0, 1.0)) / total, vectorMatches))
-                }
-                val embedding = embeddings.getOrNull(index)
-                    ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
-                val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
-                vectorMatches += hits
-                run
-            }.getOrElse { error ->
-                if (error is OutOfMemoryError) throw error
-                opened.remove(file.absolutePath)?.close()
-                onProgress(SearchProgress((index + 1.0) / total, vectorMatches))
-                emptyList()
-            }
+        // A place lookup gains nothing from reference or science packs, and those are the large
+        // ones. Without any place pack installed, every pack is still searched.
+        val indices = allFiles.indices.toList().let { all ->
+            if (!placesOnly) all else all.filter { index -> openOrNull(allFiles[index])?.isPlaceListing() == true }.ifEmpty { all }
         }
-        onProgress(SearchProgress(1.0, vectorMatches))
+        val total = indices.size.coerceAtLeast(1)
+        val vectorMatches = AtomicInteger(0)
+        val fractions = DoubleArray(indices.size)
+        val progressLock = Mutex()
+        var reported = 0.0
+        // Each pack is its own SQLite file, so packs are searched concurrently; progress stays
+        // monotonic because only an increase over the last reported fraction is forwarded.
+        suspend fun report(slot: Int, fraction: Double) = progressLock.withLock {
+            fractions[slot] = maxOf(fractions[slot], fraction.coerceIn(0.0, 1.0))
+            val overall = fractions.sum() / total
+            if (overall > reported) { reported = overall; onProgress(SearchProgress(overall, vectorMatches.get())) }
+        }
+        val runs = coroutineScope {
+            indices.mapIndexed { slot, index ->
+                async {
+                    val file = allFiles[index]
+                    val discovery = discoveries.getOrNull(index)
+                    runCatching {
+                        val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                        val keyword = FtsRetriever(database).search(query, limit) { inner -> report(slot, inner.fraction) }
+                        val embedding = embeddings.getOrNull(index)
+                            ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
+                        val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
+                        vectorMatches.addAndGet(hits)
+                        report(slot, 1.0)
+                        run
+                    }.getOrElse { error ->
+                        if (error is OutOfMemoryError) throw error
+                        if (error is CancellationException) throw error
+                        opened.remove(file.absolutePath)?.close()
+                        report(slot, 1.0)
+                        emptyList()
+                    }
+                }
+            }.awaitAll()
+        }
+        onProgress(SearchProgress(1.0, vectorMatches.get()))
         mergeRelevantEvidence(runs, query, question, limit)
     }
+
+    private fun openOrNull(file: File): KnowledgeDatabase? = runCatching {
+        opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+    }.getOrNull()
 
     override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int): List<NearbyPlace> =
         withContext(ioDispatcher) {
@@ -121,7 +155,7 @@ class MultiKnowledgeRetriever(
         limit: Int,
     ): Pair<List<Evidence>, Int> {
         if (embedding == null || !supportsVectorLayout(embedding) || !database.hasVectorTable()) return this to 0
-        val vector = runCatching { embedForPack(embedding, embedding.queryPrefix + query) }.getOrNull()
+        val vector = runCatching { embedLock.withLock { embedForPack(embedding, embedding.queryPrefix + query) } }.getOrNull()
             ?: return this to 0
         if (vector.size != embedding.dim) return this to 0
         val hits = database

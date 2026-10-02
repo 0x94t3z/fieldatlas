@@ -20,6 +20,9 @@ object VenueLookup {
         "bars", "bar",
     )
 
+    /** A request for places to go, answerable from place listings alone. */
+    fun isPlaceLookup(question: String) = isLookup(question)
+
     private fun isLookup(question: String) = venueWords.containsMatchIn(question) &&
         lookupWords.containsMatchIn(question) && !complexWords.containsMatchIn(question)
 

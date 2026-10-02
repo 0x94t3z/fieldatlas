@@ -20,9 +20,10 @@ suspend fun Retriever.searchForQuestion(
     query: String,
     question: String,
     limit: Int,
+    placesOnly: Boolean = false,
     onProgress: suspend (SearchProgress) -> Unit,
 ): List<Evidence> = if (this is MultiKnowledgeRetriever) {
-    searchForQuestion(query, question, limit, onProgress)
+    searchForQuestion(query, question, limit, onProgress, placesOnly)
 } else {
     search(query, limit, onProgress)
 }

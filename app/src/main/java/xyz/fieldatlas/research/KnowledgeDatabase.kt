@@ -182,6 +182,35 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
 
     @Volatile private var cachedHasPlacePoints: Boolean? = null
 
+    /**
+     * Whether this pack holds only place listings (Wikivoyage or OpenStreetMap places). Packs are
+     * built from one source each, so the first and last rows decide it in two rowid lookups.
+     */
+    fun isPlaceListing(): Boolean {
+        cachedIsPlaceListing?.let { return it }
+        val places = runCatching {
+            synchronized(database) {
+                database.prepare(
+                    "SELECT document_id FROM chunks_fts WHERE rowid IN " +
+                        "((SELECT min(rowid) FROM chunks_fts), (SELECT max(rowid) FROM chunks_fts))",
+                ).use { statement ->
+                    var rows = 0
+                    var allPlaces = true
+                    while (statement.step()) {
+                        rows++
+                        val id = statement.getText(0)
+                        if (!PLACE_PREFIXES.any(id::startsWith)) allPlaces = false
+                    }
+                    rows > 0 && allPlaces
+                }
+            }
+        }.getOrDefault(false)
+        cachedIsPlaceListing = places
+        return places
+    }
+
+    @Volatile private var cachedIsPlaceListing: Boolean? = null
+
     /** Cheap one-shot check for the optional vector table; cached for the handle's lifetime. */
     fun hasVectorTable(): Boolean {
         cachedHasVectors?.let { return it }
@@ -246,6 +275,8 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
 
     companion object {
         const val SCHEMA_VERSION = 1
+        /** Document id prefixes written by the place-pack builders. */
+        val PLACE_PREFIXES = listOf("wv-place-", "osm-place-")
         val EXPECTED_COLUMNS = listOf("chunk_id", "document_id", "title", "source", "text")
 
         // Same rows and order as ranking every match by (bm25, chunk_id), but bm25 needs only
