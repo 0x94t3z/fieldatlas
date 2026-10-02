@@ -10,6 +10,17 @@ acceptance criteria have been met. When it is published, this file replaces
   cafés and shops that OpenStreetMap tags as fully vegan or with vegan options,
   worldwide. City questions list fully vegan places first, with the address and
   each listing's check date. Map data © OpenStreetMap contributors (ODbL).
+- **Encyclopedia.** A new downloadable collection (316 MB) of 211,159 Simple English
+  Wikipedia articles from the December 2025 dump: every article's lead, with longer excerpts
+  for widely linked topics. Each passage links to the exact revision it came from.
+- **Travel guides.** A new downloadable collection (375 MB) of 25,330 Wikivoyage destination
+  guides (understand, get in, get around, eat, sleep, stay safe), alongside the existing
+  Travel places listings.
+- **Collections by category.** Library and setup group collections as Encyclopedia, Places,
+  Travel and Science.
+- **Named articles first.** Questions that name an article ("Who was Marie Curie?", "Tell me
+  about Japan's history") now lead with that article instead of a similarly named one, and
+  "What is the capital of Australia?"-style questions are no longer filtered to nothing.
 - **Near me.** Questions such as "vegan restaurants near me" use the phone's own
   location through Android's location service, without Google Play Services, and
   list matching places by distance (within 1, 3 and 10 km). Location permission is
@@ -56,3 +67,12 @@ APK SHA-256: added when the signed APK is built.
   `6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c`),
   `OVERPASS-LOCK.json`, `osm-vegan-overpass-cache-2026.10.02.tar.gz` (the raw
   Overpass responses, so anyone can rebuild the pack byte for byte) and `SHA256SUMS`.
+- Knowledge release `knowledge-simplewiki-2025.12.29`: `simplewiki-2025.12.29.fapack`
+  (SHA-256 `5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff`),
+  `SOURCE.json`, the build spool `simplewiki-20251229.spool.jsonl.gz` with its
+  `.meta.json` (Wikimedia removes dumps after a few weeks; the spool rebuilds the pack byte
+  for byte) and `SHA256SUMS`.
+- Knowledge release `knowledge-wikivoyage-guides-2025.12.29`:
+  `wikivoyage-guides-2025.12.29.fapack` (SHA-256
+  `2684b5b664aedb15aafb905a2dffccdd059dc589d10a382fdddec17c8bef60b2`), `SOURCE.json`, the
+  spool `enwikivoyage-20251229.spool.jsonl.gz` with its `.meta.json` and `SHA256SUMS`.

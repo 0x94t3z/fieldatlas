@@ -55,6 +55,21 @@ class KnowledgeCatalogTest {
         assertTrue(pack.url.endsWith("/knowledge-vegan-places-2026.10.02/osm-vegan-places-2026.10.02.fapack"))
     }
 
+    @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
+        val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
+        val encyclopedia = catalog.packs.single { it.id == "simplewiki" }
+        assertEquals(316_396_542L, encyclopedia.bytes)
+        assertEquals("5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff", encyclopedia.sha256)
+        assertEquals("Encyclopedia", encyclopedia.category)
+        assertTrue(encyclopedia.url.endsWith("/knowledge-simplewiki-2025.12.29/simplewiki-2025.12.29.fapack"))
+        val guides = catalog.packs.single { it.id == "wikivoyage-guides" }
+        assertEquals(374_600_710L, guides.bytes)
+        assertEquals("2684b5b664aedb15aafb905a2dffccdd059dc589d10a382fdddec17c8bef60b2", guides.sha256)
+        assertEquals("Travel", guides.category)
+        assertTrue(guides.url.endsWith("/knowledge-wikivoyage-guides-2025.12.29/wikivoyage-guides-2025.12.29.fapack"))
+        assertTrue(catalog.packs.all { it.category.isNotBlank() })
+    }
+
     @Test fun rejectsDuplicateAndInsecureEntries() {
         val valid = """{"id":"biology","version":"1","title":"Biology","description":"Notes","license":"CC0","bytes":100,"sha256":"${"a".repeat(64)}","url":"https://example.org/biology.fapack"}"""
         assertThrows(IllegalArgumentException::class.java) {

@@ -468,6 +468,55 @@ Tokyo" each returned six cited, fully vegan OpenStreetMap places in 15–17 s wi
 the model. "Best vegan restaurants near me" obtained a location fix and reported that no
 mapped place lies within 15 km of the test location.
 
+## Encyclopedia and travel guides from Wikimedia dumps (keyword-only builder)
+
+`tools/build_wikipedia_pack.py` builds keyword-searchable packs from Wikimedia CirrusSearch
+"content" dumps, which carry each page's plain text, lead section, redirects, incoming-link
+count and revision id. The same tool builds the Simple English encyclopedia and the
+Wikivoyage travel guides.
+
+- **Two steps:** `spool` streams the dump without saving it, records its SHA-256 and size,
+  and keeps each article's lead, up to eight redirects as aliases and, for articles with at
+  least 300 incoming links, up to 6,000 characters of body text. Disambiguation pages and
+  leads under 80 characters are skipped. `build` is offline and byte-reproducible from the
+  spool: it takes articles by incoming links, most linked first, until a text budget, and
+  writes an "Article — Overview" passage (the lead, then aliases in a separate paragraph)
+  and an "Article — Details" passage (the body excerpt). Each source links to the exact
+  dumped revision (`/w/index.php?oldid=…`).
+- **Template errors:** some dump text contains rendered Lua template failures. A failed
+  Japanese-name template at the start of a lead is replaced by the article title ("Sapporo is
+  the capital city of Hokkaidō"); other affected sentences are dropped. 4,628 Simple English
+  passages contained one before this repair.
+- **Licence:** CC BY-SA 4.0, with the revision link kept on every passage.
+- **Limits:** a snapshot, not live. Simple English articles are shorter than English
+  Wikipedia's. The full English Wikipedia dump (about 43 GB compressed) uses the same tool
+  but was not built here; the connection used for this work streamed Wikimedia dumps at
+  about 330 KB/s.
+
+**Simple English Wikipedia, local build, 2 October 2026.** Dump
+`simplewiki-20251229-cirrussearch-content.json.gz` (636,486,826 bytes, SHA-256
+`b0fbbcc3d5055c025b51ae86c91fe7deb9e93629794e48ce49c218e49136fe27`): 278,283 pages, 211,159
+articles kept, 245,100 passages. The `.fapack` (`simplewiki`, version `2025.12.29`) is
+316,396,542 bytes, SHA-256
+`5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff`. On desktop, with this pack installed alongside
+Biology, Vegan places, Travel places and Travel guides, the first keyword pass took 30–300 ms
+per question after the packs were open, and "What is photosynthesis?", "Tell me about Japan's
+history" and "Explain climate change" each led with the named article's overview.
+
+**Wikivoyage travel guides, local build, 2 October 2026.** Dump
+`enwikivoyage-20251229-cirrussearch-content.json.gz` (234,324,021 bytes, SHA-256
+`6c854abe7226ab1efb748ac672db91fb26f45d94b17e1e53f6a7e932fc6fb10a`): 33,845 pages, 25,330
+guides kept, 50,495 passages, built with `--copyright-page Wikivoyage:Copyleft`. The
+`.fapack` (`wikivoyage-guides`, version `2025.12.29`) is 374,600,710 bytes, SHA-256
+`2684b5b664aedb15aafb905a2dffccdd059dc589d10a382fdddec17c8bef60b2`. It complements the
+existing Travel places pack (one listing per venue) with each destination's prose guide.
+
+Both packs were rebuilt a second time from their spools and were byte-identical. Neither is
+published yet; the planned release tags are `knowledge-simplewiki-2025.12.29` and
+`knowledge-wikivoyage-guides-2025.12.29`, each carrying the `.fapack`, `SOURCE.json`, the
+spool and its `.meta.json` (Wikimedia keeps CirrusSearch dumps for only a few weeks), and
+`SHA256SUMS`. The in-app download catalog already lists both URLs.
+
 ## Wikipedia mini (keyword-only builder)
 
 `tools/wiki_mini_build.py` selects a bounded set of articles from a Wikipedia dump and creates a general-background `.fapack` with FTS5 search. It does not require generating embeddings. See the [tool instructions](tools/README.md#typical-flows). It is a builder, not a bundled or published pack; its actual size, content, phone performance, and answer quality must be checked on the resulting artifact before making coverage claims. The source text is CC BY-SA 4.0, with attribution retained per document.
