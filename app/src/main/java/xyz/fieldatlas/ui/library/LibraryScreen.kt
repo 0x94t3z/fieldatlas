@@ -35,9 +35,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.NoteAdd
-import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.assets.PackType
@@ -45,7 +46,6 @@ import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.presentation.formatAssetBytes
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
@@ -260,9 +260,7 @@ internal fun KnowledgeDownloadCard(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(FieldAtlasIcons.Document, size = 44.dp, tone = TileTone.Paper)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(pack.title, style = MaterialTheme.typography.titleMedium,
-                    fontFamily = FieldAtlasEditorial,
-                    fontWeight = FontWeight.SemiBold)
+                Text(pack.title, style = PackTitleStyle())
                 Text(
                     "${formatAssetBytes(pack.bytes)} · version ${pack.version}",
                     style = MaterialTheme.typography.bodySmall,
@@ -411,12 +409,7 @@ private fun AssetCard(
             FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone,
                 modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
             Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(
-                    model.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontFamily = FieldAtlasEditorial,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Text(model.title, style = PackTitleStyle())
                 Text(
                     "${model.size} · v${model.version}" + if (inactive) " · not used" else "",
                     style = MaterialTheme.typography.bodySmall,
@@ -444,8 +437,8 @@ private fun AssetCard(
                 // Deleting is rare, so it lives in the overflow menu rather than beside the toggle.
                 Box {
                     IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Outlined.MoreVert, contentDescription = "More options for ${model.title}",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(Icons.Outlined.MoreHoriz, contentDescription = "More options for ${model.title}",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                         DropdownMenuItem(
@@ -480,6 +473,10 @@ private fun AssetCard(
         )
     }
 }
+
+/** Pack names in the sans reading face, as in the design; serif stays for page headings. */
+@Composable
+private fun PackTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 22.sp)
 
 @Composable
 private fun AssetSurface(inGroup: Boolean, content: @Composable () -> Unit) {
