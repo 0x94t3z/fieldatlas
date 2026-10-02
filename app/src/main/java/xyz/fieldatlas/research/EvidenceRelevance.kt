@@ -227,7 +227,7 @@ object EvidenceRelevance {
     }
 
     private fun categoryMatches(item: Evidence, question: String?): Boolean {
-        if (question == null || !item.documentId.startsWith("wv-place-")) return true
+        if (question == null || !isStructuredPlace(item)) return true
         val wanted = buildSet {
             if (Regex("(?i)\\b(restaurants?|places? to eat|dining)\\b").containsMatchIn(question)) add("Eat")
             if (Regex("(?i)\\b(caf[eé]s?)\\b").containsMatchIn(question)) addAll(listOf("Eat", "Drink"))
@@ -261,8 +261,10 @@ object EvidenceRelevance {
     private fun destinationMatches(item: Evidence, question: String?): Boolean {
         if (question == null || !isTravelListing(item)) return true
         if (!Regex("(?i)\\b(in|near|around)\\s+\\p{L}").containsMatchIn(question)) return true
-        val firstLine = item.text.lineSequence().firstOrNull() ?: return true
-        if (!firstLine.startsWith("Destination: ")) return true
+        // An OpenStreetMap place with no resolvable destination cannot answer "in <city>".
+        val noDestination = !item.documentId.startsWith("osm-place-")
+        val firstLine = item.text.lineSequence().firstOrNull() ?: return noDestination
+        if (!firstLine.startsWith("Destination: ")) return noDestination
         val destination = firstLine.removePrefix("Destination: ").trim().takeIf(String::isNotEmpty)
             ?: return true
         // A district guide (e.g. London/Camden) is eligible for a city query; a
@@ -273,12 +275,14 @@ object EvidenceRelevance {
         }
     }
 
-    private fun isTravelListing(item: Evidence) =
-        item.documentId.startsWith("wv-eat-") || item.documentId.startsWith("wv-place-")
+    private fun isTravelListing(item: Evidence) = item.documentId.startsWith("wv-eat-") || isStructuredPlace(item)
+
+    /** Wikivoyage and OpenStreetMap places share the Destination/Category/Place layout. */
+    private fun isStructuredPlace(item: Evidence) =
+        item.documentId.startsWith("wv-place-") || item.documentId.startsWith("osm-place-")
 
     private fun isEatListing(item: Evidence) = item.documentId.startsWith("wv-eat-") ||
-        (item.documentId.startsWith("wv-place-") &&
-            item.text.lineSequence().any { it == "Category: Eat" })
+        (isStructuredPlace(item) && item.text.lineSequence().any { it == "Category: Eat" })
 
     private fun isRelevant(item: Evidence, questionTerms: List<String>, expandedTerms: List<String>): Boolean {
         // FTS prefix matches can lack an exact-term attribution. They still need the same

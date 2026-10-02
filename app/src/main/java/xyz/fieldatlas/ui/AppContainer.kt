@@ -300,7 +300,8 @@ class AppContainer(context: Context) {
         registry.remove(asset.id, asset.version)
         refreshPacks()
     }
-    private val researchOrchestrator = ResearchOrchestrator(retriever, inference)
+    val deviceLocation = xyz.fieldatlas.location.DeviceLocation(context.applicationContext)
+    private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current)
 
     val researchViewModelFactory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {

@@ -124,6 +124,64 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         }
     }
 
+    /**
+     * Places within a box around a point, from the optional rowid-aligned `place_points` table
+     * (OpenStreetMap packs). Distances are great-circle kilometres; callers sort and cut.
+     * A box crossing the antimeridian is searched as two longitude ranges.
+     */
+    internal fun nearbyPlaces(lat: Double, lon: Double, radiusKm: Double, limit: Int): List<NearbyPlace> {
+        if (!hasPlacePoints()) return emptyList()
+        val latDelta = radiusKm / 111.0
+        val lonDelta = radiusKm / (111.0 * kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
+        val west = lon - lonDelta
+        val east = lon + lonDelta
+        val wraps = west < -180.0 || east > 180.0
+        val westBound = if (west < -180.0) west + 360.0 else west
+        val eastBound = if (east > 180.0) east - 360.0 else east
+        val places = synchronized(database) {
+            database.prepare(if (wraps) NEARBY_WRAPPED_SQL else NEARBY_SQL).use { statement ->
+                statement.bindDouble(1, lat - latDelta)
+                statement.bindDouble(2, lat + latDelta)
+                statement.bindDouble(3, westBound)
+                statement.bindDouble(4, eastBound)
+                buildList {
+                    while (statement.step()) {
+                        val distance = GeoDistance.km(lat, lon, statement.getDouble(5), statement.getDouble(6))
+                        if (distance > radiusKm) continue
+                        add(NearbyPlace(
+                            Evidence(
+                                documentId = statement.getText(0),
+                                chunkId = statement.getText(1),
+                                title = statement.getText(2),
+                                source = statement.getText(3),
+                                text = statement.getText(4),
+                                score = distance,
+                                matchedBy = "within ${GeoDistance.label(distance)}",
+                            ),
+                            distance,
+                        ))
+                    }
+                }
+            }
+        }
+        return places.sortedWith(compareBy({ it.distanceKm }, { it.evidence.chunkId })).take(limit)
+    }
+
+    fun hasPlacePoints(): Boolean {
+        cachedHasPlacePoints?.let { return it }
+        val present = runCatching {
+            synchronized(database) {
+                database.prepare(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name = 'place_points'",
+                ).use { statement -> statement.step() }
+            }
+        }.getOrDefault(false)
+        cachedHasPlacePoints = present
+        return present
+    }
+
+    @Volatile private var cachedHasPlacePoints: Boolean? = null
+
     /** Cheap one-shot check for the optional vector table; cached for the handle's lifetime. */
     fun hasVectorTable(): Boolean {
         cachedHasVectors?.let { return it }
@@ -225,6 +283,13 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
             SELECT document_id, chunk_id, title, source, text, 0.0
             FROM chunks_fts
             WHERE rowid IN ("""
+
+        private const val NEARBY_COLUMNS = """
+            SELECT c.document_id, c.chunk_id, c.title, c.source, c.text, p.lat, p.lon
+            FROM place_points AS p JOIN chunks_fts AS c ON c.rowid = p.rowid
+            WHERE p.lat BETWEEN ?1 AND ?2 AND """
+        private const val NEARBY_SQL = NEARBY_COLUMNS + "p.lon BETWEEN ?3 AND ?4"
+        private const val NEARBY_WRAPPED_SQL = NEARBY_COLUMNS + "(p.lon >= ?3 OR p.lon <= ?4)"
 
         private const val VECTOR_EVIDENCE_SQL = """
             SELECT document_id, chunk_id, title, source, text, rowid

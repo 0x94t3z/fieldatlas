@@ -17,6 +17,7 @@ and deterministic: the same inputs always produce byte-identical packs.
 | `build_vector_pack.py` | fapack + embeddings TSV + encoder GGUF | vector-capable KNOWLEDGE pack (int8 `chunk_vectors` + embedded query encoder) |
 | `build_wikivoyage_eat_pack.py` | English Wikivoyage pages-articles XML dump | dated, individually searchable restaurant listings |
 | `build_wikivoyage_places_pack.py` | the same pinned English Wikivoyage dump | keyword-only See, Do, Eat, Drink, Sleep, and Buy listings |
+| `build_osm_vegan_pack.py` | Overpass API responses (archived with SHA-256) | worldwide OpenStreetMap places tagged fully vegan or with vegan options (ODbL) |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
 
 Paths follow the working-tree convention: `REPO` = the fieldatlas repository (holds
@@ -53,6 +54,12 @@ python3 tools/build_wikivoyage_places_pack.py \
   --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
   --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773
+
+# Vegan places from OpenStreetMap. fetch needs network and archives every raw response with
+# its SHA-256 in lock.json; build is offline and byte-reproducible from that cache.
+python3 tools/build_osm_vegan_pack.py fetch --cache-dir build/osm-vegan/cache
+python3 tools/build_osm_vegan_pack.py build --cache-dir build/osm-vegan/cache \
+  --out build/osm-vegan/pack --version 2026.10.02
 
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
 python3 tools/build_vector_pack.py \

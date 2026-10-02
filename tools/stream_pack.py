@@ -118,7 +118,7 @@ def _iter_chunks(index, path: Path, chunker=chunk_document):
 ALLOWED_TOKENIZERS = {"unicode61", "porter unicode61"}
 
 
-def _build_database_streaming(path: Path, rows, fts_tokenizer: str = "unicode61") -> None:
+def _build_database_streaming(path: Path, rows, fts_tokenizer: str = "unicode61", extend=None) -> None:
     if fts_tokenizer not in ALLOWED_TOKENIZERS:
         raise ValueError(f"unsupported FTS5 tokenizer: {fts_tokenizer!r}")
     database = sqlite3.connect(path)
@@ -148,6 +148,11 @@ def _build_database_streaming(path: Path, rows, fts_tokenizer: str = "unicode61"
                 batch,
             )
         database.commit()
+        if extend is not None:
+            # Auxiliary tables (rowid-aligned with chunks_fts) are added before VACUUM so
+            # the file layout, and therefore the pack hash, stays deterministic.
+            extend(database)
+            database.commit()
         database.execute("VACUUM")
         if database.execute("PRAGMA quick_check").fetchone() != ("ok",):
             raise RuntimeError("SQLite quick_check failed")
@@ -168,6 +173,7 @@ def build_pack_streaming(
     coverage_level: str | None = None,
     fts_tokenizer: str = "unicode61",
     chunker=chunk_document,
+    extend_database=None,
 ) -> BuildArtifacts:
     for name, value in (("pack_id", pack_id), ("version", version), ("title", title), ("license", license_id)):
         if not value.strip():
@@ -204,7 +210,8 @@ def build_pack_streaming(
     temporary = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
     try:
         database_path = temporary / "content.sqlite"
-        _build_database_streaming(database_path, _iter_chunks(index, input_path, chunker), fts_tokenizer)
+        _build_database_streaming(database_path, _iter_chunks(index, input_path, chunker), fts_tokenizer,
+                                  extend_database)
         database_size, database_hash = _digest(database_path)
         manifest = {
             "artifacts": [{"bytes": database_size, "path": "content.sqlite", "sha256": database_hash}],

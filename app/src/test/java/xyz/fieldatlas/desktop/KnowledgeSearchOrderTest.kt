@@ -13,6 +13,42 @@ import xyz.fieldatlas.research.KnowledgeDatabase
 class KnowledgeSearchOrderTest {
     @get:Rule val temp = TemporaryFolder()
 
+    @Test fun nearbyPlacesUseTheCoordinateTableAcrossTheAntimeridian() {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        val db = File(temp.root, "points.sqlite")
+        val places = listOf(
+            Triple("berlin-near", 52.5200, 13.4050), Triple("berlin-far", 52.6500, 13.4050),
+            Triple("potsdam", 52.3906, 13.0645), Triple("fiji-east", -16.50, 179.95), Triple("fiji-west", -16.50, -179.95),
+        )
+        BundledSQLiteDriver().open(db.path).use { sql ->
+            fun exec(text: String) { sql.prepare(text).use { it.step() } }
+            exec("PRAGMA user_version=1")
+            exec("CREATE VIRTUAL TABLE chunks_fts USING fts5(chunk_id UNINDEXED,document_id UNINDEXED,title,source UNINDEXED,text)")
+            exec("CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL)")
+            places.forEachIndexed { index, (id, lat, lon) ->
+                sql.prepare("INSERT INTO chunks_fts(rowid, chunk_id, document_id, title, source, text) VALUES(?,?,?,?,?,?)").use {
+                    it.bindLong(1, index + 1L); it.bindText(2, "$id:0000"); it.bindText(3, id); it.bindText(4, id)
+                    it.bindText(5, "https://example.org/$id"); it.bindText(6, "Place: $id"); it.step()
+                }
+                sql.prepare("INSERT INTO place_points(rowid, lat, lon) VALUES(?,?,?)").use {
+                    it.bindLong(1, index + 1L); it.bindDouble(2, lat); it.bindDouble(3, lon); it.step()
+                }
+            }
+        }
+        val database = KnowledgeDatabase.open(db)
+        try {
+            val berlin = database.nearbyPlaces(52.5200, 13.4050, 15.0, 10)
+            // berlin-far is 14.5 km north; Potsdam is ~25 km away and outside the radius.
+            assertEquals(listOf("berlin-near", "berlin-far"), berlin.map { it.evidence.documentId })
+            assertEquals(0.0, berlin.first().distanceKm, 0.001)
+            assertEquals(listOf("berlin-near"), database.nearbyPlaces(52.5200, 13.4050, 15.0, 1).map { it.evidence.documentId })
+            val fiji = database.nearbyPlaces(-16.50, 179.99, 15.0, 10).map { it.evidence.documentId }
+            assertEquals(listOf("fiji-east", "fiji-west"), fiji)
+        } finally {
+            database.close()
+        }
+    }
+
     @Test fun indexFirstSearchMatchesFullRowRankingIncludingTies() {
         assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
         val db = File(temp.root, "ties.sqlite")

@@ -87,6 +87,23 @@ class MultiKnowledgeRetriever(
         mergeRelevantEvidence(runs, query, question, limit)
     }
 
+    override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int): List<NearbyPlace> =
+        withContext(ioDispatcher) {
+            require(limit in 1..200) { "Nearby limit must be between 1 and 200" }
+            databaseFiles().flatMap { file ->
+                runCatching {
+                    opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                        .nearbyPlaces(point.lat, point.lon, radiusKm, limit)
+                }.getOrElse { error ->
+                    if (error is OutOfMemoryError) throw error
+                    opened.remove(file.absolutePath)?.close()
+                    emptyList()
+                }
+            }.distinctBy { Triple(it.evidence.documentId, it.evidence.chunkId, it.evidence.source) }
+                .sortedWith(compareBy({ it.distanceKm }, { it.evidence.chunkId }))
+                .take(limit)
+        }
+
     /**
      * Prepares semantic hits ahead of the keyword list for one pack. Vector evidence arrives
      * with POSITIVE cosine scores; the cross-pack merge shifts by raw scores assuming negative-

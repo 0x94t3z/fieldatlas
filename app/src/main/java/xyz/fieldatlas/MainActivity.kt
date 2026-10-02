@@ -83,6 +83,11 @@ class MainActivity : ComponentActivity() {
                 if (granted) researchViewModel.onMicClick()
                 else researchViewModel.onMicrophonePermissionDenied()
             }
+            // Asked only when a "near me" question is submitted. The question runs either way;
+            // without permission it answers with how to enable location or name a city.
+            val locationPermissionLauncher = rememberLauncherForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions(),
+            ) { researchViewModel.submit() }
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
             val showBenchmark by benchmarkVisible
             LaunchedEffect(inferenceState) {
@@ -213,7 +218,18 @@ class MainActivity : ComponentActivity() {
                 onDownloadKnowledge = setupViewModel::downloadKnowledge,
                 onCancelKnowledgeDownload = setupViewModel::cancelKnowledgeDownload,
                 onQuestionChange = researchViewModel::updateQuestion,
-                onSubmit = researchViewModel::submit,
+                onSubmit = {
+                    if (xyz.fieldatlas.research.VenueLookup.isNearMe(researchState.question) &&
+                        !container.deviceLocation.hasPermission()
+                    ) {
+                        locationPermissionLauncher.launch(arrayOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ))
+                    } else {
+                        researchViewModel.submit()
+                    }
+                },
                 voiceState = voiceState,
                 onMicClick = {
                     if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO)

@@ -14,6 +14,8 @@ class ResearchOrchestrator(
     private val retriever: Retriever,
     private val inference: InferenceGateway,
     private val monotonicMillis: () -> Long = { System.nanoTime() / 1_000_000L },
+    /** The phone's position for "near me" questions only; null when unavailable or not allowed. */
+    private val location: suspend () -> GeoPoint? = { null },
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -63,6 +65,28 @@ class ResearchOrchestrator(
                     totalMillis = elapsed(startedAt, monotonicMillis()),
                     generatedTokenCount = 0,
                     citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
+            if (attachments.isEmpty() && VenueLookup.isNearMe(question)) {
+                emit(ResearchEvent.Searching(question))
+                val point = runCatching { location() }.getOrNull()
+                val result = if (point == null) null else VenueLookup.nearbyAnswer(
+                    question,
+                    retriever.nearby(point, NEARBY_RADIUS_KM, NEARBY_CANDIDATES),
+                    NEARBY_RADIUS_KM,
+                )
+                _searchProgress.value = 1.0
+                val retrievedAt = monotonicMillis()
+                result?.sources?.takeIf { it.isNotEmpty() }?.let { emit(ResearchEvent.Sources(it)) }
+                emit(ResearchEvent.Token(result?.answer ?: VenueLookup.LOCATION_UNAVAILABLE))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, retrievedAt),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = result?.sources.orEmpty().indices.map { "S${it + 1}" }.toSet(),
                     hasUnmappedCitation = false,
                 )))
                 return@flow
@@ -123,6 +147,18 @@ class ResearchOrchestrator(
                         question,
                     ).take(resultLimit)
                 }
+            }
+            // Fully vegan places can be a small minority of a city's vegan-tagged listings; one
+            // more precise keyword pass puts them in front of the general matches.
+            if (attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
+                val focused = EvidenceRelevance.keep(
+                    retriever.searchForQuestion(query, question, candidateLimit) { progress ->
+                        _searchProgress.value = progress.fraction
+                    },
+                    questionTerms,
+                    question = question,
+                )
+                evidence = (focused + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
             val retrievalFinishedAt = monotonicMillis()
             (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
@@ -243,5 +279,8 @@ class ResearchOrchestrator(
 
     private companion object {
         const val KEYWORD_SEED = 17
+        /** City scale: "the city I'm in" and "near me" both fit; the answer states distances. */
+        const val NEARBY_RADIUS_KM = 15.0
+        const val NEARBY_CANDIDATES = 200
     }
 }
