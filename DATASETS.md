@@ -497,8 +497,8 @@ Wikivoyage travel guides.
 `simplewiki-20251229-cirrussearch-content.json.gz` (636,486,826 bytes, SHA-256
 `b0fbbcc3d5055c025b51ae86c91fe7deb9e93629794e48ce49c218e49136fe27`): 278,283 pages, 211,159
 articles kept, 245,100 passages. The `.fapack` (`simplewiki`, version `2025.12.29`) is
-316,396,542 bytes, SHA-256
-`5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff`. On desktop, with this pack installed alongside
+316,396,538 bytes, SHA-256
+`add1984a60ff3cfd2298668e7e40b061a8581aeb24023edf3bf5370eef39a82a`. On desktop, with this pack installed alongside
 Biology, Vegan places, Travel places and Travel guides, the first keyword pass took 30–300 ms
 per question after the packs were open, and "What is photosynthesis?", "Tell me about Japan's
 history" and "Explain climate change" each led with the named article's overview.

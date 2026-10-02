@@ -7,8 +7,8 @@
       "title": "Encyclopedia",
       "description": "211,159 Simple English Wikipedia articles: the lead of every topic, longer excerpts for major ones · December 2025 snapshot.",
       "license": "CC-BY-SA-4.0",
-      "bytes": 316396542,
-      "sha256": "5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff",
+      "bytes": 316396538,
+      "sha256": "add1984a60ff3cfd2298668e7e40b061a8581aeb24023edf3bf5370eef39a82a",
       "url": "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-simplewiki-2025.12.29/simplewiki-2025.12.29.fapack",
       "recommended": true,
       "category": "Encyclopedia"

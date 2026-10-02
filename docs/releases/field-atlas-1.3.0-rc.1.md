@@ -68,7 +68,7 @@ APK SHA-256: added when the signed APK is built.
   `OVERPASS-LOCK.json`, `osm-vegan-overpass-cache-2026.10.02.tar.gz` (the raw
   Overpass responses, so anyone can rebuild the pack byte for byte) and `SHA256SUMS`.
 - Knowledge release `knowledge-simplewiki-2025.12.29`: `simplewiki-2025.12.29.fapack`
-  (SHA-256 `5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff`),
+  (SHA-256 `add1984a60ff3cfd2298668e7e40b061a8581aeb24023edf3bf5370eef39a82a`),
   `SOURCE.json`, the build spool `simplewiki-20251229.spool.jsonl.gz` with its
   `.meta.json` (Wikimedia removes dumps after a few weeks; the spool rebuilds the pack byte
   for byte) and `SHA256SUMS`.

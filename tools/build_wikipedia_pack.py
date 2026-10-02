@@ -259,7 +259,7 @@ def main() -> int:
     b.add_argument("--example", action="append", default=None, help="example question (repeatable)")
     args = parser.parse_args()
     if args.command == "build" and not args.example:
-        args.example = ["Tell me about Japan's history", "What is photosynthesis?", "Compare a virus and a bacterium"]
+        args.example = ["Tell me about Japan's history", "What is photosynthesis?", "Compare mitosis and meiosis"]
     return spool(args) if args.command == "spool" else build(args)
 
 

@@ -58,8 +58,8 @@ class KnowledgeCatalogTest {
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val encyclopedia = catalog.packs.single { it.id == "simplewiki" }
-        assertEquals(316_396_542L, encyclopedia.bytes)
-        assertEquals("5360e42b3d08abb7edb8003015910b2520ccb4b692864e2110469dfc32794eff", encyclopedia.sha256)
+        assertEquals(316_396_538L, encyclopedia.bytes)
+        assertEquals("add1984a60ff3cfd2298668e7e40b061a8581aeb24023edf3bf5370eef39a82a", encyclopedia.sha256)
         assertEquals("Encyclopedia", encyclopedia.category)
         assertTrue(encyclopedia.url.endsWith("/knowledge-simplewiki-2025.12.29/simplewiki-2025.12.29.fapack"))
         val guides = catalog.packs.single { it.id == "wikivoyage-guides" }
