@@ -46,9 +46,7 @@ Watch the **52-second Field Atlas v1.2.0 film**: an animated walkthrough of the 
 
 [Watch or download the v1.2.0 demo (MP4, 57 MB)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4).
 
-The [original 47-second Infinix recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4) is retained as historical evidence, not the current release demo.
-
-More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available. These recordings are historical evidence, not a benchmark of 1.2.0.
+On a real phone: an [unedited 35-second recording of v1.2.0](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4) on a 4 GB Infinix X6840 with airplane mode on. “Best vegan restaurants in Berlin” returns six cited fully vegan places in 10 seconds, and a tap opens the saved listing. [Recording details](docs/evidence/physical/infinix-x6840-android16/README.md#v120-offline-berlin-run-3-october-2026).
 
 ## Get started
 

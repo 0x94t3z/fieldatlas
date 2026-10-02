@@ -2,6 +2,19 @@
 
 Initial capture was made on 2026-09-22 from a USB-paired Infinix SMART 20 / X6840 running Android 16 (API 36), ARM64, with follow-up multi-query evidence captured on 2026-09-23. On 2026-09-26, the signed 1.2.0 integration build was installed over the existing app and tested with the preserved local assets. The device reported `Infinix X6840`. This build is not tagged or published as a GitHub release.
 
+## v1.2.0 offline Berlin run (3 October 2026)
+
+[`field-atlas-1.2.0-offline-berlin.mp4`](field-atlas-1.2.0-offline-berlin.mp4) is an unedited
+35-second screen recording from this phone. Quick Settings shows airplane mode on and Wi-Fi off.
+The Berlin example is asked, the research tracker runs, and the answer lists six cited fully vegan
+places from the Vegan places collection in 10 seconds. Opening Daizu shows its saved OpenStreetMap
+listing with address, check date and coordinates, plus Copy address and Open in a maps app.
+
+The app was version 1.2.0 (15), built from the same app source as the `v1.2.0` tag but signed with
+the local test key, because the public-key APK cannot update a test-key installation without
+removing app data. Model: Qwen3.5 2B; five collections installed. This place lookup does not run
+the model, so the 10 seconds measures search, not generation.
+
 ## Reviewed 1.2.0 artifact (historical)
 
 - Signed integration APK: 93,528,063 bytes (`1.2.0`, `versionCode` 14).
