@@ -145,12 +145,27 @@ class OsmVeganPackTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             osm.documents(self.cache)
 
+    def test_settlements_without_coordinates_stop_the_build(self):
+        # Overpass "out tags;" returns nodes without lat/lon; the build must not silently
+        # fall back to address tags for every place.
+        stripped = [{k: v for k, v in p.items() if k not in ("lat", "lon")} for p in PLACES]
+        cache = write_cache(self.root / "untagged", {
+            "place-city/world": ("place-city", [p for p in stripped if p["tags"]["place"] == "city"]),
+            "place-town/world": ("place-town", [p for p in stripped if p["tags"]["place"] == "town"]),
+            "vegan-only/a": ("vegan-only", VEGAN),
+            "vegan-yes/world": ("vegan-yes", []),
+            "vegan-limited/world": ("vegan-limited", []),
+            "cuisine-vegan/world": ("cuisine-vegan", []),
+        })
+        with self.assertRaises(SystemExit):
+            osm.documents(cache)
+
     def test_queries_use_exact_tag_values_at_the_pinned_date(self):
         query = osm.QUERIES["vegan-only"](DATE, osm.WORLD, 900)
         self.assertEqual('[out:json][timeout:900][date:"2026-09-28T00:00:00Z"];'
                          'nwr["diet:vegan"="only"](-90.0,-180.0,90.0,180.0);out center tags;', query)
         self.assertNotIn("~", "".join(q(DATE, osm.WORLD, 900) for q in osm.QUERIES.values()))
-        self.assertEqual('[out:json][timeout:900];node["place"="town"]["name"](-90.0,-180.0,90.0,180.0);out tags;',
+        self.assertEqual('[out:json][timeout:900];node["place"="town"]["name"](-90.0,-180.0,90.0,180.0);out;',
                          osm.QUERIES["place-town"](None, osm.WORLD, 900))
 
     def test_unpinned_snapshot_uses_the_newest_overpass_timestamp(self):

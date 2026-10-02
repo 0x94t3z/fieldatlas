@@ -376,6 +376,7 @@ A **knowledge pack** is a saved collection the app can search when answering. It
 | Biology vector pack | Biology and longevity passages | No; import separately | Not general or travel coverage. |
 | Wikivoyage places to eat | Dated restaurant listings from a 2026 dump | No; build and import separately | Listings and opening details can be stale. |
 | Wikivoyage places | Dated See, Do, Eat, Drink, Sleep, and Buy listings | No; download separately | Wider travel scope, still not a current recommendation service. |
+| Vegan places (OpenStreetMap) | Restaurants, cafés, and shops tagged fully vegan or with vegan options, worldwide | No; build and import separately | Tags and hours can be stale; no ratings or “best” ranking. |
 | Wikipedia mini (keyword search) | General background from selected articles | No; build and import separately | Snapshot coverage; no live or private facts. |
 | Historical Reference and Starter fixtures | Small sets used to reproduce older tests | No longer the current built-in knowledge | Not a broad encyclopedia. |
 
@@ -408,6 +409,64 @@ The verified local build contains 79,566 listings in a 55,047,040-byte `.fapack`
 `tools/build_wikivoyage_places_pack.py` uses the same pinned English Wikivoyage dump and extracts six listing types: See, Do, Eat, Drink, Sleep, and Buy. Each place keeps its destination, category, address or directions, description, available hours and price, coordinates when supplied, listing check date when supplied, page revision date, and source permalink. The resulting `.fapack` uses FTS5 keyword search—**no embedding or vector build is required**. The app has a fast, source-only path for simple restaurant, café, museum, hotel, bar, and shop lookups; complex questions still use the normal research path.
 
 The [Travel places download](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-travel-2026.09.1) contains 401,826 listings and 405,849 searchable chunks in a 351,581,170-byte `.fapack` (SHA-256 `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac`). Download it and import it from Library. The local app catalog also includes its download URL; that Android update is not published yet. Pack verification passed, and earlier offline Infinix checks returned cited café listings for Chiang Mai and museum listings for Berlin. These checks do not establish broad answer quality. The [build command](tools/README.md#typical-flows) and source dump hash above make it reproducible. Listings cannot establish current opening, quality, or a present-day “best” ranking. The collection includes restaurant listings, so the overlapping Eat-only pack is unnecessary for most users.
+
+## Vegan places from OpenStreetMap (keyword-only builder)
+
+`tools/build_osm_vegan_pack.py` builds one searchable listing per OpenStreetMap place tagged
+`diet:vegan=only` (fully vegan), `diet:vegan=yes` (vegan options), `diet:vegan=limited`, or
+`cuisine=vegan`. It exists because Wikivoyage covers few vegan venues (four Berlin listings,
+one in Tokyo), while OpenStreetMap records about 2,000 vegan-tagged places in the Berlin area alone.
+
+- **Source and licence:** OpenStreetMap data via the Overpass API, © OpenStreetMap
+  contributors, [ODbL 1.0](https://www.openstreetmap.org/copyright). Every listing and the
+  app's answer carry this attribution. The pack is a derived database under the same licence.
+- **What a listing contains:** destination, category (Eat, Drink, Buy), name (English name
+  when tagged, with the local name), vegan label, cuisine, address, hours as tagged,
+  coordinates, the mapper's `check_date` when present, the data snapshot date, and a link to
+  the OpenStreetMap element.
+- **Destination:** the most populous city of at least 100,000 people within 30 km, else the
+  nearest city or town within 20 km, else the tagged address city. Settlements come from
+  OpenStreetMap `place=city`/`place=town` nodes fetched in the same run. Places with no
+  destination are kept for keyword search but never answer "in <city>" questions.
+- **Reproducibility:** `fetch` runs six exact-tag Overpass queries and stores every raw
+  response with its SHA-256, query and Overpass `timestamp_osm_base` in `lock.json`. `build`
+  is offline and byte-reproducible from that cache, and copies the lock into the pack output as
+  `OVERPASS-LOCK.json`. Each response also records the Overpass endpoint it came from. Publishing
+  the cache with the pack lets anyone rebuild it exactly;
+  re-running `fetch` later gives newer data. `--date` requests date-pinned (attic) queries, but
+  on the public server a worldwide attic query timed out after 900 s, against 81 s for current
+  data.
+- **Near me:** the pack adds a `place_points` table (latitude/longitude per search row). For
+  "near me", "nearby" or "the city I'm in" questions, the app reads the phone's location from
+  Android's `LocationManager` (GPS works offline and without Google Play Services), lists the
+  nearest matching places within 15 km with straight-line distances, and keeps the location on
+  the phone. Location permission is requested only when such a question is asked; without it,
+  the app says how to enable location or name a city instead of guessing.
+- **`cuisine=vegan`:** queried for completeness but returned no elements; OpenStreetMap tags
+  vegan venues with `diet:vegan=only`.
+- **Limits:** tags record what mappers entered and when; they cannot establish current opening,
+  menus, prices, quality, or a "best" ranking. The app lists fully vegan places first and states
+  each listing's check date or that none was recorded.
+
+**Local build, 2 October 2026.** 52,064 places: 3,715 fully vegan, 47,056 with vegan
+options, 1,293 limited; 48,270 Eat, 1,369 Drink, 2,425 Buy. 350 places have no destination.
+Examples: Berlin 2,058, London 1,486, Paris 762, New York 690, Tokyo 183, Bangkok 123,
+Singapore 102, Chiang Mai 85. The `.fapack` is 40,088,517 bytes, SHA-256
+`6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c`, version `2026.10.02`;
+two builds from the same cache were byte-identical. The cache is 88 MB of raw Overpass JSON.
+Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
+`2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
+the main server refused further connections). This build is not published yet.
+
+An earlier build of the same day fetched settlements with `out tags;`, which omits node
+coordinates, so every place fell back to its address city and Tokyo had no listings. The
+settlement queries now use `out;`, a changed query invalidates its cached response, and the
+build stops if settlements arrive without coordinates.
+
+On the Infinix X6840 (offline), "Tell me the best vegan restaurants in Berlin" and "…in
+Tokyo" each returned six cited, fully vegan OpenStreetMap places in 15–17 s without running
+the model. "Best vegan restaurants near me" obtained a location fix and reported that no
+mapped place lies within 15 km of the test location.
 
 ## Wikipedia mini (keyword-only builder)
 

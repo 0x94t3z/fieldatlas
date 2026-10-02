@@ -2,6 +2,30 @@
 
 Updated 29 September 2026. **Owner approved a public prerelease, not a stable-readiness claim.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
+## October 2 OpenStreetMap vegan places and UI refresh — not released
+
+Vitalik's test question ("best vegan restaurants in [city I am currently in]") had little
+offline coverage: Wikivoyage lists four vegan venues in Berlin and one in Tokyo. A new
+keyword pack built from OpenStreetMap `diet:vegan` tags holds 52,064 places worldwide
+(details and hashes in [DATASETS.md](../../DATASETS.md)). City questions list fully vegan
+places first with addresses and check dates; "near me" questions use the phone's own
+location through Android `LocationManager` and never send it anywhere. Neither path runs the
+model.
+
+| Question (Infinix X6840, offline) | Result | Total |
+| --- | --- | ---: |
+| Tell me the best vegan restaurants in Berlin | 6 cited fully vegan places | 16–17 s |
+| Tell me the best vegan restaurants in Tokyo | 6 cited fully vegan places | 15 s |
+| Best vegan restaurants near me | Location fix; no mapped place within 15 km | 6 s |
+
+Retrieval with four enabled collections took about 16 s, against 7 s with three; not yet
+optimised. The UI was refreshed on the existing palette: Material surface containers are now
+defined (dialogs and switches had fallen back to lavender), research shows a three-step
+progress tracker, structured source excerpts read as label/value rows, and buttons use
+rounded rectangles. Verification: 437 JVM tests passed (4 skipped), Python builder tests
+passed, release lint reported 0 errors, and each screen was checked on the phone after an
+in-place install with data preserved.
+
 ## October 2 keyword search I/O fix — not released
 
 The ~19 s LAN retrieval recorded below was disk I/O. The keyword query ranked every

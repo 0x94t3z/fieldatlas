@@ -79,8 +79,10 @@ QUERIES = {
     "vegan-yes": tag_query('["diet:vegan"="yes"]'),
     "vegan-limited": tag_query('["diet:vegan"="limited"]'),
     "cuisine-vegan": tag_query('["cuisine"="vegan"]'),
-    "place-city": tag_query('["place"="city"]["name"]', elements="node", output="out tags;"),
-    "place-town": tag_query('["place"="town"]["name"]', elements="node", output="out tags;"),
+    # "out;" keeps each node's coordinates; "out tags;" drops them and leaves nothing to
+    # measure distances to, so every place would fall back to its address tag.
+    "place-city": tag_query('["place"="city"]["name"]', elements="node", output="out;"),
+    "place-town": tag_query('["place"="town"]["name"]', elements="node", output="out;"),
 }
 VEGAN_KINDS = ("vegan-only", "vegan-yes", "vegan-limited", "cuisine-vegan")
 PLACE_KINDS = ("place-city", "place-town")
@@ -168,9 +170,10 @@ def fetch(args: argparse.Namespace) -> int:
             key = tile_key(kind, bbox)
             entry = lock["tiles"].get(key)
             path = cache / (key + ".json")
-            if entry and path.exists() and sha256_file(path) == entry["sha256"]:
-                continue
             query = QUERIES[kind](args.date, bbox, args.timeout)
+            # A response cached for a different query (e.g. an older output mode) is refetched.
+            if entry and entry["query"] == query and path.exists() and sha256_file(path) == entry["sha256"]:
+                continue
             try:
                 payload = overpass(args.endpoint, query)
             except TileTooLarge as error:
@@ -184,7 +187,8 @@ def fetch(args: argparse.Namespace) -> int:
             document = json.loads(payload)
             elements = len(document["elements"])
             lock["tiles"][key] = {
-                "kind": kind, "bbox": list(bbox), "query": query,
+                # Per response, because a run may finish on a mirror when the main server refuses.
+                "kind": kind, "bbox": list(bbox), "query": query, "endpoint": args.endpoint,
                 "osm_base": document.get("osm3s", {}).get("timestamp_osm_base"),
                 "sha256": hashlib.sha256(payload).hexdigest(), "bytes": len(payload), "elements": elements,
             }
@@ -371,6 +375,8 @@ def documents(cache: Path) -> list[dict]:
         if name and "lat" in element:
             settlements.append(Settlement(element["lat"], element["lon"], name, tags.get("place", ""),
                                           parse_population(tags.get("population"))))
+    if not settlements:
+        raise SystemExit("settlement responses carry no coordinates; re-run fetch for place-city and place-town")
     gazetteer = Gazetteer(settlements)
     return [document for element in load_elements(cache, VEGAN_KINDS)
             if (document := place_document(element, gazetteer, snapshot_date)) is not None]
