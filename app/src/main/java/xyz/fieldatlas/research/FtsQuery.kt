@@ -63,6 +63,12 @@ class FtsQuery private constructor(
             "about", "compare", "compared", "describe", "explain", "find", "give", "versus",
             "show", "tell", "me", "my", "mine", "our", "ours", "us", "please", "provide",
             "write", "vs", "which", "only", "any", "each", "every", "using",
+            // instructions about the answer, not its subject: in "summarize what saved sources
+            // say about rapamycin; separate findings from uncertainty" they outranked rapamycin
+            "summarize", "summarise", "summary", "separate", "distinguish", "say", "says", "said",
+            "saved", "source", "sources", "reported", "findings", "remaining", "uncertainty",
+            "details", "detail", "need", "needs", "trying", "deciding", "conclusion", "conclusions",
+            "you", "your", "we", "i", "so", "there", "their", "they", "also", "some", "other",
         )
     }
 }

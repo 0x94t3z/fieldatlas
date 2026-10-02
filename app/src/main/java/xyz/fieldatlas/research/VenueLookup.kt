@@ -34,6 +34,7 @@ object VenueLookup {
     private val veganWord = Regex("(?i)\\bvegan\\b")
     private val vegetarianWord = Regex("(?i)\\bvegetarian\\b")
     private val bestWord = Regex("(?i)\\bbest\\b")
+    private val openNow = Regex("(?i)\\b(open|closed)\\b.{0,30}\\b(now|today|tonight|currently)\\b|\\b(currently|still) (open|closed)\\b")
     private val word = Regex("[\\p{L}\\p{N}]+")
     private val genericWords = setOf(
         "best", "recommend", "recommendation", "recommendations", "suggest", "suggestions",
@@ -42,6 +43,8 @@ object VenueLookup {
         "museums", "museum", "sights", "sight", "attractions", "attraction",
         "hotels", "hotel", "hostels", "hostel", "shops", "shop", "stores", "store",
         "bars", "bar",
+        // About when, not what: "open right now" is answered with the hours on file and a caveat.
+        "open", "right", "now", "today", "tonight", "currently", "closed", "still", "saved", "listings",
     )
 
     /** A request for places to go, answerable from place listings alone. */
@@ -59,10 +62,14 @@ object VenueLookup {
      * "fully" only occurs in the fully-vegan label, so this conjunction is precise.
      */
     fun fullyVeganQuery(question: String, evidence: List<Evidence>): String? {
-        if (!isLookup(question) || !veganWord.containsMatchIn(question)) return null
-        val destination = evidence.asSequence().filter(::isOsmPlace)
-            .mapNotNull { field(it.text, "Destination") }
-            .firstOrNull { Regex("(?i)\\b(?:in|near|around)\\s+${Regex.escape(it)}\\b").containsMatchIn(question) }
+        if (!veganWord.containsMatchIn(question)) return null
+        // Plain lookups, and trip questions ("suggest a vegan food stop and a museum") whose own
+        // keywords can miss every place listing ("offline" found a café called Offline instead).
+        if (!isLookup(question) && !foodWords.containsMatchIn(question) && !restaurantWords.containsMatchIn(question)) return null
+        val destination = evidence.asSequence()
+            .filter { isOsmPlace(it) || it.documentId.startsWith("wv-place-") }
+            .mapNotNull { field(it.text, "Destination")?.substringBefore('/') }
+            .firstOrNull { Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(it)}(?![\\p{L}\\p{N}])").containsMatchIn(question) }
             ?: return null
         val noun = when {
             Regex("(?i)\\bcaf[eé]s?\\b").containsMatchIn(question) -> " cafe"
@@ -120,7 +127,8 @@ object VenueLookup {
         if (!(legacyEat && "Eat" in request.categories) && !newPlace) return null
         val destination = field(item.text, "Destination")?.substringBefore('/')
         if (destinationRequired) {
-            if (destination == null || !Regex("(?i)\\b(?:in|near|around)\\s+${Regex.escape(destination)}\\b")
+            // "in Berlin", or the city named anywhere ("the saved Berlin vegan restaurants").
+            if (destination == null || !Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(destination)}(?![\\p{L}\\p{N}])")
                     .containsMatchIn(question)) return null
         }
         val name = field(item.text, if (legacyEat) "Place to eat" else "Place")?.takeIf(String::isNotBlank)
@@ -312,6 +320,9 @@ object VenueLookup {
         val city = listings.first().destination
         val snapshot = listings.firstNotNullOfOrNull { it.snapshot }
         val answer = buildString {
+            if (openNow.containsMatchIn(question)) {
+                append("I can't confirm what is open right now: these are the opening hours mappers recorded, which can be out of date. ")
+            }
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline")
                 append(if (diet == "vegan") "; fully vegan places are listed first. " else ". ")

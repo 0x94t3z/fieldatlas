@@ -53,6 +53,11 @@ object EvidenceRelevance {
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
     private val conceptPattern = Regex("^concept match ([0-9.]+)$")
     private val lookupWrappers = setOf("best", "recommend", "suggest", "find", "list", "listed", "which", "where")
+    private val genericTerms = setOf(
+        "study", "studies", "report", "reports", "result", "results", "outcome", "outcomes",
+        "different", "difference", "differences", "example", "practical", "two", "one", "new",
+        "information", "data", "know", "fresh", "important", "evidence", "claim", "claims",
+    )
 
     fun keep(
         evidence: List<Evidence>,
@@ -82,7 +87,8 @@ object EvidenceRelevance {
         return rankByPassage(evidence.filter { item ->
             (if (overview.isNotEmpty()) hasOverviewStatement(item, overview) ||
                 overviewAnchors.any { anchor -> isAdjacentOverview(item, anchor) }
-             else if (subjects.isEmpty()) isRelevant(item, relevanceTerms, if (sourceOnly) emptyList() else expandedTerms) ||
+             else if (subjects.isEmpty()) (if (isStructuredPlace(item)) isPlaceRelevant(item, relevanceTerms)
+                 else isRelevant(item, relevanceTerms, if (sourceOnly) emptyList() else expandedTerms)) ||
                  (!sourceOnly && isNamedReferenceDefinition(item, question))
              else subjects.any { tokens(topicalText(item.text)).matches(it) }) &&
                 // A place listing cannot explain a physical mechanism merely because its
@@ -243,7 +249,7 @@ object EvidenceRelevance {
     private fun categoryMatches(item: Evidence, question: String?): Boolean {
         if (question == null || !isStructuredPlace(item)) return true
         val wanted = buildSet {
-            if (Regex("(?i)\\b(restaurants?|places? to eat|dining)\\b").containsMatchIn(question)) add("Eat")
+            if (Regex("(?i)\\b(restaurants?|places? to eat|dining|food|eat|eating|meals?)\\b").containsMatchIn(question)) add("Eat")
             if (Regex("(?i)\\b(caf[eé]s?)\\b").containsMatchIn(question)) addAll(listOf("Eat", "Drink"))
             if (Regex("(?i)\\b(bars?|nightlife)\\b").containsMatchIn(question)) add("Drink")
             if (Regex("(?i)\\b(hotels?|hostels?|places? to stay)\\b").containsMatchIn(question)) add("Sleep")
@@ -305,7 +311,10 @@ object EvidenceRelevance {
         if (passage.isBlank()) return false
         val hasIndexTags = passage != item.text.trim()
         val bodyTokens = tokens(if (hasIndexTags) passage else item.title + " " + passage)
+        // Research vocabulary ("study", "outcomes", "different") occurs in almost every paper,
+        // so sharing it is no sign that a passage is about the question's subject.
         val contentTerms = questionTerms.filterNot(lookupWrappers::contains)
+            .let { terms -> terms.filterNot(genericTerms::contains).ifEmpty { terms } }
         val questionHits = contentTerms.count { term -> bodyTokens.matches(term) }
         val expandedHits = expandedTerms
             .filterNot(contentTerms::contains)
@@ -325,6 +334,18 @@ object EvidenceRelevance {
             // intentionally stricter than pack import's broad rejection floor.
             isStrongConceptMatch(item)
     }
+
+    /** A map listing answers one part of "a vegan food stop and a museum", so it needs two of the
+     * question's subject words (usually the city and its kind), not most of them. Destination,
+     * category and diet are still checked separately. */
+    private fun isPlaceRelevant(item: Evidence, questionTerms: List<String>): Boolean {
+        val terms = questionTerms.filterNot { it in lookupWrappers || it in genericTerms || it in placeInstructionTerms }
+        if (terms.isEmpty()) return true
+        val body = tokens(item.title + " " + item.text)
+        return terms.count { body.matches(it) } >= minOf(2, terms.size)
+    }
+
+    private val placeInstructionTerms = setOf("listing", "listings", "stop", "stops", "visit", "visits", "trip", "suggest")
 
     private fun isStrongConceptMatch(item: Evidence): Boolean = item.matchedBy
         ?.let { conceptPattern.matchEntire(it) }?.groupValues?.get(1)?.toDoubleOrNull()
