@@ -5,9 +5,9 @@
         <item name="android:windowLightNavigationBar">false</item>
         <item name="android:statusBarColor">#111A15</item>
         <item name="android:navigationBarColor">#16231C</item>
-        <!-- Launch splash on the theme's forest green instead of the platform white. -->
-        <item name="android:windowSplashScreenBackground">#285D49</item>
-        <item name="android:windowSplashScreenIconBackgroundColor">#285D49</item>
+        <!-- Launch splash on the logo's own dark green, so the icon tile blends in. -->
+        <item name="android:windowSplashScreenBackground">@color/launcher_background</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/launcher_background</item>
         <!-- Paper behind the first frame, so no white flash follows the splash. -->
         <item name="android:windowBackground">@color/window_background</item>
         <item name="android:colorAccent">#A6D8B9</item>

@@ -39,6 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -327,11 +330,23 @@ fun FieldAtlasStatusDot(tone: StatusTone, modifier: Modifier = Modifier) {
     Box(modifier.size(8.dp).background(color, CircleShape))
 }
 
-/** The app's mark: a forest tile with a leaf, beside the editorial wordmark. */
+/** The app's mark: the launcher logo on its own dark green tile, beside the editorial wordmark. */
 @Composable
 fun FieldAtlasBrandMark(modifier: Modifier = Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        FieldAtlasIconTile(FieldAtlasIcons.Knowledge, size = 34.dp, tone = TileTone.Forest)
+        Box(
+            Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
+                .background(androidx.compose.ui.res.colorResource(xyz.fieldatlas.R.color.launcher_background)),
+            contentAlignment = Alignment.Center,
+        ) {
+            // The adaptive-icon foreground keeps its 108-unit canvas; drawing it larger than the
+            // tile crops the outer padding, as the launcher does.
+            androidx.compose.foundation.Image(
+                androidx.compose.ui.res.painterResource(xyz.fieldatlas.R.drawable.ic_launcher_foreground),
+                contentDescription = null,
+                modifier = Modifier.requiredSize(54.dp),
+            )
+        }
         Text("Field Atlas", style = MaterialTheme.typography.titleLarge, fontFamily = FieldAtlasEditorial)
     }
 }

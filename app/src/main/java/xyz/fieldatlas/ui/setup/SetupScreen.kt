@@ -65,16 +65,6 @@ fun SetupScreen(
                         FieldAtlasStatusPill("Offline", StatusTone.Positive, icon = FieldAtlasIcons.Offline)
                     }
                 }
-                if (!online) item {
-                    FieldAtlasCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                        contentPadding = 12.dp) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(FieldAtlasIcons.Offline, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("You’re offline. Import saved packs, or reconnect to download.",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                }
                 if (importing && importingPack?.type !in setOf(PackType.MODEL, PackType.KNOWLEDGE)) item {
                     SetupImportCard(importingPack?.title ?: "Saved pack", importingName, "Import in progress")
                 }
@@ -135,6 +125,17 @@ fun SetupScreen(
                             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 48.dp)) {
                             Icon(FieldAtlasIcons.Document, null, Modifier.size(18.dp))
                             Text("Import a saved pack", modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+                // Directly under the import button: offline, importing is the way forward.
+                if (!online) item {
+                    FieldAtlasCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                        contentPadding = 12.dp) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(FieldAtlasIcons.Offline, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                            Text("You’re offline. Import saved packs, or reconnect to download.",
+                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
