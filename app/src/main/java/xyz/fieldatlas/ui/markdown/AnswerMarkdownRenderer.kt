@@ -307,7 +307,7 @@ private fun headingStyle(level: Int): TextStyle = when (level) {
     1 -> MaterialTheme.typography.titleLarge
     2 -> MaterialTheme.typography.titleMedium
     else -> MaterialTheme.typography.titleSmall
-}.copy(fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+}.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasSans, fontWeight = FontWeight.SemiBold)
 
 internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color, linkColor: Color, sourceCount: Int): AnnotatedString {
     return buildAnnotatedString {

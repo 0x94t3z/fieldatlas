@@ -345,7 +345,7 @@ internal data class PackVisual(val icon: ImageVector, val tone: TileTone)
 internal fun packVisual(asset: InstalledAsset): PackVisual {
     val id = asset.id.lowercase()
     return when {
-        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
+        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Archive, TileTone.Sage)
         asset.type == PackType.AUDIO -> PackVisual(Icons.Outlined.Mic, TileTone.Paper)
         listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
         listOf("biology", "science", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)

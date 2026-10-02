@@ -38,7 +38,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.research.AttachmentProvenance
 import xyz.fieldatlas.ui.sourceDisplayName
@@ -186,7 +185,7 @@ fun AnswerScreen(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
                             onCitation = onCitation,
-                            bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, lineHeight = 26.sp),
+                            bodyStyle = MaterialTheme.typography.bodyLarge,
                         )
                     }
                 }

@@ -70,7 +70,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -470,7 +469,7 @@ internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
                 }
             }
             Text(question, modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.SansSerif,
+                style = MaterialTheme.typography.bodyLarge, fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasSans,
                 fontWeight = FontWeight.Medium)
         }
     }

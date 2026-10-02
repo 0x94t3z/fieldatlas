@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.proof.ProofFact
@@ -100,7 +99,7 @@ fun MoreScreen(
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showModel = !showModel },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Model, size = 36.dp)
+                    FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 36.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         MoreCardTitle("Answer model")
                         Text(modelStatus(inferenceState), style = MaterialTheme.typography.bodySmall,
@@ -231,7 +230,7 @@ private fun MoreDivider() {
 @Composable
 private fun MoreCardTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium,
-        fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.SemiBold)
+        fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasSans, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable

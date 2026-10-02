@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,6 +37,30 @@ val FieldAtlasEditorial = FontFamily(
     Font(R.font.source_serif_4_variable, weight = FontWeight.Bold),
     Font(R.font.source_serif_4_italic_variable, weight = FontWeight.Normal, style = FontStyle.Italic),
     Font(R.font.source_serif_4_italic_variable, weight = FontWeight.SemiBold, style = FontStyle.Italic),
+)
+
+/**
+ * Reading text and interface labels: Source Sans 3, the companion to the serif headings,
+ * bundled so long answers read the same on every phone rather than in an OEM default.
+ */
+@OptIn(ExperimentalTextApi::class)
+val FieldAtlasSans = FontFamily(
+    sansFont(FontWeight.Normal),
+    sansFont(FontWeight.Medium),
+    sansFont(FontWeight.SemiBold),
+    sansFont(FontWeight.Bold),
+    sansFont(FontWeight.Normal, FontStyle.Italic),
+    sansFont(FontWeight.SemiBold, FontStyle.Italic),
+)
+
+// The variable file's default instance is ExtraLight; without an explicit wght axis value
+// every weight would draw at 200.
+@OptIn(ExperimentalTextApi::class)
+private fun sansFont(weight: FontWeight, style: FontStyle = FontStyle.Normal) = Font(
+    if (style == FontStyle.Italic) R.font.source_sans_3_italic_variable else R.font.source_sans_3_variable,
+    weight = weight,
+    style = style,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
 )
 
 private val FieldNotebookColors = lightColorScheme(
@@ -115,7 +141,13 @@ private val FieldNotebookDarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD2),
 )
 
+// Material's defaults with every style set to a bundled family. Source Sans 3 has a smaller
+// x-height than Roboto, so reading sizes are a point larger for the same legibility.
+private val MaterialDefaults = Typography()
+
 private val FieldAtlasTypography = Typography(
+    displayLarge = MaterialDefaults.displayLarge.copy(fontFamily = FieldAtlasEditorial),
+    displayMedium = MaterialDefaults.displayMedium.copy(fontFamily = FieldAtlasEditorial),
     displaySmall = TextStyle(
         fontFamily = FieldAtlasEditorial,
         fontWeight = FontWeight.SemiBold,
@@ -135,25 +167,32 @@ private val FieldAtlasTypography = Typography(
         fontSize = 26.sp,
         lineHeight = 31.sp,
     ),
+    headlineSmall = MaterialDefaults.headlineSmall.copy(fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold),
     titleLarge = TextStyle(
+        fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 21.sp,
-        lineHeight = 27.sp,
+        fontSize = 22.sp,
+        lineHeight = 28.sp,
     ),
     titleMedium = TextStyle(
+        fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 17.sp,
-        lineHeight = 23.sp,
+        fontSize = 18.sp,
+        lineHeight = 24.sp,
     ),
-    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 26.sp),
-    bodyMedium = TextStyle(fontSize = 15.sp, lineHeight = 22.sp),
-    bodySmall = TextStyle(fontSize = 13.sp, lineHeight = 19.sp),
+    titleSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 21.sp),
+    bodyLarge = TextStyle(fontFamily = FieldAtlasSans, fontSize = 18.sp, lineHeight = 27.sp),
+    bodyMedium = TextStyle(fontFamily = FieldAtlasSans, fontSize = 16.sp, lineHeight = 23.sp),
+    bodySmall = TextStyle(fontFamily = FieldAtlasSans, fontSize = 14.sp, lineHeight = 20.sp),
     labelLarge = TextStyle(
+        fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 14.sp,
+        fontSize = 15.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
     ),
+    labelMedium = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp),
+    labelSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
 )
 
 private val FieldAtlasShapes = Shapes(

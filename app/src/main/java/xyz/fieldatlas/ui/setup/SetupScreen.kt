@@ -75,7 +75,7 @@ fun SetupScreen(
                             importingName, "Importing model", FieldAtlasIcons.Archive)
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == RecommendedModel.id) "Qwen3.5 2B" else model.title,
-                        icon = FieldAtlasIcons.Model,
+                        icon = FieldAtlasIcons.Archive,
                         bytes = RecommendedModel.bytes, installed = model != null,
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
