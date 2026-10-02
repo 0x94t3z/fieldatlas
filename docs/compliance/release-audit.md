@@ -4,6 +4,23 @@ Updated 3 October 2026. **Owner approved v1.2.0 as a public release (not a prere
 
 ## v1.2.0 release handoff (2 October 2026)
 
+### Public artifact verification (3 October 2026)
+
+Built the normal optimized release from app source at `f1dd1e8`, signed with the
+existing public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
+APK size: 100,673,169 bytes; SHA-256:
+`60253c8e0e8a3ebf28d7462cd313c7e59fef2d8a2059ec3c889d4e873c084e18`.
+Release build and lint passed (zero errors, 38 warnings). Current JVM results:
+463 passed, 10 opt-in tests skipped. Python checks: 57 script, 12 packtool,
+6 benchmark and 36 builder tests passed. All 25 website browser tests passed.
+APK signature, offline packaging, ZIP alignment and all 22 ARM64 ELF alignment
+checks passed. All three staged new knowledge bundles match their checksum files,
+and pack sizes and SHA-256 values match the app catalog. These are packaging and
+regression checks, not a new answer-quality or bounty-acceptance score. A public-key
+in-place update and a 12 GB GrapheneOS device remain untested in this handoff.
+
+### Earlier handoff checks
+
 - GitHub channel: release `v1.2.0`, not a prerelease; app 1.2.0 (15). Notes:
   `docs/releases/current.md`. Knowledge releases published alongside it:
   `knowledge-simplewiki-2025.12.29`, `knowledge-wikivoyage-guides-2025.12.29`,
@@ -22,7 +39,7 @@ Updated 3 October 2026. **Owner approved v1.2.0 as a public release (not a prere
 - On the Infinix X6840 (Android 16, local-test key): Encyclopedia and Travel guides imported;
   place cards, source and place previews, location explanation, History passages and
   delete, Library collection menu and live dictation exercised by hand.
-- Not verified: the signed public-key APK (its SHA-256 is added to the notes when built),
+- Not verified at that handoff: the signed public-key APK (now checked above),
   public-key update over 1.2.0-rc.1, a 12 GB GrapheneOS phone, and answer quality beyond
   the questions above. Comparison answers can still come back without citations.
 

@@ -67,7 +67,7 @@ run locally after setup. Downloads and catalog refresh require a connection.
 
 App version: 1.2.0 (15). GitHub channel: release (`v1.2.0`).
 
-APK SHA-256: added when the signed APK is built.
+APK SHA-256: `60253c8e0e8a3ebf28d7462cd313c7e59fef2d8a2059ec3c889d4e873c084e18`.
 
 ## Release assets
 
