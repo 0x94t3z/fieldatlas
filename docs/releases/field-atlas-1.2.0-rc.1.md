@@ -1,4 +1,4 @@
-# Field Atlas 1.2.0 — prerelease (superseded by [1.3.0](current.md))
+# Field Atlas 1.2.0 — prerelease (superseded by [1.2.0](current.md))
 
 This is an early-access research build, not a claim that answer quality or bounty
 acceptance criteria have been met. The previous stable release remains available.

@@ -1,4 +1,4 @@
-# Field Atlas 1.3.0
+# Field Atlas 1.2.0
 
 A public release. It is not a claim that answer quality or bounty acceptance criteria have
 been met; the known limitations below still apply. Notes for the previous version:
@@ -65,13 +65,13 @@ Download `fieldatlas.apk` and check `fieldatlas.apk.sha256`. Requires Android 13
 and an arm64 device. Model and knowledge packs are installed separately; queries
 run locally after setup. Downloads and catalog refresh require a connection.
 
-App version: 1.3.0 (15). GitHub channel: release (`v1.3.0`).
+App version: 1.2.0 (15). GitHub channel: release (`v1.2.0`).
 
 APK SHA-256: added when the signed APK is built.
 
 ## Release assets
 
-- App release `v1.3.0`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
+- App release `v1.2.0`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
 - Knowledge release `knowledge-vegan-places-2026.10.02`:
   `osm-vegan-places-2026.10.02.fapack` (SHA-256
   `6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c`),
