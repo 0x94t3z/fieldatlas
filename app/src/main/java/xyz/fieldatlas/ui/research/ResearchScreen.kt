@@ -26,7 +26,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
@@ -38,8 +37,6 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -231,27 +228,13 @@ fun ResearchScreen(
                                     modifier = Modifier.size(22.dp),
                                 )
                             }
-                            DropdownMenu(
-                                expanded = attachmentMenuOpen && state.canAddAttachment,
-                                onDismissRequest = { attachmentMenuOpen = false },
-                                modifier = Modifier.width(120.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                containerColor = MaterialTheme.colorScheme.background,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                                shadowElevation = 6.dp,
-                            ) {
-                                AttachmentMenuItem("Camera", FieldAtlasIcons.Camera) {
-                                    attachmentMenuOpen = false
-                                    onCameraClick()
-                                }
-                                AttachmentMenuItem("Photos", FieldAtlasIcons.Photo) {
-                                    attachmentMenuOpen = false
-                                    onPhotosClick()
-                                }
-                                AttachmentMenuItem("Files", FieldAtlasIcons.Document) {
-                                    attachmentMenuOpen = false
-                                    onFilesClick()
-                                }
+                            if (attachmentMenuOpen && state.canAddAttachment) {
+                                AttachmentSheet(
+                                    onDismiss = { attachmentMenuOpen = false },
+                                    onCamera = { attachmentMenuOpen = false; onCameraClick() },
+                                    onPhotos = { attachmentMenuOpen = false; onPhotosClick() },
+                                    onFiles = { attachmentMenuOpen = false; onFilesClick() },
+                                )
                             }
                         }
                         Spacer(Modifier.weight(1f))
@@ -477,30 +460,6 @@ internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
     }
 }
 
-@Composable
-private fun AttachmentMenuItem(label: String, icon: ImageVector, onClick: () -> Unit) {
-    DropdownMenuItem(
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
-        },
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 12.dp),
-    )
-}
 
 @Composable
 private fun ResearchAction(
