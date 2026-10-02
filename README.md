@@ -40,13 +40,13 @@ Field Atlas runs a language model on the phone. You can also add local knowledge
 
 ## Watch it work
 
-The [original 47-second Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4) shows airplane mode, an installed model and knowledge collection, an offline answer, and a source opened from a citation. It is **historical footage**, not a recording of the latest development UI.
+Watch the **52-second Field Atlas v1.2.0 demo**. The MP4 is available with the release downloads.
 
-<video src="docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4" controls width="360">
-  <a href="docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4">Play the Infinix demo</a>
-</video>
+[![Watch the Field Atlas v1.2.0 demo](docs/branding/field-atlas-v1.2.0-demo.png)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4)
 
-[![Preview of the original offline Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
+[Watch or download the v1.2.0 demo (MP4, 57 MB)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4).
+
+The [original 47-second Infinix recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4) is retained as historical evidence, not the current release demo.
 
 More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available. These recordings are historical evidence, not a benchmark of 1.2.0.
 
