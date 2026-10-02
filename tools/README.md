@@ -18,6 +18,7 @@ and deterministic: the same inputs always produce byte-identical packs.
 | `build_wikivoyage_eat_pack.py` | English Wikivoyage pages-articles XML dump | dated, individually searchable restaurant listings |
 | `build_wikivoyage_places_pack.py` | the same pinned English Wikivoyage dump | keyword-only See, Do, Eat, Drink, Sleep, and Buy listings |
 | `build_osm_vegan_pack.py` | Overpass API responses (archived with SHA-256) | worldwide OpenStreetMap places tagged fully vegan or with vegan options (ODbL) |
+| `build_osm_essentials_pack.py` | Overpass API responses (archived with SHA-256) | worldwide pharmacies, hospitals, clinics, ATMs, currency exchange, toilets, drinking water, police, embassies, stations, supermarkets and hostels, with a category per place for near-me lookups (ODbL) |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
 
 Paths follow the working-tree convention: `REPO` = the fieldatlas repository (holds
@@ -60,6 +61,10 @@ python3 tools/build_wikivoyage_places_pack.py \
 python3 tools/build_osm_vegan_pack.py fetch --cache-dir build/osm-vegan/cache
 python3 tools/build_osm_vegan_pack.py build --cache-dir build/osm-vegan/cache \
   --out build/osm-vegan/pack --version 2026.10.02
+# Essentials reuse the vegan cache's city and town lists for destinations.
+python3 tools/build_osm_essentials_pack.py fetch --cache-dir build/osm-essentials/cache
+python3 tools/build_osm_essentials_pack.py build --cache-dir build/osm-essentials/cache \
+  --settlements-cache build/osm-vegan/cache --out build/osm-essentials/pack --version 2026.10.02
 
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
 python3 tools/build_vector_pack.py \

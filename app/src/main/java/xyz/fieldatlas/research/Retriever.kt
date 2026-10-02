@@ -12,7 +12,12 @@ fun interface Retriever {
     suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence>
 
     /** Saved places near a point, nearest first. Only packs with coordinates contribute. */
-    suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int): List<NearbyPlace> = emptyList()
+    suspend fun nearby(
+        point: GeoPoint,
+        radiusKm: Double,
+        limit: Int,
+        categories: Set<String> = emptySet(),
+    ): List<NearbyPlace> = emptyList()
 }
 
 /** Specialized multi-pack filtering; other retrievers retain their existing search contract. */

@@ -72,11 +72,18 @@ class ResearchOrchestrator(
             if (attachments.isEmpty() && VenueLookup.isNearMe(question)) {
                 emit(ResearchEvent.Searching(question))
                 val point = runCatching { location() }.getOrNull()
-                val result = if (point == null) null else VenueLookup.nearbyAnswer(
-                    question,
-                    retriever.nearby(point, NEARBY_RADIUS_KM, NEARBY_CANDIDATES),
-                    NEARBY_RADIUS_KM,
-                )
+                val categories = VenueLookup.nearbyCategories(question)
+                // Widen the circle only when the closer one has too few matches: a dense city
+                // answers from a small box, a village still finds the station 12 km away.
+                var result: VenueLookup.Result? = null
+                if (point != null) for (radius in NEARBY_RADII_KM) {
+                    result = VenueLookup.nearbyAnswer(
+                        question,
+                        retriever.nearby(point, radius, NEARBY_CANDIDATES, categories),
+                        radius,
+                    )
+                    if (result.sources.size >= NEARBY_ENOUGH) break
+                }
                 _searchProgress.value = 1.0
                 val retrievedAt = monotonicMillis()
                 result?.sources?.takeIf { it.isNotEmpty() }?.let { emit(ResearchEvent.Sources(it)) }
@@ -282,6 +289,8 @@ class ResearchOrchestrator(
         const val KEYWORD_SEED = 17
         /** City scale: "the city I'm in" and "near me" both fit; the answer states distances. */
         const val NEARBY_RADIUS_KM = 15.0
+        val NEARBY_RADII_KM = listOf(2.0, 5.0, NEARBY_RADIUS_KM)
+        const val NEARBY_ENOUGH = 6
         const val NEARBY_CANDIDATES = 200
     }
 }

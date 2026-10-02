@@ -148,7 +148,8 @@ def overpass(endpoint: str, query: str, attempts: int = 6) -> bytes:
     raise RuntimeError("unreachable")
 
 
-def fetch(args: argparse.Namespace) -> int:
+def fetch(args: argparse.Namespace, queries: dict | None = None) -> int:
+    queries = QUERIES if queries is None else queries
     cache = args.cache_dir
     cache.mkdir(parents=True, exist_ok=True)
     lock_path = cache / "lock.json"
@@ -170,7 +171,7 @@ def fetch(args: argparse.Namespace) -> int:
             key = tile_key(kind, bbox)
             entry = lock["tiles"].get(key)
             path = cache / (key + ".json")
-            query = QUERIES[kind](args.date, bbox, args.timeout)
+            query = queries[kind](args.date, bbox, args.timeout)
             # A response cached for a different query (e.g. an older output mode) is refetched.
             if entry and entry["query"] == query and path.exists() and sha256_file(path) == entry["sha256"]:
                 continue
@@ -365,9 +366,8 @@ def snapshot_day(lock: dict) -> str:
     return max(stamps)[:10]
 
 
-def documents(cache: Path) -> list[dict]:
-    lock = json.loads((cache / "lock.json").read_text())
-    snapshot_date = snapshot_day(lock)
+def gazetteer(cache: Path) -> Gazetteer:
+    """City and town lookup from the place-city/place-town responses in a cache."""
     settlements = []
     for element in load_elements(cache, PLACE_KINDS):
         tags = element.get("tags", {})
@@ -377,9 +377,15 @@ def documents(cache: Path) -> list[dict]:
                                           parse_population(tags.get("population"))))
     if not settlements:
         raise SystemExit("settlement responses carry no coordinates; re-run fetch for place-city and place-town")
-    gazetteer = Gazetteer(settlements)
+    return Gazetteer(settlements)
+
+
+def documents(cache: Path) -> list[dict]:
+    lock = json.loads((cache / "lock.json").read_text())
+    snapshot_date = snapshot_day(lock)
+    places = gazetteer(cache)
     return [document for element in load_elements(cache, VEGAN_KINDS)
-            if (document := place_document(element, gazetteer, snapshot_date)) is not None]
+            if (document := place_document(element, places, snapshot_date)) is not None]
 
 
 def add_place_points(database) -> None:

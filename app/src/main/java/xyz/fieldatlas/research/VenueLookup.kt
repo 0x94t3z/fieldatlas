@@ -5,7 +5,31 @@ object VenueLookup {
     data class Result(val answer: String, val sources: List<Evidence>)
 
     private val venueWords = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|museums?|sights?|attractions?|hotels?|hostels?|shops?|stores?|bars?)\\b")
-    private val lookupWords = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where)\\b")
+    private val lookupWords = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|any|need|is there|are there)\\b")
+
+    /**
+     * Everyday essentials a traveller asks for, mapped to the listing category and, where the
+     * words name one kind of place, its type. [noun] names them in "none found" answers.
+     */
+    private data class Essential(val words: Regex, val category: String, val type: Regex?, val noun: String)
+    private fun typeLine(vararg labels: String) = Regex("(?im)^Type: (${labels.joinToString("|") { Regex.escape(it) }})$")
+    private val ESSENTIALS = listOf(
+        Essential(Regex("(?i)\\b(pharmac(?:y|ies)|chemists?|drug ?stores?)\\b"), "Health", typeLine("pharmacy"), "pharmacies"),
+        Essential(Regex("(?i)\\b(hospitals?|emergency rooms?|emergency departments?|A&E)\\b"), "Health", typeLine("hospital"), "hospitals"),
+        Essential(Regex("(?i)\\b(clinics?|doctors?|GPs?)\\b"), "Health", typeLine("clinic"), "clinics"),
+        Essential(Regex("(?i)\\b(medical|medicine|health care|healthcare)\\b"), "Health", null, "health services"),
+        Essential(Regex("(?i)\\b(atms?|cash ?machines?|cashpoints?|withdraw(?:ing)? (?:cash|money)|get (?:cash|money))\\b"), "Money", typeLine("ATM"), "ATMs"),
+        Essential(Regex("(?i)\\b(currency exchange|money exchange|exchange (?:money|currency)|bureau de change|change money)\\b"), "Money", typeLine("currency exchange"), "currency exchanges"),
+        Essential(Regex("(?i)\\b(toilets?|restrooms?|bathrooms?|wc|loos?|lavatory|lavatories)\\b"), "Toilets", null, "toilets"),
+        Essential(Regex("(?i)\\b(drinking water|water fountains?|refill (?:my )?(?:water|bottle)|tap water|potable water)\\b"), "Water", null, "drinking water points"),
+        Essential(Regex("(?i)\\b(police(?: stations?)?)\\b"), "Safety", typeLine("police"), "police stations"),
+        Essential(Regex("(?i)\\b(embass(?:y|ies)|consulates?)\\b"), "Safety", typeLine("embassy", "consulate"), "embassies or consulates"),
+        Essential(Regex("(?i)\\b(train stations?|railway stations?)\\b"), "Transport", typeLine("train station"), "train stations"),
+        Essential(Regex("(?i)\\b(bus stations?|bus terminals?|coach stations?)\\b"), "Transport", typeLine("bus station"), "bus stations"),
+        Essential(Regex("(?i)\\b(ferry|ferries|ferry terminals?)\\b"), "Transport", typeLine("ferry terminal"), "ferry terminals"),
+        Essential(Regex("(?i)\\b(supermarkets?|grocer(?:y|ies)|groceries)\\b"), "Buy", typeLine("supermarket"), "supermarkets"),
+    )
+    private fun essential(question: String) = ESSENTIALS.firstOrNull { it.words.containsMatchIn(question) }
     private val complexWords = Regex("(?i)\\b(compare|contrast|explain|why|how|reason|evidence|versus)\\b")
     private val veganWord = Regex("(?i)\\bvegan\\b")
     private val vegetarianWord = Regex("(?i)\\bvegetarian\\b")
@@ -23,7 +47,7 @@ object VenueLookup {
     /** A request for places to go, answerable from place listings alone. */
     fun isPlaceLookup(question: String) = isLookup(question)
 
-    private fun isLookup(question: String) = venueWords.containsMatchIn(question) &&
+    private fun isLookup(question: String) = (venueWords.containsMatchIn(question) || essential(question) != null) &&
         lookupWords.containsMatchIn(question) && !complexWords.containsMatchIn(question)
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
@@ -52,9 +76,14 @@ object VenueLookup {
         val categories: Set<String>,
         val requestedType: Regex?,
         val diet: String?,
+        val essential: Essential? = null,
     )
 
+    /** The listing categories a near-me question asks for, so the lookup can filter early. */
+    fun nearbyCategories(question: String): Set<String> = request(question).categories
+
     private fun request(question: String): Request {
+        essential(question)?.let { need -> return Request(setOf(need.category), need.type, null, need) }
         val categories = when {
             Regex("(?i)\\b(museums?|sights?|attractions?)\\b").containsMatchIn(question) -> setOf("See", "Do")
             Regex("(?i)\\b(hotels?|hostels?)\\b").containsMatchIn(question) -> setOf("Sleep")
@@ -100,7 +129,7 @@ object VenueLookup {
         val ignored = if (destinationRequired) {
             word.findAll(destination.orEmpty().lowercase()).map { it.value }.toSet()
         } else nearbyWords
-        val qualifiers = FtsQuery.from(question)?.terms.orEmpty().filterNot { term ->
+        val qualifiers = if (request.essential != null) emptyList() else FtsQuery.from(question)?.terms.orEmpty().filterNot { term ->
             term in genericWords || term in ignored || term == request.diet
         }
         if (!qualifiers.all { qualifier ->
@@ -122,6 +151,10 @@ object VenueLookup {
             cuisine = field(item.text, "Cuisine"),
             hours = field(item.text, "Hours in source"),
             snapshot = field(item.text, "Map data snapshot")?.substringBefore(' '),
+            phone = field(item.text, "Phone"),
+            fee = field(item.text, "Fee"),
+            emergency = field(item.text, "Emergency department"),
+            wheelchair = field(item.text, "Wheelchair access"),
         )
     }
 
@@ -143,7 +176,7 @@ object VenueLookup {
             // question keeps meal places whenever there are any.
             val meals = osm.filter { it.type in MEAL_TYPES }
             val chosen = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else osm
-            return osmAnswer(question, diet, chosen.take(OSM_LISTINGS))
+            return osmAnswer(question, diet, chosen.take(OSM_LISTINGS), request.essential?.noun)
         }
         val shown = listings.take(4)
 
@@ -202,7 +235,7 @@ object VenueLookup {
 
     /** A place question answered from the phone's own location rather than a named city. */
     fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) &&
-        (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question)) &&
+        (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question) || essential(question) != null) &&
         !complexWords.containsMatchIn(question)
 
     const val LOCATION_UNAVAILABLE = "I couldn't get this phone's location. Turn on Location (GPS works " +
@@ -215,6 +248,7 @@ object VenueLookup {
      */
     fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double): Result {
         val request = request(question)
+        val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
         val matched = places.mapNotNull { place ->
             listing(place.evidence, question, request, destinationRequired = false)?.let { it to place.distanceKm }
         }.distinctBy { (listing, _) -> listing.name.lowercase() to listing.location?.lowercase() }
@@ -226,7 +260,7 @@ object VenueLookup {
             { (_, distance) -> distance },
         )).take(OSM_LISTINGS)
         if (chosen.isEmpty()) {
-            val what = listOfNotNull(request.diet, "places").joinToString(" ")
+            val what = request.essential?.noun ?: listOfNotNull(request.diet, "places").joinToString(" ")
             return Result("I couldn't find saved $what within ${GeoDistance.label(radiusKm)} of your location. " +
                 "Saved collections cover places someone mapped; try naming a nearby city.", emptyList())
         }
@@ -243,23 +277,30 @@ object VenueLookup {
             chosen.forEachIndexed { index, (listing, distance) ->
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
                 append(listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { "listed place" })
-                append(", ").append(GeoDistance.label(distance)).append(" away")
+                append(", ").append(GeoDistance.label(distance))
+                bearings[listing.evidence.chunkId]?.let { append(' ').append(GeoDistance.compass(it)) }
+                append(" away")
+                listing.extras().takeIf(String::isNotBlank)?.let { append("; ").append(it) }
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 append('.')
                 listing.location?.takeIf(String::isNotBlank)?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
                 listing.hours?.takeIf(String::isNotBlank)?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
+                listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
                 append(" [S${index + 1}]\n")
             }
-            append("\nDistances are straight-line from this phone's location, which stayed on the phone. ")
+            if (request.essential?.category in setOf("Health", "Safety")) {
+                append("\nIn an emergency, call the local emergency number first.")
+            }
+            append("\nDistances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings. ")
             append("Tags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
         }
         return Result(answer, chosen.map { (listing, _) -> listing.evidence })
     }
 
     /** OpenStreetMap wording: tags say what mappers recorded, so each place states its label and date. */
-    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>): Result {
+    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String? = null): Result {
         val city = listings.first().destination
         val snapshot = listings.firstNotNullOfOrNull { it.snapshot }
         val answer = buildString {
@@ -267,7 +308,9 @@ object VenueLookup {
                 append("I can't verify a current “best” ranking offline")
                 append(if (diet == "vegan") "; fully vegan places are listed first. " else ". ")
             }
-            append("OpenStreetMap lists these places in ")
+            append("OpenStreetMap lists these ")
+            append(noun ?: "places")
+            append(" in ")
             append(city)
             when (diet) {
                 "vegan" -> append(" as fully vegan or serving vegan options")
@@ -279,9 +322,11 @@ object VenueLookup {
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
                 append(listOfNotNull(listing.vegan, listing.type).joinToString(" "))
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
+                listing.extras().takeIf(String::isNotBlank)?.let { append("; ").append(it) }
                 append('.')
                 listing.location?.takeIf(String::isNotBlank)?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
                 listing.hours?.takeIf(String::isNotBlank)?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
+                listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
                 append(" [S${index + 1}]\n")
@@ -304,7 +349,18 @@ object VenueLookup {
         val cuisine: String? = null,
         val hours: String? = null,
         val snapshot: String? = null,
-    )
+        val phone: String? = null,
+        val fee: String? = null,
+        val emergency: String? = null,
+        val wheelchair: String? = null,
+    ) {
+        /** Practical details for essentials, as short clauses. */
+        fun extras(): String = listOfNotNull(
+            emergency?.let { if (it == "yes") "emergency department" else "no emergency department" },
+            fee?.let { if (it == "no") "free" else "fee charged" },
+            wheelchair?.let { "wheelchair access: $it" },
+        ).joinToString("; ")
+    }
 
     private const val OSM_PREFIX = "osm-place-"
     private const val OSM_LISTINGS = 6

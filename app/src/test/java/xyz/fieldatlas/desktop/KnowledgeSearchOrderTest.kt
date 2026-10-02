@@ -49,6 +49,43 @@ class KnowledgeSearchOrderTest {
         }
     }
 
+    @Test fun nearbyPlacesFilterByCategoryInSqlOrFromTheListing() {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        val rows = listOf(
+            listOf("pharmacy", "Health", 52.5220, 13.4080), listOf("cafe", "Eat", 52.5201, 13.4051),
+            listOf("atm", "Money", 52.5210, 13.4050),
+        )
+        for (withColumn in listOf(true, false)) {
+            val db = File(temp.root, "cat-$withColumn.sqlite")
+            BundledSQLiteDriver().open(db.path).use { sql ->
+                fun exec(text: String) { sql.prepare(text).use { it.step() } }
+                exec("PRAGMA user_version=1")
+                exec("CREATE VIRTUAL TABLE chunks_fts USING fts5(chunk_id UNINDEXED,document_id UNINDEXED,title,source UNINDEXED,text)")
+                exec("CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL" + (if (withColumn) ", category TEXT)" else ")"))
+                rows.forEachIndexed { index, row ->
+                    val (id, category) = row; val lat = row[2] as Double; val lon = row[3] as Double
+                    sql.prepare("INSERT INTO chunks_fts(rowid, chunk_id, document_id, title, source, text) VALUES(?,?,?,?,?,?)").use {
+                        it.bindLong(1, index + 1L); it.bindText(2, "$id:0000"); it.bindText(3, "osm-place-$id"); it.bindText(4, id as String)
+                        it.bindText(5, "https://example.org/$id"); it.bindText(6, "Destination: Berlin\nCategory: $category\nPlace: $id"); it.step()
+                    }
+                    sql.prepare(if (withColumn) "INSERT INTO place_points VALUES(?,?,?,?)" else "INSERT INTO place_points VALUES(?,?,?)").use {
+                        it.bindLong(1, index + 1L); it.bindDouble(2, lat); it.bindDouble(3, lon); if (withColumn) it.bindText(4, category as String); it.step()
+                    }
+                }
+            }
+            val database = KnowledgeDatabase.open(db)
+            try {
+                val health = database.nearbyPlaces(52.5200, 13.4050, 2.0, 10, setOf("Health"))
+                assertEquals("column=$withColumn", listOf("osm-place-pharmacy"), health.map { it.evidence.documentId })
+                // The pharmacy lies a little north-east of the point.
+                assertEquals("north-east", xyz.fieldatlas.research.GeoDistance.compass(health.single().bearingDegrees!!))
+                assertEquals(3, database.nearbyPlaces(52.5200, 13.4050, 2.0, 10).size)
+            } finally {
+                database.close()
+            }
+        }
+    }
+
     @Test fun indexFirstSearchMatchesFullRowRankingIncludingTies() {
         assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
         val db = File(temp.root, "ties.sqlite")

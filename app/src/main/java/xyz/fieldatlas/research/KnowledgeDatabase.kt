@@ -129,8 +129,17 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
      * (OpenStreetMap packs). Distances are great-circle kilometres; callers sort and cut.
      * A box crossing the antimeridian is searched as two longitude ranges.
      */
-    internal fun nearbyPlaces(lat: Double, lon: Double, radiusKm: Double, limit: Int): List<NearbyPlace> {
+    internal fun nearbyPlaces(
+        lat: Double,
+        lon: Double,
+        radiusKm: Double,
+        limit: Int,
+        categories: Set<String> = emptySet(),
+    ): List<NearbyPlace> {
         if (!hasPlacePoints()) return emptyList()
+        // Packs that store each place's category filter in SQL; older packs are filtered on the
+        // listing text afterwards. Either way a "pharmacy" lookup never keeps a cafe.
+        val sqlFilter = categories.isNotEmpty() && hasPlaceCategory()
         val latDelta = radiusKm / 111.0
         val lonDelta = radiusKm / (111.0 * kotlin.math.cos(Math.toRadians(lat)).coerceAtLeast(0.01))
         val west = lon - lonDelta
@@ -139,26 +148,36 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         val westBound = if (west < -180.0) west + 360.0 else west
         val eastBound = if (east > 180.0) east - 360.0 else east
         val places = synchronized(database) {
-            database.prepare(if (wraps) NEARBY_WRAPPED_SQL else NEARBY_SQL).use { statement ->
+            val ordered = categories.sorted()
+            val sql = (if (wraps) NEARBY_WRAPPED_SQL else NEARBY_SQL) +
+                if (sqlFilter) " AND p.category IN (${ordered.indices.joinToString(",") { "?${it + 5}" }})" else ""
+            database.prepare(sql).use { statement ->
                 statement.bindDouble(1, lat - latDelta)
                 statement.bindDouble(2, lat + latDelta)
                 statement.bindDouble(3, westBound)
                 statement.bindDouble(4, eastBound)
+                if (sqlFilter) ordered.forEachIndexed { index, category -> statement.bindText(index + 5, category) }
                 buildList {
                     while (statement.step()) {
-                        val distance = GeoDistance.km(lat, lon, statement.getDouble(5), statement.getDouble(6))
+                        val placeLat = statement.getDouble(5)
+                        val placeLon = statement.getDouble(6)
+                        val distance = GeoDistance.km(lat, lon, placeLat, placeLon)
                         if (distance > radiusKm) continue
+                        val text = statement.getText(4)
+                        if (categories.isNotEmpty() && !sqlFilter &&
+                            text.lineSequence().none { line -> line.startsWith("Category: ") && line.removePrefix("Category: ") in categories }) continue
                         add(NearbyPlace(
                             Evidence(
                                 documentId = statement.getText(0),
                                 chunkId = statement.getText(1),
                                 title = statement.getText(2),
                                 source = statement.getText(3),
-                                text = statement.getText(4),
+                                text = text,
                                 score = distance,
                                 matchedBy = "within ${GeoDistance.label(distance)}",
                             ),
                             distance,
+                            GeoDistance.bearing(lat, lon, placeLat, placeLon),
                         ))
                     }
                 }
@@ -181,6 +200,24 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     }
 
     @Volatile private var cachedHasPlacePoints: Boolean? = null
+
+    /** Whether `place_points` stores each place's category (essentials packs do). */
+    private fun hasPlaceCategory(): Boolean {
+        cachedHasPlaceCategory?.let { return it }
+        val present = runCatching {
+            synchronized(database) {
+                database.prepare("PRAGMA table_info(place_points)").use { statement ->
+                    var found = false
+                    while (statement.step()) if (statement.getText(1) == "category") found = true
+                    found
+                }
+            }
+        }.getOrDefault(false)
+        cachedHasPlaceCategory = present
+        return present
+    }
+
+    @Volatile private var cachedHasPlaceCategory: Boolean? = null
 
     /**
      * Whether this pack holds only place listings (Wikivoyage or OpenStreetMap places). Packs are

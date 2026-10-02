@@ -121,13 +121,13 @@ class MultiKnowledgeRetriever(
         opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
     }.getOrNull()
 
-    override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int): List<NearbyPlace> =
+    override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>): List<NearbyPlace> =
         withContext(ioDispatcher) {
             require(limit in 1..200) { "Nearby limit must be between 1 and 200" }
             databaseFiles().flatMap { file ->
                 runCatching {
                     opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                        .nearbyPlaces(point.lat, point.lon, radiusKm, limit)
+                        .nearbyPlaces(point.lat, point.lon, radiusKm, limit, categories)
                 }.getOrElse { error ->
                     if (error is OutOfMemoryError) throw error
                     opened.remove(file.absolutePath)?.close()

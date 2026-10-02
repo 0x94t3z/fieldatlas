@@ -77,7 +77,7 @@ class NearbyVenueTest {
                 searched = true
                 return emptyList()
             }
-            override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int): List<NearbyPlace> {
+            override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>): List<NearbyPlace> {
                 assertEquals(GeoPoint(52.5, 13.4), point)
                 return listOf(NearbyPlace(nearFully, 0.8))
             }
