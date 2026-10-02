@@ -36,7 +36,7 @@ acceptance criteria have been met. When it is published, this file replaces
 - **Refreshed interface.** A three-step research tracker; structured source
   excerpts as label/value rows with Previous and Next; a Library storage summary
   and per-pack menu; History grouped by day with Ask again; dialogs, menus and
-  switches on the app palette; Source Sans 3 for reading text; a green launch screen.
+  switches on the app palette; Atkinson Hyperlegible Next for reading text; a green launch screen.
 
 ## Known limitations
 

@@ -11,7 +11,7 @@ This file is a navigation index for significant source and runtime components. I
 | Vosk small English speech model | `vosk-model-small-en-us-0.15` | Apache-2.0 | [Vosk models](https://alphacephei.com/vosk/models) |
 | BGE-small vector encoder | selected and pinned by each vector fapack manifest | MIT | [BGE-small model card](https://huggingface.co/BAAI/bge-small-en-v1.5) |
 | Source Serif 4 | current Google Fonts source | SIL Open Font License 1.1 | [`docs/licenses/source-serif-4-OFL.txt`](docs/licenses/source-serif-4-OFL.txt) |
-| Source Sans 3 | Google Fonts `ofl/sourcesans3` variable fonts | SIL Open Font License 1.1 | [`docs/licenses/source-sans-3-OFL.txt`](docs/licenses/source-sans-3-OFL.txt) |
+| Atkinson Hyperlegible Next | Google Fonts `ofl/atkinsonhyperlegiblenext` variable fonts (Braille Institute) | SIL Open Font License 1.1 | [`docs/licenses/atkinson-hyperlegible-next-OFL.txt`](docs/licenses/atkinson-hyperlegible-next-OFL.txt) |
 | AndroidX and Jetpack Compose | versions in `gradle/libs.versions.toml` | Apache-2.0 | [AndroidX license notice](https://source.android.com/docs/setup/about/licenses) |
 | Kotlin | `2.1.0` | Apache-2.0 | [Kotlin license](https://github.com/JetBrains/kotlin/blob/v2.1.0/license/LICENSE.txt) |
 | kotlinx.serialization | `1.4.0` | Apache-2.0 | [kotlinx.serialization LICENSE](https://github.com/Kotlin/kotlinx.serialization/blob/v1.4.0/LICENSE.txt) |

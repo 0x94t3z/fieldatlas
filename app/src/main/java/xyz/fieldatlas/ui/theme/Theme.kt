@@ -40,8 +40,9 @@ val FieldAtlasEditorial = FontFamily(
 )
 
 /**
- * Reading text and interface labels: Source Sans 3, the companion to the serif headings,
- * bundled so long answers read the same on every phone rather than in an OEM default.
+ * Reading text and interface labels: Atkinson Hyperlegible Next, drawn so that similar
+ * letters and digits (I l 1, O 0, rn m) stay distinct, which matters for names, addresses
+ * and numbers read on a phone outdoors. Bundled so answers read the same on every phone.
  */
 @OptIn(ExperimentalTextApi::class)
 val FieldAtlasSans = FontFamily(
@@ -53,11 +54,10 @@ val FieldAtlasSans = FontFamily(
     sansFont(FontWeight.SemiBold, FontStyle.Italic),
 )
 
-// The variable file's default instance is ExtraLight; without an explicit wght axis value
-// every weight would draw at 200.
+// A variable file draws its default instance unless the wght axis is set for each weight.
 @OptIn(ExperimentalTextApi::class)
 private fun sansFont(weight: FontWeight, style: FontStyle = FontStyle.Normal) = Font(
-    if (style == FontStyle.Italic) R.font.source_sans_3_italic_variable else R.font.source_sans_3_variable,
+    if (style == FontStyle.Italic) R.font.atkinson_hyperlegible_next_italic_variable else R.font.atkinson_hyperlegible_next_variable,
     weight = weight,
     style = style,
     variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
@@ -141,8 +141,8 @@ private val FieldNotebookDarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD2),
 )
 
-// Material's defaults with every style set to a bundled family. Source Sans 3 has a smaller
-// x-height than Roboto, so reading sizes are a point larger for the same legibility.
+// Material's defaults with every style set to a bundled family. Atkinson Hyperlegible Next has
+// large, open letters, so reading sizes sit a point below where a narrower face would need them.
 private val MaterialDefaults = Typography()
 
 private val FieldAtlasTypography = Typography(
@@ -171,23 +171,23 @@ private val FieldAtlasTypography = Typography(
     titleLarge = TextStyle(
         fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
+        fontSize = 21.sp,
+        lineHeight = 27.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 18.sp,
-        lineHeight = 24.sp,
+        fontSize = 17.sp,
+        lineHeight = 23.sp,
     ),
-    titleSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, lineHeight = 21.sp),
-    bodyLarge = TextStyle(fontFamily = FieldAtlasSans, fontSize = 18.sp, lineHeight = 27.sp),
-    bodyMedium = TextStyle(fontFamily = FieldAtlasSans, fontSize = 16.sp, lineHeight = 23.sp),
-    bodySmall = TextStyle(fontFamily = FieldAtlasSans, fontSize = 14.sp, lineHeight = 20.sp),
+    titleSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
+    bodyLarge = TextStyle(fontFamily = FieldAtlasSans, fontSize = 17.sp, lineHeight = 26.sp),
+    bodyMedium = TextStyle(fontFamily = FieldAtlasSans, fontSize = 15.sp, lineHeight = 22.sp),
+    bodySmall = TextStyle(fontFamily = FieldAtlasSans, fontSize = 13.sp, lineHeight = 19.sp),
     labelLarge = TextStyle(
         fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 15.sp,
+        fontSize = 14.sp,
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
     ),
