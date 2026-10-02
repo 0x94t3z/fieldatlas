@@ -93,6 +93,10 @@ p { color: var(--muted); line-height: 1.7; margin: 0 0 1rem; }
 .collection-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 2rem; }
 .collection-icon { display: grid; place-items: center; width: 2.9rem; height: 2.9rem; border-radius: 50%; background: #dedfc9; color: #56613c; flex-shrink: 0; }
 .biology .collection-icon { background: #d3dfc7; color: #386148; }
+.collection-card.vegan { background: #f1ebe0; }
+.vegan .collection-icon { background: #e8dcc6; color: #7d5530; }
+.collection-card.encyclopedia { background: #e7ecea; }
+.encyclopedia .collection-icon { background: #d2dfdc; color: #2f5f62; }
 .collection-card h3 { font-family: Georgia, serif; font-weight: 400; font-size: 2rem; }
 .collection-card > p { font-size: .9rem; }
 .collection-bottom { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .75rem; border-top: 1px solid #ccd3bf; padding-top: 1.3rem; margin-top: 1.8rem; font-size: .72rem; }

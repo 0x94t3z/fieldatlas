@@ -48,7 +48,7 @@ The [original 47-second Infinix demo](docs/evidence/physical/infinix-x6840-andro
 
 [![Preview of the original offline Infinix demo](docs/evidence/physical/infinix-x6840-android16/field-atlas-claim-preview.gif)](docs/evidence/physical/infinix-x6840-android16/field-atlas-current-demo.mp4)
 
-More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available. These recordings are historical evidence, not a benchmark of the current development build.
+More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840-android16/README.md#additional-multi-query-evidence) are available. These recordings are historical evidence, not a benchmark of 1.2.0.
 
 ## Get started
 
@@ -83,6 +83,8 @@ General questions may receive an **unverified model explanation** when local evi
 ## Version status
 
 Releases since 1.2.0 include [research with local documents and photos](docs/attachments.md): text extraction stays on the phone and selected excerpts can become cited sources. This is text recognition, not general image understanding; multilingual quality is not guaranteed.
+
+On the [24-question release suite](docs/evaluation.md#v120-24-question-suite-october-2), run through the 1.2.0 research pipeline on a desktop, 19 answers passed review, 3 partly passed and 2 failed. That is the author's review on fixed questions, without an online baseline: a development measure, not an independent accuracy score.
 
 | Version | Public download? | What the evidence covers |
 | --- | --- | --- |

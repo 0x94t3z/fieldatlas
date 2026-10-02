@@ -1,5 +1,57 @@
 # Evaluation
 
+## v1.2.0 24-question suite (October 2)
+
+The [24 questions below](#24-question-release-suite) were run once, unchanged, through the
+app's own research pipeline on desktop (Kotlin orchestrator, keyword retrieval, prompt
+packing, venue routing and answer attribution) with Qwen3.5 2B Q4_K_M and five collections:
+Encyclopedia, Travel guides, Travel places, Vegan places and Biology & Longevity. The
+author reviewed each answer against its sources; this is not an independent human review.
+Desktop has no location fix and no biology vector search, and a phone is several times
+slower, so the times below are not phone measurements.
+
+| Group | First run | After search fixes |
+| --- | --- | --- |
+| Travel (4) | 3 pass, 1 fail | 3 pass, 1 fail |
+| Explanation (4) | 3 pass, 1 partial | 3 pass, 1 partial |
+| Comparison (4) | 4 pass | 4 pass |
+| Synthesis (4) | 1 pass, 3 fail | 3 pass, 1 partial |
+| Limits (4) | 2 pass, 2 partial | 4 pass |
+| General (4) | 2 pass, 2 fail | 2 pass, 1 partial, 1 fail |
+| **Total** | **15 pass, 3 partial, 6 fail** | **19 pass, 3 partial, 2 fail** |
+
+Clear passes went from 15/24 (62.5%) to 19/24 (79%); counting partials as half, from
+16.5/24 (69%) to 20.5/24 (85%). The search fixes were made after reading the first run's
+failures, so the second figure is a fixed-question development result, not unseen
+validation. Each fix has a regression test in `SuiteFailureRegressionTest`:
+
+- Instruction words ("summarize", "separate", "findings") no longer outrank the subject
+  in keyword search; the rapamycin question now retrieves three relevant papers.
+- Questions about today's news or the latest research get a fixed, honest reply without
+  running the model.
+- A food-stop question that also asks for a museum keeps the Eat listings, and a trip
+  question naming a city also searches the place collections for fully vegan food.
+- Papers that share only research vocabulary ("study", "outcomes") with the question are
+  no longer treated as relevant.
+- "Open right now" answers say plainly that live hours cannot be confirmed, then list the
+  saved places with their recorded hours.
+
+Remaining failures and partials:
+
+| ID | Result | Problem |
+| --- | --- | --- |
+| travel-london | fail | Lists Oxford's Bate Collection as a London museum and conflates two others |
+| general-offline | fail | Answers about GPS navigation apps instead of what an offline app can know |
+| biology-telomeres | partial | Right distinction between marker and cause, with muddled supporting claims |
+| synthesis-trip | partial | Correct saved vegan stops (Daizu, Chay Viet); the museum suggestion is wrong |
+| general-energy | partial | Capacity and power defined correctly; the practical example has errors |
+
+Desktop time per answer: 1.5–1.8 s for place lookups, 11–35 s for model answers.
+Reports with every answer, packed source and model request are kept under the ignored
+`build/desktop-evaluation/v120-suite24/` (first run), `v120-suite24-fix1/` and
+`v120-fix2-subset/`. No online baseline was run against this suite, so it does not
+establish the bounty's greater-than-50-percent comparison.
+
 ## Answer root-cause checks (October 1, local development)
 
 Artifacts are under `build/reasoning-diagnosis/`; none are a held-out accuracy score.
@@ -631,9 +683,9 @@ python3 scripts/run_online_baseline.py \
 
 The app never runs ordinary research and a benchmark row concurrently. Exports preserve evidence identifiers and are not, by themselves, a quality judgment. In mixed answers, source links require an exact quotation found in the corresponding saved passage. This checks attribution, not truth, relevance, completeness, or preservation of every qualification. Attachment and source-only answer paths retain their separate policies and do not use this quotation guard.
 
-## Proposed replacement questions — for review
+## 24-question release suite
 
-This is a draft, not the active benchmark and not a scored result. The existing results remain historical; the current questions are unchanged. The current device counter measures recorded questions, not correct answers; a cancelled row can also be recorded.
+These questions were frozen before the v1.2.0 run [reported above](#v120-24-question-suite-october-2). They are not yet the contents of `benchmarks/questions.json`, which still holds the earlier questions; the device counter measures recorded questions, not correct answers, and a cancelled row can also be recorded.
 
 ### Purpose
 
@@ -641,7 +693,7 @@ Compare releases on useful offline answers, supporting evidence, honesty about m
 
 Freeze prompts, rubric, model/pack hashes, and settings before evaluating. Run the same prompts against a named online baseline, keeping its internet access and tool settings explicit. Preserve all answers, including failures. Do not compare scores from different suites as if they were the same test.
 
-### Proposed 24-question release suite
+### Questions
 
 Four questions per group. Berlin, Tokyo, and mitosis/meiosis are known development regressions, not unseen validation examples. The other questions must not be selected or removed based on whether this build happens to answer them well.
 
@@ -672,7 +724,7 @@ Four questions per group. Berlin, Tokyo, and mitosis/meiosis are known developme
 | general-offline | What can an offline app know from saved files, and what needs fresh information? |
 | general-performance | Why does a faster processor not always make an app faster? |
 
-### Evaluation rules to finalize before activation
+### Evaluation rules
 
 - Record model, enabled collections, artifact hashes, device RAM/OS, and app commit/APK hash.
 - Judge correctness, task usefulness, citation support, and uncertainty separately. A citation counts only if its actual passage supports the associated claim.
@@ -691,6 +743,6 @@ Camera/OCR, image preview, PDF/text attachments, download/import recovery, and p
 
 “24 questions recorded” describes progress. Show quality scores only after scoring, with the suite version and method visible. A shorter smoke-test subset can be used during development; the full frozen suite is for release comparisons.
 
-Next: review these prompts and define the per-question rubric before replacing the contents of `benchmarks/questions.json`.
+Next: write the per-question rubric down, run a named online baseline on the same questions, and keep a separate holdout set before replacing the contents of `benchmarks/questions.json`.
 
 The maintained filename stays `benchmarks/questions.json`. Identify future changes by Git commit and the file's SHA-256, not by creating numbered files. Android generates its bundled copy from this single source during the build.

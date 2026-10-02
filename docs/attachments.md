@@ -1,6 +1,6 @@
 # Research with your files
 
-This feature is in the current source, not the published v1.1.10 APK. Offline reader tests and TXT/PDF/photo picker checks have passed on an Infinix running Android 16. Real camera capture, broader model quality, and other devices still need verification.
+This feature is in v1.2.0 (and was first published in 1.2.0-rc.1); the older v1.1.10 APK does not have it. Offline reader tests and TXT/PDF/photo picker checks have passed on an Infinix running Android 16. Real camera capture, broader model quality, and other devices still need verification.
 
 Tap the paperclip in Research, then choose **Camera**, **Photos**, or **Files**. Wait for **Ready**, enter your question, and start research. Long document names keep their beginning and ending visible. Tap a ready document to check its extracted text. Images appear as small thumbnails: tap to preview, pinch or double-tap to zoom, or use the zoom buttons. Choose **Recognized text** to check the extracted words. Close the preview with X; remove an attachment with its row's X or **Remove image**. Removing it does not delete your original.
 

@@ -1,5 +1,26 @@
 # Verification
 
+## v1.2.0 (October 2–3)
+
+- **Automated:** 473 Android JVM tests passed with zero failures; 10 opt-in desktop tests are
+  skipped in the ordinary run (the ranking and routing ones were run against the real packs on
+  2 October). Python: 12 pack-tool, 57 script, 6 benchmark and 36 builder tests passed. The
+  website's 25 browser tests passed. Android instrumentation sources compiled but were not run.
+- **Answer quality:** the 24-question suite, run through the app's pipeline on desktop,
+  finished at 19 pass, 3 partial and 2 fail after search fixes; see
+  [evaluation](evaluation.md#v120-24-question-suite-october-2). That is author review on
+  fixed questions, not an independent or held-out score.
+- **Infinix X6840, Android 16, local-test key:** Encyclopedia and Travel guides imported;
+  Berlin and Tokyo vegan lookups returned six cited fully vegan places each, offline, in
+  15–17 s; place cards, source and place previews, the location explanation, History
+  passages and delete, the Library collection menu and live dictation were exercised by hand.
+  Details in the [release audit](compliance/release-audit.md#v120-release-handoff-2-october-2026).
+- **Not verified for this release:** the public-key signed APK on a phone, a public-key update
+  over 1.2.0-rc.1, the direct model download on a phone, network traffic capture during
+  research, and a 12 GB GrapheneOS phone.
+
+The sections below are earlier records, kept with the counts and hashes of their day.
+
 ## Files-first evidence scoping — 2026-09-28 follow-up
 
 Attachment questions now skip library retrieval by default; clear user requests such as “also use my library” opt into combined evidence. The prompt packer independently enforces that boundary, marks each record's origin, and reserves a library passage alongside files for combined requests. No-attachment research is unchanged. Opt-in recognition currently supports documented English directives, not arbitrary natural-language intent in every language.
@@ -30,10 +51,10 @@ Remaining checks include real camera capture, cancellation during OCR and rotati
 
 Field Atlas treats release claims as evidence gates. The repository checks unit behavior, deterministic pack creation, manifest safety, native assembly, Android lint, release retention, and APK offline policy.
 
-The signed 1.2.0 APK in the [release audit](compliance/release-audit.md) predates
-the latest source edits. Its device measurements demonstrate that exact older APK,
-not every change on `main`. New source must pass the checks below and be matched
-to a newly installed, tested APK before it is described as a reviewed release.
+Device measurements in these records demonstrate the exact APK installed at the
+time, not every later change on `main`. New source must pass the checks below and
+be matched to a newly installed, tested APK before it is described as a reviewed
+release.
 
 The broader 2026-09-26 check passed 200 Android JVM tests, 12 packtool tests,
 26 script tests, 6 benchmark-scorer tests, 1 travel-builder test, release lint,
@@ -70,7 +91,7 @@ source-backed city lookup—not proof of current restaurant quality, broad trave
 coverage, or improved answers on difficult general questions. The Wikivoyage pack
 remains a local optional artifact, not a published release download.
 
-A separate [short raw development clip](evidence/development/README.md) records the already-ready Berlin answer and a tap into its matching local source. It is an interaction sample, not a capture of the measured 3.31-second search from start to finish.
+A separate short raw development clip, since moved out of the repository, recorded the already-ready Berlin answer and a tap into its matching local source. It is an interaction sample, not a capture of the measured 3.31-second search from start to finish.
 
 The broader keyword-only Wikivoyage pack was built from the same pinned dump and passed pack verification. Its 351,581,170-byte artifact imported into Library on the Infinix with Qwen3.5 and the biology pack installed; airplane mode was on and Wi-Fi off. A first café lookup on the preceding debug build entered slow model generation, and Android showed an app-not-responding dialog. After a source-only fast path was added and the updated debug APK installed, “Which cafes are listed in Chiang Mai?” returned three cited listings and “Which museums are listed in Berlin?” returned four. Café citation 1 opened the matching saved Wikivoyage passage with a listing check date. This is a two-question lookup smoke check, not a broad quality benchmark, a fresh-data guarantee, or proof that complex model-generated research avoids the earlier stall. No release or public travel-data asset has been published from this experiment.
 
@@ -86,14 +107,14 @@ python3 -m unittest discover tools/tests
 ./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk
 ```
 
-The current development APK has `INTERNET` permission solely for user-started model and knowledge-pack downloads. The APK audit still rejects cleartext traffic, network-control permissions, common remote-service clients, unexpected ABIs, and missing native inference libraries. This static check does not prove the new provisioning paths or offline research behavior; both still need a fresh physical-device test before release.
+The 1.2.0 APK has `INTERNET` permission solely for user-started model and knowledge-pack downloads and catalog refresh. The APK audit still rejects cleartext traffic, network-control permissions, common remote-service clients, unexpected ABIs, and missing native inference libraries. This static check does not prove runtime network behavior; no traffic capture has been made.
 
 ## Resource boundaries
 
 - Android API 33 or newer, ARM64 only.
 - `StorageBudget` caps all installed packs at 50,000,000,000 bytes and keeps extraction headroom.
 - Model weights remain in app-private storage and are mapped by the local llama.cpp runtime.
-- The historical signed release requested no network permission. The current development build requests `INTERNET` for explicit model provisioning; core research remains local by design and does not depend on Google Play Services. This change has not yet been phone-verified.
+- The historical v1.1.x releases requested no network permission. Version 1.2.0 requests `INTERNET` for explicit downloads and catalog refresh; research remains local by design and does not depend on Google Play Services. Near-me questions read the phone's location through Android's `LocationManager`, after a permission prompt, and never send it.
 
 ## Physical-device record
 

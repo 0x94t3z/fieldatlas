@@ -371,20 +371,22 @@ Keyword search is the compatibility fallback. The current vector reader supports
 
 A **knowledge pack** is a saved collection the app can search when answering. It is optional: the model can still answer without one, but there will be no local source citation. A pack only covers the topics in its own data; it does not refresh itself while the phone is offline.
 
-| Collection | What it covers | Included in the current APK? | Main caution |
+| Collection | What it covers | In the 1.2.0 APK? | Main caution |
 | --- | --- | --- | --- |
-| Biology vector pack | Biology and longevity passages | No; import separately | Not general or travel coverage. |
+| Encyclopedia (Simple English Wikipedia) | 211,159 article leads, December 2025 | No; download in setup or Library | Short leads, not full articles; no live facts. |
+| Travel guides (Wikivoyage) | 25,330 destination guides, December 2025 | No; download in setup or Library | Guide text ages; check transport and safety details. |
+| Biology vector pack | Biology and longevity passages | No; download in setup or Library | Not general or travel coverage. |
 | Wikivoyage places to eat | Dated restaurant listings from a 2026 dump | No; build and import separately | Listings and opening details can be stale. |
-| Wikivoyage places | Dated See, Do, Eat, Drink, Sleep, and Buy listings | No; download separately | Wider travel scope, still not a current recommendation service. |
-| Vegan places (OpenStreetMap) | Restaurants, cafés, and shops tagged fully vegan or with vegan options, worldwide | No; build and import separately | Tags and hours can be stale; no ratings or “best” ranking. |
+| Wikivoyage places | Dated See, Do, Eat, Drink, Sleep, and Buy listings | No; download in setup or Library | Wider travel scope, still not a current recommendation service. |
+| Vegan places (OpenStreetMap) | Restaurants, cafés, and shops tagged fully vegan or with vegan options, worldwide | No; download in setup or Library | Tags and hours can be stale; no ratings or “best” ranking. |
 | Wikipedia mini (keyword search) | General background from selected articles | No; build and import separately | Snapshot coverage; no live or private facts. |
 | Historical Reference and Starter fixtures | Small sets used to reproduce older tests | No longer the current built-in knowledge | Not a broad encyclopedia. |
 
-**For non-developers:** the public v1.1.10 release is different from the current source build: it bundles its own small Reference collection. Use the [version-matched install guide](docs/installation.md) before choosing a pack. The sections below give source, license, checksum, and build details for people who want to inspect or recreate the data.
+**For non-developers:** the older v1.1.10 release is different from 1.2.0: it bundles its own small Reference collection, while 1.2.0 downloads collections separately. Use the [version-matched install guide](docs/installation.md) before choosing a pack. The sections below give source, license, checksum, and build details for people who want to inspect or recreate the data.
 
 ## Biology vector pack (optional)
 
-The [fork's biology vector pack](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs) is a separate 1.2.0 `.fapack` with local int8 passage embeddings and a local query encoder. It covers biology and longevity sources, not general travel or all of Wikipedia. Its published SHA-256 is `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01`. The current development build lists it as an optional recommended download in Library; it checks the full archive hash, then verifies every artifact during import. The public v1.1.10 app still needs a separately obtained compatible pack. It is not bundled into the APK. The exact corpus scope and source attributions remain in that pack's manifest and passages. The downloadable list is defined in `app/src/main/assets/knowledge/catalog.json`; adding a future hosted collection requires its URL, exact size, checksum, and a new app build. Only hosted collections are listed; the broader Travel places pack is now published, while Eat-only and Wikipedia mini remain unavailable as in-app downloads.
+The [fork's biology vector pack](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs) is a separate 1.2.0 `.fapack` with local int8 passage embeddings and a local query encoder. It covers biology and longevity sources, not general travel or all of Wikipedia. Its published SHA-256 is `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01`. Version 1.2.0 lists it as an optional download in setup and Library; it checks the full archive hash, then verifies every artifact during import. The public v1.1.10 app still needs a separately obtained compatible pack. It is not bundled into the APK. The exact corpus scope and source attributions remain in that pack's manifest and passages. The downloadable list is defined in `app/src/main/assets/knowledge/catalog.json`; adding a future hosted collection requires its URL, exact size and checksum in that file on the main branch; **Refresh collections** then lists it without a new app build. Only hosted collections are listed: Encyclopedia, Travel guides, Travel places, Vegan places and Biology. Eat-only and Wikipedia mini remain unavailable as in-app downloads.
 
 ## Historical Reference fixture
 

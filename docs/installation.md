@@ -10,7 +10,7 @@ The current release is **v1.2.0**, for Android 13+ ARM64 devices. It uses Qwen3.
 | --- | --- | --- |
 | Use the current release | [Signed v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |
 | Use the previous stable release | [v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/docs/installation.md), including Qwen3 1.7B. |
-| Test unpublished source changes | [Build from source](building.md) | Qwen3.5 2B. Local changes are not necessarily in the published APK. A debug build is a separate app, not an update to the signed release. |
+| Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
 Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.
 
@@ -23,27 +23,37 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
-After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release. Do not assume the unpublished background-download improvements below are present in the public APK.
+After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release.
 
-## Current development build
+## What setup offers in 1.2.0
 
-The source in this checkout is ahead of the published release. Developers can [build a debug APK](building.md) at `app/build/outputs/apk/debug/app-debug.apk`; it installs as `xyz.fieldatlas.debug` alongside the signed app. In setup, choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md). Both paths install the same pinned model weights. The app verifies the direct download's exact size and SHA-256 before using it. The direct-download path has not yet been validated on a physical phone; keep the pack-import option for now.
+The app needs **only an installed model** to answer questions. Setup shows the model and the optional collections together, grouped by category, straight from the download catalog:
 
-The current development build needs **only an installed model** to answer questions. The setup screen shows the model and optional knowledge downloads together: **Biology & longevity** (about 1.57 GB), **Travel places** (about 352 MB) and **Vegan places** (about 40 MB), directly from the download catalog. Scroll below the model to choose a collection and confirm the download. You can switch apps while it downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again. A server that does not support range requests may require a full restart. You can also import a saved `.fapack`. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. The app verifies each download's exact size and SHA-256 before installing it. Knowledge adds local source passages and citations for its own topic; it is not bundled into the APK. Biology is hosted by the fork, and Travel places is hosted as a project release asset. The manual import path accepts `.fapack`, not raw `.gguf` files.
+| Collection | Download | Covers |
+| --- | ---: | --- |
+| Encyclopedia | about 316 MB | Simple English Wikipedia, December 2025 |
+| Travel guides | about 375 MB | Wikivoyage destination guides, December 2025 |
+| Travel places | about 352 MB | Dated Wikivoyage listings: sights, food, hotels, shops |
+| Vegan places | about 40 MB | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
+| Biology & longevity | about 1.57 GB | Biology and aging research passages |
 
-You can [download Travel places](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-travel-2026.09.1) and import the `.fapack` from Library. It includes restaurants, hotels, sights, shopping, and other dated listings. Its in-app download button is in the updated local catalog; the corresponding Android update has not been published. Earlier Infinix checks returned cited café and museum listings. Developers can also build a [Wikipedia mini pack](../DATASETS.md#wikipedia-mini-keyword-only-builder), which remains unpublished and has not been phone-tested.
+Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download has not been validated on a physical phone, so keep the pack-import option in mind.
 
-Voice input in the current build uses a bundled English Vosk speech model and, if you choose to use it, microphone permission. It works on-device. You can keep more than one verified model and switch the active one in Library. The newer answer flow prepares a selected model automatically; **Prepare for research** is a retry if loading needs help.
+You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Biology is hosted by the fork; the other collections are project release assets. The manual import path accepts `.fapack`, not raw `.gguf` files.
+
+Place questions about where you are ("vegan restaurants near me") use the phone's own location through Android's location service, only after a short explanation and Android's permission prompt; naming a city works without location. Voice input uses a bundled English Vosk speech model and, if you choose to use it, microphone permission; words appear in the question box as you speak, and nothing is submitted automatically. You can keep more than one verified model and switch the active one in Library. The answer flow prepares a selected model automatically; **Prepare for research** is a retry if loading needs help.
+
+Developers can also [build a debug APK](building.md) (`xyz.fieldatlas.debug`, installed alongside the signed app) or a [Wikipedia mini pack](../DATASETS.md#wikipedia-mini-keyword-only-builder), which is unpublished and has not been phone-tested.
 
 ## Common problems
 
-### Refreshing collections in the development build
+### Refreshing collections
 
 Setup and Library offer **Refresh collections**, an explicit online provisioning action. Opening the app or those screens does not refresh automatically. The app uses its bundled list until a refresh succeeds, then keeps the accepted catalog locally for offline use. Refresh failure leaves that list and installed packs available. Refresh downloads metadata only; each pack still requires a separate confirmed download.
 
-The catalog is maintained at the repository's `main/app/src/main/assets/knowledge/catalog.json` path and fetched over HTTPS. New compatible entries can appear without an APK update once catalog changes are published there. Imported packs need not appear in this catalog. If refresh fails or the endpoint is unavailable, use bundled listings or import a saved pack. Current local changes still require final device/network verification.
+The catalog is maintained at the repository's `main/app/src/main/assets/knowledge/catalog.json` path and fetched over HTTPS. New compatible entries can appear without an APK update once catalog changes are published there. Imported packs need not appear in this catalog. If refresh fails or the endpoint is unavailable, use bundled listings or import a saved pack. Refresh has not been checked with a network traffic capture.
 
-The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums detect mismatches against the accepted catalog, not a compromised publisher. No automatic pack updates or deletions occur. Unpublished provisioning checks now count the APK, native libraries, app data/cache and staged files, reserve extraction space, and serialize app provisioning operations. They are not an OS-enforced quota on subsequent cache/history growth; final total-storage measurement remains a release gate.
+The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums detect mismatches against the accepted catalog, not a compromised publisher. No automatic pack updates or deletions occur. Provisioning checks count the APK, native libraries, app data/cache and staged files, reserve extraction space, and serialize app provisioning operations. They are not an OS-enforced quota on subsequent cache/history growth; final total-storage measurement remains a release gate.
 
 ### Troubleshooting
 

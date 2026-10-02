@@ -1,6 +1,6 @@
 # Release audit
 
-Updated 2 October 2026. **Owner approved v1.2.0 as a public release (not a prerelease). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 3 October 2026. **Owner approved v1.2.0 as a public release (not a prerelease). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
 ## v1.2.0 release handoff (2 October 2026)
 
@@ -8,15 +8,27 @@ Updated 2 October 2026. **Owner approved v1.2.0 as a public release (not a prere
   `docs/releases/current.md`. Knowledge releases published alongside it:
   `knowledge-simplewiki-2025.12.29`, `knowledge-wikivoyage-guides-2025.12.29`,
   `knowledge-vegan-places-2026.10.02` (files staged locally, checksums in each `SHA256SUMS`).
-- Verified on 2 October: 465 JVM tests with zero failures; the opt-in desktop ranking and
-  routing tests against real packs; Android instrumentation sources compiled, not run;
-  36 builder tests, 57 script tests and 25 website browser tests.
+- Verified on 3 October, including the search fixes in the next item: 473 JVM tests with
+  zero failures (10 opt-in desktop tests skipped in the ordinary run; the ranking and
+  routing ones were run against real packs on 2 October); Android instrumentation sources compiled, not run;
+  111 Python tests (12 pack-tool, 57 script, 6 benchmark, 36 builder) and 25 website
+  browser tests.
+- Answer quality: the [24-question suite](../evaluation.md#v120-24-question-suite-october-2)
+  run through the app pipeline on desktop gave 15 pass, 3 partial and 6 fail at first. Search
+  fixes for the failures (instruction words in keyword search, honest replies for today's
+  news, food stops beside museums, research-vocabulary false matches, "open now" wording),
+  each with a regression test, brought it to 19 pass, 3 partial and 2 fail. Author review,
+  fixed questions, no online baseline: not a bounty accuracy score.
 - On the Infinix X6840 (Android 16, local-test key): Encyclopedia and Travel guides imported;
   place cards, source and place previews, location explanation, History passages and
   delete, Library collection menu and live dictation exercised by hand.
 - Not verified: the signed public-key APK (its SHA-256 is added to the notes when built),
   public-key update over 1.2.0-rc.1, a 12 GB GrapheneOS phone, and answer quality beyond
   the questions above. Comparison answers can still come back without citations.
+
+The sections below are the dated development log, kept as written at the time. Their test
+counts, APK hashes, "current" and "not released" labels, and gate lists describe that day's
+build; the handoff above is the current state.
 
 ## October 2 OpenStreetMap vegan places and UI refresh — released in v1.2.0
 
@@ -46,7 +58,7 @@ rounded rectangles. Verification: 437 JVM tests passed (4 skipped), Python build
 passed, release lint reported 0 errors, and each screen was checked on the phone after an
 in-place install with data preserved.
 
-## October 2 keyword search I/O fix — not released
+## October 2 keyword search I/O fix — released in v1.2.0
 
 The ~19 s LAN retrieval recorded below was disk I/O. The keyword query ranked every
 match by `(bm25, chunk_id)` while selecting whole rows, so SQLite read the content row
@@ -84,7 +96,7 @@ no active default network. Single runs on one phone; buoyancy differences are wi
 run-to-run variation and are not claimed as a change. Raw results: ignored
 `build/phone-release-check/search-io-device-matrix.json`.
 
-## October 2 source-first overview answers — not released
+## October 2 source-first overview answers — released in v1.2.0
 
 The October 1 boat runs showed the model distorting a correctly retrieved passage.
 For "what is X" / "tell me about X" / "explain X" questions, the first sentences of the
@@ -472,7 +484,7 @@ validate actual provisioning/recovery and total footprint; run optimized on-devi
 offline, network-enabled traffic, startup, resource and UI checks; then freeze, sign,
 test public-key upgrade compatibility and publish the exact reviewed artifact.
 
-## Prerelease handoff
+## v1.2.0-rc.1 prerelease handoff (historical)
 
 - GitHub channel: `v1.2.0-rc.1`; app 1.2.0 (14). See `docs/releases/current.md`.
 - Public-key APK SHA-256: `6d688a3632aa77650996aec3ae7ff4e887b7d772d9f2995ea0d8e67b71837b7f`.
@@ -489,7 +501,7 @@ test public-key upgrade compatibility and publish the exact reviewed artifact.
 - The following sections retain earlier measurements with their original limits;
   their APK hashes and counts do not identify this latest artifact.
 
-## Current local candidate
+## Earlier local candidate, versionCode 14 (historical)
 
 - Version 1.2.0, versionCode 14; source contains uncommitted changes.
 - Installed APK SHA-256: `8cfadcd86f603a9d0bbeba9f900fab8f2dcf612394bd53c86307d46392fe0446`.
@@ -540,7 +552,7 @@ The phone already contained Qwen3.5 2B and Biology & longevity. Travel places wa
 7. Verify supported GrapheneOS compatibility or disclose it as untested.
 8. Refresh installation/release notes, freeze the tested commit/version, re-run artifact checks, sign correctly, and record the exact build's public demo.
 
-Private screenshots, UI dumps, memory samples, and bug reports stay under ignored `build/`. No new public release, tag, post, or claim has been made. See [evaluation](../evaluation.md) for the benchmark explanation and proposed replacement questions.
+Private screenshots, UI dumps, memory samples, and bug reports stay under ignored `build/`. No new public release, tag, post, or claim has been made. See [evaluation](../evaluation.md) for the benchmark explanation and the 24-question suite.
 
 ## Startup freeze investigation
 
