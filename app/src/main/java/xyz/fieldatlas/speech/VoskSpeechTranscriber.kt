@@ -34,7 +34,9 @@ class VoskSpeechTranscriber(
     private val capturing = AtomicBoolean(false)
     private val heard = StringBuilder()
 
-    override suspend fun start(onLevel: (Float) -> Unit) = withContext(Dispatchers.IO) {
+    override suspend fun start(onLevel: (Float) -> Unit) = start(onLevel) {}
+
+    override suspend fun start(onLevel: (Float) -> Unit, onText: (String) -> Unit) = withContext(Dispatchers.IO) {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -73,6 +75,7 @@ class VoskSpeechTranscriber(
                 // first real samples; feeding speech as the very first bytes clips word one.
                 recogniser.acceptWaveForm(ByteArray(WARMUP_BYTES), WARMUP_BYTES)
                 val samples = ShortArray(SAMPLES_PER_CHUNK)
+                var lastLive = ""
                 while (capturing.get() && !Thread.currentThread().isInterrupted) {
                     val read = audio.read(samples, 0, samples.size)
                     if (read <= 0) continue
@@ -85,12 +88,23 @@ class VoskSpeechTranscriber(
                     // Small speech sits well below a raw full-scale RMS; a gain keeps
                     // the meter responsive without letting silence read as a peak.
                     onLevel(min(1f, (rms * 6.0).toFloat()))
-                    if (recogniser.acceptWaveForm(samples, read)) {
+                    val live = if (recogniser.acceptWaveForm(samples, read)) {
                         recogniser.result.jsonToText()?.let { segment ->
                             if (heard.isNotEmpty()) heard.append(' ')
                             heard.append(segment)
                         }
                         recogniser.reset()
+                        heard.toString()
+                    } else {
+                        // Vosk's running guess for the current phrase; the final result can
+                        // still correct it, which is why stop() returns the authoritative text.
+                        val partial = runCatching { JSONObject(recogniser.partialResult).optString("partial").trim() }
+                            .getOrDefault("")
+                        listOf(heard.toString(), partial).filter(String::isNotBlank).joinToString(" ")
+                    }
+                    if (live != lastLive) {
+                        lastLive = live
+                        onText(live)
                     }
                 }
             }.apply {
@@ -161,7 +175,8 @@ class VoskSpeechTranscriber(
         const val ASSET_DIR = "vosk-model-en-us-015"
         const val MODEL_DIR = "vosk-model-en-us-015"
         const val SAMPLE_RATE = 16000f
-        const val SAMPLES_PER_CHUNK = 3200
+        // 100 ms per read: the level meter and live words update ten times a second.
+        const val SAMPLES_PER_CHUNK = 1600
         /** ~150 ms of leading silence handed to the recogniser before any live audio. */
         const val WARMUP_BYTES = 4800
         const val MIN_BUFFER_BYTES = 128 * 1024

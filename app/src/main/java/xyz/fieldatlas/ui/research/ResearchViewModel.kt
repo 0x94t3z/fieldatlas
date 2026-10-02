@@ -30,6 +30,8 @@ data class VoiceUiState(
     val phase: VoicePhase = VoicePhase.Idle,
     val level: Float = 0f,
     val error: String? = null,
+    /** Words recognised so far while recording, already shown in the question box. */
+    val liveText: String = "",
 )
 
 data class ResearchUiState(
@@ -145,12 +147,21 @@ class ResearchViewModel(
                 return@launch
             }
             activeTranscriber = transcriber
+            // Live words are appended to what was already typed; stop() swaps in the final text.
+            voiceBaseQuestion = mutableUiState.value.question.trim()
             val startFailure = runCatching {
-                transcriber.start { level ->
-                    mutableVoiceState.value = mutableVoiceState.value.copy(
-                        level = level.coerceIn(0f, 1f),
-                    )
-                }
+                transcriber.start(
+                    onLevel = { level ->
+                        mutableVoiceState.value = mutableVoiceState.value.copy(level = level.coerceIn(0f, 1f))
+                    },
+                    onText = { live ->
+                        scope.launch {
+                            if (activeTranscriber !== transcriber) return@launch
+                            mutableVoiceState.value = mutableVoiceState.value.copy(liveText = live)
+                            updateQuestion(joinQuestion(voiceBaseQuestion, live))
+                        }
+                    },
+                )
             }.exceptionOrNull()
             if (startFailure != null || activeTranscriber !== transcriber) {
                 activeTranscriber = null
@@ -163,17 +174,20 @@ class ResearchViewModel(
         }
     }
 
+    private var voiceBaseQuestion = ""
+
+    private fun joinQuestion(base: String, spoken: String) = listOf(base, spoken.trim()).filter(String::isNotBlank).joinToString(" ")
+
     private fun stopVoiceCapture() {
         scope.launch {
             val transcriber = activeTranscriber ?: return@launch
+            val live = mutableVoiceState.value.liveText
             mutableVoiceState.value = VoiceUiState(VoicePhase.Processing)
             val result = runCatching { transcriber.stop() }
             activeTranscriber = null
-            val transcript = result.getOrDefault("")
-            if (transcript.isNotBlank()) {
-                val existing = mutableUiState.value.question.trim()
-                updateQuestion(((if (existing.isEmpty()) "" else "$existing ") + transcript).trim())
-            }
+            // The final pass can correct the live guess; if it returns nothing, keep what was shown.
+            val transcript = result.getOrDefault("").ifBlank { live }
+            updateQuestion(joinQuestion(voiceBaseQuestion, transcript))
             val failure = result.exceptionOrNull()
             mutableVoiceState.value = VoiceUiState(
                 error = failure?.let {

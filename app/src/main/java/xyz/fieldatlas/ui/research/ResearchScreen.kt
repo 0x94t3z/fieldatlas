@@ -82,6 +82,14 @@ import xyz.fieldatlas.ui.theme.StatusTone
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 import xyz.fieldatlas.ui.theme.TileTone
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.ui.draw.alpha
 
 @Composable
 fun ResearchScreen(
@@ -179,8 +187,9 @@ fun ResearchScreen(
                     MaterialTheme.colorScheme.surface
                 },
                 border = BorderStroke(
-                    if (questionFocused) 2.dp else 1.dp,
-                    if (questionFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                    if (questionFocused || voiceState.phase == VoicePhase.Recording) 2.dp else 1.dp,
+                    if (questionFocused || voiceState.phase == VoicePhase.Recording) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline,
                 ),
             ) {
                 Column {
@@ -189,6 +198,8 @@ fun ResearchScreen(
                         value = state.question,
                         onValueChange = onQuestionChange,
                         enabled = !state.isRunning,
+                        // Spoken words stream into the box; typing at the same time would fight them.
+                        readOnly = voiceState.phase == VoicePhase.Recording,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth()
@@ -239,6 +250,9 @@ fun ResearchScreen(
                         }
                         Spacer(Modifier.weight(1f))
                         val recording = voiceState.phase == VoicePhase.Recording
+                        if (recording) {
+                            VoiceLevelMeter(voiceState.level, Modifier.padding(end = 10.dp))
+                        }
                         // The button grows with the microphone level so speaking visibly registers.
                         val pulse by animateFloatAsState(
                             if (recording) 1f + voiceState.level.coerceIn(0f, 1f) * 0.18f else 1f,
@@ -279,13 +293,14 @@ fun ResearchScreen(
             }
             when (voiceState.phase) {
                 VoicePhase.Recording -> Row(
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 10.dp).semantics(mergeDescendants = true) {},
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    FieldAtlasStatusPill("Listening", StatusTone.Positive)
+                    RecordingDot()
+                    Text("Listening on this phone", style = MaterialTheme.typography.labelLarge)
                     Text(
-                        "Tap stop when you finish.",
+                        if (voiceState.liveText.isBlank()) "· start speaking" else "· tap stop when done",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -614,4 +629,34 @@ private fun MessageCard(title: String, message: String) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text(message, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/** Five bars that follow the microphone level, newest on the right, so speech visibly registers. */
+@Composable
+private fun VoiceLevelMeter(level: Float, modifier: Modifier = Modifier) {
+    val history = remember { mutableStateListOf(0f, 0f, 0f, 0f, 0f) }
+    LaunchedEffect(level) {
+        history.removeAt(0)
+        history.add(level.coerceIn(0f, 1f))
+    }
+    Row(modifier.height(28.dp), horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
+        history.forEach { value ->
+            // Square root lifts quiet speech, which sits low on a linear loudness scale.
+            val height by animateFloatAsState(6f + kotlin.math.sqrt(value) * 22f, label = "voiceBar")
+            Box(Modifier.width(4.dp).height(height.dp).background(MaterialTheme.colorScheme.primary, RoundedCornerShape(2.dp)))
+        }
+    }
+}
+
+/** A softly pulsing red dot: the conventional "recording now" mark. */
+@Composable
+private fun RecordingDot() {
+    val pulse = rememberInfiniteTransition(label = "recordingDot")
+    val alpha by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.35f,
+        animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+        label = "recordingDotAlpha",
+    )
+    Box(Modifier.size(10.dp).alpha(alpha).background(MaterialTheme.colorScheme.error, CircleShape))
 }

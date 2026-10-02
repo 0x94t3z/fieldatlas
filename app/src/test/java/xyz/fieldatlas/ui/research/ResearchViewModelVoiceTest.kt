@@ -32,11 +32,16 @@ class ResearchViewModelVoiceTest {
         var startCalls = 0
         var stopCalls = 0
         var levelListener: ((Float) -> Unit)? = null
+        var textListener: ((String) -> Unit)? = null
         override suspend fun start(onLevel: (Float) -> Unit) {
             startCalls++
             if (failStart && startCalls == 1) error("microphone busy")
             levelListener = onLevel
             emitLevelOnStart?.let(onLevel)
+        }
+        override suspend fun start(onLevel: (Float) -> Unit, onText: (String) -> Unit) {
+            textListener = onText
+            start(onLevel)
         }
         override suspend fun stop(): String { stopCalls++; return transcript }
         override suspend fun cancel() { stopCalls++ }
@@ -85,6 +90,29 @@ class ResearchViewModelVoiceTest {
         model.onMicClick()
         model.onMicClick()
         assertEquals("How heavy are tigers and cubs", model.uiState.value.question)
+    }
+
+    @Test fun wordsAppearWhileSpeakingAndTheFinalTextReplacesThem() {
+        val (model, transcriber) = viewModel(FakeTranscriber("cubs grow fast"))
+        model.updateQuestion("Tigers:")
+        model.onMicClick()
+        transcriber.textListener?.invoke("cubs")
+        assertEquals("Tigers: cubs", model.uiState.value.question)
+        transcriber.textListener?.invoke("cubs grow fist")
+        assertEquals("Tigers: cubs grow fist", model.uiState.value.question)
+        assertEquals("cubs grow fist", model.voiceState.value.liveText)
+        model.onMicClick()
+        assertEquals("Tigers: cubs grow fast", model.uiState.value.question)
+        assertEquals(ResearchPhase.Idle, model.uiState.value.phase)
+    }
+
+    @Test fun liveWordsStayWhenTheFinalPassReturnsNothing() {
+        val (model, transcriber) = viewModel(FakeTranscriber(""))
+        model.onMicClick()
+        transcriber.textListener?.invoke("nearest pharmacy")
+        model.onMicClick()
+        assertEquals("nearest pharmacy", model.uiState.value.question)
+        assertEquals(null, model.voiceState.value.error)
     }
 
     @Test fun loudLevelsDriveTheMeter() {
