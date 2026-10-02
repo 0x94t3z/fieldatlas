@@ -13,8 +13,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,28 +38,10 @@ val FieldAtlasEditorial = FontFamily(
 )
 
 /**
- * Reading text and interface labels: Inter, a screen face with a tall x-height and open
- * letters that stays clear at small sizes. Bundled so answers read the same on every phone
- * rather than in an OEM default.
+ * Reading text and interface labels: the phone's own sans serif (Roboto on most Android
+ * phones), so text matches the system and costs no bundled font. Headings use the serif.
  */
-@OptIn(ExperimentalTextApi::class)
-val FieldAtlasSans = FontFamily(
-    sansFont(FontWeight.Normal),
-    sansFont(FontWeight.Medium),
-    sansFont(FontWeight.SemiBold),
-    sansFont(FontWeight.Bold),
-    sansFont(FontWeight.Normal, FontStyle.Italic),
-    sansFont(FontWeight.SemiBold, FontStyle.Italic),
-)
-
-// A variable file draws its default instance unless the wght axis is set for each weight.
-@OptIn(ExperimentalTextApi::class)
-private fun sansFont(weight: FontWeight, style: FontStyle = FontStyle.Normal) = Font(
-    if (style == FontStyle.Italic) R.font.inter_italic_variable else R.font.inter_variable,
-    weight = weight,
-    style = style,
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
-)
+val FieldAtlasSans: FontFamily = FontFamily.Default
 
 private val FieldNotebookColors = lightColorScheme(
     primary = FieldAtlasColors.ForestGreen,
@@ -141,8 +121,7 @@ private val FieldNotebookDarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD2),
 )
 
-// Material's defaults with every style set to a bundled family. Inter's tall x-height reads
-// well a point below where a smaller-eyed face such as Source Sans would need to be.
+// Material's defaults with the serif for display and headline styles.
 private val MaterialDefaults = Typography()
 
 private val FieldAtlasTypography = Typography(
