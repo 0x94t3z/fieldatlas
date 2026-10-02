@@ -217,16 +217,11 @@ private fun HistoryCard(
         }
     }
     if (confirmDelete) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this answer?") },
-            text = { Text("It is removed from History on this phone. Your collections are not changed.") },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
+        xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
+            title = "Delete this answer?",
+            message = "It is removed from History on this phone. Your collections are not changed.",
+            onKeep = { confirmDelete = false },
+            onDelete = { confirmDelete = false; onDelete() },
         )
     }
 }

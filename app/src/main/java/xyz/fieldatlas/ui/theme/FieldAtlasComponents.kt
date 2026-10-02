@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -151,7 +152,7 @@ fun FieldAtlasCard(
 }
 
 /** Icon tile tints drawn only from the notebook palette: sage, gold, paper and forest. */
-enum class TileTone { Sage, Gold, Paper, Forest }
+enum class TileTone { Sage, Gold, Paper, Forest, Clay }
 
 @Composable
 fun FieldAtlasIconTile(
@@ -166,6 +167,9 @@ fun FieldAtlasIconTile(
         TileTone.Gold -> colors.secondaryContainer to colors.onSecondaryContainer
         TileTone.Paper -> colors.surfaceVariant to colors.onSurfaceVariant
         TileTone.Forest -> colors.primary to colors.onPrimary
+        // A warm wash outside the green family, for when tiles in one list should all differ.
+        TileTone.Clay -> if (colors.background.luminance() > 0.5f) Color(0xFFF2DED3) to Color(0xFF6B3420)
+            else Color(0xFF4A2B21) to Color(0xFFF3D5C6)
     }
     Surface(
         modifier = modifier.size(size),
@@ -382,4 +386,49 @@ fun MetricChip(label: String, value: String? = null, modifier: Modifier = Modifi
         text = listOfNotNull(label, value).joinToString(" · "),
         modifier = modifier,
     )
+}
+
+/**
+ * Confirmation for an action that removes something. The safe choice is outlined and first;
+ * the removal is the one filled, red button, so it is never the visual default by accident.
+ */
+@Composable
+fun FieldAtlasDeleteDialog(
+    title: String,
+    message: String,
+    onKeep: () -> Unit,
+    onDelete: () -> Unit,
+    deleteLabel: String = "Delete",
+) {
+    androidx.compose.ui.window.Dialog(onDismissRequest = onKeep) {
+        Surface(
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 12.dp,
+        ) {
+            Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(Modifier.size(48.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
+                    contentColor = MaterialTheme.colorScheme.error) {
+                    Icon(FieldAtlasIcons.Trash, contentDescription = null,
+                        modifier = Modifier.padding(12.dp))
+                }
+                Text(title, style = MaterialTheme.typography.headlineSmall, fontFamily = FieldAtlasEditorial,
+                    fontWeight = FontWeight.SemiBold)
+                Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    androidx.compose.material3.OutlinedButton(onClick = onKeep, shape = FieldAtlasButtonShape,
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Keep") }
+                    androidx.compose.material3.Button(onClick = onDelete, shape = FieldAtlasButtonShape,
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                        ),
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(deleteLabel) }
+                }
+            }
+        }
+    }
 }

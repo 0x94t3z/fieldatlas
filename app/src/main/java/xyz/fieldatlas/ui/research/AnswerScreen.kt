@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -93,6 +94,9 @@ fun AnswerScreen(
     val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
+    val placeCards = if (noModelReply) remember(state.answer, state.sources) {
+        placeCardModels(presentation.blocks, state.sources)
+    } else null
     val missingSubjects = xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
 
     Surface(
@@ -184,7 +188,23 @@ fun AnswerScreen(
                         )
                     }
                 }
-                item {
+                if (placeCards != null) {
+                    // A place lookup reads as a list of places to choose from, each one tappable.
+                    val listAt = presentation.blocks.indexOfFirst { it is xyz.fieldatlas.ui.markdown.MarkdownBlock.ListBlock }
+                    val intro = presentation.blocks.take(listAt)
+                    val outro = presentation.blocks.drop(listAt + 1)
+                    if (intro.isNotEmpty()) item {
+                        AnswerMarkdownRenderer(blocks = intro, sourceCount = state.sources.size, onCitation = openPreview,
+                            bodyStyle = MaterialTheme.typography.bodyMedium)
+                    }
+                    items(placeCards.size, key = { "place:${placeCards[it].sourceIndex}" }) { index ->
+                        PlaceCard(placeCards[index], openPreview)
+                    }
+                    if (outro.isNotEmpty()) item {
+                        AnswerMarkdownRenderer(blocks = outro, sourceCount = state.sources.size, onCitation = openPreview,
+                            bodyStyle = MaterialTheme.typography.bodySmall)
+                    }
+                } else item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                         AnswerMarkdownRenderer(
                             blocks = presentation.blocks,

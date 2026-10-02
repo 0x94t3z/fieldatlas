@@ -117,10 +117,10 @@ fun ResearchScreen(
     // mirroring whichever pack happens to be installed on the device: a place lookup, then
     // explanation, comparison and reasoning, each answered by a named Encyclopedia article.
     val exampleQuestions = listOf(
-        ExampleQuestion("Tell me the best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Sage),
-        ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Paper),
-        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Compare, TileTone.Gold),
-        ExampleQuestion("What caused the French Revolution?", FieldAtlasIcons.Document, TileTone.Sage),
+        ExampleQuestion("Tell me the best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Clay),
+        ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Sage),
+        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Research, TileTone.Gold),
+        ExampleQuestion("What caused the French Revolution?", FieldAtlasIcons.Document, TileTone.Paper),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),

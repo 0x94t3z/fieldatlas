@@ -52,6 +52,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
+import xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
@@ -492,24 +493,12 @@ private fun AssetCard(
         }
     }
     if (confirmDelete) {
-        AlertDialog(
-            onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete ${model.title}?") },
-            text = {
-                Text(
-                    "Frees ${model.size}. Answers in History keep the passages saved with them. " +
-                        "You can download or import it again later.",
-                )
-            },
-            confirmButton = {
-                TextButton(shape = FieldAtlasButtonShape, 
-                    onClick = {
-                        confirmDelete = false
-                        onDelete?.invoke()
-                    },
-                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDelete = false }) { Text("Keep") } },
+        FieldAtlasDeleteDialog(
+            title = "Delete ${model.title}?",
+            message = "Frees ${model.size}. Answers in History keep the passages saved with them. " +
+                "You can download or import it again later.",
+            onKeep = { confirmDelete = false },
+            onDelete = { confirmDelete = false; onDelete?.invoke() },
         )
     }
     if (showAbout && asset != null) {
