@@ -1,6 +1,8 @@
 package xyz.fieldatlas.research
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class EvidenceRelevanceTest {
@@ -192,6 +194,26 @@ class EvidenceRelevanceTest {
         val question = "Why do Earth's hemispheres have opposite seasons?"
         assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(farm), FtsQuery.from(question)!!.terms, question = question))
     }
+    @Test fun `attribute questions keep the article that states the fact`() {
+        val question = "What is the capital of Australia?"
+        assertTrue(EvidenceRelevance.isAttributeQuestion(question))
+        assertEquals(emptyList<String>(), EvidenceRelevance.overviewSubjects(question))
+        val canberra = evidence("Canberra is the capital city of Australia.", null)
+        val unrelated = evidence("A capital letter begins each sentence.", null)
+        assertEquals(listOf(canberra), EvidenceRelevance.keep(listOf(unrelated, canberra),
+            FtsQuery.from(question)!!.terms, question = question))
+        assertFalse(EvidenceRelevance.isAttributeQuestion("What is the history of Japan?"))
+    }
+
+    @Test fun `possessive subjects are also read in reference title order`() {
+        assertEquals(listOf("Japan's history", "history of Japan"),
+            EvidenceRelevance.overviewSubjects("Tell me about Japan's history"))
+        val lead = evidence("The history of Japan begins in prehistoric times.", null)
+            .copy(title = "History of Japan — Overview")
+        assertEquals(listOf(lead), EvidenceRelevance.keep(listOf(lead),
+            FtsQuery.from("Tell me about Japan's history")!!.terms, question = "Tell me about Japan's history"))
+    }
+
     @Test fun `overview preserves singular definitions appositives and acronyms`() {
         listOf(
             "What are viruses?" to "A virus is an infectious agent that reproduces inside host cells.",

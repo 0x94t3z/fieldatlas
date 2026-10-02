@@ -109,13 +109,20 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             candidateIndex.entries.filter { (_, tokens) -> term in tokens }
                 .minWithOrNull(compareBy(
                     { (candidate, _) -> comparisonTitlePriority(candidate.title, term, comparisonSubjects) },
-                    { (candidate, _) -> candidate.title.length },
+                    // Shortest title first, except that an article's overview counts as its bare
+                    // name: "X — Details" is a letter shorter than "X — Overview" but must not
+                    // lead it. Place titles ("Berlin — Best Grill") keep plain length order.
+                    { (candidate, _) -> overviewAwareLength(candidate.title) },
                 ))
                 ?.let { entry -> frequencyOf(term) to entry.key }
         }.sortedBy { (frequency, _) -> frequency }
             .distinctBy { (_, candidate) -> candidate.title.lowercase() }
-            .take(TITLE_BOOST_CAP)
             .map { (_, candidate) -> candidate }
+            // An article named entirely by question words ("Marie Curie", "History of Japan")
+            // is what the question asks about; per-term nomination alone would pick the
+            // shortest title holding one word ("Ève Curie") ahead of it.
+            .let { perTerm -> (fullNameTitles(alive) + perTerm).distinctBy { it.title.lowercase() } }
+            .take(TITLE_BOOST_CAP)
         val titleRows = database.titleLeadChunks(nominated)
         // Chosen title articles re-score below the whole pool's floor, ordered by their
         // weighted coverage, so the pack's ranking leads with the articles the question names.
@@ -159,17 +166,48 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         database.countCapped(ftsTerm(term), FREQUENCY_PROBE_CAP)
     }
 
-    private fun ftsTerm(term: String): String {
-        val clean = term.replace("\"", "")
-        val stem = when {
-            clean.length > 4 && clean.endsWith("ies") -> clean.dropLast(2)
-            clean.length > 4 && clean.endsWith("es") -> clean.dropLast(2)
-            clean.length > 3 && clean.endsWith("s") -> clean.dropLast(1)
-            clean.length > 4 && clean.endsWith("ing") -> clean.dropLast(3)
-            clean.length > 4 && clean.endsWith("ed") -> clean.dropLast(2)
-            else -> clean
-        }
-        return "\"$stem\"*"
+    private fun ftsTerm(term: String): String = "\"" + stemOf(term.replace("\"", "")) + "\"*"
+
+    /**
+     * Titles whose name (before any " — Section") is two or more words, every one of them a
+     * question term apart from joining words. Searched pairwise over the leading terms, so a
+     * question with extra words ("Who was Marie Curie and what did she find?") still reaches
+     * the article; the closest names come first, an overview before its details.
+     */
+    private fun fullNameTitles(terms: List<String>): List<TitleCandidate> {
+        val scan = terms.take(NAME_TERM_SCAN)
+        if (scan.size < 2) return emptyList()
+        val stems = terms.map(::stemOf)
+        return scan.indices.flatMap { first -> (first + 1 until scan.size).map { second -> scan[first] to scan[second] } }
+            .flatMap { (a, b) -> database.titleCandidateTitles("title : ${ftsTerm(a)} AND title : ${ftsTerm(b)}") }
+            .distinctBy { candidate -> candidate.title }
+            .mapNotNull { candidate ->
+                val words = candidate.title.substringBefore(" — ").lowercase()
+                    .split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() && it !in NAME_JOINERS }
+                val named = words.size >= 2 && words.all { word ->
+                    stems.any { stem -> word.startsWith(stem) && word.length <= stem.length + 3 }
+                }
+                if (named) candidate to words.size else null
+            }
+            .sortedWith(compareBy(
+                { (_, size) -> -size },
+                { (candidate, _) -> !candidate.title.endsWith(OVERVIEW) },
+                { (candidate, _) -> candidate.title.length },
+            ))
+            .take(NAME_BOOST_CAP)
+            .map { (candidate, _) -> candidate }
+    }
+
+    private fun overviewAwareLength(title: String): Int =
+        if (title.endsWith(OVERVIEW)) title.length - OVERVIEW.length else title.length
+
+    private fun stemOf(term: String): String = when {
+        term.length > 4 && term.endsWith("ies") -> term.dropLast(2)
+        term.length > 4 && term.endsWith("es") -> term.dropLast(2)
+        term.length > 3 && term.endsWith("s") -> term.dropLast(1)
+        term.length > 4 && term.endsWith("ing") -> term.dropLast(3)
+        term.length > 4 && term.endsWith("ed") -> term.dropLast(2)
+        else -> term
     }
 
     internal companion object {
@@ -184,5 +222,9 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         const val MAX_CHUNKS_PER_DOCUMENT = 2
         const val TITLE_BOOST_CAP = 8
         const val TITLE_TERM_SCAN = 16
+        const val NAME_TERM_SCAN = 4
+        private const val OVERVIEW = " — Overview"
+        const val NAME_BOOST_CAP = 2
+        private val NAME_JOINERS = setOf("of", "the", "and", "in", "on", "a", "an", "de", "la", "le", "von", "van", "der")
     }
 }

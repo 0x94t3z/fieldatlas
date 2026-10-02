@@ -72,7 +72,7 @@ object EvidenceRelevance {
                 "today", "currently", "current", "now")
         } else questionTerms
         val namedArticles = namedArticleSubjects(evidence, question)
-        val generalExplanation = question != null && PromptBuilder.allowsModelExplanation(question) &&
+        val generalExplanation = question != null && !isAttributeQuestion(question) && PromptBuilder.allowsModelExplanation(question) &&
             Regex("(?i)^\\s*(?:explain|describe|why|how|can|compare|what\\s+(?:is|are|makes)|tell\\s+me\\s+about)\\b").containsMatchIn(question)
         val causalExplanation = subjects.isEmpty() && question != null && PromptBuilder.allowsModelExplanation(question) &&
             Regex("(?i)^\\s*(?:explain\\s+)?(?:why|how)\\b").containsMatchIn(question)
@@ -137,6 +137,16 @@ object EvidenceRelevance {
             }
     }
 
+    /** "What is the capital of Australia?" asks for one fact about a subject. No article is
+     * titled "Capital of Australia", and the answer sits in another article's lead
+     * ("Canberra is the capital city of Australia"), so the overview gate does not apply. */
+    internal fun isAttributeQuestion(question: String): Boolean = Regex(
+        "(?i)^\\s*(?:what|who|which)\\s+(?:is|are|was|were)\\s+the\\s+(?:capital|population|currency|" +
+            "(?:official\\s+|main\\s+)?languages?|president|prime\\s+minister|leader|head\\s+of\\s+state|king|queen|" +
+            "area|time\\s+zone|national\\s+anthem|largest\\s+city|highest\\s+(?:point|mountain)|longest\\s+river)" +
+            "(?:\\s+city)?\\s+of\\b",
+    ).containsMatchIn(question)
+
     /** Only explicit reference overview sections for the requested subject qualify.
      * A title alone is not enough to admit a passage: keep() also requires an anchor
      * with explanatory body text in the same section and provenance. */
@@ -181,7 +191,7 @@ object EvidenceRelevance {
     /** English overview heuristic, not semantic verification. Other question forms keep
      * the ordinary relevance checks; source-specific requests must not lose study findings. */
     internal fun overviewSubjects(question: String?): List<String> {
-        if (question == null || !PromptBuilder.allowsModelExplanation(question)) return emptyList()
+        if (question == null || !PromptBuilder.allowsModelExplanation(question) || isAttributeQuestion(question)) return emptyList()
         comparisonTerms(question).takeIf { it.size == 2 }?.let { return it }
         val definition = Regex("(?i)^\\s*(?:what is|what are|explain|describe|tell me about)\\s+([\\p{L}\\p{N} '-]+?)(?=\\s+and\\s+(?:how|why)\\b|[.!?]|$)")
             .find(question.replace('’', '\''))?.groupValues?.get(1)?.trim() ?: return emptyList()
@@ -189,7 +199,11 @@ object EvidenceRelevance {
         if (words.size !in 1..4 || words.first().lowercase() in setOf("how", "why", "whether", "my", "our", "this", "that", "these", "those")) return emptyList()
         // "What is a boat?" names the same topic as "Boat — Overview"; any leading article
         // otherwise prevents the section title from matching.
-        return listOf(definition.replace(Regex("(?i)^(?:the|an?)\\s+"), ""))
+        val subject = definition.replace(Regex("(?i)^(?:the|an?)\\s+"), "")
+        // "Japan's history" is written "History of Japan" in reference titles and leads.
+        val possessive = Regex("^([\\p{L}\\p{N} -]+?)'s?\\s+([\\p{L}\\p{N} -]+)$").find(subject)
+            ?: return listOf(subject)
+        return listOf(subject, possessive.groupValues[2] + " of " + possessive.groupValues[1])
     }
 
     internal fun hasOverviewStatement(item: Evidence, subjects: List<String>): Boolean {
@@ -206,7 +220,7 @@ object EvidenceRelevance {
         val subject = subjects.joinToString("|") { phrase -> phrase.split(Regex("\\s+")).joinToString("\\s+", transform = ::wordPattern) }
         // Require the concept to be the subject of an explanatory sentence, rather than
         // appearing as an experimental setting, title, index tag, or trailing keyword.
-        val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\)|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?)\\b")
+        val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\)|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?|was|were)\\b")
         val passage = topicalText(item.text)
         if (passage.split(Regex("(?<=[.!?])\\s+|[\\r\\n]+"))
             .any { line ->

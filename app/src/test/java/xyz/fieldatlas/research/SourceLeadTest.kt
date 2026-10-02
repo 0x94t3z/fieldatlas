@@ -49,6 +49,16 @@ class SourceLeadTest {
         assertEquals("S2", lead.citationId)
     }
 
+    @Test fun possessiveQuestionsAndPastTenseOpeningsGetTheArticleLead() {
+        val japan = overview("History of Japan", "The history of Japan begins in prehistoric times, before any " +
+            "written records were kept.\n\nAlso known as: Japanese history")
+        val japanLead = SourceLead.select("Tell me about Japan's history", packed(japan))!!
+        assertEquals("The history of Japan begins in prehistoric times, before any written records were kept.", japanLead.text)
+        val revolution = overview("French Revolution", "The French Revolution was a period of political and " +
+            "social change in France that began in 1789.")
+        assertTrue(SourceLead.select("Tell me about the French Revolution", packed(revolution)) != null)
+    }
+
     @Test fun laterChunksIncidentalMentionsAndOtherSubjectsGetNoLead() {
         assertNull(SourceLead.select("What is friction?", packed(overview("Friction", friction, chunk = 1))))
         assertNull(SourceLead.select("What is friction?", packed(overview("Friction",
