@@ -34,11 +34,13 @@ import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasInformationAction
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.TileTone
+import xyz.fieldatlas.ui.theme.FieldAtlasDisclosureRow
+import xyz.fieldatlas.ui.theme.FieldAtlasFactRow
+import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.foundation.layout.heightIn
@@ -155,40 +157,40 @@ fun SourcesScreen(
             }
             item {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                  if (!presentation.isAttachment) {
-                    Text("Source details", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        if (evidence.source.startsWith("http://") || evidence.source.startsWith("https://")) {
-                            "Original URL"
-                        } else {
-                            "Source"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        FieldAtlasIconTile(
-                            if (evidence.source.startsWith("http://") || evidence.source.startsWith("https://")) {
-                                Icons.Outlined.Link
-                            } else {
-                                FieldAtlasIcons.Document
-                            },
-                            size = 32.dp,
-                        )
-                        SelectionContainer(Modifier.weight(1f)) {
-                            Text(evidence.source, style = MaterialTheme.typography.bodySmall)
+                    if (!presentation.isAttachment) FieldAtlasSectionLabel("Source details")
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        Column {
+                            if (!presentation.isAttachment) {
+                                val isUrl = evidence.source.startsWith("http://") || evidence.source.startsWith("https://")
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Icon(if (isUrl) Icons.Outlined.Link else FieldAtlasIcons.Document, contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp).padding(top = 2.dp))
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(if (isUrl) "Original URL" else "Source", style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        SelectionContainer { Text(evidence.source, style = MaterialTheme.typography.bodySmall) }
+                                        packLicense?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                    }
+                                }
+                                HorizontalDivider(Modifier.padding(horizontal = 16.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            }
+                            FieldAtlasDisclosureRow(
+                                label = if (showDetails) "Hide technical identifiers" else "Technical identifiers",
+                                expanded = showDetails,
+                                onClick = { showDetails = !showDetails },
+                                leadingIcon = FieldAtlasIcons.Info,
+                            )
+                            if (showDetails) {
+                                Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    FieldAtlasFactRow("Document", evidence.documentId, labelWidth = 84.dp)
+                                    FieldAtlasFactRow("Chunk", evidence.chunkId, labelWidth = 84.dp)
+                                }
+                            }
                         }
-                    }
-                    packLicense?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                  }
-                    FieldAtlasInformationAction(
-                        label = if (showDetails) "Hide technical identifiers" else "Technical identifiers",
-                        onClick = { showDetails = !showDetails },
-                        expanded = showDetails,
-                    )
-                    if (showDetails) {
-                        Text("Document ${evidence.documentId}", style = MaterialTheme.typography.bodySmall)
-                        Text("Chunk ${evidence.chunkId}", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }

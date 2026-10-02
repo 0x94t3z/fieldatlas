@@ -91,7 +91,10 @@ fun MoreScreen(
             }
         }
         item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+            // One grouped card with hairlines between rows, as in the design.
+            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+            Column {
+            MoreSection {
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showModel = !showModel },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -129,10 +132,8 @@ fun MoreScreen(
                     }
                 }
             }
-        }
-        item {
-            FieldAtlasCard(Modifier.fillMaxWidth().clickable(onClick = onOpenBenchmark),
-                contentPadding = 12.dp) {
+            MoreDivider()
+            MoreSection(Modifier.clickable(onClick = onOpenBenchmark)) {
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     FieldAtlasIconTile(FieldAtlasIcons.Benchmark, size = 36.dp)
@@ -145,9 +146,8 @@ fun MoreScreen(
                     Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
                 }
             }
-        }
-        item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+            MoreDivider()
+            MoreSection {
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showDiagnostics = !showDiagnostics },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -186,9 +186,8 @@ fun MoreScreen(
                     }
                 }
             }
-        }
-        item {
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+            MoreDivider()
+            MoreSection {
                 Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showTechnical = !showTechnical },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -210,8 +209,21 @@ fun MoreScreen(
                     }
                 }
             }
+            }
+            }
         }
     }
+}
+
+@Composable
+private fun MoreSection(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
+}
+
+@Composable
+private fun MoreDivider() {
+    HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
 }
 
 @Composable

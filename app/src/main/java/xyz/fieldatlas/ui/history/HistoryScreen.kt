@@ -17,7 +17,8 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -84,7 +85,7 @@ fun HistoryScreen(records: List<AnswerRecord>, onAskAgain: (String) -> Unit = {}
         item {
             FieldAtlasPageHeader(
                 title = stringResource(R.string.history_title),
-                subtitle = "Your past questions and answers, saved on this phone.",
+                subtitle = "Past questions and answers, kept on this phone.",
             )
         }
         if (records.isEmpty()) {
@@ -148,9 +149,9 @@ private fun HistoryCard(
             }
             Text(
                 "$time · " + when (record.sources.size) {
-                    0 -> "No saved sources"
-                    1 -> "1 saved source"
-                    else -> "${record.sources.size} saved sources"
+                    0 -> "No sources"
+                    1 -> "1 source"
+                    else -> "${record.sources.size} sources"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -181,9 +182,17 @@ private fun HistoryCard(
             }
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                OutlinedButton(onClick = { onAskAgain(record.question) }, modifier = Modifier.heightIn(min = 44.dp)) {
+                FilledTonalButton(
+                    onClick = { onAskAgain(record.question) },
+                    modifier = Modifier.heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 14.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                ) {
                     Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Ask again", modifier = Modifier.padding(start = 8.dp))
+                    Text("Ask again", modifier = Modifier.padding(start = 6.dp))
                 }
             }
         }

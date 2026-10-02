@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.BasicTextField
@@ -128,19 +130,20 @@ fun ResearchScreen(
         item {
             FieldAtlasPageHeader(
                 title = when {
-                    state.isRunning -> "Research in progress"
+                    state.isRunning -> "Researching"
                     hasReadyAnswer -> "Your research"
                     else -> "What are you investigating today?"
                 },
                 subtitle = when {
-                    state.isRunning -> "Working on this phone."
+                    state.isRunning -> "Working on this phone. Nothing leaves it."
                     hasReadyAnswer -> "Your answer is ready to read."
                     else -> "Ask across the knowledge saved on this phone."
                 },
                 modifier = Modifier.padding(top = if (state.isRunning || hasReadyAnswer) 16.dp else 22.dp),
             )
         }
-        item {
+        // The design drops the status chips while research runs, keeping focus on progress.
+        if (!state.isRunning) item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FieldAtlasStatusPill("Offline", StatusTone.Positive,
                     icon = FieldAtlasIcons.Offline)
@@ -349,7 +352,9 @@ fun ResearchScreen(
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text("Answer ready", style = MaterialTheme.typography.titleLarge)
                             Text(
-                                if (citedSourceCount == 0) {
+                                if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
+                                    "Lookup · no model generation"
+                                } else if (citedSourceCount == 0) {
                                     "Model-generated · no sources cited"
                                 } else {
                                     "$citedSourceCount local " +
@@ -523,8 +528,12 @@ private fun ResearchAction(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
                 }
-                OutlinedButton(onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp)) { Text("Stop") }
+                FilledTonalButton(onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurface,
+                    )) { Text("Stop") }
             }
             ResearchSteps(researchSteps(state))
             if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {

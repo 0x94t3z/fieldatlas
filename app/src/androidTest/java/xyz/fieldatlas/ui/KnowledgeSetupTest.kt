@@ -24,7 +24,7 @@ class KnowledgeSetupTest {
         } }
         compose.runOnIdle { assertEquals(0, refreshes) }
         compose.onNodeWithText("Mineralogy").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Import a pack").performScrollTo().assertIsEnabled()
+        compose.onNodeWithContentDescription("Import a pack").performScrollTo().assertIsEnabled()
         compose.onNodeWithText("Refresh collections").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, refreshes) }
     }

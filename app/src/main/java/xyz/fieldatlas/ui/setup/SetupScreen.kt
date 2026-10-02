@@ -55,7 +55,8 @@ fun SetupScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { FieldAtlasBrandMark(Modifier.padding(top = 6.dp, bottom = 4.dp)) }
                 item {
-                    FieldAtlasHeader("Set up Field Atlas", "Download once. Research offline.")
+                    FieldAtlasHeader("Your research desk, offline.",
+                        "Download once. Ask, compare and check sources on this phone, without an account or a connection.")
                 }
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -106,17 +107,25 @@ fun SetupScreen(
                 if (importing && importingPack?.type == PackType.KNOWLEDGE && availableKnowledge.none { it.id == importingPack.id }) item {
                     SetupImportCard(importingPack.title, importingName, "Importing knowledge")
                 }
-                items(availableKnowledge.size, key = { "${availableKnowledge[it].id}:${availableKnowledge[it].version}" }) { index ->
-                    val pack = availableKnowledge[index]
-                    if (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) {
-                        SetupImportCard(importingPack.title, importingName, "Importing knowledge")
-                    } else SetupDownloadRow(pack.title, catalogIcon(pack.id), pack.bytes,
-                        packs.any { it.type == PackType.KNOWLEDGE && it.id == pack.id && it.version == pack.version },
-                        knowledgeDownloadKey == "${pack.id}:${pack.version}", busy || !online, knowledgeDownloadedBytes,
-                        resumableKnowledgeBytes(pack),
-                        "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
-                        { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
-                        blockedReason = blockedReason)
+                if (availableKnowledge.isNotEmpty()) item {
+                    // One grouped card for the optional collections, as in the design.
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        Column {
+                            availableKnowledge.forEachIndexed { index, pack ->
+                                if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                                if (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) {
+                                    SetupImportCard(importingPack.title, importingName, "Importing knowledge")
+                                } else SetupDownloadRow(pack.title, catalogIcon(pack.id), pack.bytes,
+                                    packs.any { it.type == PackType.KNOWLEDGE && it.id == pack.id && it.version == pack.version },
+                                    knowledgeDownloadKey == "${pack.id}:${pack.version}", busy || !online, knowledgeDownloadedBytes,
+                                    resumableKnowledgeBytes(pack),
+                                    "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
+                                    { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
+                                    blockedReason = blockedReason, inGroup = true)
+                            }
+                        }
+                    }
                 }
                 item {
                     Text("Add knowledge now or later in Library.", style = MaterialTheme.typography.bodySmall,
@@ -124,7 +133,8 @@ fun SetupScreen(
                     if (!importing) {
                         OutlinedButton(onClick = onImportPack, enabled = !busy,
                             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 48.dp)) {
-                            Text("Import a saved pack")
+                            Icon(FieldAtlasIcons.Document, null, Modifier.size(18.dp))
+                            Text("Import a saved pack", modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }
@@ -140,7 +150,7 @@ fun SetupScreen(
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!importing && !downloading && model == null) Text(
-                    "Download or import a model to start.",
+                    "Add a model to start. Knowledge can come later.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -187,15 +197,11 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
 @Composable
 private fun SetupSection(step: Int, title: String, hint: String) {
     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Surface(Modifier.size(24.dp), shape = androidx.compose.foundation.shape.CircleShape,
-            color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("$step", style = MaterialTheme.typography.labelLarge)
-            }
-        }
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Text("· $hint", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Step $step", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary)
+        Text("$title · ${hint.lowercase()}", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -204,11 +210,11 @@ private fun SetupDownloadRow(
     title: String, icon: ImageVector, bytes: Long, installed: Boolean,
     downloading: Boolean, busy: Boolean, downloadedBytes: Long, resumableBytes: Long, details: String,
     onDownload: () -> Unit, onCancel: () -> Unit,
-    subtitle: String? = null, blockedReason: String? = null,
+    subtitle: String? = null, blockedReason: String? = null, inGroup: Boolean = false,
 ) {
     var confirm by rememberSaveable(title, bytes) { mutableStateOf(false) }
     val installing = downloading && downloadedBytes >= bytes
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 12.dp) {
+    SetupRowSurface(inGroup) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(icon, size = 40.dp, tone = if (icon == FieldAtlasIcons.Place) TileTone.Gold else TileTone.Sage)
@@ -231,8 +237,8 @@ private fun SetupDownloadRow(
                     contentDescription = if (resumableBytes > 0) "Resume $title" else "Download $title"
                 },
                 colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             ) {
                 Icon(FieldAtlasIcons.Import, null, Modifier.size(18.dp))
@@ -260,6 +266,13 @@ private fun SetupDownloadRow(
         confirmButton = { TextButton(enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
             Text(if (resumableBytes > 0) "Resume" else "Download") } },
         dismissButton = { TextButton(onClick = { confirm = false }) { Text("Not now") } })
+}
+
+@Composable
+private fun SetupRowSurface(inGroup: Boolean, content: @Composable ColumnScope.() -> Unit) {
+    if (inGroup) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp, content = content)
 }
 
 private fun catalogIcon(id: String): ImageVector = when {

@@ -52,6 +52,10 @@ import xyz.fieldatlas.ui.theme.StatusTone
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 import xyz.fieldatlas.ui.theme.TileTone
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -103,21 +107,26 @@ fun LibraryScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                FieldAtlasHeader(
-                    title = "Library",
-                    subtitle = "Models and knowledge saved on this phone.",
-                    modifier = Modifier.padding(top = 20.dp),
-                )
-            }
-            item {
-                OutlinedButton(
-                    onClick = onImportPack,
-                    enabled = !importing && !modelDownloading && knowledgeDownloadKey == null,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Outlined.NoteAdd, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(if (importing) "Verifying pack…" else "Import a pack",
-                        modifier = Modifier.padding(start = 8.dp))
+                Row(Modifier.fillMaxWidth().padding(top = 20.dp), verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    FieldAtlasHeader(
+                        title = "Library",
+                        subtitle = "Models and knowledge on this phone.",
+                        modifier = Modifier.weight(1f),
+                    )
+                    FilledTonalButton(
+                        onClick = onImportPack,
+                        enabled = !importing && !modelDownloading && knowledgeDownloadKey == null,
+                        contentPadding = PaddingValues(horizontal = 14.dp),
+                        modifier = Modifier.heightIn(min = 40.dp).semantics { contentDescription = "Import a pack" },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    ) {
+                        Icon(FieldAtlasIcons.Import, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text(if (importing) "Verifying…" else "Import", modifier = Modifier.padding(start = 6.dp))
+                    }
                 }
             }
             if (importError != null) {
@@ -130,7 +139,7 @@ fun LibraryScreen(
                 }
             }
             if (packs.isNotEmpty()) item { StorageSummary(models, knowledge, speech) }
-            item { SectionLabel("Model") }
+            item { SectionLabel("Answer model") }
             if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
             if (models.size > 1) {
                 item {
@@ -168,15 +177,24 @@ fun LibraryScreen(
                     )
                 }
             }
-            items(knowledge.size, key = { "knowledge:${knowledge[it].id}:${knowledge[it].version}" }) { index ->
-                val asset = knowledge[index]
-                AssetCard(
-                    model = asset.toAssetCardModel(),
-                    visual = packVisual(asset),
-                    enabled = asset.enabled,
-                    onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
-                    onDelete = { onDeletePack(asset) },
-                )
+            if (knowledge.isNotEmpty()) item {
+                // One grouped card, rows split by hairlines, as in the design.
+                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                    Column {
+                        knowledge.forEachIndexed { index, asset ->
+                            if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            AssetCard(
+                                model = asset.toAssetCardModel(),
+                                visual = packVisual(asset),
+                                enabled = asset.enabled,
+                                onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
+                                onDelete = { onDeletePack(asset) },
+                                inGroup = true,
+                            )
+                        }
+                    }
+                }
             }
             item { xyz.fieldatlas.ui.theme.CatalogRefresh(catalogRefreshing, catalogError, onRefreshCatalog) }
             if (available.isNotEmpty()) {
@@ -377,12 +395,13 @@ private fun AssetCard(
     selectedModel: Boolean = false,
     onActivateModel: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    inGroup: Boolean = false,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     // A switched-off collection stays readable but visibly inactive.
     val inactive = onToggleResearch != null && !enabled
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+    AssetSurface(inGroup) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -397,14 +416,9 @@ private fun AssetCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "${model.size} · version ${model.version}",
+                    "${model.size} · v${model.version}" + if (inactive) " · not used" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (onToggleResearch != null) Text(
-                    if (enabled) "Used in research" else "Not used in research",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             when {
@@ -463,6 +477,12 @@ private fun AssetCard(
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
         )
     }
+}
+
+@Composable
+private fun AssetSurface(inGroup: Boolean, content: @Composable () -> Unit) {
+    if (inGroup) Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) { content() }
+    else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) { content() }
 }
 
 @Composable

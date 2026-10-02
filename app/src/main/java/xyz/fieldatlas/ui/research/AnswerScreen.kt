@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -63,6 +64,9 @@ fun AnswerScreen(
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
     val isInputNotice = state.answer.isNotBlank() && state.answer ==
         xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty())
+    // Lookups such as "near me" reply with app-written text and never run the model, so
+    // "model-generated" and "not verified against sources" labels would be wrong there.
+    val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
     val suggestTravel = travelCollectionAvailable && Regex(
         "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
     ).containsMatchIn(state.question)
@@ -92,8 +96,8 @@ fun AnswerScreen(
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             FieldAtlasTopBar(title = "Answer", onBack = onBack)
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 28.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
@@ -116,9 +120,10 @@ fun AnswerScreen(
                             } else {
                                 FieldAtlasStatusPill(
                                     if (isInputNotice) "Research notice · no model generation"
+                                    else if (noModelReply) "Lookup · no model generation"
                                     else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
                                     else "Model-generated · sources not cited",
-                                    StatusTone.Attention,
+                                    if (isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
                             FieldAtlasStatusPill("Offline", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Offline)
@@ -126,7 +131,7 @@ fun AnswerScreen(
                         }
                     }
                 }
-                if (state.sources.isEmpty() && !isInputNotice) {
+                if (state.sources.isEmpty() && !isInputNotice && !noModelReply) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(if (suggestTravel) {
@@ -195,38 +200,36 @@ fun AnswerScreen(
                             )
                         }
                         items(citedSourceGroups.size, key = { "cited:${citedSourceGroups[it].key}" }) { index ->
-                            AnswerSourceCard(citedSourceGroups[index], onCitation)
-                        }
-                    }
-                    if (otherSources.isNotEmpty()) {
-                        item {
-                            AnswerDisclosure(
-                                label = otherSourceLabel(otherSources.size, showOtherSources),
-                                expanded = showOtherSources,
-                                onClick = { showOtherSources = !showOtherSources },
-                            )
-                        }
-                        if (showOtherSources) {
-                            item {
-                                Text("These passages were provided to the model but were not cited in this answer.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            items(otherSourceGroups.size, key = { "other:${otherSourceGroups[it].key}" }) { index ->
-                                AnswerSourceCard(otherSourceGroups[index], onCitation)
-                            }
+                            AnswerSourceCard(citedSourceGroups[index], onCitation, cited = true)
                         }
                     }
                 }
-                state.metrics?.let { metrics ->
-                    val model = formatResearchMetrics(metrics, state.sources.size)
-                    item {
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = MaterialTheme.shapes.medium,
-                        ) {
-                            Column {
+                val showOtherRow = state.sources.isNotEmpty() && !showPassagesFirst && otherSources.isNotEmpty()
+                val metrics = state.metrics
+                if (showOtherRow || metrics != null) item {
+                    // One grouped card, as in the design: secondary disclosures sit together.
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        Column {
+                            if (showOtherRow) {
+                                AnswerDisclosureContent(
+                                    label = otherSourceLabel(otherSources.size, showOtherSources),
+                                    expanded = showOtherSources,
+                                    onClick = { showOtherSources = !showOtherSources },
+                                )
+                                if (showOtherSources) {
+                                    Text("These passages were provided to the model but were not cited in this answer.",
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    otherSourceGroups.forEach { group -> AnswerSourceCard(group, onCitation, inGroup = true) }
+                                }
+                            }
+                            if (showOtherRow && metrics != null) {
+                                HorizontalDivider(Modifier.padding(horizontal = 16.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            }
+                            if (metrics != null) {
+                                val model = formatResearchMetrics(metrics, state.sources.size)
                                 AnswerDisclosureContent(
                                     label = "Answer details",
                                     onClick = { showPerformance = !showPerformance },
@@ -260,13 +263,15 @@ fun AnswerScreen(
                         }
                     }
                 }
-                item {
-                    OutlinedButton(
-                        onClick = onAskAnother,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                    ) {
-                        Text("Ask another question")
-                    }
+            }
+            // Pinned like the design, so the next question is always one tap away.
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
+                OutlinedButton(
+                    onClick = onAskAnother,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                ) {
+                    Text("Ask another question")
                 }
             }
         }
@@ -279,6 +284,7 @@ private fun SavedPassagePreview(evidence: Evidence, index: Int, onCitation: (Int
         modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open complete saved passage ${index + 1}") { onCitation(index) },
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("${index + 1} · ${evidence.title}", style = MaterialTheme.typography.titleSmall)
@@ -298,7 +304,12 @@ private fun AnswerSectionLabel(text: String) {
 }
 
 @Composable
-private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit) {
+private fun AnswerSourceCard(
+    group: AnswerSourceGroup,
+    onCitation: (Int) -> Unit,
+    cited: Boolean = false,
+    inGroup: Boolean = false,
+) {
     val evidence = group.entries.first().second
     val source = sourcePresentation(evidence)
     val iconBackground = if (isSystemInDarkTheme()) {
@@ -311,8 +322,10 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
             .clickable(onClickLabel = "Open source ${group.entries.first().first}") {
                 onCitation(group.entries.first().first - 1)
             },
-        color = MaterialTheme.colorScheme.surface,
+        color = if (inGroup) androidx.compose.ui.graphics.Color.Transparent else MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
+        border = if (inGroup) null else androidx.compose.foundation.BorderStroke(1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
@@ -356,7 +369,8 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
                     overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
                 Text(
-                    if (source.isAttachment) source.metadata else sourceDisplayName(evidence.source),
+                    (if (source.isAttachment) source.metadata else sourceDisplayName(evidence.source)) +
+                        if (cited) " · cited" else "",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -374,11 +388,7 @@ private fun AnswerSourceCard(group: AnswerSourceGroup, onCitation: (Int) -> Unit
 
 @Composable
 private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.medium,
-    ) {
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
         AnswerDisclosureContent(label, expanded, onClick)
     }
 }

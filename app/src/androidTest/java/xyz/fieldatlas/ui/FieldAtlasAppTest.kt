@@ -51,8 +51,8 @@ class FieldAtlasAppTest {
 
     @Test fun firstLaunchShowsSetupAndAccessibleImport() {
         render(packs = emptyList())
-        compose.onNodeWithText("Set up Field Atlas").assertExists()
-        compose.onNodeWithText("Download once. Research offline.").assertExists()
+        compose.onNodeWithText("Your research desk, offline.").assertExists()
+        compose.onNodeWithText("Download once. Ask, compare and check sources on this phone, without an account or a connection.").assertExists()
         compose.onNodeWithContentDescription("Download Qwen3.5 2B").assertExists().assertHasClickAction()
         compose.onNodeWithText("Import a saved pack").performScrollTo().assertHasClickAction()
         compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
