@@ -5,6 +5,11 @@
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:statusBarColor">#F3EFE5</item>
         <item name="android:navigationBarColor">#FFFFF7</item>
+        <!-- Launch splash on the theme's forest green instead of the platform white. -->
+        <item name="android:windowSplashScreenBackground">#285D49</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">#285D49</item>
+        <!-- Paper behind the first frame, so no white flash follows the splash. -->
+        <item name="android:windowBackground">@color/window_background</item>
         <item name="android:colorAccent">#275D4A</item>
     </style>
 </resources>

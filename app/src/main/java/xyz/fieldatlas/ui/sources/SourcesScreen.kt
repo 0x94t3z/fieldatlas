@@ -204,11 +204,11 @@ fun SourcesScreen(
                     OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onPrevious?.invoke() }, enabled = onPrevious != null,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
                         Icon(FieldAtlasIcons.Back, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Previous source", modifier = Modifier.padding(start = 8.dp))
+                        Text("Previous", modifier = Modifier.padding(start = 8.dp))
                     }
                     OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onNext?.invoke() }, enabled = onNext != null,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Text("Next source", modifier = Modifier.padding(end = 8.dp))
+                        Text("Next", modifier = Modifier.padding(end = 8.dp))
                         Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                     }
                 }

@@ -117,7 +117,7 @@ fun AnswerScreen(
                                 FieldAtlasStatusPill(
                                     if (cited == 1) "1 cited local source" else "$cited cited local sources",
                                     StatusTone.Positive,
-                                    icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Check,
+                                    icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Citation,
                                 )
                             } else {
                                 FieldAtlasStatusPill(
