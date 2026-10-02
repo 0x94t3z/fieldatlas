@@ -105,6 +105,13 @@ class OsmEssentialsPackTest(unittest.TestCase):
                          ess.QUERIES["pharmacy"](None, (-90.0, -180.0, 90.0, 180.0), 900))
         self.assertIn("place-town", ess.QUERIES)
 
+    def test_coverage_summary_fits_the_pack_limit_with_every_kind(self):
+        summary = ess.coverage_summary(set(ess.KINDS))
+        self.assertLessEqual(len(summary), 160)
+        for name in ("pharmacies", "ATMs", "toilets", "water", "hostels"):
+            self.assertIn(name, summary)
+        self.assertEqual(1, summary.count("embassies"))
+
     def test_build_is_reproducible_and_records_categories(self):
         hashes = []
         for name in ("one", "two"):

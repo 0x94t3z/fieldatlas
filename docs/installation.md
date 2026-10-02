@@ -37,6 +37,8 @@ The app needs **only an installed model** to answer questions. Setup shows the m
 | Vegan places | about 40 MB | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
 | Biology & longevity | about 1.57 GB | Biology and aging research passages |
 
+After **Refresh collections**, Library also offers **Essentials** (about 1.78 GB): pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels OpenStreetMap maps worldwide, for questions such as "nearest pharmacy in Jakarta" or "ATM near me".
+
 Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download has not been validated on a physical phone, so keep the pack-import option in mind.
 
 You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Biology is hosted by the fork; the other collections are project release assets. The manual import path accepts `.fapack`, not raw `.gguf` files.

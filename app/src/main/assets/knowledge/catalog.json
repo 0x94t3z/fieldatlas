@@ -50,6 +50,18 @@
       "category": "Places"
     },
     {
+      "id": "osm-essentials",
+      "version": "2026.10.02",
+      "title": "Essentials",
+      "description": "2,981,021 pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels OpenStreetMap maps worldwide, with near-me lookups · October 2026. Details can be outdated.",
+      "license": "ODbL-1.0",
+      "bytes": 1781105631,
+      "sha256": "e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62",
+      "url": "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-essentials-2026.10.02/osm-essentials-2026.10.02.fapack",
+      "recommended": false,
+      "category": "Places"
+    },
+    {
       "id": "world-knowledge-biology",
       "version": "1.2.0",
       "title": "Biology & longevity",

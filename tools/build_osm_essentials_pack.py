@@ -49,6 +49,12 @@ KINDS = {
     "hostel": ('["tourism"="hostel"]', "Sleep", "hostel"),
 }
 QUERIES = {kind: osm.tag_query(selector) for kind, (selector, _, _) in KINDS.items()}
+# Short names for the coverage summary, which the pack format caps at 160 characters; listing
+# every type label overflows once all kinds are fetched.
+SUMMARY_NAMES = {"pharmacy": "pharmacies", "hospital": "hospitals", "clinic": "clinics", "police": "police",
+                 "embassy": "embassies", "diplomatic": "embassies", "atm": "ATMs", "exchange": "exchange",
+                 "railway-station": "stations", "bus-station": "stations", "ferry": "stations",
+                 "toilets": "toilets", "drinking-water": "water", "supermarket": "supermarkets", "hostel": "hostels"}
 QUERIES.update({kind: osm.QUERIES[kind] for kind in osm.PLACE_KINDS})
 
 # Many essentials carry no name; these keys describe them instead. An unnamed embassy is
@@ -176,11 +182,15 @@ def add_place_points(database) -> None:
     database.execute("CREATE INDEX place_points_lat ON place_points(lat)")
 
 
+def coverage_summary(kinds) -> str:
+    names = list(dict.fromkeys(SUMMARY_NAMES[kind] for kind in KINDS if kind in kinds))
+    return "OpenStreetMap, worldwide: " + ", ".join(names) + ". May be stale."
+
+
 def build(args: argparse.Namespace) -> int:
     lock = json.loads((args.cache_dir / "lock.json").read_text())
     settlements = args.settlements_cache or args.cache_dir
     docs, kinds = documents(args.cache_dir, settlements)
-    labels = sorted({KINDS[kind][2] for kind in kinds})
     args.out.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", suffix=".jsonl",
                                      prefix="osm-essentials-", dir=args.out, delete=False) as spool:
@@ -196,8 +206,7 @@ def build(args: argparse.Namespace) -> int:
             title=TITLE,
             license_id=osm.LICENSE,
             source_urls=[lock["endpoint"], osm.COPYRIGHT_URL],
-            coverage_summary="Places OpenStreetMap maps worldwide for everyday needs: " + ", ".join(labels) +
-                             ". Hours, fees and access can be stale.",
+            coverage_summary=coverage_summary(kinds),
             example_questions=[
                 "Where is the nearest pharmacy?",
                 "Find an ATM near me",

@@ -458,7 +458,7 @@ Singapore 102, Chiang Mai 85. The `.fapack` is 40,088,517 bytes, SHA-256
 two builds from the same cache were byte-identical. The cache is 88 MB of raw Overpass JSON.
 Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
 `2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
-the main server refused further connections). It is not published yet; the planned release tag is `knowledge-vegan-places-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`. The in-app download catalog already lists this URL.
+the main server refused further connections). It is published as release `knowledge-vegan-places-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
 
 An earlier build of the same day fetched settlements with `out tags;`, which omits node
 coordinates, so every place fell back to its address city and Tokyo had no listings. The
@@ -469,6 +469,50 @@ On the Infinix X6840 (offline), "Tell me the best vegan restaurants in Berlin" a
 Tokyo" each returned six cited, fully vegan OpenStreetMap places in 15–17 s without running
 the model. "Best vegan restaurants near me" obtained a location fix and reported that no
 mapped place lies within 15 km of the test location.
+
+## Essentials from OpenStreetMap (keyword-only builder)
+
+`tools/build_osm_essentials_pack.py` builds one listing per OpenStreetMap place a traveller
+without a connection most often needs: pharmacies, hospitals and clinics; police, embassies and
+consulates; ATMs and currency exchange; train, bus and ferry stations; toilets and drinking
+water; supermarkets and hostels. It reuses the vegan-places pipeline above: the same exact-tag
+Overpass queries archived with SHA-256 and data timestamps, the same tiling and retries, and the
+same destination rule, with settlements read from the vegan-places cache (`--settlements-cache`).
+
+- **What a listing contains:** destination, category (Health, Safety, Money, Transport,
+  Toilets, Water, Buy, Sleep), type, a name (or, when untagged, the brand, operator, network or
+  represented country), address, hours, and details such as emergency department, fee,
+  wheelchair access and phone where mapped, with coordinates and a link to the element.
+- **Near me and nearest-in-city:** `place_points` stores coordinates and the category per row,
+  so "nearest pharmacy" filters by category from the index instead of reading every listing in
+  a dense city. App 1.2.0 recognises pharmacies, hospitals, clinics, ATMs, exchange, toilets,
+  drinking water, police, embassies, stations and supermarkets in questions. Hostels are in the
+  pack but reach answers only through ordinary keyword search in 1.2.0.
+- **Duplicates:** an element matching two kinds is kept once, and a place mapped twice (point
+  and outline with the same name and centre) is listed once.
+- **Limits:** tags can be stale. A listing cannot confirm that a pharmacy is open, a toilet is
+  free, or an ATM works today.
+
+**Local build, 3 October 2026.** 2,981,021 places from 15 Overpass kinds: 522,588 toilets,
+495,089 supermarkets, 442,099 pharmacies, 368,735 drinking-water points, 243,661 ATMs,
+220,752 clinics, 217,476 hospitals, 162,887 police, 101,968 train stations, 67,788 bus
+stations, 62,681 hostels, 37,409 ferry terminals, 21,115 currency exchanges, 11,361 embassies
+and 5,412 consulates. 127,642 have no destination. Examples: Tokyo 22,974, Paris 13,532,
+London 9,423, New York 8,144, Berlin 6,644, Jakarta 5,491, Singapore 4,767, Bangkok 4,375.
+The `.fapack` is 1,781,105,631 bytes, SHA-256
+`e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62`, version `2026.10.02`;
+two builds from the same cache were byte-identical (each took 13–17 minutes and peaked at
+about 2 GB of memory on an Apple Silicon Mac). All 31 Overpass responses came from the
+`maps.mail.ru` mirror, with data timestamps from `2026-10-02T08:04:36Z` to
+`2026-10-02T16:29:06Z`; the raw cache is 1.0 GB, or 180 MB compressed. The planned release tag
+is `knowledge-essentials-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the cache
+(`osm-essentials-overpass-cache-2026.10.02.tar.gz`) and `SHA256SUMS`. It is not part of the
+1.2.0 APK's bundled catalog; 1.2.0 shows it after **Refresh collections** once the catalog on
+the main branch lists it.
+
+The first full build failed: the coverage summary listed every type label, which exceeded the
+format's 160-character limit once all kinds were fetched. The summary now uses short names, and
+a test checks the limit with every kind present.
 
 ## Encyclopedia and travel guides from Wikimedia dumps (keyword-only builder)
 

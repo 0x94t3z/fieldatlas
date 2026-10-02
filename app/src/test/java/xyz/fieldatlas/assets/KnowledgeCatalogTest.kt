@@ -55,6 +55,17 @@ class KnowledgeCatalogTest {
         assertTrue(pack.url.endsWith("/knowledge-vegan-places-2026.10.02/osm-vegan-places-2026.10.02.fapack"))
     }
 
+    @Test fun essentialsDownloadMatchesBuiltArtifact() {
+        val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
+        val pack = catalog.packs.single { it.id == "osm-essentials" }
+        assertEquals("2026.10.02", pack.version)
+        assertEquals(1_781_105_631L, pack.bytes)
+        assertEquals("e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62", pack.sha256)
+        assertEquals("ODbL-1.0", pack.license)
+        assertEquals("Places", pack.category)
+        assertTrue(pack.url.endsWith("/knowledge-essentials-2026.10.02/osm-essentials-2026.10.02.fapack"))
+    }
+
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val encyclopedia = catalog.packs.single { it.id == "simplewiki" }
