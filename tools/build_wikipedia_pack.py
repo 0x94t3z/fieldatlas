@@ -23,6 +23,7 @@ import gzip
 import hashlib
 import io
 import json
+import re
 import sys
 import tempfile
 import time
@@ -40,6 +41,13 @@ MIN_LEAD_CHARS = 80
 BODY_MIN_LINKS = 300      # widely linked articles also keep part of their body
 BODY_CHARS = 6000
 MAX_ALIASES = 8
+
+# Some dumps carry template failures rendered as text. A failing Nihongo template stands in
+# for the subject's name at the start of a lead ("<error> is the capital city of Hokkaido"),
+# so there the article title takes its place; elsewhere the affected sentence is dropped.
+PACKAGE_ERROR = re.compile(r"Lua error in package\.lua at line \d+: [^.]*\.\s*")
+SCRIPT_ERROR = re.compile(r"Lua error in \S+ at line \d+: [^.()]*(?:\([^)]*\))?\.")
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
 
 
 class HashingReader(io.RawIOBase):
@@ -67,10 +75,21 @@ def is_disambiguation(doc: dict) -> bool:
         "disambiguation" in t.lower() or t in {"Template:Dmbox", "Template:Set index article"} for t in templates)
 
 
+def clean_text(text: str, title: str) -> str:
+    if "Lua error" not in text:
+        return text
+    text = PACKAGE_ERROR.sub("", text)
+    leading = SCRIPT_ERROR.match(text)
+    if leading:
+        text = title + text[leading.end():]
+    text = SCRIPT_ERROR.sub("\0", text)
+    return " ".join(part for part in SENTENCE_END.split(text) if "\0" not in part).strip()
+
+
 def spool_record(doc: dict, body_min_links: int = BODY_MIN_LINKS, body_chars: int = BODY_CHARS) -> dict | None:
     if doc.get("namespace") != 0 or is_disambiguation(doc):
         return None
-    lead = " ".join((doc.get("opening_text") or "").split())
+    lead = clean_text(" ".join((doc.get("opening_text") or "").split()), doc.get("title", ""))
     if len(lead) < MIN_LEAD_CHARS:
         return None
     links = int(doc.get("incoming_links") or 0)
@@ -84,7 +103,7 @@ def spool_record(doc: dict, body_min_links: int = BODY_MIN_LINKS, body_chars: in
     record = {"id": int(doc["page_id"]), "rev": int(doc.get("version") or 0), "title": doc["title"],
               "links": links, "aliases": aliases, "lead": lead}
     if links >= body_min_links:
-        text = " ".join((doc.get("text") or "").split())
+        text = clean_text(" ".join((doc.get("text") or "").split()), doc["title"])
         # The plain text repeats the lead first; keep what follows it.
         body = text[len(lead):] if text.startswith(lead[:200]) else text
         body = body.strip()[:body_chars]
@@ -166,14 +185,19 @@ def documents(spool_path: Path, chosen: dict[int, bool], host: str = "en.wikiped
             if keep_body is None:
                 continue
             source = f"https://{host}/w/index.php?oldid={record['rev']}"
-            lead = record["lead"]
+            # Spools written before clean_text existed are cleaned here; it is idempotent.
+            lead = clean_text(record["lead"], record["title"])
+            if not lead:
+                continue
             if record["aliases"]:
-                lead += "\nAlso known as: " + "; ".join(record["aliases"])
+                # A paragraph of its own: the app quotes the lead paragraph verbatim and only
+                # accepts it when it ends on a complete sentence.
+                lead += "\n\nAlso known as: " + "; ".join(record["aliases"])
             yield {"document_id": f"{prefix}-{record['id']}-0000", "title": f"{record['title']} — Overview",
                    "source": source, "license": LICENSE, "text": lead}
             if keep_body and record.get("body"):
                 yield {"document_id": f"{prefix}-{record['id']}-0001", "title": f"{record['title']} — Details",
-                       "source": source, "license": LICENSE, "text": record["body"]}
+                       "source": source, "license": LICENSE, "text": clean_text(record["body"], record["title"])}
 
 
 def build(args: argparse.Namespace) -> int:

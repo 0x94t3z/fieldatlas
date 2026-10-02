@@ -84,9 +84,19 @@ class WikipediaPackTest(unittest.TestCase):
         self.assertIn("Albedo — Details", titles)
         overview = next(r for r in rows if r[0] == "wp-39-0000:0000")
         self.assertEqual("https://en.wikipedia.org/w/index.php?oldid=1039", overview[2])
-        self.assertIn("Also known as: Albedo effect", overview[3])
+        self.assertIn("\n\nAlso known as: Albedo effect", overview[3])
         hit = db.execute("SELECT title FROM chunks_fts WHERE chunks_fts MATCH 'reflected'").fetchall()
         self.assertIn(("Albedo — Overview",), hit)
+
+
+    def test_template_errors_are_repaired_or_dropped(self):
+        nihongo = "Lua error in Module:Nihongo at line 88: attempt to call field '_transl' (a nil value)."
+        package = "Lua error in package.lua at line 80: module 'Module:Pagetype/setindex' not found. "
+        self.assertEqual("Sapporo is the capital city of Hokkaido. It is a port.",
+                         wp.clean_text(package + nihongo + " is the capital city of Hokkaido. It is a port.", "Sapporo"))
+        self.assertEqual("Shinto has kami. Eight million means infinity.",
+                         wp.clean_text("Shinto has kami. It is said there are " + nihongo + ". Eight million means infinity.", "Shinto"))
+        self.assertEqual("Plain text.", wp.clean_text("Plain text.", "Title"))
 
 
 if __name__ == "__main__":
