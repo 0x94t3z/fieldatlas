@@ -109,6 +109,9 @@ def split(bbox: tuple[float, float, float, float]):
     yield (mid_lat, mid_lon, north, east)
 
 
+CLIENT_TIMEOUTS_BEFORE_SPLIT = 2
+
+
 class TileTooLarge(Exception):
     """The server could not answer this tile within its limits; split it."""
 
@@ -116,6 +119,7 @@ class TileTooLarge(Exception):
 def overpass(endpoint: str, query: str, attempts: int = 6) -> bytes:
     body = urllib.parse.urlencode({"data": query}).encode()
     delay = 30.0
+    timeouts = 0
     for attempt in range(attempts):
         request = urllib.request.Request(endpoint, data=body, headers={"User-Agent": USER_AGENT})
         try:
@@ -131,8 +135,14 @@ def overpass(endpoint: str, query: str, attempts: int = 6) -> bytes:
                 delay = min(delay * 2, 600)
                 continue
             raise
-        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.IncompleteRead):
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.IncompleteRead) as error:
             # A dropped connection mid-stream leaves a truncated body; it is never cached.
+            # A response that never arrives within the client timeout, twice, is the same
+            # signal as a gateway timeout: the tile is too large for the server to answer.
+            if isinstance(error, TimeoutError) or isinstance(getattr(error, "reason", None), TimeoutError):
+                timeouts += 1
+                if timeouts >= CLIENT_TIMEOUTS_BEFORE_SPLIT:
+                    raise TileTooLarge("no response within the client timeout") from error
             if attempt + 1 < attempts:
                 time.sleep(delay)
                 delay = min(delay * 2, 600)

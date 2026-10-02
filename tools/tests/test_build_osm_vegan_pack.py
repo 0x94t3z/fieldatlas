@@ -222,5 +222,20 @@ class OsmVeganPackTest(unittest.TestCase):
         self.assertIn(("osm-place-w11", 52.53, 13.41), points)
 
 
+
+class OverpassTimeoutTest(unittest.TestCase):
+    def test_repeated_client_timeouts_split_the_tile_instead_of_failing(self):
+        from unittest import mock
+        calls = []
+
+        def slow(*_args, **_kwargs):
+            calls.append(1)
+            raise TimeoutError("The read operation timed out")
+
+        with mock.patch.object(osm.urllib.request, "urlopen", slow), mock.patch.object(osm.time, "sleep"):
+            with self.assertRaises(osm.TileTooLarge):
+                osm.overpass("https://example.invalid/api", "[out:json];node(1);out;")
+        self.assertEqual(osm.CLIENT_TIMEOUTS_BEFORE_SPLIT, len(calls))
+
 if __name__ == "__main__":
     unittest.main()
