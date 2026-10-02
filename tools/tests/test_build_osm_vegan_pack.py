@@ -160,6 +160,29 @@ class OsmVeganPackTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             osm.documents(cache)
 
+    def test_fetch_resumes_inside_tiles_an_earlier_run_split(self):
+        cache = self.root / "resume"
+        cache.mkdir()
+        quarters = list(osm.split(osm.WORLD))
+        tiles = {}
+        for bbox in quarters:
+            key = osm.tile_key("vegan-only", bbox)
+            payload = json.dumps({"elements": [], "osm3s": {"timestamp_osm_base": "2026-10-02T00:00:00Z"}}).encode()
+            (cache / (key + ".json")).parent.mkdir(parents=True, exist_ok=True)
+            (cache / (key + ".json")).write_bytes(payload)
+            tiles[key] = {"kind": "vegan-only", "bbox": list(bbox), "query": osm.QUERIES["vegan-only"](None, bbox, 900),
+                          "sha256": hashlib.sha256(payload).hexdigest(), "bytes": len(payload), "elements": 0}
+        (cache / "lock.json").write_text(json.dumps({"date": None, "endpoint": osm.DEFAULT_ENDPOINT, "tiles": tiles}))
+        asked = []
+        original = osm.overpass
+        osm.overpass = lambda endpoint, query: asked.append(query) or b"{}"
+        try:
+            osm.fetch(argparse.Namespace(cache_dir=cache, date=None, endpoint=osm.DEFAULT_ENDPOINT,
+                                         kinds=["vegan-only"], timeout=900, pause=0))
+        finally:
+            osm.overpass = original
+        self.assertEqual([], asked)
+
     def test_queries_use_exact_tag_values_at_the_pinned_date(self):
         query = osm.QUERIES["vegan-only"](DATE, osm.WORLD, 900)
         self.assertEqual('[out:json][timeout:900][date:"2026-09-28T00:00:00Z"];'

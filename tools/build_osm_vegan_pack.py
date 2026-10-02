@@ -95,6 +95,11 @@ def tile_key(kind: str, bbox: tuple[float, float, float, float]) -> str:
 WORLD = (-90.0, -180.0, 90.0, 180.0)
 
 
+def inside(inner, outer) -> bool:
+    """Whether bbox inner (south, west, north, east) lies within outer."""
+    return inner[0] >= outer[0] and inner[1] >= outer[1] and inner[2] <= outer[2] and inner[3] <= outer[3]
+
+
 def split(bbox: tuple[float, float, float, float]):
     south, west, north, east = bbox
     mid_lat, mid_lon = (south + north) / 2, (west + east) / 2
@@ -174,6 +179,12 @@ def fetch(args: argparse.Namespace, queries: dict | None = None) -> int:
             query = queries[kind](args.date, bbox, args.timeout)
             # A response cached for a different query (e.g. an older output mode) is refetched.
             if entry and entry["query"] == query and path.exists() and sha256_file(path) == entry["sha256"]:
+                continue
+            # An earlier run split this tile; resume inside its parts instead of asking for the
+            # whole tile again, which duplicated work after an interrupted fetch.
+            if entry is None and any(other["kind"] == kind and other["bbox"] != list(bbox) and inside(other["bbox"], bbox)
+                                     for other in lock["tiles"].values()):
+                pending[:0] = [(child, depth + 1) for child in split(bbox)]
                 continue
             try:
                 payload = overpass(args.endpoint, query)
