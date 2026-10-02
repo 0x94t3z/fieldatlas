@@ -56,7 +56,8 @@ internal data class PlaceSheetContent(
     val lon: Double,
 )
 
-private val hiddenPlaceFields = setOf("Place", "Latitude", "Longitude", "Map data snapshot", "Phone")
+private val hiddenPlaceFields = setOf("Place", "Category", "Latitude", "Longitude", "Map data snapshot", "Phone")
+private val shortPlaceLabels = mapOf("Listing last checked" to "Last checked", "Hours in source" to "Hours")
 
 internal fun placeSheetContent(text: String): PlaceSheetContent? {
     val fields = text.lines().mapNotNull { line ->
@@ -67,7 +68,8 @@ internal fun placeSheetContent(text: String): PlaceSheetContent? {
     val lat = byLabel["Latitude"]?.toDoubleOrNull() ?: return null
     val lon = byLabel["Longitude"]?.toDoubleOrNull() ?: return null
     val name = byLabel["Place"] ?: return null
-    val facts = fields.filter { (label, _) -> label !in hiddenPlaceFields } +
+    val facts = fields.filter { (label, _) -> label !in hiddenPlaceFields }
+        .map { (label, value) -> (shortPlaceLabels[label] ?: label) to value } +
         ("Coordinates" to "%.5f, %.5f".format(java.util.Locale.ROOT, lat, lon))
     return PlaceSheetContent(name, facts, byLabel["Address"], byLabel["Phone"], lat, lon)
 }

@@ -281,7 +281,8 @@ internal fun KnowledgeDownloadCard(
     var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(FieldAtlasIcons.Document, size = 44.dp, tone = TileTone.Paper)
+            val visual = categoryVisual(knowledgeCategory(pack.id, pack.category))
+            FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(pack.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
@@ -362,6 +363,14 @@ private fun SectionLabel(text: String) {
 
 /** How a pack is drawn: its subject decides the icon and a palette tint. */
 internal data class PackVisual(val icon: ImageVector, val tone: TileTone)
+
+/** The same icon a collection gets once installed, chosen from its catalog category. */
+internal fun categoryVisual(category: KnowledgeCategory): PackVisual = when (category) {
+    KnowledgeCategory.Places -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
+    KnowledgeCategory.Travel -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
+    KnowledgeCategory.Science -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
+    else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
+}
 
 internal fun packVisual(asset: InstalledAsset): PackVisual {
     val id = asset.id.lowercase()

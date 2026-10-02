@@ -16,7 +16,7 @@ class SourcePreviewSheetTest {
         assertEquals("Falckensteinstraße 36, 10997 Berlin", place.address)
         assertEquals("+49 30 123", place.phone)
         assertEquals(52.498627, place.lat, 1e-9)
-        assertEquals(listOf("Destination", "Category", "Type", "Vegan", "Address", "Listing last checked", "Coordinates"),
+        assertEquals(listOf("Destination", "Type", "Vegan", "Address", "Last checked", "Coordinates"),
             place.facts.map { it.first })
         assertEquals("52.49863, 13.44263", place.facts.last().second)
     }
