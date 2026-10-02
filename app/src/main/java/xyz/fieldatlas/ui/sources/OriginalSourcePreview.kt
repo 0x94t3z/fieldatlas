@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.sources
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
@@ -92,7 +94,7 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
                     }
                     content.text != null -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
                         item {
-                            TextButton(onClick = { clipboard.setText(AnnotatedString(content.text!!)) }) { Text("Copy original text") }
+                            TextButton(shape = FieldAtlasButtonShape, onClick = { clipboard.setText(AnnotatedString(content.text!!)) }) { Text("Copy original text") }
                             SourceTextContent(content.text!!, TextFileTypes.language(title))
                         }
                     }
@@ -100,9 +102,9 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
                         PdfPageImage(content.bitmap!!, content.page, Modifier.weight(1f).fillMaxWidth())
                         Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = { page = content.page - 1 }, enabled = content.page > 1) { Text("Previous") }
+                            TextButton(shape = FieldAtlasButtonShape, onClick = { page = content.page - 1 }, enabled = content.page > 1) { Text("Previous") }
                             Text("Page ${content.page} of ${content.pages}", style = MaterialTheme.typography.bodySmall)
-                            TextButton(onClick = { page = content.page + 1 }, enabled = content.page < content.pages) { Text("Next") }
+                            TextButton(shape = FieldAtlasButtonShape, onClick = { page = content.page + 1 }, enabled = content.page < content.pages) { Text("Next") }
                         }
                     }
                 }
@@ -129,9 +131,9 @@ private fun PdfPageImage(bitmap: Bitmap, page: Int, modifier: Modifier) {
             }, contentScale = ContentScale.Fit)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            TextButton(onClick = { zoom(scale / 1.5f) }, enabled = scale > 1f) { Text("Zoom out") }
-            TextButton(onClick = { zoom(1f) }) { Text("Reset") }
-            TextButton(onClick = { zoom(scale * 1.5f) }, enabled = scale < 5f) { Text("Zoom in") }
+            TextButton(shape = FieldAtlasButtonShape, onClick = { zoom(scale / 1.5f) }, enabled = scale > 1f) { Text("Zoom out") }
+            TextButton(shape = FieldAtlasButtonShape, onClick = { zoom(1f) }) { Text("Reset") }
+            TextButton(shape = FieldAtlasButtonShape, onClick = { zoom(scale * 1.5f) }, enabled = scale < 5f) { Text("Zoom in") }
         }
     }
 }

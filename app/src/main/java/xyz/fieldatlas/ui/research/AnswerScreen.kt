@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -267,7 +269,7 @@ fun AnswerScreen(
             // Pinned like the design, so the next question is always one tap away.
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
-                OutlinedButton(
+                OutlinedButton(shape = FieldAtlasButtonShape, 
                     onClick = onAskAnother,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
                 ) {

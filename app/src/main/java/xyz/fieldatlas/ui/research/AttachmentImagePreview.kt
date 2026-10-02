@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import androidx.compose.foundation.Image
@@ -102,13 +104,13 @@ internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () 
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { zoomTo(scale / 1.5f) }, enabled = image.bitmap != null && scale > 1f) { Icon(Icons.Default.ZoomOut, "Zoom out") }
-                    TextButton(onClick = { zoomTo(1f) }, enabled = image.bitmap != null) { Text("Reset zoom") }
+                    TextButton(shape = FieldAtlasButtonShape, onClick = { zoomTo(1f) }, enabled = image.bitmap != null) { Text("Reset zoom") }
                     IconButton(onClick = { zoomTo(scale * 1.5f) }, enabled = image.bitmap != null && scale < 5f) { Icon(Icons.Default.ZoomIn, "Zoom in") }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (onReadText != null) TextButton(onClick = onReadText) { Text("Recognized text") }
+                    if (onReadText != null) TextButton(shape = FieldAtlasButtonShape, onClick = onReadText) { Text("Recognized text") }
                     else Spacer(Modifier.weight(1f))
-                    if (showRemove) TextButton(onClick = onRemove, enabled = canRemove, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Remove image") }
+                    if (showRemove) TextButton(shape = FieldAtlasButtonShape, onClick = onRemove, enabled = canRemove, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)) { Text("Remove image") }
                 }
             }
         }

@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -84,7 +86,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                         }
                         IconButton(onClick = { remove(item.id) }, enabled = enabled,
                             modifier = Modifier.align(Alignment.TopEnd).size(48.dp)) {
-                            Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.60f)) {
+                            Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp), color = Color.Black.copy(alpha = 0.60f)) {
                                 Icon(Icons.Default.Close, "Remove ${item.displayName}",
                                     Modifier.padding(5.dp).size(14.dp),
                                     tint = Color.White.copy(alpha = if (enabled) 1f else 0.38f))
@@ -93,14 +95,14 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                         if (item.phase == AttachmentPhase.Error) {
                             IconButton(onClick = { errorId = item.id },
                                 modifier = Modifier.align(Alignment.BottomStart).size(48.dp)) {
-                                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.errorContainer) {
+                                Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.errorContainer) {
                                     Icon(Icons.Default.Warning, "Read issue for ${item.displayName}",
                                         Modifier.padding(7.dp).size(18.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
                                 }
                             }
                         } else if (item.phase == AttachmentPhase.Reading) {
                             Surface(Modifier.align(Alignment.BottomStart).padding(8.dp),
-                                shape = CircleShape, color = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f)) {
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.80f)) {
                                 CircularProgressIndicator(Modifier.padding(6.dp).size(16.dp), strokeWidth = 2.dp)
                             }
                         }
@@ -111,8 +113,8 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
     items.firstOrNull { it.id == errorId && it.phase == AttachmentPhase.Error }?.let { item ->
         AlertDialog(onDismissRequest = { errorId = null }, title = { Text("Couldn’t read attachment") },
             text = { Text(item.error ?: "Try another file saved on your device.") },
-            confirmButton = { TextButton(onClick = { retry(item.id); errorId = null }, enabled = enabled) { Text("Retry") } },
-            dismissButton = { TextButton(onClick = { errorId = null }) { Text("Close") } })
+            confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { retry(item.id); errorId = null }, enabled = enabled) { Text("Retry") } },
+            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { errorId = null }) { Text("Close") } })
     }
     items.firstOrNull { it.id == imagePreviewId }?.let { item ->
         item.previewFile?.let { file ->
@@ -135,7 +137,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                     Text(page.text, style = MaterialTheme.typography.bodyMedium)
                 }
             } },
-            confirmButton = { TextButton(onClick = { previewId = null }) { Text("Close") } },
+            confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { previewId = null }) { Text("Close") } },
         )
     }
 }

@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.library
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -114,7 +116,7 @@ fun LibraryScreen(
                         subtitle = "Models and knowledge on this phone.",
                         modifier = Modifier.weight(1f),
                     )
-                    FilledTonalButton(
+                    FilledTonalButton(shape = FieldAtlasButtonShape, 
                         onClick = onImportPack,
                         enabled = !importing && !modelDownloading && knowledgeDownloadKey == null,
                         contentPadding = PaddingValues(horizontal = 14.dp),
@@ -295,7 +297,7 @@ internal fun KnowledgeDownloadCard(
                     "${downloadedBytes / 1_000_000} / ${pack.bytes / 1_000_000} MB · continues in background",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!installing) TextButton(onClick = onCancel) { Text("Pause") }
+                if (!installing) TextButton(shape = FieldAtlasButtonShape, onClick = onCancel) { Text("Pause") }
             }
         } else {
             FieldAtlasPrimaryButton(
@@ -320,12 +322,12 @@ internal fun KnowledgeDownloadCard(
                     "Afterward, the collection works offline.")
             },
             confirmButton = {
-                TextButton(onClick = {
+                TextButton(shape = FieldAtlasButtonShape, onClick = {
                     confirmDownload = false
                     onDownload()
                 }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
             },
-            dismissButton = { TextButton(onClick = { confirmDownload = false }) { Text("Not now") } },
+            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") } },
         )
     }
 }
@@ -423,7 +425,7 @@ private fun AssetCard(
             }
             when {
                 selectedModel -> FieldAtlasStatusPill("In use", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-                onActivateModel != null -> TextButton(onClick = onActivateModel) { Text("Use model") }
+                onActivateModel != null -> TextButton(shape = FieldAtlasButtonShape, onClick = onActivateModel) { Text("Use model") }
                 onToggleResearch != null -> Switch(
                     checked = enabled,
                     onCheckedChange = onToggleResearch,
@@ -467,14 +469,14 @@ private fun AssetCard(
                 )
             },
             confirmButton = {
-                TextButton(
+                TextButton(shape = FieldAtlasButtonShape, 
                     onClick = {
                         confirmDelete = false
                         onDelete?.invoke()
                     },
                 ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
+            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDelete = false }) { Text("Keep") } },
         )
     }
 }

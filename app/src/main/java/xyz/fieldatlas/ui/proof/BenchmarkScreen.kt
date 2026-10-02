@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.proof
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -91,7 +93,7 @@ fun BenchmarkScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         LinearProgressIndicator(Modifier.fillMaxWidth())
                         if (state.currentAnswer.isNotBlank()) Text(state.currentAnswer)
-                        OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                             Text("Stop")
                         }
                     }
@@ -119,7 +121,7 @@ fun BenchmarkScreen(
             }
             if (state.run.results.isNotEmpty()) {
                 item {
-                    OutlinedButton(
+                    OutlinedButton(shape = FieldAtlasButtonShape, 
                         onClick = { onExport(state.run) },
                         modifier = Modifier.fillMaxWidth(),
                     ) {

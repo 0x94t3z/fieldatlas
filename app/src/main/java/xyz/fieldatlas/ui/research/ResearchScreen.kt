@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -253,13 +255,13 @@ fun ResearchScreen(
                         }
                         Spacer(Modifier.weight(1f))
                         val recording = voiceState.phase == VoicePhase.Recording
-                        // The ring grows with the microphone level so speaking visibly registers.
+                        // The button grows with the microphone level so speaking visibly registers.
                         val pulse by animateFloatAsState(
                             if (recording) 1f + voiceState.level.coerceIn(0f, 1f) * 0.18f else 1f,
                             label = "micLevel",
                         )
                         Surface(
-                            shape = CircleShape,
+                            shape = FieldAtlasButtonShape,
                             modifier = Modifier.scale(pulse),
                             color = when {
                                 recording -> MaterialTheme.colorScheme.primary
@@ -343,7 +345,7 @@ fun ResearchScreen(
                     ) {
                         Surface(
                             modifier = Modifier.size(40.dp),
-                            shape = CircleShape,
+                            shape = MaterialTheme.shapes.small,
                             color = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         ) {
@@ -390,7 +392,7 @@ fun ResearchScreen(
                 }
             }
             item {
-                TextButton(onClick = {
+                TextButton(shape = FieldAtlasButtonShape, onClick = {
                     onAskAnotherQuestion()
                     scope.launch { listState.animateScrollToItem(0) }
                 }, modifier = Modifier.fillMaxWidth()) {
@@ -528,7 +530,7 @@ private fun ResearchAction(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
                 }
-                FilledTonalButton(onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
+                FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceVariant,

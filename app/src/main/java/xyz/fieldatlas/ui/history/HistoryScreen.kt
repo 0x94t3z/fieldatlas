@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.history
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -182,7 +184,7 @@ private fun HistoryCard(
             }
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                FilledTonalButton(
+                FilledTonalButton(shape = FieldAtlasButtonShape, 
                     onClick = { onAskAgain(record.question) },
                     modifier = Modifier.heightIn(min = 40.dp),
                     contentPadding = PaddingValues(horizontal = 14.dp),

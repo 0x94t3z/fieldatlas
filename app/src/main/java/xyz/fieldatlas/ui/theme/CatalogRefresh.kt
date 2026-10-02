@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
 @Composable
 fun CatalogRefresh(refreshing: Boolean, error: String?, onRefresh: () -> Unit) {
     Column {
-        TextButton(onClick = onRefresh, enabled = !refreshing) {
+        TextButton(shape = FieldAtlasButtonShape, onClick = onRefresh, enabled = !refreshing) {
             Text(if (refreshing) "Refreshing collections…" else "Refresh collections")
         }
         // Saved collections keep working, so a failed catalog refresh is information, not an error.

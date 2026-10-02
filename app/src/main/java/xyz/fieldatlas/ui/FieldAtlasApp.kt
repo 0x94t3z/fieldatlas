@@ -3,21 +3,29 @@ package xyz.fieldatlas.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -227,32 +235,56 @@ fun FieldAtlasApp(
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(28.dp),
+                        shape = RoundedCornerShape(22.dp),
                         color = MaterialTheme.colorScheme.surface,
                         shadowElevation = 6.dp,
                     ) {
-                        NavigationBar(
-                            containerColor = Color.Transparent,
-                            windowInsets = WindowInsets(0, 0, 0, 0),
+                        // Custom bar: Material's selected indicator is a fixed pill, and the app
+                        // uses rounded rectangles for every pressable surface.
+                        Row(
+                            Modifier.fillMaxWidth().height(76.dp).selectableGroup(),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             PrimaryDestination.entries.forEach { item ->
                                 val itemLabel = primaryLabel(item)
-                                NavigationBarItem(
-                                    selected = navigation.primary == item,
-                                    onClick = { navigation.select(item) },
-                                    modifier = Modifier.semantics { contentDescription = itemLabel },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = if (darkTheme) MaterialTheme.colorScheme.onPrimaryContainer else FieldAtlasColors.OnMenuSelection,
-                                        selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                        indicatorColor = if (darkTheme) MaterialTheme.colorScheme.primaryContainer else FieldAtlasColors.MenuSelection,
-                                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    ),
-                                    icon = {
-                                        Icon(primaryIcon(item), contentDescription = itemLabel)
-                                    },
-                                    label = { Text(itemLabel) },
-                                )
+                                val selected = navigation.primary == item
+                                Column(
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                        // No full-cell ripple: the indicator itself changes on selection.
+                                        .selectable(selected = selected, role = Role.Tab,
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null,
+                                            onClick = { navigation.select(item) })
+                                        .semantics { contentDescription = itemLabel },
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Box(
+                                        Modifier.size(width = 60.dp, height = 32.dp).background(
+                                            if (selected) {
+                                                if (darkTheme) MaterialTheme.colorScheme.primaryContainer else FieldAtlasColors.MenuSelection
+                                            } else Color.Transparent,
+                                            FieldAtlasButtonShape,
+                                        ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            primaryIcon(item), contentDescription = null,
+                                            tint = when {
+                                                !selected -> MaterialTheme.colorScheme.onSurfaceVariant
+                                                darkTheme -> MaterialTheme.colorScheme.onPrimaryContainer
+                                                else -> FieldAtlasColors.OnMenuSelection
+                                            },
+                                        )
+                                    }
+                                    Text(
+                                        itemLabel,
+                                        modifier = Modifier.padding(top = 4.dp),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }

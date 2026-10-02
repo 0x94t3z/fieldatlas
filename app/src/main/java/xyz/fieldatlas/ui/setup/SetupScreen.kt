@@ -97,7 +97,7 @@ fun SetupScreen(
                 item {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(Modifier.weight(1f)) { SetupSection(2, "Knowledge", "Optional") }
-                        TextButton(onClick = onRefreshCatalog, enabled = online && !catalogRefreshing) {
+                        TextButton(shape = FieldAtlasButtonShape, onClick = onRefreshCatalog, enabled = online && !catalogRefreshing) {
                             Text(if (catalogRefreshing) "Refreshing…" else "Refresh")
                         }
                     }
@@ -131,7 +131,7 @@ fun SetupScreen(
                     Text("Add knowledge now or later in Library.", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (!importing) {
-                        OutlinedButton(onClick = onImportPack, enabled = !busy,
+                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = onImportPack, enabled = !busy,
                             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 48.dp)) {
                             Icon(FieldAtlasIcons.Document, null, Modifier.size(18.dp))
                             Text("Import a saved pack", modifier = Modifier.padding(start = 8.dp))
@@ -229,7 +229,7 @@ private fun SetupDownloadRow(
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (installed) FieldAtlasStatusPill("Installed", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-            else if (!downloading) FilledTonalButton(
+            else if (!downloading) FilledTonalButton(shape = FieldAtlasButtonShape, 
                 onClick = { confirm = true },
                 enabled = !busy && blockedReason == null,
                 contentPadding = PaddingValues(horizontal = 14.dp),
@@ -251,7 +251,7 @@ private fun SetupDownloadRow(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(if (installing) "Verifying and installing…" else "${downloadSize(downloadedBytes)} / ${downloadSize(bytes)}",
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                if (!installing) TextButton(onClick = onCancel) { Text("Pause") }
+                if (!installing) TextButton(shape = FieldAtlasButtonShape, onClick = onCancel) { Text("Pause") }
             }
             Text("You can switch apps while this finishes. Paused downloads can be resumed later.",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -263,9 +263,9 @@ private fun SetupDownloadRow(
             "${downloadSize(resumableBytes)} is saved. About ${downloadSize(bytes - resumableBytes.coerceIn(0, bytes))} remains if the server supports resume; otherwise the full download may be needed. "
             else "Uses ${downloadSize(bytes)} of internet data. ") +
             "Allow about ${downloadSize(bytes * 2 + 512_000_000L)} free while installing. Works offline afterward.") },
-        confirmButton = { TextButton(enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
+        confirmButton = { TextButton(shape = FieldAtlasButtonShape, enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
             Text(if (resumableBytes > 0) "Resume" else "Download") } },
-        dismissButton = { TextButton(onClick = { confirm = false }) { Text("Not now") } })
+        dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirm = false }) { Text("Not now") } })
 }
 
 @Composable

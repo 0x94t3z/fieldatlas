@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.more
 
+import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -126,7 +128,7 @@ fun MoreScreen(
                     if (inferenceState == InferenceState.Idle || inferenceState is InferenceState.Failed) {
                         FieldAtlasPrimaryButton("Prepare model", onPrepareModel, Modifier.fillMaxWidth())
                     } else if (inferenceState == InferenceState.Ready) {
-                        OutlinedButton(onClick = onReleaseModel, modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = onReleaseModel, modifier = Modifier.fillMaxWidth()) {
                             Text("Free up memory")
                         }
                     }
@@ -168,7 +170,7 @@ fun MoreScreen(
                         Text("These may describe an earlier issue that has already been resolved.",
                             style = MaterialTheme.typography.bodySmall)
                         Text(diagnosticsText, style = MaterialTheme.typography.bodySmall)
-                        TextButton(onClick = onClearDiagnostics) { Text("Clear details") }
+                        TextButton(shape = FieldAtlasButtonShape, onClick = onClearDiagnostics) { Text("Clear details") }
                     }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -180,7 +182,7 @@ fun MoreScreen(
                         Switch(checked = includeQuestion, onCheckedChange = { includeQuestion = it },
                             modifier = Modifier.semantics { contentDescription = "Include latest question" })
                     }
-                    OutlinedButton(onClick = { onExportDiagnostics(includeQuestion) }, modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onExportDiagnostics(includeQuestion) }, modifier = Modifier.fillMaxWidth()) {
                         Icon(FieldAtlasIcons.Import, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text("Save support report", modifier = Modifier.padding(start = 8.dp))
                     }

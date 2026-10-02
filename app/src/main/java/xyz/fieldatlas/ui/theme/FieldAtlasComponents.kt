@@ -51,6 +51,12 @@ import androidx.compose.ui.unit.Dp
 
 enum class StatusTone { Neutral, Positive, Attention }
 
+/** Buttons are rounded rectangles across the app; Material's default pill shape is not used. */
+val FieldAtlasButtonShape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+
+/** Status chips use a tighter corner so they read as labels, not as buttons. */
+val FieldAtlasChipShape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+
 @Composable
 fun FieldAtlasPageHeader(
     title: String,
@@ -109,7 +115,7 @@ fun FieldAtlasStatusPill(
         modifier = modifier,
         color = containerColor ?: defaultColors.first,
         contentColor = contentColor ?: defaultColors.second,
-        shape = MaterialTheme.shapes.small,
+        shape = FieldAtlasChipShape,
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
@@ -185,7 +191,7 @@ fun FieldAtlasPrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 52.dp).semantics { role = Role.Button },
-        shape = MaterialTheme.shapes.medium,
+        shape = FieldAtlasButtonShape,
         contentPadding = ButtonDefaults.ContentPadding,
     ) {
         if (leadingIcon != null) {
@@ -207,7 +213,7 @@ fun FieldAtlasInformationAction(
     expanded: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    TextButton(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+    TextButton(shape = FieldAtlasButtonShape, onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Icon(
             Icons.Outlined.Info,
             contentDescription = null,
