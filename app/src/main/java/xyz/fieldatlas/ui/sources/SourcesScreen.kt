@@ -45,6 +45,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasFactRow
 import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.attachments.AttachmentKind
@@ -203,13 +204,21 @@ fun SourcesScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onPrevious?.invoke() }, enabled = onPrevious != null,
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Icon(FieldAtlasIcons.Back, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Previous", modifier = Modifier.padding(start = 8.dp))
+                        Text("Previous")
                     }
-                    OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onNext?.invoke() }, enabled = onNext != null,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Text("Next", modifier = Modifier.padding(end = 8.dp))
-                        Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                    // Forward is the usual direction, so Next carries the one filled action; on the
+                    // last source it falls back to a quiet outline instead of a grey filled block.
+                    val nextAction = onNext
+                    if (nextAction != null) {
+                        Button(shape = FieldAtlasButtonShape, onClick = nextAction,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            Text("Next")
+                        }
+                    } else {
+                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = {}, enabled = false,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
+                            Text("Next")
+                        }
                     }
                 }
             }
