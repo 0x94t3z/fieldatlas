@@ -2,8 +2,8 @@
 
 ## v1.2.0 (October 2–3)
 
-- **Automated:** 473 Android JVM tests passed with zero failures; 10 opt-in desktop tests are
-  skipped in the ordinary run (the ranking and routing ones were run against the real packs on
+- **Automated:** 473 Android JVM tests ran with zero failures: 463 passed and 10 opt-in desktop
+  tests were skipped in the ordinary run (the ranking and routing ones were run against the real packs on
   2 October). Python: 12 pack-tool, 57 script, 6 benchmark and 36 builder tests passed. The
   website's 25 browser tests passed. Android instrumentation sources compiled but were not run.
 - **Answer quality:** the 24-question suite, run through the app's pipeline on desktop,

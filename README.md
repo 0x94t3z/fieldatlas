@@ -40,7 +40,7 @@ Field Atlas runs a language model on the phone. You can also add local knowledge
 
 ## Watch it work
 
-Watch the **52-second Field Atlas v1.2.0 demo**. The MP4 is available with the release downloads.
+Watch the **52-second Field Atlas v1.2.0 film**: an animated walkthrough of the Berlin vegan lookup, a place sheet, voice input, a cited answer and the Library. It is built from screen mockups that match the app, not recorded on a phone. The MP4 is available with the release downloads.
 
 [![Watch the Field Atlas v1.2.0 demo](docs/branding/field-atlas-v1.2.0-demo.png)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4)
 

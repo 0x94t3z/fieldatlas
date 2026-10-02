@@ -26,7 +26,7 @@ in-place update and a 12 GB GrapheneOS device remain untested in this handoff.
   `knowledge-simplewiki-2025.12.29`, `knowledge-wikivoyage-guides-2025.12.29`,
   `knowledge-vegan-places-2026.10.02` (files staged locally, checksums in each `SHA256SUMS`).
 - Verified on 3 October, including the search fixes in the next item: 473 JVM tests with
-  zero failures (10 opt-in desktop tests skipped in the ordinary run; the ranking and
+  zero failures (463 passed, 10 opt-in desktop tests skipped in the ordinary run; the ranking and
   routing ones were run against real packs on 2 October); Android instrumentation sources compiled, not run;
   111 Python tests (12 pack-tool, 57 script, 6 benchmark, 36 builder) and 25 website
   browser tests.
