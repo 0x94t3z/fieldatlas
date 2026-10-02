@@ -32,6 +32,11 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         "qwen3.5-2b-q4-k-m" -> "Qwen3.5 2B"
         "world-knowledge-biology" -> "Biology & longevity"
         "wikivoyage-places" -> "Travel places"
+        // Short names, as in the download catalog; the source is in About this collection.
+        "simplewiki" -> "Encyclopedia"
+        "wikivoyage-guides" -> "Travel guides"
+        "osm-vegan-places" -> "Vegan places"
+        "osm-essentials" -> "Essentials"
         else -> title
     },
     kind = when (type) {

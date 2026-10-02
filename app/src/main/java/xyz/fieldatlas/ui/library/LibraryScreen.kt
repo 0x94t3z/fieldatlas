@@ -37,6 +37,7 @@ import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.NoteAdd
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
@@ -281,7 +282,7 @@ internal fun KnowledgeDownloadCard(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(FieldAtlasIcons.Document, size = 44.dp, tone = TileTone.Paper)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(pack.title, style = PackTitleStyle())
+                Text(pack.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
                     "${formatAssetBytes(pack.bytes)} · version ${pack.version}",
                     style = MaterialTheme.typography.bodySmall,
@@ -366,6 +367,7 @@ internal fun packVisual(asset: InstalledAsset): PackVisual {
     return when {
         asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Archive, TileTone.Sage)
         asset.type == PackType.AUDIO -> PackVisual(Icons.Outlined.Mic, TileTone.Paper)
+        "guides" in id -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
         listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
         listOf("biology", "science", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
         else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
@@ -433,7 +435,7 @@ private fun AssetCard(
             FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone,
                 modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
             Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(model.title, style = PackTitleStyle())
+                Text(model.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
                     "${model.size} · v${model.version}" + if (inactive) " · not used" else "",
                     style = MaterialTheme.typography.bodySmall,
@@ -517,7 +519,7 @@ private fun AssetCard(
 
 /** Pack names in the sans reading face, as in the design; serif stays for page headings. */
 @Composable
-private fun PackTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 22.sp)
+private fun PackTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 20.sp)
 
 @Composable
 private fun AssetSurface(inGroup: Boolean, content: @Composable () -> Unit) {

@@ -31,6 +31,13 @@ class AssetPresentationTest {
         assertEquals("Answer model", card.kind)
     }
 
+    @Test fun collectionsShowTheirShortCatalogNames() {
+        assertEquals("Encyclopedia", asset("simplewiki", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+        assertEquals("Vegan places", asset("osm-vegan-places", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+        assertEquals("Travel guides", asset("wikivoyage-guides", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+        assertEquals("Project-notes", asset("project-notes", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+    }
+
     @Test fun knowledgeCategoryPrefersTheCatalogLabelThenThePackId() {
         assertEquals(KnowledgeCategory.Places, knowledgeCategory("osm-essentials"))
         assertEquals(KnowledgeCategory.Places, knowledgeCategory("wikivoyage-places"))
