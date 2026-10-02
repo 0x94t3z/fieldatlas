@@ -233,8 +233,16 @@ object VenueLookup {
         "breakfast", "can", "get", "good",
     )
 
-    /** A place question answered from the phone's own location rather than a named city. */
+    private val selfPhrase = Regex(
+        "(?i)\\b(near me|near here|around me|around here|close to me|where i am|" +
+            "my (?:current )?location|my (?:current )?city|(?:the )?city i(?:'m| am) (?:currently )?in)\\b",
+    )
+    private val namedPlace = Regex("(?i)\\b(?:in|at|around|near)\\s+(?!me\\b|here\\b|my\\b|the city i)\\p{L}")
+
+    /** A place question answered from the phone's own location rather than a named city.
+     * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
     fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) &&
+        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question)) &&
         (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question) || essential(question) != null) &&
         !complexWords.containsMatchIn(question)
 

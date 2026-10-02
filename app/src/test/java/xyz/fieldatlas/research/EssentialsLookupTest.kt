@@ -29,6 +29,12 @@ class EssentialsLookupTest {
             assertTrue(q, VenueLookup.isNearMe(q))
         }
         assertFalse(VenueLookup.isNearMe("How do pharmacies near me price insulin compared with hospitals?"))
+        // A named city wins over "nearest": search that city, not the phone's position.
+        assertFalse(VenueLookup.isNearMe("find the nearest supermarket in jakarta"))
+        assertFalse(VenueLookup.isNearMe("closest hospital in Tokyo"))
+        assertTrue(VenueLookup.isPlaceLookup("find the nearest supermarket in jakarta"))
+        assertTrue(VenueLookup.isNearMe("nearest pharmacy near me in this area"))
+        assertTrue(VenueLookup.isNearMe("vegan food in the city I'm in"))
         assertEquals(setOf("Health"), VenueLookup.nearbyCategories("pharmacy near me"))
         assertEquals(setOf("Money"), VenueLookup.nearbyCategories("where can I get cash nearby"))
         assertEquals(setOf("Toilets"), VenueLookup.nearbyCategories("nearest restroom"))
