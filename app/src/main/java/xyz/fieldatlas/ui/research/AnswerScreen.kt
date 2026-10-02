@@ -88,6 +88,11 @@ fun AnswerScreen(
     val showPassagesFirst = state.sources.isNotEmpty() &&
         state.answer.startsWith("## Model explanation—not verified against saved sources")
     var showAllPassages by rememberSaveable(state.question) { mutableStateOf(false) }
+    // Citation and source taps open a quick preview first; the full source is one tap further.
+    var previewIndex by rememberSaveable(state.question) { mutableStateOf<Int?>(null) }
+    val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val missingSubjects = xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
 
     Surface(
@@ -169,7 +174,7 @@ fun AnswerScreen(
                     }
                     val previewCount = if (showAllPassages) state.sources.size else minOf(2, state.sources.size)
                     items(previewCount, key = { "passage:$it" }) { index ->
-                        SavedPassagePreview(state.sources[index], index, onCitation)
+                        SavedPassagePreview(state.sources[index], index, cited = index + 1 in citedNumberSet, openPreview)
                     }
                     if (state.sources.size > 2) item {
                         AnswerDisclosure(
@@ -184,7 +189,7 @@ fun AnswerScreen(
                         AnswerMarkdownRenderer(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
-                            onCitation = onCitation,
+                            onCitation = openPreview,
                             bodyStyle = MaterialTheme.typography.bodyLarge,
                         )
                     }
@@ -200,7 +205,7 @@ fun AnswerScreen(
                             )
                         }
                         items(citedSourceGroups.size, key = { "cited:${citedSourceGroups[it].key}" }) { index ->
-                            AnswerSourceCard(citedSourceGroups[index], onCitation, cited = true)
+                            AnswerSourceCard(citedSourceGroups[index], openPreview, cited = true)
                         }
                     }
                 }
@@ -221,7 +226,7 @@ fun AnswerScreen(
                                         modifier = Modifier.padding(horizontal = 16.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    otherSourceGroups.forEach { group -> AnswerSourceCard(group, onCitation, inGroup = true) }
+                                    otherSourceGroups.forEach { group -> AnswerSourceCard(group, openPreview, inGroup = true) }
                                 }
                             }
                             if (showOtherRow && metrics != null) {
@@ -257,12 +262,36 @@ fun AnswerScreen(
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }
+                                        androidx.compose.material3.TextButton(
+                                            onClick = {
+                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(
+                                                    answerWithSources(state.question, state.answer, state.sources)))
+                                                android.widget.Toast.makeText(context, "Answer and sources copied",
+                                                    android.widget.Toast.LENGTH_SHORT).show()
+                                            },
+                                            contentPadding = PaddingValues(0.dp),
+                                        ) {
+                                            Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy, contentDescription = null,
+                                                modifier = Modifier.size(17.dp))
+                                            Text("Copy answer with sources", Modifier.padding(start = 8.dp))
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+            }
+            previewIndex?.let { index ->
+                SourcePreviewSheet(
+                    sources = state.sources,
+                    index = index,
+                    cited = index + 1 in citedNumberSet,
+                    nextIndex = (index + 1).takeIf { it < state.sources.size },
+                    onDismiss = { previewIndex = null },
+                    onOpenFull = { previewIndex = null; onCitation(it) },
+                    onNext = { previewIndex = it },
+                )
             }
             // Pinned like the design, so the next question is always one tap away.
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -279,7 +308,7 @@ fun AnswerScreen(
 }
 
 @Composable
-private fun SavedPassagePreview(evidence: Evidence, index: Int, onCitation: (Int) -> Unit) {
+private fun SavedPassagePreview(evidence: Evidence, index: Int, cited: Boolean, onCitation: (Int) -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open complete saved passage ${index + 1}") { onCitation(index) },
         color = MaterialTheme.colorScheme.surface,
@@ -287,7 +316,11 @@ private fun SavedPassagePreview(evidence: Evidence, index: Int, onCitation: (Int
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("${index + 1} · ${evidence.title}", style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("${index + 1} · ${evidence.title}", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                if (cited) FieldAtlasStatusPill("Cited", StatusTone.Positive)
+                else FieldAtlasStatusPill("Not cited")
+            }
             // Plain text, not model output or Markdown: source content cannot inject
             // clickable citations. Ellipsis is visual only; opening retains full context.
             Text(evidence.text, style = MaterialTheme.typography.bodyMedium,
