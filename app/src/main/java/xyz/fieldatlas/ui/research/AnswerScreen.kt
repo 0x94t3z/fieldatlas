@@ -128,7 +128,6 @@ fun AnswerScreen(
                                     if (isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
-                            FieldAtlasStatusPill("Offline", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Offline)
                             state.metrics?.totalMillis?.let { FieldAtlasStatusPill(formatResearchElapsed(it)) }
                         }
                     }

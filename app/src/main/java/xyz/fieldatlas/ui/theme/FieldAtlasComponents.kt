@@ -191,7 +191,8 @@ fun FieldAtlasPrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.heightIn(min = 52.dp).semantics { role = Role.Button },
-        shape = FieldAtlasButtonShape,
+        // The main call to action keeps the softer card radius.
+        shape = MaterialTheme.shapes.medium,
         contentPadding = ButtonDefaults.ContentPadding,
     ) {
         if (leadingIcon != null) {
