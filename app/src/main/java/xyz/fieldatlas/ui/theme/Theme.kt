@@ -40,9 +40,9 @@ val FieldAtlasEditorial = FontFamily(
 )
 
 /**
- * Reading text and interface labels: Atkinson Hyperlegible Next, drawn so that similar
- * letters and digits (I l 1, O 0, rn m) stay distinct, which matters for names, addresses
- * and numbers read on a phone outdoors. Bundled so answers read the same on every phone.
+ * Reading text and interface labels: Inter, a screen face with a tall x-height and open
+ * letters that stays clear at small sizes. Bundled so answers read the same on every phone
+ * rather than in an OEM default.
  */
 @OptIn(ExperimentalTextApi::class)
 val FieldAtlasSans = FontFamily(
@@ -57,7 +57,7 @@ val FieldAtlasSans = FontFamily(
 // A variable file draws its default instance unless the wght axis is set for each weight.
 @OptIn(ExperimentalTextApi::class)
 private fun sansFont(weight: FontWeight, style: FontStyle = FontStyle.Normal) = Font(
-    if (style == FontStyle.Italic) R.font.atkinson_hyperlegible_next_italic_variable else R.font.atkinson_hyperlegible_next_variable,
+    if (style == FontStyle.Italic) R.font.inter_italic_variable else R.font.inter_variable,
     weight = weight,
     style = style,
     variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
@@ -141,8 +141,8 @@ private val FieldNotebookDarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD2),
 )
 
-// Material's defaults with every style set to a bundled family. Atkinson Hyperlegible Next has
-// large, open letters, so reading sizes sit a point below where a narrower face would need them.
+// Material's defaults with every style set to a bundled family. Inter's tall x-height reads
+// well a point below where a smaller-eyed face such as Source Sans would need to be.
 private val MaterialDefaults = Typography()
 
 private val FieldAtlasTypography = Typography(
