@@ -341,8 +341,12 @@ object EvidenceRelevance {
     }
 
     private fun Set<String>.matches(term: String): Boolean {
-        val stem = stem(term.lowercase())
-        return any { token -> token.startsWith(stem) }
+        val lower = term.lowercase()
+        val stem = stem(lower)
+        // The stem of "embassies" ("embassi") is not a prefix of "embassy", so a plural
+        // question would otherwise reject every listing that names the place in the singular.
+        val singular = if (lower.length > 4 && lower.endsWith("ies")) lower.dropLast(3) + "y" else null
+        return any { token -> token.startsWith(stem) || (singular != null && token.startsWith(singular)) }
     }
 
     private fun stem(term: String): String = when {

@@ -36,6 +36,12 @@ ESSENTIALS = {
     "embassy": [
         {"type": "node", "id": 104, "lat": 52.516, "lon": 13.38,
          "tags": {"amenity": "embassy", "name": "Embassy of Japan", "country": "JP"}},
+        # No name: described by the country it represents.
+        {"type": "way", "id": 107, "center": {"lat": 52.51, "lon": 13.37},
+         "tags": {"amenity": "embassy", "country": "NL"}},
+        # The same embassy mapped again as a point at the same centre is listed once.
+        {"type": "node", "id": 108, "lat": 52.51, "lon": 13.37,
+         "tags": {"amenity": "embassy", "country": "NL"}},
     ],
     "diplomatic": [
         # The same embassy tagged the newer way is kept once; a consulate keeps its label.
@@ -85,6 +91,9 @@ class OsmEssentialsPackTest(unittest.TestCase):
         self.assertIn("Country represented: JP", docs["osm-place-n104"]["text"])
         self.assertIn("Type: consulate", docs["osm-place-n105"]["text"])
         self.assertNotIn("osm-place-n106", docs)
+        netherlands = [d for d in docs.values() if "Country represented: NL" in d["text"]]
+        self.assertEqual(1, len(netherlands))
+        self.assertIn("Place: Embassy · NL", netherlands[0]["text"])
 
     def test_an_element_matching_two_kinds_is_kept_once(self):
         docs, _ = ess.documents(self.cache, self.settlements)

@@ -75,4 +75,13 @@ class EssentialsLookupTest {
         assertEquals(255.0, GeoDistance.bearing(52.5219, 13.4132, 52.5163, 13.3777), 6.0)
         assertEquals("west", GeoDistance.compass(GeoDistance.bearing(52.5219, 13.4132, 52.5163, 13.3777)))
     }
+
+    @Test fun pluralQuestionsKeepListingsNamedInTheSingular() {
+        val embassy = place("7", "Embassy of Japan", "Safety", "embassy")
+        for ((question, listing) in listOf("Which pharmacies are in Berlin?" to pharmacy, "Which embassies are in Berlin?" to embassy)) {
+            val terms = FtsQuery.from(question)!!.terms
+            assertEquals(question, listOf(listing), EvidenceRelevance.keep(listOf(listing), terms, question = question))
+            assertEquals(question, listOf(listing), VenueLookup.answer(question, listOf(listing, cafe))?.sources)
+        }
+    }
 }

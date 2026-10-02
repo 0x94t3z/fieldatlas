@@ -51,8 +51,9 @@ KINDS = {
 QUERIES = {kind: osm.tag_query(selector) for kind, (selector, _, _) in KINDS.items()}
 QUERIES.update({kind: osm.QUERIES[kind] for kind in osm.PLACE_KINDS})
 
-# Many essentials carry no name; these keys describe them instead.
-UNNAMED = ("brand", "operator", "network")
+# Many essentials carry no name; these keys describe them instead. An unnamed embassy is
+# still identified by the country it represents.
+UNNAMED = ("brand", "operator", "network", "country")
 YES_NO = {"yes": "yes", "no": "no"}
 
 
@@ -137,7 +138,7 @@ def documents(cache: Path, settlements_cache: Path) -> tuple[list[dict], list[st
     kinds = cached_kinds(cache)
     if not kinds:
         raise SystemExit("cache has no essentials responses; run fetch first")
-    seen, docs = set(), []
+    seen, placed, docs = set(), set(), []
     for kind in kinds:
         for element in osm.load_elements(cache, (kind,)):
             key = (element["type"], element["id"])
@@ -145,9 +146,17 @@ def documents(cache: Path, settlements_cache: Path) -> tuple[list[dict], list[st
             if key in seen:
                 continue
             document = essential_document(element, kind, places, snapshot_date)
-            if document is not None:
-                seen.add(key)
-                docs.append(document)
+            if document is None:
+                continue
+            seen.add(key)
+            # A place mapped twice (a point and a building outline with the same name and
+            # centre) would be listed twice; keep the first.
+            lines = document["text"].splitlines()
+            spot = (document["title"], *(line for line in lines if line.startswith(("Latitude: ", "Longitude: "))))
+            if spot in placed:
+                continue
+            placed.add(spot)
+            docs.append(document)
     return docs, kinds
 
 
