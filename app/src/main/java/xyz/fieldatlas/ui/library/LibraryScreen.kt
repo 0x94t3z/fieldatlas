@@ -29,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.NoteAdd
@@ -323,8 +324,10 @@ private fun AssetCard(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FieldAtlasIconTile(icon, size = 52.dp)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            // A switched-off collection stays readable but visibly inactive.
+            val inactive = onToggleResearch != null && !enabled
+            FieldAtlasIconTile(icon, size = 52.dp, modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
+            Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     model.title,
                     style = MaterialTheme.typography.titleMedium,
@@ -358,10 +361,12 @@ private fun AssetCard(
                             ),
                         )
                     }
+                    // Deleting is rare and already confirmed in a dialog with the error colour;
+                    // the always-visible entry point stays quiet next to the everyday toggle.
                     TextButton(
                         onClick = { confirmDelete = true },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         ),
                     ) { Text("Delete") }
                 }

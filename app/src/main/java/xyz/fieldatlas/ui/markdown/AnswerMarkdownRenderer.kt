@@ -1,6 +1,15 @@
 package xyz.fieldatlas.ui.markdown
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.semantics.heading
+import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
+import xyz.fieldatlas.ui.theme.StatusTone
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,7 +62,9 @@ fun AnswerMarkdownRenderer(
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         blocks.forEach { block ->
             when (block) {
-                is MarkdownBlock.Heading -> InlineBlock(
+                is MarkdownBlock.Heading -> answerSection(block)?.let { section ->
+                    SectionHeading(section, headingStyle(block.level))
+                } ?: InlineBlock(
                     content = block.content,
                     style = headingStyle(block.level),
                     sourceCount = sourceCount,
@@ -83,20 +94,37 @@ fun AnswerMarkdownRenderer(
                         }
                     }
                 }
-                is MarkdownBlock.Quote -> Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-                    shape = MaterialTheme.shapes.small,
-                ) {
-                    InlineBlock(
-                        content = block.content,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontFamily = FieldAtlasEditorial,
-                            fontStyle = FontStyle.Italic,
-                        ),
-                        sourceCount = sourceCount,
-                        onCitation = onCitation,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                is MarkdownBlock.Quote -> {
+                    // A trailing citation belongs to the whole quotation, so it becomes a
+                    // source footer instead of a chip stranded on the quote's last line.
+                    val (body, footer) = block.content.trailingCitations()
+                    val linked = footer.filter { it in 1..sourceCount }
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Row(Modifier.height(IntrinsicSize.Min)) {
+                            Box(
+                                Modifier.fillMaxHeight().width(3.dp)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                            )
+                            Column(
+                                Modifier.padding(start = 14.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                InlineBlock(
+                                    content = if (linked.isEmpty()) block.content else body,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontFamily = FieldAtlasEditorial,
+                                        fontStyle = FontStyle.Italic,
+                                    ),
+                                    sourceCount = sourceCount,
+                                    onCitation = onCitation,
+                                )
+                                if (linked.isNotEmpty()) QuoteSourceFooter(linked, onCitation)
+                            }
+                        }
+                    }
                 }
                 is MarkdownBlock.CodeBlock -> SelectionContainer {
                     Surface(
@@ -198,6 +226,58 @@ private fun InlineBlock(
                     lineBreak = LineBreak.Paragraph,
                     hyphens = Hyphens.None,
                 ))
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeading(section: AnswerSection, style: TextStyle) {
+    // One announcement ("Model explanation, Not verified") instead of two fragments.
+    Row(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() },
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(section.title, style = style, modifier = Modifier.weight(1f, fill = false))
+        FieldAtlasStatusPill(
+            text = section.badge,
+            state = if (section.quoted) StatusTone.Positive else StatusTone.Attention,
+        )
+    }
+}
+
+@Composable
+private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        numbers.forEach { number ->
+            Surface(
+                modifier = Modifier
+                    .heightIn(min = 48.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) },
+                color = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.primary,
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("Open source", style = MaterialTheme.typography.labelLarge)
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = MaterialTheme.shapes.extraSmall,
+                    ) {
+                        Text("[$number]", Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                            style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
         }
     }

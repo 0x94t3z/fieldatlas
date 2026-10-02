@@ -64,6 +64,12 @@ class ResearchPresentationTest {
         assertEquals("", answerCardPreview(""))
     }
 
+    @Test fun leadAnswerPreviewShowsTheQuotedDefinitionWithoutLabelOrPronunciation() {
+        val answer = "## From the saved reference\n\n> Buoyancy (/ˈbɔɪənsi, ˈbuːjənsi/), or upthrust, is the force exerted by a fluid. [S1]\n\n" +
+            "## Model explanation—not verified against saved sources\n\nBuoyancy pushes up."
+        assertEquals("Buoyancy, or upthrust, is the force exerted by a fluid.", answerCardPreview(answer))
+    }
+
     @Test fun citationsNestedInMarkdownStylesRemainAvailable() {
         val model = buildAnswerPresentation(
             "**Strong [S1]** and *qualified [S2]* with [linked [S3]](offline://source)",

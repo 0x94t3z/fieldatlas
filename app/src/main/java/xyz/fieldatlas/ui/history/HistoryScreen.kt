@@ -40,7 +40,7 @@ import xyz.fieldatlas.R
 import xyz.fieldatlas.research.AnswerRecord
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
-import xyz.fieldatlas.ui.markdown.plainText
+import xyz.fieldatlas.ui.research.answerCardPreview
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
@@ -93,12 +93,9 @@ fun HistoryScreen(records: List<AnswerRecord>) {
             items(records, key = { record -> record.createdAtEpochMs }) { record ->
                 var expanded by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
                 val answerBlocks = remember(record.answer) { parseAnswerMarkdown(record.answer) }
-                val answerPreview = remember(answerBlocks) {
-                    answerBlocks.joinToString("\n") { block -> block.plainText() }
-                        .replace(Regex("\\[S\\d+]", RegexOption.IGNORE_CASE), "")
-                        .replace(Regex("[ \\t]+"), " ")
-                        .trim()
-                }
+                // Same excerpt as the Research card: section labels are not content, and an
+                // unverified model answer keeps its label even when collapsed.
+                val answerPreview = remember(record.answer) { answerCardPreview(record.answer) }
                 FieldAtlasCard(Modifier.fillMaxWidth()
                     .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
                     .clickable(onClickLabel = if (expanded) "Collapse answer" else "Expand answer") { expanded = !expanded },

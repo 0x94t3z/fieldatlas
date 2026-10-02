@@ -249,10 +249,11 @@ fun AnswerScreen(
                                         model.tokenRate?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                                         Text(model.citationCoverage, style = MaterialTheme.typography.bodySmall)
                                         if (model.hasUnmappedCitation) {
+                                            // Diagnostic, not a user error: the app already removed the
+                                            // reference, so it reads as information rather than failure.
                                             Text(
-                                                "One citation could not be matched to an installed source.",
-                                                color = MaterialTheme.colorScheme.error,
-                                                fontWeight = FontWeight.SemiBold,
+                                                "The model referred to a source it wasn't given; that reference was removed.",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
                                         }

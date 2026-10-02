@@ -25,6 +25,44 @@ sealed interface MarkdownInline {
 
 fun parseAnswerMarkdown(markdown: String): List<MarkdownBlock> = MarkdownParser(markdown).parse()
 
+/** How an answer section heading is presented: a short title plus a provenance badge. */
+data class AnswerSection(val title: String, val badge: String, val quoted: Boolean)
+
+/**
+ * Sections the app writes itself get a compact title and an explicit badge, so verbatim
+ * source text and unverified model text are told apart at a glance. The stored answer
+ * keeps its full heading text; this only changes how it is drawn.
+ */
+fun answerSection(heading: MarkdownBlock.Heading): AnswerSection? =
+    when (heading.content.plainText().trim()) {
+        xyz.fieldatlas.research.AnswerText.MODEL_LABEL -> AnswerSection("Model explanation", "Not verified", quoted = false)
+        xyz.fieldatlas.research.SourceLead.HEADING -> AnswerSection("From the saved reference", "Quoted", quoted = true)
+        "From saved sources" -> AnswerSection("From saved sources", "Quoted", quoted = true)
+        else -> null
+    }
+
+/** Splits citations (and the spaces around them) off the end of a quote for a footer row. */
+fun List<MarkdownInline>.trailingCitations(): Pair<List<MarkdownInline>, List<Int>> {
+    var end = size
+    val numbers = ArrayList<Int>()
+    while (end > 0) {
+        val inline = this[end - 1]
+        when {
+            inline is MarkdownInline.Citation -> numbers.add(0, inline.number)
+            inline is MarkdownInline.Text && inline.value.isBlank() -> Unit
+            else -> break
+        }
+        end--
+    }
+    if (numbers.isEmpty()) return this to emptyList()
+    val body = take(end).toMutableList()
+    // Drop the space that separated the sentence from its first citation.
+    (body.lastOrNull() as? MarkdownInline.Text)?.let { last ->
+        body[body.lastIndex] = MarkdownInline.Text(last.value.trimEnd())
+    }
+    return body to numbers.distinct()
+}
+
 fun MarkdownBlock.plainText(): String = when (this) {
     is MarkdownBlock.Heading -> content.plainText()
     is MarkdownBlock.Paragraph -> content.plainText()

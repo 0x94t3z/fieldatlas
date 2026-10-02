@@ -1,7 +1,7 @@
 package xyz.fieldatlas.research
 
 object AnswerText {
-    private const val MODEL_LABEL = "Model explanation—not verified against saved sources"
+    const val MODEL_LABEL = "Model explanation—not verified against saved sources"
     private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)*)[.!]?\\s*$", RegexOption.IGNORE_CASE)
     private val inlineSourceHeading = Regex("(?im)^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?From saved sources(?:\\*\\*)?\\s*:(?:\\*\\*)?\\s*(?=[\"“])")
     private val danglingAttribution = Regex("(?i)according to sources?\\s+(?:\\[(?:S)?[0-9]+]\\s*)+,\\s*")

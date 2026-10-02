@@ -63,6 +63,9 @@ fun answerCardPreview(answer: String): String {
     } ?: blocks.firstOrNull()
     val text = firstBody?.plainText()
         ?.replace(Regex("\\[S\\d+]"), "")
+        // Pronunciation guides ("Buoyancy (/ˈbɔɪənsi/)") crowd out the first words of a
+        // two-line preview; the full answer keeps them verbatim.
+        ?.replace(Regex("\\s*\\(/[^)]*\\)"), "")
         ?.replace(Regex("\\s+"), " ")
         ?.replace(Regex("\\s+([.,;:!?])"), "$1")
         ?.trim()
