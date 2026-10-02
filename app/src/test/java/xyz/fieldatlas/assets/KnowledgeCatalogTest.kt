@@ -45,6 +45,16 @@ class KnowledgeCatalogTest {
         assertTrue(pack.url.endsWith("/knowledge-travel-2026.09.1/wikivoyage-places-2026.09.1.fapack"))
     }
 
+    @Test fun veganPlacesDownloadMatchesBuiltArtifact() {
+        val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
+        val pack = catalog.packs.single { it.id == "osm-vegan-places" }
+        assertEquals("2026.10.02", pack.version)
+        assertEquals(40_088_517L, pack.bytes)
+        assertEquals("6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c", pack.sha256)
+        assertEquals("ODbL-1.0", pack.license)
+        assertTrue(pack.url.endsWith("/knowledge-vegan-places-2026.10.02/osm-vegan-places-2026.10.02.fapack"))
+    }
+
     @Test fun rejectsDuplicateAndInsecureEntries() {
         val valid = """{"id":"biology","version":"1","title":"Biology","description":"Notes","license":"CC0","bytes":100,"sha256":"${"a".repeat(64)}","url":"https://example.org/biology.fapack"}"""
         assertThrows(IllegalArgumentException::class.java) {

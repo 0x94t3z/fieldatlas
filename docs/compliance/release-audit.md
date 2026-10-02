@@ -18,8 +18,12 @@ model.
 | Tell me the best vegan restaurants in Tokyo | 6 cited fully vegan places | 15 s |
 | Best vegan restaurants near me | Location fix; no mapped place within 15 km | 6 s |
 
-Retrieval with four enabled collections took about 16 s, against 7 s with three; not yet
-optimised. The UI was refreshed on the existing palette: Material surface containers are now
+Retrieval with four enabled collections took about 16 s, against 7 s with three. Place
+questions now search only place collections (identified from their first and last rows),
+and collections are searched in parallel. On desktop, a cold Berlin lookup across the four
+local packs fell from 1,491 ms to 290 ms; warm runs were about 230 ms either way. A desktop
+SQLite test checks that the parallel search merges exactly like the sequential one. The phone
+measurement is pending. The UI was refreshed on the existing palette: Material surface containers are now
 defined (dialogs and switches had fallen back to lavender), research shows a three-step
 progress tracker, structured source excerpts read as label/value rows, and buttons use
 rounded rectangles. Verification: 437 JVM tests passed (4 skipped), Python builder tests

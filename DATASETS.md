@@ -456,7 +456,7 @@ Singapore 102, Chiang Mai 85. The `.fapack` is 40,088,517 bytes, SHA-256
 two builds from the same cache were byte-identical. The cache is 88 MB of raw Overpass JSON.
 Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
 `2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
-the main server refused further connections). This build is not published yet.
+the main server refused further connections). It is not published yet; the planned release tag is `knowledge-vegan-places-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`. The in-app download catalog already lists this URL.
 
 An earlier build of the same day fetched settlements with `out tags;`, which omits node
 coordinates, so every place fell back to its address city and Tokyo had no listings. The
