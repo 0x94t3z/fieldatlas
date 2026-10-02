@@ -1,8 +1,24 @@
 # Release audit
 
-Updated 29 September 2026. **Owner approved a public prerelease, not a stable-readiness claim.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 2 October 2026. **Owner approved v1.3.0 as a public release (not a prerelease). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
-## October 2 OpenStreetMap vegan places and UI refresh — not released
+## v1.3.0 release handoff (2 October 2026)
+
+- GitHub channel: release `v1.3.0`, not a prerelease; app 1.3.0 (15). Notes:
+  `docs/releases/current.md`. Knowledge releases published alongside it:
+  `knowledge-simplewiki-2025.12.29`, `knowledge-wikivoyage-guides-2025.12.29`,
+  `knowledge-vegan-places-2026.10.02` (files staged locally, checksums in each `SHA256SUMS`).
+- Verified on 2 October: 465 JVM tests with zero failures; the opt-in desktop ranking and
+  routing tests against real packs; Android instrumentation sources compiled, not run;
+  36 builder tests, 57 script tests and 25 website browser tests.
+- On the Infinix X6840 (Android 16, local-test key): Encyclopedia and Travel guides imported;
+  place cards, source and place previews, location explanation, History passages and
+  delete, Library collection menu and live dictation exercised by hand.
+- Not verified: the signed public-key APK (its SHA-256 is added to the notes when built),
+  public-key update over 1.2.0-rc.1, a 12 GB GrapheneOS phone, and answer quality beyond
+  the questions above. Comparison answers can still come back without citations.
+
+## October 2 OpenStreetMap vegan places and UI refresh — released in v1.3.0
 
 Vitalik's test question ("best vegan restaurants in [city I am currently in]") had little
 offline coverage: Wikivoyage lists four vegan venues in Berlin and one in Tokyo. A new

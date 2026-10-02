@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
-const apk = `${release}/download/v1.2.0-rc.1/fieldatlas.apk`;
+const apk = `${release}/download/v1.3.0/fieldatlas.apk`;
 
 test('renamed artwork bypasses old asset URLs and retains its original placement', async ({ page, request }) => {
   await page.goto('/');
@@ -262,7 +262,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('clear introduction and consistent prerelease download path', async ({ page }) => {
+test('clear introduction and consistent release download path', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('h1')).toHaveCount(1);
   await expect(page.locator('h1')).toHaveText('Knowledge, wherever you go.');
@@ -270,8 +270,8 @@ test('clear introduction and consistent prerelease download path', async ({ page
   await expect(downloads).toHaveCount(2);
   for (const link of await downloads.all()) await expect(link).toHaveAttribute('href', apk);
   await expect(page.getByRole('link', { name: 'Verify checksum' })).toHaveAttribute('href', `${apk}.sha256`);
-  await expect(page.getByRole('link', { name: 'Release notes', exact: true }).first()).toHaveAttribute('href', `${release}/tag/v1.2.0-rc.1`);
-  await expect(page.locator('#download')).toContainText('Prerelease');
+  await expect(page.getByRole('link', { name: 'Release notes', exact: true }).first()).toHaveAttribute('href', `${release}/tag/v1.3.0`);
+  await expect(page.locator('#download')).toContainText('Release · v1.3.0');
   await expect(page.locator('#download')).toContainText('Android 13+');
 });
 

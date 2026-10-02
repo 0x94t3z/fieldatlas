@@ -7,7 +7,7 @@
 <p align="center">Research, explore, and question the knowledge on your phone—even offline.</p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0-rc.1/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers-and-data-builders">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -23,7 +23,7 @@
   <a href="#tech-stack"><img src="https://img.shields.io/badge/tools-Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Tools: Python"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1">v1.2.0-rc.1 · Prerelease</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0">v1.3.0 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -52,21 +52,21 @@ More raw [multi-question device recordings](docs/evidence/physical/infinix-x6840
 
 ## Get started
 
-> **Early access:** [v1.2.0-rc.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1) is a published prerelease, not a stable-quality guarantee. Answers can be inaccurate, and collection coverage is limited. Read the [release notes and known limitations](docs/releases/current.md).
+> **Latest release:** [v1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0). Answers can be inaccurate, and collection coverage is limited. Read the [release notes and known limitations](docs/releases/current.md).
 
 On an Android 13+ ARM64 phone:
 
-1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0-rc.1/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0-rc.1/fieldatlas.apk.sha256) is available to verify the APK.
+1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk.sha256) is available to verify the APK.
 2. Open the APK on your phone and follow Android’s installation prompts.
 3. In setup, **download the default model** while online, or **import a saved model `.fapack`**. Wait for verification and installation to finish. A raw `.gguf` or checksum file is not an importable model pack.
-4. Optionally download **Biology & Longevity** or **Travel Places**, or import a saved knowledge `.fapack`. You can add more collections later in **Library**.
+4. Optionally download collections such as **Encyclopedia**, **Travel guides**, **Vegan places**, **Travel places** or **Biology & Longevity**, or import a saved knowledge `.fapack`. You can add more later in **Library**.
 5. Open **Research**, ask a question, and tap **Start research**. If the answer includes numbered citations, open them to inspect the saved passages.
 
 **Install → download or import a model → optionally add knowledge → research offline.**
 
-The APK is about 100 MB; the model and collections require additional downloads and storage. Finish setup before going offline. Model/Biology download recovery has not been independently verified for this prerelease; compatible saved-pack imports remain an alternative.
+The APK is about 100 MB; the model and collections require additional downloads and storage. Finish setup before going offline. Model/Biology download recovery has not been independently verified for this release; compatible saved-pack imports remain an alternative.
 
-**Updating a test build?** The public APK cannot update a build signed with the local-test key. Preserve local data before considering a reinstall—uninstalling removes app-private data. See the [prerelease installation notes](docs/releases/current.md#installation). For the older v1.1.10 release, use its [version-specific setup guide](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/docs/installation.md).
+**Updating a test build?** The public APK cannot update a build signed with the local-test key. Preserve local data before considering a reinstall—uninstalling removes app-private data. See the [installation notes](docs/releases/current.md#installation). For the older v1.1.10 release, use its [version-specific setup guide](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/docs/installation.md).
 
 ## Models, collections, and citations
 
@@ -76,17 +76,18 @@ The APK is about 100 MB; the model and collections require additional downloads 
 | Knowledge `.fapack` | No | Supplies local passages the app can search and cite. | A citation only supports what its passage actually says. |
 | Audio pack | No | Supports optional offline speech input in compatible builds. | It does not add factual knowledge. |
 
-The [Travel Places collection](DATASETS.md#broader-travel-places-keyword-only-builder) contains dated Wikivoyage listings for restaurants, hotels, sights, shops, and other places. It cannot check today's opening hours, menus, quality, or whether a place still exists. Biology & Longevity covers specialist material, not every subject. Neither collection is a general encyclopedia.
+The [Travel Places collection](DATASETS.md#broader-travel-places-keyword-only-builder) contains dated Wikivoyage listings for restaurants, hotels, sights, shops, and other places. It cannot check today's opening hours, menus, quality, or whether a place still exists. Biology & Longevity covers specialist material, not every subject. The Encyclopedia collection is Simple English Wikipedia (a December 2025 snapshot): short leads, not full articles.
 
 General questions may receive an **unverified model explanation** when local evidence is missing. Unsupported source-only requests return an evidence-gap message. A citation is a way to inspect a passage, not proof that an answer is correct; check the passage's wording, context, and date.
 
 ## Version status
 
-The prerelease includes [research with local documents and photos](docs/attachments.md): text extraction stays on the phone and selected excerpts can become cited sources. This is text recognition, not general image understanding; multilingual quality is not guaranteed.
+Releases since 1.2.0 include [research with local documents and photos](docs/attachments.md): text extraction stays on the phone and selected excerpts can become cited sources. This is text recognition, not general image understanding; multilingual quality is not guaranteed.
 
 | Version | Public download? | What the evidence covers |
 | --- | --- | --- |
-| [v1.2.0-rc.1 prerelease](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1) | Yes — signed APK and checksum | App 1.2.0 (14). Includes updated setup, catalog downloads, attachments, and citation handling. Known answer-quality and verification gaps remain; see the [release audit](docs/compliance/release-audit.md). |
+| [v1.3.0 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Yes — signed APK and checksum | App 1.3.0 (15). Adds Encyclopedia, Travel guides and Vegan places collections, near-me lookups, place cards, source previews and live dictation. Known answer-quality and verification gaps remain; see the [release notes](docs/releases/current.md). |
+| [v1.2.0-rc.1 previous prerelease](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1) | Yes — signed APK and checksum | App 1.2.0 (14). Includes updated setup, catalog downloads, attachments, and citation handling. Known answer-quality and verification gaps remain; see the [release audit](docs/compliance/release-audit.md). |
 | [v1.1.10 previous stable release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Older features and setup flow. Use the instructions at that tag. |
 | Current source / local builds | Build from source | May differ from published artifacts. Local-test signing keys are not compatible with public-release updates. |
 
