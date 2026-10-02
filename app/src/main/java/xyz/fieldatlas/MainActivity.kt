@@ -207,6 +207,7 @@ class MainActivity : ComponentActivity() {
                 setupError = setupState.error,
                 researchState = researchState,
                 historyRecords = historyRecords,
+                onDeleteHistory = container.answerHistory::delete,
                 inferenceState = inferenceState,
                 proof = proof,
                 navigation = appNavigation,

@@ -256,7 +256,7 @@ class ResearchViewModel(
                                 question = state.question,
                                 answer = state.answer,
                                 sources = state.sources.map { evidence -> evidence.title },
-                                evidence = if (state.attachments.isNotEmpty()) state.sources else emptyList(),
+                                evidence = historyEvidence(state.sources),
                             )
                         }
                     }
@@ -295,7 +295,7 @@ class ResearchViewModel(
                 question = state.question,
                 answer = state.answer,
                 sources = state.sources.map { evidence -> evidence.title },
-                evidence = if (state.attachments.isNotEmpty()) state.sources else emptyList(),
+                evidence = historyEvidence(state.sources),
             )
             mutableUiState.value = state.copy(
                 phase = ResearchPhase.Idle,
@@ -319,3 +319,10 @@ class ResearchViewModel(
         const val QUESTION_KEY = "research.question"
     }
 }
+
+/** Passages saved with a History answer so its sources stay readable after a collection is
+ * removed; capped so a hundred answers stay a small file. */
+internal fun historyEvidence(sources: List<xyz.fieldatlas.research.Evidence>): List<xyz.fieldatlas.research.Evidence> =
+    sources.map { if (it.text.length <= HISTORY_PASSAGE_CHARS) it else it.copy(text = it.text.take(HISTORY_PASSAGE_CHARS).trimEnd() + "…") }
+
+private const val HISTORY_PASSAGE_CHARS = 2_000

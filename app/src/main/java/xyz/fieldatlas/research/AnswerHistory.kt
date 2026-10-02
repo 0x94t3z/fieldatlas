@@ -58,6 +58,20 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
         synchronized(lock) {
             (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }
         }
+        persist()
+    }
+
+    /** Removes one answer, identified by when it was recorded. */
+    fun delete(createdAtEpochMs: Long) {
+        synchronized(lock) {
+            val remaining = mutableRecords.value.filterNot { it.createdAtEpochMs == createdAtEpochMs }
+            if (remaining.size == mutableRecords.value.size) return
+            mutableRecords.value = remaining
+        }
+        persist()
+    }
+
+    private fun persist() {
         val write = Runnable {
             runCatching {
                 synchronized(lock) {

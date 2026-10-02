@@ -83,6 +83,7 @@ fun FieldAtlasApp(
     setupError: String?,
     researchState: ResearchUiState,
     historyRecords: List<AnswerRecord> = emptyList(),
+    onDeleteHistory: (Long) -> Unit = {},
     proof: ProofModel,
     navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
     onImportPack: () -> Unit,
@@ -338,7 +339,7 @@ fun FieldAtlasApp(
                         onAskAnotherQuestion()
                         onQuestionChange(question)
                         navigation.select(PrimaryDestination.Research)
-                    })
+                    }, onDelete = onDeleteHistory)
                     PrimaryDestination.More -> MoreScreen(
                         diagnosticsText = diagnosticsText,
                         onClearDiagnostics = onClearDiagnostics,

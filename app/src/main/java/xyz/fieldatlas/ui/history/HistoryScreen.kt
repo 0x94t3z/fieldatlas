@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -56,19 +57,25 @@ import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
  * Tapping a card expands the full answer and its sources; the list itself stays scannable.
  */
 @Composable
-fun HistoryScreen(records: List<AnswerRecord>, onAskAgain: (String) -> Unit = {}) {
-    var savedSource by remember { mutableStateOf<xyz.fieldatlas.research.Evidence?>(null) }
-    savedSource?.let { evidence ->
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { savedSource = null },
-            title = { Text(evidence.title) },
-            text = {
-                Column(Modifier.verticalScroll(androidx.compose.foundation.rememberScrollState())) {
-                    Text(evidence.source, style = MaterialTheme.typography.labelLarge)
-                    Text(evidence.text, style = MaterialTheme.typography.bodyMedium)
-                }
-            },
-            confirmButton = { androidx.compose.material3.TextButton(onClick = { savedSource = null }) { Text("Close") } },
+fun HistoryScreen(
+    records: List<AnswerRecord>,
+    onAskAgain: (String) -> Unit = {},
+    onDelete: (Long) -> Unit = {},
+) {
+    // The same quick look as on an answer, over the passages saved with this record.
+    var savedSource by remember { mutableStateOf<Pair<AnswerRecord, Int>?>(null) }
+    savedSource?.let { (record, index) ->
+        val cited = remember(record.answer) {
+            Regex("\\[S(\\d+)]").findAll(record.answer).mapNotNull { it.groupValues[1].toIntOrNull() }.toSet()
+        }
+        xyz.fieldatlas.ui.research.SourcePreviewSheet(
+            sources = record.evidence,
+            index = index,
+            cited = index + 1 in cited,
+            nextIndex = (index + 1).takeIf { it < record.evidence.size },
+            onDismiss = { savedSource = null },
+            onOpenFull = null,
+            onNext = { savedSource = record to it },
         )
     }
     val formatter = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
@@ -115,9 +122,8 @@ fun HistoryScreen(records: List<AnswerRecord>, onAskAgain: (String) -> Unit = {}
             }
             dayRecords.forEach { record ->
                 item(key = record.createdAtEpochMs) {
-                    HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain) {
-                        savedSource = it
-                    }
+                    HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain,
+                        onDelete = { onDelete(record.createdAtEpochMs) }) { index -> savedSource = record to index }
                 }
             }
         }
@@ -129,9 +135,11 @@ private fun HistoryCard(
     record: AnswerRecord,
     time: String,
     onAskAgain: (String) -> Unit,
-    onOpenSource: (xyz.fieldatlas.research.Evidence) -> Unit,
+    onDelete: () -> Unit,
+    onOpenSource: (Int) -> Unit,
 ) {
     var expanded by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
     val answerBlocks = remember(record.answer) { parseAnswerMarkdown(record.answer) }
     // Same excerpt as the Research card: section labels are not content, and an
     // unverified model answer keeps its label even when collapsed.
@@ -162,7 +170,7 @@ private fun HistoryCard(
                 AnswerMarkdownRenderer(
                     blocks = answerBlocks,
                     sourceCount = record.evidence.size,
-                    onCitation = { record.evidence.getOrNull(it)?.let(onOpenSource) },
+                    onCitation = { if (it in record.evidence.indices) onOpenSource(it) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             } else {
@@ -176,27 +184,70 @@ private fun HistoryCard(
             if (expanded && record.sources.isNotEmpty()) {
                 Text(if (record.evidence.isEmpty()) "Saved source titles" else "Saved sources", style = MaterialTheme.typography.titleSmall)
                 record.sources.forEachIndexed { index, source ->
-                    if (index < record.evidence.size) {
-                        androidx.compose.material3.TextButton(onClick = { onOpenSource(record.evidence[index]) }) { Text("${index + 1}. $source") }
-                    } else Text("• $source", style = MaterialTheme.typography.bodySmall,
+                    if (index < record.evidence.size) SavedSourceRow(index + 1, source) { onOpenSource(index) }
+                    else Text("• $source", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                FilledTonalButton(shape = FieldAtlasButtonShape, 
-                    onClick = { onAskAgain(record.question) },
-                    modifier = Modifier.heightIn(min = 40.dp),
-                    contentPadding = PaddingValues(horizontal = 14.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
-                    ),
-                ) {
-                    Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Ask again", modifier = Modifier.padding(start = 6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalButton(shape = FieldAtlasButtonShape,
+                        onClick = { onAskAgain(record.question) },
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurface,
+                        ),
+                    ) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Text("Ask again", modifier = Modifier.padding(start = 6.dp))
+                    }
+                    androidx.compose.material3.OutlinedIconButton(
+                        onClick = { confirmDelete = true },
+                        modifier = Modifier.size(44.dp),
+                        shape = FieldAtlasButtonShape,
+                    ) {
+                        Icon(Icons.Outlined.Delete, contentDescription = "Delete from History",
+                            tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
         }
+    }
+    if (confirmDelete) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete this answer?") },
+            text = { Text("It is removed from History on this phone. Your collections are not changed.") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { androidx.compose.material3.TextButton(onClick = { confirmDelete = false }) { Text("Keep") } },
+        )
+    }
+}
+
+@Composable
+private fun SavedSourceRow(number: Int, title: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClickLabel = "Preview source $number", onClick = onClick)
+            .heightIn(min = 44.dp).padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        androidx.compose.material3.Surface(Modifier.size(30.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = MaterialTheme.shapes.small) {
+            androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
+                Text("$number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontFamily = FieldAtlasEditorial,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight, contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
     }
 }

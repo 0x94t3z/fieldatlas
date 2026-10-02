@@ -495,7 +495,7 @@ private fun AssetCard(
             title = { Text("Delete ${model.title}?") },
             text = {
                 Text(
-                    "Frees ${model.size}. Answers already in History keep their saved passages. " +
+                    "Frees ${model.size}. Answers in History keep the passages saved with them. " +
                         "You can download or import it again later.",
                 )
             },

@@ -94,7 +94,7 @@ internal fun SourcePreviewSheet(
     cited: Boolean,
     nextIndex: Int?,
     onDismiss: () -> Unit,
-    onOpenFull: (Int) -> Unit,
+    onOpenFull: ((Int) -> Unit)?,
     onNext: (Int) -> Unit,
 ) {
     val evidence = sources.getOrNull(index) ?: return
@@ -200,7 +200,8 @@ internal fun SourcePreviewSheet(
                     Text("Full source", Modifier.padding(start = 8.dp))
                 }
                 // A place already has its main action (maps) above; one filled button per sheet.
-                if (place != null) OutlinedButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
+                if (onOpenFull == null) Unit
+                else if (place != null) OutlinedButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
                 else Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
