@@ -81,6 +81,7 @@ fun LibraryScreen(
     onToggleResearch: (InstalledAsset, Boolean) -> Unit = { _, _ -> },
     onActivateModel: (InstalledAsset) -> Unit = {},
     onDeletePack: (InstalledAsset) -> Unit = {},
+    onAskExample: ((String) -> Unit)? = null,
     importing: Boolean = false,
     modelDownloading: Boolean = false,
     importError: String? = null,
@@ -168,6 +169,7 @@ fun LibraryScreen(
                     selectedModel = asset == activeModel,
                     onActivateModel = if (asset == activeModel) null else ({ onActivateModel(asset) }),
                     onDelete = { onDeletePack(asset) },
+                    asset = asset,
                 )
             }
             item { SectionLabel("Knowledge collections") }
@@ -203,6 +205,8 @@ fun LibraryScreen(
                                     onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
                                     onDelete = { onDeletePack(asset) },
                                     inGroup = true,
+                                    asset = asset,
+                                    onAskExample = onAskExample,
                                 )
                             }
                         }
@@ -413,8 +417,11 @@ private fun AssetCard(
     onActivateModel: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     inGroup: Boolean = false,
+    asset: InstalledAsset? = null,
+    onAskExample: ((String) -> Unit)? = null,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
+    var showAbout by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
     // A switched-off collection stays readable but visibly inactive.
     val inactive = onToggleResearch != null && !enabled
@@ -457,10 +464,24 @@ private fun AssetCard(
                         Icon(Icons.Outlined.MoreHoriz, contentDescription = "More options for ${model.title}",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                     }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
+                        shape = RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surface) {
+                        if (asset != null) DropdownMenuItem(
+                            text = { Text(if (asset.type == xyz.fieldatlas.assets.PackType.KNOWLEDGE) "About this collection" else "About this pack") },
+                            leadingIcon = { Icon(FieldAtlasIcons.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            onClick = { menuOpen = false; showAbout = true },
+                        )
+                        if (onToggleResearch != null) DropdownMenuItem(
+                            text = { Text(if (enabled) "Don't use in research" else "Use in research") },
+                            leadingIcon = { Icon(if (enabled) FieldAtlasIcons.Close else FieldAtlasIcons.Check, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary) },
+                            onClick = { menuOpen = false; onToggleResearch(!enabled) },
+                        )
+                        if (asset != null || onToggleResearch != null) HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         DropdownMenuItem(
-                            text = { Text("Delete…") },
-                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null) },
+                            text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                             onClick = { menuOpen = false; confirmDelete = true },
                         )
                     }
@@ -471,11 +492,11 @@ private fun AssetCard(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete this pack?") },
+            title = { Text("Delete ${model.title}?") },
             text = {
                 Text(
-                    "${model.title} ${model.version} will be removed from this phone. " +
-                        "You can import it again later from its .fapack file.",
+                    "Frees ${model.size}. Answers already in History keep their saved passages. " +
+                        "You can download or import it again later.",
                 )
             },
             confirmButton = {
@@ -488,6 +509,9 @@ private fun AssetCard(
             },
             dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDelete = false }) { Text("Keep") } },
         )
+    }
+    if (showAbout && asset != null) {
+        PackAboutSheet(asset, model.title, visual, onDismiss = { showAbout = false }, onAskExample = onAskExample)
     }
 }
 

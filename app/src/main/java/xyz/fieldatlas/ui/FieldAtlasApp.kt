@@ -328,6 +328,11 @@ fun FieldAtlasApp(
                         resumableKnowledgeBytes = resumableKnowledgeBytes,
                         onDownloadKnowledge = onDownloadKnowledge,
                         onCancelKnowledgeDownload = onCancelKnowledgeDownload,
+                        onAskExample = { question ->
+                            onAskAnotherQuestion()
+                            onQuestionChange(question)
+                            navigation.select(PrimaryDestination.Research)
+                        },
                     )
                     PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question ->
                         onAskAnotherQuestion()
