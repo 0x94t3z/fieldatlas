@@ -10,7 +10,8 @@
       "bytes": 351581170,
       "sha256": "1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac",
       "url": "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-travel-2026.09.1/wikivoyage-places-2026.09.1.fapack",
-      "recommended": true
+      "recommended": true,
+      "category": "Places"
     },
     {
       "id": "osm-vegan-places",
@@ -21,7 +22,8 @@
       "bytes": 40088517,
       "sha256": "6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c",
       "url": "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-vegan-places-2026.10.02/osm-vegan-places-2026.10.02.fapack",
-      "recommended": true
+      "recommended": true,
+      "category": "Places"
     },
     {
       "id": "world-knowledge-biology",
@@ -32,7 +34,8 @@
       "bytes": 1567877980,
       "sha256": "0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01",
       "url": "https://media.githubusercontent.com/media/vbuterin/fieldatlas/vector-search/releases/packs/world-knowledge-biology-1.2.0.fapack",
-      "recommended": true
+      "recommended": true,
+      "category": "Science"
     }
   ]
 }

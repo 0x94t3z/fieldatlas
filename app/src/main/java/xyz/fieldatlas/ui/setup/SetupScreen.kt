@@ -15,6 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
+import xyz.fieldatlas.ui.presentation.knowledgeCategory
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.assets.RecommendedModel
 import xyz.fieldatlas.assets.PackImportInfo
@@ -97,11 +98,17 @@ fun SetupScreen(
                 if (importing && importingPack?.type == PackType.KNOWLEDGE && availableKnowledge.none { it.id == importingPack.id }) item {
                     SetupImportCard(importingPack.title, importingName, "Importing knowledge")
                 }
-                if (availableKnowledge.isNotEmpty()) item {
-                    // One grouped card for the optional collections, as in the design.
+                availableKnowledge
+                    .groupBy { knowledgeCategory(it.id, it.category) }
+                    .toSortedMap(compareBy { it.ordinal })
+                    .forEach { (category, group) -> item(key = "setup-category:${category.name}") { Column {
+                    // One grouped card per category of optional collections, as in the design.
+                    Text(category.label, style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                         Column {
-                            availableKnowledge.forEachIndexed { index, pack ->
+                            group.sortedWith(compareByDescending<KnowledgeCatalogEntry> { it.recommended }.thenBy { it.title })
+                                .forEachIndexed { index, pack ->
                                 if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                                 if (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) {
@@ -116,7 +123,7 @@ fun SetupScreen(
                             }
                         }
                     }
-                }
+                } } }
                 item {
                     Text("Add knowledge now or later in Library.", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)

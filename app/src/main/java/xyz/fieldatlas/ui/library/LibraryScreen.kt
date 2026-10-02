@@ -45,6 +45,8 @@ import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.presentation.formatAssetBytes
+import xyz.fieldatlas.ui.presentation.KnowledgeCategory
+import xyz.fieldatlas.ui.presentation.knowledgeCategory
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
@@ -96,9 +98,15 @@ fun LibraryScreen(
     val models = packs.filter { it.type == PackType.MODEL }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
     val speech = packs.filter { it.type == PackType.AUDIO }
+    // Installed packs carry no category of their own; the catalog's label wins when it lists the pack.
+    val declared = availableKnowledge.associate { it.id to it.category }
+    val knowledgeGroups = knowledge
+        .groupBy { knowledgeCategory(it.id, declared[it.id].orEmpty()) }
+        .toSortedMap(compareBy { it.ordinal })
     val available = availableKnowledge
         .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
-        .sortedWith(compareByDescending<KnowledgeCatalogEntry> { it.recommended }.thenBy { it.title })
+        .sortedWith(compareBy<KnowledgeCatalogEntry> { knowledgeCategory(it.id, it.category).ordinal }
+            .thenByDescending { it.recommended }.thenBy { it.title })
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()
@@ -179,21 +187,24 @@ fun LibraryScreen(
                     )
                 }
             }
-            if (knowledge.isNotEmpty()) item {
-                // One grouped card, rows split by hairlines, as in the design.
-                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-                    Column {
-                        knowledge.forEachIndexed { index, asset ->
-                            if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                            AssetCard(
-                                model = asset.toAssetCardModel(),
-                                visual = packVisual(asset),
-                                enabled = asset.enabled,
-                                onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
-                                onDelete = { onDeletePack(asset) },
-                                inGroup = true,
-                            )
+            knowledgeGroups.forEach { (category, group) ->
+                item(key = "category:${category.name}") { CategoryLabel(category) }
+                item(key = "group:${category.name}") {
+                    // One grouped card per category, rows split by hairlines, as in the design.
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        Column {
+                            group.forEachIndexed { index, asset ->
+                                if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                                AssetCard(
+                                    model = asset.toAssetCardModel(),
+                                    visual = packVisual(asset),
+                                    enabled = asset.enabled,
+                                    onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
+                                    onDelete = { onDeletePack(asset) },
+                                    inGroup = true,
+                                )
+                            }
                         }
                     }
                 }
@@ -203,15 +214,21 @@ fun LibraryScreen(
                 item { SectionLabel("Available to download") }
                 items(available.size, key = { "available:${available[it].id}:${available[it].version}" }) { index ->
                     val candidate = available[index]
-                    KnowledgeDownloadCard(
-                        pack = candidate,
-                        downloading = knowledgeDownloadKey == "${candidate.id}:${candidate.version}",
-                        busy = importing || modelDownloading || knowledgeDownloadKey != null,
-                        downloadedBytes = knowledgeDownloadedBytes,
-                        resumableBytes = resumableKnowledgeBytes(candidate),
-                        onDownload = { onDownloadKnowledge(candidate) },
-                        onCancel = onCancelKnowledgeDownload,
-                    )
+                    val category = knowledgeCategory(candidate.id, candidate.category)
+                    Column {
+                        if (index == 0 || knowledgeCategory(available[index - 1].id, available[index - 1].category) != category) {
+                            CategoryLabel(category, Modifier.padding(bottom = 8.dp))
+                        }
+                        KnowledgeDownloadCard(
+                            pack = candidate,
+                            downloading = knowledgeDownloadKey == "${candidate.id}:${candidate.version}",
+                            busy = importing || modelDownloading || knowledgeDownloadKey != null,
+                            downloadedBytes = knowledgeDownloadedBytes,
+                            resumableBytes = resumableKnowledgeBytes(candidate),
+                            onDownload = { onDownloadKnowledge(candidate) },
+                            onCancel = onCancelKnowledgeDownload,
+                        )
+                    }
                 }
             }
             if (knowledgeDownloadError != null) {
@@ -489,4 +506,14 @@ private fun EmptyLibraryNote(text: String) {
     FieldAtlasCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.surfaceVariant) {
         Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+@Composable
+private fun CategoryLabel(category: KnowledgeCategory, modifier: Modifier = Modifier) {
+    Text(
+        category.label,
+        modifier = modifier,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }

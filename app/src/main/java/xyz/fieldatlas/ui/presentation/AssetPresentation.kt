@@ -56,3 +56,27 @@ internal fun formatAssetBytes(bytes: Long): String {
         else -> "$bytes B"
     }
 }
+
+/** How knowledge packs are grouped in Library and setup, in display order. */
+enum class KnowledgeCategory(val label: String) {
+    Encyclopedia("Encyclopedia"),
+    Places("Places"),
+    Travel("Travel"),
+    Language("Language"),
+    HowTo("How-to"),
+    Science("Science"),
+    Other("Other"),
+}
+
+/** A pack's category: the catalog's own label when it names one, else inferred from the pack id. */
+fun knowledgeCategory(id: String, declared: String = ""): KnowledgeCategory =
+    KnowledgeCategory.entries.firstOrNull { it.label.equals(declared.trim(), ignoreCase = true) } ?: when {
+        id.startsWith("osm-") || id == "wikivoyage-places" || id == "wikivoyage-eat" -> KnowledgeCategory.Places
+        id.startsWith("wikivoyage") -> KnowledgeCategory.Travel
+        id.startsWith("wikipedia") || id.startsWith("simplewiki") || id.startsWith("everyday-reference") ||
+            id.startsWith("general-reference") -> KnowledgeCategory.Encyclopedia
+        "wiktionary" in id || "phrasebook" in id -> KnowledgeCategory.Language
+        "wikibooks" in id || "how-to" in id -> KnowledgeCategory.HowTo
+        "biology" in id || "science" in id -> KnowledgeCategory.Science
+        else -> KnowledgeCategory.Other
+    }

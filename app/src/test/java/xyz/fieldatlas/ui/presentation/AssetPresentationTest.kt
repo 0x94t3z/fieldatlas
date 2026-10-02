@@ -31,6 +31,17 @@ class AssetPresentationTest {
         assertEquals("Answer model", card.kind)
     }
 
+    @Test fun knowledgeCategoryPrefersTheCatalogLabelThenThePackId() {
+        assertEquals(KnowledgeCategory.Places, knowledgeCategory("osm-essentials"))
+        assertEquals(KnowledgeCategory.Places, knowledgeCategory("wikivoyage-places"))
+        assertEquals(KnowledgeCategory.Travel, knowledgeCategory("wikivoyage-guides"))
+        assertEquals(KnowledgeCategory.Encyclopedia, knowledgeCategory("simplewiki"))
+        assertEquals(KnowledgeCategory.Science, knowledgeCategory("world-knowledge-biology"))
+        assertEquals(KnowledgeCategory.Other, knowledgeCategory("project-notes"))
+        assertEquals(KnowledgeCategory.HowTo, knowledgeCategory("project-notes", " how-to "))
+        assertEquals(KnowledgeCategory.Science, knowledgeCategory("world-knowledge-biology", "Unknown shelf"))
+    }
+
     private fun model() = asset("model", PackType.MODEL, null)
 
     private fun knowledge(level: CoverageLevel) = asset(

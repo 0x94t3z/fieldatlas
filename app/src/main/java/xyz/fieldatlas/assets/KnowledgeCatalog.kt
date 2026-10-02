@@ -42,4 +42,6 @@ data class KnowledgeCatalogEntry(
     val sha256: String,
     val url: String,
     val recommended: Boolean = false,
+    /** Library grouping, e.g. "Encyclopedia" or "Places"; older catalogs omit it. */
+    val category: String = "",
 )
