@@ -72,7 +72,7 @@ class WikipediaPackTest(unittest.TestCase):
     def test_build_writes_overview_and_details_and_is_reproducible(self):
         hashes = []
         for name in ("a", "b"):
-            args = argparse.Namespace(spool=self.spool, out=self.root / name, version="2025.12.29", text_budget=10_000, pack_id="wikipedia-en", title="Encyclopedia (Wikipedia)", host="en.wikipedia.org", id_prefix="wp", coverage="Lead sections of {count} articles.", example=["What is albedo?"])
+            args = argparse.Namespace(spool=self.spool, out=self.root / name, version="2025.12.29", text_budget=10_000, pack_id="wikipedia-en", title="Encyclopedia (Wikipedia)", host="en.wikipedia.org", id_prefix="wp", copyright_page="Wikipedia:Copyrights", coverage="Lead sections of {count} articles.", example=["What is albedo?"])
             self.assertEqual(0, wp.build(args))
             pack = self.root / name / "wikipedia-en" / "wikipedia-en-2025.12.29.fapack"
             hashes.append(hashlib.sha256(pack.read_bytes()).hexdigest())

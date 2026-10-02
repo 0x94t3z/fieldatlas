@@ -221,7 +221,7 @@ def build(args: argparse.Namespace) -> int:
             version=args.version,
             title=args.title,
             license_id=LICENSE,
-            source_urls=[meta["source"], f"https://{args.host}/wiki/Wikipedia:Copyrights"],
+            source_urls=[meta["source"], f"https://{args.host}/wiki/{args.copyright_page}"],
             coverage_summary=args.coverage.format(count=f"{len(chosen):,}"),
             example_questions=args.example,
             coverage_level="broad",
@@ -252,6 +252,8 @@ def main() -> int:
     b.add_argument("--title", default="Encyclopedia (Wikipedia)")
     b.add_argument("--host", default="en.wikipedia.org", help="site for revision links")
     b.add_argument("--id-prefix", default="wp", help="document id prefix")
+    b.add_argument("--copyright-page", default="Wikipedia:Copyrights",
+                   help="the site's licence page, e.g. Wikivoyage:Copyleft")
     b.add_argument("--coverage", default="Lead sections of {count} English Wikipedia articles, most linked first, "
                    "with longer excerpts for widely linked topics. A snapshot; not live.")
     b.add_argument("--example", action="append", default=None, help="example question (repeatable)")
