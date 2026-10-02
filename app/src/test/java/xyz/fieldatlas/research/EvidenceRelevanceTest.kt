@@ -124,6 +124,13 @@ class EvidenceRelevanceTest {
         ).forEach { question -> assertEquals(question, emptyList<String>(), EvidenceRelevance.comparisonTerms(question)) }
     }
 
+    @Test fun `compare questions may put an article before each subject`() {
+        assertEquals(listOf("virus", "bacterium"), EvidenceRelevance.comparisonTerms("Compare a virus and a bacterium"))
+        assertEquals(listOf("crocodile", "alligator"), EvidenceRelevance.comparisonTerms("Compare the crocodile with an alligator."))
+        assertEquals(listOf("mitosis", "meiosis"), EvidenceRelevance.comparisonTerms("Compare mitosis and meiosis"))
+        assertEquals(emptyList<String>(), EvidenceRelevance.comparisonTerms("Compare a solar panel and a wind turbine"))
+    }
+
     @Test fun `named reference topic rejects another subject with generic overlap`() {
         val question = "Explain two ways agriculture changed human societies, and one disadvantage."
         val wrong = evidence("Writing changed human societies and the way people communicate.", null)

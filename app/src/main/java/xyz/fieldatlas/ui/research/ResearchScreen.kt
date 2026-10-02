@@ -117,11 +117,13 @@ fun ResearchScreen(
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
     var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
     // Keep the first-run examples focused on the bounty's research task rather than
-    // mirroring whichever pack happens to be installed on the device.
+    // mirroring whichever pack happens to be installed on the device: a place lookup, then
+    // explanation, comparison and reasoning, each answered by a named Encyclopedia article.
     val exampleQuestions = listOf(
         ExampleQuestion("Tell me the best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Sage),
-        ExampleQuestion("Best vegan restaurants near me", FieldAtlasIcons.Place, TileTone.Gold),
-        ExampleQuestion("Tell me about Japan's history", FieldAtlasIcons.Document, TileTone.Paper),
+        ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Paper),
+        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Collection, TileTone.Gold),
+        ExampleQuestion("What caused the French Revolution?", FieldAtlasIcons.Document, TileTone.Sage),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),

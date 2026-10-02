@@ -278,7 +278,8 @@ class EvidenceMergeTest {
     @Test
     fun `search attempts every enabled keyword database despite nonmatching summaries`() = runBlocking {
         val files = listOf(File("/packs/biology/content.sqlite"), File("/packs/travel/content.sqlite"))
-        val opened = mutableListOf<File>()
+        // Packs are opened concurrently, so the order of attempts varies between runs.
+        val opened = java.util.Collections.synchronizedList(mutableListOf<File>())
         val discovery = PackDiscovery(
             coverageSummary = "Longevity studies",
             exampleQuestions = emptyList(),
@@ -292,6 +293,7 @@ class EvidenceMergeTest {
             open = { file -> opened += file; throw IllegalStateException("Unavailable test database") },
         )
         assertTrue(retriever.search("mitosis meiosis", 4).isEmpty())
-        assertEquals(files, opened)
+        assertEquals(files.toSet(), opened.toSet())
+        assertEquals(files.size, opened.size)
     }
 }

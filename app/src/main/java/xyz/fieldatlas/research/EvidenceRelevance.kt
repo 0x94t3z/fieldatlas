@@ -20,7 +20,7 @@ object EvidenceRelevance {
         if (question == null) return emptyList()
         // Only unambiguous single-word subjects. Multiword names and trailing clauses
         // retain the normal gate rather than turning a modifier into a subject.
-        val comparison = Regex("(?i)^\\s*compare\\s+([\\p{L}\\p{N}-]+)\\s+(?:and|with|versus|vs\\.?)\\s+([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$)")
+        val comparison = Regex("(?i)^\\s*compare\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s+(?:and|with|versus|vs\\.?)\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$)")
             .find(question) ?: Regex(
                 "(?i)^\\s*how\\s+(?:does|do|is|are)\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s+(?:differ|different)\\s+from\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$|,\\s+and\\s+(?:when|how|why)\\b)",
             ).find(question) ?: return emptyList()
