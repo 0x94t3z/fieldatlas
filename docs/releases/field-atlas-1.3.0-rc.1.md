@@ -23,9 +23,10 @@ acceptance criteria have been met. When it is published, this file replaces
   "What is the capital of Australia?"-style questions are no longer filtered to nothing.
 - **Near me.** Questions such as "vegan restaurants near me" use the phone's own
   location through Android's location service, without Google Play Services, and
-  list matching places by distance (within 1, 3 and 10 km). Location permission is
-  requested only when such a question is asked, and the location never leaves the
-  phone. Without a location fix, the app says how to turn it on or name a city.
+  list matching places by distance and compass direction (within 2, 5 and 15 km).
+  Before Android asks for location, a short explanation offers naming a city instead;
+  the location never leaves the phone. "Nearest pharmacy in Jakarta" searches Jakarta,
+  not the phone's position. Without a location fix, the app says how to turn it on or name a city.
 - **Faster search.** Keyword ranking reads only the search index before loading
   passages: "Tell me about local area network" went from 19.6 s to 7.0 s of
   retrieval on the same 4 GB phone. Place questions now search only place
@@ -33,9 +34,18 @@ acceptance criteria have been met. When it is published, this file replaces
 - **Source-first overviews.** "What is X?" questions show a verbatim quote from the
   saved reference while the model is still reading, labelled separately from the
   model's unverified explanation.
+- **Places as cards.** Place answers list each place as a card (vegan label, kind and
+  street, hours, the mapper's check date). Tapping a card or any citation opens a preview
+  sheet with the saved listing or passage; map listings add Copy address, Copy
+  coordinates, Call and Open in a maps app (any installed maps app; nothing is sent).
+- **Live dictation.** Spoken words appear in the question box while speaking, recognised
+  on the phone by Vosk; stopping applies the final transcript. Nothing is submitted
+  automatically.
+- **History keeps passages.** Every answer saves its passages (up to 2,000 characters
+  each), so sources stay readable after a collection is removed. Answers can be deleted.
 - **Refreshed interface.** A three-step research tracker; structured source
   excerpts as label/value rows with Previous and Next; a Library storage summary
-  and per-pack menu; History grouped by day with Ask again; dialogs, menus and
+  and per-pack menu with collection details; History grouped by day with Ask again; dialogs, menus and
   switches on the app palette; a green launch screen.
 
 ## Known limitations
