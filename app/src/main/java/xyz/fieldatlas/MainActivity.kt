@@ -88,6 +88,7 @@ class MainActivity : ComponentActivity() {
             val locationPermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions(),
             ) { researchViewModel.submit() }
+            var explainLocation by rememberSaveable { mutableStateOf(false) }
             val inferenceState by container.inference.state.collectAsStateWithLifecycle()
             val showBenchmark by benchmarkVisible
             LaunchedEffect(inferenceState) {
@@ -222,10 +223,7 @@ class MainActivity : ComponentActivity() {
                     if (xyz.fieldatlas.research.VenueLookup.isNearMe(researchState.question) &&
                         !container.deviceLocation.hasPermission()
                     ) {
-                        locationPermissionLauncher.launch(arrayOf(
-                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ))
+                        explainLocation = true
                     } else {
                         researchViewModel.submit()
                     }
@@ -317,6 +315,20 @@ class MainActivity : ComponentActivity() {
                     }
                 },
             )
+            // FieldAtlasApp applies the theme inside itself; the sheet sits outside it.
+            if (explainLocation) FieldAtlasTheme {
+                xyz.fieldatlas.ui.research.LocationRationaleSheet(
+                    onAllow = {
+                        explainLocation = false
+                        locationPermissionLauncher.launch(arrayOf(
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ))
+                    },
+                    // The question stays in the box so a city can be added to it.
+                    onNameCity = { explainLocation = false },
+                )
+            }
         }
     }
 
