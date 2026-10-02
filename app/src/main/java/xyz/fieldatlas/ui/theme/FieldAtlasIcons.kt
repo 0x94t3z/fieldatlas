@@ -35,6 +35,7 @@ object FieldAtlasIcons {
     val ResearchSparkles by icon("ResearchSparkles", "M8 7l2.3 5.7L16 15l-5.7 2.3L8 23l-2.3-5.7L0 15l5.7-2.3L8 7zM16 1l1.2 3.8L21 6l-3.8 1.2L16 11l-1.2-3.8L11 6l3.8-1.2L16 1zM20 16l.65 2.35L23 19l-2.35.65L20 22l-.65-2.35L17 19l2.35-.65L20 16z")
     val Food by icon("Food", "M6 2v8c0 1.66 1.34 3 3 3v9h2v-9c1.66 0 3-1.34 3-3V2h-2v6H11V2H9v6H8V2H6zm11 0v20h2v-9h2V7c0-2.76-1.79-5-4-5z")
     val Document by icon("Document", "M5 2h9l5 5v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 2v16h11V9h-5V4H6zm8 0v3h3l-3-3zM8 12h7v2H8v-2zm0 4h7v2H8v-2z")
+    val Compare by icon("Compare", "M6.99 11 3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z")
     val Sparkle by icon("Sparkle", "M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2zm6 13 .9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15zM4 16l.6 1.4L6 18l-1.4.6L4 20l-.6-1.4L2 18l1.4-.6L4 16z")
     val Lock by icon("Lock", "M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM10 7a2 2 0 0 1 4 0v2h-4V7zm7 13H7v-9h10v9zm-5-7a1.5 1.5 0 0 0-1 2.62V18h2v-2.38A1.5 1.5 0 0 0 12 13z")
     val Info by icon("Info", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm-1 6h2v7h-2v-7zm0-3h2v2h-2V7z")

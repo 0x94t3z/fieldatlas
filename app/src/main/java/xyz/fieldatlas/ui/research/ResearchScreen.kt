@@ -122,7 +122,7 @@ fun ResearchScreen(
     val exampleQuestions = listOf(
         ExampleQuestion("Tell me the best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Sage),
         ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Paper),
-        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Collection, TileTone.Gold),
+        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Compare, TileTone.Gold),
         ExampleQuestion("What caused the French Revolution?", FieldAtlasIcons.Document, TileTone.Sage),
     )
     LazyColumn(
