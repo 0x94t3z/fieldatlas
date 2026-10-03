@@ -44,7 +44,7 @@ class KeepAliveService : Service() {
         val notification = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(getString(R.string.app_name))
-            .setContentText("Researching an answer…")
+            .setContentText(intent?.getStringExtra(EXTRA_TEXT) ?: "Researching an answer…")
             .setContentIntent(tap)
             .setOngoing(true)
             .build()
@@ -56,11 +56,12 @@ class KeepAliveService : Service() {
         private const val CHANNEL_ID = "research"
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "xyz.fieldatlas.action.STOP_KEEPALIVE"
+        private const val EXTRA_TEXT = "xyz.fieldatlas.extra.KEEPALIVE_TEXT"
 
-        fun start(context: Context) {
+        fun start(context: Context, text: String? = null) {
             ContextCompat.startForegroundService(
                 context,
-                Intent(context, KeepAliveService::class.java),
+                Intent(context, KeepAliveService::class.java).apply { text?.let { putExtra(EXTRA_TEXT, it) } },
             )
         }
 

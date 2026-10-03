@@ -68,12 +68,22 @@ class MainActivity : ComponentActivity() {
             val historyRecords by container.answerHistory.records.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { container.answerHistory.ensureLoaded() }
             // A run in flight outranks background process trimming: the service pins priority.
-            LaunchedEffect(researchState.phase) {
-                when (researchState.phase) {
-                    ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating ->
+            // A system picker also puts the app in the background with the model loaded, and some
+            // phones (Xiaomi's memory service) kill it within seconds, losing the chosen file.
+            var pickerOpen by remember { mutableStateOf(false) }
+            LaunchedEffect(researchState.phase, pickerOpen) {
+                when {
+                    researchState.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) ->
                         KeepAliveService.start(this@MainActivity)
+                    pickerOpen -> KeepAliveService.start(this@MainActivity, "Waiting for your file…")
                     else -> KeepAliveService.stop(this@MainActivity)
                 }
+            }
+            // Start the service before the picker takes over, not on the next composition frame.
+            fun openPicker(launch: () -> Unit) {
+                pickerOpen = true
+                KeepAliveService.start(this@MainActivity, "Waiting for your file…")
+                launch()
             }
             val voiceState by researchViewModel.voiceState.collectAsStateWithLifecycle()
             val diagnosticsNotices by container.errorBus.notices.collectAsStateWithLifecycle()
@@ -113,10 +123,11 @@ class MainActivity : ComponentActivity() {
             }
             val packPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.OpenDocument(),
-            ) { uri -> if (uri != null) setupViewModel.importPack(uri) }
+            ) { uri -> pickerOpen = false; if (uri != null) setupViewModel.importPack(uri) }
             val researchFilePicker = rememberLauncherForActivityResult(
                 ActivityResultContracts.OpenDocument(),
             ) { uri ->
+                pickerOpen = false
                 if (uri != null) {
                     attach(uri, attachmentName(uri))
                 }
@@ -124,11 +135,13 @@ class MainActivity : ComponentActivity() {
             val researchPhotoPicker = rememberLauncherForActivityResult(
                 ActivityResultContracts.GetContent(),
             ) { uri ->
+                pickerOpen = false
                 if (uri != null) attach(uri, attachmentName(uri))
             }
             val researchCamera = rememberLauncherForActivityResult(
                 ActivityResultContracts.TakePicture(),
             ) { saved ->
+                pickerOpen = false
                 val file = pendingCameraPath?.let(::File)
                 pendingCameraPath = null
                 if (file != null && file.parentFile?.canonicalFile == File(cacheDir, "research-camera").canonicalFile) {
@@ -211,7 +224,7 @@ class MainActivity : ComponentActivity() {
                 inferenceState = inferenceState,
                 proof = proof,
                 navigation = appNavigation,
-                onImportPack = { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) },
+                onImportPack = { openPicker { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) } },
                 onDownloadModel = setupViewModel::downloadRecommendedModel,
                 resumableModelBytes = container.resumableModelBytes(),
                 resumableKnowledgeBytes = container::resumableKnowledgeBytes,
@@ -245,17 +258,17 @@ class MainActivity : ComponentActivity() {
                         val folder = File(cacheDir, "research-camera").apply { mkdirs() }
                         val file = File.createTempFile("capture-", ".jpg", folder)
                         pendingCameraPath = file.absolutePath
-                        researchCamera.launch(androidx.core.content.FileProvider.getUriForFile(this@MainActivity, "$packageName.research-files", file))
+                        openPicker { researchCamera.launch(androidx.core.content.FileProvider.getUriForFile(this@MainActivity, "$packageName.research-files", file)) }
                     } catch (_: Exception) {
                         pendingCameraPath?.let { File(it).delete() }
                         pendingCameraPath = null
                         attachmentNotice = "Could not open the camera. Check the attachment limit, or choose a photo instead."
                     }
                 },
-                onPhotosClick = { researchPhotoPicker.launch("image/*") },
+                onPhotosClick = { openPicker { researchPhotoPicker.launch("image/*") } },
                 onFilesClick = {
                     // Providers often label code files as application/octet-stream. Validate bytes after selection.
-                    researchFilePicker.launch(arrayOf("*/*"))
+                    openPicker { researchFilePicker.launch(arrayOf("*/*")) }
                 },
                 attachmentNotice = attachmentNotice,
                 onRemoveAttachment = researchViewModel::removeAttachment,
