@@ -4,6 +4,25 @@ Updated 3 October 2026. **Owner approved v1.2.0 and v1.2.1 as public releases (n
 
 ## v1.2.1 release handoff (3 October 2026)
 
+### Public artifact verification
+
+Built the optimized public-key APK from app source at `025c59a`: version 1.2.1 (16),
+100,684,757 bytes, SHA-256
+`6de600ef5a6c82500cefc76b61c22e360cf20292c94b7d34572cecfe31315e04`.
+The certificate matches the existing public release certificate recorded below.
+Release build and lint passed; 475 JVM tests passed and 10 opt-in tests were skipped.
+All 112 Python tests passed (57 scripts, 12 packtool, 6 benchmark, 37 builders).
+Website checks: 24/25 passed initially; the mobile-menu test timed out during scrolling
+and passed on an isolated rerun. No website behavior was changed for this rerun.
+Signature, offline packaging, ZIP alignment and all 22 ARM64 ELF alignment checks passed.
+Essentials release files match their checksum manifest, and its pack size/hash match the catalog.
+No public-key phone installation or new answer-quality evaluation was performed for publication.
+Two citation-repair edge cases from review remain (a marker before a claim under a heading,
+and a wrapped list item); the release notes disclose them. Passing build checks does not
+establish that reasoning or citation accuracy is fixed.
+
+### Earlier candidate checks
+
 - GitHub channel: release `v1.2.1`, not a prerelease; app 1.2.1 (16). Notes:
   `docs/releases/current.md`. Knowledge release published alongside it:
   `knowledge-essentials-2026.10.02` (files staged locally, checksums in `SHA256SUMS`).

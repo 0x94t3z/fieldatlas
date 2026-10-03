@@ -13,11 +13,9 @@ met; the known limitations below still apply. Notes for the previous version:
   was lost. The app now keeps its foreground notification while a picker is open, as it already
   did during research.
 - **Answers about attached files are checked against the files.**
-  - A citation that points at the wrong file is moved only when every specific detail in its
-    sentence, or in the line that introduces its list, (a labelled revision, a part code, a
-    number) comes from one other file and none from the cited one. A claim that mixes files, such
-    as a wrong value under the right revision, keeps its citation, so a false claim is not made to
-    look supported.
+  - Citation checks use revision labels, part codes and numbers to correct some swapped file
+    references. They preserve list headings in common layouts, but do not verify that a source
+    supports the whole claim; see the remaining citation limitations below.
   - A question for a password, phone number or email address that the files don't contain
     ("the Wi-Fi password at Cedar Lodge") gets a one-line reply saying so, instead of unrelated
     details from the file. Other kinds of item are left to the model.
@@ -37,6 +35,9 @@ met; the known limitations below still apply. Notes for the previous version:
 
 ## Known limitations
 
+- Citation repair still mishandles some list layouts: a citation before its claim under a
+  revision heading, or a bullet continued on another line, can be moved to the wrong file.
+  Check the opened source against the claim, not just the displayed citation number.
 - The checks are deliberately narrow. A wrong value under the right label (for example the
   wrong service interval for Revision B) is not corrected, only left on its original citation.
 - Over five runs of each test question, the 2B model applied a maintenance-hold exception in
@@ -61,7 +62,7 @@ separately; queries run locally after setup. Downloads and catalog refresh requi
 
 App version: 1.2.1 (16). GitHub channel: release (`v1.2.1`).
 
-APK SHA-256: added when the signed APK is built.
+APK SHA-256: `6de600ef5a6c82500cefc76b61c22e360cf20292c94b7d34572cecfe31315e04`.
 
 ## Release assets
 
