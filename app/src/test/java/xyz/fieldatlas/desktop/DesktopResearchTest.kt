@@ -76,12 +76,14 @@ class DesktopResearchTest {
             }))
         }
         var failures = 0
-        for (item in config.getValue("questions").jsonArray) {
+        val seeds = config["seeds"]?.jsonArray?.map { it.jsonPrimitive.int } ?: listOf(17)
+        val temperature = config["temperature"]?.jsonPrimitive?.double ?: 0.3
+        for (seed in seeds) for (item in config.getValue("questions").jsonArray) {
             val question = item.jsonPrimitive.content
             // Read the existing private constant instead of keeping another prompt copy.
             val system = AppContainer::class.java.getDeclaredField("SYSTEM_PROMPT").apply { isAccessible = true }.get(null) as String
             val gateway = DesktopGateway(config.getValue("endpoint").jsonPrimitive.content, system,
-                config["answerPolicy"]?.jsonPrimitive?.content ?: "app")
+                config["answerPolicy"]?.jsonPrimitive?.content ?: "app", seed, temperature)
             val multi = MultiKnowledgeRetriever(
                 { databases },
                 packEmbeddings = { databases.map { if (it == vectorDatabase) embedding else null } },
@@ -127,6 +129,7 @@ class DesktopResearchTest {
             if (metrics == null || error != null) failures++
             rows += buildJsonObject {
                 put("question", question)
+                put("seed", seed)
                 put("attachments", JsonArray(attachments.map { JsonPrimitive(it.displayName) }))
                 put("status", if (metrics != null && error == null) "COMPLETED_UNSCORED" else "ERROR")
                 error?.let { put("error", it) }

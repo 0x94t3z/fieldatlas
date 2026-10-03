@@ -21,4 +21,7 @@ subprocess.run(args, check=True)
 EOF
 ```
 
-A completed run is not a score; read each answer against the files.
+Add `"--seeds", "1", "2", "3", "4", "5"` to the arguments to run each question several times, as
+the answers vary between runs on a phone. `score.py report.json` then checks each answer against
+rules taken from the files. Its keyword rules catch the reported mistakes; a pass is a screen,
+not proof of a correct answer, so read the answers too.

@@ -283,7 +283,14 @@ class ResearchOrchestrator(
             // Evidence-only answers: move a citation to the source its details actually come from
             // and correct a 12-hour time that disagrees with the 24-hour time the source states.
             val checked = if (packed.mixedAnswer) output.toString()
-                else AnswerChecks.repairTimes(AnswerChecks.repairCitations(output.toString(), attributionEvidence), attributionEvidence)
+                else AnswerChecks.addTwelveHour(
+                    AnswerChecks.repairTimes(AnswerChecks.repairCitations(output.toString(), attributionEvidence), attributionEvidence),
+                    question,
+                )
+                .let { text ->
+                    if (packed.mixedAnswer || generationFailed) text
+                    else AnswerChecks.exceptionNote(question, attributionEvidence)?.let { "$text\n\n_${it}_" } ?: text
+                }
             if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
             val modelText = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else checked
             val attributed = if (generationFailed) {

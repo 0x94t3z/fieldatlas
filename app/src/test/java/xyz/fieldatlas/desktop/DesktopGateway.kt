@@ -37,7 +37,14 @@ Answer using only the numbered evidence below. Address each requested part separ
 }
 
 /** Test-only inference adapter; never packaged into the Android app. */
-internal class DesktopGateway(endpoint: String, private val system: String, private val answerPolicy: String = "app") : InferenceGateway {
+internal class DesktopGateway(
+    endpoint: String,
+    private val system: String,
+    private val answerPolicy: String = "app",
+    // The app passes no seed for answers, so each phone run differs; repeat runs over several seeds.
+    private val defaultSeed: Int = 17,
+    private val temperature: Double = 0.3,
+) : InferenceGateway {
     private val base = URI(endpoint).also {
         require(it.scheme == "http" && it.host in setOf("127.0.0.1", "localhost", "[::1]") &&
             it.userInfo == null && it.query == null && it.fragment == null && it.path in listOf("", "/")) {
@@ -55,8 +62,8 @@ internal class DesktopGateway(endpoint: String, private val system: String, priv
                 add(buildJsonObject { put("role", "user"); put("content", diagnosticAnswerPrompt(prompt, answerPolicy)) })
             })
             put("max_tokens", maxTokens)
-            put("seed", if (seed >= 0) seed else 17)
-            put("temperature", 0.3)
+            put("seed", if (seed >= 0) seed else defaultSeed)
+            put("temperature", temperature)
             put("top_k", 40); put("top_p", 0.95); put("min_p", 0.05)
             put("repeat_penalty", 1.10); put("repeat_last_n", 128)
             put("stream", false)

@@ -56,6 +56,8 @@ def main():
     parser.add_argument("--database", action="append", type=Path, help="Extracted content.sqlite; repeat for multiple packs")
     parser.add_argument("--model-only", action="store_true", help="Evaluate without collections")
     parser.add_argument("--manual-selection", type=Path, help="Diagnostic JSON mapping exact questions to ordered chunk IDs; bypasses retrieval only")
+    parser.add_argument("--seeds", type=int, nargs="+", help="Answer seeds; each question runs once per seed (default 17)")
+    parser.add_argument("--temperature", type=float, help="Answer temperature (default 0.3, as on the phone)")
     parser.add_argument("--attachments", type=Path, help="JSON mapping exact questions to lists of text files to attach, as on the phone")
     parser.add_argument("--vector-fixture", type=Path, help="Diagnostic frozen query embeddings and matching vector-pack manifest; does not bypass retrieval")
     parser.add_argument("--answer-policy", choices=["app", "source-only", "source-partial", "evidence-first", "bounded-summary"], default="app", help="Diagnostic policy override; source-only uses the existing app strict policy")
@@ -108,6 +110,10 @@ def main():
             parser.error("Vector fixture database does not match an enabled database")
         config["vectorFixture"] = fixture
         config["provenance"]["vectorFixtureSha256"] = hashlib.sha256(args.vector_fixture.read_bytes()).hexdigest()
+    if args.seeds:
+        config["seeds"] = args.seeds
+    if args.temperature is not None:
+        config["temperature"] = args.temperature
     if args.attachments:
         mapping = json.loads(args.attachments.read_text())
         if not isinstance(mapping, dict) or not set(mapping) <= set(args.question):

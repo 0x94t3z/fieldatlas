@@ -92,6 +92,28 @@ class AnswerChecksTest {
         assertEquals(unstated, AnswerChecks.repairTimes(unstated, listOf(travel)))
     }
 
+    @Test fun aRequestedTwelveHourTimeIsAddedByTheApp() {
+        val ask = "When does the last shuttle leave? Give the time in 12-hour format too."
+        assertEquals("The last shuttle leaves at 21:30 (9:30 PM) [S1]; reception closes at 22:30 (10:30 PM).",
+            AnswerChecks.addTwelveHour("The last shuttle leaves at 21:30 [S1]; reception closes at 22:30.", ask))
+        val done = "It leaves at 21:30 (9:30 PM), or 9:30 PM (21:30)."
+        assertEquals(done, AnswerChecks.addTwelveHour(done, ask))
+        assertEquals("It leaves at 21:30.", AnswerChecks.addTwelveHour("It leaves at 21:30.", "When does the last shuttle leave?"))
+        val quote = "The plan says \"last departure 21:30\"."
+        assertEquals(quote, AnswerChecks.addTwelveHour(quote, ask))
+        assertEquals("Open 09:00 (9:00 AM) to 00:15 (12:15 AM).",
+            AnswerChecks.addTwelveHour("Open 09:00 to 00:15.", "What are the hours in AM/PM?"))
+    }
+
+    @Test fun aDecisionAboutFilesWithExceptionsGetsANote() {
+        val garden = file("Garden_Irrigation_Policy.txt", "Rule 1. Water a plot when its soil moisture is below 30%. " +
+            "Rule 2. Exception: never water a plot that has an active maintenance hold.")
+        assertEquals("Check each decision against the file's exceptions (\"exception\" and \"hold\"): this model can miss one.",
+            AnswerChecks.exceptionNote("Should East and West be watered today? Give a decision and reason for each.", listOf(garden)))
+        assertNull(AnswerChecks.exceptionNote("What does Rule 1 say?", listOf(garden)))
+        assertNull(AnswerChecks.exceptionNote("Which filter should I use for serial 2345?", listOf(revisionA, revisionB)))
+    }
+
     @Test fun anItemTheFilesNeverMentionIsReportedMissing() {
         assertEquals("the Wi-Fi password at Cedar Lodge",
             AnswerChecks.missingItem("What is the Wi-Fi password at Cedar Lodge? Use my saved travel notes.", listOf(travel)))

@@ -23,9 +23,12 @@ met; the known limitations below still apply. Notes for the previous version:
     details from the file. Other kinds of item are left to the model.
   - A 12-hour time written beside the 24-hour time a file states is corrected when the two
     disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
-  - The instructions now put exceptions and holds ahead of general rules, keep numbers and
-    negations as written, and ask for converted times beside the original. A source number
-    written as plain text ("from S1") becomes a tappable citation.
+  - When a question asks for 12-hour time, the app adds it beside every 24-hour time.
+  - A decision question about files with exceptions or holds ends with a note to check each
+    decision against them, because the model can miss one.
+  - Answers are shorter and stick to what was asked, which removed most unsupported side notes.
+    Decisions about several items are taken one item at a time. A source number written as
+    plain text ("from S1") becomes a tappable citation.
 - **Essentials.** A new downloadable collection (1.78 GB) of 2,981,021 pharmacies, hospitals,
   clinics, police stations, embassies, ATMs, currency exchanges, train, bus and ferry stations,
   toilets, drinking water, supermarkets and hostels that OpenStreetMap maps worldwide, for
@@ -36,6 +39,9 @@ met; the known limitations below still apply. Notes for the previous version:
 
 - The checks are deliberately narrow. A wrong value under the right label (for example the
   wrong service interval for Revision B) is not corrected, only left on its original citation.
+- Over five runs of each test question, the 2B model applied a maintenance-hold exception in
+  three of five; the note above flags such answers, but does not correct them. A 4B model did
+  better but is about ten times slower.
 - The 2B model can still make reasoning slips the checks cannot catch: an opening sentence that
   contradicts its own conclusion, wrong time arithmetic, or one revision's values attributed to
   another. On the Redmi 13C, the final build answered all four reported attachment questions

@@ -106,6 +106,42 @@ object AnswerChecks {
         }
     }
 
+    private val asksTwelveHour = Regex("(?i)\\b12[- ]?hour|\\bam\\s*/\\s*pm\\b|\\ba\\.m\\.|\\bp\\.m\\.")
+    private val twentyFour = Regex("(?<![\\d:.])([01]?\\d|2[0-3]):([0-5]\\d)(?![\\d:])(?!\\s*(?:[ap]\\.?\\s?m\\b|\\())", RegexOption.IGNORE_CASE)
+
+    /**
+     * When the question asks for 12-hour times, writes the conversion beside every 24-hour time
+     * the answer gives ("21:30" becomes "21:30 (9:30 PM)"), so the conversion never depends on
+     * the model. Times already followed by a 12-hour form or inside one are left alone.
+     */
+    fun addTwelveHour(text: String, question: String): String {
+        if (!asksTwelveHour.containsMatchIn(question)) return text
+        // A quotation must stay exactly as the file has it.
+        val quoted = Regex("[\"“][^\"”\\n]*[\"”]").findAll(text).map { it.range }.toList()
+        return twentyFour.replace(text) { m ->
+            val before = text.substring(maxOf(0, m.range.first - 6), m.range.first)
+            if (quoted.any { m.range.first in it } || Regex("(?i)[ap]\\.?\\s?m\\.?\\s*\\($").containsMatchIn(before)) m.value
+            else "${m.value} (${to12(m.groupValues[1].toInt(), m.groupValues[2].toInt())})"
+        }
+    }
+
+    private val decisionQuestion = Regex("(?i)\\b(should|decisions?|decide|allowed|permitted|eligible|qualif\\w*|can i|may i|must i|do i need)\\b")
+    private val exceptionWording = Regex("(?i)\\b(exceptions?|except|unless|holds?|overrides?|overridden|exempt\\w*|waivers?)\\b")
+
+    /**
+     * The 2B model sometimes decides by a general rule and misses the exception that overrides
+     * it (watering a plot under a maintenance hold). For a decision question about files that
+     * contain exception wording, returns a note pointing the reader back to those exceptions.
+     * It does not judge the answer; it only says where the answer is most likely to slip.
+     */
+    fun exceptionNote(question: String, sources: List<Evidence>): String? {
+        if (sources.isEmpty() || !decisionQuestion.containsMatchIn(question)) return null
+        val words = sources.flatMap { exceptionWording.findAll(it.text).map { m -> m.value.lowercase() }.toList() }.distinct()
+        if (words.isEmpty()) return null
+        val named = words.take(2).joinToString(" and ") { "\"$it\"" }
+        return "Check each decision against the file's exceptions ($named): this model can miss one."
+    }
+
     private val askedItem = Regex("(?i)\\b(?:what(?:'s|\\s+is|\\s+are|\\s+was)|tell me|give me|send me|share)\\s+(?:the|my|our|their|its|a|an)\\s+([\\p{L}][\\p{L}\\p{N}-]*(?:\\s+[\\p{L}][\\p{L}\\p{N}-]*){0,2}?)(?:\\s+(at|for|of|in|on|to|from)\\s+([^?.!\\n]{2,60}))?\\s*(?:[?.!]|$)")
 
     /**

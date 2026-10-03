@@ -30,9 +30,15 @@ Changes, each with tests in `AnswerChecksTest`:
   them absent, so they are left to the model.
 - **Time pairs.** A 12-hour time written beside a 24-hour time the source states is corrected
   when they disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
-- **Instructions.** Exceptions and holds override general rules; keep numbers and negations as
-  written; write converted times beside the original; do not substitute other details for a
-  missing item. The attachment instructions stayed within their previous size.
+- **Requested 12-hour times.** When the question asks for 12-hour time, the app writes the
+  conversion beside every 24-hour time in the answer, outside quotations.
+- **Exception note.** A decision question about files that contain exception wording
+  ("exception", "hold", "unless", "override") ends with a note to check each decision against
+  those exceptions. It does not judge the answer.
+- **Instructions.** Answer only what was asked, under 80 words, with no notes or reminders;
+  decide several items one by one (rule, then any exception or hold, then the decision); keep
+  numbers and negations as written; do not substitute other details for a missing item. The
+  attachment instructions are 1,392 bytes against 1,356 in 1.2.0, within the 4,096-token limit.
 
 Desktop runs on the seven fixture questions (Qwen3.5 2B, seed 17, author review):
 
@@ -63,6 +69,27 @@ that attributed Revision A's values to "this revision" and called 2345 "greater 
 phone samples at the same temperature as the desktop with a random seed, so answers vary
 between runs. The same session found that opening the file picker let MIUI kill the app; see
 the [release audit](compliance/release-audit.md#v121-release-handoff-3-october-2026).
+
+### Repeated runs
+
+One run per question hides how much a 2B model varies, so the desktop runner now takes
+`--seeds` and `--temperature`, and `fixtures/attachment-reasoning/score.py` scores each answer
+with rules taken from the files (keyword checks for the reported mistakes, not proof of a
+correct answer). Seven questions, five seeds each, temperature 0.3 as on the phone:
+
+| Build | Passing answers | Garden (exception) | Shuttle (12-hour) |
+| --- | --- | --- | --- |
+| 1.2.0 instructions with the checks above, before the changes below | 27/35 | 2/5 | 1/5 |
+| Shorter answers, per-item decisions, app-side 12-hour times | 32/35 | 3/5 | 5/5 |
+| Same at temperature 0.1 | 33/35 | 3/5 | 5/5 |
+| "Quote the exception first" instruction (not kept) | 30/35 | 1/5 | 4/5 |
+| Qwen3.5 4B instead of 2B, same instructions | 34/35 | 4/5 | 5/5 |
+
+The shipped build is the second row. The garden question is a model limit: the 2B model applied
+the maintenance hold in three of five runs whatever the instructions. Qwen3.5 4B did better but
+took a median 42 s per answer against 4 s for 2B on the same Mac, so it would take minutes on
+the test phones; the bounty sets no parameter limit, but it does require usable speed. 1.2.1
+keeps 2B and adds the exception note above.
 
 Rerun on the final 1.2.1 build (versionCode 16), same phone and settings, one run each: the
 Helios answer cited Revision B for K-9, M5 and 600 h, with one wrong aside that Revision A "also
