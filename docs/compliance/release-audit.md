@@ -16,7 +16,8 @@ Updated 3 October 2026. **Owner approved v1.2.0 and v1.2.1 as public releases (n
   collections): the app survived 40 s in the file picker and the file attached; Berlin vegan
   lookup 8 s with six cited places; the Wi-Fi password question answered "doesn't mention" in
   0 s; the shuttle time converted correctly with one wrong aside; garden and Helios answers had
-  the right conclusion and citations but a contradictory sentence. Desktop before/after results
+  the right conclusion and citations but a contradictory sentence. Rerun on the final 1.2.1 build:
+  all four correct in one run each, with one wrong aside in the Helios answer. Desktop before/after results
   are in [evaluation](../evaluation.md#attachment-reasoning-feedback-october-3).
 - Not verified: the public-key APK on a phone, the in-place update from 1.2.0, a 12 GB
   GrapheneOS phone, and Essentials near-me lookups on a phone with a location fix.

@@ -53,6 +53,13 @@ phone samples at the same temperature as the desktop with a random seed, so answ
 between runs. The same session found that opening the file picker let MIUI kill the app; see
 the [release audit](compliance/release-audit.md#v121-release-handoff-3-october-2026).
 
+Rerun on the final 1.2.1 build (versionCode 16), same phone and settings, one run each: the
+Helios answer cited Revision B for K-9, M5 and 600 h, with one wrong aside that Revision A "also
+specifies these components"; the garden answer said not to water East because of the hold and to
+water West, with no contradictory sentence; the shuttle answer gave 21:30 (9:30 PM) [1] with no
+wrong aside; the Wi-Fi question gave the gap reply in 0 s. One run per question does not show the
+earlier slips are gone, only that they did not recur here.
+
 ## v1.2.0 24-question suite (October 2)
 
 The [24 questions below](#24-question-release-suite) were run once, unchanged, through the

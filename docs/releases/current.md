@@ -31,10 +31,11 @@ met; the known limitations below still apply. Notes for the previous version:
 
 ## Known limitations
 
-- The 2B model still makes reasoning slips the checks cannot catch: an opening sentence that
+- The 2B model can still make reasoning slips the checks cannot catch: an opening sentence that
   contradicts its own conclusion, wrong time arithmetic, or one revision's values attributed to
-  another. On the Redmi 13C the reported attachment questions gave one clear pass, one pass with
-  a wrong aside, and two answers with the right conclusion but a contradictory sentence; see
+  another. On the Redmi 13C, the final build answered all four reported attachment questions
+  correctly in one run each, with one wrong aside; an earlier build on the same phone showed
+  contradictory sentences in two of them. See
   [evaluation](../evaluation.md#attachment-reasoning-feedback-october-3).
 - Hostels are in Essentials but are found only by ordinary keyword search, not by near-me lookups.
 - Tags in the place collections record what mappers entered and when; they cannot confirm
