@@ -2,13 +2,13 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.2.0**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.2.1**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
 | If you want to… | Use this | Important difference |
 | --- | --- | --- |
-| Use the current release | [Signed v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |
+| Use the current release | [Signed v1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |
 | Use the previous stable release | [v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/docs/installation.md), including Qwen3 1.7B. |
 | Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
@@ -16,16 +16,16 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 
 ## Current release: phone setup
 
-1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0). Verify the checksum if possible.
+1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.2.0/MODELS.md). A raw `.gguf` is not a model pack.
+3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.2.1/MODELS.md). A raw `.gguf` is not a model pack.
 4. Optionally download or import a knowledge collection. A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
 After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release.
 
-## What setup offers in 1.2.0
+## What setup offers in 1.2.1
 
 The app needs **only an installed model** to answer questions. Setup shows the model and the optional collections together, grouped by category, straight from the download catalog:
 
@@ -35,9 +35,9 @@ The app needs **only an installed model** to answer questions. Setup shows the m
 | Travel guides | about 375 MB | Wikivoyage destination guides, December 2025 |
 | Travel places | about 352 MB | Dated Wikivoyage listings: sights, food, hotels, shops |
 | Vegan places | about 40 MB | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
+| Essentials | about 1.78 GB | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
 | Biology & longevity | about 1.57 GB | Biology and aging research passages |
 
-After **Refresh collections**, Library also offers **Essentials** (about 1.78 GB): pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels OpenStreetMap maps worldwide, for questions such as "nearest pharmacy in Jakarta" or "ATM near me".
 
 Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download has not been validated on a physical phone, so keep the pack-import option in mind.
 

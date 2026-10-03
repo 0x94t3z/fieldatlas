@@ -43,6 +43,16 @@ Desktop runs on the seven fixture questions (Qwen3.5 2B, seed 17, author review)
 Remaining weaknesses are the model's: time arithmetic and occasional false side remarks. The
 checks above do not detect those. These are fixed development questions, not a held-out score.
 
+On a Redmi 13C (Android 13, 6 GB, airplane mode, six collections) the same build answered the
+Wi-Fi password question with the one-line gap reply in 0 s; the shuttle question with 21:30
+(9:30 PM) [1] but a wrong aside ("one hour after" 21:10); the garden question with the right
+per-plot reasons and an opening sentence saying both plots should be watered; and the Helios
+question with the right final values and citations (K-9, M5, 600 h [2]) after a muddled middle
+that attributed Revision A's values to "this revision" and called 2345 "greater than 2999". The
+phone samples at the same temperature as the desktop with a random seed, so answers vary
+between runs. The same session found that opening the file picker let MIUI kill the app; see
+the [release audit](compliance/release-audit.md#v121-release-handoff-3-october-2026).
+
 ## v1.2.0 24-question suite (October 2)
 
 The [24 questions below](#24-question-release-suite) were run once, unchanged, through the

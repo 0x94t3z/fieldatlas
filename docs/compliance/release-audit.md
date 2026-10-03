@@ -1,6 +1,25 @@
 # Release audit
 
-Updated 3 October 2026. **Owner approved v1.2.0 as a public release (not a prerelease). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 3 October 2026. **Owner approved v1.2.0 and v1.2.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.2.1 release handoff (3 October 2026)
+
+- GitHub channel: release `v1.2.1`, not a prerelease; app 1.2.1 (16). Notes:
+  `docs/releases/current.md`. Knowledge release published alongside it:
+  `knowledge-essentials-2026.10.02` (files staged locally, checksums in `SHA256SUMS`).
+- Fixes: the file, photo, camera and pack pickers keep the foreground service running, after
+  MIUI's memory service killed the app within about 20 s of opening the picker on a Redmi 13C
+  (Android 13, 6 GB) on every attempt; attachment answers are checked against the files
+  (citation repair, missing-item replies, time-pair correction, prose source IDs linked).
+- Verified on 3 October: 481 JVM tests with zero failures (471 passed, 10 opt-in skipped);
+  Python and website suites below. On the Redmi 13C (local-test key, airplane mode, six
+  collections): the app survived 40 s in the file picker and the file attached; Berlin vegan
+  lookup 8 s with six cited places; the Wi-Fi password question answered "doesn't mention" in
+  0 s; the shuttle time converted correctly with one wrong aside; garden and Helios answers had
+  the right conclusion and citations but a contradictory sentence. Desktop before/after results
+  are in [evaluation](../evaluation.md#attachment-reasoning-feedback-october-3).
+- Not verified: the public-key APK on a phone, the in-place update from 1.2.0, a 12 GB
+  GrapheneOS phone, and Essentials near-me lookups on a phone with a location fix.
 
 ## v1.2.0 release handoff (2 October 2026)
 
@@ -22,7 +41,7 @@ in-place update and a 12 GB GrapheneOS device remain untested in this handoff.
 ### Earlier handoff checks
 
 - GitHub channel: release `v1.2.0`, not a prerelease; app 1.2.0 (15). Notes:
-  `docs/releases/current.md`. Knowledge releases published alongside it:
+  `docs/releases/field-atlas-1.2.0.md`. Knowledge releases published alongside it:
   `knowledge-simplewiki-2025.12.29`, `knowledge-wikivoyage-guides-2025.12.29`,
   `knowledge-vegan-places-2026.10.02` (files staged locally, checksums in each `SHA256SUMS`).
 - Verified on 3 October, including the search fixes in the next item: 473 JVM tests with
@@ -503,7 +522,7 @@ test public-key upgrade compatibility and publish the exact reviewed artifact.
 
 ## v1.2.0-rc.1 prerelease handoff (historical)
 
-- GitHub channel: `v1.2.0-rc.1`; app 1.2.0 (14). See `docs/releases/current.md`.
+- GitHub channel: `v1.2.0-rc.1`; app 1.2.0 (14). See `docs/releases/field-atlas-1.2.0-rc.1.md`.
 - Public-key APK SHA-256: `6d688a3632aa77650996aec3ae7ff4e887b7d772d9f2995ea0d8e67b71837b7f`.
 - Infinix update installed in place with the existing local-test key; APK SHA-256
   `d52c63d24ebcf87fbf394da552b54738408f44b713eb9becb87885ed97b347c6`.

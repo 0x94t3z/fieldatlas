@@ -107,7 +107,7 @@ Their icons are hosted locally, sourced from `https://bankr.bot/favicon.svg` and
 `https://www.base.org/favicon.ico`. These marks identify external platforms,
 not partnerships. Preserve the independent-launch and fee disclosure when editing.
 
-The website currently targets **v1.2.0**, marked **Release**.
+The website currently targets **v1.2.1**, marked **Release**.
 It must not use `/releases/latest`, which may point to an older stable release.
 When updating, change these together in `index.html` and the browser assertions:
 
