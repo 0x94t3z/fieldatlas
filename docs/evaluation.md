@@ -19,8 +19,10 @@ Changes, each with tests in `AnswerChecksTest`:
 - **Citation repair.** For evidence-only answers, a citation moves to another source only when
   every distinctive detail in its sentence (labelled identifiers such as "Revision B", part codes
   such as K-9, numbers) is unique to that one source and none is unique to the cited source. A
-  colon does not split the sentence, so "Revision B service interval: 400 hours [S2]" keeps its
-  citation rather than moving to Revision A, which would make the wrong 400 look sourced.
+  colon does not split the sentence, and a list item carries the line that introduces its list,
+  so "Revision B service interval: 400 hours [S2]", and the same value as a bullet under
+  "Revision B:", keep their citation rather than moving to Revision A, which would make the
+  wrong 400 look sourced.
 - **Missing items.** A question for a password, phone number or email address that no file
   contains gets a one-sentence reply that the files don't mention it, without running the model.
   Presence is judged by the item's own noun: "free Wi-Fi in the lobby" does not count as a Wi-Fi
@@ -45,10 +47,11 @@ Desktop runs on the seven fixture questions (Qwen3.5 2B, seed 17, author review)
 | Train 90 minutes late | fail: Station Hotel "can assist with transportation" | partial: right conclusion, wrong arrival time (22:00 for 22:40) |
 
 Remaining weaknesses are the model's: time arithmetic and occasional false side remarks. The
-checks above do not detect those. An independent review of these checks found three cases that
-the first version got wrong: a wrong value under the right revision label was moved to the other
-revision, a stated address was reported missing, and a mention of Wi-Fi without a password
-skipped the gap reply. Each is now a regression test, and the checks were narrowed as described.
+checks above do not detect those. An independent review of these checks found four cases that
+earlier versions got wrong: a wrong value under the right revision label was moved to the other
+revision, both on one line and as a bullet under a "Revision B:" line; a stated address was
+reported missing; and a mention of Wi-Fi without a password skipped the gap reply. Each is now a
+regression test, and the checks were narrowed as described.
 The reported failures are improved, not resolved: the model can still state wrong values. These are fixed development questions, not a held-out score.
 
 On a Redmi 13C (Android 13, 6 GB, airplane mode, six collections) the same build answered the

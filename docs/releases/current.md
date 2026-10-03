@@ -14,9 +14,10 @@ met; the known limitations below still apply. Notes for the previous version:
   did during research.
 - **Answers about attached files are checked against the files.**
   - A citation that points at the wrong file is moved only when every specific detail in its
-    sentence (a labelled revision, a part code, a number) comes from one other file and none
-    from the cited one. A sentence that mixes files, such as a wrong value under the right
-    revision, keeps its citation, so a false claim is not made to look supported.
+    sentence, or in the line that introduces its list, (a labelled revision, a part code, a
+    number) comes from one other file and none from the cited one. A claim that mixes files, such
+    as a wrong value under the right revision, keeps its citation, so a false claim is not made to
+    look supported.
   - A question for a password, phone number or email address that the files don't contain
     ("the Wi-Fi password at Cedar Lodge") gets a one-line reply saying so, instead of unrelated
     details from the file. Other kinds of item are left to the model.

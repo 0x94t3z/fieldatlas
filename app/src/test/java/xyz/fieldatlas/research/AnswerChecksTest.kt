@@ -54,6 +54,14 @@ class AnswerChecksTest {
         // Revision B's interval is 600; moving this to Revision A would make the false 400 look sourced.
         val wrong = "Revision B service interval: 400 hours [S2]."
         assertEquals(wrong, AnswerChecks.repairCitations(wrong, listOf(revisionA, revisionB)))
+        for (list in listOf(
+            "Revision B:\n- Service interval: 400 hours [S2].",
+            "**Revision B**\n\n- Filter: K-9 [S2]\n- Service interval: 400 hours [S2].",
+            "### Revision B\n1. Service interval: 400 hours [S2]",
+        )) assertEquals(list, AnswerChecks.repairCitations(list, listOf(revisionA, revisionB)))
+        // A list whose lead names no revision still gets its citation checked.
+        assertEquals("Details:\n- Filter K-9 and connector M5 [S2].",
+            AnswerChecks.repairCitations("Details:\n- Filter K-9 and connector M5 [S1].", listOf(revisionA, revisionB)))
         val label = "Revision B: filter K-7 [S2]."
         assertEquals(label, AnswerChecks.repairCitations(label, listOf(revisionA, revisionB)))
     }

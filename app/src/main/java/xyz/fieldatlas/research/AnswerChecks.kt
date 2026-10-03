@@ -29,7 +29,8 @@ object AnswerChecks {
     /**
      * Moves a citation to the one other source that a claim's distinctive details point to.
      * The claim is its whole sentence up to the marker; a colon does not end it, so "Revision B
-     * service interval: 400 hours" keeps both "Revision B" and "400". It changes nothing when the
+     * service interval: 400 hours" keeps both "Revision B" and "400", and a list item also carries
+     * the line that introduces its list. It changes nothing when the
      * sentence names details unique to the cited source, details from several sources, or none
      * unique to any source. A wrong claim therefore stays on the source it cited instead of being
      * moved to one that makes it look supported.
@@ -41,11 +42,21 @@ object AnswerChecks {
         sourceTokens.forEachIndexed { index, set -> set.forEach { owners.getOrPut(it) { mutableSetOf() } += index } }
         val unique = owners.filterValues { it.size == 1 }.mapValues { it.value.single() }
         fun pointedBy(text: String) = tokens(text.replace(citation, " ")).mapNotNull { unique[it] }.toSet()
+        val bullet = Regex("^\\s*(?:[-*•+]|\\d+[.)])\\s")
+        // A list item belongs to the line that introduces its list ("Revision B:" above
+        // "- Service interval: 400 hours"), across blank lines and the list's other items.
+        fun listLead(end: Int): String {
+            val lines = raw.substring(0, end).split("\n")
+            if (!bullet.containsMatchIn(lines.last())) return ""
+            var i = lines.size - 2
+            while (i >= 0 && (lines[i].isBlank() || bullet.containsMatchIn(lines[i]))) i--
+            return if (i >= 0) lines[i] else ""
+        }
         val out = StringBuilder()
         var cursor = 0
         for (match in citation.findAll(raw)) {
             val sentenceStart = Regex("(?<=[.!?])\\s+|\\n").findAll(raw.substring(0, match.range.first)).lastOrNull()?.range?.last?.plus(1) ?: 0
-            val claim = raw.substring(sentenceStart, match.range.first)
+            val claim = listLead(match.range.first) + "\n" + raw.substring(sentenceStart, match.range.first)
             val cited = match.groupValues[1].toInt() - 1
             // "According to [1], revision A uses K-7": with nothing distinctive before the marker,
             // the claim is the rest of its sentence, up to the next marker.
