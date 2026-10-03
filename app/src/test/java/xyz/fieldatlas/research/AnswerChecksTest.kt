@@ -36,6 +36,20 @@ class AnswerChecksTest {
         assertEquals(plain, AnswerChecks.repairCitations(plain, listOf(revisionA, revisionB)))
     }
 
+    @Test fun aCitationBeforeItsClaimIsCheckedAgainstTheRestOfTheSentence() {
+        val answer = "Your unit is Revision B. According to [2], this revision requires filter K-7 and connector M2."
+        assertEquals("Your unit is Revision B. According to [S1], this revision requires filter K-7 and connector M2.",
+            AnswerChecks.repairCitations(answer, listOf(revisionA, revisionB)))
+        val right = "According to [S2], use filter K-9 and connector M5."
+        assertEquals(right, AnswerChecks.repairCitations(right, listOf(revisionA, revisionB)))
+    }
+
+    @Test fun aSourceIdWrittenAsProseBecomesACitation() {
+        assertEquals("Do not apply the parameters from [S1] as they are invalid.",
+            AnswerText.finalized("Do not apply the parameters from S1 as they are invalid.", 2))
+        assertEquals("The Tesla Model S1 is not a source.", AnswerText.finalized("The Tesla Model S1 is not a source.", 2))
+    }
+
     private val travel = file("Orion_Travel_Plan.txt",
         "Late shuttle from Pine Station to Cedar Lodge: last departure 21:30. Cedar Lodge reception closes at 22:30. " +
             "There is no after-hours entry or key box. Station Hotel has a front desk open 24 hours. It does not arrange transport.")

@@ -45,7 +45,13 @@ object AnswerChecks {
             val boundary = Regex("(?<=[.!?:])\\s+|\\n").findAll(raw.substring(0, match.range.first)).lastOrNull()?.range?.last?.plus(1) ?: 0
             val claim = raw.substring(maxOf(claimStart, boundary), match.range.first)
             val cited = match.groupValues[1].toInt() - 1
-            val pointed = tokens(claim).mapNotNull { unique[it] }.toSet()
+            // "According to [1], revision A uses K-7": with nothing distinctive before the marker,
+            // the claim is the rest of its sentence, up to the next marker.
+            val after = raw.substring(match.range.last + 1).let { rest ->
+                val end = Regex("[.!?](?=\\s|$)|\\n|\\[(?:S)?\\d+]", RegexOption.IGNORE_CASE).find(rest)?.range?.first ?: rest.length
+                rest.substring(0, end)
+            }
+            val pointed = tokens(claim).mapNotNull { unique[it] }.toSet().ifEmpty { tokens(after).mapNotNull { unique[it] }.toSet() }
             val target = if (cited in sources.indices && pointed.size == 1 && cited !in pointed) pointed.single() else cited
             out.append(raw, cursor, match.range.first)
             out.append(if (target == cited) match.value else "[S${target + 1}]")

@@ -75,11 +75,14 @@ object AnswerText {
     )
     private val sourceNumber = Regex("S([+-]?\\p{Nd}+)", RegexOption.IGNORE_CASE)
 
+    // A source ID written as prose ("the parameters from S1") after a referring word.
+    private val bareReference = Regex("(?<=\\b(?:from|in|see|per|by|to|source)\\s)S(\\p{Nd}{1,2})\\b(?![-.]\\p{Nd})")
+
     // Only explicit S-number references qualify; ordinary parentheses remain prose.
     // Normalize before attribution checks, never instead of them.
     private fun normalizeReferences(text: String): String = parenthesizedReferences.replace(text) { group ->
         sourceNumber.findAll(group.value).joinToString("") { "[S${it.groupValues[1]}]" }
-    }
+    }.replace(bareReference) { "[S${it.groupValues[1]}]" }
 
     data class CitationAudit(val citedSourceIds: Set<String>, val hasUnmappedCitation: Boolean)
 
