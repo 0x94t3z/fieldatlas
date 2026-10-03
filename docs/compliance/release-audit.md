@@ -11,13 +11,17 @@ Updated 3 October 2026. **Owner approved v1.2.0 and v1.2.1 as public releases (n
   MIUI's memory service killed the app within about 20 s of opening the picker on a Redmi 13C
   (Android 13, 6 GB) on every attempt; attachment answers are checked against the files
   (citation repair, missing-item replies, time-pair correction, prose source IDs linked).
-- Verified on 3 October: 481 JVM tests with zero failures (471 passed, 10 opt-in skipped);
+- Verified on 3 October: 485 JVM tests with zero failures (475 passed, 10 opt-in skipped);
   Python and website suites below. On the Redmi 13C (local-test key, airplane mode, six
   collections): the app survived 40 s in the file picker and the file attached; Berlin vegan
   lookup 8 s with six cited places; the Wi-Fi password question answered "doesn't mention" in
   0 s; the shuttle time converted correctly with one wrong aside; garden and Helios answers had
   the right conclusion and citations but a contradictory sentence. Rerun on the final 1.2.1 build:
-  all four correct in one run each, with one wrong aside in the Helios answer. Desktop before/after results
+  all four correct in one run each, with one wrong aside in the Helios answer. After the repeated-run
+  changes (shorter answers, app-side 12-hour times, exception note), the garden answer was correct in 57 s
+  with the note shown, and the shuttle answer read "21:30 (9:30 PM) [1]" in 44 s. Over five seeds on
+  desktop the fixture questions scored 32/35, with the maintenance-hold exception right in three of five.
+  Desktop before/after results
   are in [evaluation](../evaluation.md#attachment-reasoning-feedback-october-3).
 - Not verified: the public-key APK on a phone, the in-place update from 1.2.0, a 12 GB
   GrapheneOS phone, and Essentials near-me lookups on a phone with a location fix.
