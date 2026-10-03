@@ -13,11 +13,13 @@ met; the known limitations below still apply. Notes for the previous version:
   was lost. The app now keeps its foreground notification while a picker is open, as it already
   did during research.
 - **Answers about attached files are checked against the files.**
-  - A citation that points at the wrong file is moved to the one file the claim's specific
-    details (a labelled revision, a part code, a number) come from. A correct citation is never
-    moved.
-  - A question for something the files never mention ("the Wi-Fi password at Cedar Lodge") gets
-    a one-line reply saying so, instead of unrelated details from the file.
+  - A citation that points at the wrong file is moved only when every specific detail in its
+    sentence (a labelled revision, a part code, a number) comes from one other file and none
+    from the cited one. A sentence that mixes files, such as a wrong value under the right
+    revision, keeps its citation, so a false claim is not made to look supported.
+  - A question for a password, phone number or email address that the files don't contain
+    ("the Wi-Fi password at Cedar Lodge") gets a one-line reply saying so, instead of unrelated
+    details from the file. Other kinds of item are left to the model.
   - A 12-hour time written beside the 24-hour time a file states is corrected when the two
     disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
   - The instructions now put exceptions and holds ahead of general rules, keep numbers and
@@ -31,6 +33,8 @@ met; the known limitations below still apply. Notes for the previous version:
 
 ## Known limitations
 
+- The checks are deliberately narrow. A wrong value under the right label (for example the
+  wrong service interval for Revision B) is not corrected, only left on its original citation.
 - The 2B model can still make reasoning slips the checks cannot catch: an opening sentence that
   contradicts its own conclusion, wrong time arithmetic, or one revision's values attributed to
   another. On the Redmi 13C, the final build answered all four reported attachment questions

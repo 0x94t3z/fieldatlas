@@ -17,11 +17,15 @@ order, so the model, not the numbering, attached the wrong source.
 Changes, each with tests in `AnswerChecksTest`:
 
 - **Citation repair.** For evidence-only answers, a citation moves to another source only when
-  the claim's distinctive details (labelled identifiers such as "Revision B", part codes such as
-  K-9, numbers) are unique to that one source and none are unique to the cited source.
-- **Missing items.** A question for one specific item ("the Wi-Fi password at Cedar Lodge")
-  whose words, and common alternatives, appear in none of the files gets a one-sentence reply
-  that the files don't mention it, without running the model.
+  every distinctive detail in its sentence (labelled identifiers such as "Revision B", part codes
+  such as K-9, numbers) is unique to that one source and none is unique to the cited source. A
+  colon does not split the sentence, so "Revision B service interval: 400 hours [S2]" keeps its
+  citation rather than moving to Revision A, which would make the wrong 400 look sourced.
+- **Missing items.** A question for a password, phone number or email address that no file
+  contains gets a one-sentence reply that the files don't mention it, without running the model.
+  Presence is judged by the item's own noun: "free Wi-Fi in the lobby" does not count as a Wi-Fi
+  password. Addresses, prices, times and other items can be written in too many ways to call
+  them absent, so they are left to the model.
 - **Time pairs.** A 12-hour time written beside a 24-hour time the source states is corrected
   when they disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
 - **Instructions.** Exceptions and holds override general rules; keep numbers and negations as
@@ -41,7 +45,11 @@ Desktop runs on the seven fixture questions (Qwen3.5 2B, seed 17, author review)
 | Train 90 minutes late | fail: Station Hotel "can assist with transportation" | partial: right conclusion, wrong arrival time (22:00 for 22:40) |
 
 Remaining weaknesses are the model's: time arithmetic and occasional false side remarks. The
-checks above do not detect those. These are fixed development questions, not a held-out score.
+checks above do not detect those. An independent review of these checks found three cases that
+the first version got wrong: a wrong value under the right revision label was moved to the other
+revision, a stated address was reported missing, and a mention of Wi-Fi without a password
+skipped the gap reply. Each is now a regression test, and the checks were narrowed as described.
+The reported failures are improved, not resolved: the model can still state wrong values. These are fixed development questions, not a held-out score.
 
 On a Redmi 13C (Android 13, 6 GB, airplane mode, six collections) the same build answered the
 Wi-Fi password question with the one-line gap reply in 0 s; the shuttle question with 21:30

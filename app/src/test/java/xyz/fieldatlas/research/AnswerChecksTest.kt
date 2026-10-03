@@ -50,6 +50,25 @@ class AnswerChecksTest {
         assertEquals("The Tesla Model S1 is not a source.", AnswerText.finalized("The Tesla Model S1 is not a source.", 2))
     }
 
+    @Test fun aWrongValueStaysOnTheSourceItCitedInsteadOfLookingSupported() {
+        // Revision B's interval is 600; moving this to Revision A would make the false 400 look sourced.
+        val wrong = "Revision B service interval: 400 hours [S2]."
+        assertEquals(wrong, AnswerChecks.repairCitations(wrong, listOf(revisionA, revisionB)))
+        val label = "Revision B: filter K-7 [S2]."
+        assertEquals(label, AnswerChecks.repairCitations(label, listOf(revisionA, revisionB)))
+    }
+
+    @Test fun onlyPasswordsPhoneNumbersAndEmailsAreReportedMissing() {
+        val address = file("notes.txt", "Cedar Lodge is at 12 Oak Lane. Reception closes at 22:30.")
+        assertNull(AnswerChecks.missingItem("What is the address of Cedar Lodge?", listOf(address)))
+        val wifiOnly = file("notes.txt", "Cedar Lodge has free Wi-Fi in the lobby.")
+        assertEquals("the Wi-Fi password at Cedar Lodge",
+            AnswerChecks.missingItem("What is the Wi-Fi password at Cedar Lodge?", listOf(wifiOnly)))
+        val phone = file("notes.txt", "Cedar Lodge front desk: +49 30 1234 567.")
+        assertNull(AnswerChecks.missingItem("What is the phone number for Cedar Lodge?", listOf(phone)))
+        assertEquals("the email address", AnswerChecks.missingItem("What is the email address?", listOf(address)))
+    }
+
     private val travel = file("Orion_Travel_Plan.txt",
         "Late shuttle from Pine Station to Cedar Lodge: last departure 21:30. Cedar Lodge reception closes at 22:30. " +
             "There is no after-hours entry or key box. Station Hotel has a front desk open 24 hours. It does not arrange transport.")

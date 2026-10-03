@@ -28,9 +28,11 @@ object AnswerChecks {
 
     /**
      * Moves a citation to the one other source that a claim's distinctive details point to.
-     * A claim is the text between the previous sentence boundary (or citation) and its marker.
-     * It changes nothing when the claim names details unique to the cited source, details from
-     * several sources, or none unique to any source, so a supported citation is never moved.
+     * The claim is its whole sentence up to the marker; a colon does not end it, so "Revision B
+     * service interval: 400 hours" keeps both "Revision B" and "400". It changes nothing when the
+     * sentence names details unique to the cited source, details from several sources, or none
+     * unique to any source. A wrong claim therefore stays on the source it cited instead of being
+     * moved to one that makes it look supported.
      */
     fun repairCitations(raw: String, sources: List<Evidence>): String {
         if (sources.size < 2) return raw
@@ -38,12 +40,12 @@ object AnswerChecks {
         val owners = mutableMapOf<String, MutableSet<Int>>()
         sourceTokens.forEachIndexed { index, set -> set.forEach { owners.getOrPut(it) { mutableSetOf() } += index } }
         val unique = owners.filterValues { it.size == 1 }.mapValues { it.value.single() }
+        fun pointedBy(text: String) = tokens(text.replace(citation, " ")).mapNotNull { unique[it] }.toSet()
         val out = StringBuilder()
-        var claimStart = 0
         var cursor = 0
         for (match in citation.findAll(raw)) {
-            val boundary = Regex("(?<=[.!?:])\\s+|\\n").findAll(raw.substring(0, match.range.first)).lastOrNull()?.range?.last?.plus(1) ?: 0
-            val claim = raw.substring(maxOf(claimStart, boundary), match.range.first)
+            val sentenceStart = Regex("(?<=[.!?])\\s+|\\n").findAll(raw.substring(0, match.range.first)).lastOrNull()?.range?.last?.plus(1) ?: 0
+            val claim = raw.substring(sentenceStart, match.range.first)
             val cited = match.groupValues[1].toInt() - 1
             // "According to [1], revision A uses K-7": with nothing distinctive before the marker,
             // the claim is the rest of its sentence, up to the next marker.
@@ -51,12 +53,11 @@ object AnswerChecks {
                 val end = Regex("[.!?](?=\\s|$)|\\n|\\[(?:S)?\\d+]", RegexOption.IGNORE_CASE).find(rest)?.range?.first ?: rest.length
                 rest.substring(0, end)
             }
-            val pointed = tokens(claim).mapNotNull { unique[it] }.toSet().ifEmpty { tokens(after).mapNotNull { unique[it] }.toSet() }
+            val pointed = pointedBy(claim).ifEmpty { pointedBy(after) }
             val target = if (cited in sources.indices && pointed.size == 1 && cited !in pointed) pointed.single() else cited
             out.append(raw, cursor, match.range.first)
             out.append(if (target == cited) match.value else "[S${target + 1}]")
             cursor = match.range.last + 1
-            claimStart = cursor
         }
         out.append(raw, cursor, raw.length)
         return out.toString()
@@ -94,41 +95,36 @@ object AnswerChecks {
         }
     }
 
-    private val askedItem = Regex("(?i)\\b(?:what(?:'s|\\s+is|\\s+are|\\s+was)|tell me|give me|send me|share)\\s+(?:the|my|our|their|its|a|an)\\s+([\\p{L}][\\p{L}\\p{N}-]*(?:\\s+[\\p{L}][\\p{L}\\p{N}-]*){0,2}?)\\s+(?:at|for|of|in|on|to|from)\\s+([^?.!\\n]{2,60})")
-    private val alternatives = mapOf(
-        "password" to listOf("passcode", "pass code", "pin", "login", "network key"),
-        "wifi" to listOf("wireless", "network", "wlan"),
-        "phone" to listOf("telephone", "tel", "call", "mobile", "+"),
-        "number" to listOf("tel", "+"),
-        "email" to listOf("e-mail", "mail", "@"),
-        "address" to listOf("street", "road", "avenue", "located"),
-        "cost" to listOf("price", "fee", "fare", "charge", "€", "$", "£", "rate"),
-        "price" to listOf("cost", "fee", "fare", "charge", "€", "$", "£", "rate"),
-        "fee" to listOf("price", "cost", "fare", "charge", "€", "$", "£", "free"),
-        "time" to listOf(":", "am", "pm", "o'clock", "noon", "midnight"),
-        "code" to listOf("pin", "passcode"),
-    )
+    private val askedItem = Regex("(?i)\\b(?:what(?:'s|\\s+is|\\s+are|\\s+was)|tell me|give me|send me|share)\\s+(?:the|my|our|their|its|a|an)\\s+([\\p{L}][\\p{L}\\p{N}-]*(?:\\s+[\\p{L}][\\p{L}\\p{N}-]*){0,2}?)(?:\\s+(at|for|of|in|on|to|from)\\s+([^?.!\\n]{2,60}))?\\s*(?:[?.!]|$)")
 
     /**
-     * When a question asks for one specific item ("the Wi-Fi password at Cedar Lodge") and no
-     * supplied passage mentions any of its words or common alternatives, returns the asked-for
-     * phrase so the app can say the files do not contain it instead of offering other details.
+     * Items a passage either states recognisably or does not have: a credential, a phone number,
+     * an email address. Anything else (an address, a price, a time) can be written in too many
+     * ways to conclude it is absent, so the check stays silent and the model answers. Each kind
+     * is decided by the item's own noun: "free Wi-Fi in the lobby" is not a Wi-Fi password.
+     */
+    private enum class Kind(val asked: Regex, val present: Regex) {
+        PASSWORD(Regex("(?i)\\b(pass ?words?|passcodes?|pass codes?|pins?|codes?)\\b"),
+            Regex("(?i)\\b(pass ?words?|passcodes?|pass codes?|pin|network key|wpa2?|codes?)\\b")),
+        PHONE(Regex("(?i)\\b(phone|telephone)(?: numbers?)?\\b|\\bnumbers? to call\\b"),
+            Regex("(?i)\\b(phone|tel|telephone|call|mobile|whatsapp)\\b|\\+?\\d[\\d ().-]{6,}\\d")),
+        EMAIL(Regex("(?i)\\b(e-?mails?)(?: address(?:es)?)?\\b"),
+            Regex("(?i)\\be-?mail\\b|[\\w.+-]+@[\\w-]+\\.[\\w.]+")),
+    }
+
+    /**
+     * When a question asks for a password, phone number or email address and no supplied passage
+     * contains one, returns the asked-for phrase ("the Wi-Fi password at Cedar Lodge") so the app
+     * can say the files don't mention it instead of offering other details.
      */
     fun missingItem(question: String, sources: List<Evidence>): String? {
         if (sources.isEmpty()) return null
         val match = askedItem.find(question) ?: return null
         val item = match.groupValues[1].trim()
-        fun norm(value: String) = value.lowercase().replace(Regex("(?<=\\p{L})-(?=\\p{L})"), "")
-        val corpus = norm(sources.joinToString("\n") { it.title + "\n" + it.text })
-        val words = norm(item).split(Regex("\\s+")).filter { it.length >= 2 }
-        if (words.isEmpty()) return null
-        fun mentioned(word: String): Boolean {
-            val stem = word.removeSuffix("es").removeSuffix("s").takeIf { it.length >= 3 } ?: word
-            return Regex("\\b${Regex.escape(stem)}").containsMatchIn(corpus) ||
-                alternatives[word].orEmpty().any { alt -> if (alt.first().isLetter()) Regex("\\b${Regex.escape(alt)}\\b").containsMatchIn(corpus) else corpus.contains(alt) }
-        }
-        if (words.any(::mentioned)) return null
-        val place = match.groupValues[2].trim().trimEnd(',', ';')
-        return "the $item ${match.value.substringAfter(match.groupValues[1]).trim().substringBefore(place).trim()} $place".replace(Regex("\\s+"), " ")
+        val kind = Kind.entries.firstOrNull { it.asked.containsMatchIn(item) } ?: return null
+        val corpus = sources.joinToString("\n") { it.title + "\n" + it.text }
+        if (kind.present.containsMatchIn(corpus)) return null
+        val place = match.groupValues[3].trim().trimEnd(',', ';')
+        return if (place.isEmpty()) "the $item" else "the $item ${match.groupValues[2].lowercase()} $place"
     }
 }
