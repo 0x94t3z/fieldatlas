@@ -1,0 +1,8 @@
+Garden irrigation policy
+
+Rule 1. Water a plot when its soil moisture is below 30%.
+Rule 2. Exception: never water a plot that has an active maintenance hold, whatever its moisture. Watering resumes only after the hold is cleared.
+
+Today's readings
+East plot: soil moisture 25%. Active maintenance hold: broken valve, repair booked for Friday.
+West plot: soil moisture 29%. No maintenance hold.

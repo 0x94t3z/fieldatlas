@@ -209,6 +209,32 @@ class ResearchOrchestrator(
             } else {
                 PromptBuilder.build(question, evidence, contextTokenBudget)
             }
+            // A question for one specific item the passages never mention ("the Wi-Fi password at
+            // Cedar Lodge") gets a plain gap reply; a small model otherwise answers with whatever
+            // other details the files hold. Attachments are checked in full, not just the packed excerpts.
+            if (!packed.mixedAnswer && packed.sources.isNotEmpty()) {
+                val searched = if (attachments.isNotEmpty()) {
+                    attachments.map { file -> Evidence("attachment:${file.id}", file.id, file.displayName, "Attached file", file.pages.joinToString("\n") { it.text }, 0.0) }
+                } else packed.sources.map { it.evidence }
+                AnswerChecks.missingItem(question, searched)?.let { item ->
+                    emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
+                    val where = when {
+                        attachments.size == 1 -> "The attached file doesn't"
+                        attachments.size > 1 -> "The attached files don't"
+                        else -> "Your saved sources don't"
+                    }
+                    emit(ResearchEvent.Token("$where mention $item, so I can't give it."))
+                    emit(ResearchEvent.Complete(ResearchMetrics(
+                        retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                        timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                        totalMillis = elapsed(startedAt, monotonicMillis()),
+                        generatedTokenCount = 0,
+                        citedSourceIds = emptySet(),
+                        hasUnmappedCitation = false,
+                    )))
+                    return@flow
+                }
+            }
             if (packed.sources.isEmpty()) {
                 if (evidence.isNotEmpty()) {
                     emit(ResearchEvent.InsufficientEvidence("The context budget could not fit any evidence"))
@@ -254,7 +280,12 @@ class ResearchOrchestrator(
                 generationFailed = true
             }
             val finishedAt = monotonicMillis()
-            val modelText = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else output.toString()
+            // Evidence-only answers: move a citation to the source its details actually come from
+            // and correct a 12-hour time that disagrees with the 24-hour time the source states.
+            val checked = if (packed.mixedAnswer) output.toString()
+                else AnswerChecks.repairTimes(AnswerChecks.repairCitations(output.toString(), attributionEvidence), attributionEvidence)
+            if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
+            val modelText = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else checked
             val attributed = if (generationFailed) {
                 compose(modelText) + "\n\n_The model explanation could not be completed._"
             } else compose(modelText)

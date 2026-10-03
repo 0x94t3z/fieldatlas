@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--database", action="append", type=Path, help="Extracted content.sqlite; repeat for multiple packs")
     parser.add_argument("--model-only", action="store_true", help="Evaluate without collections")
     parser.add_argument("--manual-selection", type=Path, help="Diagnostic JSON mapping exact questions to ordered chunk IDs; bypasses retrieval only")
+    parser.add_argument("--attachments", type=Path, help="JSON mapping exact questions to lists of text files to attach, as on the phone")
     parser.add_argument("--vector-fixture", type=Path, help="Diagnostic frozen query embeddings and matching vector-pack manifest; does not bypass retrieval")
     parser.add_argument("--answer-policy", choices=["app", "source-only", "source-partial", "evidence-first", "bounded-summary"], default="app", help="Diagnostic policy override; source-only uses the existing app strict policy")
     parser.add_argument("--server", type=Path, default=ROOT / "build/desktop-llama/bin/llama-server")
@@ -107,6 +108,14 @@ def main():
             parser.error("Vector fixture database does not match an enabled database")
         config["vectorFixture"] = fixture
         config["provenance"]["vectorFixtureSha256"] = hashlib.sha256(args.vector_fixture.read_bytes()).hexdigest()
+    if args.attachments:
+        mapping = json.loads(args.attachments.read_text())
+        if not isinstance(mapping, dict) or not set(mapping) <= set(args.question):
+            parser.error("Attachment mapping keys must be questions passed with --question")
+        base = args.attachments.resolve().parent
+        config["attachments"] = {question: [{"name": Path(name).name, "text": (base / name).read_text(encoding="utf-8")}
+                                            for name in files] for question, files in mapping.items()}
+        config["provenance"]["attachmentsSha256"] = hashlib.sha256(args.attachments.read_bytes()).hexdigest()
     if manual is not None:
         config["manualEvidence"] = manual
         config["provenance"]["manualSelectionSha256"] = hashlib.sha256(args.manual_selection.read_bytes()).hexdigest()

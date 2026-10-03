@@ -1,5 +1,48 @@
 # Evaluation
 
+## Attachment reasoning feedback (October 3)
+
+An offline 8 GB emulator test of the 1.2.0 release reported seven attachment questions: three
+passes, two mixed and two failures. File attachments, source previews and history worked
+without crashes. The failures: a citation pointed at Revision A while the claim came from
+Revision B; a maintenance hold was described as watered "despite the hold"; a question for a
+Wi-Fi password got unrelated travel details; and 21:30 was converted to 10:30 PM.
+
+Synthetic files reproducing these cases are in
+[`fixtures/attachment-reasoning/`](../fixtures/attachment-reasoning/README.md), and the desktop
+runner now accepts text attachments (`--attachments`) through the app's own attachment path.
+The swapped citation reproduced on the release code; the app numbers attachments in display
+order, so the model, not the numbering, attached the wrong source.
+
+Changes, each with tests in `AnswerChecksTest`:
+
+- **Citation repair.** For evidence-only answers, a citation moves to another source only when
+  the claim's distinctive details (labelled identifiers such as "Revision B", part codes such as
+  K-9, numbers) are unique to that one source and none are unique to the cited source.
+- **Missing items.** A question for one specific item ("the Wi-Fi password at Cedar Lodge")
+  whose words, and common alternatives, appear in none of the files gets a one-sentence reply
+  that the files don't mention it, without running the model.
+- **Time pairs.** A 12-hour time written beside a 24-hour time the source states is corrected
+  when they disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
+- **Instructions.** Exceptions and holds override general rules; keep numbers and negations as
+  written; write converted times beside the original; do not substitute other details for a
+  missing item. The attachment instructions stayed within their previous size.
+
+Desktop runs on the seven fixture questions (Qwen3.5 2B, seed 17, author review):
+
+| Question | Release code | With these changes |
+| --- | --- | --- |
+| Helios serial 2345, compare revisions | fail: Revision B cited as [S1] | pass: cited [S2], K-9, M5, 600 h |
+| Helios serial 1500 | pass | pass |
+| Garden irrigation, East and West | pass | partial: right decisions, one false remark that both plots have holds |
+| Wi-Fi password at Cedar Lodge | partial: long non-answer asking for more files | pass: one-line gap reply |
+| Phone number for Cedar Lodge | pass | pass: one-line gap reply |
+| Last shuttle, 12-hour format | pass | pass: 21:30 (9:30 PM) |
+| Train 90 minutes late | fail: Station Hotel "can assist with transportation" | partial: right conclusion, wrong arrival time (22:00 for 22:40) |
+
+Remaining weaknesses are the model's: time arithmetic and occasional false side remarks. The
+checks above do not detect those. These are fixed development questions, not a held-out score.
+
 ## v1.2.0 24-question suite (October 2)
 
 The [24 questions below](#24-question-release-suite) were run once, unchanged, through the

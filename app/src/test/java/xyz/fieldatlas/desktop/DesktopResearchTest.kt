@@ -11,6 +11,9 @@ import xyz.fieldatlas.research.*
 import xyz.fieldatlas.ui.AppContainer
 import xyz.fieldatlas.assets.PackEmbedding
 import xyz.fieldatlas.assets.PackDiscovery
+import xyz.fieldatlas.attachments.AttachmentKind
+import xyz.fieldatlas.attachments.AttachmentPage
+import xyz.fieldatlas.attachments.ExtractedAttachment
 
 /** Opt-in real-model run, NOT an accuracy assertion or part of the normal unit suite. */
 class DesktopResearchTest {
@@ -19,6 +22,8 @@ class DesktopResearchTest {
         assumeTrue("Desktop evaluation is opt-in", !configPath.isNullOrBlank())
         val config = Json.parseToJsonElement(File(configPath!!).readText()).jsonObject
         val manualEvidence = config["manualEvidence"]?.jsonObject
+        // Text files attached to a question go through the same attachment path as the phone (no OCR).
+        val attachedFiles = config["attachments"]?.jsonObject
         val output = File(config.getValue("output").jsonPrimitive.content)
         val databases = config.getValue("databases").jsonArray.map { File(it.jsonPrimitive.content).canonicalFile }
         // Fail explicitly rather than allowing the production retriever's recovery path to
@@ -63,7 +68,8 @@ class DesktopResearchTest {
                     add(if (vectorFixture == null) "Keyword-only: vector encoder not enabled. Not full Android inference parity."
                         else "Real vector search/fusion with frozen encoder queries; no live desktop encoding. Missing query fixtures use keyword fallback. Not Android inference parity.")
                     add("Desktop backend, fixed answer seed 17, non-streaming; app first-token/count metrics are not comparable.")
-                    add("Native repetition-loop stopping, UI, attachments/OCR and device resources are not tested here.")
+                    add(if (attachedFiles == null) "Native repetition-loop stopping, UI, attachments/OCR and device resources are not tested here."
+                        else "Text attachments use the app's attachment packing; OCR, native repetition-loop stopping, UI and device resources are not tested here.")
                     add("Policy overrides affect inference instructions only; unchanged app attribution may strip paraphrase citations. Inspect rawAnswer as well as visibleAnswer.")
                 })
                 put("runs", JsonArray(rows))
@@ -102,7 +108,12 @@ class DesktopResearchTest {
             val answer = StringBuilder()
             var metrics: ResearchMetrics? = null
             var error: String? = null
-            ResearchOrchestrator(recordingRetriever, gateway).research(question).collect { event ->
+            val attachments = attachedFiles?.get(question)?.jsonArray.orEmpty().mapIndexed { index, file ->
+                val entry = file.jsonObject
+                ExtractedAttachment("desktop-$index", entry.getValue("name").jsonPrimitive.content,
+                    listOf(AttachmentPage(1, entry.getValue("text").jsonPrimitive.content)), kind = AttachmentKind.TEXT)
+            }
+            ResearchOrchestrator(recordingRetriever, gateway).research(question, attachments = attachments).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
                     is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }
@@ -116,6 +127,7 @@ class DesktopResearchTest {
             if (metrics == null || error != null) failures++
             rows += buildJsonObject {
                 put("question", question)
+                put("attachments", JsonArray(attachments.map { JsonPrimitive(it.displayName) }))
                 put("status", if (metrics != null && error == null) "COMPLETED_UNSCORED" else "ERROR")
                 error?.let { put("error", it) }
                 put("searches", JsonArray(searches))

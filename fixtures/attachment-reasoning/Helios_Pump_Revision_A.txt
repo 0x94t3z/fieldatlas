@@ -1,0 +1,1 @@
+Helios pump model HX-44 revision A. Applies only to serial numbers 1000 through 1999. Use filter K-7 and connector M2. Service interval: 400 operating hours. This revision does not apply to serial numbers 2000 or greater.

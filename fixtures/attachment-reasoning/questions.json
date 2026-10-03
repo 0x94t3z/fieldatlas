@@ -1,0 +1,9 @@
+{
+  "My Helios HX-44 serial is 2345. Compare the saved revisions: which filter, connector and service interval apply, and why?": ["Helios_Pump_Revision_A.txt", "Helios_Pump_Revision_B.txt"],
+  "My Helios HX-44 serial is 1500. Which filter and service interval apply?": ["Helios_Pump_Revision_A.txt", "Helios_Pump_Revision_B.txt"],
+  "Use the garden irrigation policy. Should East and West be watered today? Give a decision and reason for each.": ["Garden_Irrigation_Policy.txt"],
+  "What is the Wi-Fi password at Cedar Lodge? Use my saved travel notes.": ["Orion_Travel_Plan.txt"],
+  "What is the phone number for Cedar Lodge?": ["Orion_Travel_Plan.txt"],
+  "When does the last shuttle to Cedar Lodge leave? Give the time in 12-hour format too.": ["Orion_Travel_Plan.txt"],
+  "If my train is 90 minutes late, can I still check in at Cedar Lodge tonight? Where should I sleep?": ["Orion_Travel_Plan.txt"]
+}
