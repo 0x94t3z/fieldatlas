@@ -1,0 +1,35 @@
+name: Stage verified Essentials release asset
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stage-essentials-2026-10-02
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: knowledge-essentials-2026.10.02
+      PACK: osm-essentials-2026.10.02.fapack
+      EXPECTED_SHA256: e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62
+    steps:
+      - name: Require an unpublished release
+        run: |
+          test "$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = true
+      - name: Download transport archive and restore the original pack
+        working-directory: ${{ runner.temp }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$PACK.transfer.gz"
+          gzip -d -c "$PACK.transfer.gz" > "$PACK"
+          printf '%s  %s\n' "$EXPECTED_SHA256" "$PACK" | sha256sum --check
+          test "$(stat -c %s "$PACK")" = 1781105631
+      - name: Upload original pack without replacing existing assets
+        working-directory: ${{ runner.temp }}
+        run: gh release upload "$TAG" "$PACK" --repo "$GITHUB_REPOSITORY"
