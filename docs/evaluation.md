@@ -24,7 +24,7 @@ and **useful compared with internet search plus a frontier model** answering the
 | **Total** | **15 pass, 7 partial, 2 fail** | **15 of 23 = 65%** |
 
 Answers about attached files and emergency questions are outside this suite; they were checked on
-desktop and on a Redmi 13C and are reported in the [1.3.0 release notes](releases/field-atlas-1.3.0.md#verification).
+desktop and on a Redmi 13C and are reported in the [1.3.0 release notes](releases/current.md#verification).
 
 What keeps answers below the bar, most impact first:
 

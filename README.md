@@ -7,7 +7,7 @@
 <p align="center">Research, explore, and question the knowledge on your phone—even offline.</p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.1/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers-and-data-builders">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -23,7 +23,7 @@
   <a href="#tech-stack"><img src="https://img.shields.io/badge/tools-Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Tools: Python"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1">v1.2.1 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0">v1.3.0 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -50,11 +50,11 @@ On a real phone: an [unedited 35-second recording of v1.2.0](docs/evidence/physi
 
 ## Get started
 
-> **Latest release:** [v1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1). Answers can be inaccurate, and collection coverage is limited. Read the [release notes and known limitations](docs/releases/current.md).
+> **Latest release:** [v1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0). Answers can be inaccurate, and collection coverage is limited. Read the [release notes and known limitations](docs/releases/current.md).
 
 On an Android 13+ ARM64 phone:
 
-1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.1/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.1/fieldatlas.apk.sha256) is available to verify the APK.
+1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.3.0/fieldatlas.apk.sha256) is available to verify the APK.
 2. Open the APK on your phone and follow Android’s installation prompts.
 3. In setup, **download the default model** while online, or **import a saved model `.fapack`**. Wait for verification and installation to finish. A raw `.gguf` or checksum file is not an importable model pack.
 4. Optionally download collections such as **Encyclopedia**, **Travel guides**, **Vegan places**, **Travel places** or **Biology & Longevity**, or import a saved knowledge `.fapack`. You can add more later in **Library**.
@@ -86,7 +86,8 @@ On the [24-question release suite](docs/evaluation.md#v120-24-question-suite-oct
 
 | Version | Public download? | What the evidence covers |
 | --- | --- | --- |
-| [v1.2.1 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Yes — signed APK and checksum | App 1.2.1 (16). Keeps the app alive while a file picker is open (Xiaomi phones killed it), checks attachment answers against the files, and adds the Essentials collection. See the [release notes](docs/releases/current.md). |
+| [v1.3.0 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Yes — signed APK and checksum | App 1.3.0 (17). Emergency questions answered from 41 bundled official guides, open-now place answers, Word, PowerPoint and EPUB attachments, and faster answers on low-end phones. See the [release notes](docs/releases/current.md). |
+| [v1.2.1 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Yes — signed APK and checksum | App 1.2.1 (16). Keeps the app alive while a file picker is open (Xiaomi phones killed it), checks attachment answers against the files, and adds the Essentials collection. See its [release notes](docs/releases/field-atlas-1.2.1.md). |
 | [v1.2.0 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | Yes — signed APK and checksum | App 1.2.0 (15). Adds Encyclopedia, Travel guides and Vegan places collections, near-me lookups, place cards, source previews and live dictation. See its [release notes](docs/releases/field-atlas-1.2.0.md). |
 | [v1.2.0-rc.1 previous prerelease](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0-rc.1) | Yes — signed APK and checksum | App 1.2.0 (14). Includes updated setup, catalog downloads, attachments, and citation handling. Known answer-quality and verification gaps remain; see the [release audit](docs/compliance/release-audit.md). |
 | [v1.1.10 previous stable release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Older features and setup flow. Use the instructions at that tag. |

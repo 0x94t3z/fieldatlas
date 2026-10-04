@@ -1,6 +1,25 @@
 # Release audit
 
-Updated 3 October 2026. **Owner approved v1.2.0 and v1.2.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 5 October 2026. **Owner approved v1.2.0, v1.2.1 and v1.3.0 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.3.0 release handoff (5 October 2026)
+
+### Public artifact verification
+
+Built the optimized public-key APK from app source at `73297e6`: version 1.3.0 (17),
+108,380,173 bytes, SHA-256
+`28036d47f8a62e9e40b720b948d5206f4a53d58e4a62cbb4d0df05b3da42b267`.
+The certificate matches the existing public release certificate recorded below
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
+Release build and lint passed (0 errors); 574 JVM tests passed and 10 opt-in tests were skipped.
+All 139 Python tests passed (57 scripts, 12 packtool, 6 benchmark, 64 builders).
+Website checks: 25/25 passed.
+APK Signature Scheme v2, offline packaging, `zipalign -c -P 16 4` and all 22 ARM64 ELF
+alignment checks passed. No collection changed, so no knowledge release was published.
+Phone checks used a locally signed build of the same source on a Redmi 13C (Android 13, airplane
+mode, installed over the earlier build with data kept); the public-key APK was not installed on a
+phone, and no new answer-quality score is claimed. The release notes disclose the remaining
+limits, including thin named-city essentials lookups.
 
 ## v1.2.1 release handoff (3 October 2026)
 

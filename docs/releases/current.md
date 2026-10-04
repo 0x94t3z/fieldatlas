@@ -1,74 +1,177 @@
-# Field Atlas 1.2.1
+# Field Atlas 1.3.0
 
-A public release that fixes problems found after 1.2.0 on a Xiaomi phone and in an offline
-emulator test. It is not a claim that answer quality or bounty acceptance criteria have been
-met; the known limitations below still apply. Notes for the previous version:
-[1.2.0](field-atlas-1.2.0.md).
+A public release for offline use without a connection: emergency guidance from published guides,
+more file types, open-now place answers and faster answers on low-end phones, checked on a Redmi
+13C in airplane mode. It is not a claim that answer quality or bounty acceptance criteria have
+been met; the known limitations below still apply. Notes for the previous version:
+[1.2.1](field-atlas-1.2.1.md).
 
 ## Changes
 
-- **Attaching a file no longer closes the app on Xiaomi phones.** With the model loaded, opening
-  the file, photo or camera picker put Field Atlas in the background holding about 2.4 GB, and on
-  a Redmi 13C the system's memory service closed it within about 20 seconds, every time; the file
-  was lost. The app now keeps its foreground notification while a picker is open, as it already
-  did during research.
-- **Answers about attached files are checked against the files.**
-  - Citation checks use revision labels, part codes and numbers to correct some swapped file
-    references. They preserve list headings in common layouts, but do not verify that a source
-    supports the whole claim; see the remaining citation limitations below.
-  - A question for a password, phone number or email address that the files don't contain
-    ("the Wi-Fi password at Cedar Lodge") gets a one-line reply saying so, instead of unrelated
-    details from the file. Other kinds of item are left to the model.
-  - A 12-hour time written beside the 24-hour time a file states is corrected when the two
-    disagree ("10:30 PM (21:30)" becomes "9:30 PM (21:30)").
-  - When a question asks for 12-hour time, the app adds it beside every 24-hour time.
-  - A decision question about files with exceptions or holds ends with a note to check each
-    decision against them, because the model can miss one.
-  - Answers are shorter and stick to what was asked, which removed most unsupported side notes.
-    Decisions about several items are taken one item at a time. A source number written as
-    plain text ("from S1") becomes a tappable citation.
-- **Essentials.** A new downloadable collection (1.78 GB) of 2,981,021 pharmacies, hospitals,
-  clinics, police stations, embassies, ATMs, currency exchanges, train, bus and ferry stations,
-  toilets, drinking water, supermarkets and hostels that OpenStreetMap maps worldwide, for
-  questions such as "nearest pharmacy in Jakarta" or "ATM near me". Map data © OpenStreetMap
-  contributors (ODbL).
+- **Emergency questions are answered from published guides, offline.** Ask Research what to do
+  (“someone is choking”, “I got bitten by a snake, what should I do?”, “is it safe to drink
+  stream water?”) and the model answers from the matching bundled guide only, citing it, with
+  the guide's key steps shown word for word above its answer the moment the question is asked.
+  41 guides cover first aid, heat and cold, outdoors and survival, and disasters, from CDC,
+  NIOSH, NIH, the National Weather Service, the National Park Service, FEMA and the U.S. Fire
+  Administration (public domain) and four Wikipedia articles (CC BY-SA 4.0). They ship inside
+  the app, so they work before any download; if the model cannot run, the guide is shown as
+  published. See [Emergency knowledge](../emergency.md).
+- **Everyday accounts of an emergency find their guide.** “A snake bit my friend, what do we
+  do?”, “my friend fell in a cold river and is shivering” or a long description of what happened
+  now open the matching guide, dictated text without punctuation included. Before, some got the
+  model alone, which on the snakebite question advised ice and raising the limb, both against the
+  guide. When an injury question mentions a red-flag sign, the guide's when-to-get-care section
+  leads. Ordinary questions that share the words (bit rates, a cat that bites) stay in research.
+- **Questions that need no model no longer wait for it.** Near-me lookups, and emergency guides
+  when the model is not ready, start immediately, even while the model is loading or if it
+  cannot load on a low-memory phone.
+- **Near-me help reaches farther.** For hospitals, clinics, pharmacies, police and drinking water,
+  the search widens from 15 km to 50 km and then 100 km when little is close.
+- **“Open now” is checked against the phone's clock.** Asked which places are open now, the app
+  reads each place's mapped opening hours, marks it open (and until when) or closed at the
+  phone's current time, and lists open places first. A near-me search keeps widening while
+  everything close is closed, so a 24-hour pharmacy farther away is found at night. Hours it
+  cannot read are not guessed, and for a named city the answer says it assumed the phone is set
+  to that city's time. Recorded hours can still be out of date. “Pharmacy open now in Berlin” is a
+  lookup like “which pharmacies are open now”, and hours with commas between days
+  (“Mo-Fr 08:00-20:00, Sa 09:00-19:00”) are read as separate rules.
+- **Museum questions list museums.** “Which museums are listed in London?” lists only places
+  mapped as museums or galleries in that city, so a zoo, or a museum in Oxford, no longer
+  appears; a trip question asking for a food stop and a museum gets both.
+- **Places without an address show coordinates.** Most Tokyo listings in the map data have no
+  address; they now give coordinates that any offline map app finds, and a Japanese address
+  without a street name is shown whole on its card.
+- **More files can be attached.** Word (.docx), PowerPoint (.pptx), OpenDocument (.odt, .odp) and
+  EPUB books, HTML as readable text, HEIC/GIF/BMP photos, UTF-16 without a byte-order mark and
+  Windows-1252 text. Older Office formats, spreadsheets and archives get a message saying how to
+  convert them.
+- **PDFs are read from their text layer on every Android version.** Before, Android 13–14 ran text
+  recognition on every page (an 8-page PDF now reads in about 3 seconds on a Redmi 13C), and
+  Android 15+ appended recognized text to the text layer, nearly doubling it. Recognition now runs
+  only on pages without real text, at most 30 per file.
+- **Long files are read in part instead of refused.** Up to 50 MB, 300,000 characters and 1,000
+  PDF pages; what was not read is listed in the preview and in the answer.
+- **Answers about files use better excerpts.** Passages break at paragraphs and sentences, and are
+  ranked by the question's distinctive words (part codes such as K-9 and K9 match). Summary
+  questions take passages from across the whole file. When an answer used only part of a file,
+  the app itself adds a line saying how many passages it used and from which pages.
+- **The amount of file text fits the phone.** Prompt size is now measured in tokens with an
+  estimate calibrated against the real tokenizer (it never undercounted in testing), not in bytes.
+  The app learns how fast the phone reads a prompt and sizes file evidence so the wait before the
+  first word stays near 40 seconds: fast phones get up to about 1,800 tokens of file text, slow
+  phones the best few passages. Instructions that cannot apply to a question are left out.
+- **Attached files survive the app being closed.** If Android closes Field Atlas while a picker or
+  the camera is open, the files are restored and read again with the question.
+- **Answers are easier to read and pass on.** Citations are small numbered marks attached to the
+  words they support. Copy and Share sit at the top of every answer and include the sources;
+  sharing works without a connection (Bluetooth, nearby share, SMS). A place answer opens with its
+  result in one sentence, with the caveats beneath it, and each place card shows open or closed,
+  diet and distance as labels. History can be searched and each saved answer shared.
+- **Answers start about 25% sooner on 8-core phones.** The model now uses six threads instead of
+  four. On a Redmi 13C, the same question's first word came at 71.7 s instead of 94.7 s, and
+  writing went from 3.69 to 4.06 tokens a second; eight threads were slower at writing, so two
+  cores stay free for the phone. See [the measurements](../../scripts/patches/README.md#thread-count).
+- **Answer details show where the time went.** “Prompt reading” gives the tokens the model read
+  and how long that took; “Writing speed” now counts the writing only (it divided by the whole
+  wait, showing 1.6 tokens a second for a model writing at 4.4).
+- **“Tell me Japan history” starts with its source.** Everyday phrasings (“tell me …”, “what do you
+  know about …”, “give me an overview of …”) and titles such as “History of Japan” for “Japan
+  history” now open the answer with the encyclopedia's own words, cited, while the model's
+  explanation is still being written.
+- **Research no longer looks stuck while the model reads and writes.** The reading bar moves between
+  the engine's block reports at the speed measured so far, never ahead of it, with the time left
+  ("about 20 s left"); the live draft follows the newest text instead of freezing once an answer
+  grew past its first lines.
+- **New 3D app icon and opening animation.** The launcher icon is the 3D compass coin, and on
+  launch the coin turns once and settles face-on while the app starts (about 0.75 s, no added
+  delay; cold start on the Redmi 13C stayed at 0.7–0.75 s). Themed icons keep the flat outline.
+- **More library questions find their overview passage.** A question such as “Explain autophagy
+  and distinguish …” now uses the saved passage that defines the topic, as “Explain autophagy and
+  how …” already did, instead of being answered by the model alone.
+- **Fixes.** Stopping voice input while the recogniser was still decoding could crash the app (it freed the recogniser under the recording thread; found with Android's malloc debug, the kind of bug a hardened allocator such as GrapheneOS's turns into a crash). A very large file could crash the app (out of memory); a camera photo could not be
+  retried after a storage error; every photo was named “Camera photo.jpg”; a full disk said “Could
+  not read this file”; the text preview stuttered on long files; nested list steps showed flat; the live draft could
+  show a list marker as text (“…- Do not drive”).
+
+## Verification
+
+- 574 JVM unit tests pass (10 opt-in desktop tests skipped), including real-tokenizer counts,
+  generated DOCX/PPTX/ODT/EPUB files, a zip bomb, emergency-question routing against all bundled
+  guides, questions that must not be routed to a guide, and opening-hours rules (split shifts,
+  past midnight, holidays, open-ended closing times, unreadable hours, comma-separated days).
+  139 Python tests pass (57 scripts, 12 packtool, 6 benchmark, 64 builders).
+- Desktop, the 24-question release suite (same model, seed and collections as 1.2.0): 15 pass,
+  8 partial, 1 fail; judged about as useful as an online frontier answer on 16½ of 23 (72%),
+  up from 65% before the travel and retrieval fixes. The reviewer is the author's assistant and
+  the questions were used to find the problems, so this is not a held-out score. See
+  [Evaluation](../evaluation.md#after-the-retrieval-and-travel-fixes-october-4).
+- Desktop, Qwen3.5 2B, 7 attachment questions × 5 seeds: 33/35 passed the fixture checks (1.2.1:
+  32/35). Keyword checks, not an accuracy score.
+- Desktop, Qwen3.5 2B, 6 emergency questions × 2 seeds: 10 of 12 model answers were clean; two
+  contained one garbled sentence each, beside the verbatim source excerpt.
+- Redmi 13C, Android 13, airplane mode, installed over 1.2.1 with data kept:
+  - snakebite question: the CDC/NIOSH source excerpt on screen in 4 s, cited model answer in 1 min 4 s;
+  - 8-page text PDF ready in about 3 s; answer cited to page 6 in 53 s once the phone's speed was
+    learned (2 min 31 s before the evidence budget was sized to the phone);
+  - DOCX 39 s, EPUB (cited to chapter 3) 44 s, PPTX (cited to slides 2 and 3) 41 s, photo of a
+    printed sign read with OCR 36 s, all correct; nearest-hospital lookup about 1 s;
+  - after the travel fixes, installed over the earlier 1.3.0 build: “Which pharmacies near me are
+    open now?” in 2 s, widening to 50 km in a rural area and listing two 24/7 pharmacies and one
+    open until 21:30 first, then the three nearer pharmacies with no recorded hours; “Which vegan
+    restaurants in Berlin are open now?” marked two of six open at the phone's 10:39 and stated
+    the Berlin-time assumption. Each card showed its open or closed status;
+  - final build, installed over the earlier 1.3.0 build: “A snake bit my friend. What do we do?”
+    showed the CDC/NIOSH excerpt within seconds and the cited answer in 58 s (52 s on the build
+    before the last two fixes);
+    “Pharmacy open now in Berlin” was answered as a lookup in 43 s, with no model (before the fix:
+    3 min 1 s and uncited); CDC's one-page “Make Water Safe During an Emergency” PDF answered “How
+    long do I boil the water?” in 39 s, correctly, citing page 1.
+- Device tests on the same phone: all 68 instrumented tests pass, including the 9 attachment-reader
+  tests (a 3-page text PDF reads in 852 ms). Eleven of them had been failing
+  on 1.2.1 as well because they expected older wording and layouts (for example licence details
+  now in a pack's About sheet, and citations that open a preview before the full source), the
+  microphone test never granted the microphone, and the offline test still forbade the internet
+  permission that downloads use; they were updated to the current interface and to the policy in
+  `scripts/verify_offline.sh`. One real defect found on the way (the original-file viewer could
+  keep its loading spinner after a file was read) was fixed by publishing the loaded file on the
+  main thread.
+- Memory-safety check for GrapheneOS-class hardware, on the same phone: the device suite and a
+  full model answer were run with Android's malloc debug (guard bytes, freed-memory tracking,
+  pointer checks) on every native library: llama.cpp, Tesseract, Vosk and SQLite. It found the
+  voice crash above and nothing else; after the fix the suite passed with no reports.
+- Release lint and the offline packaging audit pass. APK size 108.4 MB (1.2.1: 100.7 MB); most of
+  the increase is the PDF text library, its fonts and the BouncyCastle crypto library it uses for encrypted PDFs.
+- Public APK: built from the tagged source with the project release key (certificate SHA-256
+  `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`); signature, offline
+  packaging, ZIP alignment and all 22 ARM64 ELF alignment checks pass. The phone checks above
+  used a locally signed build of the same source; the public-key APK was not installed on a phone.
 
 ## Known limitations
 
-- Citation repair still mishandles some list layouts: a citation before its claim under a
-  revision heading, or a bullet continued on another line, can be moved to the wrong file.
-  Check the opened source against the claim, not just the displayed citation number.
-- The checks are deliberately narrow. A wrong value under the right label (for example the
-  wrong service interval for Revision B) is not corrected, only left on its original citation.
-- Over five runs of each test question, the 2B model applied a maintenance-hold exception in
-  three of five; the note above flags such answers, but does not correct them. A 4B model did
-  better but is about ten times slower.
-- The 2B model can still make reasoning slips the checks cannot catch: an opening sentence that
-  contradicts its own conclusion, wrong time arithmetic, or one revision's values attributed to
-  another. On the Redmi 13C, the final build answered all four reported attachment questions
-  correctly in one run each, with one wrong aside; an earlier build on the same phone showed
-  contradictory sentences in two of them. See
-  [evaluation](../evaluation.md#attachment-reasoning-feedback-october-3).
-- Hostels are in Essentials but are found only by ordinary keyword search, not by near-me lookups.
-- Tags in the place collections record what mappers entered and when; they cannot confirm
-  today's opening hours, prices or availability.
-- Not yet tested on a 12 GB GrapheneOS phone. No new bounty accuracy score is claimed.
+- The guides are information, not training, and many are written for the United States. Severe
+  bleeding has no bundled tourniquet guidance; the choking and drowning guides are Wikipedia text.
+  These need review by a clinician. The model's part of an emergency answer can misstate a step;
+  the verbatim source excerpt above it keeps the guide's own wording. See [Emergency knowledge](../emergency.md#limits-you-should-know).
+- On a slow phone a long file is answered from a few passages; the added coverage line says so.
+- A named-city question about essentials (“pharmacy open now in Berlin”) is answered from a
+  keyword search and can list only one or two places, some in the surrounding area (the Berlin
+  answer above listed one pharmacy in Potsdam). Near-me questions search by distance and are not
+  affected.
+- The 1.2.1 limitations on citation repair and model reasoning still apply.
 
 ## Installation
 
 Download `fieldatlas.apk` and check `fieldatlas.apk.sha256`. Requires Android 13+ and an arm64
-device. It installs over 1.2.0 with data kept. Model and knowledge packs are installed
+device. It installs over 1.2.1 with data kept. Model and knowledge packs are installed
 separately; queries run locally after setup. Downloads and catalog refresh require a connection.
+The emergency guides ship inside the app.
 
-App version: 1.2.1 (16). GitHub channel: release (`v1.2.1`).
+App version: 1.3.0 (17). GitHub channel: release (`v1.3.0`).
 
-APK SHA-256: `6de600ef5a6c82500cefc76b61c22e360cf20292c94b7d34572cecfe31315e04`.
+APK SHA-256: `28036d47f8a62e9e40b720b948d5206f4a53d58e4a62cbb4d0df05b3da42b267`.
 
 ## Release assets
 
-- App release `v1.2.1`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
-- Knowledge release `knowledge-essentials-2026.10.02`: `osm-essentials-2026.10.02.fapack`
-  (SHA-256 `e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62`),
-  `OVERPASS-LOCK.json`, `osm-essentials-overpass-cache-2026.10.02.tar.gz` (the raw Overpass
-  responses, so the pack rebuilds byte for byte) and `SHA256SUMS`.
-- The other collections are unchanged from 1.2.0 and stay on their existing knowledge releases.
+- App release `v1.3.0`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
+- No collection changed in this release; each stays on its existing knowledge release.
