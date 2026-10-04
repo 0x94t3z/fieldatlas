@@ -99,6 +99,13 @@ class ResearchPresentationTest {
             researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374, hasSources = false),
         )
         assertEquals("**Axial tilt** explains seasons.", draftAnswerPreview("**Axial tilt** [S1] explains seasons."))
+        // A long draft cut at a nested list item still draws that item as a list item.
+        val excerpt = "First Aid: If a snake bites you\n\n" + "- Seek emergency medical attention as soon as possible.\n".repeat(12) +
+            "  - Do not drive yourself to the hospital.\n- Keep calm."
+        val preview = draftAnswerPreview(excerpt, maxChars = 120)
+        assertTrue(preview, preview.startsWith("…\n\n- "))
+        val items = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(preview).filterIsInstance<xyz.fieldatlas.ui.markdown.MarkdownBlock.ListBlock>()
+        assertTrue(preview, items.isNotEmpty())
         assertEquals(
             "Writing an offline answer (85 tokens written)",
             researchActivityLabel(ResearchPhase.Generating, tokensWritten = 85),

@@ -65,8 +65,9 @@ fun draftAnswerPreview(answer: String, maxChars: Int = 650): String {
     if (text.length <= maxChars) return text
     val tail = text.substring(text.length - maxChars)
     val lineStart = tail.indexOf('\n').takeIf { it in 0 until maxChars / 2 }
-    val cut = lineStart?.let { tail.substring(it + 1) } ?: tail.substringAfter(' ', tail)
-    return "…" + cut.trimStart()
+    // A cut at a line keeps that line's own Markdown; "…- Keep calm." would show the list marker as text.
+    if (lineStart != null) return "…\n\n" + tail.substring(lineStart + 1).trimStart()
+    return "…" + tail.substringAfter(' ', tail).trimStart()
 }
 
 /** A real answer excerpt for the Research card, without raw Markdown or citation syntax. */
