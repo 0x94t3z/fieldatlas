@@ -55,8 +55,9 @@ object VenueLookup {
     /** A request for places to go, answerable from place listings alone. */
     fun isPlaceLookup(question: String) = isLookup(question)
 
+    // "Pharmacy open now in Berlin" asks for places as plainly as "where is a pharmacy" does.
     private fun isLookup(question: String) = (venueWords.containsMatchIn(question) || essential(question) != null) &&
-        lookupWords.containsMatchIn(question) && !complexWords.containsMatchIn(question)
+        (lookupWords.containsMatchIn(question) || openNow.containsMatchIn(question)) && !complexWords.containsMatchIn(question)
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
 

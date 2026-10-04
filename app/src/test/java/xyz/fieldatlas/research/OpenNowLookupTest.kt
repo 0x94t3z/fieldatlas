@@ -41,6 +41,18 @@ class OpenNowLookupTest {
         assertTrue(result.answer, "**Closed now**. Hours in source: Mo-Sa 08:00-20:00." in result.answer)
     }
 
+    @Test fun anOpenNowQuestionWithoutAWhereOrWhichIsStillAPlaceLookup() {
+        for (question in listOf("Pharmacy open now in Berlin", "pharmacies in Berlin still open tonight", "ATM open now in Berlin")) {
+            assertTrue(question, VenueLookup.isPlaceLookup(question))
+        }
+        val result = VenueLookup.answer("Pharmacy open now in Berlin", listOf(weekdays, allNight), sundayNight)!!
+        assertEquals(listOf(allNight, weekdays), result.sources)
+        assertTrue(result.answer, result.answer.startsWith("1 of the 2 places below is open now"))
+        // Open or closed in a sentence about something else is not a request for places.
+        assertFalse(VenueLookup.isPlaceLookup("Why are pharmacies closed now on Sundays in Germany?"))
+        assertFalse(VenueLookup.isPlaceLookup("Is the museum of history open to the public?"))
+    }
+
     @Test fun withoutAnOpenNowQuestionTheNearestPlaceStillLeadsAndNoStatusIsShown() {
         val result = VenueLookup.nearbyAnswer("nearest pharmacy", listOf(NearbyPlace(weekdays, 0.2), NearbyPlace(allNight, 4.0)), 15.0, sundayNight)
         assertEquals(listOf(weekdays, allNight), result.sources)
