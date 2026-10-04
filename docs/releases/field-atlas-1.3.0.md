@@ -79,7 +79,7 @@ that answer quality or bounty acceptance criteria have been met.
 - **More library questions find their overview passage.** A question such as “Explain autophagy
   and distinguish …” now uses the saved passage that defines the topic, as “Explain autophagy and
   how …” already did, instead of being answered by the model alone.
-- **Fixes.** A very large file could crash the app (out of memory); a camera photo could not be
+- **Fixes.** Stopping voice input while the recogniser was still decoding could crash the app (it freed the recogniser under the recording thread; found with Android's malloc debug, the kind of bug a hardened allocator such as GrapheneOS's turns into a crash). A very large file could crash the app (out of memory); a camera photo could not be
   retried after a storage error; every photo was named “Camera photo.jpg”; a full disk said “Could
   not read this file”; the text preview stuttered on long files; nested list steps showed flat.
 
@@ -109,7 +109,7 @@ that answer quality or bounty acceptance criteria have been met.
     open until 21:30 first, then the three nearer pharmacies with no recorded hours; “Which vegan
     restaurants in Berlin are open now?” marked two of six open at the phone's 10:39 and stated
     the Berlin-time assumption. Each card showed its open or closed status.
-- Device tests on the same phone: all 67 instrumented tests pass, including the 9 attachment-reader
+- Device tests on the same phone: all 68 instrumented tests pass, including the 9 attachment-reader
   tests (a 3-page text PDF reads in 852 ms). Eleven of them had been failing
   on 1.2.1 as well because they expected older wording and layouts (for example licence details
   now in a pack's About sheet, and citations that open a preview before the full source), the
@@ -118,6 +118,10 @@ that answer quality or bounty acceptance criteria have been met.
   `scripts/verify_offline.sh`. One real defect found on the way (the original-file viewer could
   keep its loading spinner after a file was read) was fixed by publishing the loaded file on the
   main thread.
+- Memory-safety check for GrapheneOS-class hardware, on the same phone: the device suite and a
+  full model answer were run with Android's malloc debug (guard bytes, freed-memory tracking,
+  pointer checks) on every native library: llama.cpp, Tesseract, Vosk and SQLite. It found the
+  voice crash above and nothing else; after the fix the suite passed with no reports.
 - Release lint and the offline packaging audit pass. APK size 108.1 MB (1.2.1: 100.7 MB); most of
   the increase is the PDF text library, its fonts and the BouncyCastle crypto library it uses for encrypted PDFs.
 - Not yet done: a public-key signed build.

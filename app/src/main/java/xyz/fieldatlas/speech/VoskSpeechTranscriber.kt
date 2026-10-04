@@ -9,6 +9,8 @@ import android.media.AudioFormat
 import org.vosk.Model
 import org.vosk.Recognizer
 import org.vosk.android.StorageService
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
 import kotlin.math.sqrt
@@ -28,11 +30,21 @@ class VoskSpeechTranscriber(
     /** Installed AUDIO pack directory (contains conf/, am/, graph/…); null = bundled small model. */
     private val filesystemModelDir: String? = null,
 ) : SpeechTranscriber {
-    private var recognizer: Recognizer? = null
-    private var recorder: AudioRecord? = null
-    private var captureThread: Thread? = null
-    private val capturing = AtomicBoolean(false)
-    private val heard = StringBuilder()
+    /**
+     * One recording. Its thread is the only code that touches the recogniser and the microphone
+     * once capture starts: it reads the final result and frees both itself. stop() used to read
+     * and close the recogniser after waiting only a second, so a thread still decoding (a slow
+     * phone, or a hardened allocator such as GrapheneOS's) read freed memory and crashed.
+     */
+    private class Session(val audio: AudioRecord) {
+        val capturing = AtomicBoolean(true)
+        val discard = AtomicBoolean(false)
+        val finished = CountDownLatch(1)
+        @Volatile var live = ""
+        @Volatile var finalText: String? = null
+    }
+
+    private var session: Session? = null
 
     override suspend fun start(onLevel: (Float) -> Unit) = start(onLevel) {}
 
@@ -61,22 +73,35 @@ class VoskSpeechTranscriber(
             audio.release()
             error("The microphone could not be opened")
         }
-        recorder = audio
+        var recogniser: Recognizer? = null
         try {
             audio.startRecording()
             val model = acquireModel()
-            val recogniser = Recognizer(model, SAMPLE_RATE)
-            recogniser.setWords(false)
-            heard.setLength(0)
-            recognizer = recogniser
-            capturing.set(true)
-            captureThread = Thread {
+            recogniser = Recognizer(model, SAMPLE_RATE).apply { setWords(false) }
+            val current = Session(audio)
+            session = current
+            startCapture(current, recogniser, onLevel, onText)
+        } catch (failure: Throwable) {
+            // The capture thread never started, so nothing else holds these yet.
+            session = null
+            runCatching { audio.stop() }
+            audio.release()
+            recogniser?.close()
+            throw failure
+        }
+    }
+
+    private fun startCapture(current: Session, recogniser: Recognizer, onLevel: (Float) -> Unit, onText: (String) -> Unit) {
+        val audio = current.audio
+        val heard = StringBuilder()
+        Thread {
+            try {
                 // A short silence lead-in gives the recogniser acoustic context before the
                 // first real samples; feeding speech as the very first bytes clips word one.
                 recogniser.acceptWaveForm(ByteArray(WARMUP_BYTES), WARMUP_BYTES)
                 val samples = ShortArray(SAMPLES_PER_CHUNK)
                 var lastLive = ""
-                while (capturing.get() && !Thread.currentThread().isInterrupted) {
+                while (current.capturing.get() && !Thread.currentThread().isInterrupted) {
                     val read = audio.read(samples, 0, samples.size)
                     if (read <= 0) continue
                     var sumOfSquares = 0.0
@@ -104,59 +129,50 @@ class VoskSpeechTranscriber(
                     }
                     if (live != lastLive) {
                         lastLive = live
+                        current.live = live
                         onText(live)
                     }
                 }
-            }.apply {
-                name = "fieldatlas-voice"
-                isDaemon = true
-                start()
+                if (!current.discard.get()) {
+                    current.finalText = buildString {
+                        if (heard.isNotEmpty()) append(heard)
+                        recogniser.finalResult.jsonToText()?.let { final ->
+                            if (isNotEmpty()) append(' ')
+                            append(final)
+                        }
+                    }.trim()
+                }
+            } finally {
+                recogniser.close()
+                runCatching { audio.stop() }
+                audio.release()
+                current.finished.countDown()
             }
-        } catch (failure: Throwable) {
-            capturing.set(false)
-            runCatching { audio.stop() }
-            captureThread?.join(THREAD_JOIN_MILLIS)
-            captureThread = null
-            audio.release()
-            recorder = null
-            recognizer?.close()
-            recognizer = null
-            throw failure
+        }.apply {
+            name = "fieldatlas-voice"
+            isDaemon = true
+            start()
         }
     }
 
     override suspend fun stop(): String = withContext(Dispatchers.IO) {
-        val audio = recorder ?: return@withContext ""
-        capturing.set(false)
-        runCatching { audio.stop() }
-        captureThread?.join(THREAD_JOIN_MILLIS)
-        captureThread = null
-        try {
-            buildString {
-                if (heard.isNotEmpty()) append(heard)
-                recognizer?.finalResult?.jsonToText()?.let { final ->
-                    if (isNotEmpty()) append(' ')
-                    append(final)
-                }
-            }.trim()
-        } finally {
-            audio.release()
-            recorder = null
-            recognizer?.close()
-            recognizer = null
-        }
+        val current = session ?: return@withContext ""
+        session = null
+        current.capturing.set(false)
+        // Unblocks a pending read; the thread then finishes its chunk and cleans up.
+        runCatching { current.audio.stop() }
+        // A thread still decoding after this keeps ownership and frees everything when it ends;
+        // the words already shown are returned instead of waiting longer.
+        if (current.finished.await(STOP_WAIT_MILLIS, TimeUnit.MILLISECONDS)) current.finalText ?: current.live
+        else current.live
     }
 
     override suspend fun cancel() {
-        capturing.set(false)
-        recorder?.let { runCatching { it.stop() } }
-        captureThread?.join(THREAD_JOIN_MILLIS)
-        captureThread = null
-        recorder?.release()
-        recorder = null
-        recognizer?.close()
-        recognizer = null
-        heard.setLength(0)
+        val current = session ?: return
+        session = null
+        current.discard.set(true)
+        current.capturing.set(false)
+        runCatching { current.audio.stop() }
     }
 
     /** Prefer the active dictation pack; fall back to the asset-bundled small model. */
@@ -180,7 +196,7 @@ class VoskSpeechTranscriber(
         /** ~150 ms of leading silence handed to the recogniser before any live audio. */
         const val WARMUP_BYTES = 4800
         const val MIN_BUFFER_BYTES = 128 * 1024
-        const val THREAD_JOIN_MILLIS = 1_000L
+        const val STOP_WAIT_MILLIS = 5_000L
 
         /** One native model at a time, keyed by source directory (swapping packs replaces it). */
         private var cachedKey: String? = null
