@@ -68,8 +68,8 @@ test('community navigation leads below FAQ and platform links keep the supplied 
   await page.getByRole('navigation').getByRole('link', { name: 'Community' }).click();
   await expect(page).toHaveURL(/#community$/);
   const section = page.locator('#community');
-  await expect(section.getByRole('heading')).toHaveText('Third-party token');
-  await expect(section.locator('.community-copy > p')).toHaveText('The Field Atlas developer did not create or launch this token. A third party launched it through Bankr and designated the developer as the recipient of creator fees. You don’t need to buy or hold the token to use Field Atlas.');
+  await expect(section.getByRole('heading')).toHaveText('Community token');
+  await expect(section.locator('.community-copy > p')).toHaveText('The Field Atlas dev didn’t create or launch this token. Someone else launched it on Bankr and set creator fees to go to the dev. You don’t need to buy or hold it to use the app.');
   await expect(section.getByRole('note', { name: 'Token risk warning' })).toContainText('Tokens can lose all their value.');
   expect(await section.evaluate(el => el.previousElementSibling.id)).toBe('faq');
   await expect(section.getByRole('link', { name: 'Bankr' })).toHaveAttribute('href', 'https://bankr.bot/terminal/trade?out=0xb462a5039a540883508ee37b5cf3999647557ba3&chain=base');
