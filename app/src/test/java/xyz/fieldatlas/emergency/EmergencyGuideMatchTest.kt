@@ -132,4 +132,35 @@ class EmergencyGuideMatchTest {
             assertTrue(guide.id, guide.category in EmergencyData.categoryLabels)
         }
     }
+
+    @Test fun everydayAccountsOfAnEmergencyFindTheirGuide() {
+        // Found while preparing the demo: "a snake bit my friend, what do we do?" got no guide and
+        // the model, answering alone, advised ice and raising the limb above the heart.
+        val cases = listOf(
+            "A snake bit my friend. What do we do?" to "snakebite",
+            // Dictation arrives lowercase and unpunctuated.
+            "a snake bit my friend what do we do" to "snakebite",
+            "My son was bit by a snake while camping" to "snakebite",
+            "A dog bit my daughter, what do we do?" to "animal-bites",
+            "My friend got stung by a bee and his throat is swelling" to "anaphylaxis",
+            "My friend is shivering and confused after falling in a cold river" to "hypothermia",
+            "It's really hot and my friend stopped sweating and is confused" to "heat-illness",
+            "My kid swallowed bleach, what do we do?" to "poisoning",
+            "My friend fell and hit his head, he's dizzy" to "head-injury",
+            "We got caught in a lightning storm on the ridge" to "lightning",
+            "My friend twisted his ankle and can't walk" to "fractures-sprains",
+            "A tick bit me on the hike" to "tick-bites",
+        )
+        val wrong = cases.mapNotNull { (q, id) -> match(q).takeIf { it != id }?.let { "$q -> $it (want $id)" } }
+        assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
+    }
+
+    @Test fun everydayWordsInOrdinaryQuestionsStayInResearch() {
+        for (question in listOf(
+            "How many bits are in a byte?", "What bit rate should I use for an MP3?", "Explain why some animals are confused by mirrors",
+            "Explain how the stomach digests what we swallowed", "Why do cats bite when you pet them?",
+            "How do I get my code to stop when the loop is caught in an exception?", "What should we do to reduce plastic waste in our city?",
+            "My son asks why the sun is hot", "What is the history of antivenom research?",
+        )) assertNull(question, match(question))
+    }
 }

@@ -26,14 +26,18 @@ object EmergencyGuideMatch {
         "burns" to listOf("burned", "burnt", "scalded", "hot pan", "hot stove", "boiling water", "hot oil", "burned hand", "burned my", "burned her", "burned his"),
         "fractures-sprains" to listOf("broken leg", "broken arm", "broken ankle", "broken wrist", "sprained",
             "twisted ankle", "twisted my ankle", "rolled my ankle", "swollen ankle", "ankle is swollen",
-            "can't put weight", "cant put weight", "cannot put weight"),
+            "can't put weight", "cant put weight", "cannot put weight", "twisted his ankle", "twisted her ankle",
+            "rolled his ankle", "rolled her ankle"),
         "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike"),
         "safe-drinking-water" to listOf("drink", "drinkable", "stream water", "river water", "lake water", "purify water", "disinfect water", "boil water"),
         "signaling" to listOf("signal for help", "rescue signal", "attract rescuers", "call for help without signal"),
-        "heat-illness" to listOf("heatstroke", "overheated"),
+        "heat-illness" to listOf("heatstroke", "overheated", "stopped sweating", "not sweating"),
+        "anaphylaxis" to listOf("throat is swelling", "throat swelling", "swollen throat", "tongue is swelling", "lips are swelling"),
+        "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head"),
+        "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water"),
         "altitude-sickness" to listOf("mountain sickness", "high altitude"),
-        "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite"),
-        "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite"),
+        "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite", "dog bit", "bit by a dog", "cat bit", "bit by a cat", "monkey bit", "bit by a monkey"),
+        "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite", "snake bit", "bit by a snake"),
         "tick-bites" to listOf("remove a tick", "removing a tick"),
     )
 
@@ -53,7 +57,15 @@ object EmergencyGuideMatch {
         "(?i)\\b(first aid|treat|treatment|treating|injured|injury|injuries|hurt|hurts|wound|wounded|pain|painful|emergency|" +
             "someone|somebody|bleeding|bled|swollen|swelling|hospital|ambulance|survive|surviving|survival|safety|safe|" +
             "what should i do|what do i do|what to do|help|signs?|symptoms?|bitten|bit me|stung|got (lost|bit|stung|burned|burnt)|" +
-            "lost (in|on|while)|stuck|stranded|rescue|unconscious|not breathing|dizzy|faint|fainted)\\b",
+            "lost (in|on|while)|stuck|stranded|rescue|unconscious|not breathing|dizzy|faint|fainted|" +
+            // How people describe it in the moment: "a snake bit my friend, what do we do?"
+            "what (should|do|can|must) (i|we) do|bit by|" +
+            "(snake|dog|cat|spider|tick|monkey|bat|animal|something|it) bit (me|him|her|them|us|my|our|his|their)|" +
+            "(he|she|they|i|we|and|friend|son|daughter|child|kid|wife|husband|partner|dad|mom|mother|father|baby|brother|sister) " +
+            "(is|'s|seems|looks|became|got|getting) confused|shivering|stopped sweating|" +
+            "(accidentally|just) swallowed|swallowed (some |a |the )?(bleach|poison|pills?|medicine|tablets?|batter(y|ies)|chemicals?|cleaner|detergent|antifreeze|mushrooms?)|" +
+            "hit (his|her|my|their|your|the) head|caught (in|out) (in |by )?(a |the )?(lightning|thunder|storm|thunderstorm|flood|fire|wildfire|blizzard|snowstorm|avalanche|current|rip current)|" +
+            "can'?t walk|won'?t stop)\\b",
     )
 
     /**
