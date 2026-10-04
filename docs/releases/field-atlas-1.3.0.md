@@ -6,7 +6,7 @@ that answer quality or bounty acceptance criteria have been met.
 
 ## Changes
 
-- **Emergency questions are answered from official guides, offline.** Ask Research what to do
+- **Emergency questions are answered from published guides, offline.** Ask Research what to do
   (“someone is choking”, “I got bitten by a snake, what should I do?”, “is it safe to drink
   stream water?”) and the model answers from the matching bundled guide only, citing it, with
   the guide's key steps shown word for word above its answer the moment the question is asked.
@@ -97,9 +97,9 @@ that answer quality or bounty acceptance criteria have been met.
 - Desktop, Qwen3.5 2B, 7 attachment questions × 5 seeds: 33/35 passed the fixture checks (1.2.1:
   32/35). Keyword checks, not an accuracy score.
 - Desktop, Qwen3.5 2B, 6 emergency questions × 2 seeds: 10 of 12 model answers were clean; two
-  contained one garbled sentence each, beside the verbatim official steps.
+  contained one garbled sentence each, beside the verbatim source excerpt.
 - Redmi 13C, Android 13, airplane mode, installed over 1.2.1 with data kept:
-  - snakebite question: official CDC/NIOSH steps on screen in 4 s, cited model answer in 1 min 4 s;
+  - snakebite question: the CDC/NIOSH source excerpt on screen in 4 s, cited model answer in 1 min 4 s;
   - 8-page text PDF ready in about 3 s; answer cited to page 6 in 53 s once the phone's speed was
     learned (2 min 31 s before the evidence budget was sized to the phone);
   - DOCX 39 s, EPUB (cited to chapter 3) 44 s, PPTX (cited to slides 2 and 3) 41 s, photo of a
@@ -131,7 +131,7 @@ that answer quality or bounty acceptance criteria have been met.
 - The guides are information, not training, and many are written for the United States. Severe
   bleeding has no bundled tourniquet guidance; the choking and drowning guides are Wikipedia text.
   These need review by a clinician. The model's part of an emergency answer can misstate a step;
-  the verbatim official steps above it are authoritative. See [Emergency knowledge](../emergency.md#limits-you-should-know).
+  the verbatim source excerpt above it keeps the guide's own wording. See [Emergency knowledge](../emergency.md#limits-you-should-know).
 - On a slow phone a long file is answered from a few passages; the added coverage line says so.
 - The 1.2.1 limitations on citation repair and model reasoning still apply.
 

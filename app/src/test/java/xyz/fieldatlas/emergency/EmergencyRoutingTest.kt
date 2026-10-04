@@ -53,10 +53,10 @@ class EmergencyRoutingTest {
         assertTrue(sources.all { it.documentId == "emergency:snakebite" })
         // The official steps are on screen before the model writes anything.
         val first = events.filterIsInstance<ResearchEvent.Lead>().single().text
-        assertTrue(first, first.startsWith("**Official steps from CDC/NIOSH, as published** [S1]"))
+        assertTrue(first, first.startsWith("**Source excerpt from CDC/NIOSH, as published** [S1]"))
         val text = answer(events)
         assertTrue(text, text.contains("**For this situation**\n\n1. Seek emergency medical attention"))
-        assertTrue(text, text.contains("Official steps from CDC/NIOSH, as published"))
+        assertTrue(text, text.contains("Source excerpt from CDC/NIOSH, as published"))
         // The app shows the key section word for word, whatever the model wrote.
         assertTrue(text, text.contains("- Seek emergency medical attention as soon as possible to start antivenom (if needed) and stop irreversible damage."))
         assertTrue(text, text.contains("call your local emergency number first"))

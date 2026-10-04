@@ -24,13 +24,17 @@ object EmergencyGuideMatch {
         "choking" to listOf("choke", "something stuck in throat", "can't breathe", "cant breathe"),
         "severe-bleeding" to listOf("bleed", "bleeding badly"),
         "burns" to listOf("burned", "burnt", "scalded", "hot pan", "hot stove", "boiling water", "hot oil", "burned hand", "burned my", "burned her", "burned his"),
-        "fractures-sprains" to listOf("broken leg", "broken arm", "broken ankle", "broken wrist", "sprained"),
+        "fractures-sprains" to listOf("broken leg", "broken arm", "broken ankle", "broken wrist", "sprained",
+            "twisted ankle", "twisted my ankle", "rolled my ankle", "swollen ankle", "ankle is swollen",
+            "can't put weight", "cant put weight", "cannot put weight"),
         "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike"),
         "safe-drinking-water" to listOf("drink", "drinkable", "stream water", "river water", "lake water", "purify water", "disinfect water", "boil water"),
         "signaling" to listOf("signal for help", "rescue signal", "attract rescuers", "call for help without signal"),
         "heat-illness" to listOf("heatstroke", "overheated"),
         "altitude-sickness" to listOf("mountain sickness", "high altitude"),
         "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite"),
+        "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite"),
+        "tick-bites" to listOf("remove a tick", "removing a tick"),
     )
 
     /** Single words specific enough to name the emergency on their own. */
@@ -52,10 +56,36 @@ object EmergencyGuideMatch {
             "lost (in|on|while)|stuck|stranded|rescue|unconscious|not breathing|dizzy|faint|fainted)\\b",
     )
 
+    /**
+     * A person describing their own situation. A long question qualifies only with one of these:
+     * "explain how earthquake warning systems work … public safety" names a hazard and a safety
+     * word but asks for research, while a long account of a bite on the trail asks for help.
+     */
+    private val personalSituation = Regex(
+        "(?i)\\b(what (should|do|can|must) (i|we) do|what to do now|" +
+            "how (do|should|can) (i|we) (do|perform|give|start|treat|stop|help|survive|get|find|keep)|" +
+            // A bystander describing a stranger, in the present: "a man has collapsed and is not breathing".
+            "(a|an|the|this) (man|woman|person|child|kid|boy|girl|baby|hiker|driver|player|swimmer|runner) (has|is|was|just)|" +
+            "(has|have|just) collapsed|(is|isn't|is not|are not|aren't) (not )?(breathing|responding|conscious)|" +
+            "(is|are) (unconscious|unresponsive|having a seizure|choking|drowning)|" +
+            "(ambulance|help) (is|has been|was|has) (called|coming|on (its|the) way|not arrived)|" +
+            "called (911|112|999|000|an ambulance|emergency services)|" +
+            "(help|save) (me|us|him|her|them)|i need help|we need help|right now|" +
+            "my (friend|child|kid|son|daughter|wife|husband|partner|dad|mom|mother|father|baby|brother|sister)|" +
+            "(i|we|he|she|they) (was|were|got|have been|has been|'ve been|'s been|am|are|is) " +
+            "(bitten|stung|burned|burnt|injured|hurt|lost|stranded|stuck|trapped|cut|poisoned|bleeding|choking)|" +
+            "someone (is|has|was|got|just))\\b",
+    )
+    /** Beyond this many words a question must describe a personal situation to be routed to a guide. */
+    private const val SHORT_QUESTION_WORDS = 30
+
     fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? {
         val text = " " + normalize(question) + " "
         val words = text.trim().split(' ').filter(String::isNotBlank)
-        if (words.isEmpty() || words.size > 30) return null
+        if (words.isEmpty()) return null
+        // Extra context must not disqualify an explicit request for help, but a long question
+        // that only names a hazard is research, not first aid.
+        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return null
         val dangerous = danger.containsMatchIn(question)
         val scored = guides.map { guide ->
             val terms = (guide.keywords + guide.title + synonyms[guide.id].orEmpty())
@@ -160,10 +190,10 @@ object EmergencyGuideMatch {
 
     /**
      * The key section exactly as published, shown by the app under the model's answer, so the
-     * official wording is always on screen even if the model condenses or garbles a step.
+     * source wording is always on screen even if the model condenses or garbles a step.
      */
     fun officialSteps(section: Evidence, citation: Int, publisher: String): String = buildString {
-        append("**Official steps from ").append(publisher).append(", as published** [S").append(citation).append("]\n\n")
+        append("**Source excerpt from ").append(publisher).append(", as published** [S").append(citation).append("]\n\n")
         // sections() puts the heading on the first line; show it as a caption, then the body.
         val heading = section.title.substringAfter(": ", "")
         val lines = section.text.lines()

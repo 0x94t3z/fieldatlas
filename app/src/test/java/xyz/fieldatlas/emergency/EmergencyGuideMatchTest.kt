@@ -37,7 +37,10 @@ class EmergencyGuideMatchTest {
             "allergic reaction throat swelling" to "anaphylaxis",
             "someone is having a seizure" to "seizures",
         )
-        val wrong = cases.mapNotNull { (q, id) -> match(q).takeIf { it != id }?.let { "$q -> $it (want $id)" } }
+        val wrong = cases.mapNotNull { (q, id) ->
+            val actual = match(q)
+            if (actual != id) "$q -> $actual (want $id)" else null
+        }
         assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
     }
 
@@ -57,6 +60,47 @@ class EmergencyGuideMatchTest {
             "what is the boiling point of water",
             "compare the revisions in my files",
         )) assertNull(question, match(question))
+    }
+
+    @Test fun detailedEmergencyRequestsStillMatch() {
+        val question = "I was bitten by a snake while hiking with my friend this morning and we are still on the trail a long way from our car with no internet connection. What should I do?"
+        assertTrue(question.split(' ').size > 30)
+        assertEquals("snakebite", match(question))
+        assertEquals("snakebite", match("We are a long way from our car. ".repeat(20) + question))
+    }
+
+    @Test fun lengthyHistoricalQuestionsStayInResearch() {
+        assertNull(match("Describe the history of the 2004 Indian Ocean tsunami, including the geological causes, the countries affected, the economic consequences and the changes in coastal infrastructure that followed over the next two decades."))
+        // Long research questions that name a hazard and a safety or symptom word are not first aid.
+        for (question in listOf(
+            "Compare the symptoms of heatstroke and dehydration in marathon runners and explain the physiological mechanisms that cause each, citing what research says about electrolyte balance, sweat rates, core temperature and recovery after long races in hot weather.",
+            "Explain how earthquake early warning systems work in Japan and Mexico, how many seconds of warning they typically give, what limits their accuracy, and how public safety outcomes have changed since they were introduced in each country.",
+            "Why did the Chernobyl disaster lead to long term changes in nuclear reactor safety design, and how do those design changes compare with the lessons drawn after the Fukushima tsunami in 2011 for coastal plants?",
+        )) assertNull(question, match(question))
+    }
+
+    @Test fun aBystanderDescribingAStrangerGetsItsGuide() {
+        // Found by an outside review: 31 words, third person, no "my" or "I was".
+        assertEquals("cpr", match("A man has collapsed and is not breathing. How do I do CPR? We are outside the railway station and an ambulance has already been called but has not arrived yet."))
+        assertEquals("cpr", match("A man has collapsed and is not breathing. How do I do CPR?"))
+    }
+
+    @Test fun aSwollenAnkleThatCannotTakeWeightIsASprainOrFracture() {
+        assertEquals("fractures-sprains", match("My friend fell while we were climbing and now his ankle is swollen and he cannot put weight on it, we are three hours from the trailhead and it is getting dark, what should we do right now?"))
+        assertEquals("fractures-sprains", match("I twisted my ankle on the trail, what should I do?"))
+    }
+
+    @Test fun aLongAccountOfAnInjuryStillGetsItsGuide() {
+        assertEquals("burns", match("We are camping and my son touched the hot stove and burned his hand, the skin is red and blistering and he is crying a lot, there is no signal here and the nearest town is far, how do I treat it?"))
+    }
+
+    @Test fun excerptsIdentifyThePublisherWithoutClaimingOfficialAuthority() {
+        for (id in listOf("choking", "drowning", "snakebite")) {
+            val guide = book.guides.single { it.id == id }
+            val excerpt = EmergencyGuideMatch.officialSteps(EmergencyGuideMatch.sections(guide).first(), 2, guide.source.publisher)
+            assertTrue(excerpt, excerpt.startsWith("**Source excerpt from ${guide.source.publisher}, as published** [S2]"))
+            assertFalse(excerpt, excerpt.contains("Official steps"))
+        }
     }
 
     @Test fun answersKeepThePublishedWordingAndCiteTheSource() {

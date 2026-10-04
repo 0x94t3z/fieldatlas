@@ -424,6 +424,7 @@ object VenueLookup {
             open > 0 -> append("$open of the ${listings.size} places below ${if (open == 1) "is" else "are"} open now $checked; open places are listed first")
             unknown == listings.size -> append(if (unknown == 1) "I can't tell whether this place is open now: its hours aren't recorded in a form I can check"
                 else "I can't tell which of these places are open now: their hours aren't recorded in a form I can check")
+            unknown > 0 -> append("None of the places below can be confirmed open now $checked")
             else -> append("None of the places below is open now $checked")
         }
         if (unknown in 1 until listings.size) {

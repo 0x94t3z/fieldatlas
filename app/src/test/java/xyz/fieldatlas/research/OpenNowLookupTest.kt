@@ -51,7 +51,8 @@ class OpenNowLookupTest {
     @Test fun placesWithoutReadableHoursAreNeitherCalledOpenNorClosed() {
         val result = VenueLookup.answer("Which pharmacies in Berlin are open now?", listOf(weekdays, unreadable, noHours), sundayNight)!!
         assertEquals(listOf(unreadable, noHours, weekdays), result.sources)
-        assertTrue(result.answer, result.answer.startsWith("None of the places below is open now by the opening hours mappers recorded, checked against this phone's clock (Sun 21:30). 2 have no hours I can check. That assumes"))
+        assertTrue(result.answer, result.answer.startsWith("None of the places below can be confirmed open now by the opening hours mappers recorded, checked against this phone's clock (Sun 21:30). 2 have no hours I can check. That assumes"))
+        assertFalse(result.answer, "None of the places below is open now" in result.answer)
         assertTrue(result.answer, "Linden-Apotheke** — pharmacy. Coordinates: 52.50000, 13.40000. Hours in source: sunrise-sunset." in result.answer)
         assertTrue(result.answer, "Stern-Apotheke** — pharmacy. Coordinates: 52.50000, 13.40000. No opening hours recorded." in result.answer)
     }
@@ -60,6 +61,19 @@ class OpenNowLookupTest {
         val result = VenueLookup.answer("Which pharmacies in Berlin are open now?", listOf(unreadable, noHours), sundayNight)!!
         assertTrue(result.answer, result.answer.startsWith("I can't tell which of these places are open now: their hours aren't recorded in a form I can check. OpenStreetMap lists"))
         assertFalse(result.answer, "phone's clock" in result.answer)
+    }
+
+    @Test fun nearbyClosedAndUnknownHoursDoNotClaimEveryPlaceIsClosed() {
+        val result = VenueLookup.nearbyAnswer("pharmacy open now near me", listOf(NearbyPlace(weekdays, 0.2), NearbyPlace(noHours, 0.4)), 2.0, sundayNight)
+        assertTrue(result.answer, result.answer.startsWith("None of the places below can be confirmed open now"))
+        assertTrue(result.answer, "1 has no hours I can check" in result.answer)
+        assertFalse(result.answer, "None of the places below is open now" in result.answer)
+    }
+
+    @Test fun knownClosedHoursCanStillBeReportedAsClosed() {
+        val result = VenueLookup.answer("Which pharmacies in Berlin are open now?", listOf(weekdays), sundayNight)!!
+        assertTrue(result.answer, result.answer.startsWith("None of the places below is open now"))
+        assertFalse(result.answer, "no hours I can check" in result.answer)
     }
 
     @Test fun lateNightHoursFromTheDayBeforeStillCount() {

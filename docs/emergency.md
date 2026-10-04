@@ -6,7 +6,7 @@ Field Atlas answers first-aid, outdoor and disaster questions offline, from the 
 
 The app finds the matching bundled guide and gives its most relevant sections to the language model as its only evidence. The answer has three parts:
 
-1. **Official steps, as published.** The guide's key section, word for word with its source cited, appears at once, before the model starts writing.
+1. **Source excerpt, as published.** The guide's key section, word for word with its source cited, appears at once, before the model starts writing.
 2. **For this situation.** The model's answer for the question as asked (“my child burned her hand on a hot pan”), in cited steps. It is told to use only the guide, to add no treatments, medicines or doses, and to say what the guide does not cover.
 3. **A safety line written by the app:** call your local emergency number first, plus a note when the guide was written for the United States.
 
@@ -24,5 +24,5 @@ Sources: CDC, NIOSH, NIH (MedlinePlus health-topic summaries and NIAMS), the Nat
 - **Many guides are written for the United States** and say so in the answer: phone numbers differ, and some advice is US-specific. Snakebite, spider and insect guides describe North American species; for example, Australian elapid and funnel-web bites are treated with a pressure-immobilization bandage, which the US guide does not cover.
 - **Severe bleeding is thin.** The bundled public-domain guide (U.S. Fire Administration) covers direct pressure only; no public-domain page with tourniquet steps could be bundled. The Wikipedia bleeding-control article is encyclopedic and plays down tourniquets, which differs from current “Stop the Bleed” teaching.
 - **The choking and drowning guides are Wikipedia text**, not an official protocol. **Shock** lists symptoms without steps. **Burns** (Ready.gov) says to cool a burn for 10–15 minutes; many current guidelines say 20.
-- The model's part can still condense or misstate a step: in desktop tests with the 2B model, 10 of 12 emergency answers were clean, and two contained a garbled sentence (for example “do not boil cloudy water”, where the guide says to filter it first). The official steps above the model's answer keep the exact wording; follow them when the two differ.
+- The model's part can still condense or misstate a step: in desktop tests with the 2B model, 10 of 12 emergency answers were clean, and two contained a garbled sentence (for example “do not boil cloudy water”, where the guide says to filter it first). The source excerpt above the model's answer keeps the guide's exact wording; follow it when the two differ.
 - Matching uses keywords and phrasing; an unusual wording may get a normal research answer instead of a guide.
