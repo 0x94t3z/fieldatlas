@@ -30,6 +30,10 @@ data class ResearchMetrics(
     val generatedTokenCount: Int,
     val citedSourceIds: Set<String>,
     val hasUnmappedCitation: Boolean,
+    /** Prompt tokens the model read before writing, as the engine counted them; null when unknown. */
+    val promptTokens: Int? = null,
+    /** Time the model spent reading the prompt, from the request to its first token. */
+    val promptMillis: Long? = null,
 )
 
 data class PromptSource(

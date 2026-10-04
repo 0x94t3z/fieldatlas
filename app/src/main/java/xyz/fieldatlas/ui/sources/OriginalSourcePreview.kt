@@ -38,6 +38,8 @@ import xyz.fieldatlas.attachments.AttachmentPolicy
 import xyz.fieldatlas.attachments.TextAttachmentDecoder
 import xyz.fieldatlas.attachments.TextFileTypes
 import xyz.fieldatlas.ui.research.AttachmentImagePreview
+import xyz.fieldatlas.attachments.DocumentTextReader
+import xyz.fieldatlas.attachments.readNBytesCompat
 
 private data class OriginalContent(val text: String? = null, val bitmap: Bitmap? = null,
     val pages: Int = 1, val page: Int = 1, val loading: Boolean = true, val failed: Boolean = false)
@@ -51,11 +53,17 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
     var page by rememberSaveable(original.file.path, citedPage) { mutableIntStateOf(citedPage.coerceAtLeast(1)) }
     val content by produceState(OriginalContent(), original, page) {
         value = OriginalContent()
-        value = withContext(Dispatchers.IO) {
+        val loaded = withContext(Dispatchers.IO) {
             try {
                 when (original.kind) {
                     AttachmentKind.TEXT -> OriginalContent(text = original.file.inputStream().use {
-                        TextAttachmentDecoder.decode(AttachmentPolicy.readBounded(it))
+                        // Bounded like extraction: a huge log shows its start instead of exhausting memory.
+                        val bytes = it.readNBytesCompat(AttachmentPolicy.MAX_CHARACTERS * 4)
+                        TextAttachmentDecoder.decodeText(bytes, inputTruncated = original.file.length() > bytes.size).text
+                    }, loading = false)
+                    AttachmentKind.DOCUMENT -> OriginalContent(text = DocumentTextReader.read(original.file, title).let { pages ->
+                        val noun = DocumentTextReader.pageNoun(title).replaceFirstChar(Char::uppercaseChar)
+                        if (pages.size == 1) pages.single().text else pages.joinToString("\n\n") { "$noun ${it.number}\n${it.text}" }
                     }, loading = false)
                     AttachmentKind.PDF -> ParcelFileDescriptor.open(original.file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
                         PdfRenderer(descriptor).use { renderer ->
@@ -75,6 +83,9 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
             } catch (cancelled: CancellationException) { throw cancelled
             } catch (_: Exception) { OriginalContent(loading = false, failed = true) }
         }
+        // Publish on the main thread: a state write from the I/O worker could miss the next
+        // recomposition and leave the loading spinner up although the file had been read.
+        withContext(Dispatchers.Main.immediate) { value = loaded }
     }
     val clipboard = LocalClipboardManager.current
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {

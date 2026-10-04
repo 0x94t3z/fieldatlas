@@ -1,8 +1,13 @@
 package xyz.fieldatlas.research
 
+import java.time.LocalDateTime
+import java.time.format.TextStyle
+import java.util.Locale
+
 /** A fast, source-only path for simple local place lookups. No model claim or ranking. */
 object VenueLookup {
-    data class Result(val answer: String, val sources: List<Evidence>)
+    /** [openNow] counts listed places open by their recorded hours, when the question asked. */
+    data class Result(val answer: String, val sources: List<Evidence>, val openNow: Int? = null)
 
     private val venueWords = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|museums?|sights?|attractions?|hotels?|hostels?|shops?|stores?|bars?)\\b")
     private val lookupWords = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|any|need|is there|are there)\\b")
@@ -66,17 +71,43 @@ object VenueLookup {
         // Plain lookups, and trip questions ("suggest a vegan food stop and a museum") whose own
         // keywords can miss every place listing ("offline" found a café called Offline instead).
         if (!isLookup(question) && !foodWords.containsMatchIn(question) && !restaurantWords.containsMatchIn(question)) return null
-        val destination = evidence.asSequence()
-            .filter { isOsmPlace(it) || it.documentId.startsWith("wv-place-") }
-            .mapNotNull { field(it.text, "Destination")?.substringBefore('/') }
-            .firstOrNull { Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(it)}(?![\\p{L}\\p{N}])").containsMatchIn(question) }
-            ?: return null
+        val destination = destinationIn(question, evidence) ?: return null
         val noun = when {
             Regex("(?i)\\bcaf[eé]s?\\b").containsMatchIn(question) -> " cafe"
             Regex("(?i)\\b(restaurants?|dining)\\b").containsMatchIn(question) -> " restaurant"
             else -> ""
         }
         return "fully vegan $destination$noun"
+    }
+
+    /** The city a question names, as spelled in the place listings already retrieved for it. */
+    private fun destinationIn(question: String, evidence: List<Evidence>): String? = evidence.asSequence()
+        .filter { isOsmPlace(it) || it.documentId.startsWith("wv-place-") }
+        .mapNotNull { field(it.text, "Destination")?.substringBefore('/') }
+        .firstOrNull { Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(it)}(?![\\p{L}\\p{N}])").containsMatchIn(question) }
+
+    private val museumWord = Regex("(?i)\\b(museums?|galler(?:y|ies))\\b")
+
+    /**
+     * A question asking for a museum in a city whose listings were retrieved ("suggest a vegan
+     * food stop and a museum visit in Berlin") gets one more search for that city's museums: the
+     * question's food words otherwise fill every slot, and the answer reaches for whatever the
+     * city overview mentions (a zoo) instead.
+     */
+    fun museumQuery(question: String, evidence: List<Evidence>): String? {
+        if (!museumWord.containsMatchIn(question)) return null
+        return destinationIn(question, evidence)?.let { "$it museum" }
+    }
+
+    /** Sight listings in that city that are museums or galleries by name or type. */
+    fun museumListings(question: String, candidates: List<Evidence>, evidence: List<Evidence>): List<Evidence> {
+        val destination = destinationIn(question, evidence) ?: return emptyList()
+        return candidates.filter { item ->
+            (isOsmPlace(item) || item.documentId.startsWith("wv-place-")) &&
+                field(item.text, "Category") == "See" &&
+                field(item.text, "Destination")?.substringBefore('/').equals(destination, ignoreCase = true) &&
+                (museumWord.containsMatchIn(field(item.text, "Place").orEmpty()) || museumWord.containsMatchIn(field(item.text, "Type").orEmpty()))
+        }
     }
 
     private data class Request(
@@ -163,10 +194,13 @@ object VenueLookup {
             fee = field(item.text, "Fee"),
             emergency = field(item.text, "Emergency department"),
             wheelchair = field(item.text, "Wheelchair access"),
+            latitude = field(item.text, "Latitude")?.toDoubleOrNull(),
+            longitude = field(item.text, "Longitude")?.toDoubleOrNull(),
         )
     }
 
-    fun answer(question: String, evidence: List<Evidence>): Result? {
+    /** [now] is this phone's local time, used only when the question asks what is open now. */
+    fun answer(question: String, evidence: List<Evidence>, now: LocalDateTime = LocalDateTime.now()): Result? {
         if (!isLookup(question)) return null
         val request = request(question)
         val diet = request.diet
@@ -184,7 +218,9 @@ object VenueLookup {
             // question keeps meal places whenever there are any.
             val meals = osm.filter { it.type in MEAL_TYPES }
             val chosen = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else osm
-            return osmAnswer(question, diet, chosen.take(OSM_LISTINGS), request.essential?.noun)
+            val clock = now.takeIf { openNow.containsMatchIn(question) }
+            val ordered = clock?.let { time -> chosen.sortedBy { openRank(it.hours, time) } } ?: chosen
+            return osmAnswer(question, diet, ordered.take(OSM_LISTINGS), request.essential?.noun, clock)
         }
         val shown = listings.take(4)
 
@@ -262,8 +298,9 @@ object VenueLookup {
      * fully vegan place 9 km away never outranks one around the corner; within a band, fully
      * vegan places lead when vegan food was asked for.
      */
-    fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double): Result {
+    fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now()): Result {
         val request = request(question)
+        val clock = now.takeIf { openNow.containsMatchIn(question) }
         val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
         val matched = places.mapNotNull { place ->
             listing(place.evidence, question, request, destinationRequired = false)?.let { it to place.distanceKm }
@@ -271,6 +308,9 @@ object VenueLookup {
         val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES }
         val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
         val chosen = pool.sortedWith(compareBy(
+            // "Pharmacy open now near me": a place open by its recorded hours comes before a
+            // closer one recorded as closed.
+            { (listing, _) -> clock?.let { openRank(listing.hours, it) } ?: 0 },
             { (_, distance) -> DISTANCE_BANDS_KM.indexOfFirst { distance <= it }.let { if (it < 0) DISTANCE_BANDS_KM.size else it } },
             { (listing, _) -> if (request.diet == "vegan" && listing.vegan == "fully vegan") 0 else 1 },
             { (_, distance) -> distance },
@@ -282,6 +322,7 @@ object VenueLookup {
         }
         val snapshot = chosen.firstNotNullOfOrNull { (listing, _) -> listing.snapshot }
         val answer = buildString {
+            clock?.let { appendOpenSummary(chosen.map { (listing, _) -> listing }, it, city = null) }
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline; nearest places are listed first")
                 append(if (request.diet == "vegan") ", fully vegan first within each distance. " else ". ")
@@ -300,7 +341,7 @@ object VenueLookup {
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 append('.')
                 listing.location?.takeIf(String::isNotBlank)?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
-                listing.hours?.takeIf(String::isNotBlank)?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
+                appendHours(listing, clock)
                 listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
@@ -312,17 +353,16 @@ object VenueLookup {
             append("\nDistances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings. ")
             append("Tags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
         }
-        return Result(answer, chosen.map { (listing, _) -> listing.evidence })
+        return Result(answer, chosen.map { (listing, _) -> listing.evidence },
+            clock?.let { time -> chosen.count { (listing, _) -> OpeningHours.status(listing.hours, time) is OpeningHours.Status.Open } })
     }
 
     /** OpenStreetMap wording: tags say what mappers recorded, so each place states its label and date. */
-    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String? = null): Result {
+    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String?, clock: LocalDateTime?): Result {
         val city = listings.first().destination
         val snapshot = listings.firstNotNullOfOrNull { it.snapshot }
         val answer = buildString {
-            if (openNow.containsMatchIn(question)) {
-                append("I can't confirm what is open right now: these are the opening hours mappers recorded, which can be out of date. ")
-            }
+            clock?.let { appendOpenSummary(listings, it, city) }
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline")
                 append(if (diet == "vegan") "; fully vegan places are listed first. " else ". ")
@@ -343,8 +383,14 @@ object VenueLookup {
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 listing.extras().takeIf(String::isNotBlank)?.let { append("; ").append(it) }
                 append('.')
-                listing.location?.takeIf(String::isNotBlank)?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
-                listing.hours?.takeIf(String::isNotBlank)?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
+                val address = listing.location?.takeIf(String::isNotBlank)
+                address?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
+                // Many mapped places (most of Tokyo) carry no address; coordinates still find
+                // them in any offline map app.
+                if (address == null && listing.latitude != null && listing.longitude != null) {
+                    append(" Coordinates: ").append("%.5f, %.5f".format(Locale.ROOT, listing.latitude, listing.longitude)).append('.')
+                }
+                appendHours(listing, clock)
                 listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
@@ -353,6 +399,53 @@ object VenueLookup {
             append("\nTags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
         }
         return Result(answer, listings.map(Listing::evidence))
+    }
+
+    private fun openRank(hours: String?, now: LocalDateTime) = when (OpeningHours.status(hours, now)) {
+        is OpeningHours.Status.Open -> 0
+        OpeningHours.Status.Unknown -> 1
+        OpeningHours.Status.Closed -> 2
+    }
+
+    private fun clockLabel(now: LocalDateTime) =
+        "%s %02d:%02d".format(Locale.ROOT, now.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH), now.hour, now.minute)
+
+    /**
+     * Opening state from mapped hours and the phone's clock. Offline there is no live status and
+     * no time-zone database for a named city, so the answer says what it assumed.
+     */
+    private fun StringBuilder.appendOpenSummary(listings: List<Listing>, now: LocalDateTime, city: String?) {
+        val statuses = listings.map { OpeningHours.status(it.hours, now) }
+        val open = statuses.count { it is OpeningHours.Status.Open }
+        val unknown = statuses.count { it == OpeningHours.Status.Unknown }
+        val checked = "by the opening hours mappers recorded, checked against this phone's clock (${clockLabel(now)})"
+        when {
+            open == listings.size -> append(if (open == 1) "This place is open now $checked" else "All $open places below are open now $checked")
+            open > 0 -> append("$open of the ${listings.size} places below ${if (open == 1) "is" else "are"} open now $checked; open places are listed first")
+            unknown == listings.size -> append(if (unknown == 1) "I can't tell whether this place is open now: its hours aren't recorded in a form I can check"
+                else "I can't tell which of these places are open now: their hours aren't recorded in a form I can check")
+            else -> append("None of the places below is open now $checked")
+        }
+        if (unknown in 1 until listings.size) {
+            append(". ").append(if (unknown == 1) "1 has" else "$unknown have").append(" no hours I can check")
+        }
+        append(". ")
+        if (unknown < listings.size) {
+            city?.let { append("That assumes the phone is set to ").append(it).append("'s local time. ") }
+            append("Recorded hours can be out of date and don't account for public holidays. ")
+        }
+    }
+
+    private fun StringBuilder.appendHours(listing: Listing, clock: LocalDateTime?) {
+        val hours = listing.hours?.takeIf(String::isNotBlank)
+        if (clock != null) {
+            when (val status = OpeningHours.status(hours, clock)) {
+                is OpeningHours.Status.Open -> append(" **Open now**").append(status.until?.let { " until %02d:%02d".format(Locale.ROOT, it.hour, it.minute) } ?: "").append('.')
+                OpeningHours.Status.Closed -> append(" **Closed now**.")
+                OpeningHours.Status.Unknown -> if (hours == null) append(" No opening hours recorded.")
+            }
+        }
+        hours?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
     }
 
     private data class Listing(
@@ -372,6 +465,8 @@ object VenueLookup {
         val fee: String? = null,
         val emergency: String? = null,
         val wheelchair: String? = null,
+        val latitude: Double? = null,
+        val longitude: Double? = null,
     ) {
         /** Practical details for essentials, as short clauses. */
         fun extras(): String = listOfNotNull(

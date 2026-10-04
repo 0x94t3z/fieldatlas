@@ -16,6 +16,10 @@ class ResearchOrchestrator(
     private val monotonicMillis: () -> Long = { System.nanoTime() / 1_000_000L },
     /** The phone's position for "near me" questions only; null when unavailable or not allowed. */
     private val location: suspend () -> GeoPoint? = { null },
+    /** Bundled first-aid and safety guides; an emergency question is answered from these, never by the model. */
+    private val emergencyGuides: () -> List<xyz.fieldatlas.emergency.EmergencyGuide> = { emptyList() },
+    /** Learned prompt-reading speed; sizes file evidence to the phone. */
+    private val prefillSpeed: PrefillSpeed = InMemoryPrefillSpeed(),
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -69,6 +73,22 @@ class ResearchOrchestrator(
                 )))
                 return@flow
             }
+            // An emergency question is answered by the model from the matching official guide only
+            // (strict, cited). If the model cannot run, the guide itself is shown as published.
+            val guide = if (attachments.isEmpty()) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) else null
+            if (guide != null && inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready) {
+                emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
+                emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide)))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = 0,
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = setOf("S1"),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             if (attachments.isEmpty() && VenueLookup.isNearMe(question)) {
                 emit(ResearchEvent.Searching(question))
                 val point = runCatching { location() }.getOrNull()
@@ -76,13 +96,18 @@ class ResearchOrchestrator(
                 // Widen the circle only when the closer one has too few matches: a dense city
                 // answers from a small box, a village still finds the station 12 km away.
                 var result: VenueLookup.Result? = null
-                if (point != null) for (radius in NEARBY_RADII_KM) {
+                // Help in the countryside or on a trail can be far away: health, safety and water
+                // keep widening past city scale; a restaurant 80 km off is not an answer.
+                val radii = if (categories.any { it in FAR_REACH }) NEARBY_RADII_KM + FAR_RADII_KM else NEARBY_RADII_KM
+                if (point != null) for (radius in radii) {
                     result = VenueLookup.nearbyAnswer(
                         question,
                         retriever.nearby(point, radius, NEARBY_CANDIDATES, categories),
                         radius,
                     )
-                    if (result.sources.size >= NEARBY_ENOUGH) break
+                    // "Pharmacy open now near me" at night: six closed pharmacies close by are not
+                    // an answer while the wider circle may hold one that is open.
+                    if (result.sources.size >= NEARBY_ENOUGH && result.openNow != 0) break
                 }
                 _searchProgress.value = 1.0
                 val retrievedAt = monotonicMillis()
@@ -104,7 +129,7 @@ class ResearchOrchestrator(
             // passage; the prompt still receives at most resultLimit sources.
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
-            val includeLibrary = attachments.isEmpty() || AttachmentScope.includesLibrary(question)
+            val includeLibrary = guide == null && (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
             val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
@@ -120,7 +145,7 @@ class ResearchOrchestrator(
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (attachments.isEmpty() && evidence.isEmpty() && retriever.hasEligiblePacks(question) &&
+            if (guide == null && attachments.isEmpty() && evidence.isEmpty() && retriever.hasEligiblePacks(question) &&
                 !EvidenceRelevance.isShortCausalQuestion(question)) {
                 emit(ResearchEvent.Planning(question))
                 try {
@@ -158,7 +183,7 @@ class ResearchOrchestrator(
             }
             // Fully vegan places can be a small minority of a city's vegan-tagged listings; one
             // more precise keyword pass puts them in front of the general matches.
-            if (attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
+            if (guide == null && attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
                 val focused = EvidenceRelevance.keep(
                     retriever.searchForQuestion(query, question, candidateLimit, placesOnly = true) { progress ->
                         _searchProgress.value = progress.fraction
@@ -168,8 +193,17 @@ class ResearchOrchestrator(
                 )
                 evidence = (focused + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
+            // A trip question that also asks for a museum gets that city's museums, not the zoo
+            // its overview happens to mention.
+            if (guide == null && attachments.isEmpty()) VenueLookup.museumQuery(question, evidence)?.let { query ->
+                val museums = VenueLookup.museumListings(question,
+                    retriever.searchForQuestion(query, question, candidateLimit, placesOnly = true) { progress ->
+                        _searchProgress.value = progress.fraction
+                    }, evidence)
+                if (museums.isNotEmpty()) evidence = (museums.take(MUSEUM_SLOTS) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+            }
             val retrievalFinishedAt = monotonicMillis()
-            (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
+            (if (guide == null && attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
                 val answerAt = monotonicMillis()
                 emit(ResearchEvent.Token(venue.answer))
@@ -185,7 +219,7 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
-            if (attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
+            if (guide == null && attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
                 // A source-only request cannot be satisfied by unsupported model knowledge.
                 // Finish normally so history and answer navigation retain the existing flow.
                 val answerAt = monotonicMillis()
@@ -201,9 +235,15 @@ class ResearchOrchestrator(
                 return@flow
             }
             val outputBudget = if (attachments.isEmpty()) maxOutputTokens else minOf(maxOutputTokens, inference.contextWindowTokens / 4).coerceAtLeast(1)
-            val packed = if (attachments.isNotEmpty()) {
-                AttachmentEvidence.pack(question, AttachmentEvidence.select(question, attachments, maxOf(resultLimit, attachments.size)), evidence,
-                    minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget)
+            // Ranked candidates beyond what fits are cheap; packing keeps only what the budget allows.
+            val selection = if (attachments.isNotEmpty()) AttachmentEvidence.select(question, attachments, maxOf(ATTACHMENT_CANDIDATES, attachments.size)) else null
+            val packed = if (selection != null) {
+                AttachmentEvidence.pack(question, selection, evidence,
+                    minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
+                    evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond))
+            } else if (guide != null) {
+                PromptBuilder.buildGuide(question, xyz.fieldatlas.emergency.EmergencyGuideMatch.select(question, guide,
+                    PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond)))
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
@@ -246,8 +286,18 @@ class ResearchOrchestrator(
             // A verbatim overview opening is only composed with mixed answers, whose stream
             // already replaces the whole answer on every token.
             val lead = if (attachments.isEmpty() && packed.mixedAnswer) SourceLead.select(question, packed.sources) else null
+            // For an emergency the official steps appear at once, word for word; the model's answer
+            // for the person's situation streams in below them (it can take a minute on a slow phone).
+            val guideLead = guide?.let { g ->
+                packed.sources.firstOrNull()?.let { key ->
+                    xyz.fieldatlas.emergency.EmergencyGuideMatch.officialSteps(key.evidence, 1, g.source.publisher) + "\n\n**For this situation**\n\n"
+                }
+            }
             if (lead != null) {
                 emit(ResearchEvent.Lead(lead.render()))
+            } else if (guideLead != null) {
+                // A lead, not a token: the progress line keeps showing how much the model has read.
+                emit(ResearchEvent.Lead(guideLead))
             } else {
                 // Field Atlas: an empty token flips the UI into the "writing" phase before the
                 // first real token arrives, so prefill progress can show as tokens read/written.
@@ -258,12 +308,18 @@ class ResearchOrchestrator(
 
             val attributionEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
             var firstTokenAt: Long? = null
+            var promptTokensRead: Int? = null
             var generatedTokenCount = 0
             val output = StringBuilder()
             var generationFailed = false
+            val generateStartedAt = monotonicMillis()
             try {
                 inference.generate(packed.prompt, outputBudget).collect { token ->
-                    if (firstTokenAt == null) firstTokenAt = monotonicMillis()
+                    if (firstTokenAt == null) {
+                        firstTokenAt = monotonicMillis()
+                        // The engine's own count; read before it clears its progress.
+                        promptTokensRead = inference.promptProgress.value?.total?.takeIf { it > 0 }
+                    }
                     generatedTokenCount++
                     output.append(token)
                     emit(if (packed.mixedAnswer) {
@@ -276,10 +332,16 @@ class ResearchOrchestrator(
                 // The verbatim lead is already a useful, cited answer. Keep it rather than
                 // discarding it because the slower explanation failed; without a lead the
                 // failure still surfaces exactly as before.
-                if (lead == null) throw error
+                // An emergency question still gets its guide, as published, if the model fails.
+                if (lead == null && guide == null) throw error
                 generationFailed = true
             }
             val finishedAt = monotonicMillis()
+            // Learn this phone's reading speed from the wait before the first token.
+            firstTokenAt?.let { first ->
+                prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
+                    TokenEstimate.of(packed.prompt), first - generateStartedAt)
+            }
             // Evidence-only answers: move a citation to the source its details actually come from
             // and correct a 12-hour time that disagrees with the 24-hour time the source states.
             val checked = if (packed.mixedAnswer) output.toString()
@@ -289,13 +351,21 @@ class ResearchOrchestrator(
                 )
                 .let { text ->
                     if (packed.mixedAnswer || generationFailed) text
+                    else if (guide != null) "${guideLead.orEmpty()}$text\n\n_${xyz.fieldatlas.emergency.EmergencyGuideMatch.safetyNote(guide)}_"
                     else AnswerChecks.exceptionNote(question, attributionEvidence)?.let { "$text\n\n_${it}_" } ?: text
+                }
+                .let { text ->
+                    // Written by the app, not the model, so a partial read is always disclosed.
+                    val coverage = selection?.let { AttachmentEvidence.coverageSummary(it, packed.sources.map { s -> s.evidence }, attachments) }
+                    if (coverage == null || generationFailed) text else "$text\n\n_${coverage}_"
                 }
             if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
             val modelText = if (packed.mixedAnswer) AnswerText.mixed(output.toString(), attributionEvidence) else checked
-            val attributed = if (generationFailed) {
-                compose(modelText) + "\n\n_The model explanation could not be completed._"
-            } else compose(modelText)
+            val attributed = when {
+                generationFailed && guide != null -> xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide)
+                generationFailed -> compose(modelText) + "\n\n_The model explanation could not be completed._"
+                else -> compose(modelText)
+            }
             if (generationFailed) emit(ResearchEvent.Token(attributed, replace = true))
             val citations = AnswerText.citationAudit(attributed, packed.sources.size)
             val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
@@ -310,6 +380,8 @@ class ResearchOrchestrator(
                         hasUnmappedCitation = citations.hasUnmappedCitation || rawCitations.hasUnmappedCitation ||
                             // Compare model text only: the lead adds its own valid marker and would mask drops.
                             AnswerText.citationMarkerCount(modelText) < AnswerText.citationMarkerCount(output.toString()),
+                        promptTokens = promptTokensRead,
+                        promptMillis = firstTokenAt?.let { it - generateStartedAt },
                     ),
                 ),
             )
@@ -325,9 +397,13 @@ class ResearchOrchestrator(
 
     private companion object {
         const val KEYWORD_SEED = 17
+        const val ATTACHMENT_CANDIDATES = 16
+        const val MUSEUM_SLOTS = 3
         /** City scale: "the city I'm in" and "near me" both fit; the answer states distances. */
         const val NEARBY_RADIUS_KM = 15.0
         val NEARBY_RADII_KM = listOf(2.0, 5.0, NEARBY_RADIUS_KM)
+        val FAR_RADII_KM = listOf(50.0, 100.0)
+        val FAR_REACH = setOf("Health", "Safety", "Water")
         const val NEARBY_ENOUGH = 6
         const val NEARBY_CANDIDATES = 200
     }

@@ -41,11 +41,13 @@ class SuiteFailureRegressionTest {
         assertFalse(surgery in EvidenceRelevance.keep(listOf(surgery), FtsQuery.from(question)!!.terms, question = question))
     }
 
-    @Test fun anOpenNowLookupSaysItCannotConfirmLiveHours() {
+    @Test fun anOpenNowLookupChecksRecordedHoursAgainstThePhoneClock() {
         val question = "Which of the saved Berlin vegan restaurants is open right now?"
         val listing = place("Eat", "Daizu").let { it.copy(text = it.text + "\nHours in source: Mo-Su 12:00-22:00\nMap data snapshot: 2026-10-02 (© OpenStreetMap contributors)") }
-        val answer = VenueLookup.answer(question, listOf(listing))!!.answer
-        assertTrue(answer, answer.startsWith("I can't confirm what is open right now"))
+        val answer = VenueLookup.answer(question, listOf(listing), java.time.LocalDateTime.of(2026, 10, 4, 13, 0))!!.answer
+        assertTrue(answer, answer.startsWith("This place is open now by the opening hours mappers recorded, checked against this phone's clock (Sun 13:00)."))
+        assertTrue(answer, "That assumes the phone is set to Berlin's local time." in answer)
+        assertTrue(answer, "**Open now** until 22:00." in answer)
     }
 
     @Test fun aTripQuestionNamingACityAsksThePlaceCollectionsForVeganFood() {

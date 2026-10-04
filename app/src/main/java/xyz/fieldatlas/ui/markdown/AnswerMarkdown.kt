@@ -3,7 +3,8 @@ package xyz.fieldatlas.ui.markdown
 sealed interface MarkdownBlock {
     data class Heading(val level: Int, val content: List<MarkdownInline>) : MarkdownBlock
     data class Paragraph(val content: List<MarkdownInline>) : MarkdownBlock
-    data class ListBlock(val ordered: Boolean, val items: List<List<MarkdownInline>>) : MarkdownBlock
+    /** [depths] gives each item's nesting level (0 = top), from two-space indentation. */
+    data class ListBlock(val ordered: Boolean, val items: List<List<MarkdownInline>>, val depths: List<Int> = emptyList()) : MarkdownBlock
     data class Quote(val content: List<MarkdownInline>) : MarkdownBlock
     data class CodeBlock(val code: String, val language: String?) : MarkdownBlock
     data class Table(
@@ -145,13 +146,18 @@ private class MarkdownParser(markdown: String) {
 
     private fun parseList(ordered: Boolean): MarkdownBlock.ListBlock {
         val items = mutableListOf<List<MarkdownInline>>()
+        val depths = mutableListOf<Int>()
         while (index < lines.size) {
-            val item = if (ordered) orderedItem(lines[index]) else unorderedItem(lines[index])
-            if (item == null) break
+            val line = lines[index]
+            // A nested item may use the other marker style ("1." under "-"), so accept both here.
+            val item = (if (ordered) orderedItem(line) else unorderedItem(line))
+                ?: (if (items.isNotEmpty() && indentOf(line) >= 2) (unorderedItem(line) ?: orderedItem(line)) else null)
+                ?: break
             items += parseInline(item)
+            depths += (indentOf(line) / 2).coerceAtMost(3)
             index += 1
         }
-        return MarkdownBlock.ListBlock(ordered, items)
+        return MarkdownBlock.ListBlock(ordered, items, if (depths.all { it == 0 }) emptyList() else depths)
     }
 
     private fun parseQuote(): MarkdownBlock.Quote {
@@ -311,6 +317,8 @@ private class MarkdownParser(markdown: String) {
         fun unorderedItem(line: String): String? = unorderedPattern.matchEntire(line)?.groupValues?.get(1)
 
         fun orderedItem(line: String): String? = orderedPattern.matchEntire(line)?.groupValues?.get(1)
+
+        fun indentOf(line: String): Int = line.takeWhile { it == ' ' }.length
 
         fun quoteText(line: String): String? = quotePattern.matchEntire(line)?.groupValues?.get(1)
 

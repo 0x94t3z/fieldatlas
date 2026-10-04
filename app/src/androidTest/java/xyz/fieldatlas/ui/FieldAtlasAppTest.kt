@@ -98,7 +98,8 @@ class FieldAtlasAppTest {
                 }
             }
         }
-        compose.onNodeWithText("Start research").assertIsDisplayed().assertHasClickAction()
+        // Reachable means one scroll away at 200% font on a narrow phone, not necessarily on screen.
+        compose.onNodeWithText("Start research").performScrollTo().assertIsDisplayed().assertHasClickAction()
     }
 
     @Test fun verifiedPacksEnableResearch() {
@@ -122,8 +123,10 @@ class FieldAtlasAppTest {
                 LibraryScreen(verifiedPacks(), onImportPack = {}, importing = true)
             }
         }
-        compose.onNodeWithText("Verifying pack on this device…")
-            .assertExists().assertIsNotEnabled()
+        // Import is disabled while a pack verifies; the rest of Library stays usable.
+        compose.onNodeWithContentDescription("Import a pack").assertIsNotEnabled()
+        compose.onNodeWithText("Verifying…", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription("Use Knowledge pack in research").assertIsEnabled()
     }
 
     @Test fun finishedResearchShowsRealPreviewWithoutASecondStartButton() {
@@ -167,10 +170,12 @@ class FieldAtlasAppTest {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
 
-        compose.waitUntil { compose.onAllNodesWithText("1 cited local source · answered offline").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil { compose.onAllNodesWithText("1 cited local source").fetchSemanticsNodes().isNotEmpty() }
+        // A citation opens a quick preview first; the full source is one tap further.
         compose.onNodeWithContentDescription("Open source 1").performClick()
+        compose.onNodeWithText("Full source").performClick()
         compose.onNodeWithContentDescription("Back").assertExists().performClick()
-        compose.onNodeWithText("1 cited local source · answered offline").assertExists()
+        compose.onNodeWithText("1 cited local source").assertExists()
         compose.onNodeWithText("Library").assertDoesNotExist()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Library").assertExists()
@@ -179,13 +184,15 @@ class FieldAtlasAppTest {
     @Test fun citationOpensExactPassage() {
         val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
-        compose.waitUntil { compose.onAllNodesWithText("1 cited local source · answered offline").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil { compose.onAllNodesWithText("1 cited local source").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
-        compose.onNodeWithText("Source details").performClick()
-        compose.onNodeWithText("Document doc").assertExists()
-        compose.onNodeWithText("Chunk doc:0000").assertExists()
-        compose.onNodeWithText("CC0-1.0").assertExists()
+        compose.onNodeWithText("Full source").performClick()
+        compose.onNodeWithText("Exact passage text.").assertExists()
+        compose.onNodeWithText("CC0-1.0", substring = true).performScrollTo().assertExists()
+        compose.onNodeWithText("Technical identifiers").performScrollTo().performClick()
+        compose.onNodeWithText("doc").performScrollTo().assertExists()
+        compose.onNodeWithText("doc:0000").assertExists()
     }
 
     @Test fun completedResearchRendersMarkdownWithoutControlSymbols() {
@@ -252,9 +259,13 @@ class FieldAtlasAppTest {
     @Test fun libraryShowsBytesHashAndLicense() {
         render()
         compose.onNodeWithText("Library").performClick()
-        compose.onNodeWithText("Apache-2.0 · SHA-256: ${"a".repeat(64)}").assertExists()
-        compose.onNodeWithText("CC0-1.0 · SHA-256: ${"b".repeat(64)}").assertExists()
-        compose.onAllNodesWithText("KB", substring = true).assertCountEquals(2)
+        // Sizes stay on each card; licence and checksum live in the pack's About sheet.
+        compose.onNodeWithText("1.5 KB · v1", substring = true).assertExists()
+        compose.onNodeWithText("2.5 KB · v1", substring = true).assertExists()
+        compose.onNodeWithContentDescription("More options for Knowledge pack").performClick()
+        compose.onNodeWithText("About this collection").performClick()
+        compose.onNodeWithText("CC0-1.0").assertExists()
+        compose.onNodeWithText("${"b".repeat(12)}… verified at install").assertExists()
     }
 
     @Test fun moreShowsNoNetworkState() {

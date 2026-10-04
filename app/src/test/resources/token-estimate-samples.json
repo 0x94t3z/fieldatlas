@@ -1,0 +1,821 @@
+{
+"tokenizer": "Qwen3.5-2B (llama.cpp /tokenize, no special tokens)",
+"samples": [
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Physical-device testing\n\nRun the full matrix on the lowest-memory target first, then repeat the tagged build on a supported Pixel running GrapheneOS. Emulator results do not replace physical-device evidence.\n\nAutomated Compose instrumentation has also run on a paired **Infinix X6840, Android 16/API 36, ARM64**. This is not represented as the Smart 20 or GrapheneOS target. The sanitized record is under `docs/evidence/physical/infinix-x6840-android16/`. It proves native installation and UI execution only; it does not replace the offline model/packs matrix below.\n\nRecord the exact APK, model, and knowledge-pack SHA-256 values; manufacturer/model; Android version/API; ABIs; OS-reported physical RAM; app memory class; measured PSS/RSS; free and installed bytes; airplane/Wi-Fi/mobile state; first-load seconds; retrieval time; time to first token; generated token count and total time; crashes",
+"tokens": 210
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Physical-device testing\\n\\nRun the full matrix on the lowest-memory target first, then repeat the tagged build on a supported Pixel running GrapheneOS. Emulator results do not replace physical-device evidence.\\n\\nAutomated Compose instrumentation has also run on a paired **Infinix X6840, Android 16/API 36, ARM64**. This is not represented as the Smart 20 or GrapheneOS target. The sanitized record is under `docs/evidence/physical/infinix-x6840-android16/`. It proves native installation and UI execution only; it does not replace the offline model/packs matrix below.\\n\\nRecord the exact APK, model, and knowledge-pack SHA-256 values; manufacturer/model; Android version/API; ABIs; OS-reported physical RAM; app memory class; measured PSS/RSS; free and installed bytes; airplane/Wi-Fi/mobile state; first-load seconds; retrieval time; time to first token; generated token count and total time; crashes\"",
+"tokens": 214
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": ", ANRs, and thermal observations.\n\nTest at least:\n\n- clean install and two-pack import;\n- corrupt pack, duplicate version, and insufficient-space rejection;\n- offline launch and research after reboot;\n- a hard explanation, comparison, synthesis, and reasoning query;\n- exact evidence passage navigation;\n- stop during generation, background during generation, unload, and reload;\n- repeated queries until thermal throttling is visible or reasonably excluded;\n- all 18 frozen benchmark prompts.\n\nAirplane mode alone is not sufficient evidence: explicitly verify Wi-Fi and mobile data are off. Capture `dumpsys meminfo`, logcat crash/ANR checks, diagnostics JSON, and unedited screen recording. Publish failures with successes.\n\nWith one USB-connected device, capture the baseline without overwriting prior evidence:\n\n```sh\n./scripts/device_acceptance.sh --configure-radio-state \\\n  app/build/outputs/a",
+"tokens": 191
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\", ANRs, and thermal observations.\\n\\nTest at least:\\n\\n- clean install and two-pack import;\\n- corrupt pack, duplicate version, and insufficient-space rejection;\\n- offline launch and research after reboot;\\n- a hard explanation, comparison, synthesis, and reasoning query;\\n- exact evidence passage navigation;\\n- stop during generation, background during generation, unload, and reload;\\n- repeated queries until thermal throttling is visible or reasonably excluded;\\n- all 18 frozen benchmark prompts.\\n\\nAirplane mode alone is not sufficient evidence: explicitly verify Wi-Fi and mobile data are off. Capture `dumpsys meminfo`, logcat crash/ANR checks, diagnostics JSON, and unedited screen recording. Publish failures with successes.\\n\\nWith one USB-connected device, capture the baseline without overwriting prior evidence:\\n\\n```sh\\n./scripts/device_acceptance.sh --configure-radio-state \\\\\\n  app/build/outputs/a\"",
+"tokens": 198
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "pk/debug/app-debug.apk \\\n  evidence/physical/DEVICE-RUN-ID\n```\n\nDo not use `--configure-radio-state` over wireless ADB: disabling Wi-Fi terminates the transport before the evidence capture can finish.\n",
+"tokens": 48
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"pk/debug/app-debug.apk \\\\\\n  evidence/physical/DEVICE-RUN-ID\\n```\\n\\nDo not use `--configure-radio-state` over wireless ADB: disabling Wi-Fi terminates the transport before the evidence capture can finish.\\n\"",
+"tokens": 53
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Research with your files\n\nThis feature is in v1.2.0 (and was first published in 1.2.0-rc.1); the older v1.1.10 APK does not have it. Offline reader tests and TXT/PDF/photo picker checks have passed on an Infinix running Android 16. Real camera capture, broader model quality, and other devices still need verification.\n\nTap the paperclip in Research, then choose **Camera**, **Photos**, or **Files**. Wait for **Ready**, enter your question, and start research. Long document names keep their beginning and ending visible. Tap a ready document to check its extracted text. Images appear as small thumbnails: tap to preview, pinch or double-tap to zoom, or use the zoom buttons. Choose **Recognized text** to check the extracted words. Close the preview with X; remove an attachment with its row's X or **Remove image**. Removing it does not delete your original.\n\nWith files attached, answers use *",
+"tokens": 209
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Research with your files\\n\\nThis feature is in v1.2.0 (and was first published in 1.2.0-rc.1); the older v1.1.10 APK does not have it. Offline reader tests and TXT/PDF/photo picker checks have passed on an Infinix running Android 16. Real camera capture, broader model quality, and other devices still need verification.\\n\\nTap the paperclip in Research, then choose **Camera**, **Photos**, or **Files**. Wait for **Ready**, enter your question, and start research. Long document names keep their beginning and ending visible. Tap a ready document to check its extracted text. Images appear as small thumbnails: tap to preview, pinch or double-tap to zoom, or use the zoom buttons. Choose **Recognized text** to check the extracted words. Close the preview with X; remove an attachment with its row's X or **Remove image**. Removing it does not delete your original.\\n\\nWith files attached, answers use *\"",
+"tokens": 212
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "*your files by default**, without searching the library. If they do not contain the answer, the app is instructed to say what is missing. To include installed knowledge as well, explicitly add **“also use my library”** to your question. Without attachments, research uses your enabled collections as before.\n\nLibrary opt-in currently recognizes clear English requests such as “use my library,” “include the library,” or “compare these notes with my library.” Ambiguous, quoted, or exclusionary wording stays files-only. Other languages can still be used for file questions, but their library opt-in wording is not yet recognized. Citations identify each file or library source; a statement in one source should not be treated as true of another. This boundary limits supplied evidence, but does not guarantee that every model will answer correctly.\n\n| Input | What Field Atlas reads |\n| --- | --- |\n|",
+"tokens": 180
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"*your files by default**, without searching the library. If they do not contain the answer, the app is instructed to say what is missing. To include installed knowledge as well, explicitly add **“also use my library”** to your question. Without attachments, research uses your enabled collections as before.\\n\\nLibrary opt-in currently recognizes clear English requests such as “use my library,” “include the library,” or “compare these notes with my library.” Ambiguous, quoted, or exclusionary wording stays files-only. Other languages can still be used for file questions, but their library opt-in wording is not yet recognized. Citations identify each file or library source; a statement in one source should not be treated as true of another. This boundary limits supplied evidence, but does not guarantee that every model will answer correctly.\\n\\n| Input | What Field Atlas reads |\\n| --- | --- |\\n|\"",
+"tokens": 182
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": " Camera or photo | Printed English text, recognized on the phone. Not objects or general image understanding. |\n| TXT, Markdown, CSV, JSON | Plain text saved as UTF-8 or BOM-marked UTF-16. |\n| PDF | Embedded text on Android 15+, plus a local OCR check of every page so text inside images is not skipped. Android 13–14 uses printed-English OCR only. OCR adds processing time and may introduce errors. |\n\nJPEG, PNG and WebP images are accepted. There is no support for Office documents, password-protected PDFs, handwriting recognition guarantees, or all OCR languages.\n\n## Limits and honest answers\n\nAttach up to **3 files**, each at most **20 MiB**. PDFs may have up to **30 pages** and each document may contain up to **100,000 extracted characters**. Larger files are rejected with an explanation; they are not silently imported in part.\n\nAttachments appear in a sideways-scrolling strip inside the",
+"tokens": 214
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\" Camera or photo | Printed English text, recognized on the phone. Not objects or general image understanding. |\\n| TXT, Markdown, CSV, JSON | Plain text saved as UTF-8 or BOM-marked UTF-16. |\\n| PDF | Embedded text on Android 15+, plus a local OCR check of every page so text inside images is not skipped. Android 13–14 uses printed-English OCR only. OCR adds processing time and may introduce errors. |\\n\\nJPEG, PNG and WebP images are accepted. There is no support for Office documents, password-protected PDFs, handwriting recognition guarantees, or all OCR languages.\\n\\n## Limits and honest answers\\n\\nAttach up to **3 files**, each at most **20 MiB**. PDFs may have up to **30 pages** and each document may contain up to **100,000 extracted characters**. Larger files are rejected with an explanation; they are not silently imported in part.\\n\\nAttachments appear in a sideways-scrolling strip inside the\"",
+"tokens": 220
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Verification\n\n## v1.2.0 (October 2–3)\n\n- **Automated:** 473 Android JVM tests ran with zero failures: 463 passed and 10 opt-in desktop\n  tests were skipped in the ordinary run (the ranking and routing ones were run against the real packs on\n  2 October). Python: 12 pack-tool, 57 script, 6 benchmark and 36 builder tests passed. The\n  website's 25 browser tests passed. Android instrumentation sources compiled but were not run.\n- **Answer quality:** the 24-question suite, run through the app's pipeline on desktop,\n  finished at 19 pass, 3 partial and 2 fail after search fixes; see\n  [evaluation](evaluation.md#v120-24-question-suite-october-2). That is author review on\n  fixed questions, not an independent or held-out score.\n- **Infinix X6840, Android 16, local-test key:** Encyclopedia and Travel guides imported;\n  Berlin and Tokyo vegan lookups returned six cited fully vegan places each, ",
+"tokens": 248
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Verification\\n\\n## v1.2.0 (October 2–3)\\n\\n- **Automated:** 473 Android JVM tests ran with zero failures: 463 passed and 10 opt-in desktop\\n  tests were skipped in the ordinary run (the ranking and routing ones were run against the real packs on\\n  2 October). Python: 12 pack-tool, 57 script, 6 benchmark and 36 builder tests passed. The\\n  website's 25 browser tests passed. Android instrumentation sources compiled but were not run.\\n- **Answer quality:** the 24-question suite, run through the app's pipeline on desktop,\\n  finished at 19 pass, 3 partial and 2 fail after search fixes; see\\n  \\u005bevaluation\\u005d(evaluation.md#v120-24-question-suite-october-2). That is author review on\\n  fixed questions, not an independent or held-out score.\\n- **Infinix X6840, Android 16, local-test key:** Encyclopedia and Travel guides imported;\\n  Berlin and Tokyo vegan lookups returned six cited fully vegan places each, \"",
+"tokens": 260
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "offline, in\n  15–17 s; place cards, source and place previews, the location explanation, History\n  passages and delete, the Library collection menu and live dictation were exercised by hand.\n  Details in the [release audit](compliance/release-audit.md#v120-release-handoff-2-october-2026).\n- **Not verified for this release:** the public-key signed APK on a phone, a public-key update\n  over 1.2.0-rc.1, the direct model download on a phone, network traffic capture during\n  research, and a 12 GB GrapheneOS phone.\n\nThe sections below are earlier records, kept with the counts and hashes of their day.\n\n## Files-first evidence scoping — 2026-09-28 follow-up\n\nAttachment questions now skip library retrieval by default; clear user requests such as “also use my library” opt into combined evidence. The prompt packer independently enforces that boundary, marks each record's origin, and reserves a libr",
+"tokens": 227
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"offline, in\\n  15–17 s; place cards, source and place previews, the location explanation, History\\n  passages and delete, the Library collection menu and live dictation were exercised by hand.\\n  Details in the \\u005brelease audit\\u005d(compliance/release-audit.md#v120-release-handoff-2-october-2026).\\n- **Not verified for this release:** the public-key signed APK on a phone, a public-key update\\n  over 1.2.0-rc.1, the direct model download on a phone, network traffic capture during\\n  research, and a 12 GB GrapheneOS phone.\\n\\nThe sections below are earlier records, kept with the counts and hashes of their day.\\n\\n## Files-first evidence scoping — 2026-09-28 follow-up\\n\\nAttachment questions now skip library retrieval by default; clear user requests such as “also use my library” opt into combined evidence. The prompt packer independently enforces that boundary, marks each record's origin, and reserves a libr\"",
+"tokens": 241
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "ary passage alongside files for combined requests. No-attachment research is unchanged. Opt-in recognition currently supports documented English directives, not arbitrary natural-language intent in every language.\n\n250 Android JVM tests and 46 Python tests passed (26 scripts, 12 packtool, 6 benchmarks, 2 tools). Regression checks cover files-only retrieval and source lists, quoted/negated library mentions, unrelated exclusions, explicit comparisons in both directions, instructions inside documents, unchanged no-attachment research, and library space alongside long files. The scope failures were observed before their fixes. Release assembly, signing verification, 16 KB zip alignment, and the APK packaging audit passed; release lint reports 0 errors and 36 warnings.\n\nOptimized local APK installed with `install -r`: SHA-256 `08c5c663e14dbb7465f6d45d712c8677c5eb3aa4aa8838810d6b4bb16bf70ae0`,",
+"tokens": 227
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"ary passage alongside files for combined requests. No-attachment research is unchanged. Opt-in recognition currently supports documented English directives, not arbitrary natural-language intent in every language.\\n\\n250 Android JVM tests and 46 Python tests passed (26 scripts, 12 packtool, 6 benchmarks, 2 tools). Regression checks cover files-only retrieval and source lists, quoted/negated library mentions, unrelated exclusions, explicit comparisons in both directions, instructions inside documents, unchanged no-attachment research, and library space alongside long files. The scope failures were observed before their fixes. Release assembly, signing verification, 16 KB zip alignment, and the APK packaging audit passed; release lint reports 0 errors and 36 warnings.\\n\\nOptimized local APK installed with `install -r`: SHA-256 `08c5c663e14dbb7465f6d45d712c8677c5eb3aa4aa8838810d6b4bb16bf70ae0`,\"",
+"tokens": 231
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Install Field Atlas\n\n[Back to the overview](../README.md)\n\nThe current release is **v1.2.1**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.\n\n## Choose your path\n\n| If you want to… | Use this | Important difference |\n| --- | --- | --- |\n| Use the current release | [Signed v1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |\n| Use the previous stable release | [v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/doc",
+"tokens": 270
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Install Field Atlas\\n\\n\\u005bBack to the overview\\u005d(../README.md)\\n\\nThe current release is **v1.2.1**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.\\n\\n## Choose your path\\n\\n| If you want to… | Use this | Important difference |\\n| --- | --- | --- |\\n| Use the current release | \\u005bSigned v1.2.1\\u005d(https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Qwen3.5 2B; optional collections are separate. Read the \\u005bknown limitations\\u005d(releases/current.md). |\\n| Use the previous stable release | \\u005bv1.1.10\\u005d(https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Follow its \\u005bversion-specific instructions\\u005d(https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/doc\"",
+"tokens": 322
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "s/installation.md), including Qwen3 1.7B. |\n| Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |\n\nCheck the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.\n\n## Current release: phone setup\n\n1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1). Verify the checksum if possible.\n2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.\n3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at thi",
+"tokens": 259
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"s/installation.md), including Qwen3 1.7B. |\\n| Test source changes | \\u005bBuild from source\\u005d(building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |\\n\\nCheck the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.\\n\\n## Current release: phone setup\\n\\n1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from \\u005bv1.2.1\\u005d(https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1). Verify the checksum if possible.\\n2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.\\n3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the \\u005bmodel guide at thi\"",
+"tokens": 287
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "s release](https://github.com/0x94t3z/fieldatlas/blob/v1.2.1/MODELS.md). A raw `.gguf` is not a model pack.\n4. Optionally download or import a knowledge collection. A model is required; collections provide saved passages for their covered topics.\n5. Start research once the model is installed. Allow time for first model preparation.\n6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.\n\nAfter setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release.\n\n## What setup offers in 1.2.1\n\nThe app needs **only an installed model** to answer questions. Setup shows the model and the optional collecti",
+"tokens": 197
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"s release\\u005d(https://github.com/0x94t3z/fieldatlas/blob/v1.2.1/MODELS.md). A raw `.gguf` is not a model pack.\\n4. Optionally download or import a knowledge collection. A model is required; collections provide saved passages for their covered topics.\\n5. Start research once the model is installed. Allow time for first model preparation.\\n6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.\\n\\nAfter setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release.\\n\\n## What setup offers in 1.2.1\\n\\nThe app needs **only an installed model** to answer questions. Setup shows the model and the optional collecti\"",
+"tokens": 206
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Build Field Atlas from source\n\nThis page is for developers. If you just want to try the app, start with the [public setup steps](../README.md#get-started). A debug APK built here is a separate Android package from the signed public release and is not a new published version.\n\n## Requirements\n\nJDK 17, Gradle 8.13, Android Gradle Plugin 8.11.1, Kotlin 2.1.0, Compose BOM 2025.06.01, Android SDK 36, Build Tools 35.0.0, NDK 29.0.13113456, CMake 3.31.6, and Git submodules. Exact Maven versions are in [`gradle/libs.versions.toml`](../gradle/libs.versions.toml). The APK is ARM64-only and targets Android API 33 or newer.\n\n## Build and check\n\n```sh\ngit clone --recurse-submodules https://github.com/0x94t3z/fieldatlas.git\ncd fieldatlas\nenv -i PATH=\"$PATH\" ./scripts/install_toolchain.sh\ngit -C third_party/llama.cpp apply ../../scripts/patches/ai-chat-generation-fixes.patch\n./gradlew --no-configurat",
+"tokens": 284
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Build Field Atlas from source\\n\\nThis page is for developers. If you just want to try the app, start with the \\u005bpublic setup steps\\u005d(../README.md#get-started). A debug APK built here is a separate Android package from the signed public release and is not a new published version.\\n\\n## Requirements\\n\\nJDK 17, Gradle 8.13, Android Gradle Plugin 8.11.1, Kotlin 2.1.0, Compose BOM 2025.06.01, Android SDK 36, Build Tools 35.0.0, NDK 29.0.13113456, CMake 3.31.6, and Git submodules. Exact Maven versions are in \\u005b`gradle/libs.versions.toml`\\u005d(../gradle/libs.versions.toml). The APK is ARM64-only and targets Android API 33 or newer.\\n\\n## Build and check\\n\\n```sh\\ngit clone --recurse-submodules https://github.com/0x94t3z/fieldatlas.git\\ncd fieldatlas\\nenv -i PATH=\\\"$PATH\\\" ./scripts/install_toolchain.sh\\ngit -C third_party/llama.cpp apply ../../scripts/patches/ai-chat-generation-fixes.patch\\n./gradlew --no-configurat\"",
+"tokens": 315
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "ion-cache \\\n  :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease\n./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk\n```\n\n`install_toolchain.sh` finds an existing SDK from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `sdkmanager`, or the supported Homebrew location. It validates pinned packages and writes a repository-local, git-ignored `local.properties`; it does not change shell profiles.\n\nThe pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c868014`. Apply the small Field Atlas runtime patch only once. CI applies it automatically; see [patch notes](../scripts/patches/README.md). Do not apply it to a different llama.cpp commit without review.\n\nThe installable debug APK is `app/build/outputs/apk/debug/app-debug.apk` (`xyz.fieldatlas.debug`). The unsigned release APK is for reproducibility checks, **not** installa",
+"tokens": 238
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"ion-cache \\\\\\n  :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease\\n./scripts/verify_offline.sh app/build/outputs/apk/release/app-release-unsigned.apk\\n```\\n\\n`install_toolchain.sh` finds an existing SDK from `ANDROID_HOME`, `ANDROID_SDK_ROOT`, `sdkmanager`, or the supported Homebrew location. It validates pinned packages and writes a repository-local, git-ignored `local.properties`; it does not change shell profiles.\\n\\nThe pinned submodule is `ggml-org/llama.cpp@60081bb2b5b3294165a4d67c5cbeebe74c868014`. Apply the small Field Atlas runtime patch only once. CI applies it automatically; see \\u005bpatch notes\\u005d(../scripts/patches/README.md). Do not apply it to a different llama.cpp commit without review.\\n\\nThe installable debug APK is `app/build/outputs/apk/debug/app-debug.apk` (`xyz.fieldatlas.debug`). The unsigned release APK is for reproducibility checks, **not** installa\"",
+"tokens": 255
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "tion. A signed release requires the owner's signing configuration and a separate release audit.\n\n## Prepare offline files\n\nThe current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md). The app imports `.fapack` files, not raw `.gguf` models. Knowledge packs are optional; see [DATASETS.md](../DATASETS.md). `tools/build_model_packs.py`, `tools/build_wikivoyage_eat_pack.py`, `tools/build_vector_pack.py`, and the other [pack tools](../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.\n\n## Repository map\n\n| Path | Purpose |\n| --- | --- |\n| `app/` | Android application and tests |\n| `third_party/llama.cpp/` | Pinned on-device inference runtime |\n| `packtool/`, `fixtures/`, `tools/` | Pack creation and reproducible data inputs |\n| `models/` | Model provenance and expected hashes ",
+"tokens": 233
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"tion. A signed release requires the owner's signing configuration and a separate release audit.\\n\\n## Prepare offline files\\n\\nThe current source uses the Qwen3.5 2B model pack from \\u005bMODELS.md\\u005d(../MODELS.md). The app imports `.fapack` files, not raw `.gguf` models. Knowledge packs are optional; see \\u005bDATASETS.md\\u005d(../DATASETS.md). `tools/build_model_packs.py`, `tools/build_wikivoyage_eat_pack.py`, `tools/build_vector_pack.py`, and the other \\u005bpack tools\\u005d(../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.\\n\\n## Repository map\\n\\n| Path | Purpose |\\n| --- | --- |\\n| `app/` | Android application and tests |\\n| `third_party/llama.cpp/` | Pinned on-device inference runtime |\\n| `packtool/`, `fixtures/`, `tools/` | Pack creation and reproducible data inputs |\\n| `models/` | Model provenance and expected hashes \"",
+"tokens": 268
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "# Evaluation\n\n## Attachment reasoning feedback (October 3)\n\nAn offline 8 GB emulator test of the 1.2.0 release reported seven attachment questions: three\npasses, two mixed and two failures. File attachments, source previews and history worked\nwithout crashes. The failures: a citation pointed at Revision A while the claim came from\nRevision B; a maintenance hold was described as watered \"despite the hold\"; a question for a\nWi-Fi password got unrelated travel details; and 21:30 was converted to 10:30 PM.\n\nSynthetic files reproducing these cases are in\n[`fixtures/attachment-reasoning/`](../fixtures/attachment-reasoning/README.md), and the desktop\nrunner now accepts text attachments (`--attachments`) through the app's own attachment path.\nThe swapped citation reproduced on the release code; the app numbers attachments in display\norder, so the model, not the numbering, attached the wrong sour",
+"tokens": 202
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"# Evaluation\\n\\n## Attachment reasoning feedback (October 3)\\n\\nAn offline 8 GB emulator test of the 1.2.0 release reported seven attachment questions: three\\npasses, two mixed and two failures. File attachments, source previews and history worked\\nwithout crashes. The failures: a citation pointed at Revision A while the claim came from\\nRevision B; a maintenance hold was described as watered \\\"despite the hold\\\"; a question for a\\nWi-Fi password got unrelated travel details; and 21:30 was converted to 10:30 PM.\\n\\nSynthetic files reproducing these cases are in\\n\\u005b`fixtures/attachment-reasoning/`\\u005d(../fixtures/attachment-reasoning/README.md), and the desktop\\nrunner now accepts text attachments (`--attachments`) through the app's own attachment path.\\nThe swapped citation reproduced on the release code; the app numbers attachments in display\\norder, so the model, not the numbering, attached the wrong sour\"",
+"tokens": 217
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "ce.\n\nChanges, each with tests in `AnswerChecksTest`:\n\n- **Citation repair.** For evidence-only answers, a citation moves to another source only when\n  every distinctive detail in its sentence (labelled identifiers such as \"Revision B\", part codes\n  such as K-9, numbers) is unique to that one source and none is unique to the cited source. A\n  colon does not split the sentence, and a list item carries the line that introduces its list,\n  so \"Revision B service interval: 400 hours [S2]\", and the same value as a bullet under\n  \"Revision B:\", keep their citation rather than moving to Revision A, which would make the\n  wrong 400 look sourced.\n- **Missing items.** A question for a password, phone number or email address that no file\n  contains gets a one-sentence reply that the files don't mention it, without running the model.\n  Presence is judged by the item's own noun: \"free Wi-Fi in the lob",
+"tokens": 218
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"ce.\\n\\nChanges, each with tests in `AnswerChecksTest`:\\n\\n- **Citation repair.** For evidence-only answers, a citation moves to another source only when\\n  every distinctive detail in its sentence (labelled identifiers such as \\\"Revision B\\\", part codes\\n  such as K-9, numbers) is unique to that one source and none is unique to the cited source. A\\n  colon does not split the sentence, and a list item carries the line that introduces its list,\\n  so \\\"Revision B service interval: 400 hours \\u005bS2\\u005d\\\", and the same value as a bullet under\\n  \\\"Revision B:\\\", keep their citation rather than moving to Revision A, which would make the\\n  wrong 400 look sourced.\\n- **Missing items.** A question for a password, phone number or email address that no file\\n  contains gets a one-sentence reply that the files don't mention it, without running the model.\\n  Presence is judged by the item's own noun: \\\"free Wi-Fi in the lob\"",
+"tokens": 234
+},
+{
+"kind": "prose",
+"variant": "raw",
+"text": "by\" does not count as a Wi-Fi\n  password. Addresses, prices, times and other items can be written in too many ways to call\n  them absent, so they are left to the model.\n- **Time pairs.** A 12-hour time written beside a 24-hour time the source states is corrected\n  when they disagree (\"10:30 PM (21:30)\" becomes \"9:30 PM (21:30)\").\n- **Requested 12-hour times.** When the question asks for 12-hour time, the app writes the\n  conversion beside every 24-hour time in the answer, outside quotations.\n- **Exception note.** A decision question about files that contain exception wording\n  (\"exception\", \"hold\", \"unless\", \"override\") ends with a note to check each decision against\n  those exceptions. It does not judge the answer.\n- **Instructions.** Answer only what was asked, under 80 words, with no notes or reminders;\n  decide several items one by one (rule, then any exception or hold, then the deci",
+"tokens": 236
+},
+{
+"kind": "prose",
+"variant": "json",
+"text": "\"by\\\" does not count as a Wi-Fi\\n  password. Addresses, prices, times and other items can be written in too many ways to call\\n  them absent, so they are left to the model.\\n- **Time pairs.** A 12-hour time written beside a 24-hour time the source states is corrected\\n  when they disagree (\\\"10:30 PM (21:30)\\\" becomes \\\"9:30 PM (21:30)\\\").\\n- **Requested 12-hour times.** When the question asks for 12-hour time, the app writes the\\n  conversion beside every 24-hour time in the answer, outside quotations.\\n- **Exception note.** A decision question about files that contain exception wording\\n  (\\\"exception\\\", \\\"hold\\\", \\\"unless\\\", \\\"override\\\") ends with a note to check each decision against\\n  those exceptions. It does not judge the answer.\\n- **Instructions.** Answer only what was asked, under 80 words, with no notes or reminders;\\n  decide several items one by one (rule, then any exception or hold, then the deci\"",
+"tokens": 243
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\n/** Conservative post-retrieval gate: irrelevant passages are worse than an honest model-only answer. */\nobject EvidenceRelevance {\n    /** Short causal questions use the original terms as a strict lexical boundary.\n     * Avoid a second generative search turn when that boundary found no evidence;\n     * an explicitly unverified model-only answer is preferable to query drift. */\n    internal fun isShortCausalQuestion(question: String): Boolean =\n        comparisonTerms(question).isEmpty() && PromptBuilder.allowsModelExplanation(question) &&\n            FtsQuery.from(question)?.terms.orEmpty().size in 2..3 &&\n            Regex(\"(?i)^\\\\s*(?:explain\\\\s+)?(?:why|how)\\\\b\").containsMatchIn(question)\n\n    /** Lexical gap disclosure only. Presence is not proof of adequate coverage. */\n    fun missingComparisonSubjects(question: String, evidence: List<Evidence>): ",
+"tokens": 200
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\n/** Conservative post-retrieval gate: irrelevant passages are worse than an honest model-only answer. */\\nobject EvidenceRelevance {\\n    /** Short causal questions use the original terms as a strict lexical boundary.\\n     * Avoid a second generative search turn when that boundary found no evidence;\\n     * an explicitly unverified model-only answer is preferable to query drift. */\\n    internal fun isShortCausalQuestion(question: String): Boolean =\\n        comparisonTerms(question).isEmpty() && PromptBuilder.allowsModelExplanation(question) &&\\n            FtsQuery.from(question)?.terms.orEmpty().size in 2..3 &&\\n            Regex(\\\"(?i)^\\\\\\\\s*(?:explain\\\\\\\\s+)?(?:why|how)\\\\\\\\b\\\").containsMatchIn(question)\\n\\n    /** Lexical gap disclosure only. Presence is not proof of adequate coverage. */\\n    fun missingComparisonSubjects(question: String, evidence: List\\u003cEvidence\\u003e): \"",
+"tokens": 219
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "List<String> =\n        comparisonTerms(question).filter { subject ->\n            evidence.none { tokens(topicalText(it.text)).matches(subject) }\n        }\n\n    internal fun comparisonTerms(question: String?): List<String> {\n        if (question == null) return emptyList()\n        // Only unambiguous single-word subjects. Multiword names and trailing clauses\n        // retain the normal gate rather than turning a modifier into a subject.\n        val comparison = Regex(\"(?i)^\\\\s*compare\\\\s+(?:(?:a|an|the)\\\\s+)?([\\\\p{L}\\\\p{N}-]+)\\\\s+(?:and|with|versus|vs\\\\.?)\\\\s+(?:(?:a|an|the)\\\\s+)?([\\\\p{L}\\\\p{N}-]+)\\\\s*(?=[.!?]|$)\")\n            .find(question) ?: Regex(\n                \"(?i)^\\\\s*how\\\\s+(?:does|do|is|are)\\\\s+(?:(?:a|an|the)\\\\s+)?([\\\\p{L}\\\\p{N}-]+)\\\\s+(?:differ|different)\\\\s+from\\\\s+(?:(?:a|an|the)\\\\s+)?([\\\\p{L}\\\\p{N}-]+)\\\\s*(?=[.!?]|$|,\\\\s+and\\\\s+(?:when|how|why)\\\\b)\",\n            ).find(q",
+"tokens": 318
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"List\\u003cString\\u003e =\\n        comparisonTerms(question).filter { subject -\\u003e\\n            evidence.none { tokens(topicalText(it.text)).matches(subject) }\\n        }\\n\\n    internal fun comparisonTerms(question: String?): List\\u003cString\\u003e {\\n        if (question == null) return emptyList()\\n        // Only unambiguous single-word subjects. Multiword names and trailing clauses\\n        // retain the normal gate rather than turning a modifier into a subject.\\n        val comparison = Regex(\\\"(?i)^\\\\\\\\s*compare\\\\\\\\s+(?:(?:a|an|the)\\\\\\\\s+)?(\\u005b\\\\\\\\p{L}\\\\\\\\p{N}-\\u005d+)\\\\\\\\s+(?:and|with|versus|vs\\\\\\\\.?)\\\\\\\\s+(?:(?:a|an|the)\\\\\\\\s+)?(\\u005b\\\\\\\\p{L}\\\\\\\\p{N}-\\u005d+)\\\\\\\\s*(?=\\u005b.!?\\u005d|$)\\\")\\n            .find(question) ?: Regex(\\n                \\\"(?i)^\\\\\\\\s*how\\\\\\\\s+(?:does|do|is|are)\\\\\\\\s+(?:(?:a|an|the)\\\\\\\\s+)?(\\u005b\\\\\\\\p{L}\\\\\\\\p{N}-\\u005d+)\\\\\\\\s+(?:differ|different)\\\\\\\\s+from\\\\\\\\s+(?:(?:a|an|the)\\\\\\\\s+)?(\\u005b\\\\\\\\p{L}\\\\\\\\p{N}-\\u005d+)\\\\\\\\s*(?=\\u005b.!?\\u005d|$|,\\\\\\\\s+and\\\\\\\\s+(?:when|how|why)\\\\\\\\b)\\\",\\n            ).find(q\"",
+"tokens": 413
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "uestion) ?: return emptyList()\n        return FtsQuery.from(comparison.groupValues[1] + \" \" + comparison.groupValues[2])?.terms.orEmpty()\n    }\n    // Indexing vocabulary helps discovery, but is not a claim made by a passage.\n    internal fun passageText(text: String): String = text.lineSequence()\n        .filterNot { it.trimStart().startsWith(\"MeSH:\", ignoreCase = true) }\n        .joinToString(\"\\n\").trim()\n\n    private fun topicalText(text: String): String {\n        val passage = passageText(text)\n        // Structured scholarly headers describe provenance, not the subject of the\n        // abstract. Keep Evidence itself intact for the source viewer and attribution.\n        val abstract = Regex(\"(?im)^Abstract:\\\\s*\").find(passage)\n        return if (passage.startsWith(\"PMID \") && abstract != null) {\n            passage.substring(abstract.range.last + 1)\n        } else passage\n    }\n\n   ",
+"tokens": 217
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"uestion) ?: return emptyList()\\n        return FtsQuery.from(comparison.groupValues\\u005b1\\u005d + \\\" \\\" + comparison.groupValues\\u005b2\\u005d)?.terms.orEmpty()\\n    }\\n    // Indexing vocabulary helps discovery, but is not a claim made by a passage.\\n    internal fun passageText(text: String): String = text.lineSequence()\\n        .filterNot { it.trimStart().startsWith(\\\"MeSH:\\\", ignoreCase = true) }\\n        .joinToString(\\\"\\\\n\\\").trim()\\n\\n    private fun topicalText(text: String): String {\\n        val passage = passageText(text)\\n        // Structured scholarly headers describe provenance, not the subject of the\\n        // abstract. Keep Evidence itself intact for the source viewer and attribution.\\n        val abstract = Regex(\\\"(?im)^Abstract:\\\\\\\\s*\\\").find(passage)\\n        return if (passage.startsWith(\\\"PMID \\\") && abstract != null) {\\n            passage.substring(abstract.range.last + 1)\\n        } else passage\\n    }\\n\\n   \"",
+"tokens": 242
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\nimport java.util.Locale\n\n/**\n * Turns a question into a bag of retrieval keywords using the already-loaded on-device model.\n *\n * FTS5 matching is lexical: \"heart attack\" will not meet a chunk that says \"myocardial\n * infarction\". The model can bridge that gap — it is loaded anyway, so a short constrained\n * generation costs a few seconds and turns semantic misses into keyword hits. The expansion is\n * deliberately advisory: terms are merged with the question's own terms and the AND-relaxation\n * in [FtsRetriever] decides what actually matters, and any failure here falls back to the raw\n * question.\n */\ninternal object QueryExpansion {\n    /** Hard token cap for the keyword turn — it must never eat into the answer budget. */\n    const val GENERATION_BUDGET = 48\n    const val MAX_TERMS = 6\n    private const val MAX_TERM_CHARS = 48\n\n    private val LEADING_",
+"tokens": 218
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\nimport java.util.Locale\\n\\n/**\\n * Turns a question into a bag of retrieval keywords using the already-loaded on-device model.\\n *\\n * FTS5 matching is lexical: \\\"heart attack\\\" will not meet a chunk that says \\\"myocardial\\n * infarction\\\". The model can bridge that gap — it is loaded anyway, so a short constrained\\n * generation costs a few seconds and turns semantic misses into keyword hits. The expansion is\\n * deliberately advisory: terms are merged with the question's own terms and the AND-relaxation\\n * in \\u005bFtsRetriever\\u005d decides what actually matters, and any failure here falls back to the raw\\n * question.\\n */\\ninternal object QueryExpansion {\\n    /** Hard token cap for the keyword turn — it must never eat into the answer budget. */\\n    const val GENERATION_BUDGET = 48\\n    const val MAX_TERMS = 6\\n    private const val MAX_TERM_CHARS = 48\\n\\n    private val LEADING_\"",
+"tokens": 235
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "NOISE = Regex(\"^[\\\\d.+)\\\\-*•\\\"'’‘`\\\\s]+\")\n    // These generic planner additions match almost every broad corpus and can displace the\n    // entities the user actually asked about. They are filtered only from model-generated\n    // expansion; the user's original terms are merged separately and always remain eligible.\n    private val PLANNER_NOISE = setOf(\n        \"answer\",\n        \"analysis\",\n        \"information\",\n        \"method\",\n        \"overview\",\n        \"process\",\n        \"procedure\",\n        \"question\",\n        \"quality\",\n        \"technique\",\n        \"topic\",\n    )\n\n    /**\n     * Persona for the keyword turn only. The research system prompt forbids external knowledge,\n     * but choosing search synonyms *is* a knowledge task — models (especially literal ones) were\n     * refusing to generate keywords under it. This persona grants word knowledge while keeping\n     * the answer it",
+"tokens": 211
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"NOISE = Regex(\\\"^\\u005b\\\\\\\\d.+)\\\\\\\\-*•\\\\\\\"'’‘`\\\\\\\\s\\u005d+\\\")\\n    // These generic planner additions match almost every broad corpus and can displace the\\n    // entities the user actually asked about. They are filtered only from model-generated\\n    // expansion; the user's original terms are merged separately and always remain eligible.\\n    private val PLANNER_NOISE = setOf(\\n        \\\"answer\\\",\\n        \\\"analysis\\\",\\n        \\\"information\\\",\\n        \\\"method\\\",\\n        \\\"overview\\\",\\n        \\\"process\\\",\\n        \\\"procedure\\\",\\n        \\\"question\\\",\\n        \\\"quality\\\",\\n        \\\"technique\\\",\\n        \\\"topic\\\",\\n    )\\n\\n    /**\\n     * Persona for the keyword turn only. The research system prompt forbids external knowledge,\\n     * but choosing search synonyms *is* a knowledge task — models (especially literal ones) were\\n     * refusing to generate keywords under it. This persona grants word knowledge while keeping\\n     * the answer it\"",
+"tokens": 228
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "self off-limits; the gateway swaps personas via resetConversation, so the\n     * answer turn still runs under the strict research prompt.\n     */\n    const val SYSTEM_PROMPT =\n        \"You are a search planner for an offline document retrieval system. You may use general \" +\n        \"knowledge of words, synonyms and likely document vocabulary, but never answer a question \" +\n        \"and never explain anything. Your only output is the requested keyword line.\"\n    private val TRAILING_NOISE = Regex(\"[.,;:!?)\\\"'\\\\s]+$\")\n\n    fun prompt(question: String): String = \"/no_think\\n\" +\n        \"You are the search planner for an offline document search engine. Do not answer.\\n\" +\n        \"Question: ${question.trim()}\\n\" +\n        \"Write search keywords: use only the essential content words of the question, dropping \" +\n        \"words like 'tell', 'me', 'about'; then close synonyms and terms that d",
+"tokens": 212
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"self off-limits; the gateway swaps personas via resetConversation, so the\\n     * answer turn still runs under the strict research prompt.\\n     */\\n    const val SYSTEM_PROMPT =\\n        \\\"You are a search planner for an offline document retrieval system. You may use general \\\" +\\n        \\\"knowledge of words, synonyms and likely document vocabulary, but never answer a question \\\" +\\n        \\\"and never explain anything. Your only output is the requested keyword line.\\\"\\n    private val TRAILING_NOISE = Regex(\\\"\\u005b.,;:!?)\\\\\\\"'\\\\\\\\s\\u005d+$\\\")\\n\\n    fun prompt(question: String): String = \\\"/no_think\\\\n\\\" +\\n        \\\"You are the search planner for an offline document search engine. Do not answer.\\\\n\\\" +\\n        \\\"Question: ${question.trim()}\\\\n\\\" +\\n        \\\"Write search keywords: use only the essential content words of the question, dropping \\\" +\\n        \\\"words like 'tell', 'me', 'about'; then close synonyms and terms that d\"",
+"tokens": 240
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\nimport java.io.File\nimport kotlin.collections.sortedByDescending\nimport kotlinx.coroutines.Dispatchers\nimport kotlinx.coroutines.flow.MutableStateFlow\nimport kotlinx.coroutines.flow.StateFlow\nimport kotlinx.coroutines.flow.asStateFlow\nimport kotlinx.coroutines.withContext\nimport kotlinx.serialization.Serializable\nimport kotlinx.serialization.builtins.ListSerializer\nimport kotlinx.serialization.json.Json\n\n/** Bounded excerpts preserve attachment citations; older title-only records remain readable. */\n@Serializable\ndata class AnswerRecord(\n    val question: String,\n    val answer: String,\n    val createdAtEpochMs: Long,\n    val sources: List<String> = emptyList(),\n    val evidence: List<Evidence> = emptyList(),\n)\n\n/**\n * File-backed log of completed answers, newest first, capped so it cannot grow forever.\n * The state flow is the single source of truth for ",
+"tokens": 184
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\nimport java.io.File\\nimport kotlin.collections.sortedByDescending\\nimport kotlinx.coroutines.Dispatchers\\nimport kotlinx.coroutines.flow.MutableStateFlow\\nimport kotlinx.coroutines.flow.StateFlow\\nimport kotlinx.coroutines.flow.asStateFlow\\nimport kotlinx.coroutines.withContext\\nimport kotlinx.serialization.Serializable\\nimport kotlinx.serialization.builtins.ListSerializer\\nimport kotlinx.serialization.json.Json\\n\\n/** Bounded excerpts preserve attachment citations; older title-only records remain readable. */\\n@Serializable\\ndata class AnswerRecord(\\n    val question: String,\\n    val answer: String,\\n    val createdAtEpochMs: Long,\\n    val sources: List\\u003cString\\u003e = emptyList(),\\n    val evidence: List\\u003cEvidence\\u003e = emptyList(),\\n)\\n\\n/**\\n * File-backed log of completed answers, newest first, capped so it cannot grow forever.\\n * The state flow is the single source of truth for \"",
+"tokens": 209
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "the UI; the JSON file (answers.json in\n * app storage) is rewritten whole on each entry — trivially small at the cap.\n */\nclass AnswerHistoryStore(private val file: File, private val synchronousWrites: Boolean = false) {\n    private val json = Json { ignoreUnknownKeys = true }\n    private val lock = Any()\n    private var loaded = false\n    private val mutableRecords = MutableStateFlow<List<AnswerRecord>>(emptyList())\n    val records: StateFlow<List<AnswerRecord>> = mutableRecords.asStateFlow()\n\n    /** Reads answers.json once, lazily, off the main thread. */\n    suspend fun ensureLoaded() = withContext(Dispatchers.IO) {\n        synchronized(lock) {\n            if (loaded) return@withContext\n            loaded = true\n            runCatching {\n                if (file.isFile) json.decodeFromString(ListSerializer(AnswerRecord.serializer()), file.readText()) else null\n            }.getOrNull",
+"tokens": 206
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"the UI; the JSON file (answers.json in\\n * app storage) is rewritten whole on each entry — trivially small at the cap.\\n */\\nclass AnswerHistoryStore(private val file: File, private val synchronousWrites: Boolean = false) {\\n    private val json = Json { ignoreUnknownKeys = true }\\n    private val lock = Any()\\n    private var loaded = false\\n    private val mutableRecords = MutableStateFlow\\u003cList\\u003cAnswerRecord\\u003e\\u003e(emptyList())\\n    val records: StateFlow\\u003cList\\u003cAnswerRecord\\u003e\\u003e = mutableRecords.asStateFlow()\\n\\n    /** Reads answers.json once, lazily, off the main thread. */\\n    suspend fun ensureLoaded() = withContext(Dispatchers.IO) {\\n        synchronized(lock) {\\n            if (loaded) return@withContext\\n            loaded = true\\n            runCatching {\\n                if (file.isFile) json.decodeFromString(ListSerializer(AnswerRecord.serializer()), file.readText()) else null\\n            }.getOrNull\"",
+"tokens": 248
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "()?.let { saved ->\n                mutableRecords.value = saved.sortedByDescending(AnswerRecord::createdAtEpochMs).take(MAX_ENTRIES)\n            }\n        }\n    }\n\n    fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList()) {\n        if (answer.isBlank()) return\n        val entry = AnswerRecord(\n            question = question.trim(),\n            answer = answer,\n            createdAtEpochMs = System.currentTimeMillis(),\n            sources = sources,\n            evidence = evidence,\n        )\n        synchronized(lock) {\n            (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }\n        }\n        persist()\n    }\n\n    /** Removes one answer, identified by when it was recorded. */\n    fun delete(createdAtEpochMs: Long) {\n        synchronized(lock) {\n            val remaining = mutableRecords.v",
+"tokens": 198
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"()?.let { saved -\\u003e\\n                mutableRecords.value = saved.sortedByDescending(AnswerRecord::createdAtEpochMs).take(MAX_ENTRIES)\\n            }\\n        }\\n    }\\n\\n    fun record(question: String, answer: String, sources: List\\u003cString\\u003e, evidence: List\\u003cEvidence\\u003e = emptyList()) {\\n        if (answer.isBlank()) return\\n        val entry = AnswerRecord(\\n            question = question.trim(),\\n            answer = answer,\\n            createdAtEpochMs = System.currentTimeMillis(),\\n            sources = sources,\\n            evidence = evidence,\\n        )\\n        synchronized(lock) {\\n            (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }\\n        }\\n        persist()\\n    }\\n\\n    /** Removes one answer, identified by when it was recorded. */\\n    fun delete(createdAtEpochMs: Long) {\\n        synchronized(lock) {\\n            val remaining = mutableRecords.v\"",
+"tokens": 230
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\nimport xyz.fieldatlas.attachments.ExtractedAttachment\nimport xyz.fieldatlas.attachments.AttachmentException\nimport kotlinx.serialization.json.JsonPrimitive\n\ndata class AttachmentSelection(val evidence: List<Evidence>, val partialCoverage: Boolean, val coverageNotes: String = \"\")\n\nobject AttachmentEvidence {\n    fun select(question: String, attachments: List<ExtractedAttachment>, maxPassages: Int): AttachmentSelection {\n        val terms = Regex(\"[\\\\p{L}\\\\p{N}]{3,}\").findAll(question.lowercase()).map { it.value }.toSet()\n        val summary = Regex(\"(?i)summari[sz]e|summary|overview\").containsMatchIn(question)\n        val groups = attachments.map { attachment ->\n            attachment.pages.flatMap { page ->\n                codePointChunks(page.text, 1000).mapIndexed { index, text ->\n                    Evidence(\"attachment:${attachment.id}\", \"${attachment",
+"tokens": 201
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\nimport xyz.fieldatlas.attachments.ExtractedAttachment\\nimport xyz.fieldatlas.attachments.AttachmentException\\nimport kotlinx.serialization.json.JsonPrimitive\\n\\ndata class AttachmentSelection(val evidence: List\\u003cEvidence\\u003e, val partialCoverage: Boolean, val coverageNotes: String = \\\"\\\")\\n\\nobject AttachmentEvidence {\\n    fun select(question: String, attachments: List\\u003cExtractedAttachment\\u003e, maxPassages: Int): AttachmentSelection {\\n        val terms = Regex(\\\"\\u005b\\\\\\\\p{L}\\\\\\\\p{N}\\u005d{3,}\\\").findAll(question.lowercase()).map { it.value }.toSet()\\n        val summary = Regex(\\\"(?i)summari\\u005bsz\\u005de|summary|overview\\\").containsMatchIn(question)\\n        val groups = attachments.map { attachment -\\u003e\\n            attachment.pages.flatMap { page -\\u003e\\n                codePointChunks(page.text, 1000).mapIndexed { index, text -\\u003e\\n                    Evidence(\\\"attachment:${attachment.id}\\\", \\\"${attachment\"",
+"tokens": 266
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": ".id}:p${page.number}:$index\", attachment.displayName,\n                        \"Attached file\" + (attachment.kind?.let { \" · ${it.name.lowercase(java.util.Locale.ROOT)}\" } ?: \"\") + \" · page ${page.number}\" + if (attachment.fromOcr) \" · recognized text\" else \"\",\n                        text, terms.count { text.contains(it, ignoreCase = true) }.toDouble(), \"Attached by you\")\n                }\n            }.let { chunks ->\n                if (summary && chunks.size > 2) {\n                    val order = listOf(0, chunks.lastIndex, chunks.size / 2) + chunks.indices\n                    order.distinct().map { chunks[it] }\n                } else chunks.sortedByDescending { it.score }\n            }\n        }\n        val selected = mutableListOf<Evidence>()\n        var rank = 0\n        while (selected.size < maxPassages && groups.any { rank < it.size }) {\n            groups.forEach { group -> if (",
+"tokens": 210
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\".id}:p${page.number}:$index\\\", attachment.displayName,\\n                        \\\"Attached file\\\" + (attachment.kind?.let { \\\" · ${it.name.lowercase(java.util.Locale.ROOT)}\\\" } ?: \\\"\\\") + \\\" · page ${page.number}\\\" + if (attachment.fromOcr) \\\" · recognized text\\\" else \\\"\\\",\\n                        text, terms.count { text.contains(it, ignoreCase = true) }.toDouble(), \\\"Attached by you\\\")\\n                }\\n            }.let { chunks -\\u003e\\n                if (summary && chunks.size \\u003e 2) {\\n                    val order = listOf(0, chunks.lastIndex, chunks.size / 2) + chunks.indices\\n                    order.distinct().map { chunks\\u005bit\\u005d }\\n                } else chunks.sortedByDescending { it.score }\\n            }\\n        }\\n        val selected = mutableListOf\\u003cEvidence\\u003e()\\n        var rank = 0\\n        while (selected.size \\u003c maxPassages && groups.any { rank \\u003c it.size }) {\\n            groups.forEach { group -\\u003e if (\"",
+"tokens": 258
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "rank < group.size && selected.size < maxPassages) selected += group[rank] }\n            rank++\n        }\n        return AttachmentSelection(selected, selected.size < groups.sumOf { it.size }, attachments.mapNotNull { doc ->\n            doc.coverageNote?.let { \"${doc.displayName}: $it\" }\n        }.joinToString(\"\\n\"))\n    }\n\n    /** Uses UTF-8 bytes as a conservative token upper bound, including JSON escaping overhead. */\n    fun pack(question: String, selection: AttachmentSelection, library: List<Evidence>, maxBytes: Int): PackedPrompt {\n        val includeLibrary = AttachmentScope.includesLibrary(question)\n        val scope = if (includeLibrary) \"Use the attached files and relevant library records. Distinguish what each source says.\"\n            else \"Use ONLY the attached files. Do not add library facts or facts from memory.\"\n        val head = \"\"\"/no_think\nYou are an offline research a",
+"tokens": 202
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"rank \\u003c group.size && selected.size \\u003c maxPassages) selected += group\\u005brank\\u005d }\\n            rank++\\n        }\\n        return AttachmentSelection(selected, selected.size \\u003c groups.sumOf { it.size }, attachments.mapNotNull { doc -\\u003e\\n            doc.coverageNote?.let { \\\"${doc.displayName}: $it\\\" }\\n        }.joinToString(\\\"\\\\n\\\"))\\n    }\\n\\n    /** Uses UTF-8 bytes as a conservative token upper bound, including JSON escaping overhead. */\\n    fun pack(question: String, selection: AttachmentSelection, library: List\\u003cEvidence\\u003e, maxBytes: Int): PackedPrompt {\\n        val includeLibrary = AttachmentScope.includesLibrary(question)\\n        val scope = if (includeLibrary) \\\"Use the attached files and relevant library records. Distinguish what each source says.\\\"\\n            else \\\"Use ONLY the attached files. Do not add library facts or facts from memory.\\\"\\n        val head = \\\"\\\"\\\"/no_think\\nYou are an offline research a\"",
+"tokens": 253
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\n/**\n * Verbatim opening of a requested reference overview, shown before model generation.\n *\n * Small on-device models can distort a passage they were given (the boat/raft reversal\n * recorded in the release audit). For \"what is X\" / \"tell me about X\" questions the saved\n * article's first sentences are already the answer, so they are shown immediately and\n * the slower model explanation follows below them. The text is copied, never paraphrased,\n * which makes its citation correct by construction; it is not a claim that the source is\n * current or complete.\n */\nobject SourceLead {\n    const val HEADING = \"From the saved reference\"\n    private const val TARGET_CHARS = 320\n    private const val MAX_CHARS = 640\n    private const val MAX_SENTENCES = 3\n\n    data class Lead(val citationId: String, val text: String) {\n        fun render(): String = \"## $HEADING\\",
+"tokens": 217
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\n/**\\n * Verbatim opening of a requested reference overview, shown before model generation.\\n *\\n * Small on-device models can distort a passage they were given (the boat/raft reversal\\n * recorded in the release audit). For \\\"what is X\\\" / \\\"tell me about X\\\" questions the saved\\n * article's first sentences are already the answer, so they are shown immediately and\\n * the slower model explanation follows below them. The text is copied, never paraphrased,\\n * which makes its citation correct by construction; it is not a claim that the source is\\n * current or complete.\\n */\\nobject SourceLead {\\n    const val HEADING = \\\"From the saved reference\\\"\\n    private const val TARGET_CHARS = 320\\n    private const val MAX_CHARS = 640\\n    private const val MAX_SENTENCES = 3\\n\\n    data class Lead(val citationId: String, val text: String) {\\n        fun render(): String = \\\"## $HEADING\\\\\"",
+"tokens": 222
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "n\\n> $text [$citationId]\"\n    }\n\n    // A full stop after these words does not end a sentence; splitting there would cut a\n    // definition mid-claim.\n    private val abbreviations = setOf(\n        \"e.g\", \"i.e\", \"etc\", \"vs\", \"approx\", \"c\", \"ca\", \"cf\", \"no\", \"st\", \"dr\", \"mr\", \"mrs\", \"ms\",\n        \"prof\", \"jr\", \"sr\", \"fig\", \"vol\", \"jan\", \"feb\", \"mar\", \"apr\", \"jun\", \"jul\", \"aug\", \"sep\",\n        \"sept\", \"oct\", \"nov\", \"dec\", \"u.s\", \"u.k\",\n    )\n    private val boundary = Regex(\"(?<=[.!?])[\\\"”’)]?\\\\s+(?=[\\\\p{Lu}\\\\p{N}\\\"“(])\")\n\n    /**\n     * Returns a lead only from the first chunk of an overview section the question names,\n     * restricted to sources actually packed into the prompt so its number matches the\n     * source list. A later chunk would start mid-article and is never used.\n     */\n    fun select(question: String, sources: List<PromptSource>): Lead? {\n        val subjects = Evidenc",
+"tokens": 283
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"n\\\\n\\u003e $text \\u005b$citationId\\u005d\\\"\\n    }\\n\\n    // A full stop after these words does not end a sentence; splitting there would cut a\\n    // definition mid-claim.\\n    private val abbreviations = setOf(\\n        \\\"e.g\\\", \\\"i.e\\\", \\\"etc\\\", \\\"vs\\\", \\\"approx\\\", \\\"c\\\", \\\"ca\\\", \\\"cf\\\", \\\"no\\\", \\\"st\\\", \\\"dr\\\", \\\"mr\\\", \\\"mrs\\\", \\\"ms\\\",\\n        \\\"prof\\\", \\\"jr\\\", \\\"sr\\\", \\\"fig\\\", \\\"vol\\\", \\\"jan\\\", \\\"feb\\\", \\\"mar\\\", \\\"apr\\\", \\\"jun\\\", \\\"jul\\\", \\\"aug\\\", \\\"sep\\\",\\n        \\\"sept\\\", \\\"oct\\\", \\\"nov\\\", \\\"dec\\\", \\\"u.s\\\", \\\"u.k\\\",\\n    )\\n    private val boundary = Regex(\\\"(?\\u003c=\\u005b.!?\\u005d)\\u005b\\\\\\\"”’)\\u005d?\\\\\\\\s+(?=\\u005b\\\\\\\\p{Lu}\\\\\\\\p{N}\\\\\\\"“(\\u005d)\\\")\\n\\n    /**\\n     * Returns a lead only from the first chunk of an overview section the question names,\\n     * restricted to sources actually packed into the prompt so its number matches the\\n     * source list. A later chunk would start mid-article and is never used.\\n     */\\n    fun select(question: String, sources: List\\u003cPromptSource\\u003e): Lead? {\\n        val subjects = Evidenc\"",
+"tokens": 356
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "eRelevance.overviewSubjects(question)\n        if (subjects.isEmpty()) return null\n        // Comparisons need both subjects; one article's opening is not an answer to them.\n        if (EvidenceRelevance.comparisonTerms(question).isNotEmpty()) return null\n        for (source in sources) {\n            val item = source.evidence\n            if (!isFirstChunk(item) || !EvidenceRelevance.isRequestedOverview(item, question)) continue\n            val text = leadText(EvidenceRelevance.passageText(item.text)) ?: continue\n            // The overview check alone falls back to title overlap for text it cannot parse\n            // as English, so the first sentence must itself name every subject term.\n            val opening = sentences(text).first()\n            val named = subjects.all { subject ->\n                val terms = FtsQuery.from(subject)?.terms.orEmpty()\n                terms.isNotEmpty() ",
+"tokens": 187
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"eRelevance.overviewSubjects(question)\\n        if (subjects.isEmpty()) return null\\n        // Comparisons need both subjects; one article's opening is not an answer to them.\\n        if (EvidenceRelevance.comparisonTerms(question).isNotEmpty()) return null\\n        for (source in sources) {\\n            val item = source.evidence\\n            if (!isFirstChunk(item) || !EvidenceRelevance.isRequestedOverview(item, question)) continue\\n            val text = leadText(EvidenceRelevance.passageText(item.text)) ?: continue\\n            // The overview check alone falls back to title overlap for text it cannot parse\\n            // as English, so the first sentence must itself name every subject term.\\n            val opening = sentences(text).first()\\n            val named = subjects.all { subject -\\u003e\\n                val terms = FtsQuery.from(subject)?.terms.orEmpty()\\n                terms.isNotEmpty() \"",
+"tokens": 194
+},
+{
+"kind": "code",
+"variant": "raw",
+"text": "package xyz.fieldatlas.research\n\n/** A narrow warning for explicit unsourced-answer labels, not a claim to detect all AI text. */\nobject AttachmentProvenance {\n    fun hasUnverifiedAnswerLabel(text: String): Boolean {\n        val normalized = text.lowercase().replace(Regex(\"\\\\s+\"), \" \")\n        return listOf(\"no linked local source\", \"model-generated\", \"not verified against saved sources\",\n            \"model explanation—not verified\", \"model explanation - not verified\").any { it in normalized }\n    }\n    fun needsWarning(evidence: Evidence) = evidence.documentId.startsWith(\"attachment:\") && hasUnverifiedAnswerLabel(evidence.text)\n}\n",
+"tokens": 144
+},
+{
+"kind": "code",
+"variant": "json",
+"text": "\"package xyz.fieldatlas.research\\n\\n/** A narrow warning for explicit unsourced-answer labels, not a claim to detect all AI text. */\\nobject AttachmentProvenance {\\n    fun hasUnverifiedAnswerLabel(text: String): Boolean {\\n        val normalized = text.lowercase().replace(Regex(\\\"\\\\\\\\s+\\\"), \\\" \\\")\\n        return listOf(\\\"no linked local source\\\", \\\"model-generated\\\", \\\"not verified against saved sources\\\",\\n            \\\"model explanation—not verified\\\", \\\"model explanation - not verified\\\").any { it in normalized }\\n    }\\n    fun needsWarning(evidence: Evidence) = evidence.documentId.startsWith(\\\"attachment:\\\") && hasUnverifiedAnswerLabel(evidence.text)\\n}\\n\"",
+"tokens": 154
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "17611,74606,8271,33432,15455,64937,99740,58915\n61898,85405,49756,27519,12302,63944,3715,51093\n56723,79618,99913,276,91204,58377,34908,94573\n29984,77483,13399,41606,4009,2925,3335,85137\n70964,1206,49965,89978,28390,55327,95138,3806\n69157,29057,57394,64987,72464,30550,45311,30260\n88715,28676,99738,60241,37982,2816,54549,72935\n84186,13107,24367,82490,94848,38848,15845,97405\n43607,94566,93217,65640,55326,66547,87858,24883\n39763,37245,77015,65452,66228,51557,77201,4525\n62944,31816,97482,52990,54304,87129,22676,48119\n71932,92148,88406,96759,49113,11333,57535,87000\n66640,14146,21456,68280,51544,48565,64185,96045\n3876,61514,5699,40439,92193,80584,77749,75782\n51589,84824,22328,22097,65829,29745,1612,26151\n70728,71871,30431,53012,67341,45065,75732,46304\n60179,35294,86404,71826,79815,95603,748,50290\n97059,67174,16940,67984,73578,26933,55848,7356\n63058,47806,74710,72666,26193,66154,54185,63560\n46765",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"17611,74606,8271,33432,15455,64937,99740,58915\\n61898,85405,49756,27519,12302,63944,3715,51093\\n56723,79618,99913,276,91204,58377,34908,94573\\n29984,77483,13399,41606,4009,2925,3335,85137\\n70964,1206,49965,89978,28390,55327,95138,3806\\n69157,29057,57394,64987,72464,30550,45311,30260\\n88715,28676,99738,60241,37982,2816,54549,72935\\n84186,13107,24367,82490,94848,38848,15845,97405\\n43607,94566,93217,65640,55326,66547,87858,24883\\n39763,37245,77015,65452,66228,51557,77201,4525\\n62944,31816,97482,52990,54304,87129,22676,48119\\n71932,92148,88406,96759,49113,11333,57535,87000\\n66640,14146,21456,68280,51544,48565,64185,96045\\n3876,61514,5699,40439,92193,80584,77749,75782\\n51589,84824,22328,22097,65829,29745,1612,26151\\n70728,71871,30431,53012,67341,45065,75732,46304\\n60179,35294,86404,71826,79815,95603,748,50290\\n97059,67174,16940,67984,73578,26933,55848,7356\\n63058,47806,74710,72666,26193,66154,54185,63560\\n46765\"",
+"tokens": 902
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": ",54319,45361,207,70579,70793,81722,80275\n43402,60050,78624,3666,30094,83279,23227,72188\n76606,23695,12006,72224,33461,4254,88226,9234\n10909,2187,59375,1908,98847,99036,36857,32710\n35211,14350,81894,24197,45144,38048,9111,21950\n20922,33451,69124,22039,86069,35771,84961,93269\n38599,59598,92094,42205,65076,62098,14967,3097\n40895,50666,45002,55170,24646,33871,14255,33221\n95702,66861,27405,79383,56577,2728,29540,2341\n52076,19197,4630,94219,21001,58414,92354,66362\n88889,55923,71395,28914,82676,91101,67711,59093\n29254,68668,85001,4023,51760,88460,75477,42106\n86484,82699,55875,7705,96659,39138,16473,27804\n6218,40158,9270,10019,40679,39043,97496,20736\n54548,74047,33077,17090,1111,73494,4969,77409\n28520,74747,60404,22481,92277,81652,66699,4905\n49541,26267,45472,12979,26969,75154,88362,56747\n77517,25443,64533,13687,87288,51126,38806,66074\n65509,2254,42643,80232,52733,36877,2371,20573\n26326,42957,73",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\",54319,45361,207,70579,70793,81722,80275\\n43402,60050,78624,3666,30094,83279,23227,72188\\n76606,23695,12006,72224,33461,4254,88226,9234\\n10909,2187,59375,1908,98847,99036,36857,32710\\n35211,14350,81894,24197,45144,38048,9111,21950\\n20922,33451,69124,22039,86069,35771,84961,93269\\n38599,59598,92094,42205,65076,62098,14967,3097\\n40895,50666,45002,55170,24646,33871,14255,33221\\n95702,66861,27405,79383,56577,2728,29540,2341\\n52076,19197,4630,94219,21001,58414,92354,66362\\n88889,55923,71395,28914,82676,91101,67711,59093\\n29254,68668,85001,4023,51760,88460,75477,42106\\n86484,82699,55875,7705,96659,39138,16473,27804\\n6218,40158,9270,10019,40679,39043,97496,20736\\n54548,74047,33077,17090,1111,73494,4969,77409\\n28520,74747,60404,22481,92277,81652,66699,4905\\n49541,26267,45472,12979,26969,75154,88362,56747\\n77517,25443,64533,13687,87288,51126,38806,66074\\n65509,2254,42643,80232,52733,36877,2371,20573\\n26326,42957,73\"",
+"tokens": 901
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "838,17713,44445,56261,27922,34935\n88402,12636,49706,71778,45069,90060,70035,63504\n69798,30754,8561,95088,5295,11099,17434,22242\n21830,70544,27914,35128,99498,43546,78670,66307\n33461,48248,44413,44601,14930,38170,30826,79165\n93730,64067,17740,76016,72243,13667,42038,5129\n53293,9593,49837,19310,16386,44682,15032,80633\n76992,49550,10046,74813,72125,29322,74182,10714\n34960,47827,38738,73983,70031,14983,60000,36330\n14120,5996,38762,1622,80435,87872,1906,12017\n54202,15086,5245,24631,31409,76912,55183,21236\n15146,59101,21939,89245,31643,20833,97518,13478\n57029,49581,71162,38538,72117,33214,93272,62522\n41216,13124,27212,85465,41604,5193,3573,1377\n38738,95221,78193,41975,58962,51284,41062,52239\n8252,8413,41595,78832,59750,14596,32776,28205\n80977,71160,90202,61462,86747,46638,33958,24015\n70988,27241,40281,26111,32293,47246,10665,36803\n11719,98734,58707,11860,85460,75282,84340,44418\n29809,51180,402",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"838,17713,44445,56261,27922,34935\\n88402,12636,49706,71778,45069,90060,70035,63504\\n69798,30754,8561,95088,5295,11099,17434,22242\\n21830,70544,27914,35128,99498,43546,78670,66307\\n33461,48248,44413,44601,14930,38170,30826,79165\\n93730,64067,17740,76016,72243,13667,42038,5129\\n53293,9593,49837,19310,16386,44682,15032,80633\\n76992,49550,10046,74813,72125,29322,74182,10714\\n34960,47827,38738,73983,70031,14983,60000,36330\\n14120,5996,38762,1622,80435,87872,1906,12017\\n54202,15086,5245,24631,31409,76912,55183,21236\\n15146,59101,21939,89245,31643,20833,97518,13478\\n57029,49581,71162,38538,72117,33214,93272,62522\\n41216,13124,27212,85465,41604,5193,3573,1377\\n38738,95221,78193,41975,58962,51284,41062,52239\\n8252,8413,41595,78832,59750,14596,32776,28205\\n80977,71160,90202,61462,86747,46638,33958,24015\\n70988,27241,40281,26111,32293,47246,10665,36803\\n11719,98734,58707,11860,85460,75282,84340,44418\\n29809,51180,402\"",
+"tokens": 902
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "10,5380,42892,24485,41515,75891\n39689,32223,43821,13231,71332,80136,75888,78114\n12064,32125,28856,2670,31950,52661,9480,35135\n72247,9295,95573,9847,2819,83280,1299,38118\n98399,47079,64652,61451,20208,13229,65723,43003\n10106,66751,87195,22707,23536,19603,18551,41914\n40058,14008,92972,67417,78891,38468,16554,27097\n18570,71498,94716,4162,41427,81727,88106,72476\n97803,90386,26926,23351,39180,56706,70450,20695\n6364,93693,87527,32413,33107,8442,89401,58549\n56383,71993,32796,70959,57592,70524,59416,1424\n51866,44390,22481,33812,63672,3199,84730,54615\n74790,2478,8168,90662,46523,76031,18125,77797\n16400,18152,33962,36295,52140,73934,52570,22567\n80274,11697,30609,63700,980,23275,69297,41581\n65653,85044,57451,89982,83769,95868,29586,31244\n41023,64890,90039,62760,29499,93434,54033,44164\n73453,80122,95449,85643,36074,84726,28766,6317\n9378,67068,84579,48324,20901,67060,26718,40868\n39153,90774,39264,723",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"10,5380,42892,24485,41515,75891\\n39689,32223,43821,13231,71332,80136,75888,78114\\n12064,32125,28856,2670,31950,52661,9480,35135\\n72247,9295,95573,9847,2819,83280,1299,38118\\n98399,47079,64652,61451,20208,13229,65723,43003\\n10106,66751,87195,22707,23536,19603,18551,41914\\n40058,14008,92972,67417,78891,38468,16554,27097\\n18570,71498,94716,4162,41427,81727,88106,72476\\n97803,90386,26926,23351,39180,56706,70450,20695\\n6364,93693,87527,32413,33107,8442,89401,58549\\n56383,71993,32796,70959,57592,70524,59416,1424\\n51866,44390,22481,33812,63672,3199,84730,54615\\n74790,2478,8168,90662,46523,76031,18125,77797\\n16400,18152,33962,36295,52140,73934,52570,22567\\n80274,11697,30609,63700,980,23275,69297,41581\\n65653,85044,57451,89982,83769,95868,29586,31244\\n41023,64890,90039,62760,29499,93434,54033,44164\\n73453,80122,95449,85643,36074,84726,28766,6317\\n9378,67068,84579,48324,20901,67060,26718,40868\\n39153,90774,39264,723\"",
+"tokens": 902
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "93,48708,21650,91918,91917\n96523,60919,77932,11137,16153,79443,67364,74872\n49440,23104,20418,32846,55935,28523,74647,94319\n99319,6833,64884,89343,51590,93998,83489,45610\n50328,67509,21600,71332,95668,5335,68704,11849\n33447,82372,13244,35065,96587,10973,18235,80858\n86470,89997,91803,10748,58334,31587,50115,56743\n52067,21594,42659,57426,16558,81579,63958,27789\n15622,56526,78732,69999,53506,15478,86574,38728\n36395,32534,49656,98248,73318,525,24882,69253\n57510,75901,2757,4038,82251,79380,31750,34130\n27080,22656,37326,19452,71085,26273,35812,40781\n76773,99276,32883,89591,58510,22017,71483,46786\n64331,55045,15964,27386,74782,50234,26846,37230\n14174,3165,15475,74620,97945,1732,71471,38851\n88331,99754,94937,85116,17903,9854,65584,48985\n75048,40796,57300,65933,88770,46768,99432,69257\n42426,110,16239,57975,94105,58923,45903,39950\n70686,52350,44481,95831,89576,74896,64526,14823\n84891,49487,50120,26",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"93,48708,21650,91918,91917\\n96523,60919,77932,11137,16153,79443,67364,74872\\n49440,23104,20418,32846,55935,28523,74647,94319\\n99319,6833,64884,89343,51590,93998,83489,45610\\n50328,67509,21600,71332,95668,5335,68704,11849\\n33447,82372,13244,35065,96587,10973,18235,80858\\n86470,89997,91803,10748,58334,31587,50115,56743\\n52067,21594,42659,57426,16558,81579,63958,27789\\n15622,56526,78732,69999,53506,15478,86574,38728\\n36395,32534,49656,98248,73318,525,24882,69253\\n57510,75901,2757,4038,82251,79380,31750,34130\\n27080,22656,37326,19452,71085,26273,35812,40781\\n76773,99276,32883,89591,58510,22017,71483,46786\\n64331,55045,15964,27386,74782,50234,26846,37230\\n14174,3165,15475,74620,97945,1732,71471,38851\\n88331,99754,94937,85116,17903,9854,65584,48985\\n75048,40796,57300,65933,88770,46768,99432,69257\\n42426,110,16239,57975,94105,58923,45903,39950\\n70686,52350,44481,95831,89576,74896,64526,14823\\n84891,49487,50120,26\"",
+"tokens": 902
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "727,72992,507,36388,83300\n78402,94671,96805,95470,66972,26067,60500,78752\n67752,53603,97600,93340,40021,92129,22323,58902\n81269,87666,69593,25868,47110,68968,461,88938\n51008,75936,55819,53117,44041,81477,76602,96184\n91685,98143,8879,64579,97749,32457,83932,85032\n38127,82532,2723,53346,94540,82478,20458,83064\n52077,35423,23350,9622,79359,1327,45803,34679\n92801,53888,89788,71335,39802,19932,60564,33993\n63510,22232,61224,66889,5949,35496,66883,12927\n97615,77415,55390,9142,46553,8781,86093,57997\n2587,21513,66474,93093,21184,90498,12196,52680\n83358,90296,36149,79297,39898,27379,69218,27224\n31094,43770,35267,8985,9815,91644,68576,86348\n48261,61333,67045,73092,96564,6519,22092,38912\n85598,96349,93511,72907,35358,46642,79910,96972\n30423,51453,73537,52391,22591,63389,34016,80006\n43207,93854,29139,33917,79947,92627,32011,86617\n4002,81586,52769,41488,56592,99823,32561,35270\n24890,9507,82036,95987,2",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"727,72992,507,36388,83300\\n78402,94671,96805,95470,66972,26067,60500,78752\\n67752,53603,97600,93340,40021,92129,22323,58902\\n81269,87666,69593,25868,47110,68968,461,88938\\n51008,75936,55819,53117,44041,81477,76602,96184\\n91685,98143,8879,64579,97749,32457,83932,85032\\n38127,82532,2723,53346,94540,82478,20458,83064\\n52077,35423,23350,9622,79359,1327,45803,34679\\n92801,53888,89788,71335,39802,19932,60564,33993\\n63510,22232,61224,66889,5949,35496,66883,12927\\n97615,77415,55390,9142,46553,8781,86093,57997\\n2587,21513,66474,93093,21184,90498,12196,52680\\n83358,90296,36149,79297,39898,27379,69218,27224\\n31094,43770,35267,8985,9815,91644,68576,86348\\n48261,61333,67045,73092,96564,6519,22092,38912\\n85598,96349,93511,72907,35358,46642,79910,96972\\n30423,51453,73537,52391,22591,63389,34016,80006\\n43207,93854,29139,33917,79947,92627,32011,86617\\n4002,81586,52769,41488,56592,99823,32561,35270\\n24890,9507,82036,95987,2\"",
+"tokens": 902
+},
+{
+"kind": "csv",
+"variant": "raw",
+"text": "1709,75909,58140,76209\n95452,19422,79463,34338,60213,69021,21303,18169\n18100,93814,57760,47328,40601,98484,52527,31521\n15182,94130,27025,94172,89312,40041,8942,13944\n29834,52036,42122,64534,13103,24479,5895,7253\n78317,3051,98622,28384,89561,4549,64809,92264\n69276,94891,80370,57971,44884,86890,35989,15475\n80378,90785,22634,12482,29106,52390,30568,64883\n58958,49531,98384,22098,30371,30898,37177,60630\n71698,76012,51064,27775,59204,93707,33800,43269\n65055,77806,14541,28029,10335,6057,2020,685\n62966,41887,50219,76055,37645,25674,52419,20980\n99426,84678,19958,3992,1989,50760,19028,87138\n71116,7486,74022,49740,33314,17036,10422,60671\n85479,39767,1892,4649,70383,7975,68800,16898\n5611,35860,15392,56689,11932,24918,3620,65491\n83560,17080,97598,36604,90016,25156,86902,58656\n51079,43228,82714,35123,34058,84096,83310,31862\n32168,7888,77060,77397,22973,45824,56160,79344\n91495,73434,83673,68442,7969,46",
+"tokens": 900
+},
+{
+"kind": "csv",
+"variant": "json",
+"text": "\"1709,75909,58140,76209\\n95452,19422,79463,34338,60213,69021,21303,18169\\n18100,93814,57760,47328,40601,98484,52527,31521\\n15182,94130,27025,94172,89312,40041,8942,13944\\n29834,52036,42122,64534,13103,24479,5895,7253\\n78317,3051,98622,28384,89561,4549,64809,92264\\n69276,94891,80370,57971,44884,86890,35989,15475\\n80378,90785,22634,12482,29106,52390,30568,64883\\n58958,49531,98384,22098,30371,30898,37177,60630\\n71698,76012,51064,27775,59204,93707,33800,43269\\n65055,77806,14541,28029,10335,6057,2020,685\\n62966,41887,50219,76055,37645,25674,52419,20980\\n99426,84678,19958,3992,1989,50760,19028,87138\\n71116,7486,74022,49740,33314,17036,10422,60671\\n85479,39767,1892,4649,70383,7975,68800,16898\\n5611,35860,15392,56689,11932,24918,3620,65491\\n83560,17080,97598,36604,90016,25156,86902,58656\\n51079,43228,82714,35123,34058,84096,83310,31862\\n32168,7888,77060,77397,22973,45824,56160,79344\\n91495,73434,83673,68442,7969,46\"",
+"tokens": 902
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "2026-07-07 21:45 Order #48493 total €99.55\n2026-01-26 21:22 Order #22222 total €828.52\n2026-03-04 21:34 Order #33514 total €772.43\n2026-03-13 21:27 Order #52670 total €556.81\n2026-12-17 21:17 Order #37336 total €199.20\n2026-03-18 21:10 Order #29227 total €123.56\n2026-10-17 21:08 Order #66529 total €138.42\n2026-10-26 21:46 Order #99257 total €325.76\n2026-03-01 21:22 Order #32826 total €232.30\n2026-12-16 21:37 Order #74057 total €36.83\n2026-02-05 21:34 Order #71457 total €579.18\n2026-04-12 21:45 Order #28070 total €287.94\n2026-06-03 21:24 Order #72282 total €31.67\n2026-08-07 21:46 Order #41574 total €212.88\n2026-01-24 21:44 Order #49849 total €44.34\n2026-09-07 21:04 Order #23879 total €833.98\n2026-02-28 21:25 Order #53496 total €108.57\n2026-12-19 21:33 Order #95454 total €495.85\n2026-05-05 21:27 Order #58688 total €664.44\n2026-07-14 21:27 Order #58240 total €989.70\n2026-04-07 21:04 Order #",
+"tokens": 654
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"2026-07-07 21:45 Order #48493 total €99.55\\n2026-01-26 21:22 Order #22222 total €828.52\\n2026-03-04 21:34 Order #33514 total €772.43\\n2026-03-13 21:27 Order #52670 total €556.81\\n2026-12-17 21:17 Order #37336 total €199.20\\n2026-03-18 21:10 Order #29227 total €123.56\\n2026-10-17 21:08 Order #66529 total €138.42\\n2026-10-26 21:46 Order #99257 total €325.76\\n2026-03-01 21:22 Order #32826 total €232.30\\n2026-12-16 21:37 Order #74057 total €36.83\\n2026-02-05 21:34 Order #71457 total €579.18\\n2026-04-12 21:45 Order #28070 total €287.94\\n2026-06-03 21:24 Order #72282 total €31.67\\n2026-08-07 21:46 Order #41574 total €212.88\\n2026-01-24 21:44 Order #49849 total €44.34\\n2026-09-07 21:04 Order #23879 total €833.98\\n2026-02-28 21:25 Order #53496 total €108.57\\n2026-12-19 21:33 Order #95454 total €495.85\\n2026-05-05 21:27 Order #58688 total €664.44\\n2026-07-14 21:27 Order #58240 total €989.70\\n2026-04-07 21:04 Order #\"",
+"tokens": 655
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "28982 total €244.30\n2026-01-08 21:42 Order #61586 total €468.78\n2026-08-19 21:06 Order #17102 total €177.67\n2026-01-02 21:27 Order #46501 total €426.16\n2026-04-23 21:49 Order #96590 total €384.53\n2026-06-19 21:47 Order #16199 total €519.58\n2026-03-23 21:58 Order #78571 total €373.74\n2026-01-12 21:07 Order #42170 total €651.81\n2026-02-14 21:09 Order #12500 total €375.16\n2026-03-10 21:01 Order #71913 total €654.03\n2026-08-03 21:48 Order #87283 total €442.11\n2026-08-18 21:38 Order #75707 total €100.16\n2026-09-28 21:43 Order #61586 total €659.77\n2026-09-14 21:15 Order #78596 total €389.61\n2026-12-11 21:28 Order #25307 total €69.26\n2026-10-20 21:55 Order #58406 total €107.12\n2026-06-04 21:56 Order #35675 total €114.88\n2026-11-19 21:05 Order #10470 total €525.55\n2026-04-03 21:19 Order #73906 total €627.07\n2026-10-14 21:35 Order #49089 total €402.80\n2026-01-22 21:38 Order #13798 total €284.79\n2",
+"tokens": 654
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"28982 total €244.30\\n2026-01-08 21:42 Order #61586 total €468.78\\n2026-08-19 21:06 Order #17102 total €177.67\\n2026-01-02 21:27 Order #46501 total €426.16\\n2026-04-23 21:49 Order #96590 total €384.53\\n2026-06-19 21:47 Order #16199 total €519.58\\n2026-03-23 21:58 Order #78571 total €373.74\\n2026-01-12 21:07 Order #42170 total €651.81\\n2026-02-14 21:09 Order #12500 total €375.16\\n2026-03-10 21:01 Order #71913 total €654.03\\n2026-08-03 21:48 Order #87283 total €442.11\\n2026-08-18 21:38 Order #75707 total €100.16\\n2026-09-28 21:43 Order #61586 total €659.77\\n2026-09-14 21:15 Order #78596 total €389.61\\n2026-12-11 21:28 Order #25307 total €69.26\\n2026-10-20 21:55 Order #58406 total €107.12\\n2026-06-04 21:56 Order #35675 total €114.88\\n2026-11-19 21:05 Order #10470 total €525.55\\n2026-04-03 21:19 Order #73906 total €627.07\\n2026-10-14 21:35 Order #49089 total €402.80\\n2026-01-22 21:38 Order #13798 total €284.79\\n2\"",
+"tokens": 656
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "026-08-15 21:14 Order #45208 total €932.41\n2026-08-15 21:34 Order #17174 total €276.65\n2026-03-24 21:45 Order #67405 total €467.37\n2026-10-19 21:11 Order #52071 total €523.84\n2026-07-25 21:42 Order #64236 total €702.71\n2026-10-13 21:30 Order #92614 total €226.39\n2026-01-03 21:09 Order #74691 total €997.14\n2026-06-09 21:54 Order #50542 total €809.69\n2026-05-05 21:06 Order #75777 total €142.58\n2026-01-15 21:30 Order #84676 total €933.41\n2026-09-12 21:08 Order #11919 total €551.25\n2026-05-20 21:51 Order #18490 total €804.59\n2026-05-01 21:41 Order #44852 total €743.64\n2026-12-01 21:36 Order #62617 total €115.12\n2026-11-11 21:38 Order #91233 total €653.89\n2026-12-19 21:59 Order #68636 total €94.78\n2026-08-17 21:21 Order #87204 total €895.86\n2026-01-07 21:10 Order #17280 total €632.14\n2026-01-04 21:35 Order #79439 total €313.96\n2026-04-06 21:34 Order #29684 total €234.27\n2026-02-17 21:22 Order",
+"tokens": 655
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"026-08-15 21:14 Order #45208 total €932.41\\n2026-08-15 21:34 Order #17174 total €276.65\\n2026-03-24 21:45 Order #67405 total €467.37\\n2026-10-19 21:11 Order #52071 total €523.84\\n2026-07-25 21:42 Order #64236 total €702.71\\n2026-10-13 21:30 Order #92614 total €226.39\\n2026-01-03 21:09 Order #74691 total €997.14\\n2026-06-09 21:54 Order #50542 total €809.69\\n2026-05-05 21:06 Order #75777 total €142.58\\n2026-01-15 21:30 Order #84676 total €933.41\\n2026-09-12 21:08 Order #11919 total €551.25\\n2026-05-20 21:51 Order #18490 total €804.59\\n2026-05-01 21:41 Order #44852 total €743.64\\n2026-12-01 21:36 Order #62617 total €115.12\\n2026-11-11 21:38 Order #91233 total €653.89\\n2026-12-19 21:59 Order #68636 total €94.78\\n2026-08-17 21:21 Order #87204 total €895.86\\n2026-01-07 21:10 Order #17280 total €632.14\\n2026-01-04 21:35 Order #79439 total €313.96\\n2026-04-06 21:34 Order #29684 total €234.27\\n2026-02-17 21:22 Order\"",
+"tokens": 657
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": " #83755 total €446.34\n2026-10-05 21:18 Order #85725 total €832.31\n2026-02-28 21:38 Order #44714 total €59.02\n2026-07-20 21:18 Order #72208 total €433.55\n2026-02-06 21:13 Order #98992 total €35.81\n2026-07-28 21:26 Order #56502 total €964.45\n2026-09-05 21:11 Order #39621 total €235.07\n2026-06-03 21:55 Order #68517 total €330.27\n2026-04-09 21:09 Order #78282 total €391.13\n2026-08-22 21:46 Order #90207 total €2.60\n2026-05-09 21:49 Order #48163 total €920.26\n2026-03-23 21:40 Order #59879 total €679.04\n2026-07-15 21:34 Order #13185 total €135.29\n2026-08-21 21:06 Order #48802 total €719.79\n2026-07-07 21:33 Order #53771 total €101.31\n2026-04-16 21:36 Order #25196 total €183.63\n2026-06-23 21:41 Order #87954 total €650.79\n2026-07-13 21:35 Order #65291 total €858.96\n2026-01-21 21:25 Order #28544 total €436.16\n2026-01-10 21:24 Order #90773 total €441.81\n2026-02-07 21:38 Order #45575 total €491.76\n20",
+"tokens": 653
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\" #83755 total €446.34\\n2026-10-05 21:18 Order #85725 total €832.31\\n2026-02-28 21:38 Order #44714 total €59.02\\n2026-07-20 21:18 Order #72208 total €433.55\\n2026-02-06 21:13 Order #98992 total €35.81\\n2026-07-28 21:26 Order #56502 total €964.45\\n2026-09-05 21:11 Order #39621 total €235.07\\n2026-06-03 21:55 Order #68517 total €330.27\\n2026-04-09 21:09 Order #78282 total €391.13\\n2026-08-22 21:46 Order #90207 total €2.60\\n2026-05-09 21:49 Order #48163 total €920.26\\n2026-03-23 21:40 Order #59879 total €679.04\\n2026-07-15 21:34 Order #13185 total €135.29\\n2026-08-21 21:06 Order #48802 total €719.79\\n2026-07-07 21:33 Order #53771 total €101.31\\n2026-04-16 21:36 Order #25196 total €183.63\\n2026-06-23 21:41 Order #87954 total €650.79\\n2026-07-13 21:35 Order #65291 total €858.96\\n2026-01-21 21:25 Order #28544 total €436.16\\n2026-01-10 21:24 Order #90773 total €441.81\\n2026-02-07 21:38 Order #45575 total €491.76\\n20\"",
+"tokens": 655
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "26-07-09 21:32 Order #23971 total €334.19\n2026-09-23 21:34 Order #44038 total €967.86\n2026-11-01 21:35 Order #96643 total €751.12\n2026-06-15 21:16 Order #22415 total €291.17\n2026-02-14 21:45 Order #59864 total €29.61\n2026-10-24 21:08 Order #83410 total €994.50\n2026-08-26 21:53 Order #40541 total €522.03\n2026-07-26 21:03 Order #63810 total €616.10\n2026-04-22 21:02 Order #69545 total €86.37\n2026-10-02 21:22 Order #15563 total €70.09\n2026-01-19 21:19 Order #56456 total €316.11\n2026-09-16 21:39 Order #56867 total €871.41\n2026-03-21 21:22 Order #78974 total €256.41\n2026-10-08 21:15 Order #93150 total €791.89\n2026-04-10 21:19 Order #80294 total €331.91\n2026-05-19 21:00 Order #96071 total €493.32\n2026-11-26 21:14 Order #29340 total €996.30\n2026-03-03 21:16 Order #62259 total €208.17\n2026-03-27 21:35 Order #91438 total €76.40\n2026-07-23 21:13 Order #30752 total €40.57\n2026-04-13 21:50 Order #247",
+"tokens": 654
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"26-07-09 21:32 Order #23971 total €334.19\\n2026-09-23 21:34 Order #44038 total €967.86\\n2026-11-01 21:35 Order #96643 total €751.12\\n2026-06-15 21:16 Order #22415 total €291.17\\n2026-02-14 21:45 Order #59864 total €29.61\\n2026-10-24 21:08 Order #83410 total €994.50\\n2026-08-26 21:53 Order #40541 total €522.03\\n2026-07-26 21:03 Order #63810 total €616.10\\n2026-04-22 21:02 Order #69545 total €86.37\\n2026-10-02 21:22 Order #15563 total €70.09\\n2026-01-19 21:19 Order #56456 total €316.11\\n2026-09-16 21:39 Order #56867 total €871.41\\n2026-03-21 21:22 Order #78974 total €256.41\\n2026-10-08 21:15 Order #93150 total €791.89\\n2026-04-10 21:19 Order #80294 total €331.91\\n2026-05-19 21:00 Order #96071 total €493.32\\n2026-11-26 21:14 Order #29340 total €996.30\\n2026-03-03 21:16 Order #62259 total €208.17\\n2026-03-27 21:35 Order #91438 total €76.40\\n2026-07-23 21:13 Order #30752 total €40.57\\n2026-04-13 21:50 Order #247\"",
+"tokens": 656
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "62 total €718.39\n2026-04-24 21:40 Order #47968 total €524.83\n2026-08-11 21:05 Order #18986 total €73.29\n2026-02-17 21:29 Order #82892 total €470.01\n2026-10-06 21:29 Order #66714 total €554.14\n2026-04-01 21:15 Order #50342 total €220.66\n2026-10-10 21:58 Order #50372 total €271.44\n2026-05-10 21:03 Order #13812 total €896.01\n2026-11-25 21:54 Order #67842 total €44.26\n2026-02-11 21:28 Order #96740 total €312.14\n2026-04-22 21:55 Order #24558 total €198.03\n2026-04-21 21:57 Order #27783 total €639.76\n2026-11-22 21:01 Order #67701 total €747.03\n2026-09-08 21:53 Order #72287 total €178.68\n2026-01-08 21:08 Order #18219 total €17.17\n2026-06-19 21:05 Order #77823 total €553.33\n2026-04-13 21:00 Order #81275 total €287.45\n2026-05-18 21:24 Order #62956 total €543.67\n2026-09-15 21:17 Order #21600 total €185.97\n2026-08-19 21:25 Order #27446 total €924.79\n2026-04-17 21:01 Order #77787 total €53.40\n2026-03",
+"tokens": 654
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"62 total €718.39\\n2026-04-24 21:40 Order #47968 total €524.83\\n2026-08-11 21:05 Order #18986 total €73.29\\n2026-02-17 21:29 Order #82892 total €470.01\\n2026-10-06 21:29 Order #66714 total €554.14\\n2026-04-01 21:15 Order #50342 total €220.66\\n2026-10-10 21:58 Order #50372 total €271.44\\n2026-05-10 21:03 Order #13812 total €896.01\\n2026-11-25 21:54 Order #67842 total €44.26\\n2026-02-11 21:28 Order #96740 total €312.14\\n2026-04-22 21:55 Order #24558 total €198.03\\n2026-04-21 21:57 Order #27783 total €639.76\\n2026-11-22 21:01 Order #67701 total €747.03\\n2026-09-08 21:53 Order #72287 total €178.68\\n2026-01-08 21:08 Order #18219 total €17.17\\n2026-06-19 21:05 Order #77823 total €553.33\\n2026-04-13 21:00 Order #81275 total €287.45\\n2026-05-18 21:24 Order #62956 total €543.67\\n2026-09-15 21:17 Order #21600 total €185.97\\n2026-08-19 21:25 Order #27446 total €924.79\\n2026-04-17 21:01 Order #77787 total €53.40\\n2026-03\"",
+"tokens": 656
+},
+{
+"kind": "dates",
+"variant": "raw",
+"text": "-08 21:20 Order #62022 total €42.52\n2026-12-27 21:37 Order #72228 total €852.64\n2026-02-26 21:44 Order #14511 total €135.71\n2026-07-18 21:24 Order #81342 total €279.75\n2026-01-07 21:12 Order #49874 total €724.48\n2026-05-17 21:01 Order #84654 total €274.24\n2026-09-17 21:47 Order #79937 total €909.20\n2026-04-03 21:13 Order #72969 total €169.06\n2026-11-27 21:25 Order #47058 total €16.19\n2026-02-27 21:02 Order #86959 total €441.60\n2026-03-27 21:13 Order #84226 total €480.84\n2026-02-28 21:42 Order #63056 total €894.28\n2026-02-05 21:21 Order #76334 total €487.63\n2026-09-22 21:23 Order #66713 total €837.74\n2026-04-28 21:28 Order #44058 total €965.51\n2026-06-13 21:51 Order #84229 total €235.48\n2026-10-28 21:06 Order #33706 total €704.76\n2026-11-26 21:22 Order #19921 total €27.53\n2026-10-16 21:03 Order #70332 total €923.14\n2026-11-21 21:48 Order #40699 total €466.44\n2026-09-03 21:56 Order #53935 ",
+"tokens": 654
+},
+{
+"kind": "dates",
+"variant": "json",
+"text": "\"-08 21:20 Order #62022 total €42.52\\n2026-12-27 21:37 Order #72228 total €852.64\\n2026-02-26 21:44 Order #14511 total €135.71\\n2026-07-18 21:24 Order #81342 total €279.75\\n2026-01-07 21:12 Order #49874 total €724.48\\n2026-05-17 21:01 Order #84654 total €274.24\\n2026-09-17 21:47 Order #79937 total €909.20\\n2026-04-03 21:13 Order #72969 total €169.06\\n2026-11-27 21:25 Order #47058 total €16.19\\n2026-02-27 21:02 Order #86959 total €441.60\\n2026-03-27 21:13 Order #84226 total €480.84\\n2026-02-28 21:42 Order #63056 total €894.28\\n2026-02-05 21:21 Order #76334 total €487.63\\n2026-09-22 21:23 Order #66713 total €837.74\\n2026-04-28 21:28 Order #44058 total €965.51\\n2026-06-13 21:51 Order #84229 total €235.48\\n2026-10-28 21:06 Order #33706 total €704.76\\n2026-11-26 21:22 Order #19921 total €27.53\\n2026-10-16 21:03 Order #70332 total €923.14\\n2026-11-21 21:48 Order #40699 total €466.44\\n2026-09-03 21:56 Order #53935 \"",
+"tokens": 654
+},
+{
+"kind": "id",
+"variant": "raw",
+"text": "Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adala",
+"tokens": 280
+},
+{
+"kind": "id",
+"variant": "json",
+"text": "\"Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adala\"",
+"tokens": 281
+},
+{
+"kind": "id",
+"variant": "raw",
+"text": "h 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. ",
+"tokens": 196
+},
+{
+"kind": "id",
+"variant": "json",
+"text": "\"h 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. Pompa Helios HX-44 revisi B berlaku untuk nomor seri 2000 sampai 2999. Gunakan filter K-9 dan konektor M5. Interval servis adalah 600 jam operasi. Jangan gunakan nilai revisi A untuk unit ini. \"",
+"tokens": 196
+},
+{
+"kind": "de",
+"variant": "raw",
+"text": "Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999",
+"tokens": 298
+},
+{
+"kind": "de",
+"variant": "json",
+"text": "\"Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999\"",
+"tokens": 300
+},
+{
+"kind": "de",
+"variant": "raw",
+"text": ". Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. ",
+"tokens": 135
+},
+{
+"kind": "de",
+"variant": "json",
+"text": "\". Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. Die Pumpe Helios HX-44 Revision B gilt für Seriennummern 2000 bis 2999. Verwenden Sie Filter K-9 und Anschluss M5. Das Wartungsintervall beträgt 600 Betriebsstunden. \"",
+"tokens": 135
+},
+{
+"kind": "ru",
+"variant": "raw",
+"text": "Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Исп",
+"tokens": 309
+},
+{
+"kind": "ru",
+"variant": "json",
+"text": "\"Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Исп\"",
+"tokens": 311
+},
+{
+"kind": "ru",
+"variant": "raw",
+"text": "ользуйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. ",
+"tokens": 135
+},
+{
+"kind": "ru",
+"variant": "json",
+"text": "\"ользуйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. Насос Helios HX-44 ревизии B применяется к серийным номерам от 2000 до 2999. Используйте фильтр K-9 и разъём M5. Интервал обслуживания составляет 600 часов работы. \"",
+"tokens": 136
+},
+{
+"kind": "zh",
+"variant": "raw",
+"text": "Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。",
+"tokens": 496
+},
+{
+"kind": "zh",
+"variant": "json",
+"text": "\"Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。Helios HX-44 泵 B 版适用于序列号 2000 至 2999。请使用 K-9 滤芯和 M5 接头。保养间隔为 600 个运行小时。不要将 A 版的数值用于此设备。\"",
+"tokens": 498
+},
+{
+"kind": "ja",
+"variant": "raw",
+"text": "Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。",
+"tokens": 432
+},
+{
+"kind": "ja",
+"variant": "json",
+"text": "\"Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。Helios HX-44 ポンプのリビジョンBはシリアル番号2000から2999に適用されます。フィルターK-9とコネクタM5を使用してください。整備間隔は運転600時間です。\"",
+"tokens": 434
+},
+{
+"kind": "ar",
+"variant": "raw",
+"text": "تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 وا",
+"tokens": 377
+},
+{
+"kind": "ar",
+"variant": "json",
+"text": "\"تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 وا\"",
+"tokens": 379
+},
+{
+"kind": "ar",
+"variant": "raw",
+"text": "لموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.",
+"tokens": 71
+},
+{
+"kind": "ar",
+"variant": "json",
+"text": "\"لموصل M5. فترة الصيانة 600 ساعة تشغيل.تنطبق المراجعة B لمضخة Helios HX-44 على الأرقام التسلسلية من 2000 إلى 2999. استخدم المرشح K-9 والموصل M5. فترة الصيانة 600 ساعة تشغيل.\"",
+"tokens": 72
+},
+{
+"kind": "hi",
+"variant": "raw",
+"text": "Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है।",
+"tokens": 455
+},
+{
+"kind": "hi",
+"variant": "json",
+"text": "\"Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है।\"",
+"tokens": 457
+},
+{
+"kind": "hi",
+"variant": "raw",
+"text": " फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।",
+"tokens": 105
+},
+{
+"kind": "hi",
+"variant": "json",
+"text": "\" फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।Helios HX-44 पंप का संशोधन B क्रमांक 2000 से 2999 पर लागू होता है। फ़िल्टर K-9 और कनेक्टर M5 का उपयोग करें। सेवा अंतराल 600 संचालन घंटे है।\"",
+"tokens": 107
+},
+{
+"kind": "ko",
+"variant": "raw",
+"text": "Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.",
+"tokens": 448
+},
+{
+"kind": "ko",
+"variant": "json",
+"text": "\"Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.Helios HX-44 펌프 개정판 B는 일련번호 2000~2999에 적용됩니다. 필터 K-9와 커넥터 M5를 사용하십시오. 정비 주기는 600 운전 시간입니다.\"",
+"tokens": 449
+},
+{
+"kind": "th",
+"variant": "raw",
+"text": "ปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ",
+"tokens": 364
+},
+{
+"kind": "th",
+"variant": "json",
+"text": "\"ปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ\"",
+"tokens": 366
+},
+{
+"kind": "th",
+"variant": "raw",
+"text": " M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงาน",
+"tokens": 68
+},
+{
+"kind": "th",
+"variant": "json",
+"text": "\" M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงานปั๊ม Helios HX-44 รุ่นแก้ไข B ใช้กับหมายเลขซีเรียล 2000 ถึง 2999 ใช้ตัวกรอง K-9 และขั้วต่อ M5 ระยะเวลาบำรุงรักษาคือ 600 ชั่วโมงการทำงาน\"",
+"tokens": 70
+},
+{
+"kind": "vi",
+"variant": "raw",
+"text": "Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm He",
+"tokens": 357
+},
+{
+"kind": "vi",
+"variant": "json",
+"text": "\"Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm He\"",
+"tokens": 358
+},
+{
+"kind": "vi",
+"variant": "raw",
+"text": "lios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.",
+"tokens": 116
+},
+{
+"kind": "vi",
+"variant": "json",
+"text": "\"lios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.Bơm Helios HX-44 phiên bản B áp dụng cho số sê-ri từ 2000 đến 2999. Sử dụng bộ lọc K-9 và đầu nối M5. Khoảng thời gian bảo dưỡng là 600 giờ vận hành.\"",
+"tokens": 117
+},
+{
+"kind": "emoji",
+"variant": "raw",
+"text": "Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x",
+"tokens": 589
+},
+{
+"kind": "emoji",
+"variant": "json",
+"text": "\"Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x\"",
+"tokens": 591
+},
+{
+"kind": "emoji",
+"variant": "raw",
+"text": "3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ ",
+"tokens": 594
+},
+{
+"kind": "emoji",
+"variant": "json",
+"text": "\"3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ \"",
+"tokens": 595
+},
+{
+"kind": "emoji",
+"variant": "raw",
+"text": "🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ ",
+"tokens": 67
+},
+{
+"kind": "emoji",
+"variant": "json",
+"text": "\"🚆 🚌 ⚠️ storms 🌩️ Trip plan 🏕️🥾 day 1 ✅ water 💧 x3 🔥 camp ⛺ check-in 🕘 21:30 ✈️ 🚆 🚌 ⚠️ storms 🌩️ \"",
+"tokens": 68
+}
+]
+}

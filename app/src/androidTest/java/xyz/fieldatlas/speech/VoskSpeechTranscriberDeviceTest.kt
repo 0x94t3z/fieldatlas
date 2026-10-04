@@ -11,6 +11,10 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class VoskSpeechTranscriberDeviceTest {
     @Test fun startsAndStopsRecordingWithoutNetwork() = runBlocking {
+        // The app asks for the microphone at first use; the test grants it the same way a user would.
+        val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.grantRuntimePermission(instrumentation.targetContext.packageName,
+            android.Manifest.permission.RECORD_AUDIO)
         val transcriber = VoskSpeechTranscriber(ApplicationProvider.getApplicationContext())
         try {
             transcriber.start { }

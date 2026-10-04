@@ -361,6 +361,21 @@ returns an evidence gap. These failures block catalog publication. A structurall
 better pack is not necessarily a better answer source under the current model
 and retrieval pipeline.
 
+## Emergency guides (bundled)
+
+Bundled in the APK as `app/src/main/assets/emergency/guides.json`, so Research can answer emergency questions with no download, model or network. Built by `tools/build_emergency_data.py` from the pinned list in `tools/emergency_sources.json`:
+
+```sh
+python3 -m pip install -r tools/general_reference_requirements.txt   # BeautifulSoup for HTML selection
+python3 tools/build_emergency_data.py fetch     # one polite request per source, raw bytes cached with SHA-256
+python3 tools/build_emergency_data.py build     # offline; re-checks every cached hash, byte-identical output
+python3 -m unittest tools/tests/test_emergency_data.py
+```
+
+- **guides.json** (152344 bytes, SHA-256 `f1412fadf14a4c99c304aa568e2d55f79e80f844dd1fd4b3958a794bb4bd20df`): 41 guides. Text is *selected* from each source (headings, ranges, dropped blocks) and never edited; a test re-extracts every cached page and checks each string is an exact source block. US federal pages (CDC, NIOSH, NIH/NLM MedlinePlus health-topic summaries, NIH/NIAMS, NWS/NOAA, NPS, FEMA Ready.gov, U.S. Fire Administration) are public domain; MedlinePlus A.D.A.M. encyclopedia pages, which are copyrighted, are not used. Four guides are English Wikipedia articles at pinned revisions (CC BY-SA 4.0). Guides that assume US services or US species carry `"region": "US"`.
+- **numbers.json** (built alongside, not shipped in the app): police, ambulance, fire and general numbers for 242 countries and territories from Wikipedia's “List of emergency telephone numbers” (revision 1377218654, CC BY-SA 4.0), kept for future use.
+- **Review before relying on it:** see the limits in [docs/emergency.md](docs/emergency.md#limits-you-should-know). The severe-bleeding gap (no bundled tourniquet guidance) and the Wikipedia-sourced choking and drowning guides need review by a clinician.
+
 ## Adding future collections
 
 The development app accepts independently produced knowledge packs using the supported fapack manifest and SQLite schema. A topic need not have a hardcoded app entry. The canonical download catalog is `app/src/main/assets/knowledge/catalog.json`; publishing compatible entries to that file on the project repository's main branch lets users discover them through explicit **Refresh collections**. Refresh is optional provisioning, not background research networking. Installed packs work independently of catalog availability.

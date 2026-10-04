@@ -67,4 +67,20 @@ class AttachmentSessionTest {
         assertThrows(AttachmentException::class.java) { session.add("fourth") { awaitCancellation() } }
         session.clear()
     }
+
+    @Test fun restoredFilesAreReadAgainAndReportedForSaving() = runBlocking {
+        val reads = mutableListOf<String>()
+        val session = AttachmentSession(this, AttachmentReader { input ->
+            reads += input.id
+            ExtractedAttachment(input.id, input.displayName, listOf(AttachmentPage(1, "Restored")))
+        }, {})
+        val staged = AttachmentInput("file-1", "notes.txt", File("file-1"), AttachmentKind.TEXT)
+        session.restore(listOf(staged))
+        yield()
+        assertEquals(listOf("file-1"), reads)
+        assertEquals(AttachmentPhase.Ready, session.state.value.single().phase)
+        assertEquals(listOf(staged), session.staged())
+        session.clear()
+        assertTrue(session.staged().isEmpty())
+    }
 }

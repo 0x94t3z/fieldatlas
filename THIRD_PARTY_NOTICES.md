@@ -16,7 +16,15 @@ This file is a navigation index for significant source and runtime components. I
 | kotlinx.serialization | `1.4.0` | Apache-2.0 | [kotlinx.serialization LICENSE](https://github.com/Kotlin/kotlinx.serialization/blob/v1.4.0/LICENSE.txt) |
 | kotlinx.coroutines | `1.7.3` | Apache-2.0 | [kotlinx.coroutines LICENSE](https://github.com/Kotlin/kotlinx.coroutines/blob/1.7.3/LICENSE.txt) |
 | Apache Commons Compress | `1.28.0` | Apache-2.0 | [Commons Compress LICENSE](https://github.com/apache/commons-compress/blob/rel/commons-compress-1.28.0/LICENSE.txt) |
+| Tesseract4Android (Tesseract OCR) | `4.9.0` | Apache-2.0 | [Tesseract4Android repository](https://github.com/adaptech-cz/Tesseract4Android) |
+| Tesseract English model (`eng.traineddata`, bundled in the APK) | SHA-256 pinned in `ImageTextReader.kt` | Apache-2.0 | [tessdata repository](https://github.com/tesseract-ocr/tessdata) |
+| PdfBox-Android (port of Apache PDFBox) | `2.0.27.0` | Apache-2.0 | [PdfBox-Android repository](https://github.com/TomRoush/PdfBox-Android) |
+| Liberation Sans Regular (bundled by PdfBox-Android) | as shipped in PdfBox-Android `2.0.27.0` | SIL Open Font License 1.1 | [Liberation fonts](https://github.com/liberationfonts/liberation-fonts) |
+| Adobe Glyph List and AFM metrics (bundled by PdfBox-Android) | as shipped in PdfBox-Android `2.0.27.0` | BSD-style Adobe licenses | [Adobe Glyph List](https://github.com/adobe-type-tools/agl-aglfn) |
 
 Exact model file names, SHA-256 digests, quantization, sources, and build procedures are recorded in `MODELS.md`, the `models/*.example.json` registries, and vector-pack manifests. Answer-model weights are not committed to Git; the small offline Vosk speech model is bundled in the APK and carries its own provenance record.
 
 The four project-authored starter documents are dedicated to the public domain under CC0-1.0. Their per-document provenance is recorded in `fixtures/starter/LICENSES.md`.
+
+The bundled emergency guides (`app/src/main/assets/emergency/guides.json`) quote US federal government pages (CDC, NIOSH, NIH/NLM, NIH/NIAMS, NWS/NOAA, NPS, FEMA and the U.S. Fire Administration), which are public-domain works of the US government, and four English Wikipedia articles at pinned revisions under CC BY-SA 4.0 (credit: Wikipedia contributors; each guide records its URL, revision and retrieval date). Sources, checksums and the build procedure are in `DATASETS.md` and `tools/build_emergency_data.py`.
+

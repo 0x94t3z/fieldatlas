@@ -31,7 +31,9 @@ class SourceViewerTest {
         } }
         compose.onNodeWithText("Saved passages").assertIsDisplayed()
         compose.onNodeWithText(original).assertIsDisplayed()
+        // The passage opens a preview sheet first; "Full source" opens the complete source.
         compose.onNodeWithText("Open full passage").performClick()
+        compose.onNodeWithText("Full source").performClick()
         compose.runOnIdle { org.junit.Assert.assertEquals(0, opened) }
     }
 
@@ -80,7 +82,8 @@ class SourceViewerTest {
             compose.onNodeWithText("View original file").performScrollTo().performClick()
             try {
                 compose.waitUntil(5_000) { compose.onAllNodesWithText("Copy original text").fetchSemanticsNodes().isNotEmpty() }
-            } catch (error: Exception) {
+            } catch (error: Throwable) {
+                // ComposeTimeoutException is a Throwable, not an Exception; catch it so the tree prints.
                 throw AssertionError(compose.onAllNodes(isRoot(), useUnmergedTree = true).onLast().printToString(), error)
             }
             compose.onNodeWithText("Copy original text").assertIsDisplayed()
@@ -94,7 +97,8 @@ class SourceViewerTest {
         compose.setContent { FieldAtlasTheme { SourcesScreen(evidence("config.json", raw), 1, 1, null, {}) } }
         compose.onNodeWithText("Raw").performScrollTo().performClick()
         compose.onNodeWithText(raw).assertIsDisplayed()
-        compose.onNodeWithContentDescription("Copy source text").performScrollTo().performClick()
+        // Copy sits in the top bar, outside the scrolling content.
+        compose.onNodeWithContentDescription("Copy source text").performClick()
         compose.onNodeWithText("Formatted").performScrollTo().performClick()
         compose.onNodeWithText("Formatted").assertIsSelected().assertIsEnabled()
         compose.onNodeWithText("Indentation added for readability. Copy keeps the original text.").performScrollTo().assertIsDisplayed()

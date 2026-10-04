@@ -73,7 +73,7 @@ class AttachmentScopeTest {
         val question = "Also use my library to compare vegan restaurants"
         val longFile = file.copy(pages = listOf(AttachmentPage(1, "Berlin vegan restaurants. ".repeat(500))))
         val packed = AttachmentEvidence.pack(question, AttachmentEvidence.select(question, listOf(longFile), 8), listOf(library), 5632)
-        assertTrue(packed.prompt.toByteArray().size <= 5632)
+        assertTrue(TokenEstimate.of(packed.prompt) <= 5632)
         assertEquals(setOf("attachment:notes", "library-venue"), packed.sources.map { it.evidence.documentId }.toSet())
     }
 

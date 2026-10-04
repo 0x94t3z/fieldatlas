@@ -112,6 +112,10 @@ fun ResearchScreen(
     onOpenAnswer: () -> Unit,
     onAskAnotherQuestion: () -> Unit = {},
     listState: LazyListState = rememberLazyListState(),
+    /** True when the app answers this question itself (emergency guide, near-me lookup), with no model. */
+    answersWithoutModel: (question: String, hasAttachments: Boolean) -> Boolean = { question, hasAttachments ->
+        xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null
+    },
 ) {
     val scope = rememberCoroutineScope()
     var attachmentMenuOpen by rememberSaveable { mutableStateOf(false) }
@@ -153,7 +157,9 @@ fun ResearchScreen(
         // The design drops the status chips while research runs, keeping focus on progress.
         if (!state.isRunning) item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldAtlasStatusPill("Offline", StatusTone.Positive,
+                // Reflects the real connection: research runs on the phone either way.
+                val online = xyz.fieldatlas.ui.setup.rememberSetupConnectivity()
+                FieldAtlasStatusPill(if (online) "Works offline" else "Offline now", if (online) StatusTone.Neutral else StatusTone.Positive,
                     icon = FieldAtlasIcons.Offline)
                 FieldAtlasStatusPill(
                     if (collectionCount == 1) "1 collection" else "$collectionCount collections",
@@ -327,6 +333,7 @@ fun ResearchScreen(
                 ResearchAction(
                     state = state,
                     inferenceState = inferenceState,
+                    answersWithoutModel = answersWithoutModel,
                     onSubmit = onSubmit,
                     onStop = onStop,
                     onPrepareModel = onPrepareModel,
@@ -480,6 +487,7 @@ internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
 private fun ResearchAction(
     state: ResearchUiState,
     inferenceState: InferenceState,
+    answersWithoutModel: (String, Boolean) -> Boolean,
     onSubmit: () -> Unit,
     onStop: () -> Unit,
     onPrepareModel: () -> Unit,
@@ -512,17 +520,18 @@ private fun ResearchAction(
                         contentColor = MaterialTheme.colorScheme.onSurface,
                     )) { Text("Stop") }
             }
-            ResearchSteps(researchSteps(state))
+            ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
             if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
                 Text("Model-generated · no supporting sources found",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            val draft = draftAnswerPreview(state.answer)
-            if (draft.isNotEmpty()) {
+            // Parsed once per answer change, not on every progress tick.
+            val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
+            if (draftBlocks.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 AnswerMarkdownRenderer(
-                    blocks = parseAnswerMarkdown(draft),
+                    blocks = draftBlocks,
                     sourceCount = 0,
                     onCitation = {},
                     modifier = Modifier.fillMaxWidth(),
@@ -531,8 +540,9 @@ private fun ResearchAction(
         }
         return
     }
-    // Missing inputs can be explained without loading or running the language model.
-    if (xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty()) != null) {
+    // Missing inputs, emergency guides and near-me lookups are answered without the language
+    // model, so they must not wait for it to load (or fail to load on a low-memory phone).
+    if (answersWithoutModel(state.question, state.attachments.isNotEmpty())) {
         FieldAtlasPrimaryButton(
             text = "Start research",
             onClick = onSubmit,
@@ -570,6 +580,31 @@ private fun ResearchAction(
         )
         InferenceState.Generating -> Unit
     }
+}
+
+/**
+ * Keeps the engine's prompt-reading reports with their arrival times and re-estimates progress
+ * a few times a second, so the bar keeps moving between the engine's block reports.
+ */
+@Composable
+private fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
+    val reading = state.phase == ResearchPhase.Generating && state.tokensWritten == 0
+    val startedAt = remember(state.startedAtNanos, reading) { android.os.SystemClock.uptimeMillis() }
+    val samples = remember(state.startedAtNanos) { mutableStateListOf<PrefillSample>() }
+    LaunchedEffect(state.promptRead) {
+        state.promptRead?.let { (read, total) ->
+            if (samples.lastOrNull()?.read != read) samples += PrefillSample(read, total, android.os.SystemClock.uptimeMillis())
+        }
+    }
+    var now by remember { mutableLongStateOf(android.os.SystemClock.uptimeMillis()) }
+    LaunchedEffect(reading) {
+        while (reading) {
+            now = android.os.SystemClock.uptimeMillis()
+            delay(200)
+        }
+    }
+    if (!reading) return null
+    return estimatePrefill(startedAt, samples, now)
 }
 
 private data class ExampleQuestion(val question: String, val icon: ImageVector, val tone: TileTone)

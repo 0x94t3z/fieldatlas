@@ -123,7 +123,7 @@ fun SourcesScreen(
             if (presentation.isAttachment) item {
                 if (original?.file?.isFile == true) {
                     TextButton(shape = FieldAtlasButtonShape, onClick = { showOriginal = true }) {
-                        Text(if (original.kind == AttachmentKind.PDF) "View original PDF" else "View original file")
+                        Text(when (original.kind) { AttachmentKind.PDF -> "View original PDF"; AttachmentKind.DOCUMENT -> "View document text"; else -> "View original file" })
                     }
                 } else Text("Original file is no longer available locally. The saved excerpt is still available.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

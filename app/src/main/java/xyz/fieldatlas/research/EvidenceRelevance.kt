@@ -196,18 +196,23 @@ object EvidenceRelevance {
 
     /** English overview heuristic, not semantic verification. Other question forms keep
      * the ordinary relevance checks; source-specific requests must not lose study findings. */
+    /** Article sections a reference names "<section> of <place>" ("History of Japan"). */
+    private const val SECTION_NOUNS = "history|geography|culture|economy|politics|government|religion|cuisine|literature|music|architecture"
+
     internal fun overviewSubjects(question: String?): List<String> {
         if (question == null || !PromptBuilder.allowsModelExplanation(question) || isAttributeQuestion(question)) return emptyList()
         comparisonTerms(question).takeIf { it.size == 2 }?.let { return it }
-        val definition = Regex("(?i)^\\s*(?:what is|what are|explain|describe|tell me about)\\s+([\\p{L}\\p{N} '-]+?)(?=\\s+and\\s+(?:how|why)\\b|[.!?]|$)")
+        val definition = Regex("(?i)^\\s*(?:please\\s+)?(?:what is|what are|what was|what were|explain|describe|tell me about|tell me|teach me about|" +
+            "what do you know about|give me an overview of|an overview of|overview of|summari[sz]e)\\s+([\\p{L}\\p{N} '-]+?)(?=\\s+and\\s+(?:how|why|distinguish|compare|contrast|describe|explain|what|whether)\\b|[.!?]|$)")
             .find(question.replace('’', '\''))?.groupValues?.get(1)?.trim() ?: return emptyList()
         val words = definition.split(Regex("\\s+"))
         if (words.size !in 1..4 || words.first().lowercase() in setOf("how", "why", "whether", "my", "our", "this", "that", "these", "those")) return emptyList()
         // "What is a boat?" names the same topic as "Boat — Overview"; any leading article
         // otherwise prevents the section title from matching.
         val subject = definition.replace(Regex("(?i)^(?:the|an?)\\s+"), "")
-        // "Japan's history" is written "History of Japan" in reference titles and leads.
+        // "Japan's history" and "Japan history" are written "History of Japan" in reference titles.
         val possessive = Regex("^([\\p{L}\\p{N} -]+?)'s?\\s+([\\p{L}\\p{N} -]+)$").find(subject)
+            ?: Regex("(?i)^([\\p{L}\\p{N} -]+?)\\s+($SECTION_NOUNS)$").find(subject)
             ?: return listOf(subject)
         return listOf(subject, possessive.groupValues[2] + " of " + possessive.groupValues[1])
     }
@@ -226,7 +231,7 @@ object EvidenceRelevance {
         val subject = subjects.joinToString("|") { phrase -> phrase.split(Regex("\\s+")).joinToString("\\s+", transform = ::wordPattern) }
         // Require the concept to be the subject of an explanatory sentence, rather than
         // appearing as an experimental setting, title, index tag, or trailing keyword.
-        val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\)|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?|was|were)\\b")
+        val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\),?|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?|was|were)\\b")
         val passage = topicalText(item.text)
         if (passage.split(Regex("(?<=[.!?])\\s+|[\\r\\n]+"))
             .any { line ->

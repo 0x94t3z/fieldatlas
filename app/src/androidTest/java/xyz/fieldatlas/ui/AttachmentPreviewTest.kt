@@ -31,7 +31,7 @@ class AttachmentPreviewTest {
         compose.onNodeWithContentDescription("Add attachment").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Remove notes-1.txt").performClick()
         compose.onNodeWithContentDescription("Add attachment").assertIsEnabled().performClick()
-        compose.onNodeWithText("Files").assertIsDisplayed()
+        compose.onNodeWithText("Choose a file").assertIsDisplayed()
     }
 
     @Test fun unreadableImageStillOffersPreviewZoomCloseAndRemove() {

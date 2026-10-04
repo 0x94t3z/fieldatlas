@@ -49,7 +49,12 @@ class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val registry = AssetRegistry(appContext.filesDir)
     private val importer = AssetImporter(appContext)
-    val attachmentStore = xyz.fieldatlas.attachments.AttachmentStore(File(appContext.cacheDir, "research-attachments")).also { it.clearAbandoned() }
+    val attachmentStore = xyz.fieldatlas.attachments.AttachmentStore(File(appContext.cacheDir, "research-attachments"))
+    init {
+        // Camera captures are deleted once staged; anything left is from a run that ended early.
+        File(appContext.cacheDir, "research-camera").listFiles()?.forEach { it.delete() }
+        File(appContext.cacheDir, "pdf-scratch").listFiles()?.forEach { it.delete() }
+    }
     private val attachmentReader = xyz.fieldatlas.attachments.AndroidAttachmentReader(appContext)
     suspend fun stageAttachment(uri: Uri, name: String): xyz.fieldatlas.attachments.AttachmentInput {
         var staged: xyz.fieldatlas.attachments.AttachmentInput? = null
@@ -301,7 +306,29 @@ class AppContainer(context: Context) {
         refreshPacks()
     }
     val deviceLocation = xyz.fieldatlas.location.DeviceLocation(context.applicationContext)
-    private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current)
+    /** First-aid and safety guides bundled in the APK; read on first use. */
+    private val emergencyGuides: List<xyz.fieldatlas.emergency.EmergencyGuide> by lazy {
+        appContext.assets.open("emergency/guides.json").bufferedReader().use {
+            xyz.fieldatlas.emergency.EmergencyData.guides(it.readText()).guides
+        }
+    }
+    /** Remembered across launches: the first file answer after an update should not start blind. */
+    private val prefillSpeed = object : xyz.fieldatlas.research.PrefillSpeed {
+        private val prefs = appContext.getSharedPreferences("research", Context.MODE_PRIVATE)
+        override var tokensPerSecond: Double?
+            get() = prefs.getFloat("prefill_tokens_per_second", -1f).takeIf { it > 0f }?.toDouble()
+            set(value) {
+                prefs.edit().apply { if (value == null) remove("prefill_tokens_per_second") else putFloat("prefill_tokens_per_second", value.toFloat()) }.apply()
+            }
+    }
+    private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
+        emergencyGuides = { emergencyGuides }, prefillSpeed = prefillSpeed)
+
+    /** Questions the app answers itself, so they can run before (or without) the model. */
+    fun answersWithoutModel(question: String, hasAttachments: Boolean): Boolean =
+        xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null ||
+            (!hasAttachments && (xyz.fieldatlas.research.VenueLookup.isNearMe(question) ||
+                xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides) != null))
 
     val researchViewModelFactory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
@@ -317,6 +344,8 @@ class AppContainer(context: Context) {
                 historyStore = answerHistory,
                 attachmentReader = attachmentReader,
                 cleanupAttachment = attachmentStore::remove,
+                stagedAttachment = attachmentStore::file,
+                clearAbandonedAttachments = attachmentStore::clearAbandoned,
             ) as T
         }
     }

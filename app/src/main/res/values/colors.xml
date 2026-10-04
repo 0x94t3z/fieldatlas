@@ -1,4 +1,5 @@
 <resources>
-    <color name="launcher_background">#0B493A</color>
+    <!-- Matches the background baked into the 3D icon and splash frames. -->
+    <color name="launcher_background">#0A4537</color>
     <color name="window_background">#F3EFE5</color>
 </resources>

@@ -53,8 +53,8 @@ class ProductCopyTest(unittest.TestCase):
 
     def test_public_candidate_has_release_version(self):
         gradle = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
-        self.assertIn("versionCode = 16", gradle)
-        self.assertIn('versionName = "1.2.1"', gradle)
+        self.assertIn("versionCode = 17", gradle)
+        self.assertIn('versionName = "1.3.0"', gradle)
 
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

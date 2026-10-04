@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,8 +84,10 @@ fun HistoryScreen(
     val timeFormatter = remember { DateFormat.getTimeInstance(DateFormat.SHORT) }
     val today = LocalDate.now()
     val zone = ZoneId.systemDefault()
-    val days = remember(records) {
-        records.groupBy { Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate() }.toList()
+    var query by rememberSaveable { mutableStateOf("") }
+    val shown = remember(records, query) { records.filter { historyMatches(it, query) } }
+    val days = remember(shown) {
+        shown.groupBy { Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate() }.toList()
     }
     // The header scrolls with the list so long histories are not clipped under a fixed title.
     LazyColumn(
@@ -96,6 +100,14 @@ fun HistoryScreen(
                 title = stringResource(R.string.history_title),
                 subtitle = "Past questions and answers, kept on this phone.",
             )
+        }
+        // Search earns its space once History is longer than a screen.
+        if (records.size >= SEARCH_THRESHOLD) item(key = "search") {
+            HistorySearchField(query, onQueryChange = { query = it })
+        }
+        if (records.isNotEmpty() && shown.isEmpty()) item(key = "no-match") {
+            Text("No saved answers match “${query.trim()}”.", Modifier.padding(top = 4.dp),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (records.isEmpty()) {
             item {
@@ -204,6 +216,18 @@ private fun HistoryCard(
                         Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text("Ask again", modifier = Modifier.padding(start = 6.dp))
                     }
+                    val context = androidx.compose.ui.platform.LocalContext.current
+                    androidx.compose.material3.OutlinedIconButton(
+                        onClick = {
+                            xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
+                                xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))
+                        },
+                        modifier = Modifier.size(44.dp),
+                        shape = FieldAtlasButtonShape,
+                    ) {
+                        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share, contentDescription = "Share answer",
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(19.dp))
+                    }
                     androidx.compose.material3.OutlinedIconButton(
                         onClick = { confirmDelete = true },
                         modifier = Modifier.size(44.dp),
@@ -244,5 +268,60 @@ private fun SavedSourceRow(number: Int, title: String, onClick: () -> Unit) {
             maxLines = 2, overflow = TextOverflow.Ellipsis)
         Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+    }
+}
+
+private const val SEARCH_THRESHOLD = 4
+
+/**
+ * Every word of the query must appear in the question, the answer or a source title, in any
+ * order and case: "snake bite" finds "I got bitten by a snake". Citation marks are ignored.
+ */
+internal fun historyMatches(record: AnswerRecord, query: String): Boolean {
+    val words = query.lowercase().split(Regex("\\s+")).filter(String::isNotBlank)
+    if (words.isEmpty()) return true
+    val haystack = (listOf(record.question, record.answer.replace(Regex("\\[S\\d+]"), "")) + record.sources)
+        .joinToString("\n").lowercase()
+    return words.all { it in haystack }
+}
+
+@Composable
+private fun HistorySearchField(query: String, onQueryChange: (String) -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(if (focused) 2.dp else 1.dp,
+            if (focused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(Modifier.padding(start = 14.dp, end = 4.dp).heightIn(min = 50.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Research, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            androidx.compose.foundation.text.BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
+                modifier = Modifier.weight(1f)
+                    .onFocusChanged { focused = it.isFocused }
+                    .semantics { contentDescription = "Search History" },
+                decorationBox = { inner ->
+                    androidx.compose.foundation.layout.Box {
+                        if (query.isEmpty()) Text("Search past questions and answers", style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        inner()
+                    }
+                },
+            )
+            if (query.isNotEmpty()) {
+                androidx.compose.material3.IconButton(onClick = { onQueryChange("") }) {
+                    Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Close, contentDescription = "Clear search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                }
+            }
+        }
     }
 }

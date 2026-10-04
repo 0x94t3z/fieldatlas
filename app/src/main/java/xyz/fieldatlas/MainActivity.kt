@@ -146,10 +146,12 @@ class MainActivity : ComponentActivity() {
                 pendingCameraPath = null
                 if (file != null && file.parentFile?.canonicalFile == File(cacheDir, "research-camera").canonicalFile) {
                     if (saved) {
+                        val name = "Photo " + java.text.SimpleDateFormat("yyyy-MM-dd HH.mm.ss", java.util.Locale.ROOT).format(java.util.Date()) + ".jpg"
                         try {
-                            researchViewModel.addAttachment("Camera photo.jpg") {
-                                try { attachmentContainer.stageAttachment(Uri.fromFile(file), "Camera photo.jpg") }
-                                finally { file.delete() }
+                            // Keep the capture until it is staged, so Retry after a failure (for
+                            // example low storage) can read it again; startup sweeps leftovers.
+                            researchViewModel.addAttachment(name) {
+                                attachmentContainer.stageAttachment(Uri.fromFile(file), name).also { file.delete() }
                             }
                             attachmentNotice = null
                         } catch (error: Exception) { file.delete(); attachmentNotice = xyz.fieldatlas.attachments.attachmentError(error) }
@@ -202,6 +204,7 @@ class MainActivity : ComponentActivity() {
 
             val catalogState by container.catalogState.collectAsStateWithLifecycle()
             FieldAtlasApp(
+                answersWithoutModel = container::answersWithoutModel,
                 packs = setupState.packs,
                 importing = setupState.importing,
                 importingName = setupState.importingName,
@@ -393,13 +396,6 @@ class MainActivity : ComponentActivity() {
             if (cursor.moveToFirst()) cursor.getString(0) else null
         }
     }.getOrNull()?.takeIf { it.isNotBlank() } ?: uri.lastPathSegment?.substringAfterLast('/') ?: "File"
-
-    private fun isResearchFileTypeSupported(name: String, mimeType: String): Boolean {
-        val extension = name.substringAfterLast('.', "").lowercase()
-        return xyz.fieldatlas.attachments.TextFileTypes.supports(name) || mimeType.startsWith("text/") || mimeType.startsWith("image/") ||
-            mimeType in setOf("application/pdf", "application/json", "application/xml") ||
-            extension in setOf("txt", "md", "markdown", "csv", "tsv", "json", "xml", "pdf", "png", "jpg", "jpeg", "webp", "gif")
-    }
 
     private companion object {
         const val BENCHMARK_EXPORT = "benchmark"

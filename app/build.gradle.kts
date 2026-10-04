@@ -37,8 +37,8 @@ android {
         applicationId = "xyz.fieldatlas"
         minSdk = 33
         targetSdk = 36
-        versionCode = 16
-        versionName = "1.2.1"
+        versionCode = 17
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -117,6 +117,8 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.commons.compress)
     implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
+    // Embedded PDF text on every supported Android version (the platform API needs Android 15).
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     // 0.3.47 ships a 4-KB-aligned libvosk.so; verify the final APK's ELF segments in CI.
     implementation("com.alphacephei:vosk-android:0.3.75")
     implementation(platform(libs.androidx.compose.bom))

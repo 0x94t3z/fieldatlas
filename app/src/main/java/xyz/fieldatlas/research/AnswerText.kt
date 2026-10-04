@@ -122,7 +122,8 @@ object AnswerText {
             .replace(placeholderPattern, "")
             .replace(Regex("(?:,\\s*)+(?=[.!?])"), "")
             .replace(Regex("[ \\t]+(?=[.,;:])"), "")
-            .replace(Regex("[ \\t]{2,}"), " ")
+            // Collapse runs inside a line only: leading spaces mark a nested list item.
+            .replace(Regex("(?<=\\S)[ \\t]{2,}"), " ")
             .trim()
     }
 

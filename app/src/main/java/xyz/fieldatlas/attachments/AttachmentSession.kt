@@ -39,6 +39,18 @@ class AttachmentSession(
         loaders[id] = load
         start(id)
     }
+    /** Re-attaches files staged before the app was closed; they are read again from disk. */
+    fun restore(staged: List<AttachmentInput>) {
+        for (input in staged.take(AttachmentPolicy.MAX_COUNT - state.value.size)) {
+            val id = UUID.randomUUID().toString()
+            mutableState.value += AttachmentUiState(id, input.displayName, kind = input.kind, originalFile = input.localFile,
+                previewFile = input.localFile.takeIf { input.kind == AttachmentKind.IMAGE })
+            inputs[id] = input
+            start(id)
+        }
+    }
+    /** Staged files currently attached, in display order, for saving across process death. */
+    fun staged(): List<AttachmentInput> = state.value.mapNotNull { inputs[it.id] }
     fun retry(id: String) {
         if (state.value.none { it.id == id && it.phase == AttachmentPhase.Error }) return
         update(id) { it.copy(phase = AttachmentPhase.Reading, error = null) }

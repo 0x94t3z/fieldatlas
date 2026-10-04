@@ -92,8 +92,6 @@ fun AnswerScreen(
     // Citation and source taps open a quick preview first; the full source is one tap further.
     var previewIndex by rememberSaveable(state.question) { mutableStateOf<Int?>(null) }
     val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
-    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
-    val context = androidx.compose.ui.platform.LocalContext.current
     val placeCards = if (noModelReply) remember(state.answer, state.sources) {
         placeCardModels(presentation.blocks, state.sources)
     } else null
@@ -104,7 +102,9 @@ fun AnswerScreen(
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            FieldAtlasTopBar(title = "Answer", onBack = onBack)
+            FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank()) null else ({
+                AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
+            }))
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 20.dp),
@@ -194,15 +194,32 @@ fun AnswerScreen(
                     val intro = presentation.blocks.take(listAt)
                     val outro = presentation.blocks.drop(listAt + 1)
                     if (intro.isNotEmpty()) item {
-                        AnswerMarkdownRenderer(blocks = intro, sourceCount = state.sources.size, onCitation = openPreview,
-                            bodyStyle = MaterialTheme.typography.bodyMedium)
+                        val (lead, notes) = remember(state.answer) { placeIntroParts(placeIntroText(state.answer)) }
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(lead),
+                                sourceCount = state.sources.size, onCitation = openPreview,
+                                bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                            notes?.let {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Info, contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(top = 2.dp).size(15.dp))
+                                    AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(it),
+                                        sourceCount = state.sources.size, onCitation = openPreview,
+                                        modifier = Modifier.weight(1f),
+                                        bodyStyle = MaterialTheme.typography.bodySmall.copy(
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant))
+                                }
+                            }
+                        }
                     }
                     items(placeCards.size, key = { "place:${placeCards[it].sourceIndex}" }) { index ->
                         PlaceCard(placeCards[index], openPreview)
                     }
                     if (outro.isNotEmpty()) item {
                         AnswerMarkdownRenderer(blocks = outro, sourceCount = state.sources.size, onCitation = openPreview,
-                            bodyStyle = MaterialTheme.typography.bodySmall)
+                            bodyStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
+                            modifier = Modifier.padding(top = 4.dp))
                     }
                 } else item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
@@ -271,7 +288,8 @@ fun AnswerScreen(
                                         FieldAtlasFactRow("Retrieval", model.retrieval)
                                         model.firstToken?.let { FieldAtlasFactRow("First word", it) }
                                         FieldAtlasFactRow("Total", "${model.total} · ${model.tokenCount}")
-                                        model.tokenRate?.let { FieldAtlasFactRow("Speed", it) }
+                                        model.promptReading?.let { FieldAtlasFactRow("Prompt reading", it) }
+                                        model.tokenRate?.let { FieldAtlasFactRow("Writing speed", it) }
                                         FieldAtlasFactRow("Citations", model.citationCoverage)
                                         if (model.hasUnmappedCitation) {
                                             // Diagnostic, not a user error: the app already removed the
@@ -281,19 +299,6 @@ fun AnswerScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 style = MaterialTheme.typography.bodySmall,
                                             )
-                                        }
-                                        androidx.compose.material3.TextButton(
-                                            onClick = {
-                                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(
-                                                    answerWithSources(state.question, state.answer, state.sources)))
-                                                android.widget.Toast.makeText(context, "Answer and sources copied",
-                                                    android.widget.Toast.LENGTH_SHORT).show()
-                                            },
-                                            contentPadding = PaddingValues(0.dp),
-                                        ) {
-                                            Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy, contentDescription = null,
-                                                modifier = Modifier.size(17.dp))
-                                            Text("Copy answer with sources", Modifier.padding(start = 8.dp))
                                         }
                                     }
                                 }
@@ -324,6 +329,36 @@ fun AnswerScreen(
                 }
             }
         }
+    }
+}
+
+/** Opens the system share sheet with an answer and its sources as plain text. */
+internal fun shareAnswer(context: android.content.Context, question: String, text: String) {
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+        .setType("text/plain")
+        .putExtra(android.content.Intent.EXTRA_SUBJECT, question.ifBlank { "Field Atlas answer" })
+        .putExtra(android.content.Intent.EXTRA_TEXT, text)
+    runCatching { context.startActivity(android.content.Intent.createChooser(send, "Share answer")) }
+}
+
+/**
+ * Copy and share carry the sources with the answer. Sharing works offline too (Bluetooth,
+ * nearby share, SMS), which matters most when there is no connection.
+ */
+@Composable
+private fun AnswerShareActions(shareText: String, question: String) {
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.material3.IconButton(onClick = {
+        clipboard.setText(androidx.compose.ui.text.AnnotatedString(shareText))
+        android.widget.Toast.makeText(context, "Answer and sources copied", android.widget.Toast.LENGTH_SHORT).show()
+    }) {
+        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy, contentDescription = "Copy answer with sources",
+            modifier = Modifier.size(21.dp), tint = MaterialTheme.colorScheme.primary)
+    }
+    androidx.compose.material3.IconButton(onClick = { shareAnswer(context, question, shareText) }) {
+        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share, contentDescription = "Share answer with sources",
+            modifier = Modifier.size(21.dp), tint = MaterialTheme.colorScheme.primary)
     }
 }
 

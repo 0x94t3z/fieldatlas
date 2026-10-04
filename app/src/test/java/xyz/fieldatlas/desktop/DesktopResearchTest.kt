@@ -115,7 +115,12 @@ class DesktopResearchTest {
                 ExtractedAttachment("desktop-$index", entry.getValue("name").jsonPrimitive.content,
                     listOf(AttachmentPage(1, entry.getValue("text").jsonPrimitive.content)), kind = AttachmentKind.TEXT)
             }
-            ResearchOrchestrator(recordingRetriever, gateway).research(question, attachments = attachments).collect { event ->
+            // Same bundled guides as the app, so emergency questions take the app's path.
+            val guides = xyz.fieldatlas.emergency.EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText()).guides
+            ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides },
+                // A phone's learned reading speed (estimated tokens per second), so the desktop run
+                // packs the evidence that phone would; unset keeps the unknown-phone default.
+                prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull())).research(question, attachments = attachments).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
                     is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }

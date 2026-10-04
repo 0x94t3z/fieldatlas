@@ -32,10 +32,14 @@ class ImageTextReader(private val context: Context) : Closeable {
         val directory = File(root, "tessdata")
         check(directory.mkdirs() || directory.isDirectory)
         val data = File(directory, "eng.traineddata")
-        if (!data.isFile || sha256(data.readBytes()) != MODEL_SHA256) {
-            val bytes = context.assets.open("ocr/eng.traineddata").use { it.readBytes() }
-            check(sha256(bytes) == MODEL_SHA256)
-            data.writeBytes(bytes)
+        // Hashing the 4 MB model costs time on every file; verify it once per process.
+        if (!verified || !data.isFile) synchronized(Companion) {
+            if (!data.isFile || sha256(data.readBytes()) != MODEL_SHA256) {
+                val bytes = context.assets.open("ocr/eng.traineddata").use { it.readBytes() }
+                check(sha256(bytes) == MODEL_SHA256)
+                data.writeBytes(bytes)
+            }
+            verified = true
         }
         val tess = TessBaseAPI()
         try {
@@ -45,6 +49,7 @@ class ImageTextReader(private val context: Context) : Closeable {
     }
     override fun close() { engine?.recycle(); engine = null }
     companion object {
+        @Volatile private var verified = false
         const val MODEL_SHA256 = "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
         fun dimensions(width: Int, height: Int): Pair<Int, Int> {
             require(width > 0 && height > 0)

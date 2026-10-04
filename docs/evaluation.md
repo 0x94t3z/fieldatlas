@@ -1,5 +1,104 @@
 # Evaluation
 
+## 1.3.0 review against the bounty bar (October 4)
+
+The [24 frozen questions](#24-question-release-suite) were rerun unchanged through the 1.3.0
+desktop pipeline with the same model (Qwen3.5 2B Q4_K_M, seed 17), the same five collections and
+the same settings as the [1.2.0 run](#v120-24-question-suite-october-2). 15 answers are identical
+to 1.2.0; the other 9 differ because 1.2.1 changed the strict-answer policy and some retrieval,
+not because of 1.3.0 (1.3.0 does not change any library-research prompt). The reviewer is the
+author's assistant, not an independent human; no online baseline was run.
+
+Each answer was judged twice: **correct** (pass, partial or fail on facts, citations and honesty)
+and **useful compared with internet search plus a frontier model** answering the same question
+(1 = about as useful, ½ = useful but clearly weaker, 0 = not useful).
+
+| Group | Correct | Useful vs. online frontier |
+| --- | --- | --- |
+| Travel (4) | 3 pass, 1 fail (London lists an Oxford museum) | 2 of 4 (½ each: no ranking; Tokyo has no addresses) |
+| Explanation (4) | 2 pass, 2 partial | 3 of 4 |
+| Comparison (4) | 2 pass, 2 partial | 3 of 4 |
+| Synthesis (4) | 2 pass, 2 partial | 3 of 4 |
+| Limits (4) | 4 pass (honest) | 1½ of 3 (location needs a phone; “today's study” is 0) |
+| General (4) | 2 pass, 1 partial, 1 fail | 2½ of 4 |
+| **Total** | **15 pass, 7 partial, 2 fail** | **15 of 23 = 65%** |
+
+Answers about attached files and emergency questions are outside this suite; they were checked on
+desktop and on a Redmi 13C and are reported in the [1.3.0 release notes](releases/field-atlas-1.3.0.md#verification).
+
+What keeps answers below the bar, most impact first:
+
+1. **Model explanations without sources carry most of the errors.** “Yeast lacks many metabolic
+   pathways of eukaryotic cells” (yeast are eukaryotes), senescent cells “generally eliminated
+   before becoming permanent” (they accumulate with age), a muddled battery example. These are 2B
+   model limits; the 4B model did better on the attachment fixtures (34/35 vs 32/35) but is about
+   ten times slower on a low-end phone.
+2. **Relevant saved passages are often not found.** Autophagy, study types, yeast-to-human and
+   the speed question retrieved no sources although the Encyclopedia covers these topics, so the
+   model answered alone and unverified.
+3. **Travel answers cannot rank and sometimes misfile places.** “Best” lists are unranked, Tokyo
+   listings have no addresses, a zoo was offered as a museum and an Oxford museum as a London one.
+   (Misfiled museums and missing locations are addressed [below](#after-the-retrieval-and-travel-fixes-october-4).)
+4. **Some answerable questions are only partly answered.** “Open right now” lists recorded hours
+   without using the phone's clock to say which places those hours mark as open (addressed below).
+5. **One question was answered about the wrong topic** (“what can an offline app know” answered
+   from a navigation-app article).
+
+Report: `build/desktop-evaluation/v130-suite24/report.json` (ignored build directory).
+
+### After the retrieval and travel fixes (October 4)
+
+The same 24 questions were rerun with the same model, seed, collections and settings after
+three changes: museum questions keep only places mapped as museums or galleries in the named
+city, “open now” checks each place's recorded opening hours against the phone's clock, and
+places without an address show coordinates. An “Explain X and distinguish …” question now
+finds the topic's overview passage. 19 answers are identical to the first 1.3.0 run; the
+5 that changed were graded again by the same reviewer:
+
+| ID | Correct | Usefulness | What changed |
+| --- | --- | --- | --- |
+| travel-london | fail → partial | 0 → ½ | Four London museums with what each source says they focus on; no Oxford museum. The RAF Museum's directions are garbled (so is the source's), and “art and design” for V&A East is not in its listing. |
+| synthesis-trip | partial → partial | +½ | A saved fully vegan stop (Kopps) and a real museum (Musical Instrument Museum, Tiergartenstraße 1). The Kopps menu is paraphrased confusingly. |
+| limits-hours | pass → pass | ½ → 1 | Two of six places marked open at the clock's time, with closing times; places without readable hours are not guessed. |
+| travel-tokyo | pass → pass | unchanged (½) | Coordinates for every listing (none has an address in the map data); still no ranking. |
+| biology-autophagy | partial → partial | unchanged | Four relevant sources are now found, but the strict mixed-answer rule keeps a citation only on verbatim quotes, so the answer still shows as an unverified model explanation. The model's draft cited them correctly. |
+
+| | Correct | Useful vs. online frontier |
+| --- | --- | --- |
+| First 1.3.0 run | 15 pass, 7 partial, 2 fail | 15 of 23 = 65% |
+| After these fixes | 15 pass, 8 partial, 1 fail | 16½ of 23 = 72% |
+
+The first review recorded usefulness per group, not per question; the changes above are the
+reviewer's judgement of how much each answer improved. These questions were used to find the
+problems the fixes address, so 72% is a development result on known questions, not a held-out
+score, and the reviewer is still the author's assistant rather than an independent judge. The phone's clock is used as local time: for a
+named city the answer says it assumed the phone is set to that city's time.
+
+Reports: `build/desktop-evaluation/v130-final/report.json`, and `hours.json` for the open-now
+answer after holiday days and open-ended closing times (“10:00-18:00+”) were made readable
+(ignored build directory).
+
+### Speed: thread count kept, smaller library prompts rejected (October 4)
+
+On a Redmi 13C the model reads a prompt at about 17–18 tokens a second and writes about 4.5, so
+the prompt is most of the wait (a 1,127-token prompt took 65.6 s to read). Raising inference from
+four to six threads brought the first word of the same question from 94.7 s to 71.7 s and was
+kept ([measurements](../scripts/patches/README.md#thread-count)).
+
+Library prompts are not sized to the phone's reading speed, as file evidence is. Capping them was
+tried on the 24 questions, simulating this phone's learned speed (desktop runs with
+`FIELDATLAS_DESKTOP_PREFILL_TPS`):
+
+| Target wait | Prompt tokens (24 questions) | Answers changed | Worse | Better |
+| --- | --- | --- | --- | --- |
+| none (current) | 21,697 | – | – | – |
+| 60 s | 15,718 | 10 | 2 (trip loses its vegan stop; two-studies answer garbled) | 1 (vegetarian vs vegan) |
+| 40 s | 11,611 | 13 | 5 (Jakarta: "no hotels listed"; trip gives a museum's address for an ice-cream shop; telomeres; autophagy; vegetarian) | 2 (senescence, battery) |
+
+Passages are cut in rank order, and a question with several parts (a food stop and a museum)
+ranks the second part's passages lower, so they go first. Neither cap was kept. Reports:
+`build/desktop-evaluation/v130-budget/` and `v130-budget60/` (ignored build directory).
+
 ## Attachment reasoning feedback (October 3)
 
 An offline 8 GB emulator test of the 1.2.0 release reported seven attachment questions: three

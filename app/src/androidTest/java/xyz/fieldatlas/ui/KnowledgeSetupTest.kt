@@ -39,8 +39,11 @@ class KnowledgeSetupTest {
                 onCancelKnowledgeDownload = { cancelled = true })
         } }
         compose.runOnIdle { entries.value = listOf(biology.copy(id = "mineralogy", title = "Mineralogy")) }
-        compose.onNodeWithText("Mineralogy").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Pause").performScrollTo().performClick()
+        // Catalog rows are lazy: scroll the list to a row before it exists in the tree.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Mineralogy"))
+        compose.onNodeWithText("Mineralogy").assertIsDisplayed()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Pause"))
+        compose.onNodeWithText("Pause").performClick()
         assertTrue(cancelled)
     }
 

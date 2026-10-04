@@ -49,6 +49,7 @@ import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import androidx.compose.foundation.shape.RoundedCornerShape
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 
 @Composable
@@ -77,10 +78,13 @@ fun AnswerMarkdownRenderer(
                     onCitation = onCitation,
                 )
                 is MarkdownBlock.ListBlock -> Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    var number = 0
                     block.items.forEachIndexed { index, item ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        val depth = block.depths.getOrElse(index) { 0 }
+                        if (depth == 0) number++
+                        Row(Modifier.padding(start = (18 * depth).dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(
-                                if (block.ordered) "${index + 1}." else "•",
+                                when { depth > 0 -> "◦"; block.ordered -> "$number."; else -> "•" },
                                 style = bodyStyle,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -215,8 +219,10 @@ private fun InlineBlock(
     val text = annotatedText(content, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primary, sourceCount)
     val inlineCitations = content.citations().filter { it.number in 1..sourceCount }.distinctBy { it.number }
         .associate { citation ->
+            // A compact numbered badge, sized to its digits, so a citation reads as a footnote
+            // mark beside its word rather than a button that pushes punctuation away.
             "citation:${citation.number}" to InlineTextContent(
-                Placeholder((citation.number.toString().length * 0.6f + 1.6f).em, 1.4.em, PlaceholderVerticalAlign.TextCenter),
+                Placeholder((citation.number.toString().length * 0.5f + 1.05f).em, 1.2.em, PlaceholderVerticalAlign.TextCenter),
             ) { CitationChip(citation.number, onCitation) }
         }
     Column(modifier) {
@@ -272,10 +278,10 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        shape = MaterialTheme.shapes.extraSmall,
+                        shape = RoundedCornerShape(6.dp),
                     ) {
-                        Text("[$number]", Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
-                            style = MaterialTheme.typography.labelLarge)
+                        Text("$number", Modifier.padding(horizontal = 7.dp, vertical = 1.dp),
+                            style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -285,20 +291,28 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
 
 @Composable
 private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxSize()
-            .clip(MaterialTheme.shapes.extraSmall)
-            .clickable { onCitation(number - 1) }
-            .semantics { contentDescription = "Open source $number" },
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        shape = MaterialTheme.shapes.extraSmall,
-    ) {
-        Box(contentAlignment = Alignment.Center) { Text(
-            text = "[$number]",
-            modifier = Modifier.padding(horizontal = 3.dp),
-            style = MaterialTheme.typography.labelLarge,
-        ) }
+    // Inset from the placeholder edges so adjacent badges ([1][2]) keep a hairline gap.
+    Box(Modifier.fillMaxSize().padding(horizontal = 1.5.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            modifier = Modifier.fillMaxSize()
+                .clip(RoundedCornerShape(6.dp))
+                .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) }
+                .semantics { contentDescription = "Open source $number" },
+            color = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            shape = RoundedCornerShape(6.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = number.toString(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFeatureSettings = "tnum",
+                    ),
+                    maxLines = 1,
+                )
+            }
+        }
     }
 }
 
@@ -311,11 +325,19 @@ private fun headingStyle(level: Int): TextStyle = when (level) {
 
 internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color, linkColor: Color, sourceCount: Int): AnnotatedString {
     return buildAnnotatedString {
+        // "boiling [1]." would leave the badge floating between a word and its full stop;
+        // drop the space so the mark attaches to the claim it supports.
+        fun tighten(items: List<MarkdownInline>): List<MarkdownInline> = items.mapIndexed { index, inline ->
+            val next = items.getOrNull(index + 1)
+            if (inline is MarkdownInline.Text && next is MarkdownInline.Citation && next.number in 1..sourceCount) {
+                MarkdownInline.Text(inline.value.trimEnd(' ', '\t'))
+            } else inline
+        }
         fun appendInline(inline: MarkdownInline) {
             when (inline) {
                 is MarkdownInline.Text -> append(inline.value)
                 is MarkdownInline.Strong -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) {
-                    inline.content.forEach(::appendInline)
+                    tighten(inline.content).forEach(::appendInline)
                 }
                 is MarkdownInline.Emphasis -> withStyle(SpanStyle(fontStyle = FontStyle.Italic)) {
                     inline.content.forEach(::appendInline)
@@ -337,7 +359,7 @@ internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color,
                 }
             }
         }
-        content.forEach(::appendInline)
+        tighten(content).forEach(::appendInline)
     }
 }
 

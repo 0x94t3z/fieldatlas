@@ -67,6 +67,8 @@ class ResearchViewModel(
     private val historyStore: AnswerHistoryStore? = null,
     attachmentReader: AttachmentReader = AttachmentReader { throw AttachmentException("Attachments are unavailable.") },
     cleanupAttachment: (File) -> Unit = {},
+    stagedAttachment: (String) -> File? = { null },
+    clearAbandonedAttachments: (Set<String>) -> Unit = {},
 ) : ViewModel() {
     private val scope = launchScope ?: viewModelScope
     private val mutableUiState = MutableStateFlow(
@@ -90,7 +92,22 @@ class ResearchViewModel(
     private var activeTranscriber: SpeechTranscriber? = null
 
     init {
-        scope.launch { attachmentSession.state.collect { attachments -> mutableUiState.update { it.copy(attachments = attachments) } } }
+        // Android may close the app while a picker or another app is in front (Xiaomi does this
+        // within seconds). The question survives in saved state; bring its files back with it.
+        val saved = savedStateHandle.get<ArrayList<String>>(ATTACHMENTS_KEY).orEmpty().mapNotNull { record ->
+            val (id, kind, name) = record.split('\t', limit = 3).takeIf { it.size == 3 } ?: return@mapNotNull null
+            val file = stagedAttachment(id) ?: return@mapNotNull null
+            val type = AttachmentKind.entries.firstOrNull { it.name == kind } ?: return@mapNotNull null
+            AttachmentInput(id, name, file, type)
+        }
+        clearAbandonedAttachments(saved.map { it.id }.toSet())
+        if (saved.isNotEmpty()) attachmentSession.restore(saved)
+        scope.launch {
+            attachmentSession.state.collect { attachments ->
+                mutableUiState.update { it.copy(attachments = attachments) }
+                savedStateHandle[ATTACHMENTS_KEY] = ArrayList(attachmentSession.staged().map { "${it.id}\t${it.kind.name}\t${it.displayName}" })
+            }
+        }
         scope.launch {
             orchestrator.promptProgress.collect { progress: PromptProgress? ->
                 mutableUiState.update { state ->
@@ -331,6 +348,7 @@ class ResearchViewModel(
 
     private companion object {
         const val QUESTION_KEY = "research.question"
+        const val ATTACHMENTS_KEY = "research.attachments"
     }
 }
 

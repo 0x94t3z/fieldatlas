@@ -47,9 +47,37 @@ class PlaceCardsTest {
         assertEquals(false, card.eat)
     }
 
+    @Test fun anOpenNowAnswerPutsEachPlacesStatusOnItsCard() {
+        val answer = VenueLookup.answer("Which vegan restaurants in Berlin are open now?", listOf(grill, daizu),
+            java.time.LocalDateTime.of(2026, 10, 4, 23, 0))!!
+        val cards = placeCardModels(parseAnswerMarkdown(answer.answer), answer.sources)!!
+        assertEquals(listOf("Best Grill", "Daizu"), cards.map { it.name })
+        assertEquals("Open now", cards[0].openNow)
+        assertNull(cards[1].openNow)
+        assertNull(placeCardModels(parseAnswerMarkdown(VenueLookup.answer("Which vegan restaurants are in Berlin?", listOf(grill))!!.answer),
+            listOf(grill))!!.single().openNow)
+    }
+
+    @Test fun anAddressWithoutAStreetIsShownWhole() {
+        val ramen = place("4", "T's TanTan", "fully vegan", listOf("Cuisine: ramen", "Address: 1, 110-0005 台東区"))
+        assertEquals("Ramen restaurant · 1, 110-0005 台東区", placeCardModel(0, ramen)!!.summary)
+    }
+
     @Test fun ordinaryAnswersKeepTheirText() {
         val passage = Evidence("d", "d:0", "Photosynthesis — Overview", "https://example.org", "Photosynthesis is a process.", 0.0)
         assertNull(placeCardModels(parseAnswerMarkdown("- Plants make sugar [S1]\n- Light drives it [S1]"), listOf(passage)))
         assertNull(placeCardModels(parseAnswerMarkdown("Photosynthesis makes sugar. [S1]"), listOf(passage)))
+    }
+
+    @Test fun aPlaceAnswerOpensWithItsResultAndKeepsItsQualifications() {
+        val answer = VenueLookup.answer("Which vegan restaurants in Berlin are open now?", listOf(grill, daizu),
+            java.time.LocalDateTime.of(2026, 10, 4, 23, 0))!!.answer
+        val (lead, notes) = placeIntroParts(placeIntroText(answer))
+        assertEquals("1 of the 2 places below is open now by the opening hours mappers recorded, checked against " +
+            "this phone's clock (Sun 23:00); open places are listed first.", lead)
+        assertEquals(true, notes!!.startsWith("1 has no hours I can check. That assumes the phone is set to Berlin's local time."))
+        assertEquals(true, notes.endsWith("(map data as of 2026-10-02):"))
+        assertEquals("Nearest saved places to your current location:" to null,
+            placeIntroParts("Nearest saved places to your current location:"))
     }
 }

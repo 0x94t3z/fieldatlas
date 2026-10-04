@@ -5,8 +5,8 @@ import org.junit.Test
 
 class ResearchProgressHeadingTest {
     @Test fun readingSourcesUntilVisibleAnswerStarts() {
-        assertEquals("Reading saved sources…", researchProgressHeading(ResearchPhase.Generating, "", true))
-        assertEquals("Reading saved sources…", researchProgressHeading(ResearchPhase.Generating, "  ", true))
+        assertEquals("Reading sources…", researchProgressHeading(ResearchPhase.Generating, "", true))
+        assertEquals("Reading sources…", researchProgressHeading(ResearchPhase.Generating, "  ", true))
         assertEquals("Writing your answer…", researchProgressHeading(ResearchPhase.Generating, "Mitosis", true))
         assertEquals("Preparing your answer…", researchProgressHeading(ResearchPhase.Generating, "", false))
     }

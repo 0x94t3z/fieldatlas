@@ -110,4 +110,51 @@ class AttachmentReaderDeviceTest {
             assertTrue(result.pages.all { it.text.contains("Berlin", ignoreCase = true) })
         } finally { file.delete() }
     }
+
+    private fun textPdf(file: File, pages: Int, lines: (Int) -> List<String>) {
+        val pdf = PdfDocument()
+        try {
+            for (n in 1..pages) {
+                val page = pdf.startPage(PdfDocument.PageInfo.Builder(600, 800, n).create())
+                lines(n).forEachIndexed { i, line -> page.canvas.drawText(line, 40f, 60f + i * 22f, Paint().apply { textSize = 16f }) }
+                pdf.finishPage(page)
+            }
+            file.outputStream().use { pdf.writeTo(it) }
+        } finally { pdf.close() }
+    }
+    @Test fun textLayerPdfIsReadWithoutRecognitionOnEveryAndroidVersion(): Unit = runBlocking {
+        val file = File.createTempFile("layer", ".pdf", context.cacheDir)
+        try {
+            textPdf(file, 3) { n -> List(12) { "Page $n line $it: the Helios pump needs service every 600 operating hours." } }
+            val started = System.nanoTime()
+            val result = AndroidAttachmentReader(context).read(AttachmentInput("layer", "manual.pdf", file, AttachmentKind.PDF))
+            val millis = (System.nanoTime() - started) / 1_000_000
+            assertFalse("text layer should make recognition unnecessary", result.fromOcr)
+            assertEquals(listOf(1, 2, 3), result.pages.map { it.number })
+            // The old path recognised every page and appended near-duplicate lines.
+            assertEquals(12, Regex("600 operating hours").findAll(result.pages[1].text).count())
+            android.util.Log.i("AttachmentReaderDeviceTest", "3-page text PDF read in $millis ms on SDK ${android.os.Build.VERSION.SDK_INT}")
+        } finally { file.delete() }
+    }
+    @Test fun longPdfIsReadInPartWithANoteInsteadOfRefused(): Unit = runBlocking {
+        val file = File.createTempFile("long", ".pdf", context.cacheDir)
+        try {
+            textPdf(file, 60) { n -> List(30) { "Chapter $n, line $it. Field notes about water sources and shelter on the northern route." } }
+            val result = AndroidAttachmentReader(context).read(AttachmentInput("long", "atlas.pdf", file, AttachmentKind.PDF))
+            assertFalse(result.fromOcr)
+            assertTrue(result.pages.size > 30)
+        } finally { file.delete() }
+    }
+    @Test fun wordDocumentIsReadOnTheDevice(): Unit = runBlocking {
+        val file = File.createTempFile("doc", ".docx", context.cacheDir)
+        try {
+            java.util.zip.ZipOutputStream(file.outputStream()).use { zip ->
+                zip.putNextEntry(java.util.zip.ZipEntry("word/document.xml"))
+                zip.write("<w:document><w:body><w:p><w:r><w:t>Meet at the north trailhead at 07:30.</w:t></w:r></w:p></w:body></w:document>".toByteArray())
+                zip.closeEntry()
+            }
+            val result = AndroidAttachmentReader(context).read(AttachmentInput("doc", "plan.docx", file, AttachmentKind.DOCUMENT))
+            assertEquals("Meet at the north trailhead at 07:30.", result.pages.single().text)
+        } finally { file.delete() }
+    }
 }

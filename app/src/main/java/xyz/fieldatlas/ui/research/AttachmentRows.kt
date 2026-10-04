@@ -128,16 +128,37 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
         AlertDialog(
             onDismissRequest = { previewId = null },
             title = { Text(extracted.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis) },
-            text = { Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
-                Text("Read locally. Answers use selected excerpts.", style = MaterialTheme.typography.bodySmall)
-                if (extracted.fromOcr) Text("Text recognition currently supports printed English and may make mistakes. Check the original.", style = MaterialTheme.typography.bodySmall)
-                extracted.coverageNote?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                extracted.pages.forEach { page ->
-                    if (items.firstOrNull { it.id == previewId }?.kind == AttachmentKind.PDF) Text("Page ${page.number}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
-                    Text(page.text, style = MaterialTheme.typography.bodyMedium)
+            text = {
+                // Up to 300,000 characters: render paragraph by paragraph, only what is on screen.
+                val blocks = remember(extracted) { previewBlocks(extracted) }
+                androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 400.dp)) {
+                    item {
+                        Text("Read locally. Answers use selected excerpts.", style = MaterialTheme.typography.bodySmall)
+                        if (extracted.fromOcr) Text("Text recognition currently supports printed English and may make mistakes. Check the original.", style = MaterialTheme.typography.bodySmall)
+                        extracted.coverageNote?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    }
+                    items(blocks.size) { index ->
+                        val (heading, text) = blocks[index]
+                        if (heading != null) Text(heading, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+                        if (text.isNotEmpty()) Text(text, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
-            } },
+            },
             confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { previewId = null }) { Text("Close") } },
         )
+    }
+}
+
+/** Page headings (for paged formats) and paragraph-sized text blocks for a lazy preview. */
+internal fun previewBlocks(extracted: xyz.fieldatlas.attachments.ExtractedAttachment): List<Pair<String?, String>> {
+    val noun = when (extracted.kind) {
+        AttachmentKind.PDF -> "Page"
+        AttachmentKind.DOCUMENT -> xyz.fieldatlas.attachments.DocumentTextReader.pageNoun(extracted.displayName)
+            .takeIf { it != "part" }?.replaceFirstChar(Char::uppercaseChar)
+        else -> null
+    }
+    return extracted.pages.flatMap { page ->
+        val paragraphs = page.text.split(Regex("\\n\\s*\\n")).flatMap { it.chunked(2_000) }.filter(String::isNotBlank)
+        paragraphs.mapIndexed { index, text -> (if (index == 0 && noun != null) "$noun ${page.number}" else null) to text.trim() }
     }
 }

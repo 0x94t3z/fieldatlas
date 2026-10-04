@@ -23,7 +23,8 @@ The current patch also removes native prompt/token text logging, so private atta
 `ai-chat-generation-fixes.patch` (three files, in the Android example library):
 
 * **ai_chat.cpp** — conversation/generation correctness: chat-template application
-  fixes, prompt overflow handling, batch decode settings, plus the **embedding
+  fixes, prompt overflow handling, batch decode settings, a thread cap of six (measured
+  below), plus the **embedding
   encoder entry points** (`loadEncoderNative` / `embedNative` / `unloadEncoderNative`)
   used by vector-capable knowledge packs — a second, independent small model
   (BGE-small GGUF) loaded alongside the chat model.
@@ -38,3 +39,21 @@ The current patch also removes native prompt/token text logging, so private atta
 cd third_party/llama.cpp
 git diff > ../../scripts/patches/ai-chat-generation-fixes.patch
 ```
+
+## Thread count
+
+Inference uses the online cores minus two, capped at six (it was four). Two cores stay free
+because the threads wait on each other: when the interface or the system takes a core from one
+of them, all of them stall. Measured on a Redmi 13C (2× Cortex-A75, 6× Cortex-A55), Qwen3.5 2B
+Q4_K_M:
+
+| Threads | `llama-bench` prompt reading | `llama-bench` writing | In the app: first word / writing |
+| --- | --- | --- | --- |
+| 4 | 13.6 tok/s | 4.55 tok/s | 94.7 s / 3.69 tok/s |
+| 6 | 18.6 tok/s | 5.19 tok/s | 71.7 s / 4.06 tok/s |
+| 8 | 19.8 tok/s | 3.79 tok/s | not used |
+
+The in-app runs asked the same question ("Compare mitosis and meiosis") after two minutes idle,
+without any screen polling. A 512-token batch read more slowly than 256 (16.8 vs 18.6 tok/s at
+six threads), so the batch stays at 256.
+

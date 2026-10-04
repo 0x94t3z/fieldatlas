@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launch animation: the 3D coin turns once and settles face-on (about 0.75 s, close to a cold
+  start on a low-end phone). Each frame is inset to the centre two thirds, the circle the system
+  splash shows, so the frames carry no pixels the mask would discard.
+-->
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android" android:oneshot="true">
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_00" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_01" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_02" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_03" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_04" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_05" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_06" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_07" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_08" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_09" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_10" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_11" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_12" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_13" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_14" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_15" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_16" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_17" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_18" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_19" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_20" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_21" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_22" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_23" android:inset="16.667%" />
+    </item>
+    <item android:duration="30">
+        <inset android:drawable="@drawable/splash_coin_24" android:inset="16.667%" />
+    </item>
+</animation-list>

@@ -50,7 +50,7 @@ internal fun AttachmentSheet(onDismiss: () -> Unit, onCamera: () -> Unit, onPhot
             }
             Choice(FieldAtlasIcons.Camera, TileTone.Sage, "Take a photo", "A sign, a menu or a page of notes", onCamera)
             Choice(FieldAtlasIcons.Photo, TileTone.Gold, "Choose an image", "Text in it is recognized on the phone", onPhotos)
-            Choice(FieldAtlasIcons.Document, TileTone.Paper, "Choose a file", "PDF, text, Markdown, CSV, JSON or code", onFiles)
+            Choice(FieldAtlasIcons.Document, TileTone.Paper, "Choose a file", "PDF, Word, PowerPoint, EPUB, text or code", onFiles)
             TextButton(onClick = onDismiss, shape = FieldAtlasButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text("Cancel")
             }

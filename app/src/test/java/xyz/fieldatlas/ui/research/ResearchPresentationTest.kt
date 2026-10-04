@@ -22,7 +22,11 @@ class ResearchPresentationTest {
     }
     @Test fun formatsMeasuredRateWithoutInventingMissingValues() {
         val measured = formatResearchMetrics(metrics(totalMillis = 2_000, tokens = 10), sourceCount = 2)
-        assertEquals("5.0 tok/s", measured.tokenRate)
+        // 10 tokens written between the first word (250 ms) and the end (2 s).
+        assertEquals("5.7 tok/s", measured.tokenRate)
+        assertNull(measured.promptReading)
+        val read = formatResearchMetrics(metrics(totalMillis = 2_000, tokens = 10).copy(promptTokens = 1_214, promptMillis = 66_000), 2)
+        assertEquals("1,214 tokens in 66.0 s (18.4 tok/s)", read.promptReading)
         assertEquals("2 of 2 sources cited", measured.citationCoverage)
 
         val missing = formatResearchMetrics(metrics(totalMillis = 0, tokens = 10), sourceCount = 2)

@@ -26,3 +26,10 @@
 -keep class * extends com.sun.jna.* { *; }
 -keepclassmembers class * extends com.sun.jna.* { public *; }
 -dontwarn java.awt.*
+
+# PdfBox-Android: JPEG 2000 decoding is an optional add-on Field Atlas does not ship; text
+# extraction never needs it. Font and glyph-list resources are loaded by name from assets.
+-dontwarn com.gemalto.jp2.JP2Decoder
+-dontwarn com.gemalto.jp2.JP2Encoder
+-keep class com.tom_roush.pdfbox.** { *; }
+-keep class com.tom_roush.fontbox.** { *; }

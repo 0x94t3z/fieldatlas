@@ -16,14 +16,13 @@ class OfflineAcceptanceTest {
     @Test fun installedArtifactHasNoNetworkPermissionOrPlayServicesAndContainsArmRuntime() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val packageManager = context.packageManager
-        assertFalse(
-            packageManager.checkPermission(Manifest.permission.INTERNET, context.packageName) ==
-                PackageManager.PERMISSION_GRANTED,
-        )
-        assertFalse(
-            packageManager.checkPermission(Manifest.permission.ACCESS_NETWORK_STATE, context.packageName) ==
-                PackageManager.PERMISSION_GRANTED,
-        )
+        // Same policy as scripts/verify_offline.sh: INTERNET exists only for downloads the user
+        // starts, and ACCESS_NETWORK_STATE only reads connectivity. Nothing may change the network.
+        for (permission in listOf(Manifest.permission.CHANGE_NETWORK_STATE, Manifest.permission.CHANGE_WIFI_STATE,
+            Manifest.permission.WRITE_SETTINGS)) {
+            assertFalse(permission, packageManager.checkPermission(permission, context.packageName) ==
+                PackageManager.PERMISSION_GRANTED)
+        }
         assertFalse(NetworkSecurityPolicy.getInstance().isCleartextTrafficPermitted)
         assertFalse(runCatching { Class.forName("com.google.android.gms.common.GoogleApiAvailability") }.isSuccess)
         val supportedAbi = android.os.Build.SUPPORTED_ABIS.firstOrNull { it == "arm64-v8a" }

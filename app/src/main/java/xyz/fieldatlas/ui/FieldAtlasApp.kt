@@ -116,6 +116,9 @@ fun FieldAtlasApp(
     onToggleResearch: (InstalledAsset, Boolean) -> Unit = { _, _ -> },
     onActivateModel: (InstalledAsset) -> Unit = {},
     onDeletePack: (InstalledAsset) -> Unit = {},
+    answersWithoutModel: (String, Boolean) -> Boolean = { question, hasAttachments ->
+        xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null
+    },
 ) {
     val ready = packs.any { it.type == PackType.MODEL }
     val enabledKnowledge = packs.filter { it.type == PackType.KNOWLEDGE && it.enabled }
@@ -313,6 +316,7 @@ fun FieldAtlasApp(
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
                         onAskAnotherQuestion = onAskAnotherQuestion,
+                        answersWithoutModel = answersWithoutModel,
                     )
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,

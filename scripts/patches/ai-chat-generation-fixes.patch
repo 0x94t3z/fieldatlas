@@ -1,5 +1,5 @@
 diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-index 03ab96cfd..657271bea 100644
+index 03ab96cfd..b9ffc2325 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 @@ -9,6 +9,7 @@
@@ -10,7 +10,17 @@ index 03ab96cfd..657271bea 100644
  #include "llama.h"
 
  template<class T>
-@@ -30,7 +31,7 @@ constexpr int   N_THREADS_HEADROOM      = 2;
+@@ -25,12 +26,16 @@ static std::string join(const std::vector<T> &values, const std::string &delim)
+  * LLama resources: context, model, batch and sampler
+  */
+ constexpr int   N_THREADS_MIN           = 2;
+-constexpr int   N_THREADS_MAX           = 4;
++// Field Atlas: measured on a Redmi 13C (2x A75 + 6x A55), Qwen3.5 2B Q4_K_M. llama-bench: prompt
++// reading 13.6 tok/s at 4 threads, 18.6 at 6; writing 4.55 at 4, 5.19 at 6, but 3.8 at 8, where the
++// threads fight the UI and the OS for cores. In the app, same question: first word 94.7 s -> 71.7 s
++// and writing 3.69 -> 4.06 tok/s going from 4 to 6. The two-core headroom stays; only the cap rose.
++constexpr int   N_THREADS_MAX           = 6;
+ constexpr int   N_THREADS_HEADROOM      = 2;
 
  constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;
  constexpr int   OVERFLOW_HEADROOM       = 4;
@@ -19,7 +29,7 @@ index 03ab96cfd..657271bea 100644
  constexpr float DEFAULT_SAMPLER_TEMP    = 0.3f;
 
  static llama_model                      * g_model;
-@@ -39,9 +40,13 @@ static llama_batch                        g_batch;
+@@ -39,9 +44,13 @@ static llama_batch                        g_batch;
  static common_chat_templates_ptr          g_chat_templates;
  static common_sampler                   * g_sampler;
 
@@ -34,7 +44,7 @@ index 03ab96cfd..657271bea 100644
      // Set llama log handler to Android
      llama_log_set(aichat_android_log_callback, nullptr);
 
-@@ -53,6 +58,15 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
+@@ -53,6 +62,15 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
 
      // Initialize backends
      llama_backend_init();
@@ -50,7 +60,7 @@ index 03ab96cfd..657271bea 100644
      LOGi("Backend initiated; Log handler set.");
  }
 
-@@ -104,9 +118,16 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
+@@ -104,9 +122,16 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
      return context;
  }
 
@@ -68,7 +78,7 @@ index 03ab96cfd..657271bea 100644
      return common_sampler_init(g_model, sparams);
  }
 
-@@ -118,10 +139,22 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
+@@ -118,10 +143,22 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
      g_context = context;
      g_batch = llama_batch_init(BATCH_SIZE, 0, 1);
      g_chat_templates = common_chat_templates_init(g_model, "");
@@ -92,7 +102,7 @@ index 03ab96cfd..657271bea 100644
  static std::string get_backend() {
      std::vector<std::string> backends;
      for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
-@@ -257,11 +290,14 @@ constexpr const char *ROLE_USER         = "user";
+@@ -257,11 +294,14 @@ constexpr const char *ROLE_USER         = "user";
  constexpr const char *ROLE_ASSISTANT    = "assistant";
 
  static std::vector<common_chat_msg> chat_msgs;
@@ -107,7 +117,7 @@ index 03ab96cfd..657271bea 100644
      system_prompt_position = 0;
      current_position = 0;
 
-@@ -290,10 +326,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
+@@ -290,10 +330,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
      common_chat_msg new_msg;
      new_msg.role = role;
      new_msg.content = content;
@@ -161,7 +171,7 @@ index 03ab96cfd..657271bea 100644
      return formatted;
  }
 
-@@ -318,7 +394,8 @@ static int decode_tokens_in_batches(
+@@ -318,7 +398,8 @@ static int decode_tokens_in_batches(
          llama_batch &batch,
          const llama_tokens &tokens,
          const llama_pos start_pos,
@@ -171,7 +181,7 @@ index 03ab96cfd..657271bea 100644
      // Process tokens in batches using the global batch
      LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
      for (int i = 0; i < (int) tokens.size(); i += BATCH_SIZE) {
-@@ -346,39 +423,43 @@ static int decode_tokens_in_batches(
+@@ -346,39 +427,43 @@ static int decode_tokens_in_batches(
              LOGe("%s: llama_decode failed w/ %d", __func__, decode_result);
              return 1;
          }
@@ -231,7 +241,7 @@ index 03ab96cfd..657271bea 100644
 
      // Handle context overflow
      const int max_batch_size = DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM;
-@@ -399,6 +480,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
+@@ -399,6 +484,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
      return 0;
  }
 
@@ -266,7 +276,7 @@ index 03ab96cfd..657271bea 100644
  extern "C"
  JNIEXPORT jint JNICALL
  Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
-@@ -412,7 +521,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -412,7 +525,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
 
      // Obtain and tokenize user prompt
      const auto *const user_prompt = env->GetStringUTFChars(juser_prompt, nullptr);
@@ -274,7 +284,7 @@ index 03ab96cfd..657271bea 100644
      std::string formatted_user_prompt(user_prompt);
 
      // Format user prompt if applicable
-@@ -424,9 +532,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -424,9 +536,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
 
      // Decode formatted user prompts
      auto user_tokens = common_tokenize(g_context, formatted_user_prompt, has_chat_template, has_chat_template);
@@ -284,7 +294,7 @@ index 03ab96cfd..657271bea 100644
 
      // Ensure user prompt doesn't exceed the context size by truncating if necessary.
      const int user_prompt_size = (int) user_tokens.size();
-@@ -438,14 +543,17 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -438,14 +547,17 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
      }
 
      // Decode user tokens in batches
@@ -304,7 +314,7 @@ index 03ab96cfd..657271bea 100644
      return 0;
  }
 
-@@ -531,7 +639,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
+@@ -531,7 +643,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
      jstring result = nullptr;
      if (is_valid_utf8(cached_token_chars.c_str())) {
          result = env->NewStringUTF(cached_token_chars.c_str());
@@ -312,7 +322,7 @@ index 03ab96cfd..657271bea 100644
 
          assistant_ss << cached_token_chars;
          cached_token_chars.clear();
-@@ -563,3 +670,120 @@ JNIEXPORT void JNICALL
+@@ -563,3 +674,120 @@ JNIEXPORT void JNICALL
  Java_com_arm_aichat_internal_InferenceEngineImpl_shutdown(JNIEnv *, jobject /*unused*/) {
      llama_backend_free();
  }

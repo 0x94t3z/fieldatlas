@@ -17,7 +17,8 @@ internal fun researchProgressHeading(phase: ResearchPhase, answer: String, hasSo
         ResearchPhase.Searching -> "Searching saved sources…"
         ResearchPhase.Generating -> when {
             answer.isNotBlank() -> "Writing your answer…"
-            hasSources -> "Reading saved sources…"
+            // Short enough to stay on one line beside a "1m 12s" timer and the Stop button.
+            hasSources -> "Reading sources…"
             else -> "Preparing your answer…"
         }
         else -> "Writing your answer…"
@@ -38,6 +39,8 @@ data class ResearchMetricsModel(
     val total: String,
     val tokenCount: String,
     val tokenRate: String?,
+    /** "1,214 tokens in 66.0 s (18.4 tok/s)": what the wait before the first word was spent on. */
+    val promptReading: String? = null,
     val citationCoverage: String,
     val hasUnmappedCitation: Boolean,
 )
@@ -49,11 +52,22 @@ data class AnswerPresentation(
 )
 
 /** A short, non-interactive draft. Citation chips become actionable in the final answer. */
-fun draftAnswerPreview(answer: String): String = AnswerText.visible(answer)
-    .take(650)
-    .replace(Regex("\\[S[0-9#]*]?", RegexOption.IGNORE_CASE), "")
-    .replace(Regex("[ \\t]{2,}"), " ")
-    .trim()
+/**
+ * The live draft while the model writes. It follows the newest text: showing only the opening
+ * froze the card once an answer outgrew it, although words were still arriving. A long draft
+ * starts at a line break (or a word) so the visible part never opens mid-word.
+ */
+fun draftAnswerPreview(answer: String, maxChars: Int = 650): String {
+    val text = AnswerText.visible(answer)
+        .replace(Regex("\\[S[0-9#]*]?", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("[ \\t]{2,}"), " ")
+        .trim()
+    if (text.length <= maxChars) return text
+    val tail = text.substring(text.length - maxChars)
+    val lineStart = tail.indexOf('\n').takeIf { it in 0 until maxChars / 2 }
+    val cut = lineStart?.let { tail.substring(it + 1) } ?: tail.substringAfter(' ', tail)
+    return "…" + cut.trimStart()
+}
 
 /** A real answer excerpt for the Research card, without raw Markdown or citation syntax. */
 fun answerCardPreview(answer: String): String {
@@ -127,14 +141,22 @@ fun researchActivityLabel(
 
 fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchMetricsModel {
     val citedCount = metrics.citedSourceIds.size.coerceAtMost(sourceCount.coerceAtLeast(0))
-    val rate = if (metrics.totalMillis > 0 && metrics.generatedTokenCount > 0) {
+    // Writing speed counts the writing only; dividing by the whole wait (search and prompt
+    // reading included) showed 1.6 tok/s for a model writing at 4.
+    val writingMillis = metrics.totalMillis - (metrics.timeToFirstTokenMillis ?: 0L)
+    val rate = if (writingMillis > 0 && metrics.generatedTokenCount > 0) {
         String.format(
             Locale.ROOT,
             "%.1f tok/s",
-            metrics.generatedTokenCount * 1_000.0 / metrics.totalMillis,
+            metrics.generatedTokenCount * 1_000.0 / writingMillis,
         )
     } else {
         null
+    }
+    val reading = metrics.promptTokens?.let { tokens ->
+        metrics.promptMillis?.takeIf { it > 0 }?.let { millis ->
+            String.format(Locale.ROOT, "%,d tokens in %.1f s (%.1f tok/s)", tokens, millis / 1_000.0, tokens * 1_000.0 / millis)
+        }
     }
     return ResearchMetricsModel(
         retrieval = formatDuration(metrics.retrievalMillis),
@@ -143,6 +165,7 @@ fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchM
         tokenCount = if (metrics.generatedTokenCount == 0) "No model generation" else
             "${metrics.generatedTokenCount} generated tokens",
         tokenRate = rate,
+        promptReading = reading,
         citationCoverage = if (sourceCount == 0) "No local sources cited" else "$citedCount of $sourceCount sources cited",
         hasUnmappedCitation = metrics.hasUnmappedCitation,
     )
@@ -175,6 +198,37 @@ private fun MarkdownInline.citationNumbers(): List<Int> = when (this) {
 
 internal enum class StepStatus { Done, Active, Pending }
 
+/** One engine report while the model reads its prompt: [read] of [total] tokens at [atMillis]. */
+internal data class PrefillSample(val read: Int, val total: Int, val atMillis: Long)
+
+internal data class PrefillEstimate(val fraction: Float, val secondsLeft: Long?)
+
+/**
+ * The engine reports prompt reading once per block (256 tokens), several seconds apart on a slow
+ * phone, so the bar sat still and then jumped. Between reports this moves it at the speed measured
+ * since reading began, but never past the end of the block being read, so it cannot run ahead of
+ * the engine. Null until the first report: the bar stays indeterminate until there is a speed.
+ */
+internal fun estimatePrefill(startedAtMillis: Long, samples: List<PrefillSample>, nowMillis: Long): PrefillEstimate? {
+    val last = samples.lastOrNull()?.takeIf { it.total > 0 && it.read > 0 } ?: return null
+    val elapsed = (last.atMillis - startedAtMillis).coerceAtLeast(1)
+    val tokensPerMilli = last.read.toDouble() / elapsed
+    val block = (last.read - (samples.getOrNull(samples.size - 2)?.read ?: 0)).coerceAtLeast(1)
+    // Stop just short of the next report, which is the only proof that block was read.
+    val ceiling = minOf(last.total.toDouble(), last.read + block * 0.95)
+    val estimate = minOf(ceiling, last.read + tokensPerMilli * (nowMillis - last.atMillis).coerceAtLeast(0))
+    val secondsLeft = if (estimate >= last.total) null
+        else ((last.total - estimate) / tokensPerMilli / 1_000).toLong().coerceAtLeast(1)
+    return PrefillEstimate((estimate / last.total).toFloat().coerceIn(0f, 1f), secondsLeft)
+}
+
+/** "about 20 s left" in steps that do not flicker every frame. */
+internal fun formatTimeLeft(seconds: Long): String = when {
+    seconds <= 3 -> "almost done"
+    seconds < 60 -> "about ${((seconds + 4) / 5 * 5)} s left"
+    else -> "about ${(seconds + 30) / 60} min left"
+}
+
 internal data class ResearchStep(
     val title: String,
     val status: StepStatus,
@@ -187,7 +241,7 @@ internal data class ResearchStep(
  * The three stages a question passes through on the phone. A source lead can appear before the
  * model writes, so "writing" starts with the first model token, not with the first answer text.
  */
-internal fun researchSteps(state: ResearchUiState): List<ResearchStep> {
+internal fun researchSteps(state: ResearchUiState, readEstimate: PrefillEstimate? = null): List<ResearchStep> {
     val searched = state.phase == ResearchPhase.Generating || state.phase == ResearchPhase.Complete
     val writing = state.tokensWritten > 0
     val passages = state.sources.size
@@ -211,9 +265,12 @@ internal fun researchSteps(state: ResearchUiState): List<ResearchStep> {
             searched -> StepStatus.Active
             else -> StepStatus.Pending
         },
-        detail = state.promptRead?.takeIf { searched && !writing && it.second > 0 }
+        detail = if (readEstimate != null && searched && !writing) {
+            listOfNotNull("${(readEstimate.fraction * 100).toInt().coerceIn(0, 100)}% read",
+                readEstimate.secondsLeft?.let(::formatTimeLeft)).joinToString(" · ")
+        } else state.promptRead?.takeIf { searched && !writing && it.second > 0 }
             ?.let { (read, total) -> "${(read * 100L / total).coerceIn(0, 100)}% read" },
-        progress = state.promptRead?.takeIf { it.second > 0 }
+        progress = readEstimate?.fraction ?: state.promptRead?.takeIf { it.second > 0 }
             ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) },
     )
     val write = ResearchStep(

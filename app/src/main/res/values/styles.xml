@@ -8,6 +8,8 @@
         <!-- Launch splash on the logo's own dark green, so the icon tile blends in. -->
         <item name="android:windowSplashScreenBackground">@color/launcher_background</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/launcher_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_coin</item>
+        <item name="android:windowSplashScreenAnimationDuration">750</item>
         <!-- Paper behind the first frame, so no white flash follows the splash. -->
         <item name="android:windowBackground">@color/window_background</item>
         <item name="android:colorAccent">#275D4A</item>

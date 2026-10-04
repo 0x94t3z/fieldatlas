@@ -17,6 +17,8 @@ For local places, name only places in the evidence. A dietary match must be stat
 Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them."""
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
+    private const val GUIDE_POLICY = """/no_think
+You are an offline first-aid and safety assistant. The evidence is an official guide. Use only the guide excerpts below; never add treatments, medicines, doses, tools or steps that are not in them. Answer for the situation in the question: first the most urgent actions, as short numbered steps close to the guide's wording, then any "do not" warnings that apply. Cite each step with the exact source number, such as [S1]. If the guide says to get emergency help, say that first. If the question's situation is not covered (for example a child, pregnancy, another injury or another country), say what the guide does not cover. No introduction or closing remarks; under 150 words."""
     private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|hotels?|hostels?|museums?|attractions?|sights?|bars?|shops?|stores?)\\b")
     private val LOCAL_PLACE_REQUEST = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|near|around|in)\\b")
     private val SOURCE_ONLY_REQUEST = Regex("(?i)\\b(summari[sz]e|according to|(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?))\\b")
@@ -68,6 +70,24 @@ For a request seeking specific current local places, explain that you cannot ver
             append("\n\nANSWER:")
         }
         return PackedPrompt(prompt, sources, mixedAnswer = allowsModelExplanation(question))
+    }
+
+    /**
+     * An emergency question answered from guide sections only, in strict cited mode: the model's
+     * own knowledge is not allowed in, whatever the question's wording.
+     */
+    fun buildGuide(question: String, sections: List<Evidence>): PackedPrompt {
+        require(question.isNotBlank()) { "question must not be blank" }
+        val sources = sections.mapIndexed { index, section -> PromptSource("S${index + 1}", section, excerpt = section.text) }
+        val prompt = buildString {
+            append(GUIDE_POLICY)
+            append("\n\nEVIDENCE:\n")
+            append(sources.joinToString("\n\n") { "[${it.citationId}]\nTitle: ${compactMetadata(it.evidence.title)}\nExcerpt: ${it.evidence.text}" })
+            append("\n\nQUESTION:\n")
+            append(question.trim())
+            append("\n\nANSWER:")
+        }
+        return PackedPrompt(prompt, sources, mixedAnswer = false)
     }
 
     fun buildModelOnly(question: String): PackedPrompt {
