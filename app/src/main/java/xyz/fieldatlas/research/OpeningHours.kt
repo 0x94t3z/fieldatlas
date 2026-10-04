@@ -21,6 +21,7 @@ object OpeningHours {
     private val days = listOf("Mo", "Tu", "We", "Th", "Fr", "Sa", "Su")
     private const val DAY = "(?:Mo|Tu|We|Th|Fr|Sa|Su|PH|SH)"
     private val dayPart = Regex("^($DAY(?:-$DAY)?(?:\\s*,\\s*$DAY(?:-$DAY)?)*)\\s+(.+)$")
+    private val ruleBreak = Regex(";|(?<=\\d)\\s*,\\s*(?=$DAY\\b)")
     private val range = Regex("^(\\d{1,2}):(\\d{2})(?:-(\\d{1,2}):(\\d{2}))?(\\+?)$")
 
     /**
@@ -34,7 +35,9 @@ object OpeningHours {
         val text = hours.trim()
         if (text == "24/7") return Array(7) { listOf(Span(0, 1440)) }
         val week = arrayOfNulls<List<Span>>(7)
-        for (raw in text.split(';').map(String::trim).filter(String::isNotEmpty)) {
+        // Rules end at ";", or at a comma between a time and the next day ("Mo-Fr 08:00-20:00, Sa
+        // 09:00-19:00"); a comma inside a day list ("Mo, We-Su") or between times stays put.
+        for (raw in text.split(ruleBreak).map(String::trim).filter(String::isNotEmpty)) {
             val (dayText, timeText) = dayPart.matchEntire(raw)?.destructured?.let { (d, t) -> d to t } ?: (null to raw)
             val selected = if (dayText == null) (0..6).toList() else daysOf(dayText) ?: return null
             // A holiday-only rule ("PH off") cannot be applied without a holiday calendar.

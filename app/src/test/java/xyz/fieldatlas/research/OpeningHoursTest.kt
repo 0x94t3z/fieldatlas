@@ -58,4 +58,14 @@ class OpeningHoursTest {
         assertEquals(Status.Closed, status("Mo-Sa 09:00-18:00; PH,Su off", 6, 12))
         assertEquals(Status.Unknown, status("Mo-Xx 09:00-18:00", 0, 12))
     }
+
+    @Test fun aCommaCanSeparateDayRules() {
+        // Apotheke Q205, Berlin: "Mo-Fr 08:00-20:00, Sa 09:00-19:00" (day 5 = Saturday).
+        assertEquals(Status.Closed, status("Mo-Fr 08:00-20:00, Sa 09:00-19:00", 5, 21, 30))
+        assertEquals(Status.Open(java.time.LocalTime.of(19, 0)), status("Mo-Fr 08:00-20:00, Sa 09:00-19:00", 5, 12))
+        assertEquals(Status.Open(java.time.LocalTime.of(20, 0)), status("Mo-Fr 08:00-20:00, Sa 09:00-19:00", 1, 12))
+        // A day list and a list of times keep their commas.
+        assertEquals(Status.Open(java.time.LocalTime.of(15, 0)), status("Mo, We-Su 11:30-15:00, 18:00-22:00", 2, 12))
+        assertEquals(Status.Closed, status("Mo, We-Su 11:30-15:00, 18:00-22:00", 1, 12))
+    }
 }
