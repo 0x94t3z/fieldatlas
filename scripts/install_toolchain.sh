@@ -56,4 +56,5 @@ fi
 
 python3 "$repo_root/scripts/android_sdk.py" --write-local-properties "$repo_root/local.properties" >/dev/null
 echo "Android toolchain is ready at $sdk_root."
-echo "Next: ./gradlew --offline --no-configuration-cache :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease"
+# The first build downloads Gradle dependencies, so it must not run with --offline.
+echo "Next: ./gradlew --no-configuration-cache :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease"

@@ -90,6 +90,15 @@ class EmergencyGuideMatchTest {
         assertEquals("fractures-sprains", match("I twisted my ankle on the trail, what should I do?"))
     }
 
+    @Test fun anInjuryThatCannotTakeWeightLeadsWithWhenToGetCare() {
+        val guide = book.guides.single { it.id == "fractures-sprains" }
+        val flagged = EmergencyGuideMatch.select("My friend fell and now his ankle is swollen and he cannot put weight on it, what should we do?", guide, 2_000)
+        assertTrue(flagged.first().title, flagged.first().title.endsWith("Treatment for Serious Injuries"))
+        // A minor sprain without a red flag still gets the home-care steps first.
+        val minor = EmergencyGuideMatch.select("I twisted my ankle a little on a walk, how do I treat a mild sprain at home?", guide, 2_000)
+        assertTrue(minor.first().title, minor.first().title.endsWith("Treatment of Minor Injuries"))
+    }
+
     @Test fun aLongAccountOfAnInjuryStillGetsItsGuide() {
         assertEquals("burns", match("We are camping and my son touched the hot stove and burned his hand, the skin is red and blistering and he is crying a lot, there is no signal here and the nearest town is far, how do I treat it?"))
     }

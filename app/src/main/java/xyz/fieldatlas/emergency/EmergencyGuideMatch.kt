@@ -118,6 +118,17 @@ object EmergencyGuideMatch {
     private val signsHeading = Regex("(?i)(signs?|symptoms?|look out|warning signs|recogni[sz]e)")
     private val asksSigns = Regex("(?i)\\b(signs?|symptoms?|how do i know|recogni[sz]e|look like)\\b")
 
+    /** Signs that a guide sends to a professional, not to home care ("unable to tolerate any weight"). */
+    private val redFlags = Regex(
+        "(?i)\\b((can'?t|cannot|can not|unable to|won'?t) (put|bear|take|tolerate|stand) (any )?weight|" +
+            "(can'?t|cannot|unable to) (walk|stand|move (it|his|her|their))|bone (is )?(sticking|poking|showing) (out|through)|" +
+            "(looks|is) (deformed|crooked|bent|out of place)|numb|tingling|severe pain|very swollen|swelling (is )?getting worse)\\b",
+    )
+    private val seeksCare = Regex(
+        "(?i)\\b(see a (health care provider|doctor)|seek (medical|emergency|immediate)|get (medical|emergency) (help|care)|" +
+            "call (911|112|999|your local emergency number)|emergency (room|department))\\b",
+    )
+
     /**
      * The guide split into citable sections (a heading with its follow-on blocks), in reading
      * order. Each keeps the published wording; list items keep their markers and nesting.
@@ -164,6 +175,7 @@ object EmergencyGuideMatch {
         if (all.isEmpty()) return all
         val ranked = xyz.fieldatlas.research.Bm25.rank(all, xyz.fieldatlas.research.QueryTerms.of(question))
         val wantsSigns = asksSigns.containsMatchIn(question)
+        val flagged = redFlags.containsMatchIn(question)
         fun priority(e: Evidence): Double {
             val heading = e.title.substringAfter(": ", "")
             val signs = signsHeading.containsMatchIn(heading)
@@ -173,7 +185,9 @@ object EmergencyGuideMatch {
                 // The main steps come before the "what not to do" list when only one fits.
                 (if (actionHeading.containsMatchIn(heading)) (if (avoidHeading.containsMatchIn(heading)) 2.0 else 3.0) else 0.0) +
                 (if (e.text.contains("\n- ") || e.text.contains("\n1. ")) 1.0 else 0.0) +
-                (if (signs) (if (wantsSigns) 4.0 else -1.0) else 0.0)
+                (if (signs) (if (wantsSigns) 4.0 else -1.0) else 0.0) +
+                // "He cannot put weight on it": the guide's when-to-get-care section leads, not home care.
+                (if (flagged && seeksCare.containsMatchIn(e.text)) 6.0 else 0.0)
         }
         val order = ranked.sortedByDescending(::priority)
         val kept = mutableListOf<Evidence>()
