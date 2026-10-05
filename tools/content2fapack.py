@@ -534,7 +534,7 @@ CORPORA: dict[str, dict] = {
     "wikipedia": wiki_entry(
         "wikipedia", "Wikipedia (offline text)", "All 7.1M English Wikipedia articles as offline full text (July 2026 dump).",
         "https://dumps.wikimedia.org/enwiki/", ["Who was the first woman to win a Nobel Prize?",
-                                                "What is the capital of Australia?"]),
+                                                "What is the capital of Canada?"]),
 }
 
 # build order: cheap corpora first, the giants last

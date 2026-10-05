@@ -88,8 +88,8 @@ SUMMARY = ("Every Wikipedia Vital article plus the most substantive remaining ar
            "from the English dump, curated for offline research.")
 QUESTIONS = [
     "Who was the first woman to win a Nobel Prize?",
-    "What is the capital of Australia?",
-    "How do vaccines work?",
+    "What is the capital of Canada?",
+    "How does the heart pump blood?",
 ]
 
 

@@ -4,6 +4,7 @@
   "sources": [
     {"id": "niosh-snakes", "kind": "html", "publisher": "CDC/NIOSH", "container": "main", "url": "https://www.cdc.gov/niosh/outdoor-workers/about/venomous-snakes.html"},
     {"id": "niosh-insects", "kind": "html", "publisher": "CDC/NIOSH", "container": "main", "url": "https://www.cdc.gov/niosh/outdoor-workers/about/insects-and-scorpions.html"},
+    {"id": "niosh-carbon-monoxide", "kind": "html", "publisher": "CDC/NIOSH", "container": "main", "url": "https://www.cdc.gov/niosh/carbon-monoxide/about/index.html"},
     {"id": "niosh-spiders", "kind": "html", "publisher": "CDC/NIOSH", "container": "main", "url": "https://www.cdc.gov/niosh/outdoor-workers/about/venomous-spiders.html"},
     {"id": "cdc-ticks", "kind": "html", "publisher": "CDC", "container": "main", "url": "https://www.cdc.gov/ticks/after-a-tick-bite/index.html"},
     {"id": "cdc-rabies", "kind": "html", "publisher": "CDC", "container": "main", "url": "https://www.cdc.gov/rabies/prevention/index.html"},
@@ -96,6 +97,9 @@
     {"id": "poisoning", "title": "Poisoning", "category": "medical", "urgent": true,
      "keywords": ["poison", "poisoning", "overdose", "swallowed", "carbon monoxide", "chemical", "pesticide", "poison control"],
      "source": "nlm-poisoning", "select": [{"heading": "Summary"}]},
+    {"id": "carbon-monoxide", "title": "Carbon monoxide poisoning", "category": "medical", "urgent": true,
+     "keywords": ["carbon monoxide", "co poisoning", "co alarm", "co detector", "gas heater", "generator indoors", "fumes", "exhaust fumes", "charcoal indoors", "camp stove indoors"],
+     "source": "niosh-carbon-monoxide", "select": [{"heading": "Risks"}, {"heading": "Equipment users can:"}]},
     {"id": "snakebite", "title": "Snakebite", "category": "medical", "urgent": true,
      "keywords": ["snake", "snakebite", "bite", "venom", "rattlesnake", "viper", "copperhead", "cottonmouth", "coral snake", "antivenom"],
      "source": "niosh-snakes", "region": "US",

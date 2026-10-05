@@ -60,6 +60,7 @@ def main():
     parser.add_argument("--temperature", type=float, help="Answer temperature (default 0.3, as on the phone)")
     parser.add_argument("--attachments", type=Path, help="JSON mapping exact questions to lists of text files to attach, as on the phone")
     parser.add_argument("--vector-fixture", type=Path, help="Diagnostic frozen query embeddings and matching vector-pack manifest; does not bypass retrieval")
+    parser.add_argument("--location", help="Test GPS position LAT,LON for near-me questions, as the phone's fix")
     parser.add_argument("--answer-policy", choices=["app", "source-only", "source-partial", "evidence-first", "bounded-summary"], default="app", help="Diagnostic policy override; source-only uses the existing app strict policy")
     parser.add_argument("--server", type=Path, default=ROOT / "build/desktop-llama/bin/llama-server")
     parser.add_argument("--output", type=Path, default=ROOT / "build/desktop-evaluation/report.json")
@@ -110,6 +111,10 @@ def main():
             parser.error("Vector fixture database does not match an enabled database")
         config["vectorFixture"] = fixture
         config["provenance"]["vectorFixtureSha256"] = hashlib.sha256(args.vector_fixture.read_bytes()).hexdigest()
+    if args.location:
+        lat, lon = (float(part) for part in args.location.split(","))
+        config["location"] = [lat, lon]
+        config["provenance"]["location"] = [lat, lon]
     if args.seeds:
         config["seeds"] = args.seeds
     if args.temperature is not None:
