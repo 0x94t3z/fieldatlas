@@ -51,6 +51,7 @@ object EvidenceRelevance {
         }
     }
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
+    private val metadataLine = Regex("^\\s*(?:PMID \\d+|(?:Year|Journal|Authors?|DOI|PMCID|Published|Publication types?|Keywords|MeSH):)")
     private val conceptPattern = Regex("^concept match ([0-9.]+)$")
     private val lookupWrappers = setOf("best", "recommend", "suggest", "find", "list", "listed", "which", "where")
     private val genericTerms = setOf(
@@ -100,10 +101,13 @@ object EvidenceRelevance {
                         questionTerms.all { tokens(topicalText(item.text)).matches(it) }))) &&
                 (!generalExplanation || !isTravelListing(item)) &&
                 (!generalExplanation || overview.isNotEmpty() || isStrongConceptMatch(item) ||
-                    explanationTopicMatches(item, relevanceTerms)) &&
-                destinationMatches(item, question) && categoryMatches(item, question) &&
+                    isSupportedConceptMatch(item, relevanceTerms) || explanationTopicMatches(item, relevanceTerms)) &&
+                destinationMatches(item, question) && categoryMatches(item, question) && placeAsked(item, question) &&
                 dietaryMatches(item, question) &&
-                (namedArticles.isEmpty() || isTravelListing(item) || namedArticles.any { subject ->
+                // The definition of the asked subject stays even when the question also names
+                // another article: "Explain BLS signatures and why Ethereum validators aggregate them".
+                (namedArticles.isEmpty() || isTravelListing(item) ||
+                    (overview.isNotEmpty() && hasOverviewStatement(item, overview)) || namedArticles.any { subject ->
                     containsPhrase(item.title.substringBefore(" — ") + " " + topicalText(item.text), subject)
                 })
         }, subjects.ifEmpty { relevanceTerms })
@@ -143,9 +147,9 @@ object EvidenceRelevance {
             }
     }
 
-    /** "What is the capital of Australia?" asks for one fact about a subject. No article is
-     * titled "Capital of Australia", and the answer sits in another article's lead
-     * ("Canberra is the capital city of Australia"), so the overview gate does not apply. */
+    /** "What is the capital of Canada?" asks for one fact about a subject. No article is
+     * titled "Capital of Canada", and the answer sits in another article's lead
+     * ("Ottawa is the capital city of Canada"), so the overview gate does not apply. */
     internal fun isAttributeQuestion(question: String): Boolean = Regex(
         "(?i)^\\s*(?:what|who|which)\\s+(?:is|are|was|were)\\s+the\\s+(?:capital|population|currency|" +
             "(?:official\\s+|main\\s+)?languages?|president|prime\\s+minister|leader|head\\s+of\\s+state|king|queen|" +
@@ -223,12 +227,17 @@ object EvidenceRelevance {
             val forms = mutableSetOf(base, base + "s", base + "es")
             when {
                 base.endsWith("ies") -> forms += base.dropLast(3) + "y"
-                base.endsWith("es") -> forms += base.dropLast(2)
+                // "boxes" is "box", but "signatures" is "signature": keep both singulars.
+                base.endsWith("es") -> forms += listOf(base.dropLast(2), base.dropLast(1))
                 base.endsWith("s") && !base.endsWith("ss") && !base.endsWith("us") && !base.endsWith("is") -> forms += base.dropLast(1)
             }
             return forms.joinToString("|", "(?:", ")", transform = Regex::escape)
         }
-        val subject = subjects.joinToString("|") { phrase -> phrase.split(Regex("\\s+")).joinToString("\\s+", transform = ::wordPattern) }
+        // One modifier may sit inside a multiword subject: "BLS signatures" is defined as
+        // "A BLS digital signature ... is a cryptographic signature scheme".
+        val subject = subjects.joinToString("|") { phrase ->
+            phrase.split(Regex("\\s+")).joinToString("\\s+(?:[\\p{L}\\p{N}-]+\\s+)?", transform = ::wordPattern)
+        }
         // Require the concept to be the subject of an explanatory sentence, rather than
         // appearing as an experimental setting, title, index tag, or trailing keyword.
         val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\),?|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?|was|were)\\b")
@@ -245,6 +254,8 @@ object EvidenceRelevance {
         // Do not apply English sentence grammar to text we cannot confidently classify
         // as English. Keep the ordinary lexical gate for that evidence instead.
         val englishMarkers = setOf("the", "a", "an", "is", "are", "of", "in", "with", "from", "during", "we", "these", "this")
+        // A paper's header (PMID, journal, authors) with no abstract says nothing about anything.
+        if (passage.lineSequence().filter(String::isNotBlank).all { metadataLine.containsMatchIn(it) }) return false
         if (tokens(passage).count(englishMarkers::contains) < 2) {
             return isRelevant(item, subjects.flatMap { FtsQuery.from(it)?.terms.orEmpty() }, emptyList())
         }
@@ -300,6 +311,30 @@ object EvidenceRelevance {
         }
     }
 
+    /**
+     * A map listing answers a question about places, or one that names its town. A question about
+     * EIP-7702 and regular accounts matched a museum whose phone number ends in 7702 and a shop
+     * selling "the regular items"; neither question nor town asked for them.
+     */
+    private fun placeAsked(item: Evidence, question: String?): Boolean {
+        if (question == null || !isStructuredPlace(item)) return true
+        if (placeRequest.containsMatchIn(question)) return true
+        // A named venue: "Is the Louvre open on Mondays?", "Opening hours of the Rijksmuseum".
+        val place = item.text.lineSequence().firstOrNull { it.startsWith("Place: ") }?.removePrefix("Place: ")?.trim()
+        if (place != null && place.length >= 4 && containsPhrase(question, place)) return true
+        val destination = item.text.lineSequence().firstOrNull()?.takeIf { it.startsWith("Destination: ") }
+            ?.removePrefix("Destination: ")?.trim()?.takeIf(String::isNotEmpty) ?: return false
+        return listOf(destination, destination.substringBefore('/'), destination.substringBefore(" (")).distinct()
+            .any { name -> containsPhrase(question, name) }
+    }
+
+    private val placeRequest = Regex(
+        "(?i)\\b(restaurants?|caf[eé]s?|eat|eating|food|meals?|dining|bars?|pubs?|drinks?|drinking|nightlife|hotels?|hostels?|" +
+            "stay|sleep|accommodation|museums?|galler(?:y|ies)|sights?|attractions?|things? to do|visit|see|shops?|shopping|" +
+            "buy|markets?|stores?|places?|where|nearby|near me|around here|pharmac(?:y|ies)|hospitals?|clinics?|atms?|banks?|" +
+            "open|opening|hours|entry|admission|tickets?)\\b",
+    )
+
     private fun isTravelListing(item: Evidence) = item.documentId.startsWith("wv-eat-") || isStructuredPlace(item)
 
     /** Wikivoyage and OpenStreetMap places share the Destination/Category/Place layout. */
@@ -337,7 +372,8 @@ object EvidenceRelevance {
             (contentTerms.size <= 3 && questionHits >= 1 && expandedHits >= 1) ||
             // A high semantic score can bridge vocabulary mismatch, but the threshold is
             // intentionally stricter than pack import's broad rejection floor.
-            isStrongConceptMatch(item)
+            isStrongConceptMatch(item) ||
+            isSupportedConceptMatch(item, contentTerms)
     }
 
     /** A map listing answers one part of "a vegan food stop and a museum", so it needs two of the
@@ -351,6 +387,21 @@ object EvidenceRelevance {
     }
 
     private val placeInstructionTerms = setOf("listing", "listings", "stop", "stops", "visit", "visits", "trip", "suggest")
+
+    /**
+     * A good semantic match that also shares one of the question's own content words. In a
+     * technical pack, true matches often score 0.70-0.76 with this encoder (a question about
+     * quantum attacks on RSA finds "RSA cryptosystem — Integer factorization" in that range),
+     * below the 0.78 a match needs to stand on similarity alone; the shared word keeps a
+     * high-scoring but unrelated passage out.
+     */
+    private fun isSupportedConceptMatch(item: Evidence, terms: List<String>): Boolean {
+        val score = item.matchedBy?.let { conceptPattern.matchEntire(it) }?.groupValues?.get(1)?.toDoubleOrNull() ?: return false
+        if (!score.isFinite() || score < SUPPORTED_CONCEPT) return false
+        val content = terms.filterNot { it in lookupWrappers || it in genericTerms }
+        val body = tokens(item.title + " " + topicalText(item.text))
+        return content.any { body.matches(it) }
+    }
 
     private fun isStrongConceptMatch(item: Evidence): Boolean = item.matchedBy
         ?.let { conceptPattern.matchEntire(it) }?.groupValues?.get(1)?.toDoubleOrNull()
@@ -368,6 +419,9 @@ object EvidenceRelevance {
 
     private fun Set<String>.matches(term: String): Boolean {
         val lower = term.lowercase()
+        // As in FtsQuery: a short word or a number is not a stem. "mev" is not "mevalonate".
+        if (lower.codePointCount(0, lower.length) <= 3) return FtsQuery.shortForms(lower).any(::contains)
+        if (lower.all(Char::isDigit)) return lower in this
         val stem = stem(lower)
         // The stem of "embassies" ("embassi") is not a prefix of "embassy", so a plural
         // question would otherwise reject every listing that names the place in the singular.
@@ -385,4 +439,5 @@ object EvidenceRelevance {
     }
 
     private const val HIGH_CONFIDENCE_CONCEPT = 0.78
+    private const val SUPPORTED_CONCEPT = 0.70
 }

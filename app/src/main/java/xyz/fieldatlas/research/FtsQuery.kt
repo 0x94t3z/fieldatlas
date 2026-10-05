@@ -37,7 +37,38 @@ class FtsQuery private constructor(
             )
         }
 
+        /**
+         * A word of three letters or fewer is matched in its own inflections, not as a prefix:
+         * "get" finds "gets" and "getting", "bus" finds "buses", but "mev" never "mevalonate".
+         * Verb endings are only added to words with a vowel; "bls" is an acronym.
+         */
+        internal fun shortForms(term: String): List<String> {
+            val plural = if (term.endsWith("s") || term.endsWith("x") || term.endsWith("z") || term.endsWith("ch") || term.endsWith("sh")) "es" else "s"
+            val forms = linkedSetOf(term, term + plural)
+            when {
+                // "use": used, using; "die": died, dying; "fly": flies, flew? no, flying; "dry": dried.
+                term.endsWith("ie") -> forms += listOf(term + "d", term.dropLast(2) + "ying")
+                term.endsWith("e") -> forms += listOf(term + "d", term.dropLast(1) + "ing")
+                term.length == 3 && term.endsWith("y") && term[1] !in VOWELS -> forms += listOf(term.dropLast(1) + "ies", term.dropLast(1) + "ied", term + "ing")
+            }
+            if (term.all(Char::isLetter) && term.any { it in VOWELS } && !term.endsWith("e") && !term.endsWith("y")) {
+                forms += listOf(term + "ing", term + "ed")
+                // A consonant-vowel-consonant word doubles its last letter: "get" -> "getting".
+                if (term.length == 3 && term[0] !in VOWELS && term[1] in VOWELS && term[2] !in "aeiouwxy") {
+                    forms += listOf(term + term[2] + "ing", term + term[2] + "ed")
+                }
+            }
+            return forms.toList()
+        }
+
+        private const val VOWELS = "aeiou"
+
         private fun searchableTerm(term: String): String {
+            // A short term as a prefix matches too much: "mev"* found "mevalonate" for a question
+            // about MEV, "kem"* a town called Kemer for ML-KEM. Match it whole, or as a plural.
+            if (term.codePointCount(0, term.length) <= 3) return shortForms(term).joinToString(" OR ", "(", ")") { "\"$it\"" }
+            // A number is never a stem: "7702"* matched the postcode 77020 for a question about EIP-7702.
+            if (term.all(Char::isDigit)) return "\"$term\""
             val stem = when {
                 // FTS uses prefix matching, not a linguistic stemmer. Keep the shared spelling
                 // prefix (alli* -> allies) instead of rewriting ies to y (ally* cannot match

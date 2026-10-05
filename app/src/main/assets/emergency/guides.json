@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-03",
+  "generated": "2026-10-05",
   "guides": [
     {
       "category": "medical",
@@ -972,6 +972,92 @@
         "url": "https://medlineplus.gov/poisoning.html"
       },
       "title": "Poisoning",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "carbon-monoxide",
+      "keywords": [
+        "carbon monoxide",
+        "co poisoning",
+        "co alarm",
+        "co detector",
+        "gas heater",
+        "generator indoors",
+        "fumes",
+        "exhaust fumes",
+        "charcoal indoors",
+        "camp stove indoors"
+      ],
+      "region": "US",
+      "sections": [
+        {
+          "heading": "Risks",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "All CO poisonings are preventable. Here is what you can do to prevent CO poisoning:"
+          ],
+          "step_levels": [
+            1,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            1,
+            1,
+            1,
+            1
+          ],
+          "steps": [
+            "Know the symptoms of CO poisoning:",
+            "Headache",
+            "Confusion",
+            "Fatigue",
+            "Seizures",
+            "Dizziness or loss of consciousness",
+            "Nausea",
+            "Get to fresh air and seek medical help immediately if you, an employee, or coworker has these symptoms",
+            "Install and frequently test a battery-operated CO detector",
+            "Schedule regular engine and exhaust system maintenance inspections by experienced and trained technicians",
+            "Be aware that dangerous concentrations of CO can accumulate within seconds"
+          ]
+        },
+        {
+          "heading": "Equipment users can:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "step_levels": [
+            1,
+            1,
+            1,
+            2,
+            1,
+            1
+          ],
+          "steps": [
+            "Learn to recognize the warning symptoms of CO poisoning",
+            "If you have any symptoms, immediately turn off equipment and go outdoors or to a place with uncontaminated air",
+            "Call 911 or another local emergency number for medical attention or assistance if symptoms occur",
+            "Do not drive a motor vehicle–get someone else to drive you to a health care facility",
+            "Stay away from the work area until the tool has been deactivated and measured CO concentrations are below accepted guidelines and standards",
+            "Watch coworkers for the signs of CO toxicity"
+          ]
+        }
+      ],
+      "source": {
+        "license": "Public domain (US federal government work)",
+        "publisher": "CDC/NIOSH",
+        "retrieved": "2026-10-05T09:09:03Z",
+        "revision": null,
+        "sha256": "e2a2a7584af2f7f730772b4ac226ddbde48cf911f3abdbcdf03cee640491eedc",
+        "title": "Carbon Monoxide Hazards at Work",
+        "url": "https://www.cdc.gov/niosh/carbon-monoxide/about/index.html"
+      },
+      "title": "Carbon monoxide poisoning",
       "urgent": true
     },
     {
@@ -3270,5 +3356,5 @@
       "urgent": false
     }
   ],
-  "version": "2026.10.03"
+  "version": "2026.10.05"
 }

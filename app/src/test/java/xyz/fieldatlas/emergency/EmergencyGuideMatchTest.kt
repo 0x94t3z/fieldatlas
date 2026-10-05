@@ -163,4 +163,36 @@ class EmergencyGuideMatchTest {
             "My son asks why the sun is hot", "What is the history of antivenom research?",
         )) assertNull(question, match(question))
     }
+
+    @Test fun theSafetyNoteSaysWhatToDoWithNoSignal() {
+        val note = EmergencyGuideMatch.safetyNote(book.guides.single { it.id == "snakebite" })
+        assertTrue(note, note.startsWith("If this is an emergency, call your local emergency number first"))
+        assertTrue(note, "No signal? Try the emergency call anyway" in note)
+        assertTrue(note, "send someone for help and keep following these steps" in note)
+    }
+
+    @Test fun headachesNearAHeaterAreCarbonMonoxideNotAltitude() {
+        assertEquals("carbon-monoxide", match("Several people in our cabin have headaches and feel dizzy near the gas heater. What should we do?"))
+        assertEquals("carbon-monoxide", match("The CO alarm is going off and my kids feel sick, what do I do?"))
+        assertEquals("altitude-sickness", match("I have a headache at 3,800 m in the Andes, what should I do?"))
+        assertEquals("altitude-sickness", match("How do I avoid altitude sickness when I arrive in Cusco?"))
+        assertNotEquals("altitude-sickness", match("I have a bad headache and feel dizzy, what should I do?"))
+        assertNotEquals("carbon-monoxide", match("How do I clean a gas stove?"))
+        assertNotEquals("carbon-monoxide", match("The heater in my car is broken, what do I do?"))
+        assertEquals("power-outage", match("Is it safe to use a generator during a power outage?"))
+    }
+
+    @Test fun oneEverydayWordDoesNotPickAGuide() {
+        assertNull(match("My baby has a fever of 39°C, what do I do?"))
+        assertNull(match("My throat hurts, what should I do?"))
+        assertEquals("cpr", match("Someone collapsed and isn't breathing, what do I do?"))
+        assertEquals("cpr", match("My dad stopped breathing"))
+        assertNull(match("I lost my passport while travelling in Spain. What should I do?"))
+        assertEquals("fractures-sprains", match("My friend fell off a bike and his wrist is swollen and bent. What should we do?"))
+        assertEquals("animal-bites", match("A monkey scratched my arm at a temple in Bali and drew blood. What should I do?"))
+        assertNull(match("I scratched my car in a car park, what should I do?"))
+        assertEquals("lost", match("We are lost in the forest and it is getting dark. What should we do?"))
+        assertEquals("hypothermia", match("My friend's body temperature is 34°C and he is shivering, what do I do?"))
+        assertEquals("frostbite", match("It's -20°C and my friend's fingers are white and numb, what should I do?"))
+    }
 }

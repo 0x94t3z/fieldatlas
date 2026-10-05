@@ -267,9 +267,11 @@ object VenueLookup {
         return Result(answer, shown.map(Listing::evidence))
     }
 
+    // Ways people point at where they are standing: by distance ("nearest", "close to me"), by
+    // place ("around here", "where I am") or by their phone's position ("my location").
     private val nearMePhrase = Regex(
-        "(?i)\\b(near me|nearby|near here|around me|around here|close to me|closest|nearest|where i am|" +
-            "my (?:current )?location|my (?:current )?city|(?:the )?city i(?:'m| am) (?:currently )?in)\\b",
+        "(?i)\\b(nearest|closest|nearby|(?:near|close to|around) (?:me|here)|where i am|" +
+            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city))\\b",
     )
     private val foodWords = Regex("(?i)\\b(food|eat|eating|meals?|dinner|lunch|breakfast)\\b")
     private val nearbyWords = setOf(
@@ -279,8 +281,8 @@ object VenueLookup {
     )
 
     private val selfPhrase = Regex(
-        "(?i)\\b(near me|near here|around me|around here|close to me|where i am|" +
-            "my (?:current )?location|my (?:current )?city|(?:the )?city i(?:'m| am) (?:currently )?in)\\b",
+        "(?i)\\b((?:near|close to|around) (?:me|here)|where i am|" +
+            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city))\\b",
     )
     private val namedPlace = Regex("(?i)\\b(?:in|at|around|near)\\s+(?!me\\b|here\\b|my\\b|the city i)\\p{L}")
 

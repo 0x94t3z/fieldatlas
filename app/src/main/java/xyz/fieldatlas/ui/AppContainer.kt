@@ -312,6 +312,18 @@ class AppContainer(context: Context) {
             xyz.fieldatlas.emergency.EmergencyData.guides(it.readText()).guides
         }
     }
+    /** The licence of a bundled emergency source ("emergency:<guide>" or "emergency:numbers-<country>"). */
+    fun emergencyLicense(documentId: String): String? {
+        val id = documentId.removePrefix("emergency:")
+        return if (id.startsWith("numbers-")) emergencyNumbers?.source?.license
+            else emergencyGuides.firstOrNull { it.id == id }?.source?.license
+    }
+    /** Emergency telephone numbers by country, bundled in the APK; read on first use. */
+    private val emergencyNumbers: xyz.fieldatlas.emergency.NumberBook? by lazy {
+        runCatching {
+            appContext.assets.open("emergency/numbers.json").bufferedReader().use { xyz.fieldatlas.emergency.EmergencyNumbers.book(it.readText()) }
+        }.getOrNull()
+    }
     /** Remembered across launches: the first file answer after an update should not start blind. */
     private val prefillSpeed = object : xyz.fieldatlas.research.PrefillSpeed {
         private val prefs = appContext.getSharedPreferences("research", Context.MODE_PRIVATE)
@@ -322,13 +334,15 @@ class AppContainer(context: Context) {
             }
     }
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
-        emergencyGuides = { emergencyGuides }, prefillSpeed = prefillSpeed)
+        emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed)
 
     /** Questions the app answers itself, so they can run before (or without) the model. */
     fun answersWithoutModel(question: String, hasAttachments: Boolean): Boolean =
         xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null ||
+            (!hasAttachments && xyz.fieldatlas.research.Calculators.solve(question)?.complete == true) ||
             (!hasAttachments && (xyz.fieldatlas.research.VenueLookup.isNearMe(question) ||
-                xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides) != null))
+                xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides) != null ||
+                emergencyNumbers?.let { xyz.fieldatlas.emergency.EmergencyNumbers.answer(question, it) } != null))
 
     val researchViewModelFactory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {

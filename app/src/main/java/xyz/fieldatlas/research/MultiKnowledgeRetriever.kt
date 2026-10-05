@@ -117,6 +117,24 @@ class MultiKnowledgeRetriever(
         mergeRelevantEvidence(runs, query, question, limit)
     }
 
+    override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> =
+        withContext(ioDispatcher) {
+            require(limit in 1..50) { "Title limit must be between 1 and 50" }
+            fun quoted(text: String) = "\"" + text.replace("\"", " ").trim() + "\""
+            if (phrase.isBlank() || sections.none(String::isNotBlank)) return@withContext emptyList()
+            val match = "{title} : (" + quoted(phrase) + " AND (" +
+                sections.filter(String::isNotBlank).joinToString(" OR ", transform = ::quoted) + "))"
+            databaseFiles().flatMap { file ->
+                runCatching { opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }.titled(match, limit) }
+                    .getOrElse { error ->
+                        if (error is OutOfMemoryError) throw error
+                        if (error is CancellationException) throw error
+                        opened.remove(file.absolutePath)?.close()
+                        emptyList()
+                    }
+            }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }.take(limit)
+        }
+
     private fun openOrNull(file: File): KnowledgeDatabase? = runCatching {
         opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
     }.getOrNull()

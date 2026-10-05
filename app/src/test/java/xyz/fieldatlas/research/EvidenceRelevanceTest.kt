@@ -125,7 +125,7 @@ class EvidenceRelevanceTest {
     }
 
     @Test fun `compare questions may put an article before each subject`() {
-        assertEquals(listOf("virus", "bacterium"), EvidenceRelevance.comparisonTerms("Compare a virus and a bacterium"))
+        assertEquals(listOf("fungus", "bacterium"), EvidenceRelevance.comparisonTerms("Compare a fungus and a bacterium"))
         assertEquals(listOf("crocodile", "alligator"), EvidenceRelevance.comparisonTerms("Compare the crocodile with an alligator."))
         assertEquals(listOf("mitosis", "meiosis"), EvidenceRelevance.comparisonTerms("Compare mitosis and meiosis"))
         assertEquals(emptyList<String>(), EvidenceRelevance.comparisonTerms("Compare a solar panel and a wind turbine"))
@@ -202,12 +202,12 @@ class EvidenceRelevanceTest {
         assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(farm), FtsQuery.from(question)!!.terms, question = question))
     }
     @Test fun `attribute questions keep the article that states the fact`() {
-        val question = "What is the capital of Australia?"
+        val question = "What is the capital of Canada?"
         assertTrue(EvidenceRelevance.isAttributeQuestion(question))
         assertEquals(emptyList<String>(), EvidenceRelevance.overviewSubjects(question))
-        val canberra = evidence("Canberra is the capital city of Australia.", null)
+        val ottawa = evidence("Ottawa is the capital city of Canada.", null)
         val unrelated = evidence("A capital letter begins each sentence.", null)
-        assertEquals(listOf(canberra), EvidenceRelevance.keep(listOf(unrelated, canberra),
+        assertEquals(listOf(ottawa), EvidenceRelevance.keep(listOf(unrelated, ottawa),
             FtsQuery.from(question)!!.terms, question = question))
         assertFalse(EvidenceRelevance.isAttributeQuestion("What is the history of Japan?"))
     }
@@ -390,7 +390,7 @@ class EvidenceRelevanceTest {
     }
 
     @Test fun `planner synonym can support a direct question term`() {
-        val relevant = evidence("Card battery stores electrical energy", "keyword: battery, accumulator")
+        val relevant = evidence("Car battery stores electrical energy", "keyword: battery, accumulator")
         assertEquals(
             listOf(relevant),
             EvidenceRelevance.keep(
@@ -487,5 +487,69 @@ class EvidenceRelevanceTest {
                 question = "Which museums are listed in Berlin?",
             ),
         )
+    }
+
+    @Test fun aGoodSemanticMatchThatSharesAQuestionWordIsKept() {
+        fun concept(title: String, text: String, score: Double) = Evidence("d-$title", "d-$title:0", title, "local", text, -100000.0, matchedBy = "concept match $score")
+        val question = "How does Shor's algorithm threaten RSA keys?"
+        val terms = FtsQuery.from(question)!!.terms
+        val rsa = concept("RSA cryptosystem — Integer factorization and the RSA problem",
+            "The security of RSA relies on the practical difficulty of factoring the product of two large prime numbers.", 0.759)
+        val shor = concept("Shor's algorithm — Feasibility and implications",
+            "Shor's algorithm could factor large integers in polynomial time on a quantum computer.", 0.745)
+        val unrelated = concept("Somatic gene signatures", "Circulating cell-free DNA was sequenced in the cohort.", 0.74)
+        val weak = concept("RSA Conference", "RSA is mentioned here only in passing.", 0.66)
+        val kept = EvidenceRelevance.keep(listOf(rsa, shor, unrelated, weak), terms, question = question)
+        assertTrue(kept.toString(), rsa in kept && shor in kept)
+        assertFalse("high similarity without any shared word stays out", unrelated in kept)
+        assertFalse("below the semantic floor stays out", weak in kept)
+    }
+
+    @Test fun aDefinitionWithAModifierInsideTheSubjectCounts() {
+        val question = "Explain BLS signatures and why Ethereum validators aggregate them"
+        val bls = Evidence("w-bls", "w-bls:0", "BLS digital signature — Overview", "local",
+            "A BLS digital signature, also known as Boneh–Lynn–Shacham (BLS), is a cryptographic signature scheme which allows a user to verify that a signer is authentic.", -19.8)
+        val tls = Evidence("w-tls", "w-tls:0", "Transport Layer Security — Overview", "local",
+            "Transport Layer Security is a cryptographic protocol that uses signatures in certificates.", -24.8)
+        // Naming Ethereum too must not make its definition depend on mentioning Ethereum.
+        val ethereum = Evidence("w-eth", "w-eth:0", "Ethereum — Overview", "local",
+            "Ethereum is a decentralized blockchain with smart contract functionality.", -20.8)
+        val kept = EvidenceRelevance.keep(listOf(tls, ethereum, bls), FtsQuery.from(question)!!.terms, question = question)
+        assertTrue(kept.toString(), bls in kept)
+        assertFalse(kept.toString(), tls in kept)
+    }
+
+    @Test fun anAcronymIsNotThePrefixOfAnotherWord() {
+        val question = "Explain MEV and how searchers capture it"
+        // A paper's header chunk: no abstract text, only "Mevalonate" in its title.
+        val header = Evidence("pmid-39467704", "pmid-39467704:0", "Reconstitution of the Mevalonate Pathway for Improvement of Isoprenoid Production", "local",
+            "PMID 39467704\nYear: 2024\nJournal: Journal of microbiology and biotechnology\nAuthors: Kang Min-Kyoung, Nguyen Minh Phuong", -18.3)
+        assertTrue(EvidenceRelevance.keep(listOf(header), FtsQuery.from(question)!!.terms, question = question).isEmpty())
+    }
+
+    @Test fun aShortWordMatchesItsInflectionsButNotLongerWords() {
+        fun passage(text: String) = Evidence("d-$text", "d-$text:0", "Article", "local", text, -1.0)
+        val getting = passage("Getting the ferry to Belém takes ten minutes.")
+        assertEquals(listOf(getting), EvidenceRelevance.keep(listOf(getting), listOf("get", "ferry")))
+        val mevalonate = passage("The mevalonate pathway feeds the ferry of isoprenoids.")
+        assertTrue(EvidenceRelevance.keep(listOf(mevalonate), listOf("mev", "pathway", "builder")).isEmpty())
+    }
+
+    @Test fun aPapersHeaderAloneIsNotADefinition() {
+        val question = "Explain MEV and how searchers capture it"
+        val header = Evidence("pmid-1", "pmid-1:0", "Age Modifies the Effect of 2-MeV Fast Neutrons on Rat Mammary Carcinogenesis.", "local",
+            "PMID 1234567\nYear: 1999\nJournal: Radiation research\nAuthors: Smith J, Doe A", -15.0)
+        assertTrue(EvidenceRelevance.keep(listOf(header), FtsQuery.from(question)!!.terms, question = question).isEmpty())
+    }
+
+    @Test fun aMapListingNeedsAPlaceQuestionOrItsTown() {
+        fun place(town: String, name: String, text: String) = Evidence("wv-place-$name", "wv-place-$name:0", "$town — $name", "local",
+            "Destination: $town\nCategory: See\nPlace: $name\nDescription: $text", -14.0)
+        val museum = place("Vaals", "Museum de Kopermolen", "Regularly hosts concerts. Phone: +31 43 306 7702.")
+        val question = "How does EIP-7702 change a regular account?"
+        assertTrue(EvidenceRelevance.keep(listOf(museum), FtsQuery.from(question)!!.terms, question = question).isEmpty())
+        // Naming the town is enough: "Kopermolen Vaals concerts" uses no place word.
+        val town = "Kopermolen Vaals concerts"
+        assertEquals(listOf(museum), EvidenceRelevance.keep(listOf(museum), FtsQuery.from(town)!!.terms, question = town))
     }
 }

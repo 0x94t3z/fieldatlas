@@ -20,25 +20,51 @@ object EmergencyGuideMatch {
     )
     /** Words people use that the sources' keywords miss. */
     private val synonyms = mapOf(
-        "cpr" to listOf("cardiopulmonary", "no pulse", "collapsed"),
+        "cpr" to listOf("cardiopulmonary", "no pulse", "collapsed", "isn't breathing", "is not breathing", "stopped breathing",
+            "not breathing", "no breathing", "doesn't breathe", "does not breathe", "won't wake up", "not responding"),
         "choking" to listOf("choke", "something stuck in throat", "can't breathe", "cant breathe"),
         "severe-bleeding" to listOf("bleed", "bleeding badly"),
         "burns" to listOf("burned", "burnt", "scalded", "hot pan", "hot stove", "boiling water", "hot oil", "burned hand", "burned my", "burned her", "burned his"),
         "fractures-sprains" to listOf("broken leg", "broken arm", "broken ankle", "broken wrist", "sprained",
             "twisted ankle", "twisted my ankle", "rolled my ankle", "swollen ankle", "ankle is swollen",
             "can't put weight", "cant put weight", "cannot put weight", "twisted his ankle", "twisted her ankle",
-            "rolled his ankle", "rolled her ankle"),
+            "rolled his ankle", "rolled her ankle", "wrist is swollen", "swollen wrist", "swollen and bent", "bent wrist",
+            "arm is bent", "leg is bent", "looks broken", "might be broken", "may be broken", "think it's broken", "broken bone"),
         "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike"),
         "safe-drinking-water" to listOf("drink", "drinkable", "stream water", "river water", "lake water", "purify water", "disinfect water", "boil water"),
         "signaling" to listOf("signal for help", "rescue signal", "attract rescuers", "call for help without signal"),
         "heat-illness" to listOf("heatstroke", "overheated", "stopped sweating", "not sweating"),
         "anaphylaxis" to listOf("throat is swelling", "throat swelling", "swollen throat", "tongue is swelling", "lips are swelling"),
         "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head"),
-        "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water"),
+        "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water",
+            "body temperature", "shivering", "uncontrollable shivering"),
         "altitude-sickness" to listOf("mountain sickness", "high altitude"),
-        "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite", "dog bit", "bit by a dog", "cat bit", "bit by a cat", "monkey bit", "bit by a monkey"),
+        "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite", "dog bit", "bit by a dog", "cat bit", "bit by a cat", "monkey bit", "bit by a monkey",
+            "monkey scratched", "scratched by a monkey", "dog scratched", "scratched by a dog", "cat scratched", "scratched by a cat",
+            "bat scratched", "scratched by a bat", "animal scratch"),
         "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite", "snake bit", "bit by a snake"),
         "tick-bites" to listOf("remove a tick", "removing a tick"),
+        "carbon-monoxide" to listOf("gas heater", "space heater", "kerosene heater", "paraffin heater", "generator", "charcoal",
+            "camp stove", "gas stove", "co alarm", "co detector", "carbon monoxide alarm", "carbon monoxide detector"),
+    )
+
+    /**
+     * Guides that a shared symptom must not pick on its own: a headache and dizziness near a gas
+     * heater are carbon monoxide, not altitude sickness. The question has to place the person at
+     * height for that guide to apply.
+     */
+    private val requiredContext = mapOf(
+        // A person lost outdoors, not a lost passport, phone or wallet.
+        "lost" to Regex("(?i)\\b(woods|forest|trail|hik\\w*|trek\\w*|mountains?|desert|wilderness|bush|jungle|outdoors|park|cave|snow|" +
+            "dark|night|direction|path|track|way back|route|navigat\\w*|(?:i|we)(?:'m|'re| am| are) lost|got lost|get lost|lost (?:in|on|at|near))\\b"),
+        // "How do I clean a gas stove?" is not poisoning: a fuel-burning source needs symptoms or an alarm.
+        // Indoors or enclosed use is the hazard itself ("Can I run a generator indoors?").
+        "carbon-monoxide" to Regex("(?i)\\b(carbon monoxide|co poisoning|co (?:alarm|detector)|carbon monoxide (?:alarm|detector)|headaches?|dizz\\w*|" +
+            "nause\\w*|vomit\\w*|feel(?:s|ing)? sick|faint\\w*|confus\\w*|drowsy|sleepy|unconscious|collapsed|passed out|fumes|" +
+            "poison\\w*|indoors|inside|in (?:the|a|my|our) (?:tent|cabin|garage|caravan|camper|room|basement|car))\\b"),
+        "altitude-sickness" to Regex("(?i)\\b(altitude|elevation|mountains?|mount|mt|summit|peak|trek(?:king|ked)?|climb(?:s|ed|ing)?|hiked up|high up|" +
+            "above sea level|cusco|la paz|lhasa|tibet|quito|bogot[aá]|leh|ladakh|everest|kilimanjaro|himalaya\\w*|andes|" +
+            "\\d[\\d,]*\\s*(?:m|meters?|metres?|ft|feet)\\b|ams|hape|hace)\\b"),
     )
 
     /** Single words specific enough to name the emergency on their own. */
@@ -105,9 +131,11 @@ object EmergencyGuideMatch {
             // The guide's own subject outranks a related keyword ("earthquake" is also a tsunami keyword).
             val own = setOf(normalize(guide.title), normalize(guide.id.replace('-', ' ')))
             var score = 0
+            var specific = false
             for (term in terms) {
                 if (" $term " !in text && !(term.length >= 5 && " ${term}s " in text)) continue
                 val phrase = ' ' in term
+                if (phrase || term in strongWords || term in own) specific = true
                 score += when {
                     phrase -> term.split(' ').size + 1
                     term in strongWords -> 2
@@ -115,7 +143,12 @@ object EmergencyGuideMatch {
                     else -> 0
                 } + if (term in own && (' ' in term || term in strongWords || dangerous)) 1 else 0
             }
-            guide to score
+            // One everyday word is not enough on its own: "fever" is a tick-bite keyword, "throat" a
+            // choking one, but "my baby has a fever" and "my throat hurts" are neither.
+            // A guide's required context (a height for altitude sickness) is itself specific.
+            val context = requiredContext[guide.id]?.containsMatchIn(question)
+            val enough = specific || score >= 2 || context == true
+            guide to (if (!enough || context == false) 0 else score)
         }.filter { it.second > 0 }
         if (scored.isEmpty()) return null
         val best = scored.maxWith(compareBy<Pair<EmergencyGuide, Int>> { it.second }.thenBy { if (it.first.urgent) 1 else 0 })
@@ -234,6 +267,9 @@ object EmergencyGuideMatch {
     /** Written by the app after the model's answer, never by the model. */
     fun safetyNote(guide: EmergencyGuide): String = buildString {
         append("If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries). ")
+        // Written for someone who may have no signal at all.
+        append("No signal? Try the emergency call anyway: in many countries it can go through another carrier's network. ")
+        append("If nothing connects, send someone for help and keep following these steps. ")
         append("Steps are from ${guide.source.publisher}; tap a citation to read the guide.")
         if (guide.region == "US") append(" The guide was written for the United States; numbers and some advice (such as local snakes) may differ where you are.")
     }
@@ -256,6 +292,11 @@ object EmergencyGuideMatch {
     fun answer(guide: EmergencyGuide): String = buildString {
         append("**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n")
         append("_The answer model isn't available right now, so this is the guide as published._\n\n")
+        append(published(guide))
+    }.trimEnd()
+
+    /** The whole guide as published, cited as [S1]; only formatting is added. */
+    fun published(guide: EmergencyGuide): String = buildString {
         append("_${guide.title}: shown as published by ${guide.source.publisher} [S1]")
         if (guide.region == "US") append(". This guide was written for the United States; numbers and some advice (such as local snakes) may differ where you are")
         append("._\n\n")

@@ -37,6 +37,26 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         }
     }
 
+    /** Rows whose title matches [titleMatch], in pack order. */
+    internal fun titled(titleMatch: String, limit: Int): List<Evidence> = synchronized(database) {
+        database.prepare(TITLED_SQL).use { statement ->
+            statement.bindText(1, titleMatch)
+            statement.bindInt(2, limit)
+            val rows = ArrayList<Evidence>()
+            while (statement.step()) {
+                rows += Evidence(
+                    documentId = statement.getText(0),
+                    chunkId = statement.getText(1),
+                    title = statement.getText(2),
+                    source = statement.getText(3),
+                    text = statement.getText(4),
+                    score = statement.getDouble(5),
+                )
+            }
+            rows
+        }
+    }
+
     /**
      * Title-boost candidates: (title, lede rowid) pairs for articles whose TITLE contains any
      * of the query terms. Cheap (no text column), capped generously — the retriever decides
@@ -345,6 +365,14 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
             WHERE chunks_fts MATCH ?
             GROUP BY title
             LIMIT 5000
+        """
+
+        private const val TITLED_SQL = """
+            SELECT document_id, chunk_id, title, source, text, 0.0
+            FROM chunks_fts
+            WHERE chunks_fts MATCH ?1
+            ORDER BY rowid
+            LIMIT ?2
         """
 
         private const val TITLE_LEAD_SQL = """

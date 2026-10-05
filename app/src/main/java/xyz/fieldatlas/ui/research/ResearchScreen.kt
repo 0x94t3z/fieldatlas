@@ -132,7 +132,7 @@ fun ResearchScreen(
         ExampleQuestion("Best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Clay),
         ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Sage),
         ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Research, TileTone.Gold),
-        ExampleQuestion("What caused the French Revolution?", FieldAtlasIcons.Document, TileTone.Paper),
+        ExampleQuestion("Why did the Berlin Wall fall?", FieldAtlasIcons.Document, TileTone.Paper),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),

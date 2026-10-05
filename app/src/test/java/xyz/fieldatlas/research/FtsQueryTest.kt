@@ -46,7 +46,7 @@ class FtsQueryTest {
     }
 
     @Test fun oneCharacterTermsAreRemoved() {
-        assertEquals("\"bb\"*", FtsQuery.from("a BB 1")!!.matchExpression)
+        assertEquals("(\"bb\" OR \"bbs\")", FtsQuery.from("a BB 1")!!.matchExpression)
     }
 
     @Test fun iesWordsKeepAnFtsCompatiblePrefix() {
@@ -56,7 +56,7 @@ class FtsQueryTest {
     @Test fun naturalLanguageStopWordsAreRemovedAndTermsDeduplicated() {
         val query = FtsQuery.from("Why are seasons not caused by Earth Sun distance seasons")!!
         assertEquals(
-            "\"season\"* AND \"caus\"* AND \"earth\"* AND \"sun\"* AND \"distance\"*",
+            "\"season\"* AND \"caus\"* AND \"earth\"* AND (\"sun\" OR \"suns\" OR \"suning\" OR \"suned\" OR \"sunning\" OR \"sunned\") AND \"distance\"*",
             query.matchExpression,
         )
     }
@@ -66,5 +66,15 @@ class FtsQueryTest {
         val query = FtsQuery.from(input)!!
         assertEquals("\"word\"*", query.matchExpression)
         assertTrue(query.normalizedInput.codePointCount(0, query.normalizedInput.length) <= 512)
+    }
+
+    @Test fun shortTermsMatchWholeWordsNotPrefixes() {
+        // "mev"* matched "mevalonate" and "kem"* the town of Kemer for ML-KEM.
+        assertEquals("(\"mev\" OR \"mevs\" OR \"meving\" OR \"meved\" OR \"mevving\" OR \"mevved\") AND \"proposer\"* AND \"builder\"*",
+            FtsQuery.from("What is MEV and proposer builder?")!!.matchExpression)
+        assertEquals("(\"ml\" OR \"mls\") AND (\"kem\" OR \"kems\" OR \"keming\" OR \"kemed\" OR \"kemming\" OR \"kemmed\")", FtsQuery.from("ML-KEM")!!.matchExpression)
+        assertEquals("(\"bus\" OR \"buses\" OR \"busing\" OR \"bused\" OR \"bussing\" OR \"bussed\")", FtsQuery.from("bus")!!.matchExpression)
+        // "7702"* matched the postcode 77020.
+        assertEquals("(\"eip\" OR \"eips\" OR \"eiping\" OR \"eiped\") AND \"7702\"", FtsQuery.from("EIP-7702")!!.matchExpression)
     }
 }

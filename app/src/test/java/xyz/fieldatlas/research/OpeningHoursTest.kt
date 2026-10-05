@@ -68,4 +68,27 @@ class OpeningHoursTest {
         assertEquals(Status.Open(java.time.LocalTime.of(15, 0)), status("Mo, We-Su 11:30-15:00, 18:00-22:00", 2, 12))
         assertEquals(Status.Closed, status("Mo, We-Su 11:30-15:00, 18:00-22:00", 1, 12))
     }
+
+    @Test fun oddHolidayRangesAndLowerCaseCodesAreReadSafely() {
+        // A range ending at a holiday once made the weekday walk run forever.
+        assertEquals(Status.Unknown, status("Mo-PH 09:00-17:00", 2, 12))
+        assertEquals(Status.Unknown, status("Sa-SH off", 2, 12))
+        // Lower-case codes are the same codes; a holiday-only value says nothing about today.
+        assertEquals(Status.Open(LocalTime.of(17, 0)), status("mo-fr 09:00-17:00; ph off", 2, 12))
+        assertEquals(Status.Unknown, status("PH off", 2, 12))
+    }
+
+    @Test fun holidayRulesWithWordsAreSetAsideAndCommaRulesAdd() {
+        // "PH open", "PH unknown" and comments on a holiday rule do not spoil the weekday rules.
+        assertEquals(Status.Open(LocalTime.of(21, 0)), status("Mo-Su 09:00-21:00; PH open", 0, 12))
+        assertEquals(Status.Open(LocalTime.of(20, 0)), status("Mo-Sa 06:30-20:00; PH Su off", 0, 12))
+        assertEquals(Status.Open(LocalTime.of(18, 30)), status("Mo-Fr 08:00-18:30; Sa 08:00-13:00; PH off || \"Notdienst\"", 0, 12))
+        // An additional rule adds the afternoon to the morning (day 0 = Monday).
+        val split = "Mo-Fr 08:00-13:00, Sa 08:00-12:30; PH off, Mo-Fr 14:00-18:30"
+        assertEquals(Status.Open(LocalTime.of(13, 0)), status(split, 0, 9, 30))
+        assertEquals(Status.Closed, status(split, 0, 13, 30))
+        assertEquals(Status.Open(LocalTime.of(18, 30)), status(split, 0, 15, 30))
+        // Spaces around the dash and one-digit hours are common in map data.
+        assertEquals(Status.Open(LocalTime.of(20, 0)), status("Mo - Fr 8:00 - 20:00", 0, 12))
+    }
 }

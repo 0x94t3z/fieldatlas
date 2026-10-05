@@ -67,6 +67,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasColors
 @Composable
 fun FieldAtlasApp(
     packs: List<InstalledAsset>,
+    /** The licence of a bundled (non-pack) source, by document id. */
+    sourceLicense: (String) -> String? = { null },
     importing: Boolean,
     importingName: String? = null,
     importingPack: xyz.fieldatlas.assets.PackImportInfo? = null,
@@ -211,8 +213,13 @@ fun FieldAtlasApp(
                             isCited = "S${detail.index + 1}" in xyz.fieldatlas.research.AnswerText.citationAudit(
                                 researchState.answer, researchState.sources.size).citedSourceIds,
                             // With several active packs the evidence does not carry its pack ID;
-                            // omitting this field is safer than crediting the wrong license.
-                            packLicense = if (source.documentId.startsWith("attachment:")) null else enabledKnowledge.singleOrNull()?.license,
+                            // omitting this field is safer than crediting the wrong license. Bundled
+                            // emergency guides and numbers carry their own.
+                            packLicense = when {
+                                source.documentId.startsWith("attachment:") -> null
+                                source.documentId.startsWith("emergency:") -> sourceLicense(source.documentId)
+                                else -> enabledKnowledge.singleOrNull()?.license
+                            },
                             onBack = closeDetail,
                             onPrevious = if (detail.index > 0) ({ navigation.openSource(detail.index - 1); Unit }) else null,
                             onNext = if (detail.index < researchState.sources.lastIndex) ({ navigation.openSource(detail.index + 1); Unit }) else null,

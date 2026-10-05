@@ -238,4 +238,15 @@ class PromptBuilderTest {
         val packed = PromptBuilder.build("treatment survival", listOf(first.copy(text = text)), 2048)
         assertTrue(packed.sources.isEmpty() || packed.prompt.contains("but did not improve survival."))
     }
+
+    @Test fun everyPromptTellsTheModelThePersonIsOffline() {
+        val evidence = listOf(Evidence("d", "d:0", "Berlin — Vedis", "local", "Destination: Berlin\nPlace: Vedis\nVegan: fully vegan", 1.0))
+        val prompts = listOf(
+            PromptBuilder.build("Tell me the best vegan restaurants in Berlin", evidence, 2048).prompt,
+            PromptBuilder.build("Explain how vaccines work", evidence, 2048).prompt,
+            PromptBuilder.buildModelOnly("Explain how vaccines work").prompt,
+            PromptBuilder.buildGuide("A snake bit my friend", evidence).prompt,
+        )
+        prompts.forEach { assertTrue(it, "The person asking is offline, with no internet and maybe no phone signal." in it) }
+    }
 }

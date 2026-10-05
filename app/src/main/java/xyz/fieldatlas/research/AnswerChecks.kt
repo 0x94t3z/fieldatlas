@@ -174,4 +174,96 @@ object AnswerChecks {
         val place = match.groupValues[3].trim().trimEnd(',', ';')
         return if (place.isEmpty()) "the $item" else "the $item ${match.groupValues[2].lowercase()} $place"
     }
+
+    // Something the person can only do with a connection.
+    private val onlineTarget = Regex(
+        "(?i)\\b(online|on the internet|on the web|internet search|search engines?|google|websites?|web ?sites?|web ?pages?|" +
+            "social media|instagram|facebook|tripadvisor|yelp|happycow|booking\\.com|online reviews?|reviews online|" +
+            "(?:an?|the) app\\b|apps\\b|app stores?|play store|e-?mail them)\\b|https?://|www\\.",
+    )
+    // Phrasing that tells the person to do it, as opposed to describing it.
+    private val advice = Regex(
+        "(?i)(^|[\\s(\"“])(try|check|visit|search|look (?:it |this |them |that )?up|use|consult|download|see|browse|open|sign up|subscribe|" +
+            "consider|contact|email|read)\\b|\\b(?:you|they) (?:can|could|should|may want to|might want to|might|will need to|need to)\\b|" +
+            "\\b(?:i |we )?recommend\\b|\\bit(?:'s| is) (?:best|advisable|recommended|a good idea) to\\b|\\b(?:be|make) sure to\\b",
+    )
+    private val offline = Regex("(?i)\\boff-?line\\b")
+    private val later = Regex("(?i)\\b(?:when|once|next time|after) you(?:'re| are)? (?:back )?online\\b|\\b(?:when|once) you have (?:a )?(?:connection|signal|internet)\\b")
+    // "To get to the centre without internet access, take..." narrates the person's situation back to them.
+    private val narratedClause = Regex(
+        "(?i)^((?:[-*] |\\d+\\. )?(?:\\*\\*)?(?:To|For) [^,.:;]{3,120}?)\\s+(?:without|with no)\\s+(?:an? )?(?:internet|online|network|data)(?: (?:access|connection|connectivity))?(?=,)",
+    )
+    // Only when the sentence then speaks about people: "Without internet access, travellers rely on
+    // maps" loses the clause, but "Without data, the eSIM won't activate" keeps its condition.
+    private val narratedOpening = Regex(
+        "(?i)^((?:[-*] |\\d+\\. )?(?:\\*\\*)?)(?:(?:without|with no)\\s+|(?:since|as|because) you (?:have no|don't have|do not have) )(?:an? )?(?:internet|network|data|a connection)(?: (?:access|connection|connectivity))?,\\s*" +
+            "((?:you|one|travell?ers|visitors|people|participants|users|tourists|verify|check|ask|use|look|try|find|keep|carry|bring)\\b)",
+    )
+    private val narratedHeading = Regex("(?i)\\s+(?:without|with no) (?:the )?internet(?: access)?(?=:?\\*\\*|:\\s*$)")
+    private val heading = Regex("^\\s*(?:#{1,6} |\\*\\*[^*]+(?::\\*\\*|\\*\\*:)\\s*$)")
+    private val noConnectionSentence = Regex(
+        "(?i)^(?:[-*] |\\d+\\. )?(?:Since|As|Because|Without) (?:you (?:have no|don't have|do not have|are (?:offline|without))|(?:an? )?(?:internet|connection))\\b[^.!?]*\\b(?:cannot|can't|can not|unable|not possible|won't be able)\\b",
+    )
+    private val asksAboutOnline = Regex("(?i)\\b(online|internet|website|web|app|apps|google|social media|email|url|link|wi-?fi|data|sim|esim|roaming)\\b")
+    // "Buy tickets at the station or online": the offline half is the advice; only the alternative goes.
+    private val onlineAlternative = Regex("(?i),?\\s+or\\s+(?:book |buy |check |look |search )?(?:online|on (?:the|their|its) (?:official )?website|on google maps|via (?:the|an|their) app|in (?:the|an|their) app)\\b")
+    // A sentence that offers something to do besides what can't be done keeps that part.
+    private val alternative = Regex("(?i)(?:,\\s*(?:so|but|instead)|;\\s*|\\s+(?:so|but|instead)\\s+)")
+
+    /**
+     * The person asking has no connection, so an answer must not send them online. A sentence
+     * or list item that tells them to search the web, visit a site, read online reviews or use
+     * an app is removed; a sentence that only mentions such things ("Google Maps can't route
+     * offline") stays. Questions about online services themselves are left alone.
+     */
+    fun removeOnlineAdvice(text: String, question: String): String {
+        if (asksAboutOnline.containsMatchIn(question)) return text
+        val lines = text.split("\n")
+        val kept = lines.map { line ->
+            // Split a line into sentences but keep list markers and citations with their sentence.
+            val parts = Regex("(?<=[.!?])\\s+(?=[\\p{Lu}*_\"“(])").split(line)
+            // "Open it in an offline maps app" is exactly the advice wanted; keep anything that says offline.
+            val survivors = parts.map { part ->
+                val trimmed = onlineAlternative.replace(part, "")
+                if (trimmed != part && !onlineTarget.containsMatchIn(trimmed)) trimmed else part
+            }.filterNot { part ->
+                onlineTarget.containsMatchIn(part) && advice.containsMatchIn(part) && !offline.containsMatchIn(part) &&
+                    // "...or check a current source when you're online" defers honestly to later; it stays.
+                    !later.containsMatchIn(part)
+            }
+            when {
+                survivors == parts -> line
+                survivors.isEmpty() -> null
+                else -> survivors.joinToString(" ")
+            }
+        }
+        if (kept.none { it == null } && kept == lines) return text
+        // Drop removed lines, and a heading or blank run left behind with nothing under it.
+        return kept.filterNotNull().joinToString("\n").replace(Regex("\\n{3,}"), "\n\n").trim()
+    }
+
+    /**
+     * The person knows they are offline. "To reach the centre without internet access, take the
+     * metro" becomes "To reach the centre, take the metro", a "How to check without internet:"
+     * heading loses the qualifier, and a sentence that only says what can't be done without a
+     * connection is removed. A statement about a thing ("maps cannot route without a connection")
+     * is not about the person and stays.
+     */
+    fun removeOfflineNarration(text: String, question: String): String {
+        if (asksAboutOnline.containsMatchIn(question)) return text
+        val lines = text.split("\n").map { line ->
+            val parts = Regex("(?<=[.!?])\\s+(?=[\\p{Lu}*_\"“(])").split(line)
+            parts.mapNotNull { part ->
+                if (!noConnectionSentence.containsMatchIn(part) || Regex("\\[S\\d+]").containsMatchIn(part)) return@mapNotNull part
+                // "Without internet you can't check bus times, so ask at reception": keep the advice.
+                alternative.find(part)?.let { split -> part.substring(split.range.last + 1).trim().replaceFirstChar(Char::uppercaseChar) }
+            }
+                .map { narratedClause.replace(it, "$1") }
+                .map { part -> narratedOpening.replace(part) { m -> m.groupValues[1] + m.groupValues[2].replaceFirstChar(Char::uppercaseChar) } }
+                .map { if (heading.containsMatchIn(it)) narratedHeading.replace(it, "") else it }
+                .joinToString(" ")
+        }
+        if (lines == text.split("\n")) return text
+        return lines.joinToString("\n").replace(Regex("\\n{3,}"), "\n\n").trim()
+    }
 }

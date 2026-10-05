@@ -2,6 +2,8 @@ package xyz.fieldatlas.research
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /** Failures reported from an offline emulator test of 1.2.0, reduced to the checks that catch them. */
@@ -128,5 +130,62 @@ class AnswerChecksTest {
         assertNull(AnswerChecks.missingItem("What is the cost of the harbour tour?", listOf(withPrice)))
         assertNull(AnswerChecks.missingItem("What is the last departure time for the shuttle?", listOf(travel)))
         assertNull(AnswerChecks.missingItem("Should East and West be watered today?", listOf(travel)))
+    }
+
+    @Test fun adviceThatNeedsAConnectionIsRemoved() {
+        val answer = "Vedis is a fully vegan Indian restaurant in Mitte [S1]. Check TripAdvisor or Yelp for the latest reviews. " +
+            "Kopps serves vegan brunch [S2].\n\n- Visit their website to confirm opening hours.\n- Ask staff about the daily menu."
+        val out = AnswerChecks.removeOnlineAdvice(answer, "Tell me the best vegan restaurants in Berlin")
+        assertEquals("Vedis is a fully vegan Indian restaurant in Mitte [S1]. Kopps serves vegan brunch [S2].\n\n- Ask staff about the daily menu.", out)
+    }
+
+    @Test fun mentionsOfOnlineThingsAndOfflineAdviceStay() {
+        val answer = "Google Maps cannot plan transit routes without a connection [S1]. Use an offline maps app such as OsmAnd to navigate. " +
+            "You can search the saved guide for the station name."
+        assertEquals(answer, AnswerChecks.removeOnlineAdvice(answer, "How do I get around Tokyo without data?"))
+    }
+
+    @Test fun questionsAboutOnlineServicesAreLeftAlone() {
+        val answer = "You can check the official website for visa fees [S1]."
+        assertEquals(answer, AnswerChecks.removeOnlineAdvice(answer, "Which website lists the visa fees?"))
+    }
+
+    @Test fun anAnswerWithoutOnlineAdviceIsUnchanged() {
+        val answer = "1. Keep calm [S1].\n2. Remove rings and watches before swelling starts [S1]."
+        assertEquals(answer, AnswerChecks.removeOnlineAdvice(answer, "A snake bit my friend. What do we do?"))
+    }
+
+    @Test fun deferringToLaterWhenOnlineStays() {
+        val answer = "I can't know today's news offline. Ask about the topic itself, or check a current source when you're online."
+        assertEquals(answer, AnswerChecks.removeOnlineAdvice(answer, "What study was published today?"))
+    }
+
+    @Test fun theAnswerDoesNotNarrateThatThePersonIsOffline() {
+        val q = "How do I get from Porto airport to the old town?"
+        assertEquals("To get from Porto Airport to the old town, follow these steps:\n* Take the metro purple line [S1].",
+            AnswerChecks.removeOfflineNarration("To get from Porto Airport to the old town without internet access, follow these steps:\n* Take the metro purple line [S1].", q))
+        assertEquals("**How to Verify Locally:**\nCompare the blob count in the block header [S2].",
+            AnswerChecks.removeOfflineNarration("**How to Verify Locally Without Internet:**\nSince you have no internet access, you cannot check official EIP-4844 status online. Compare the blob count in the block header [S2].", "What is EIP-4844?"))
+        assertEquals("Validators build blocks [S1]. Participants rely on local mempools.",
+            AnswerChecks.removeOfflineNarration("Validators build blocks [S1]. Without internet access, participants rely on local mempools.", "How are blocks built?"))
+        assertEquals("Check the wattage printed on the bulb's packaging.",
+            AnswerChecks.removeOfflineNarration("Since you have no internet access, check the wattage printed on the bulb's packaging.", "How do LED bulbs differ?"))
+        // A condition is information, and advice after "so" is kept.
+        val condition = "Without data, the eSIM won't activate."
+        assertEquals(condition, AnswerChecks.removeOfflineNarration(condition, "How do I set up my phone in Japan?"))
+        assertEquals("Ask at the hotel reception.",
+            AnswerChecks.removeOfflineNarration("Without internet you can't check bus times, so ask at the hotel reception.", "When is the next bus?"))
+        // Statements about things, not the person, keep their meaning.
+        val about = "Google Maps cannot plan transit routes without a connection [S1]. **Maps.me works without internet** once a region is saved."
+        assertEquals(about, AnswerChecks.removeOfflineNarration(about, "How do I get around Tokyo?"))
+        val asked = "To use the app without internet access, download the region first."
+        assertEquals(asked, AnswerChecks.removeOfflineNarration(asked, "Does the app work without internet?"))
+    }
+
+    @Test fun anOfflineOptionInTheSameSentenceStays() {
+        assertEquals("You can buy tickets at the station.",
+            AnswerChecks.removeOnlineAdvice("You can buy tickets at the station or online.", "How do I get a train ticket in Porto?"))
+        val data = "Buy a prepaid SIM at the airport kiosk; check the operator's website for data plans."
+        assertEquals(data, AnswerChecks.removeOnlineAdvice(data, "How do I get mobile data in Japan?"))
     }
 }

@@ -19,6 +19,11 @@ Answer from the model's offline knowledge only. Do not invent citations. Answer 
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
     private const val GUIDE_POLICY = """/no_think
 You are an offline first-aid and safety assistant. The evidence is an official guide. Use only the guide excerpts below; never add treatments, medicines, doses, tools or steps that are not in them. Answer for the situation in the question: first the most urgent actions, as short numbered steps close to the guide's wording, then any "do not" warnings that apply. Cite each step with the exact source number, such as [S1]. If the guide says to get emergency help, say that first. If the question's situation is not covered (for example a child, pregnancy, another injury or another country), say what the guide does not cover. No introduction or closing remarks; under 150 words."""
+    // The person is offline: answers must be things they can do now, without a connection.
+    private const val OFFLINE_PERSON = """
+The person asking is offline, with no internet and maybe no phone signal. Never suggest searching online, websites, online reviews, apps or social media; give steps they can do now without a connection. They know they are offline: answer directly and never mention internet access."""
+    private const val OFFLINE_PERSON_GUIDE = """
+The person asking is offline, with no internet and maybe no phone signal. Never suggest searching online, websites, apps or social media, and never mention internet access."""
     private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|hotels?|hostels?|museums?|attractions?|sights?|bars?|shops?|stores?)\\b")
     private val LOCAL_PLACE_REQUEST = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|near|around|in)\\b")
     private val SOURCE_ONLY_REQUEST = Regex("(?i)\\b(summari[sz]e|according to|(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?))\\b")
@@ -60,6 +65,7 @@ You are an offline first-aid and safety assistant. The evidence is an official g
         }
         val prompt = buildString {
             append(if (allowsModelExplanation(question)) MIXED_POLICY else POLICY)
+            append(OFFLINE_PERSON)
             append("\nEvidence contains selected excerpts, not complete documents. Do not infer that omitted information is absent from the full source.")
             if (sources.size < evidence.size) append(" Some retrieved passages could not fit; do not claim this is a complete synthesis of all retrieved evidence.")
             if (VENUE_QUESTION.containsMatchIn(question)) append(VENUE_POLICY)
@@ -81,6 +87,7 @@ You are an offline first-aid and safety assistant. The evidence is an official g
         val sources = sections.mapIndexed { index, section -> PromptSource("S${index + 1}", section, excerpt = section.text) }
         val prompt = buildString {
             append(GUIDE_POLICY)
+            append(OFFLINE_PERSON_GUIDE)
             append("\n\nEVIDENCE:\n")
             append(sources.joinToString("\n\n") { "[${it.citationId}]\nTitle: ${compactMetadata(it.evidence.title)}\nExcerpt: ${it.evidence.text}" })
             append("\n\nQUESTION:\n")
@@ -94,6 +101,7 @@ You are an offline first-aid and safety assistant. The evidence is an official g
         require(question.isNotBlank()) { "question must not be blank" }
         val prompt = buildString {
             append(MODEL_ONLY_POLICY)
+            append(OFFLINE_PERSON)
             if (VENUE_QUESTION.containsMatchIn(question) &&
                 LOCAL_PLACE_REQUEST.containsMatchIn(question)) append(MODEL_ONLY_VENUE_POLICY)
             append("\n\nQUESTION:\n")

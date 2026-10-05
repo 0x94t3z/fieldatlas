@@ -8,6 +8,7 @@ import kotlinx.serialization.json.*
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import xyz.fieldatlas.research.*
+import xyz.fieldatlas.emergency.EmergencyNumbers
 import xyz.fieldatlas.ui.AppContainer
 import xyz.fieldatlas.assets.PackEmbedding
 import xyz.fieldatlas.assets.PackDiscovery
@@ -105,6 +106,17 @@ class DesktopResearchTest {
                     }
                     return evidence
                 }
+                // Near-me lookups read the same place packs by coordinates, as on the phone.
+                override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>) =
+                    multi.nearby(point, radiusKm, limit, categories)
+                override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> {
+                    val evidence = multi.titled(phrase, sections, limit)
+                    searches += buildJsonObject {
+                        put("query", "title: $phrase (${sections.joinToString(" | ")})"); put("limit", limit)
+                        put("candidates", Json.encodeToJsonElement(evidence))
+                    }
+                    return evidence
+                }
             }
             var sources = emptyList<Evidence>()
             val answer = StringBuilder()
@@ -117,7 +129,10 @@ class DesktopResearchTest {
             }
             // Same bundled guides as the app, so emergency questions take the app's path.
             val guides = xyz.fieldatlas.emergency.EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText()).guides
-            ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides },
+            val numbers = EmergencyNumbers.book(File("src/main/assets/emergency/numbers.json").readText())
+            // A fixed test position stands in for the phone's GPS fix.
+            val position = config["location"]?.jsonArray?.let { GeoPoint(it[0].jsonPrimitive.double, it[1].jsonPrimitive.double) }
+            ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides }, emergencyNumbers = { numbers }, location = { position },
                 // A phone's learned reading speed (estimated tokens per second), so the desktop run
                 // packs the evidence that phone would; unset keeps the unknown-phone default.
                 prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull())).research(question, attachments = attachments).collect { event ->

@@ -94,7 +94,7 @@ class EmergencyRoutingTest {
         val file = xyz.fieldatlas.attachments.ExtractedAttachment("f", "first-aid-plan.txt",
             listOf(xyz.fieldatlas.attachments.AttachmentPage(1, "Our group plan for a snakebite: call the ranger on channel 3.")))
         ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, emergencyGuides = { guides })
-            .research("what should I do after a snake bite according to my plan?", attachments = listOf(file)).toList()
+            .research("what do I do if a snake bites me, according to my plan?", attachments = listOf(file)).toList()
         assertTrue(model.prompt.contains("channel 3"))
         assertFalse(model.prompt.contains("first-aid and safety assistant"))
     }

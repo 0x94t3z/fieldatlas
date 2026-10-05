@@ -205,6 +205,7 @@ class MainActivity : ComponentActivity() {
             val catalogState by container.catalogState.collectAsStateWithLifecycle()
             FieldAtlasApp(
                 answersWithoutModel = container::answersWithoutModel,
+                sourceLicense = container::emergencyLicense,
                 packs = setupState.packs,
                 importing = setupState.importing,
                 importingName = setupState.importingName,

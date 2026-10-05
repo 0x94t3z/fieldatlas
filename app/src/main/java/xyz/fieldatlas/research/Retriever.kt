@@ -18,6 +18,13 @@ fun interface Retriever {
         limit: Int,
         categories: Set<String> = emptySet(),
     ): List<NearbyPlace> = emptyList()
+
+    /**
+     * Sections whose title holds [phrase] and one of [sections] ("EIP-4844" and "Abstract"),
+     * in document order. A number shared by hundreds of passages cannot rank one document's
+     * own section first; its title can.
+     */
+    suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> = emptyList()
 }
 
 /** Specialized multi-pack filtering; other retrievers retain their existing search contract. */
