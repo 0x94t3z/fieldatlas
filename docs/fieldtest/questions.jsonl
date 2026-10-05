@@ -1,0 +1,61 @@
+{"id": "vit-1", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [52.3791, 4.9003]}
+{"id": "vit-2", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [-37.8136, 144.9631]}
+{"id": "eth-06", "cat": "crypto", "q": "Will quantum computers break the cryptography that protects my bank card and my crypto wallet?"}
+{"id": "plc-01", "cat": "places", "q": "I'm vegan and staying in Vienna for a week. Which restaurants should I try?"}
+{"id": "plc-02", "cat": "places", "q": "Which vegetarian places in Hanoi serve proper meals, not just snacks?"}
+{"id": "plc-03", "cat": "places", "q": "Are there any vegan cafes in Copenhagen?"}
+{"id": "plc-04", "cat": "places", "q": "Where do vegans eat in Montreal?"}
+{"id": "plc-05", "cat": "places", "q": "Is it easy to eat vegan in Kuala Lumpur? Name a few places."}
+{"id": "plc-06", "cat": "places", "q": "Can you list a few vegetarian restaurants in Lima?"}
+{"id": "plc-07", "cat": "places", "q": "I need a pharmacy near me", "gps": [48.2082, 16.3738]}
+{"id": "plc-08", "cat": "places", "q": "Where is the nearest hospital?", "gps": [-12.0464, -77.0428]}
+{"id": "plc-09", "cat": "places", "q": "Find a vegan restaurant near me", "gps": [21.034, 105.85]}
+{"id": "plc-10", "cat": "places", "q": "What museums are worth visiting in Amsterdam?"}
+{"id": "trp-01", "cat": "travel", "q": "What should I know before driving on the left in New Zealand?"}
+{"id": "trp-02", "cat": "travel", "q": "Do I need cash in Japan or can I pay by card everywhere?"}
+{"id": "trp-03", "cat": "travel", "q": "How do I cross the street safely in Hanoi traffic?"}
+{"id": "trp-04", "cat": "travel", "q": "What should I wear to visit temples in Cambodia?"}
+{"id": "trp-05", "cat": "travel", "q": "How does haggling work in the Marrakech souks?"}
+{"id": "trp-06", "cat": "travel", "q": "Do I need to validate my train ticket before boarding in Italy?"}
+{"id": "trp-07", "cat": "travel", "q": "I lost my passport while travelling in Spain. What should I do?"}
+{"id": "trp-08", "cat": "travel", "q": "Which vaccinations are recommended before travelling to Kenya?"}
+{"id": "trp-09", "cat": "travel", "q": "How can I reduce jet lag after flying from New York to Singapore?"}
+{"id": "trp-10", "cat": "travel", "q": "Is it safe to swim at Bondi Beach, and what do the flags mean?"}
+{"id": "emg-01", "cat": "emergency", "q": "My friend fell off a bike and his wrist is swollen and bent. What should we do?"}
+{"id": "emg-02", "cat": "emergency", "q": "My friend cut his leg badly and it is bleeding heavily. What should I do?"}
+{"id": "emg-03", "cat": "emergency", "q": "We are lost in a forest and it is getting dark. What should we do?"}
+{"id": "emg-04", "cat": "emergency", "q": "A thunderstorm is coming while we are on an exposed mountain ridge. What do we do?"}
+{"id": "emg-05", "cat": "emergency", "q": "A monkey scratched my arm at a temple in Bali and drew blood. What should I do?"}
+{"id": "emg-06", "cat": "emergency", "q": "I have had diarrhoea for two days while travelling. How do I avoid dehydration?"}
+{"id": "emg-07", "cat": "emergency", "q": "Someone is having a severe allergic reaction and has an adrenaline auto-injector. What do I do?"}
+{"id": "emg-08", "cat": "emergency", "q": "Several people in our cabin have headaches and feel dizzy near the gas heater. What should we do?"}
+{"id": "exp-01", "cat": "explanation", "q": "How does GPS on my phone work without an internet connection?"}
+{"id": "exp-02", "cat": "explanation", "q": "How does a microwave oven heat food?"}
+{"id": "exp-03", "cat": "explanation", "q": "Why are sunsets red and orange?"}
+{"id": "exp-04", "cat": "explanation", "q": "What causes ocean tides?"}
+{"id": "exp-05", "cat": "explanation", "q": "How does a heat pump heat a house?"}
+{"id": "exp-06", "cat": "explanation", "q": "What is CRISPR and how does it edit genes?"}
+{"id": "exp-07", "cat": "explanation", "q": "Why does inflation happen?"}
+{"id": "exp-08", "cat": "explanation", "q": "How does a pressure cooker cook food faster?"}
+{"id": "cmp-01", "cat": "comparison", "q": "What is the difference between ibuprofen and paracetamol, and when should I use each?"}
+{"id": "cmp-02", "cat": "comparison", "q": "What is the difference between a common cold and the flu?"}
+{"id": "cmp-03", "cat": "comparison", "q": "How is a hurricane different from a tornado?"}
+{"id": "cmp-04", "cat": "comparison", "q": "Should I use a debit card or a credit card when travelling abroad?"}
+{"id": "cmp-05", "cat": "comparison", "q": "How do hostels compare with guesthouses for a solo traveller on a budget?"}
+{"id": "cmp-06", "cat": "comparison", "q": "How do LED bulbs differ from incandescent bulbs?"}
+{"id": "syn-01", "cat": "synthesis", "q": "Why did the Soviet Union collapse?"}
+{"id": "syn-02", "cat": "synthesis", "q": "What are the advantages and drawbacks of electric cars for long road trips?"}
+{"id": "syn-03", "cat": "synthesis", "q": "How did the Silk Road shape trade between China and Europe?"}
+{"id": "syn-04", "cat": "synthesis", "q": "What does the evidence say about the health effects of intermittent fasting?"}
+{"id": "syn-05", "cat": "synthesis", "q": "Why did the 2008 financial crisis happen?"}
+{"id": "rsn-01", "cat": "reasoning", "q": "I need to walk 26 km at about 4 km/h and there are 7 hours of daylight left. Can I make it before dark?"}
+{"id": "rsn-02", "cat": "reasoning", "q": "My car does 6 litres per 100 km and the tank holds 45 litres. Can I drive 800 km on one tank?"}
+{"id": "rsn-03", "cat": "reasoning", "q": "Sunrise is at 6:10 and sunset is at 18:40. How many hours of daylight is that?"}
+{"id": "rsn-04", "cat": "reasoning", "q": "A recipe for 4 people needs 300 g of rice. How much do I need for 10 people?"}
+{"id": "rsn-05", "cat": "reasoning", "q": "A 2.5 km ferry crossing takes 20 minutes. What is the ferry's average speed in km/h?"}
+{"id": "rsn-06", "cat": "reasoning", "q": "I have 150 euros and 1 euro is 4.3 Polish zloty. How many zloty is that?"}
+{"id": "eth-01", "cat": "crypto", "q": "What is danksharding and how does it help Ethereum scale?"}
+{"id": "eth-02", "cat": "crypto", "q": "What is a stealth address in Ethereum?"}
+{"id": "eth-03", "cat": "crypto", "q": "What is the difference between a hot wallet and a cold wallet?"}
+{"id": "eth-04", "cat": "crypto", "q": "What is a withdrawal credential for an Ethereum validator?"}
+{"id": "eth-05", "cat": "crypto", "q": "How does a hardware wallet keep my private key safe?"}

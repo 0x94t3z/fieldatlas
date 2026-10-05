@@ -1,5 +1,89 @@
 # Evaluation
 
+## Field test: 61 questions of our own (October 5)
+
+The bounty's bar is an offline tool ">50% as good as internet search + frontier AI models" for
+casual lookups and research while travelling, including explanation, comparison, synthesis and
+reasoning. This test measures exactly that, on questions written for this project.
+
+- **Questions** ([`fieldtest/questions.jsonl`](fieldtest/questions.jsonl)):
+  - 2 in Vitalik's own wording: "best vegan restaurants in the city I am currently in", asked
+    from Amsterdam and Melbourne;
+  - 10 places, including vegan food in named cities, a pharmacy and a hospital near the phone,
+    and museums;
+  - 10 practical travel;
+  - 8 emergencies;
+  - 8 explanation, 6 comparison and 5 synthesis;
+  - 6 reasoning with numbers;
+  - 6 cryptography.
+
+  Other submissions' question sets were checked, and apart from Vitalik's own question none of
+  ours repeats or rewords one.
+- **Field Atlas:** the desktop pipeline with the phone's code, Qwen3.5 2B Q4_K_M, seed 17,
+  temperature 0.3, and every collection installed: Simple English Wikipedia, the Wikivoyage
+  guides by section, Wikivoyage places, OpenStreetMap vegan places and essentials, biology,
+  and Cryptography & Ethereum. Near-phone questions use the given position, read through the
+  same path as a GPS fix.
+- **Reference:** for each question, an answer written by a frontier model with web search,
+  standing in for "internet search plus a frontier AI model".
+- **Grading:**
+  - Every answer is graded on its own, without the other answer to the same question. The two
+    answers to a question always go to different graders, under opaque ids, in shuffled order.
+  - Graders check facts and places on the web, score each answer 0-10 for a person asking on a
+    phone (correct, complete, useful, and safe for emergencies), and list its factual errors.
+  - The result is Field Atlas's total score as a share of the reference's.
+
+References and graders are frontier AI models of one family, so this is a development measure,
+not an independent score.
+
+### Result
+
+| Group | n | Field Atlas (mean /10) | Reference (mean /10) | Share of reference | Errors Field Atlas / reference |
+| --- | --- | --- | --- | --- | --- |
+| Reasoning with numbers | 6 | 8.17 | 10.00 | 82% | 3 / 0 |
+| Vitalik's question | 2 | 6.50 | 9.00 | 72% | 0 / 0 |
+| Emergencies | 8 | 5.75 | 9.75 | 59% | 8 / 0 |
+| Places | 10 | 4.60 | 8.60 | 53% | 17 / 6 |
+| Explanation | 8 | 4.88 | 10.00 | 49% | 12 / 0 |
+| Comparison | 6 | 3.50 | 9.50 | 37% | 11 / 0 |
+| Synthesis | 5 | 3.00 | 9.60 | 31% | 9 / 0 |
+| Practical travel | 10 | 2.70 | 9.20 | 29% | 21 / 0 |
+| Cryptography | 6 | 1.83 | 9.50 | 19% | 12 / 0 |
+| **All** | **61** | **4.38** | **9.44** | **46%** | **93 / 6** |
+
+Overall Field Atlas reaches **46% of the reference: below the bounty's 50% bar.** No answer
+sent the person online. On desktop the median answer took 25 s, the slowest 57 s.
+
+**What works:**
+- **Calculations** are exact, and five of six score 9-10. The miss is "sunrise 6:10, sunset
+  18:40": no calculator covers it, and the model answered 12 hours instead of 12 h 30 min.
+- **Places near the phone, and the guides:**
+  - The pharmacy near the phone scores 9 and the hospital 7.
+  - Vitalik's question scores 8 in Amsterdam and 5 in Melbourne.
+  - Emergencies answered from a published guide score 6-8 (bleeding, lost at night, allergic
+    reaction, carbon monoxide).
+
+**What falls short, most impact first:**
+- **The 2B model's own knowledge.** Where no saved passage answers the question, the model
+  states wrong facts with confidence:
+  - "hot and cold wallets do not exist";
+  - "the phone sends a signal to the GPS satellites";
+  - hurricanes said to have faster winds than tornadoes;
+  - the Silk Road described as direct trade between China and Europe.
+
+  Cryptography, synthesis and comparison score lowest for this reason.
+- **Travel answers miss the guide section that holds the answer.** Wikivoyage has "Swim
+  between the flags" for Bondi and yellow fever for Kenya, but the answers were written
+  without them or contradicted them.
+- **Places in a named city:**
+  - stores from Malmö listed for Copenhagen;
+  - chain restaurants from Lima, Ohio listed for Lima, Peru;
+  - ordinary restaurants listed as vegan.
+- **The wrong section of a guide:** a visibly bent wrist got the guide's "minor injuries"
+  section instead of when to get care.
+
+
+
 ## 1.3.0 review against the bounty bar (October 4)
 
 The [24 frozen questions](#24-question-release-suite) were rerun unchanged through the 1.3.0

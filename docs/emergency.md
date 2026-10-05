@@ -12,9 +12,11 @@ The app finds the matching bundled guide and gives its most relevant sections to
 
 If the model cannot run (still loading, failed to load, or failed mid-answer), the guide is shown as published instead. Ordinary questions that only mention a topic (“history of the 2004 tsunami”, “how to cut onions”) are researched as usual, and questions about your attached files always use the files.
 
-41 guides cover CPR, choking, bleeding, shock, burns, fractures, head injury, heart attack, stroke, allergic reactions, seizures, poisoning, bites and stings, drowning, hypothermia, frostbite, heat illness, dehydration, altitude sickness, lightning, sunburn, safe drinking water, being lost or injured outdoors, signalling for help, emergency shelter, and earthquakes, floods, wildfires, tsunamis, storms, tornadoes, power outages and extreme cold.
+42 guides cover CPR, choking, bleeding, shock, burns, fractures, head injury, heart attack, stroke, allergic reactions, seizures, poisoning, carbon monoxide, bites and stings, drowning, hypothermia, frostbite, heat illness, dehydration, altitude sickness, lightning, sunburn, safe drinking water, being lost or injured outdoors, signalling for help, emergency shelter, and earthquakes, floods, wildfires, tsunamis, storms, tornadoes, power outages and extreme cold.
 
 Sources: CDC, NIOSH, NIH (MedlinePlus health-topic summaries and NIAMS), the National Weather Service, the National Park Service, FEMA (Ready.gov) and the U.S. Fire Administration, all US public domain, and four English Wikipedia articles at pinned revisions (choking, emergency bleeding control, drowning and distress signals; CC BY-SA 4.0). Each answer cites the guide; see [DATASETS.md](../DATASETS.md#emergency-guides-bundled) for the build.
+
+“What emergency number do I call in Thailand?” is answered from a bundled table of numbers for 242 countries and territories (Wikipedia's “List of emergency telephone numbers”, pinned revision), cited and without the model.
 
 “Nearest hospital near me” and similar near-me questions also run without the model, from the Essentials collection; for health, police and drinking water the search widens up to 100 km when little is close.
 

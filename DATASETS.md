@@ -372,8 +372,8 @@ python3 tools/build_emergency_data.py build     # offline; re-checks every cache
 python3 -m unittest tools/tests/test_emergency_data.py
 ```
 
-- **guides.json** (152344 bytes, SHA-256 `f1412fadf14a4c99c304aa568e2d55f79e80f844dd1fd4b3958a794bb4bd20df`): 41 guides. Text is *selected* from each source (headings, ranges, dropped blocks) and never edited; a test re-extracts every cached page and checks each string is an exact source block. US federal pages (CDC, NIOSH, NIH/NLM MedlinePlus health-topic summaries, NIH/NIAMS, NWS/NOAA, NPS, FEMA Ready.gov, U.S. Fire Administration) are public domain; MedlinePlus A.D.A.M. encyclopedia pages, which are copyrighted, are not used. Four guides are English Wikipedia articles at pinned revisions (CC BY-SA 4.0). Guides that assume US services or US species carry `"region": "US"`.
-- **numbers.json** (built alongside, not shipped in the app): police, ambulance, fire and general numbers for 242 countries and territories from Wikipedia's “List of emergency telephone numbers” (revision 1377218654, CC BY-SA 4.0), kept for future use.
+- **guides.json** (155244 bytes, SHA-256 `a48a286dd5789a28c9ebc3ad0a46fc55da7e0adccb0adf9f6a72b646acbb8ffc`, version 2026.10.05): 42 guides; carbon monoxide poisoning (CDC/NIOSH) joined the 41 of 1.3.0, whose text is unchanged. Text is *selected* from each source (headings, ranges, dropped blocks) and never edited; a test re-extracts every cached page and checks each string is an exact source block. US federal pages (CDC, NIOSH, NIH/NLM MedlinePlus health-topic summaries, NIH/NIAMS, NWS/NOAA, NPS, FEMA Ready.gov, U.S. Fire Administration) are public domain; MedlinePlus A.D.A.M. encyclopedia pages, which are copyrighted, are not used. Four guides are English Wikipedia articles at pinned revisions (CC BY-SA 4.0). Guides that assume US services or US species carry `"region": "US"`.
+- **numbers.json** (112428 bytes, SHA-256 `4bbec9d2df4ec619a5732cb3551d8620c1e5dd447899db8147e921475b877894`, bundled as `app/src/main/assets/emergency/numbers.json`): police, ambulance, fire and general numbers for 242 countries and territories from Wikipedia's “List of emergency telephone numbers” (revision 1377218654, CC BY-SA 4.0). Research answers “what emergency number do I call in Japan?” from this table, cited, without the model.
 - **Review before relying on it:** see the limits in [docs/emergency.md](docs/emergency.md#limits-you-should-know). The severe-bleeding gap (no bundled tourniquet guidance) and the Wikipedia-sourced choking and drowning guides need review by a clinician.
 
 ## Adding future collections
@@ -572,11 +572,53 @@ guides kept, 50,495 passages, built with `--copyright-page Wikivoyage:Copyleft`.
 `2684b5b664aedb15aafb905a2dffccdd059dc589d10a382fdddec17c8bef60b2`. It complements the
 existing Travel places pack (one listing per venue) with each destination's prose guide.
 
+**Wikivoyage travel guides by section, local build, 5 October 2026.** The CirrusSearch build
+above flattens each guide and keeps only its opening, so a question about cash in Japan or
+crossing the road in Hanoi had nothing to find. `tools/build_wikivoyage_guides_pack.py` reads the
+same pinned pages-articles dump as the places packs
+(`enwikivoyage-20260901-pages-articles.xml.bz2`, SHA-256
+`c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`) and writes one passage per
+section: "Japan — Buy > Cash", "Hanoi — Stay safe > Traffic". Links keep their label; warning
+and caution boxes keep their text and headline; prices ({{EUR|25}} as "EUR 25"), phone numbers,
+conversions and station names are written out; map data, image captions and comments are
+dropped. Transport and practical sections keep their listings as one line each; See, Do, Eat,
+Drink, Sleep and Buy listings stay in the places pack. 31,672 guides, 291,092 section passages.
+The `.fapack` (`wikivoyage-guides`, version `2026.09.01`) is 419,107,865 bytes, SHA-256
+`1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83`.
+It replaces the 2025.12.29 guides pack under the same id; it is not published yet.
+
 Both packs were rebuilt a second time from their spools and were byte-identical. Neither is
 published yet; the planned release tags are `knowledge-simplewiki-2025.12.29` and
 `knowledge-wikivoyage-guides-2025.12.29`, each carrying the `.fapack`, `SOURCE.json`, the
 spool and its `.meta.json` (Wikimedia keeps CirrusSearch dumps for only a few weeks), and
 `SHA256SUMS`. The in-app download catalog already lists both URLs.
+
+## Cryptography & Ethereum (vector builder, October 5)
+
+`tools/build_crypto_pack.py` builds a focused collection from primary sources, each pinned when
+fetched and checked against the lock on every build:
+
+- Ethereum Improvement Proposals and ERCs at `ethereum/EIPs`
+  `bcdb27e330c3ba01a20c3fd1e2e592e0d04d2d47` and `ethereum/ERCs`
+  `365b4c02879f3e882b91281d42b4f57b406205e9`, one passage per section, cited to the file at that
+  commit. Proposals marked "Moved" are skipped in favour of the ERC repository's copy. Each
+  proposal's own Copyright section is checked: two that are CC BY-NC-SA (EIP-1355, EIP-1485) are
+  left out, and the rest are CC0 by their own notice or the repository's `LICENSE.md`.
+- The consensus specifications at `ethereum/consensus-specs`
+  `889a389f9f95d2aba52aedf233217f370772dd3d` (CC0).
+- NIST FIPS 203, 204 and 205, SP 800-208 and IR 8547 (initial public draft), as published PDFs
+  with recorded SHA-256; works of the US federal government, public domain in the United States.
+- 123 English Wikipedia articles from `tools/crypto_reference_topics.json` at pinned revisions
+  (CC BY-SA 4.0), through the general reference builder.
+
+18,204 documents and 22,805 passages (7,088 EIP, 8,596 ERC, 976 specification, 92 NIST and
+1,452 Wikipedia documents). `tools/embed_pack.py` encodes every passage with the same BAAI
+bge-small-en-v1.5 encoder the phone uses for questions (MIT), and `tools/build_vector_pack.py`
+adds the vectors. The `.fapack` (`crypto-ethereum`, version `2026.10.05`) is 77,678,612 bytes,
+SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its licence field is
+`CC0-1.0 AND CC-BY-SA-4.0 AND LicenseRef-US-Government-Work AND MIT`. The build writes
+`ATTRIBUTION.txt` (the Wikipedia revision list and change notice) and `sources.lock.json` beside
+the pack; a release must publish both with it. Not published yet.
 
 ## Wikipedia mini (keyword-only builder)
 
