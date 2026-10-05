@@ -441,10 +441,12 @@ one in Tokyo), while OpenStreetMap records about 2,000 vegan-tagged places in th
   when tagged, with the local name), vegan label, cuisine, address, hours as tagged,
   coordinates, the mapper's `check_date` when present, the data snapshot date, and a link to
   the OpenStreetMap element.
-- **Destination:** the most populous city of at least 100,000 people within 30 km, else the
-  nearest city or town within 20 km, else the tagged address city. Settlements come from
-  OpenStreetMap `place=city`/`place=town` nodes fetched in the same run. Places with no
-  destination are kept for keyword search but never answer "in <city>" questions.
+- **Destination:** the tagged address city when it is itself a city of at least 200,000
+  people within 30 km (from the 5 October builds); else the most populous city of at least
+  100,000 people within 30 km, else the nearest city or town within 20 km, else the tagged
+  address city. Settlements come from OpenStreetMap `place=city`/`place=town` nodes fetched in
+  the same run. Places with no destination are kept for keyword search but never answer
+  "in <city>" questions.
 - **Reproducibility:** `fetch` runs six exact-tag Overpass queries and stores every raw
   response with its SHA-256, query and Overpass `timestamp_osm_base` in `lock.json`. `build`
   is offline and byte-reproducible from that cache, and copies the lock into the pack output as
@@ -474,6 +476,15 @@ two builds from the same cache were byte-identical. The cache is 88 MB of raw Ov
 Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
 `2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
 the main server refused further connections). It is published as release `knowledge-vegan-places-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
+
+**Rebuild, 5 October 2026.** Same Overpass cache, with the address-city rule above: a
+restaurant whose address says Malmö was filed under Copenhagen, 28 km away in another country.
+952 places changed destination, among them 107 from Cologne to Bonn, 80 from Wiesbaden to
+Mainz, 54 from Amsterdam to Almere, 38 from Copenhagen to Malmö and 22 from Tijuana to San
+Diego; the count of places, and of places without a destination, is unchanged. The `.fapack`
+is 40,068,046 bytes, SHA-256
+`4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd`, version `2026.10.05`.
+It is a local build; the published release is still `2026.10.02`.
 
 An earlier build of the same day fetched settlements with `out tags;`, which omits node
 coordinates, so every place fell back to its address city and Tokyo had no listings. The
@@ -524,6 +535,15 @@ is `knowledge-essentials-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.jso
 (`osm-essentials-overpass-cache-2026.10.02.tar.gz`) and `SHA256SUMS`. It is not part of the
 1.2.0 APK's bundled catalog; 1.2.0 shows it after **Refresh collections** once the catalog on
 the main branch lists it.
+
+**Rebuild, 5 October 2026.** Same cache, with the vegan-places address-city rule. 12,823
+places changed destination, among them 306 from Quezon City to Manila, 247 from El Alto to La
+Paz, 216 from Cologne to Bonn and 170 from Kuala Lumpur to Petaling Jaya. Two more places are
+listed (2,981,023): a place mapped twice is merged when both copies have the same title and
+centre, and in two such pairs only one copy's address names a city of its own (Ernakulam,
+beside Kochi; Novo Hamburgo), so the copies now carry different destinations. The `.fapack` is 1,781,015,519 bytes,
+SHA-256 `a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9`, version
+`2026.10.05`, a local build.
 
 The first full build failed: the coverage summary listed every type label, which exceeded the
 format's 160-character limit once all kinds were fetched. The summary now uses short names, and

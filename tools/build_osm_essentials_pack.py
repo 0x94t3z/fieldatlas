@@ -85,7 +85,7 @@ def essential_document(element: dict, kind: str, places: osm.Gazetteer, snapshot
     if kind == "diplomatic" and tags.get("diplomatic") == "consulate":
         label = "consulate"
     lat, lon = position
-    destination = places.destination(lat, lon) or (tags.get("addr:city") or "").strip() or None
+    destination = places.destination(lat, lon, tags.get("addr:city")) or (tags.get("addr:city") or "").strip() or None
     name = place_name(tags, label)
     lines = []
     if destination:

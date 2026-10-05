@@ -56,6 +56,9 @@ AMENITY_LABELS = {"fast_food": "fast food", "ice_cream": "ice cream", "food_cour
 METRO_RADIUS_KM = 30.0
 METRO_MIN_POPULATION = 100_000
 LOCAL_RADIUS_KM = 20.0
+# A city this large is not a suburb of its neighbour: Malmö is 28 km from Copenhagen and in
+# another country, so a place whose address says Malmö stays in Malmö.
+SEPARATE_CITY_POPULATION = 200_000
 # Tag filters use Overpass's tag index, so one worldwide query usually succeeds. A tile the
 # server cannot answer is split into quadrants rather than guessed at in advance.
 MAX_SPLIT_DEPTH = 6
@@ -273,8 +276,13 @@ class Gazetteer:
                     if distance <= radius_km:
                         yield distance, settlement
 
-    def destination(self, lat: float, lon: float) -> str | None:
+    def destination(self, lat: float, lon: float, address_city: str | None = None) -> str | None:
         nearby = list(self.near(lat, lon, METRO_RADIUS_KM))
+        if address_city:
+            own = [(distance, s) for distance, s in nearby if s.name.casefold() == address_city.strip().casefold()
+                   and s.place == "city" and s.population >= SEPARATE_CITY_POPULATION]
+            if own:
+                return min(own, key=lambda item: (item[0], item[1].name))[1].name
         metros = [(distance, s) for distance, s in nearby
                   if s.place == "city" and s.population >= METRO_MIN_POPULATION]
         if metros:
@@ -344,7 +352,7 @@ def place_document(element: dict, gazetteer: Gazetteer, snapshot_date: str) -> d
         # cuisine=vegan without a diet tag describes a vegan kitchen.
         vegan = "only"
     lat, lon = position
-    destination = gazetteer.destination(lat, lon) or (tags.get("addr:city") or "").strip() or None
+    destination = gazetteer.destination(lat, lon, tags.get("addr:city")) or (tags.get("addr:city") or "").strip() or None
     group, label = kind
     lines = []
     if destination:
@@ -448,7 +456,7 @@ def build(args: argparse.Namespace) -> int:
             example_questions=[
                 "Tell me the best vegan restaurants in Berlin",
                 "Which vegan cafes are listed in Chiang Mai?",
-                "Where can I find vegan food in Tokyo?",
+                "Which places in Tokyo serve fully vegan meals?",
             ],
             coverage_level="focused",
             fts_tokenizer="porter unicode61",
