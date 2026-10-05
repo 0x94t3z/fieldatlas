@@ -1,0 +1,42 @@
+{"id": "hp-01", "cat": "places", "q": "Where can a vegan get dinner in Budapest?"}
+{"id": "hp-02", "cat": "places", "q": "Any vegetarian restaurants in Edinburgh you'd suggest?"}
+{"id": "hp-03", "cat": "places", "q": "Is there a pharmacy open near me?", "gps": [53.3498, -6.2603]}
+{"id": "hp-04", "cat": "places", "q": "Find an ATM near me", "gps": [52.2297, 21.0122]}
+{"id": "hp-05", "cat": "places", "q": "Are there vegan bakeries in Toronto?"}
+{"id": "hp-06", "cat": "places", "q": "What sights should I see in Oslo?"}
+{"id": "ht-01", "cat": "travel", "q": "How do I buy a metro ticket in Paris?"}
+{"id": "ht-02", "cat": "travel", "q": "Do I need a visa to visit Turkey as a tourist?"}
+{"id": "ht-03", "cat": "travel", "q": "How do I get a local SIM card in Vietnam?"}
+{"id": "ht-04", "cat": "travel", "q": "Is it safe to drive at night in Costa Rica?"}
+{"id": "ht-05", "cat": "travel", "q": "How do I get around Rome by public transport?"}
+{"id": "ht-06", "cat": "travel", "q": "What is the etiquette for bathing in a Japanese onsen?"}
+{"id": "ht-07", "cat": "travel", "q": "How much should I budget per day for backpacking in Vietnam?"}
+{"id": "ht-08", "cat": "travel", "q": "What scams should tourists watch out for in Rome?"}
+{"id": "he-01", "cat": "emergency", "q": "Someone fainted in the heat at a festival. What should I do?"}
+{"id": "he-02", "cat": "emergency", "q": "My child swallowed a button battery. What do I do?"}
+{"id": "he-03", "cat": "emergency", "q": "A bee stung me and now my lips are swelling. What should I do?"}
+{"id": "he-04", "cat": "emergency", "q": "I twisted my ankle hiking. It is swollen but I can still walk on it. What should I do?"}
+{"id": "he-05", "cat": "emergency", "q": "Someone is having a seizure on the bus. What should I do?"}
+{"id": "he-06", "cat": "emergency", "q": "There is a flash flood warning while we are camping by a river. What should we do?"}
+{"id": "hx-01", "cat": "explanation", "q": "Why does the moon have phases?"}
+{"id": "hx-02", "cat": "explanation", "q": "How do noise-cancelling headphones work?"}
+{"id": "hx-03", "cat": "explanation", "q": "Why is the ocean salty?"}
+{"id": "hx-04", "cat": "explanation", "q": "How does a refrigerator keep food cold?"}
+{"id": "hx-05", "cat": "explanation", "q": "What causes earthquakes?"}
+{"id": "hc-01", "cat": "comparison", "q": "What is the difference between a crocodile and an alligator?"}
+{"id": "hc-02", "cat": "comparison", "q": "How does a hybrid car differ from a fully electric car?"}
+{"id": "hc-03", "cat": "comparison", "q": "Compare tea and coffee for caffeine content and health effects"}
+{"id": "hc-04", "cat": "comparison", "q": "What is the difference between weather and climate?"}
+{"id": "hc-05", "cat": "comparison", "q": "What is the difference between baking soda and baking powder?"}
+{"id": "hs-01", "cat": "synthesis", "q": "What caused the Great Depression?"}
+{"id": "hs-02", "cat": "synthesis", "q": "What are the main causes of deforestation in the Amazon?"}
+{"id": "hs-03", "cat": "synthesis", "q": "How did the steam engine change society?"}
+{"id": "hs-04", "cat": "synthesis", "q": "Why do some countries drive on the left?"}
+{"id": "hr-01", "cat": "reasoning", "q": "If I walk 3 km to the station at 5 km/h, how many minutes will it take?"}
+{"id": "hr-02", "cat": "reasoning", "q": "A hostel costs 18 euros a night. How much for 9 nights with a 10% discount?"}
+{"id": "hr-03", "cat": "reasoning", "q": "My flight departs at 14:20 and boarding closes 30 minutes before. When must I be at the gate?"}
+{"id": "hr-04", "cat": "reasoning", "q": "I have 2 litres of water and drink 250 ml every hour. How many hours will it last?"}
+{"id": "hy-01", "cat": "crypto", "q": "What is a seed phrase and why should I keep it offline?"}
+{"id": "hy-02", "cat": "crypto", "q": "What does gas mean on Ethereum?"}
+{"id": "hy-03", "cat": "crypto", "q": "What is a smart contract?"}
+{"id": "hy-04", "cat": "crypto", "q": "What is staking in Ethereum?"}

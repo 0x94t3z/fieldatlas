@@ -1,6 +1,6 @@
 # Evaluation
 
-## Field test: 61 questions of our own (October 5)
+## Field test: 61 questions of our own, and 42 held out (October 5-6)
 
 The bounty's bar is an offline tool ">50% as good as internet search + frontier AI models" for
 casual lookups and research while travelling, including explanation, comparison, synthesis and
@@ -19,11 +19,15 @@ reasoning. This test measures exactly that, on questions written for this projec
 
   Other submissions' question sets were checked, and apart from Vitalik's own question none of
   ours repeats or rewords one.
+- **Held-out questions** ([`fieldtest/heldout.jsonl`](fieldtest/heldout.jsonl)): 42 more,
+  written the same way and not looked at while the app was changed: 6 places (2 near the
+  phone), 8 travel, 6 emergencies, 5 explanation, 5 comparison, 4 synthesis, 4 reasoning and
+  4 cryptography. They show how much of a gain on our own questions carries over to new ones.
 - **Field Atlas:** the desktop pipeline with the phone's code, Qwen3.5 2B Q4_K_M, seed 17,
   temperature 0.3, and every collection installed: Simple English Wikipedia, the Wikivoyage
-  guides by section, Wikivoyage places, OpenStreetMap vegan places and essentials, biology,
-  and Cryptography & Ethereum. Near-phone questions use the given position, read through the
-  same path as a GPS fix.
+  guides by section, Wikivoyage places, OpenStreetMap vegan places and essentials (the
+  5 October rebuilds), biology, and Cryptography & Ethereum. Near-phone questions use the given
+  position, read through the same path as a GPS fix.
 - **Reference:** for each question, an answer written by a frontier model with web search,
   standing in for "internet search plus a frontier AI model".
 - **Grading:**
@@ -32,57 +36,97 @@ reasoning. This test measures exactly that, on questions written for this projec
   - Graders check facts and places on the web, score each answer 0-10 for a person asking on a
     phone (correct, complete, useful, and safe for emergencies), and list its factual errors.
   - The result is Field Atlas's total score as a share of the reference's.
+  - Graders score the same text differently from run to run, by about 2 points on one answer.
+    Runs are therefore compared against the reference total averaged over every graded run,
+    and two versions of one change are graded side by side: each question's answers (version A,
+    version B and the reference) go to three different graders in one session.
 
 References and graders are frontier AI models of one family, so this is a development measure,
 not an independent score.
 
 ### Result
 
-| Group | n | Field Atlas (mean /10) | Reference (mean /10) | Share of reference | Errors Field Atlas / reference |
-| --- | --- | --- | --- | --- | --- |
-| Reasoning with numbers | 6 | 8.17 | 10.00 | 82% | 3 / 0 |
-| Vitalik's question | 2 | 6.50 | 9.00 | 72% | 0 / 0 |
-| Emergencies | 8 | 5.75 | 9.75 | 59% | 8 / 0 |
-| Places | 10 | 4.60 | 8.60 | 53% | 17 / 6 |
-| Explanation | 8 | 4.88 | 10.00 | 49% | 12 / 0 |
-| Comparison | 6 | 3.50 | 9.50 | 37% | 11 / 0 |
-| Synthesis | 5 | 3.00 | 9.60 | 31% | 9 / 0 |
-| Practical travel | 10 | 2.70 | 9.20 | 29% | 21 / 0 |
-| Cryptography | 6 | 1.83 | 9.50 | 19% | 12 / 0 |
-| **All** | **61** | **4.38** | **9.44** | **46%** | **93 / 6** |
+| Build | Our 61 questions | 42 held-out questions | Factual errors in our 61 answers |
+| --- | --- | --- | --- |
+| First run (October 5) | 46% | not run | 93 |
+| October 6, with the changes below except the last travel one | 53% | 39% | 62 |
+| Same, with travel guides quoted as the answer | 55% | 40% | not counted |
 
-Overall Field Atlas reaches **46% of the reference: below the bounty's 50% bar.** No answer
-sent the person online. On desktop the median answer took 25 s, the slowest 57 s.
+The last row is estimated from the answers the change touches (travel answers), graded side by
+side with their earlier versions. On the held-out set every other answer was checked to be
+byte-identical between the two builds.
 
-**What works:**
-- **Calculations** are exact, and five of six score 9-10. The miss is "sunrise 6:10, sunset
-  18:40": no calculator covers it, and the model answered 12 hours instead of 12 h 30 min.
-- **Places near the phone, and the guides:**
-  - The pharmacy near the phone scores 9 and the hospital 7.
-  - Vitalik's question scores 8 in Amsterdam and 5 in Melbourne.
-  - Emergencies answered from a published guide score 6-8 (bleeding, lost at night, allergic
-    reaction, carbon monoxide).
+On our own questions Field Atlas now passes the bounty's 50% bar; on the held-out questions it
+does not. Part of the gain on our questions came from fixes for the cases they contain, so
+**40% is the honest estimate for a new question.** No answer sent the person online. On desktop
+the median answer took 12-16 s.
 
-**What falls short, most impact first:**
-- **The 2B model's own knowledge.** Where no saved passage answers the question, the model
-  states wrong facts with confidence:
-  - "hot and cold wallets do not exist";
-  - "the phone sends a signal to the GPS satellites";
-  - hurricanes said to have faster winds than tornadoes;
-  - the Silk Road described as direct trade between China and Europe.
+By category, on our questions (October 6 build, before the travel change below, which added 8
+points out of the reference's 91 on the travel questions when graded side by side):
 
-  Cryptography, synthesis and comparison score lowest for this reason.
-- **Travel answers miss the guide section that holds the answer.** Wikivoyage has "Swim
-  between the flags" for Bondi and yellow fever for Kenya, but the answers were written
-  without them or contradicted them.
-- **Places in a named city:**
-  - stores from Malmö listed for Copenhagen;
-  - chain restaurants from Lima, Ohio listed for Lima, Peru;
-  - ordinary restaurants listed as vegan.
-- **The wrong section of a guide:** a visibly bent wrist got the guide's "minor injuries"
-  section instead of when to get care.
+| Group | n | Field Atlas (mean /10) | Reference (mean /10) | Share of reference |
+| --- | --- | --- | --- | --- |
+| Reasoning with numbers | 6 | 9.17 | 10.00 | 92% |
+| Places | 10 | 5.70 | 9.30 | 61% |
+| Emergencies | 8 | 5.88 | 9.88 | 59% |
+| Vitalik's question | 2 | 4.50 | 8.50 | 53% |
+| Explanation | 8 | 5.25 | 10.00 | 52% |
+| Comparison | 6 | 4.00 | 9.67 | 41% |
+| Cryptography | 6 | 4.00 | 10.00 | 40% |
+| Practical travel | 10 | 3.50 | 9.30 | 38% |
+| Synthesis | 5 | 3.00 | 9.60 | 31% |
 
+On the held-out questions, answers the app composes itself score far above answers the model
+writes: places near the phone 89% of the reference (2 answers), emergency guides with the
+model's steps 51% (5), the model's own text with or without a quoted passage 32-39% (32).
 
+**What changed (October 5-6):**
+- **Safety:** an amount of medicine never appears in the model's own text; the app removes it and
+  says to follow the package leaflet or ask a pharmacist. The model had turned a source's
+  overdose figure, 150 mg/kg, into a recommended dose of paracetamol.
+- **Instructions:** the model now builds its explanation on the saved passages, adds its own
+  knowledge only for basic facts and never carries a phone number, law or price over from
+  another place. With the code unchanged, this raised our questions from 52% to 54% and removed
+  answers such as "hot and cold wallets do not exist".
+- **Travel guides:**
+  - a topic guide answers practical questions that name no place ("Passport — What if I lose
+    it while travelling?", "Jet lag");
+  - a beach or district with no guide of its own is read through the place it lies in
+    ("Bondi Beach is a beach in Sydney" leads to Sydney's beach safety section);
+  - each picked section is a different one (Italy's "Rules" section, which says to validate a
+    ticket, no longer loses to a second passage of "Getting tickets");
+  - a question that names no place no longer reads one destination's guide or map listings (a
+    hardware wallet question had read "Kigali — Stay safe"; a debit card question "Iran — Buy",
+    whose sanctions the model gave as general advice);
+  - the guide's own section is quoted as the answer, without the model, unless the question
+    has numbers to work out.
+- **Reference lookups:** a subject named only inside a section ("Hardware wallets" in
+  "Cryptocurrency wallet") or only mentioned in passing (danksharding) is found; a shorter piece
+  of a name must match the word that narrows it (a leather "Wallet" article no longer answers a
+  hardware wallet question).
+- **Calculations:** the time between two clock times ("sunrise 6:10, sunset 18:40") is computed.
+- **Places:** a restaurant's branches and duplicate map entries are listed once, so the answer
+  offers different places; a pharmacy or ATM chain keeps every branch.
+
+**Tried and not kept:**
+- Quoting an encyclopedia definition as the whole answer, without the model: 47% against 50%
+  for the same build with the model's explanation. A definition does not explain how or why.
+- Showing an emergency guide without the model's steps for the situation: 53% against 60%.
+- In the held-out run, quoting a travel guide also took over a calculation question and dropped
+  it from 8 points to 0. Questions with numbers now keep the model. This guard was added after
+  seeing that held-out result, so the held-out figure after it is no longer a clean test.
+
+**What still falls short, most impact first:**
+- **The 2B model's prose.** Where its text is the answer, it scores about a third of the
+  reference on new questions: a correct quoted passage followed by a garbled or wrong
+  explanation (the 2008 crisis dated to September 2008, the Silk Road as direct trade between
+  China and Europe, a 13-hour time difference between New York and Singapore in summer). Qwen3.5
+  4B writes better but was five to ten times slower in earlier tests (see below), too slow for
+  the phones this app targets.
+- **Synthesis and explanation evidence.** Simple English Wikipedia articles are short; they
+  define a subject but rarely explain causes or mechanisms in enough depth.
+- **Map tags.** Places tagged fully vegan that serve dairy, and places outside the city they are
+  filed under, still reach answers; the tags are as mapped.
 
 ## 1.3.0 review against the bounty bar (October 4)
 
