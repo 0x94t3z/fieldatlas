@@ -42,7 +42,7 @@ object Calculators {
             naismith(question)?.let { it to HIKE }, travelTime(question)?.let { it to TRAVEL },
             currency(question)?.let { it to MONEY }, water(question)?.let { it to WATER }, battery(question)?.let { it to BATTERY },
             temperature(question)?.let { it to TEMPERATURE }, clock(question, today)?.let { it to CLOCK },
-            recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING },
+            recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }, duration(question)?.let { it to DURATION },
             units(question)?.let { it to UNITS }, percent(question)?.let { it to PERCENT })
         if (families.isEmpty()) return null
         val parts = families.map { it.first }
@@ -109,6 +109,8 @@ object Calculators {
     private val UNITS = setOf("km", "kms", "kilometers", "kilometres", "miles", "mile", "metres", "meters", "feet", "foot", "ft",
         "inches", "inch", "cm", "centimetres", "centimeters", "kg", "kilos", "kilograms", "pounds", "lb", "lbs", "grams", "ounces",
         "oz", "liters", "litres", "gallons", "gallon", "mph", "kph", "tall", "height", "distance", "weight")
+    private val DURATION = setOf("sunrise", "sunset", "daylight", "between", "from", "until", "till", "hours", "hour", "minutes",
+        "time", "duration", "opens", "closes", "starts", "ends", "leaves", "arrives", "departs", "lands", "flight", "shift", "am", "pm")
     private val PERCENT = setOf("percent", "tip", "service", "charge", "discount", "off")
 
     private fun fmt(value: Double, decimals: Int = 1): String {
@@ -434,6 +436,27 @@ object Calculators {
         val text = "${show(start)} in $fromName is **${show(there)} in $toName**$day.\n\n" +
             "Today $fromName is on ${utc(start)} and $toName on ${utc(there)}. The difference changes by an hour when either place starts or ends daylight saving time."
         return Result(text, true, "${show(start)} in $fromName = ${show(there)}$day in $toName.") to emptySet()
+    }
+
+    /* ---------- the time between two clock times ---------- */
+    private fun duration(q: String): Pair<Result, Set<String>>? {
+        if (!Regex("(?i)\\bhow (?:many|much|long)\\b|\\bdaylight\\b|\\bduration\\b|\\btime between\\b").containsMatchIn(q)) return null
+        // "What time is it in Tokyo when…" converts a time; it does not measure one.
+        if (Regex("(?i)\\bwhat time\\b|\\btime (?:is it|there)\\b").containsMatchIn(q)) return null
+        val times = clockTime.findAll(q).mapNotNull { t ->
+            if (t.groupValues[3].isNotEmpty()) {
+                val h = t.groupValues[1].toInt(); val m = t.groupValues[2].ifBlank { "0" }.toInt()
+                if (h !in 1..12 || m > 59) null else ((h % 12) + if (t.groupValues[3].lowercase().startsWith("p")) 12 else 0) * 60 + m
+            } else t.groupValues[4].toInt() * 60 + t.groupValues[5].toInt()
+        }.toList()
+        if (times.size != 2) return null
+        var minutes = times[1] - times[0]
+        val overnight = minutes <= 0
+        if (overnight) minutes += 24 * 60
+        fun clock(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
+        val length = hours(minutes / 60.0)
+        val text = "From ${clock(times[0])} to ${clock(times[1])}${if (overnight) " the next day" else ""} is **$length**."
+        return Result(text, true, "${clock(times[0])} to ${clock(times[1])} = $length.") to emptySet()
     }
 
     /* ---------- a recipe for more people ---------- */

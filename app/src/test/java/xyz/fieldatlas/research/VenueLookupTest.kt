@@ -138,4 +138,29 @@ class VenueLookupTest {
         assertEquals(0, metrics.generatedTokenCount)
         assertEquals(setOf("S1"), metrics.citedSourceIds)
     }
+
+    @Test fun everydayPhrasingsGetTheListingsAndAPlaceInAnotherTownIsLeftOut() {
+        fun osm(name: String, lat: Double, lon: Double, vegan: String = "fully vegan") = Evidence("osm-place-$name", "osm-place-$name:0",
+            "Copenhagen — $name", "local", "Destination: Copenhagen\nCategory: Eat\nPlace: $name\nType: restaurant\nVegan: $vegan\n" +
+                "Latitude: $lat\nLongitude: $lon\nMap data snapshot: 2026-10-02 (© OpenStreetMap contributors)", -1.0)
+        val city = listOf(osm("Plant Power", 55.676, 12.568), osm("Green Bowl", 55.680, 12.575), osm("Root", 55.690, 12.560),
+            osm("Malmo Cafe", 55.606, 13.002))
+        val answer = VenueLookup.answer("I'm vegan and staying in Copenhagen for a week. Which restaurants should I try?", city)!!.answer
+        assertTrue(answer, "Plant Power" in answer && "Green Bowl" in answer && "Root" in answer)
+        assertTrue("a place 28 km away in Malmö is not in Copenhagen", "Malmo Cafe" !in answer)
+        assertTrue(VenueLookup.answer("Where do vegans eat in Copenhagen?", city) != null)
+    }
+
+    @Test fun aRestaurantsBranchesAndDuplicateMapEntriesShowOnce() {
+        assertEquals(VenueLookup.brand("Leaf House Vegan Restaurant"), VenueLookup.brand("Nhà Hàng Leaf House"))
+        assertTrue(VenueLookup.brand("Leaf House") != VenueLookup.brand("Green Bowl"))
+        fun osm(id: String, name: String, lat: Double) = Evidence("osm-place-$id", "osm-place-$id:0", "Avelton — $name", "local",
+            "Destination: Avelton\nCategory: Eat\nPlace: $name\nType: restaurant\nVegan: fully vegan\nLatitude: $lat\nLongitude: 10.0\n" +
+                "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)", -1.0)
+        val city = listOf(osm("1", "Leaf House Vegan Restaurant", 50.001), osm("2", "Nhà Hàng Leaf House", 50.002),
+            osm("3", "Leaf House Vegan Restaurant", 50.003), osm("4", "Green Bowl", 50.004))
+        val answer = VenueLookup.answer("Which vegan restaurants should I try in Avelton?", city)!!.answer
+        assertEquals(answer, 1, Regex("Leaf House").findAll(answer).count())
+        assertTrue(answer, "Green Bowl" in answer)
+    }
 }

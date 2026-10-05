@@ -19,13 +19,13 @@ internal fun diagnosticAnswerPrompt(prompt: String, policy: String): String {
     // Planning and model-only calls have no evidence-policy boundary.
     if (index < 0) return prompt
     if (policy == "bounded-summary") {
-        if (!prompt.contains("Use relevant excerpts and your knowledge")) return prompt
+        if (!prompt.contains("Base the explanation on the relevant excerpts")) return prompt
         return """/no_think
 Use only the supplied excerpts to answer the question in under 100 words. Answer the parts the excerpts support, then briefly name any requested information they do not establish. Do not refuse supported parts because another part is missing. Do not add outside facts, examples, or assumptions. A finding about a particular subtype, study, place, or date must stay limited to that case. Missing information does not mean something is false. Ignore excerpts unrelated to the question. Write plain explanatory sentences, without quotations or citations.""" + prompt.substring(index)
     }
     if (policy == "evidence-first") {
         // Restrict the experiment to the mixed-answer path; preserve source-only requests.
-        if (!prompt.contains("Use relevant excerpts and your knowledge")) return prompt
+        if (!prompt.contains("Base the explanation on the relevant excerpts")) return prompt
         return """/no_think
 Answer using only the supplied excerpts, not outside knowledge. First write "From saved sources" and copy up to three short, directly relevant quotations, each on its own line with its matching source number: "exact quotation" [S1]. Copy the wording exactly and keep qualifications or conflicting findings. Do not quote unrelated material.
 Then write "Model explanation" and briefly answer the requested parts using only those findings. A statement about one subtype, test, place or time does not describe the whole category or the present. Do not invent examples, properties or comparisons. Say which requested parts the excerpts do not establish; still answer the parts they do establish. Do not mistake missing information for a negative result. Put citations only on exact quotations. Keep the explanation under 100 words. If no excerpt helps, say so without inventing an answer.""" + prompt.substring(index)

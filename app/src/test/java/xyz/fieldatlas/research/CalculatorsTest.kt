@@ -218,4 +218,10 @@ class CalculatorsTest {
         assertFalse("whether it may go on a train is left to research", train.complete)
         assertTrue(solve("How many watt-hours is a 10,000 mAh 3.6 V power bank, and can I take it on a plane?")!!.complete)
     }
+
+    @Test fun theTimeBetweenTwoClockTimes() {
+        assertTrue(text("Sunrise is at 6:10 and sunset is at 18:40. How many hours of daylight is that?").contains("From 06:10 to 18:40 is **12 h 30 min**."))
+        assertTrue(text("The bar opens at 9 pm and closes at 2 am. How long is it open?").contains("From 21:00 to 02:00 the next day is **5 h**."))
+        assertNull(solve("What time is it in Lima when it is 9:00 in Paris and 10:00 in Rome?")?.takeIf { "From" in it.text })
+    }
 }

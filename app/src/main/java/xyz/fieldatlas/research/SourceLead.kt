@@ -16,8 +16,10 @@ object SourceLead {
     private const val MAX_CHARS = 640
     private const val MAX_SENTENCES = 3
 
-    data class Lead(val citationId: String, val text: String) {
-        fun render(): String = "## $HEADING\n\n> $text [$citationId]"
+    /** [more] holds further quotes as (citation, text): a comparison quotes each subject. */
+    data class Lead(val citationId: String, val text: String, val more: List<Pair<String, String>> = emptyList()) {
+        fun render(): String = "## $HEADING\n\n" +
+            (listOf(citationId to text) + more).joinToString("\n\n") { (id, quote) -> "> $quote [$id]" }
     }
 
     // A full stop after these words does not end a sentence; splitting there would cut a
@@ -74,7 +76,34 @@ object SourceLead {
         return lead.toString().takeIf { it.last() in ".!?\"”’)" }
     }
 
-    private fun sentences(paragraph: String): List<String> {
+    /**
+     * The lead with each quote continued in its source: the sentences that follow it, across
+     * paragraphs and list items, up to about [maxChars], ending on a complete sentence. Used when
+     * the quote is the whole answer, so it says as much as the saved passage does, word for word.
+     */
+    fun extend(lead: Lead, sources: List<PromptSource>, maxChars: Int = EXTENDED_CHARS): Lead {
+        fun flat(text: String) = text.lines().joinToString(" ") { it.trim().removePrefix("- ").removePrefix("* ").removePrefix("• ") }
+            .replace(Regex("\\s+"), " ").trim()
+        fun longer(citation: String, quote: String): String {
+            val text = sources.firstOrNull { it.citationId == citation }?.evidence?.text ?: return quote
+            val passage = flat(EvidenceRelevance.passageText(text))
+            val start = passage.indexOf(flat(quote)).takeIf { it >= 0 } ?: return quote
+            val out = StringBuilder()
+            for (sentence in sentences(passage.substring(start))) {
+                if (out.isNotEmpty() && out.length + 1 + sentence.length > maxChars) break
+                // "Also known as: …" is a list of names and the media note a link, not part of the text.
+                if (sentence.startsWith("Also known as:") || sentence.startsWith("Wikimedia Commons has media")) break
+                if (out.isNotEmpty()) out.append(' ')
+                out.append(sentence)
+            }
+            return out.toString().takeIf { it.length >= quote.length && it.last() in ".!?\"”’)" } ?: quote
+        }
+        return Lead(lead.citationId, longer(lead.citationId, lead.text), lead.more.map { (id, q) -> id to longer(id, q) })
+    }
+
+    private const val EXTENDED_CHARS = 1_000
+
+    internal fun sentences(paragraph: String): List<String> {
         val result = mutableListOf<String>()
         var start = 0
         for (match in boundary.findAll(paragraph)) {

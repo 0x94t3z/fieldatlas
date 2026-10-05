@@ -109,6 +109,12 @@ class DesktopResearchTest {
                 // Near-me lookups read the same place packs by coordinates, as on the phone.
                 override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>) =
                     multi.nearby(point, radiusKm, limit, categories)
+                override suspend fun aliased(name: String, limit: Int): List<Evidence> = multi.aliased(name, limit).also { evidence ->
+                    searches += buildJsonObject {
+                        put("query", "also known as: $name"); put("limit", limit)
+                        put("candidates", Json.encodeToJsonElement(evidence))
+                    }
+                }
                 override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> {
                     val evidence = multi.titled(phrase, sections, limit)
                     searches += buildJsonObject {
@@ -116,6 +122,12 @@ class DesktopResearchTest {
                         put("candidates", Json.encodeToJsonElement(evidence))
                     }
                     return evidence
+                }
+                override suspend fun sections(article: String, limit: Int): List<Evidence> = multi.sections(article, limit).also { evidence ->
+                    searches += buildJsonObject {
+                        put("query", "sections of: $article"); put("limit", limit)
+                        put("candidates", Json.encodeToJsonElement(evidence))
+                    }
                 }
             }
             var sources = emptyList<Evidence>()

@@ -25,6 +25,16 @@ fun interface Retriever {
      * own section first; its title can.
      */
     suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> = emptyList()
+
+    /** Passages that list [name] among an article's other names ("Also known as: GPS; Gps"). */
+    suspend fun aliased(name: String, limit: Int): List<Evidence> = emptyList()
+
+    /**
+     * The sections of the article titled [article] ("Passport — What if I lose it while
+     * travelling?"), shortest titles first; not those of articles that only begin with the same
+     * words ("Passport control").
+     */
+    suspend fun sections(article: String, limit: Int): List<Evidence> = emptyList()
 }
 
 /** Specialized multi-pack filtering; other retrievers retain their existing search contract. */

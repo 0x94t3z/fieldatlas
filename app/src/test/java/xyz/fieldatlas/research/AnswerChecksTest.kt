@@ -188,4 +188,24 @@ class AnswerChecksTest {
         val data = "Buy a prepaid SIM at the airport kiosk; check the operator's website for data plans."
         assertEquals(data, AnswerChecks.removeOnlineAdvice(data, "How do I get mobile data in Japan?"))
     }
+
+    @Test fun theModelsOwnExplanationCarriesNoAmountOfMedicine() {
+        val answer = """Both relieve pain and fever. Ibuprofen also reduces swelling, while paracetamol is gentler on the stomach.
+- The usual amount is 10 g (150 mg/kg) per day.
+- Take it with food if your stomach is sensitive.
+1. Take 2 tablets.
+
+From saved sources
+- "An adult usually takes 500 mg to 1 g at a time." [S1]"""
+        val out = AnswerChecks.removeDoses(answer, "What is the difference between ibuprofen and paracetamol?")
+        assertFalse(out, "150 mg/kg" in out || "2 tablets" in out)
+        assertTrue(out, "Ibuprofen also reduces swelling" in out && "Take it with food" in out)
+        assertTrue("an exact quotation of a source keeps its words", "500 mg to 1 g" in out)
+        assertTrue(out, out.endsWith(AnswerChecks.DOSE_NOTE))
+        // Grams of rice are not a dose, and an answer without an amount is left as it was.
+        val recipe = "Use 300 g of rice for four people."
+        assertEquals(recipe, AnswerChecks.removeDoses(recipe, "How much rice for four people?"))
+        assertEquals("Rest and drink water.", AnswerChecks.removeDoses("Rest and drink water.", "What helps a cold?"))
+        assertFalse("a 5G network is no dose", AnswerChecks.removeDoses("A 5G network is faster.", "How fast is 5G?").contains("_Amounts"))
+    }
 }

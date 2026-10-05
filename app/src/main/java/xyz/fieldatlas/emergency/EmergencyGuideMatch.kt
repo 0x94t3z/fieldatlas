@@ -167,7 +167,8 @@ object EmergencyGuideMatch {
     private val redFlags = Regex(
         "(?i)\\b((can'?t|cannot|can not|unable to|won'?t) (put|bear|take|tolerate|stand) (any )?weight|" +
             "(can'?t|cannot|unable to) (walk|stand|move (it|his|her|their))|bone (is )?(sticking|poking|showing) (out|through)|" +
-            "(looks|is) (deformed|crooked|bent|out of place)|numb|tingling|severe pain|very swollen|swelling (is )?getting worse)\\b",
+            "deformed|crooked|bent|misshapen|out of place|odd angle|looks wrong|numb|tingling|severe pain|very swollen|" +
+            "swelling (is )?getting worse)\\b",
     )
     private val seeksCare = Regex(
         "(?i)\\b(see a (health care provider|doctor)|seek (medical|emergency|immediate)|get (medical|emergency) (help|care)|" +

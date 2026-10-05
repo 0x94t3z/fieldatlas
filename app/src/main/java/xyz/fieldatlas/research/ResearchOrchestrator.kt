@@ -301,13 +301,76 @@ class ResearchOrchestrator(
                 if (summary.isNotEmpty()) evidence = (summary.take(PROPOSAL_SLOTS) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
             // "Cross the street in Hanoi" reads Hanoi's own "Stay safe" section, found by its title.
+            var travelPlace: String? = null
+            var travelPicked = emptyList<Evidence>()
             if (guide == null && attachments.isEmpty()) TravelSections.lookup(question)?.let { travel ->
-                for (place in travel.places.take(TRAVEL_PLACES)) {
+                val named = travel.places.take(TRAVEL_PLACES)
+                suspend fun read(place: String): Boolean {
                     val sections = TravelSections.pick(question, place,
                         retriever.titled(place, travel.sections, TRAVEL_CANDIDATES), TRAVEL_SLOTS)
+                    if (sections.isEmpty()) return false
+                    evidence = (sections + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    travelPlace = place
+                    travelPicked = sections
+                    return true
+                }
+                if (named.none { read(it) }) {
+                    // A beach or district with no guide of its own is covered by the place it lies
+                    // in, which its overview names: "Bondi Beach is a beach in Sydney".
+                    for (place in named) {
+                        val overview = SubjectLookup.overviewOf(place, retriever.titled(place, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES))
+                        val parent = overview?.let { TravelSections.parentOf(place, it.text) } ?: continue
+                        if (read(parent)) break
+                    }
+                }
+            }
+            // "I lost my passport while travelling" reads the travel guide "Passport", found by its
+            // title, when no place guide answered; an explanation reads its subject's article below.
+            if (guide == null && attachments.isEmpty() && travelPlace == null && !SubjectLookup.leads(question) &&
+                !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null) {
+                for (name in TopicGuides.names(question).filterNot(VenueLookup::isVenueKind)) {
+                    val sections = TopicGuides.pick(question, name, retriever.sections(name, TOPIC_CANDIDATES), TRAVEL_SLOTS)
                     if (sections.isEmpty()) continue
                     evidence = (sections + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    travelPlace = sections.first().title.substringBefore(" — ")
+                    travelPicked = sections
                     break
+                }
+            }
+            // "How does a heat pump heat a house?" reads the article "Heat pump", found by its title;
+            // a comparison reads both of its subjects.
+            val subjects = ArrayList<Evidence>()
+            if (guide == null && attachments.isEmpty() && travelPlace == null && ProposalLookup.named(question) == null &&
+                SubjectLookup.leads(question)) {
+                val wanted = if (comparisonWords.containsMatchIn(question)) 2 else 1
+                for (candidate in SubjectLookup.candidates(question, wanted)) {
+                    if (subjects.size >= wanted) break
+                    val phrase = candidate.text
+                    // "heat pump" found; "pump" alone is the same subject, not a second one.
+                    if (subjects.any { s -> s.title.removeSuffix(" — Overview").let { it.contains(phrase, true) || phrase.contains(it, true) } }) continue
+                    val byTitle = SubjectLookup.overviewOf(phrase, retriever.titled(phrase, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES))
+                    // "GPS" is the article "Global Positioning System", which lists GPS among its other names.
+                    val byAlias = if (byTitle == null && candidate.rest.isEmpty())
+                        SubjectLookup.aliasOf(phrase, retriever.aliased(phrase, ALIAS_CANDIDATES))?.let { title ->
+                            SubjectLookup.overviewOf(title, retriever.titled(title, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES))
+                        } else null
+                    // A standard named by what it is: "stealth address" -> ERC-5564 "Stealth Addresses".
+                    val byStandard = if (byTitle == null && byAlias == null && candidate.rest.isEmpty() && ' ' in phrase)
+                        SubjectLookup.standardOf(phrase, retriever.titled(phrase, ProposalLookup.SUMMARY_SECTIONS, SUBJECT_CANDIDATES)) else null
+                    // A subject with no article of its own may head a section of a broader one.
+                    val bySection = if (byTitle == null && byAlias == null && byStandard == null && candidate.rest.isEmpty() && ' ' in phrase)
+                        listOf(phrase, phrase + "s").firstNotNullOfOrNull { name ->
+                            SubjectLookup.sectionOf(phrase, retriever.titled(name, listOf(name), SUBJECT_CANDIDATES))
+                        } else null
+                    val found = byTitle ?: byAlias ?: byStandard ?: bySection
+                    found?.takeIf { SubjectLookup.accepts(candidate, it) }?.let(subjects::add)
+                }
+                if (subjects.isNotEmpty()) evidence = (subjects + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+            }
+            // A question that names no place reads no one destination's guide or listings (see GuideScope).
+            if (guide == null && attachments.isEmpty() && !VenueLookup.isPlaceLookup(question)) {
+                evidence = GuideScope.withoutOtherPlaces(question, evidence) { article ->
+                    retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
                 }
             }
             val retrievalFinishedAt = monotonicMillis()
@@ -393,14 +456,39 @@ class ResearchOrchestrator(
             }
             // A verbatim overview opening is only composed with mixed answers, whose stream
             // already replaces the whole answer on every token.
-            val lead = if (attachments.isEmpty() && packed.mixedAnswer)
-                SourceLead.select(question, packed.sources) ?: ProposalLookup.lead(question, packed.sources) else null
+            val referenceLead = if (attachments.isEmpty() && packed.mixedAnswer)
+                SourceLead.select(question, packed.sources) ?: ProposalLookup.lead(question, packed.sources)
+                    ?: SubjectLookup.lead(question, subjects, packed.sources)
+            else null
+            val guideQuote = if (attachments.isEmpty() && packed.mixedAnswer && referenceLead == null)
+                TravelSections.lead(question, travelPlace, packed.sources.filter { s -> travelPicked.any { it.chunkId == s.evidence.chunkId && it.documentId == s.evidence.documentId } })
+            else null
+            val lead = referenceLead ?: guideQuote
             // For an emergency the official steps appear at once, word for word; the model's answer
             // for the person's situation streams in below them (it can take a minute on a slow phone).
             val guideLead = guide?.let { g ->
                 packed.sources.firstOrNull()?.let { key ->
                     xyz.fieldatlas.emergency.EmergencyGuideMatch.officialSteps(key.evidence, 1, g.source.publisher) + "\n\n**For this situation**\n\n"
                 }
+            }
+            // A travel guide's own section is advice written for this need, so quoted at length it
+            // is the answer. The 2B model's additions below a guide quote carried most travel
+            // errors ("use designated crossings like Beer Street" after Hanoi's traffic advice).
+            // An encyclopedia definition is not an answer to how or why; those keep the model, and
+            // so does a question with numbers in it, which asks for an answer worked out from them
+            // ("how much water for a 6-hour hike?") that no quoted passage gives.
+            if (guideQuote != null && guide == null && !asksCalculation(question)) {
+                val quoted = SourceLead.extend(guideQuote, packed.sources)
+                emit(ResearchEvent.Token(quoted.render() + "\n\n_" + GUIDE_QUOTE_NOTE + "_"))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = setOf(quoted.citationId) + quoted.more.map { it.first },
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
             }
             if (lead != null) {
                 emit(ResearchEvent.Lead(lead.render()))
@@ -455,6 +543,8 @@ class ResearchOrchestrator(
             // and correct a 12-hour time that disagrees with the 24-hour time the source states.
             // The person is offline: advice to search the web, visit a site or use an app is removed.
             val raw = AnswerChecks.removeOfflineNarration(AnswerChecks.removeOnlineAdvice(output.toString(), question), question)
+                // The model's own explanation never carries an amount of medicine (see removeDoses).
+                .let { if (packed.mixedAnswer && guide == null) AnswerChecks.removeDoses(it, question) else it }
             val checked = if (packed.mixedAnswer) raw
                 else AnswerChecks.addTwelveHour(
                     AnswerChecks.repairTimes(AnswerChecks.repairCitations(raw, attributionEvidence), attributionEvidence),
@@ -520,6 +610,15 @@ class ResearchOrchestrator(
         const val TRAVEL_PLACES = 3
         const val TRAVEL_CANDIDATES = 30
         const val TRAVEL_SLOTS = 2
+        const val SUBJECT_CANDIDATES = 10
+        const val TOPIC_CANDIDATES = 50
+        // A number other than a year ("in 2026").
+        private val quantity = Regex("(?<![\\p{L}\\p{N}])(?!(?:19|20)\\d\\d(?![\\p{N}]))\\d+(?:[.,]\\d+)?")
+        internal fun asksCalculation(question: String) = quantity.containsMatchIn(question)
+        const val GUIDE_QUOTE_NOTE = "Quoted from the saved travel guide, without a model summary; tap the citation to read the whole section."
+        // Short-titled articles that merely mention an acronym come first; the alias line decides.
+        const val ALIAS_CANDIDATES = 50
+        val comparisonWords = Regex("(?i)\\b(difference|differ|different|compare|compared|comparison|versus|vs\\.?)\\b")
         /** City scale: "the city I'm in" and "near me" both fit; the answer states distances. */
         const val NEARBY_RADIUS_KM = 15.0
         val NEARBY_RADII_KM = listOf(2.0, 5.0, NEARBY_RADIUS_KM)

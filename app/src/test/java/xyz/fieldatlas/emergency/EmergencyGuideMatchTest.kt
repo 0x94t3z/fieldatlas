@@ -195,4 +195,10 @@ class EmergencyGuideMatchTest {
         assertEquals("hypothermia", match("My friend's body temperature is 34°C and he is shivering, what do I do?"))
         assertEquals("frostbite", match("It's -20°C and my friend's fingers are white and numb, what should I do?"))
     }
+
+    @Test fun aBentLimbLeadsWithWhenToGetCare() {
+        val guide = book.guides.first { it.id == "fractures-sprains" }
+        val first = EmergencyGuideMatch.select("My friend fell off a bike and his wrist is swollen and bent. What should we do?", guide, 400).first()
+        assertTrue(first.title, "Serious Injuries" in first.title)
+    }
 }

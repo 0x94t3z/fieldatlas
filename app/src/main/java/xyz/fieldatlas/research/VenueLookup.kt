@@ -36,8 +36,8 @@ object VenueLookup {
     )
     private fun essential(question: String) = ESSENTIALS.firstOrNull { it.words.containsMatchIn(question) }
     private val complexWords = Regex("(?i)\\b(compare|contrast|explain|why|how|reason|evidence|versus)\\b")
-    private val veganWord = Regex("(?i)\\bvegan\\b")
-    private val vegetarianWord = Regex("(?i)\\bvegetarian\\b")
+    private val veganWord = Regex("(?i)\\bvegans?\\b")
+    private val vegetarianWord = Regex("(?i)\\bvegetarians?\\b")
     private val bestWord = Regex("(?i)\\bbest\\b")
     private val openNow = Regex("(?i)\\b(open|closed)\\b.{0,30}\\b(now|today|tonight|currently)\\b|\\b(currently|still) (open|closed)\\b")
     private val word = Regex("[\\p{L}\\p{N}]+")
@@ -50,14 +50,29 @@ object VenueLookup {
         "bars", "bar",
         // About when, not what: "open right now" is answered with the hours on file and a caveat.
         "open", "right", "now", "today", "tonight", "currently", "closed", "still", "saved", "listings",
+        // How people phrase a request, not what they want of the place.
+        "try", "staying", "stay", "week", "weekend", "days", "visit", "visiting", "trip", "eats", "eating", "vegans",
+        "vegetarians", "name", "few", "couple", "good", "great", "nice", "options", "option", "spots", "spot", "proper",
+        "meals", "meal", "snacks", "snack", "serve", "serves", "serving", "easy", "go", "should", "can", "you", "dine",
+        "dinner", "lunch", "breakfast", "somewhere", "anywhere", "any", "there", "here", "city", "town", "area",
     )
 
     /** A request for places to go, answerable from place listings alone. */
     fun isPlaceLookup(question: String) = isLookup(question)
 
+    /** A kind of place to go ("museums", "hostels"), which a city's listings answer rather than a general article. */
+    fun isVenueKind(name: String) = venueWords.matches(name.trim())
+
     // "Pharmacy open now in Berlin" asks for places as plainly as "where is a pharmacy" does.
-    private fun isLookup(question: String) = (venueWords.containsMatchIn(question) || essential(question) != null) &&
-        (lookupWords.containsMatchIn(question) || openNow.containsMatchIn(question)) && !complexWords.containsMatchIn(question)
+    // "Where do vegans eat in Montreal?", "Is it easy to eat vegan in Kuala Lumpur? Name a few places."
+    private val dietFood = Regex("(?i)\\b(vegans?|vegetarians?)\\b.*\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b|" +
+        "\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b.*\\b(vegans?|vegetarians?)\\b")
+    private val askWords = Regex("(?i)\\b(name|try|should i|where do|where can|options|go to)\\b")
+
+    private fun isLookup(question: String) =
+        (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
+            (lookupWords.containsMatchIn(question) || askWords.containsMatchIn(question) || openNow.containsMatchIn(question)) &&
+            !complexWords.containsMatchIn(question)
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
 
@@ -200,14 +215,49 @@ object VenueLookup {
         )
     }
 
+    /**
+     * A map pack files a place under its nearest city: cafés in Malmö, across the water in Sweden,
+     * came back as Copenhagen. Within one city's listings, a place far from where most of them are
+     * (the median) is in another town and is left out.
+     */
+    private fun withinCity(listings: List<Listing>): List<Listing> = listings.groupBy { it.destination.lowercase() }.values.flatMap { city ->
+        val located = city.filter { it.latitude != null && it.longitude != null }
+        if (located.size < 3) return@flatMap city
+        val lat = located.map { it.latitude!! }.sorted()[located.size / 2]
+        val lon = located.map { it.longitude!! }.sorted()[located.size / 2]
+        city.filter { it.latitude == null || it.longitude == null || kilometres(lat, lon, it.latitude, it.longitude) <= CITY_RADIUS_KM }
+    }
+
+    private fun kilometres(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1); val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2).let { it * it } + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2).let { it * it }
+        return 2 * r * Math.asin(Math.sqrt(a))
+    }
+
+    // Words that say what kind of place a name is, in the languages of the saved map data; what is
+    // left names the business: "Minh Chay Vegan Restaurant" and "Nhà Hàng Minh Chay" are one.
+    private val kindWords = Regex("(?i)\\b(?:restaurants?|restaurante|ristorante|restoran|nhà hàng|quán|cafe|café|caffè|vegan|vegans|" +
+        "vegetarian|vegetariano|vegetariana|vegetarisch|végétarien|chay|chay quán|the|and)\\b")
+
+    /** A place's name without its kind, to treat a business's branches and duplicate map entries as one. */
+    internal fun brand(name: String): String =
+        kindWords.replace(name.lowercase(), " ").replace(Regex("[^\\p{L}\\p{N}]+"), " ").trim().ifEmpty { name.lowercase() }
+
+    // Several branches or duplicate entries of one restaurant show once, at the first (nearest or
+    // best-ranked) of them, so the answer offers different places. A pharmacy or ATM chain's
+    // branches are real alternatives when the nearest is closed, so essentials keep them all.
+    private fun <T> List<T>.onePerBusiness(request: Request, name: (T) -> String): List<T> =
+        if (request.essential != null) this else distinctBy { brand(name(it)).takeIf { b -> b.length >= 4 } ?: name(it).lowercase() }
+
     /** [now] is this phone's local time, used only when the question asks what is open now. */
     fun answer(question: String, evidence: List<Evidence>, now: LocalDateTime = LocalDateTime.now()): Result? {
         if (!isLookup(question)) return null
         val request = request(question)
         val diet = request.diet
-        val listings = evidence.mapNotNull { item ->
+        val listings = withinCity(evidence.mapNotNull { item ->
             listing(item, question, request, destinationRequired = true)
-        }.distinctBy { it.destination.lowercase() to it.name.lowercase() }
+        }).distinctBy { it.destination.lowercase() to it.name.lowercase() }
             // Stable sort: retrieval order is kept within each group.
             .sortedBy { if (diet == "vegan" && it.vegan == "fully vegan") 0 else 1 }
         if (listings.isEmpty()) return null
@@ -221,7 +271,7 @@ object VenueLookup {
             val chosen = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else osm
             val clock = now.takeIf { openNow.containsMatchIn(question) }
             val ordered = clock?.let { time -> chosen.sortedBy { openRank(it.hours, time) } } ?: chosen
-            return osmAnswer(question, diet, ordered.take(OSM_LISTINGS), request.essential?.noun, clock)
+            return osmAnswer(question, diet, ordered.onePerBusiness(request) { it.name }.take(OSM_LISTINGS), request.essential?.noun, clock)
         }
         val shown = listings.take(4)
 
@@ -317,7 +367,7 @@ object VenueLookup {
             { (_, distance) -> DISTANCE_BANDS_KM.indexOfFirst { distance <= it }.let { if (it < 0) DISTANCE_BANDS_KM.size else it } },
             { (listing, _) -> if (request.diet == "vegan" && listing.vegan == "fully vegan") 0 else 1 },
             { (_, distance) -> distance },
-        )).take(OSM_LISTINGS)
+        )).onePerBusiness(request) { (listing, _) -> listing.name }.take(OSM_LISTINGS)
         if (chosen.isEmpty()) {
             val what = request.essential?.noun ?: listOfNotNull(request.diet, "places").joinToString(" ")
             return Result("I couldn't find saved $what within ${GeoDistance.label(radiusKm)} of your location. " +
@@ -484,6 +534,7 @@ object VenueLookup {
     private const val OSM_LISTINGS = 6
     private val DISTANCE_BANDS_KM = listOf(1.0, 3.0, 10.0)
     private val MEAL_TYPES = setOf("restaurant", "fast food", "food court")
+    private const val CITY_RADIUS_KM = 25.0
     private val restaurantWords = Regex("(?i)\\b(restaurants?|dining|places? to eat)\\b")
 
     private fun field(text: String, key: String): String? = text.lineSequence()

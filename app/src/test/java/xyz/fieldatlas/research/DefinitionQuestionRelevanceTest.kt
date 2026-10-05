@@ -46,4 +46,20 @@ class DefinitionQuestionRelevanceTest {
         assertEquals("S1", lead.citationId)
         assertTrue(lead.text, lead.text.startsWith("The history of Japan begins in prehistoric times"))
     }
+
+    @Test fun aSubjectNoPassageDefinesKeepsThePassagesThatNameIt() {
+        val question = "What is danksharding and how does it help Ethereum scale?"
+        val upgrade = Evidence("wp-eth", "wp-eth:0040", "Ethereum — History > Upgrades in 2024", "https://en.wikipedia.org/w/index.php?oldid=3",
+            "The 2024 upgrade added EIP-4844 (proto-danksharding), which gave Ethereum blobs: data kept only for a few weeks, " +
+                "so rollups pay far less to publish their batches.", 1.0)
+        val unrelated = Evidence("wp-gas", "wp-gas:0002", "Ethereum — Design > Gas", "https://en.wikipedia.org/w/index.php?oldid=4",
+            "Gas is the unit that measures the work a transaction asks Ethereum to do.", 1.0)
+        val kept = EvidenceRelevance.keep(listOf(unrelated, upgrade), FtsQuery.from(question)!!.terms, question = question)
+        assertEquals(listOf("Ethereum — History > Upgrades in 2024"), kept.map { it.title })
+        // A passage that defines the subject is still the only kind kept when one exists.
+        val defined = Evidence("wp-dank", "wp-dank:0000", "Danksharding — Overview", "https://en.wikipedia.org/w/index.php?oldid=5",
+            "Danksharding is a design in which Ethereum blocks carry large blobs of data for rollups.", 1.0)
+        assertEquals(listOf("Danksharding — Overview"),
+            EvidenceRelevance.keep(listOf(upgrade, defined), FtsQuery.from(question)!!.terms, question = question).map { it.title })
+    }
 }

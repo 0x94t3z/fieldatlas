@@ -67,6 +67,28 @@ object EvidenceRelevance {
         question: String? = null,
     ): List<Evidence> {
         if (questionTerms.isEmpty()) return evidence
+        val kept = gate(evidence, questionTerms, expandedTerms, question)
+        val overview = overviewSubjects(question)
+        if (kept.isNotEmpty() || overview.isEmpty() || comparisonTerms(question).isNotEmpty()) return kept
+        // "What is danksharding?" asks for a definition, but when no saved passage defines the
+        // subject, the passages whose text names it ("EIP-4844 (Proto-Danksharding) introduced
+        // blobs") and shares another of the question's words ("Ethereum") still say more than a
+        // model answering from nothing. A title alone ("2-MeV Fast Neutrons") does not count.
+        val subjectTerms = overview.flatMap { FtsQuery.from(it)?.terms.orEmpty() }.toSet()
+        val otherTerms = questionTerms.filterNot { it in subjectTerms || it in lookupWrappers || it in genericTerms }
+        return rankByPassage(evidence.filter { item ->
+            val passage = topicalText(item.text)
+            !isTravelListing(item) && overview.any { containsPhrase(passage, it) } &&
+                (otherTerms.isEmpty() || tokens(item.title + " " + passage).let { body -> otherTerms.any { body.matches(it) } })
+        }, questionTerms)
+    }
+
+    private fun gate(
+        evidence: List<Evidence>,
+        questionTerms: List<String>,
+        expandedTerms: List<String>,
+        question: String?,
+    ): List<Evidence> {
         val subjects = comparisonTerms(question)
         val overview = overviewSubjects(question)
         // Request boilerplate is not evidence of the requested subject. In source-only

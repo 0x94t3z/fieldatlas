@@ -37,7 +37,7 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         }
     }
 
-    /** Rows whose title matches [titleMatch], in pack order. */
+    /** Rows matching [titleMatch], shortest title first (the plain "Hurricane" before "Hurricane Lee"), then in pack order. */
     internal fun titled(titleMatch: String, limit: Int): List<Evidence> = synchronized(database) {
         database.prepare(TITLED_SQL).use { statement ->
             statement.bindText(1, titleMatch)
@@ -371,7 +371,7 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
             SELECT document_id, chunk_id, title, source, text, 0.0
             FROM chunks_fts
             WHERE chunks_fts MATCH ?1
-            ORDER BY rowid
+            ORDER BY length(title), rowid
             LIMIT ?2
         """
 

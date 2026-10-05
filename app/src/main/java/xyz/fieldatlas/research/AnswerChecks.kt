@@ -210,6 +210,44 @@ object AnswerChecks {
     // A sentence that offers something to do besides what can't be done keeps that part.
     private val alternative = Regex("(?i)(?:,\\s*(?:so|but|instead)|;\\s*|\\s+(?:so|but|instead)\\s+)")
 
+    // An amount of medicine: "400 mg", "200-400 mg", "10 g (150 mg/kg) per day", "2 tablets", "5 ml".
+    private val doseAmount = Regex("(?i)(?<![\\p{L}\\p{N}])\\d+(?:[.,]\\d+)?\\s*(?:(?:-|–|to)\\s*\\d+(?:[.,]\\d+)?\\s*)?" +
+        "(mg|mcg|µg|micrograms?|milligrams?|grams?|g|ml|millilit(?:re|er)s?|iu|tablets?|pills?|capsules?|drops?)(?:\\s*/\\s*kg)?(?![\\p{L}\\p{N}])")
+    private val medicineWord = Regex("(?i)\\b(?:doses?|dosage|dosing|overdoses?|tablets?|pills?|capsules?|medicines?|medications?|drugs?|" +
+        "painkillers?|ibuprofen|paracetamol|acetaminophen|aspirin|naproxen|antihistamines?|antibiotics?|insulin|codeine|morphine|syrup)\\b")
+    // Units that only ever measure medicine here; grams and millilitres also measure food.
+    private val medicineUnits = setOf("mg", "mcg", "µg", "microgram", "micrograms", "milligram", "milligrams", "iu")
+    private val sentenceEnd = Regex("(?<=[.!?])\\s+")
+    private val sourceHeading = Regex("(?i)^\\W*from saved sources\\W*$")
+
+    /**
+     * Removes amounts of medicine from the model's own explanation, sentence by sentence, and says
+     * so. A 2B model turned a source's overdose figure ("150 mg/kg") into a recommended dose; the
+     * number was in the source, so checking numbers against sources cannot catch it. Exact
+     * quotations under "From saved sources" are the sources' own words and stay.
+     */
+    fun removeDoses(text: String, question: String): String {
+        val aboutMedicine = medicineWord.containsMatchIn(question)
+        fun isDose(sentence: String) = doseAmount.findAll(sentence).any { m ->
+            m.groupValues[1].lowercase() in medicineUnits || aboutMedicine || medicineWord.containsMatchIn(sentence)
+        }
+        var quotes = false
+        var removed = false
+        val kept = text.lines().mapNotNull { line ->
+            if (sourceHeading.matches(line.trim())) quotes = true
+            if (quotes || !isDose(line)) return@mapNotNull line
+            val sentences = line.split(sentenceEnd)
+            val rest = sentences.filterNot(::isDose)
+            removed = true
+            // A list item or line that was only an amount goes; "1. Take 400 mg." leaves no step.
+            rest.joinToString(" ").takeIf { it.trim().trimStart('-', '*', '•').trim().replace(Regex("^\\d+[.)]\\s*"), "").any(Char::isLetter) }
+        }
+        if (!removed) return text
+        return kept.joinToString("\n").trimEnd() + "\n\n" + DOSE_NOTE
+    }
+
+    const val DOSE_NOTE = "_Amounts of medicine are left out of this explanation: follow the package leaflet, or ask a pharmacist or doctor._"
+
     /**
      * The person asking has no connection, so an answer must not send them online. A sentence
      * or list item that tells them to search the web, visit a site, read online reviews or use
