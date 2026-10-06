@@ -113,4 +113,23 @@ class AssetRegistryTest {
         }
         assertTrue(registry.list().associateBy { it.id }.getValue("model-b").active)
     }
+
+    @Test
+    fun `a new version of a collection switches the older one off`() {
+        val dir = tempFolder.newFolder("versions")
+        val registry = registryIn(dir)
+        runBlocking {
+            registry.add(asset(version = "2026.10.02"))
+            registry.add(asset(id = "world-knowledge-beta"))
+            registry.add(asset(id = "qwen", version = "1", type = PackType.MODEL))
+            registry.add(asset(version = "2026.10.05"))
+            registry.add(asset(id = "qwen", version = "2", type = PackType.MODEL))
+        }
+        val assets = runBlocking { registry.list() }
+        assertFalse(assets.first { it.id == "world-knowledge-alpha" && it.version == "2026.10.02" }.enabled)
+        assertTrue(assets.first { it.id == "world-knowledge-alpha" && it.version == "2026.10.05" }.enabled)
+        assertTrue(assets.first { it.id == "world-knowledge-beta" }.enabled)
+        // Models are chosen by the active flag, not switched off.
+        assertTrue(assets.filter { it.id == "qwen" }.all { it.enabled })
+    }
 }

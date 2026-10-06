@@ -16,7 +16,7 @@ object QuestionRequirements {
     )
 
     const val RECENT_NEWS = "Field Atlas answers from saved collections, which are dated snapshots, so it can't " +
-        "know what was published or announced today. Ask about the topic itself, or check a current source when you're online."
+        "know what was published or announced today. Ask about the topic itself and it answers from what is saved."
 
     fun response(question: String, hasAttachments: Boolean): String? {
         if (hasAttachments) return null // Supplied material can be read, with its original date/context.
@@ -27,7 +27,7 @@ object QuestionRequirements {
         if (recentNews.containsMatchIn(request)) return RECENT_NEWS
         if (liveTime.containsMatchIn(request) && liveLocation.containsMatchIn(request) &&
             liveStatus.containsMatchIn(request)) {
-            return "I can't verify live conditions at your location from saved knowledge. Check an up-to-date local source. You can attach a current notice or report for me to explain."
+            return "I can't verify live conditions at your location from saved knowledge. Posted notices, staff or people nearby will know. You can attach a photo of a current notice or report for me to read."
         }
         return null
     }

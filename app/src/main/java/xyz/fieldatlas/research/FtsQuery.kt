@@ -21,7 +21,7 @@ class FtsQuery private constructor(
             } else {
                 normalized
             }
-            val terms = termPattern.findAll(capped)
+            val terms = termPattern.findAll(withoutContractions(capped))
                 .map { it.value.lowercase(Locale.ROOT) }
                 .filter { it.codePointCount(0, it.length) >= 2 }
                 .filterNot(STOP_WORDS::contains)
@@ -37,11 +37,25 @@ class FtsQuery private constructor(
             )
         }
 
+        // "we're", "I'll", "they've", "it's": the ending after the apostrophe is not a word, and
+        // "n't" is "not", so "can't" does not leave a "ca" and "won't" a "wo" to search for.
+        private val negation = Regex("(?i)\\b(won|can)['’]t\\b")
+        private val contractedNot = Regex("(?i)n['’]t\\b")
+        private val contractedEnding = Regex("(?<=\\p{L})['’](?:re|ll|ve|d|m|s)\\b")
+
+        internal fun withoutContractions(text: String): String = text
+            .replace(negation) { if (it.groupValues[1].lowercase() == "won") "will not" else "can not" }
+            .replace(contractedNot, " not").replace(contractedEnding, "")
+
         /**
          * A word of three letters or fewer is matched in its own inflections, not as a prefix:
          * "get" finds "gets" and "getting", "bus" finds "buses", but "mev" never "mevalonate".
          * Verb endings are only added to words with a vowel; "bls" is an acronym.
          */
+        /** Whether a noun ending in [base] takes an -es plural ("box", "dish"), not a plain -s. */
+        private fun takesEs(base: String): Boolean =
+            base.endsWith("s") || base.endsWith("x") || base.endsWith("z") || base.endsWith("ch") || base.endsWith("sh")
+
         internal fun shortForms(term: String): List<String> {
             val plural = if (term.endsWith("s") || term.endsWith("x") || term.endsWith("z") || term.endsWith("ch") || term.endsWith("sh")) "es" else "s"
             val forms = linkedSetOf(term, term + plural)
@@ -74,12 +88,17 @@ class FtsQuery private constructor(
                 // prefix (alli* -> allies) instead of rewriting ies to y (ally* cannot match
                 // "allies" in a unicode61 index).
                 term.length > 4 && term.endsWith("ies") -> term.dropLast(2)
-                term.length > 4 && term.endsWith("es") -> term.dropLast(2)
+                // "boxes" and "dishes" add -es; "tides" and "planes" add -s, and "tid"* or "plan"*
+                // would miss "tide" and match "planet".
+                term.length > 4 && term.endsWith("es") -> if (takesEs(term.dropLast(2))) term.dropLast(2) else term.dropLast(1)
                 term.length > 3 && term.endsWith("s") -> term.dropLast(1)
                 term.length > 4 && term.endsWith("ing") -> term.dropLast(3)
                 term.length > 4 && term.endsWith("ed") -> term.dropLast(2)
                 else -> term
             }
+            // A stem this short as a prefix matches other words: "ear"* for "ears" found earthquakes.
+            // Match the word and the stem's own inflections instead.
+            if (stem.codePointCount(0, stem.length) <= 3) return (listOf(term) + shortForms(stem)).distinct().joinToString(" OR ", "(", ")") { "\"$it\"" }
             return "\"$stem\"*"
         }
 

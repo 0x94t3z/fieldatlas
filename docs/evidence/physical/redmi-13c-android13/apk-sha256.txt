@@ -1,0 +1,1 @@
+d65df23e87ea07f8004e1e00460b7045b6c4ea3ef3d4394bb79a2f4831deff61  fieldatlas-1.4.0-localtest.apk

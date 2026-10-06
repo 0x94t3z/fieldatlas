@@ -50,6 +50,7 @@ class BackgroundAssetDownloads(
     /** Called only when the user opens the app; Android forbids starting this service in the background. */
     fun resumeInterrupted() {
         if (mutableState.value.active) return
+        scope.launch(Dispatchers.IO) { runCatching { container.discardStaleKnowledgeDownloads() } }
         val kind = preferences.getString(PENDING_KIND, null) ?: return
         when (kind) {
             AssetDownloadKind.MODEL.name -> {

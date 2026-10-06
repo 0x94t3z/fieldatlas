@@ -250,6 +250,13 @@ class PromptBuilderTest {
         prompts.forEach { assertTrue(it, "The person asking is offline, with no internet and maybe no phone signal." in it) }
     }
 
+    @Test fun theGuidePromptAsksForTheGuidesOwnWarningsAndADirectAnswerToYesNoQuestions() {
+        val prompt = PromptBuilder.buildGuide("A monkey bit my hand, do I need rabies shots?", listOf(first)).prompt
+        assertTrue(prompt, "then only the \"do not\" warnings the guide itself gives" in prompt)
+        assertTrue(prompt, "If the question asks yes/no or when (for example \"do I need rabies shots?\", \"should we move her?\", \"when should I worry?\"), answer that in one sentence from the guide before the steps; if the guide does not say, say so." in prompt)
+        assertFalse(prompt, "warnings that apply" in prompt)
+    }
+
     @Test fun everyPromptOfOneKindOpensWithTheSameFixedInstructions() {
         fun source(n: Int) = Evidence("d$n", "d$n:0", "Doc $n", "local", "Passage number $n about rivers and tides.", 0.0)
         val first = PromptBuilder.build("Why do rivers flood?", listOf(source(1)), 2048)
@@ -266,5 +273,20 @@ class PromptBuilderTest {
         assertTrue(guide.prompt.substring(guide.savedPrefixChars).startsWith("\n\nEVIDENCE:"))
         val alone = PromptBuilder.buildModelOnly("What is a rainbow?")
         assertTrue(alone.prompt.substring(alone.savedPrefixChars).startsWith("\n\nQUESTION:"))
+    }
+
+
+    @Test fun onlyARequestForPlacesIsHeldToTheListings() {
+        assertFalse(PromptBuilder.allowsModelExplanation("Best vegan restaurants in Lisbon"))
+        assertFalse(PromptBuilder.allowsModelExplanation("Which hostels are listed in Hanoi?"))
+        assertTrue(PromptBuilder.allowsModelExplanation("How do hostels compare with guesthouses for a solo traveller on a budget?"))
+        assertTrue(PromptBuilder.allowsModelExplanation("Why are museums often closed on Mondays?"))
+        assertTrue(PromptBuilder.allowsModelExplanation("What is the difference between a hostel and a hotel in terms of privacy?"))
+        assertFalse(PromptBuilder.allowsModelExplanation("Compare bars in London"))
+        // Typed in lower case, or without a request word, a question about places still keeps to the listings.
+        assertFalse(PromptBuilder.allowsModelExplanation("What are good hostels in lisbon"))
+        assertFalse(PromptBuilder.allowsModelExplanation("cheap hostels lisbon"))
+        assertFalse(PromptBuilder.allowsModelExplanation("Tokyo's top sushi restaurants?"))
+        assertFalse(PromptBuilder.allowsModelExplanation("Summarize these notes"))
     }
 }

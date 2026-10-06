@@ -1,5 +1,31 @@
 # Verification
 
+## v1.4.0 (October 6–7)
+
+- **Automated:** 799 Android JVM tests ran with zero failures; 16 opt-in desktop tests were
+  skipped in the ordinary run and run separately against the real collections
+  (`FIELDATLAS_DESKTOP_CONFIG`). Python: 12 pack-tool, 57 script, 6 benchmark and 72 builder tests
+  passed (`python3 -m unittest discover`). An instrumentation test on the Redmi 13C
+  (`OnDeviceRegexTest`) compiled every regular-expression literal of the app with Android's ICU
+  engine and ran the calculators on the phone: all 416 patterns compile and the calculators give
+  the JVM's answers. It was written after the first 1.4.0 build stopped on launch, because ICU reads
+  `[:.]` as the start of a POSIX class; two calculator patterns were rewritten.
+- **Answer quality:** the field test in [evaluation](evaluation.md#140-on-60-new-held-out-questions-october-7):
+  38% of the web-and-frontier reference on 60 held-out questions written after the last
+  change, graded blind. References and graders are frontier models of one family, so this is a
+  development measure, not an independent score.
+- **Redmi 13C (6 GB, Android 13), local-test key, airplane mode with Wi-Fi and mobile data off:**
+  the 1.4.0 source installed over 1.3.0 with its data kept; the five 1.4.0 collections imported from
+  `.fapack` files and the older versions switched off by the import; a phrasebook line in 4 s, a fuel-cost split calculated in 0 s, the heat-stroke guide leading the
+  answer in 40–52 s, an onion explanation quoting the English article's "Eye irritation" section in
+  1 m 45 s, "Tell me about Japan" in 2 m 24 s, the best vegan restaurants in Berlin in 3 s, and
+  "Where am I?" and Vitalik's question from the phone's own position (no vegan place is mapped within
+  15 km of that rural spot, and the answer said so). Details and
+  screenshots in [the device record](evidence/physical/redmi-13c-android13/README.md).
+- **Not verified for this release:** the public-key signed APK on a phone, the in-app model and
+  collection download on a phone, network traffic capture during research, a Pixel or GrapheneOS
+  phone, and any 8 GB phone (so the optional 4B has not run on a phone that is offered it).
+
 ## v1.2.0 (October 2–3)
 
 - **Automated:** 473 Android JVM tests ran with zero failures: 463 passed and 10 opt-in desktop

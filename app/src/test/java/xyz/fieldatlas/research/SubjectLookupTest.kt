@@ -3,6 +3,8 @@ package xyz.fieldatlas.research
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -100,5 +102,252 @@ class SubjectLookupTest {
         val lead = events.filterIsInstance<ResearchEvent.Lead>().first().text
         assertTrue(lead, "> A hardware wallet is a small device that keeps the private key inside" in lead)
         assertEquals(null, SubjectLookup.sectionOf("wallet", listOf(section)))
+    }
+
+    @Test fun aFactualLookupNamesWhatItIsAbout() {
+        assertTrue(SubjectLookup.looksUp("Who won the First World War?"))
+        assertTrue(SubjectLookup.looksUp("What is the population of Canada?"))
+        assertTrue(SubjectLookup.looksUp("tell me about taiwan"))
+        assertTrue(SubjectLookup.looksUp("are lions or tigers heavier?"))
+        assertFalse("an explanation leads with its one subject instead", SubjectLookup.looksUp("How does a heat pump heat a house?"))
+        assertFalse(SubjectLookup.looksUp("What should I eat to live a long and healthy life?"))
+        fun lookup(question: String) = SubjectLookup.candidates(question, 3, lookup = true).map { it.text }
+        assertEquals("First World War", lookup("Who won the First World War?").first())
+        assertEquals(listOf("Canada"), lookup("What is the population of Canada?"))
+        assertEquals(listOf("world population"), lookup("What is the world population in 2026?"))
+        assertEquals("2018 FIFA World Cup", lookup("Which country won the 2018 FIFA World Cup?").first())
+        val japan = lookup("is Japan's population larger than Nigeria's?")
+        assertTrue(japan.toString(), "Japan" in japan && "Nigeria" in japan)
+        val cats = lookup("are lions or tigers heavier?")
+        assertTrue(cats.toString(), "lion" in cats && "tiger" in cats)
+        assertTrue(lookup("What is the tallest animal in the world?").isEmpty())
+        assertFalse(lookup("Is it safe to drink the tap water?").contains("safe"))
+        val war = Evidence("swp-9-0000:0000", "swp-9-0000:0000", "Thirty Years' War — Overview", "local", "A war in central Europe.", 0.0)
+        assertEquals(war, SubjectLookup.overviewOf("Thirty Years War", listOf(war)))
+        // A name with a possessive is tried as written first.
+        assertEquals("Ohm's law", SubjectLookup.candidates("How does Ohm's law work?").first().text)
+        assertEquals("tide", SubjectLookup.candidates("What's a tide and why does it happen?").first().text)
+        val ohm = Evidence("swp-10-0000:0000", "swp-10-0000:0000", "Ohm's law — Overview", "local", "Ohm's law says…", 0.0)
+        assertEquals(ohm, SubjectLookup.overviewOf("Ohm's law", listOf(ohm)))
+    }
+
+    @Test fun aLookupReadsMoreOfEachArticleItNames() = runBlocking {
+        fun row(id: String, title: String, text: String) =
+            Evidence(id.substringBefore(':'), id, title, "https://en.wikipedia.org/w/index.php?oldid=1", text, 0.0)
+        val lion = row("swp-1-0000:0000", "Lion — Overview", "The lion is a large cat of the genus Panthera native to Africa and India.")
+        val tiger = row("swp-2-0000:0000", "Tiger — Overview", "The tiger is the largest living cat species and a member of the genus Panthera.")
+        val articles = mapOf(
+            "Lion" to listOf(lion, row("enw-1-0003:0000", "Lion — Description", "Adult male lions weigh 150 to 250 kg.")),
+            "Tiger" to listOf(tiger, row("enw-2-0002:0000", "Tiger — Characteristics", "Male Bengal tigers weigh 200 to 260 kg.")),
+        )
+        // Whole articles read for depth; a candidate with no overview ("lions") is also probed for one.
+        val read = ArrayList<String>()
+        val retriever = object : Retriever {
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit) = emptyList<Evidence>()
+            override suspend fun titled(phrase: String, sections: List<String>, limit: Int) =
+                listOf(lion, tiger).filter { it.title.startsWith("$phrase — ", ignoreCase = true) }
+            override suspend fun article(article: String, limit: Int): List<Evidence> {
+                if (limit == ArticleDepth.ARTICLE_ROWS) read += article
+                return articles[article].orEmpty().take(limit)
+            }
+        }
+        val gateway = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Tigers are heavier [S2]."))
+        ResearchOrchestrator(retriever, gateway, articleDepth = true).research("are lions or tigers heavier?").toList()
+        assertEquals(listOf("Lion", "Tiger"), read)
+        val prompt = gateway.prompts.last().first
+        assertTrue(prompt, "Adult male lions weigh 150 to 250 kg." in prompt && "Male Bengal tigers weigh 200 to 260 kg." in prompt)
+        // Without article depth a lookup is searched as before.
+        read.clear()
+        val plain = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Tigers."))
+        ResearchOrchestrator(retriever, plain).research("are lions or tigers heavier?").toList()
+        assertTrue(read.isEmpty())
+        assertTrue(plain.prompts.none { "Bengal" in it.first })
+    }
+
+    @Test fun aChoiceBetweenOptionsLeadsWithBoth() {
+        assertTrue(SubjectLookup.leads("DEET vs picaridin, which mosquito repellent is better for a trip to the tropics?"))
+        assertTrue(SubjectLookup.leads("ibuprofen or paracetamol for a fever and headache, what's the difference and which should I take?"))
+        assertTrue(SubjectLookup.leads("whats the actual difference between a hurricane, a typhoon and a cyclone"))
+        assertTrue(SubjectLookup.leads("whats the difference between a seed phrase and a private key"))
+        assertTrue(SubjectLookup.leads("Should I use a debit card or a credit card when travelling abroad?"))
+        assertFalse("a choice is not an explanation by its wording", SubjectLookup.explains("Should I use a debit card or a credit card when travelling abroad?"))
+        assertFalse("\"or in\" joins no second option", SubjectLookup.leads("The card machine asks if I want to pay in euros or in my home currency. Which one is cheaper?"))
+        assertFalse(SubjectLookup.leads("Do I need a visa or can I get one on arrival?"))
+        // A factual comparison stays a lookup, which reads both articles anyway.
+        assertFalse(SubjectLookup.leads("are lions or tigers heavier?"))
+        assertTrue(SubjectLookup.looksUp("are lions or tigers heavier?"))
+        assertFalse(SubjectLookup.looksUp("Should I use a debit card or a credit card when travelling abroad?"))
+    }
+
+    @Test fun aComparisonWantsEachSubjectItChains() {
+        assertEquals(3, SubjectLookup.subjectsWanted("whats the actual difference between a hurricane, a typhoon and a cyclone"))
+        assertEquals(2, SubjectLookup.subjectsWanted("ibuprofen or paracetamol for a fever and headache, what's the difference and which should I take?"))
+        assertEquals(2, SubjectLookup.subjectsWanted("What is the difference between ibuprofen and paracetamol, and when should I use each?"))
+        assertEquals(2, SubjectLookup.subjectsWanted("How is a hurricane different from a tornado?"))
+        assertEquals(2, SubjectLookup.subjectsWanted("How do hostels compare with guesthouses for a solo traveller on a budget?"))
+        assertEquals(2, SubjectLookup.subjectsWanted("Compare tea and coffee for caffeine content and health effects"))
+        assertEquals(1, SubjectLookup.subjectsWanted("How does a heat pump heat a house?"))
+        assertEquals("\"and\" outside a comparison joins no subjects", 1, SubjectLookup.subjectsWanted("Why are sunsets red and orange?"))
+        assertEquals(3, SubjectLookup.subjectsWanted("are lions or tigers heavier?", lookup = true))
+    }
+
+    @Test fun aChoiceIsReadFromItsOptions() {
+        val deet = SubjectLookup.candidates("DEET vs picaridin, which mosquito repellent is better for a trip to the tropics?", 2)
+        assertEquals("DEET", deet.first().text)
+        assertEquals(1, deet.first { it.text == "picaridin" }.run)
+        assertFalse(deet.any { it.text == "mosquito repellent" })
+        val train = SubjectLookup.candidates("Madrid to Barcelona: is the high-speed train or a flight the better option?", 2)
+        assertEquals("high-speed train", train.first().text)
+        assertTrue(train.any { it.text == "flight" })
+        assertFalse("the options follow the first one; the places before it are not the choice", train.any { it.text == "Madrid" })
+        val cards = SubjectLookup.candidates("Should I use a debit card or a credit card when travelling abroad?", 2).map { it.text }
+        assertEquals(listOf("debit card", "credit card"), cards.filter { ' ' in it })
+    }
+
+    @Test fun casualSpellingIsReadAsItsContraction() {
+        assertEquals("what's the difference between a seed phrase and a private key", QuestionText.normalised("whats the difference between a seed phrase and a private key"))
+        assertEquals("What's that? I'm lost. I've no map. Don't go.", QuestionText.normalised("Whats that? Im lost. Ive no map. Dont go."))
+        assertEquals("WHAT'S THIS", QuestionText.normalised("WHATS THIS"))
+        assertEquals("a quick whatsapp message", QuestionText.normalised("a quick whatsapp message"))
+        val hurricane = SubjectLookup.candidates("whats the actual difference between a hurricane, a typhoon and a cyclone", 3).map { it.text }
+        assertEquals(listOf("hurricane", "typhoon", "cyclone"), hurricane)
+    }
+
+    @Test fun anotherNameMatchesInTheSingularOrPlural() {
+        val cyclone = Evidence("swp-19521-0000", "swp-19521-0000:0001", "Tropical cyclone — Overview", "local",
+            "They die when they spend a long time over land.\n\nAlso known as: Tropical storm; Hurricanes; Typhoons; Hurrycane", 0.0)
+        assertEquals("Tropical cyclone", SubjectLookup.aliasOf("hurricane", listOf(cyclone)))
+        assertEquals("Tropical cyclone", SubjectLookup.aliasOf("Typhoon", listOf(cyclone)))
+        assertEquals("Tropical cyclone", SubjectLookup.aliasOf("tropical storms", listOf(cyclone)))
+        assertEquals(null, SubjectLookup.aliasOf("hurry", listOf(cyclone)))
+    }
+
+    @Test fun aStubOrTravelGuideGivesWayToTheFullArticle() {
+        fun overview(id: String, title: String, text: String, source: String = "https://simple.wikipedia.org/w/index.php?oldid=1") =
+            Evidence(id, "$id:0000", "$title — Overview", source, text, 0.0)
+        val hurricane = overview("swp-19516-0000", "Hurricane", "A Hurricane is a cyclone type that is formed in the Atlantic Ocean and in the Eastern Pacific Ocean.")
+        val cyclone = overview("swp-19521-0000", "Tropical cyclone", "A tropical cyclone is a circular air movement that starts over the warm ocean waters in the warm part of Earth near the equator. " +
+            "Most tropical cyclones create fast winds and heavy rain. While some tropical cyclones stay out in the sea, others pass over land.")
+        val typhoonStub = overview("swp-28999-0000", "Typhoon", "A typhoon is a type of cyclone that is formed in the Western Pacific Ocean. The strongest recorded typhoons were Typhoon Haiyan and Typhoon Tip.")
+        val typhoon = overview("enw-3092190-0000", "Typhoon", "A typhoon is a tropical cyclone that develops between 180° and 100°E in the Northern Hemisphere and which produces sustained hurricane-force winds of at least 119 km/h (74 mph). " +
+            "This region is referred to as the Northwestern Pacific Basin, accounting for almost one third of the world's tropical cyclones.", "https://en.wikipedia.org/w/index.php?oldid=1")
+        assertTrue(SubjectLookup.isStub(hurricane))
+        assertTrue(SubjectLookup.isStub(typhoonStub))
+        assertFalse(SubjectLookup.isStub(cyclone))
+        assertFalse("a short overview that is not a definition is not a stub",
+            SubjectLookup.isStub(overview("swp-1-0000", "Fajr-5", "The Fajr-5 was first shown in 2006. It can reach 75 km.")))
+        val candidate = SubjectLookup.candidates("whats the actual difference between a hurricane, a typhoon and a cyclone", 3).first()
+        // Under the subject's own name first, then under another of its names; a stub keeps its place when neither is fuller.
+        assertEquals(cyclone, SubjectLookup.fuller(candidate, hurricane, listOf(null, cyclone)))
+        assertEquals(typhoon, SubjectLookup.fuller(candidate, typhoonStub, listOf(typhoon, cyclone)))
+        assertEquals(hurricane, SubjectLookup.fuller(candidate, hurricane, listOf(null, null)))
+        assertEquals(cyclone, SubjectLookup.fuller(candidate, cyclone, listOf(typhoon)))
+        // An explanation is read from the encyclopedia, not a travel guide of the same name.
+        val guide = overview("wvs-16301-0000", "Jet lag", "Jet lag is a form of disorientation and fatigue caused by abruptly switching to a different sleeping schedule. " +
+            "It is caused by rapid travel across time zones. Most travellers feel it for a few days after a long flight.", "https://en.wikivoyage.org/w/index.php?oldid=1")
+        val article = overview("enw-56552-0000", "Jet lag", "Jet lag is a temporary physiological condition that occurs when a person's circadian rhythm is out of sync with the time zone they are in.", "https://en.wikipedia.org/w/index.php?oldid=1")
+        val jetLag = SubjectLookup.candidates("Why does jet lag happen, and why is flying east supposed to be worse than flying west?").first()
+        assertEquals(article, SubjectLookup.fuller(jetLag, guide, listOf(article)))
+        assertEquals(guide, SubjectLookup.fuller(jetLag, guide, listOf(null)))
+        // An alternative must still fit the candidate's other words.
+        val wallet = SubjectLookup.candidates("How does a hardware wallet keep my private key safe?").first { it.text == "wallet" }
+        val stub = overview("swp-2-0000", "Wallet", "A wallet is a small case for money.")
+        val leather = overview("enw-3-0000", "Wallet", "A wallet is a flat case or pouch, often used to carry small personal items such as physical currency, debit cards, and credit cards; identification documents.", "https://en.wikipedia.org/w/index.php?oldid=1")
+        assertEquals(stub, SubjectLookup.fuller(wallet, stub, listOf(leather)))
+    }
+
+    @Test fun theWordsAfterANameAreItsPredicate() {
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("Why did the Soviet Union collapse?").first { it.text == "Soviet Union" }.rest)
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("How did the Black Death change wages and society in Europe?").first { it.text == "Black Death" }.rest)
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("How did the steam engine change society?").first { it.text == "steam engine" }.rest)
+        val western = SubjectLookup.candidates("Why did the Western Roman Empire collapse while the Eastern half survived for another thousand years?").map { it.text to it.rest }
+        assertEquals(emptyList<String>(), western.first { it.first == "Western Roman Empire" }.second)
+        assertTrue(western.toString(), western.indexOfFirst { it.first == "Western Roman Empire" } < western.indexOfFirst { it.first == "Roman Empire" })
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("why do my ears pop on planes, and why does it hurt more when we're landing?").first { it.text == "ear" }.rest)
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("Why are sunsets red and orange?").first { it.text == "sunset" }.rest)
+        assertEquals(emptyList<String>(), SubjectLookup.candidates("Why is the ocean salty?").first { it.text == "ocean" }.rest)
+        // A noun after the name still narrows it: "ocean" is not the subject of "ocean tides".
+        assertEquals(listOf("tides"), SubjectLookup.candidates("What causes ocean tides?").first { it.text == "ocean" }.rest)
+        fun overview(title: String, text: String) = Evidence("wp-$title", "wp-$title:0", "$title — Overview", "local", text, 0.0)
+        val government = overview("Country", "A country is a region governed by a government that holds power over the people within it.")
+        val go = SubjectLookup.Candidate("country", listOf("go"), null)
+        assertFalse("\"go\" is not in \"government\"", SubjectLookup.accepts(go, government))
+        assertTrue(SubjectLookup.accepts(SubjectLookup.Candidate("country", listOf("power"), null), government))
+        val wallet = SubjectLookup.candidates("How does a hardware wallet keep my private key safe?").first { it.text == "wallet" }
+        assertFalse(SubjectLookup.accepts(wallet, overview("Wallet", "A wallet is a small flat case that a person uses to keep cash and cards in a pocket.")))
+    }
+
+    @Test fun aLaterClauseIsTriedWhenTheFirstNamesNoArticle() {
+        val message = SubjectLookup.candidates("How can someone send me an encrypted message without us ever meeting? How does public key cryptography work?")
+        assertEquals("encrypted message", message.first().text)
+        val cryptography = message.first { it.text == "public key cryptography" }
+        assertTrue(cryptography.run > 0)
+        assertFalse("\"meeting\" is a verb here", message.any { it.text == "meeting" })
+        assertFalse(message.any { it.text == "someone" || it.text == "us" })
+        assertEquals("the US", "US", SubjectLookup.candidates("What is the population of the US?", 3, lookup = true).first().text)
+        // A phrase after a preposition places the subject and is never the subject.
+        assertFalse(SubjectLookup.candidates("What is a stealth address in Ethereum?").any { it.text == "Ethereum" })
+        assertFalse(SubjectLookup.candidates("why do my ears pop on planes, and why does it hurt more when we're landing?").any { it.text == "plane" })
+        // A comparison's subjects sit side by side; nothing after them is a subject.
+        assertFalse(SubjectLookup.candidates("How do hostels compare with guesthouses for a solo traveller on a budget?", 2).any { it.text == "budget" })
+        // A number inside a name stays in it; a year may open one.
+        val rollup = SubjectLookup.candidates("what is a layer 2 rollup on Ethereum")
+        assertEquals("layer 2 rollup", rollup.first().text)
+        assertFalse(rollup.any { it.text == "Ethereum" || it.text == "2" })
+        assertEquals("2008 financial crisis", SubjectLookup.candidates("Why did the 2008 financial crisis happen?").first().text)
+        assertEquals(listOf("world population"), SubjectLookup.candidates("What is the world population in 2026?", 3, lookup = true).map { it.text })
+    }
+
+    @Test fun aQualifiedTitleIsTheSubjectWhenTheQuestionNamesItsKind() {
+        fun overview(id: String, title: String) = Evidence(id, "$id:0000", "$title — Overview", "local", "$title is a place.", 0.0)
+        val country = overview("swp-14986-0000", "Georgia (country)")
+        val state = overview("swp-4951-0000", "Georgia (U.S. state)")
+        val dome = overview("swp-5-0000", "Georgia Dome")
+        val found = listOf(dome, country, state)
+        assertEquals(country, SubjectLookup.overviewOf("Georgia", found, "tell me about Georgia, the country not the US state"))
+        assertEquals(state, SubjectLookup.overviewOf("Georgia", found, "tell me about the state of Georgia"))
+        assertEquals("two qualified titles and no word to choose by", null, SubjectLookup.overviewOf("Georgia", found, "tell me about Georgia"))
+        assertEquals(country, SubjectLookup.overviewOf("Georgia", listOf(dome, country), "tell me about Georgia"))
+        assertEquals("without the question only the exact title counts", null, SubjectLookup.overviewOf("Georgia", found))
+        assertEquals(listOf("country", "state"), SubjectLookup.qualifiers("tell me about Georgia, the country not the US state"))
+    }
+
+    @Test fun aWhyOrHowQuestionOpensWithTheSectionThatAnswersIt() {
+        fun row(id: String, title: String, text: String) = Evidence(id.substringBefore(':'), id, title, "https://en.wikipedia.org/w/index.php?oldid=1", text, 0.0)
+        val gps = row("swp-82503-0000:0000", "Global Positioning System — Overview", "A Global Positioning System, also known as GPS, is a system of satellites designed to help navigate on the Earth, in the air, and on water.")
+        val principles = row("enw-11866-0007:0000", "Global Positioning System — Principles",
+            "The GPS satellites carry very stable atomic clocks that are synchronized with one another and with the reference atomic clocks at the ground control stations. Since the speed of radio waves is constant, the time delay is proportional to the distance.")
+        val geometry = row("enw-11866-0009:0000", "Global Positioning System — Principles > User-satellite geometry", "Although usually not formed explicitly, the time differences of arrival define the measurement geometry.")
+        val sources = listOf(gps, principles, geometry).mapIndexed { index, item -> PromptSource("S${index + 1}", item) }
+        val how = SubjectLookup.lead("How does GPS on my phone work when I have no internet or signal?", listOf(gps), sources, depth = listOf(principles, geometry))!!
+        assertEquals("S2", how.citationId)
+        assertTrue(how.text, how.text.startsWith("The GPS satellites carry very stable atomic clocks"))
+        // A definition question opens with the definition even when a section answers its second half.
+        val what = SubjectLookup.lead("What is GPS and how does it work?", listOf(gps), sources, depth = listOf(principles))!!
+        assertEquals("S1", what.citationId)
+        // Without depth, or when the section was not packed, the definition opens as before.
+        assertEquals("S1", SubjectLookup.lead("How does GPS on my phone work when I have no internet or signal?", listOf(gps), sources)!!.citationId)
+        assertEquals("S1", SubjectLookup.lead("How does GPS on my phone work when I have no internet or signal?", listOf(gps), sources.take(1), depth = listOf(principles))!!.citationId)
+        // A section opening with a pronoun would quote out of context.
+        val pronoun = row("enw-11866-0008:0000", "Global Positioning System — Principles > More detailed description", "It broadcasts a signal that includes a pseudorandom code. The receiver measures its arrival time.")
+        assertEquals("S1", SubjectLookup.lead("How does GPS work?", listOf(gps), sources + PromptSource("S4", pronoun), depth = listOf(pronoun))!!.citationId)
+        // A comparison opens with each subject's definition.
+        val tornado = row("swp-1-0000:0000", "Tornado — Overview", "A tornado is an area of fast spinning winds made by a strong rotating thunderstorm that touches the ground.")
+        val both = SubjectLookup.lead("How is a hurricane different from a tornado?", listOf(gps, tornado), sources + PromptSource("S4", tornado), depth = listOf(principles))!!
+        assertEquals("S1", both.citationId)
+        assertEquals(listOf("S4"), both.more.map { it.first })
+    }
+
+    @Test fun aDefinitionOpensAWhyQuestionOnlyWhenItSpeaksToIt() {
+        fun overview(title: String, text: String) = Evidence("swp-$title", "swp-$title:0000", "$title — Overview", "https://simple.wikipedia.org", text, 0.0)
+        val sunset = overview("Sunset", "Sunset (or sundown) is the disappearance of the Sun at the end of the Sun path, below the horizon of the Earth due to its rotation. It happens about once every 24 hours.")
+        val tide = overview("Tide", "A tide is the periodic rising and falling of Earth's ocean surface caused mainly by the gravitational pull of the Moon acting on the oceans. Tides cause changes in the depth of marine waters.")
+        fun sources(item: Evidence) = listOf(PromptSource("S1", item, item.text))
+        // "Red and orange" is nowhere in the definition of a sunset: the model answers without a quote.
+        assertNull(SubjectLookup.lead("Why are sunsets red and orange?", listOf(sunset), sources(sunset)))
+        // A definition that names the cause opens the answer.
+        assertNotNull(SubjectLookup.lead("What causes ocean tides?", listOf(tide), sources(tide)))
+        // A what-is question keeps its definition.
+        assertNotNull(SubjectLookup.lead("What is a sunset?", listOf(sunset), sources(sunset)))
     }
 }

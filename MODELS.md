@@ -7,8 +7,8 @@ A **model pack** is the large local file that lets Field Atlas generate answers.
 | App | Model to use | Where to get instructions |
 | --- | --- | --- |
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
-| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) and current source | Qwen3.5 2B | Download in setup, or the build steps below |
-| Current source, on a phone with 8 GB of memory or more | Qwen3.5 4B, optional | Download in Library, or the [build steps below](#optional-larger-model) |
+| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
+| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0), on a phone with 8 GB of memory or more | Qwen3.5 4B, optional | Download in Library, or the [build steps below](#optional-larger-model) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. Building a `.fapack` for manual import still needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
@@ -43,7 +43,7 @@ The builder downloads the pinned GGUF, rejects a hash mismatch, and stores it un
 
 ## Optional larger model
 
-In the current source (not in v1.3.0), a phone that reports at least 7,000,000,000 bytes of
+From v1.4.0, a phone that reports at least 7,000,000,000 bytes of
 memory, which 8 GB phones do, can also download Qwen3.5 4B in **Library**. Qwen3.5 2B stays the
 default. In the October 6 comparison in
 [docs/evaluation.md](docs/evaluation.md#qwen35-4b-as-an-optional-model-october-6) the 4B reached

@@ -33,7 +33,13 @@ class AssetRegistry(private val storageRoot: File) {
         require(current.none { it.id == asset.id && it.version == asset.version }) {
             "Asset version is already installed"
         }
-        writeUnlocked((current + asset).sortedWith(compareBy(InstalledAsset::id, InstalledAsset::version)))
+        // A collection installed again in another version takes over from the one installed before:
+        // two versions of one collection would answer every question twice. The other version stays
+        // installed, switched off, until it is deleted or switched back on.
+        val others = if (asset.type == PackType.KNOWLEDGE) {
+            current.map { if (it.id == asset.id && it.type == PackType.KNOWLEDGE) it.copy(enabled = false) else it }
+        } else current
+        writeUnlocked((others + asset).sortedWith(compareBy(InstalledAsset::id, InstalledAsset::version)))
     }
 
     suspend fun remove(id: String, version: String): Boolean = mutex.withLock {

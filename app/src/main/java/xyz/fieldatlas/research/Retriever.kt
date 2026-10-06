@@ -26,6 +26,16 @@ fun interface Retriever {
      */
     suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> = emptyList()
 
+    /**
+     * [titled] with [phrase] anchored at the title's first word: "India — Get in", never "Uri
+     * (India) — Get in", so a big guide's own sections are not crowded out of [limit].
+     */
+    suspend fun titled(phrase: String, sections: List<String>, limit: Int, anchored: Boolean): List<Evidence> =
+        titled(phrase, sections, limit)
+
+    /** Overviews of airport guides whose text names [place] ("the main airport of Delhi"). */
+    suspend fun airportOverviews(place: String, limit: Int): List<Evidence> = emptyList()
+
     /** Passages that list [name] among an article's other names ("Also known as: GPS; Gps"). */
     suspend fun aliased(name: String, limit: Int): List<Evidence> = emptyList()
 
@@ -35,6 +45,22 @@ fun interface Retriever {
      * words ("Passport control").
      */
     suspend fun sections(article: String, limit: Int): List<Evidence> = emptyList()
+
+    /**
+     * The article titled [article] from each collection that holds it, whole and in its own order:
+     * its lead ("<article> — Overview") first, then its sections. Read by position, so a long
+     * article is never cut short by the many other titles that begin with the same words.
+     */
+    suspend fun article(article: String, limit: Int): List<Evidence> = emptyList()
+
+    /** A search for [question]; [placesOnly] keeps a place lookup to the place collections. */
+    suspend fun searchQuestion(
+        query: String,
+        question: String,
+        limit: Int,
+        placesOnly: Boolean,
+        onProgress: suspend (SearchProgress) -> Unit,
+    ): List<Evidence> = search(query, limit, onProgress)
 }
 
 /** Specialized multi-pack filtering; other retrievers retain their existing search contract. */
@@ -44,11 +70,7 @@ suspend fun Retriever.searchForQuestion(
     limit: Int,
     placesOnly: Boolean = false,
     onProgress: suspend (SearchProgress) -> Unit,
-): List<Evidence> = if (this is MultiKnowledgeRetriever) {
-    searchForQuestion(query, question, limit, onProgress, placesOnly)
-} else {
-    search(query, limit, onProgress)
-}
+): List<Evidence> = searchQuestion(query, question, limit, placesOnly, onProgress)
 
 /** Retrieval progress: work fraction plus the running count of vector-search matches. */
 data class SearchProgress(val fraction: Double, val vectorMatches: Int = 0)

@@ -1,5 +1,103 @@
 # Evaluation
 
+## 1.4.0 on 60 new held-out questions (October 7)
+
+The questions behind the earlier figures were looked at while the app was changed, the first
+held-out set included: its travel misroutes (a metro ticket answered from river boats, a visa from
+yacht permits) led to fixes. A second set of 48, written on 6 October and measured once on the
+build of that evening, scored 34%; its answers were then diagnosed and fixed too (below), so
+it is development data as well. The final build was therefore measured on a third set of 60
+questions, written after the last change by a writer that did not read the repository and not
+looked at by anyone until the build was frozen ([`fieldtest/heldout3.jsonl`](fieldtest/heldout3.jsonl)):
+8 places (3 near the phone), Vitalik's question from two more cities, 9 travel, 6 emergencies,
+6 explanation, 6 comparison, 5 synthesis, 6 reasoning, 4 cryptography and 8 casual lookups. Their
+reference answers were written by a frontier model with web search, as before, and every answer
+was graded blind, twice, as the field test below describes.
+
+Configuration: Qwen3.5 2B, the default model, with every collection the app offers in 1.4.0 (the
+published versions, [DATASETS.md](../DATASETS.md#collections-the-app-offers), the Encyclopedia in
+depth included), article depth on as in the app, on the desktop pipeline with the phone's code.
+Every answer, reference and grade is in [`fieldtest/results-1.4.0/`](fieldtest/results-1.4.0/).
+
+| Questions | Field Atlas, Qwen3.5 2B (share of the reference) | Optional Qwen3.5 4B | Factual errors per answer, 2B |
+| --- | --- | --- | --- |
+| 60 new held-out questions | 38% | 52% on the 55 questions without a phone position (the 2B scored 37% in that grading) | 1.98 |
+| The 48 questions of 6 October (now development data) | 58% (was 34% before the fixes) | – | 1.19 |
+| Our 61 questions (development) | 61% | – | 1.00 |
+| Vitalik's 31 lookup questions from the vbuterin fork (development) | 54% | – | 1.19 |
+| The 42 earlier held-out questions (now development data) | 54% | – | 1.21 |
+
+By category on the new questions:
+
+| Group | n | Field Atlas (mean /10) | Reference (mean /10) | Share of reference |
+| --- | --- | --- | --- | --- |
+| Vitalik's question | 2 | 6.50 | 8.00 | 81% |
+| Casual lookups | 8 | 6.12 | 9.56 | 64% |
+| Explanation | 6 | 4.92 | 9.67 | 51% |
+| Emergencies | 6 | 4.42 | 9.42 | 47% |
+| Places | 8 | 3.94 | 8.81 | 45% |
+| Synthesis | 5 | 2.80 | 9.40 | 30% |
+| Cryptography | 4 | 2.50 | 9.50 | 26% |
+| Comparison | 6 | 2.17 | 9.17 | 24% |
+| Practical travel | 9 | 1.83 | 9.11 | 20% |
+| Reasoning with numbers | 6 | 1.42 | 10.00 | 14% |
+
+The gap to the earlier sets is the cost of fixing what those sets contained: on questions whose
+wording the rules do not cover, the 2B writes the answer, and it gets a train's arrival time, a hotel
+bill or a time-zone day wrong, invents sauna etiquette and under-tips in Egypt. Answers the app
+composes itself hold up: Vitalik's question from two more cities, casual lookups with the
+Encyclopedia in depth, places in a named city. The 4B halves the distance on explanation,
+comparison and cryptography and is the model to use on a phone that can run it.
+
+**Article depth and the Encyclopedia in depth collection, kept.** An explanation also reads more
+of its subject's article: the Simple English "Details" passages, and the sections of an English
+Wikipedia article that fit the question ("Operation" for how, "Causes" for why), from a
+49,822-article collection built for it ([DATASETS.md](../DATASETS.md#english-wikipedia-vital-articles-by-section-october-6)).
+Casual lookups ("who won the First World War", "tell me about Japan") also read the articles they
+name. Graded side by side with the same build without it, before the fixes below:
+
+| Questions | Without | With |
+| --- | --- | --- |
+| Our 56 (without the near-phone ones) | 56.8% | 58.6% (+9.5 points, better on 9, worse on 4; errors per answer 1.14 to 0.99) |
+| Vitalik's 31 | 45.3% | 55.2% (+29.5 points, better on 18, worse on 6) |
+
+The gain is largest on lookups and explanations, where the English article's sections replace the
+model's own account. On a Redmi 13C the extra reading costs about 20 seconds before the first word
+when the collection is installed; the budget shrinks with the phone's measured speed.
+
+**What the 48 questions of 6 October found, and what changed (October 6-7):**
+- **Calculations.** Four reasoning questions scored 0-3: a fuel cost split among three people, a
+  currency exchange with a commission, water for two days ("until the end of day 2" was read as one
+  day) and a landing time across time zones all went to the model, which got the arithmetic wrong
+  or refused. Calculators for a trip's fuel cost, exchange at a quoted rate less a fee, and a
+  landing time from given UTC offsets were added; the water calculator reads the days as written;
+  every number in a question must be used and the asking clause must name the calculation before a
+  result is shown as complete. A review of the clock calculator found "when do I leave to arrive by
+  9:00?" answered 09:25 (shown as calculated); the time's role is now read from the words next to
+  it, and a trip that names places returns no calculation.
+- **Places in a named city.** "Street food in Mexico City" quoted a street-food etiquette guide;
+  "beaches in Cape Town" went to the model, which invented warm water; Madrid's museums missed the
+  Prado. Listing-pack searches had title boosts that ranked "Cookstown — TIME" for "first time";
+  they are off, searches stay inside the named city, and relevance is judged on a listing's own
+  fields. A near-me question in Seoul found nothing within 15 km because every conversational word
+  ("hungry", "aren't too expensive") had to appear in a listing; such words now order rather than
+  filter, and the answer states which words no listing carries.
+- **Travel.** "Flying into Bali" took "Flying" as the place; a guide without the section asked now
+  falls back to its country's; journeys, airport guides, transit cards, dress codes and safety
+  verdicts have their own rules; a question with no place reads the topic guide for its topic.
+- **Emergencies.** Heat stroke with a collapsed, confused person opened with the guide's
+  introduction and cramps; the section that names the person's signs now leads, long guides quote
+  the paragraph for the case, and the model's unsupported "do not" lines and invented recipe amounts
+  are removed. "Broke her ankle" and "swallowed a button battery" find their guides.
+- **Explanations and lookups.** Choice questions ("DEET vs picaridin") and casual spellings
+  ("whats the difference") now look up each subject; a one-line stub or a travel topic's overview is
+  followed to the full article; the fitting section is quoted as the opening for how and why
+  questions; short search terms match their own forms ("ears" no longer found earthquakes).
+- **Phrases.** A phrasebook line is the whole answer only when it says each asked word and nothing
+  else.
+These fixes were made with the 48 questions in view, which is why they are development data and
+the final figure comes from the third set.
+
 ## Field test: 61 questions of our own, and 42 held out (October 5-6)
 
 The bounty's bar is an offline tool ">50% as good as internet search + frontier AI models" for

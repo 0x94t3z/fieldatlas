@@ -181,7 +181,8 @@ internal fun SourcePreviewSheet(
                     Icon(FieldAtlasIcons.Collection, contentDescription = null, modifier = Modifier.size(19.dp))
                     Text("Open in a maps app", Modifier.padding(start = 8.dp))
                 }
-                Text("Opens an offline maps app if one is installed. Hours and menus can be out of date; check before you go.",
+                Text("Opens an offline maps app if one is installed, such as Organic Maps or OsmAnd (both on F-Droid). " +
+                    "Hours and menus can be out of date; check before you go.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {

@@ -60,6 +60,14 @@ class MultiKnowledgeRetriever(
         onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> = searchForQuestion(query, query, limit, onProgress)
 
+    override suspend fun searchQuestion(
+        query: String,
+        question: String,
+        limit: Int,
+        placesOnly: Boolean,
+        onProgress: suspend (SearchProgress) -> Unit,
+    ): List<Evidence> = searchForQuestion(query, question, limit, onProgress, placesOnly)
+
     suspend fun searchForQuestion(
         query: String,
         question: String,
@@ -78,6 +86,9 @@ class MultiKnowledgeRetriever(
             if (!placesOnly) all else all.filter { index -> openOrNull(allFiles[index])?.isPlaceListing() == true }.ifEmpty { all }
         }
         val total = indices.size.coerceAtLeast(1)
+        // The places the question may name, found once; each place pack confirms the ones it holds
+        // and is searched within them (see DestinationScope). The expanded query keeps the question.
+        val destinationCandidates = DestinationScope.candidates(question)
         val vectorMatches = AtomicInteger(0)
         val fractions = DoubleArray(indices.size)
         val progressLock = Mutex()
@@ -96,7 +107,17 @@ class MultiKnowledgeRetriever(
                     val discovery = discoveries.getOrNull(index)
                     runCatching {
                         val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                        val keyword = FtsRetriever(database).search(query, limit) { inner -> report(slot, inner.fraction) }
+                        // A pack of whole articles by section is read only through article(), for the
+                        // subject of an explanation: its million passages would crowd every other
+                        // pack's matches and slow each search.
+                        if (database.isArticleSections()) {
+                            report(slot, 1.0)
+                            return@runCatching emptyList()
+                        }
+                        val destinations = if (database.isPlaceListing()) {
+                            DestinationScope.resolve(destinationCandidates, database::holdsDestination)
+                        } else emptyList()
+                        val keyword = FtsRetriever(database).search(query, limit, destinations) { inner -> report(slot, inner.fraction) }
                         val embedding = embeddings.getOrNull(index)
                             ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
                         val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
@@ -126,10 +147,17 @@ class MultiKnowledgeRetriever(
         return matching("{title} : ^" + quoted(article), limit) { it.title.startsWith(article.trim() + " — ", ignoreCase = true) }
     }
 
-    override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> {
+    override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> = titled(phrase, sections, limit, anchored = false)
+
+    override suspend fun titled(phrase: String, sections: List<String>, limit: Int, anchored: Boolean): List<Evidence> {
         if (phrase.isBlank() || sections.none(String::isNotBlank)) return emptyList()
-        return matching("{title} : (" + quoted(phrase) + " AND (" +
+        return matching("{title} : (" + (if (anchored) "^" else "") + quoted(phrase) + " AND (" +
             sections.filter(String::isNotBlank).joinToString(" OR ", transform = ::quoted) + "))", limit)
+    }
+
+    override suspend fun airportOverviews(place: String, limit: Int): List<Evidence> {
+        if (place.isBlank()) return emptyList()
+        return matching("{title} : (\"airport\" AND \"overview\") AND {text} : " + quoted(place), limit)
     }
 
     override suspend fun aliased(name: String, limit: Int): List<Evidence> {
@@ -137,10 +165,32 @@ class MultiKnowledgeRetriever(
         return matching("{text} : (\"also known as\" AND \"" + name.replace("\"", " ").trim() + "\")", limit)
     }
 
+    override suspend fun article(article: String, limit: Int): List<Evidence> = withContext(ioDispatcher) {
+        if (article.isBlank()) return@withContext emptyList()
+        require(limit in 1..200) { "Article limit must be between 1 and 200" }
+        val lead = "{title} : (^" + quoted(article) + " AND \"overview\")"
+        databaseFiles().flatMap { file ->
+            runCatching {
+                val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                if (database.isPlaceListing()) emptyList() else database.article(lead, article.trim() + " — Overview", limit)
+            }.getOrElse { error ->
+                if (error is OutOfMemoryError) throw error
+                if (error is CancellationException) throw error
+                opened.remove(file.absolutePath)?.close()
+                emptyList()
+            }
+        }
+    }
+
     private suspend fun matching(match: String, limit: Int, keep: (Evidence) -> Boolean = { true }): List<Evidence> = withContext(ioDispatcher) {
         require(limit in 1..50) { "Title limit must be between 1 and 50" }
         databaseFiles().flatMap { file ->
-            runCatching { opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }.titled(match, limit).filter(keep) }
+            runCatching {
+                val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                // Title lookups serve travel guides, places and the subject of an explanation as
+                // before; a pack of whole articles by section joins only through article().
+                if (database.isArticleSections()) emptyList() else database.titled(match, limit).filter(keep)
+            }
                 .getOrElse { error ->
                     if (error is OutOfMemoryError) throw error
                     if (error is CancellationException) throw error

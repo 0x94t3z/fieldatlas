@@ -1,0 +1,212 @@
+package xyz.fieldatlas.research
+
+/**
+ * More of the article an explanation is about. Once a subject's article has been found by its title
+ * or another of its names, the rest of its lead and the sections that fit the question are read from
+ * the encyclopedia collections holding that article: English Wikipedia's longer lead and its
+ * sections, and the Simple English encyclopedia's "Details". Never another article that a keyword
+ * search happened to rank first ("Hot air balloon" for a question about a hot wallet), and never a
+ * travel guide or map listing that shares the subject's name.
+ */
+object ArticleDepth {
+    /** Reading time the extra passages add before the first word, at the phone's learned speed. */
+    private const val SECONDS = 20.0
+    private const val MIN_CHARS = 1_000
+    private const val MAX_CHARS = 3_600
+    private const val UNKNOWN_CHARS = 2_000
+    /**
+     * Rows read per article, the retriever's maximum. A vital English Wikipedia article runs to
+     * well over a hundred chunks, and the section that answers ("Dissolution" of the Soviet Union)
+     * is often far down it; rows are read by position, so the extra rows cost little.
+     */
+    const val ARTICLE_ROWS = 200
+    /** Consecutive chunks of a passage repeat this many characters (packtool's chunk overlap). */
+    private const val OVERLAP = 150
+    /** Points for a section whose own heading answers the question's kind; a parent heading earns one less. */
+    private const val HEADING_POINTS = 3
+
+    /** Characters of depth that keep the extra reading near [SECONDS] on this phone. */
+    fun budget(tokensPerSecond: Double?): Int {
+        val rate = tokensPerSecond?.takeIf { it.isFinite() && it > 0 } ?: return UNKNOWN_CHARS
+        return (rate * SECONDS * 4).toInt().coerceIn(MIN_CHARS, MAX_CHARS)
+    }
+
+    /** Simple English ("swp-") and English Wikipedia ("enw-") passages; not the cryptography pack's copies. */
+    fun isEncyclopedia(item: Evidence): Boolean = item.documentId.startsWith("swp-") || item.documentId.startsWith("enw-")
+
+    /** Section headings that answer each kind of question: "why" is answered under "Causes". */
+    private val kinds = listOf(
+        Regex("(?i)\\bwhy\\b|\\bcaus|\\bled to\\b|\\bhappen") to
+            Regex("(?i)\\b(?:causes?|reasons?|background|origins?|mechanisms?)\\b"),
+        Regex("(?i)\\bhow (?:does|do|is|are|can)\\b|\\bwork") to
+            Regex("(?i)\\b(?:operation|principles?|mechanisms?|function(?:ing)?|theory|design|physics|process)\\b"),
+        // "What is the difference between a hurricane and a typhoon" is answered where the terms are defined.
+        Regex("(?i)\\bdiffer|\\bcompar|\\bversus\\b|\\bvs\\b|\\bwhich\\b|\\bbetter\\b") to
+            Regex("(?i)\\b(?:comparison|types?|classification|differences?|definitions?|terminology|naming|nomenclature)\\b"),
+        Regex("(?i)\\badvantage|\\bdrawback|\\bdisadvantage|\\bbenefit|\\brisks?\\b|\\blimitation|\\bpros\\b|\\bcons\\b") to
+            Regex("(?i)\\b(?:advantages?|disadvantages?|drawbacks|benefits?|limitations?|criticism|risks?|safety)\\b"),
+        Regex("(?i)\\bsymptom|\\bsigns?\\b") to Regex("(?i)\\b(?:signs and symptoms|symptoms|diagnosis)\\b"),
+        Regex("(?i)\\btreat|\\bcure|\\bmanag") to Regex("(?i)\\b(?:treatment|management|therapy|prevention)\\b"),
+        Regex("(?i)\\beffects?\\b|\\bhealth\\b|\\bevidence\\b|\\bresearch\\b") to
+            Regex("(?i)\\b(?:effects?|health|research|evidence|safety)\\b"),
+        Regex("(?i)\\bshape|\\btrade\\b|\\brise\\b") to
+            Regex("(?i)\\b(?:history|background|causes?|trade|economy|legacy|impact|consequences)\\b"),
+        // "Why did the Soviet Union collapse" is answered under "Dissolution"; "how did the steam
+        // engine change society" under its legacy or consequences.
+        Regex("(?i)\\bcollapse|\\bdecline|\\bfall\\b|\\bfell\\b|\\bdissol|\\bend(?:ed)?\\b|\\bsurviv") to
+            Regex("(?i)\\b(?:dissolution|fall|decline|collapse|disintegration|breakup|end|history|background|causes?|legacy|consequences)\\b"),
+        Regex("(?i)\\bchange|\\bsociety\\b|\\bsocial\\b|\\baffect|\\bimpact|\\binfluence") to
+            Regex("(?i)\\b(?:legacy|impact|consequences|effects?|influence|society|social|economic|economy|history)\\b"),
+        // "Why do onions make you cry" is answered under the article's adverse effects.
+        Regex("(?i)\\bcry\\b|\\bcries\\b|\\btears?\\b|\\bsting|\\bitch|\\bburn|\\bhurt|\\bpain|\\bharm|\\bpoison|\\btoxic|\\ballerg") to
+            Regex("(?i)\\b(?:irritation|adverse effects?|toxicity|side effects?|safety|poisoning|allerg\\w*|health)\\b"),
+        Regex("(?i)\\bsalt|\\bsalin") to Regex("(?i)\\b(?:salinity|composition|chemistry|salt)\\b"),
+        Regex("(?i)\\bphases?\\b") to Regex("(?i)\\b(?:phases?)\\b"),
+    )
+    private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
+    private val questionWords = setOf("how", "why", "what", "does", "do", "did", "is", "are", "was", "were", "can",
+        "the", "difference", "between", "and", "when", "should", "use", "each", "my", "for", "of", "in", "on", "whats",
+        "actual", "real", "which", "better", "i", "you", "we", "them", "it")
+
+    /**
+     * Up to [chars] characters from each encyclopedia subject's article in [articles] (title →
+     * that article's rows from every collection, as [Retriever.article] returns them), taking turns
+     * between subjects and leaving out what [have] already holds. Each subject's first lead chunk
+     * comes first, English Wikipedia's before Simple English's, then the sections that fit the
+     * question, best first, then the rest of the lead; when the lead chunk would leave no room for
+     * the best section within the subject's share, that section comes first. Consecutive chunks of
+     * one passage come back joined, without their repeated overlap.
+     */
+    fun pick(question: String, subjects: List<Evidence>, articles: Map<String, List<Evidence>>, have: List<Evidence>, chars: Int): List<Evidence> {
+        if (chars <= 0) return emptyList()
+        val held = have.map { it.documentId to it.chunkId }.toMutableSet()
+        val titles = subjects.filter(::isEncyclopedia).map { it.title.substringBefore(" — ") }.distinct()
+        val queues = titles.map { article ->
+            ArrayDeque(ranked(question, article, articles[article].orEmpty().filter { isEncyclopedia(it) && (it.documentId to it.chunkId) !in held },
+                chars / titles.size))
+        }
+        val picked = ArrayList<Evidence>()
+        var left = chars
+        while (queues.any { it.isNotEmpty() }) {
+            for (queue in queues) {
+                val next = queue.removeFirstOrNull() ?: continue
+                if ((next.documentId to next.chunkId) in held) continue
+                // Skip a chunk that does not fit rather than cut it; a shorter one may.
+                val cost = next.text.length - if (picked.any { follows(it, next) }) OVERLAP else 0
+                if (cost > left) continue
+                held += next.documentId to next.chunkId
+                picked += next
+                left -= cost
+            }
+        }
+        return joined(picked)
+    }
+
+    /** How well each section of [article] answers [question]; see [score]. */
+    private class Scorer(question: String, article: String) {
+        private val own = tokens(article)
+        private val terms = FtsQuery.from(question)?.terms.orEmpty()
+            .filterNot { it in questionWords || own.any { word -> stemMatches(word, it) } }
+        private val wanted = kinds.filter { (asks, _) -> asks.containsMatchIn(question) }.map { it.second }
+
+        /** The section's own heading ("Eye irritation" of "Adverse effects > Eye irritation"). */
+        fun heading(item: Evidence): String = item.title.substringAfter(" — ", "").substringAfterLast(" > ")
+        private fun parents(item: Evidence): String = item.title.substringAfter(" — ", "").substringBeforeLast(" > ", "")
+
+        fun headingAnswers(item: Evidence): Boolean = wanted.any { it.containsMatchIn(heading(item)) }
+
+        /**
+         * Points for a heading that answers the question's kind (its own heading over a parent's, so
+         * "Principles" outranks "Principles > Non-navigation applications"), for the question's own
+         * words in the heading, and for them in the text.
+         */
+        fun score(item: Evidence): Int {
+            val headTokens = tokens(item.title.substringAfter(" — ", ""))
+            val body = tokens(item.text)
+            val heading = when {
+                headingAnswers(item) -> HEADING_POINTS
+                wanted.any { it.containsMatchIn(parents(item)) } -> HEADING_POINTS - 1
+                else -> 0
+            }
+            return heading + 2 * terms.count { t -> headTokens.any { stemMatches(it, t) } } + terms.count { t -> body.any { stemMatches(it, t) } }
+        }
+    }
+
+    /**
+     * The article's passages in reading order for [question]: the first lead chunk, the sections
+     * that score (each section's chunks together, in order, best section first), the rest of the
+     * lead, then the sections that do not score. When the first lead chunk and the best section
+     * together exceed [chars], the section comes first: the subject's definition is already held,
+     * and the one section that answers must fit.
+     */
+    internal fun ranked(question: String, article: String, passages: List<Evidence>, chars: Int = Int.MAX_VALUE): List<Evidence> {
+        val scorer = Scorer(question, article)
+        // A page's lead is its first document ("enw-68316-0000"); its chunks stay in order.
+        val lead = passages.filter { it.documentId.endsWith("-0000") }
+            .sortedWith(compareBy<Evidence> { !it.documentId.startsWith("enw-") }.thenBy { it.chunkId })
+        val sections = passages.filterNot { it.documentId.endsWith("-0000") }.groupBy { it.documentId }.values
+            .map { chunks -> chunks.sortedBy { it.chunkId } to chunks.maxOf { scorer.score(it) } }
+            .sortedWith(compareByDescending<Pair<List<Evidence>, Int>> { it.second }.thenBy { it.first.first().chunkId })
+        val scored = sections.filter { it.second > 0 }.flatMap { it.first }
+        val unscored = sections.filter { it.second <= 0 }.flatMap { it.first }
+        val first = lead.take(1)
+        val best = scored.firstOrNull()
+        return if (best != null && first.isNotEmpty() && first[0].text.length + best.text.length > chars) {
+            scored + first + lead.drop(1) + unscored
+        } else first + scored + lead.drop(1) + unscored
+    }
+
+    /**
+     * The section of [article] among [passages] that answers [question] by its own heading
+     * ("Principles" for how GPS works, "Eye irritation" for why onions make you cry), best first;
+     * only a section's first chunk, which opens with its first sentence. Null when no heading
+     * answers the question's kind: a section that merely shares the question's words is evidence,
+     * not an opening.
+     */
+    fun answering(question: String, article: String, passages: List<Evidence>): Evidence? {
+        val scorer = Scorer(question, article)
+        return passages.filter { item ->
+            isEncyclopedia(item) && item.title.startsWith("$article — ") && !item.documentId.endsWith("-0000") &&
+                chunkNumber(item) == 0 && scorer.headingAnswers(item)
+        }.maxByOrNull { scorer.score(it) }
+    }
+
+    /** Whether [next] is the chunk right after [previous] in the same passage. */
+    private fun follows(previous: Evidence, next: Evidence): Boolean =
+        previous.documentId == next.documentId && chunkNumber(next) == chunkNumber(previous) + 1
+
+    private fun chunkNumber(item: Evidence): Int = item.chunkId.substringAfterLast(':').toIntOrNull() ?: -1
+
+    /**
+     * Picked chunks with each run of consecutive chunks of one passage joined into one passage,
+     * without the overlap the chunker repeats, and without the "Also known as:" line, which names
+     * the article rather than explaining it.
+     */
+    internal fun joined(picked: List<Evidence>): List<Evidence> {
+        // Each passage's chunks stay together, in order, where the passage first appeared.
+        val firstSeen = HashMap<String, Int>()
+        picked.forEachIndexed { index, item -> firstSeen.putIfAbsent(item.documentId, index) }
+        val result = ArrayList<Evidence>()
+        var previous = -2
+        for (item in picked.sortedWith(compareBy({ firstSeen.getValue(it.documentId) }, { chunkNumber(it) }))) {
+            val last = result.lastOrNull()
+            if (last != null && last.documentId == item.documentId && chunkNumber(item) == previous + 1) {
+                val overlap = item.text.take(OVERLAP)
+                val rest = if (last.text.endsWith(overlap)) item.text.drop(OVERLAP) else " " + item.text
+                result[result.lastIndex] = last.copy(text = last.text + rest)
+            } else {
+                result += item
+            }
+            previous = chunkNumber(item)
+        }
+        return result.map { item ->
+            item.copy(text = item.text.lineSequence().filterNot { it.startsWith("Also known as:") }.joinToString("\n").trim())
+        }
+    }
+
+    private fun tokens(value: String): Set<String> = tokenPattern.findAll(value.lowercase()).map { it.value }.toSet()
+
+    // "pumps" and "pumping" are the word "pump"; a short word must match whole.
+    private fun stemMatches(word: String, term: String): Boolean =
+        if (term.length <= 4) word == term else word.startsWith(term.take(maxOf(4, term.length - 2)))
+}

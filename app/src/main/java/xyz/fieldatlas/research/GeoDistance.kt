@@ -6,7 +6,8 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-data class GeoPoint(val lat: Double, val lon: Double) {
+/** [ageMinutes] is how old the phone's fix was when it was read; 0 for a fresh fix or a given point. */
+data class GeoPoint(val lat: Double, val lon: Double, val ageMinutes: Long = 0) {
     init {
         require(lat in -90.0..90.0 && lon in -180.0..180.0) { "coordinates out of range" }
     }
@@ -16,6 +17,12 @@ data class GeoPoint(val lat: Double, val lon: Double) {
 data class NearbyPlace(val evidence: Evidence, val distanceKm: Double, val bearingDegrees: Double? = null)
 
 object GeoDistance {
+    /** "25 minutes", "3 hours": how old a location fix is. */
+    fun ageLabel(minutes: Long): String = when {
+        minutes < 90 -> "$minutes minutes"
+        else -> "${(minutes + 30) / 60} hours"
+    }
+
     fun km(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val phi1 = Math.toRadians(lat1)
         val phi2 = Math.toRadians(lat2)

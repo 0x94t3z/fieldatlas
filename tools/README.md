@@ -66,6 +66,30 @@ python3 tools/build_osm_essentials_pack.py fetch --cache-dir build/osm-essential
 python3 tools/build_osm_essentials_pack.py build --cache-dir build/osm-essentials/cache \
   --settlements-cache build/osm-vegan/cache --out build/osm-essentials/pack --version 2026.10.02
 
+# Encyclopedia and the older flat travel guides from Wikimedia CirrusSearch dumps: spool streams
+# the dump once (network), build is offline and byte-reproducible from the spool. Wikimedia keeps
+# these dumps for a few weeks; the knowledge releases carry the spools.
+python3 tools/build_wikipedia_pack.py spool \
+  --source https://dumps.wikimedia.org/other/cirrussearch/20251229/simplewiki-20251229-cirrussearch-content.json.gz \
+  --out build/wikipedia/simplewiki.spool.jsonl.gz
+python3 tools/build_wikipedia_pack.py build --spool build/wikipedia/simplewiki.spool.jsonl.gz \
+  --out build/wikipedia/pack --version 2025.12.29
+
+# Travel guides by section ("Japan — Buy > Cash") from the pinned pages-articles dump above.
+python3 tools/build_wikivoyage_guides_pack.py --dump enwikivoyage-20260901-pages-articles.xml.bz2 \
+  --out build/wikivoyage-guides-sections --version 2026.09.01
+
+# Cryptography & Ethereum: fetch pins every source (EIP/ERC/spec commits, NIST PDFs, Wikipedia
+# revisions) in a lock; build checks the lock, then embed_pack.py and build_vector_pack.py add vectors.
+python3 tools/build_crypto_pack.py fetch
+python3 tools/build_crypto_pack.py build --version 2026.10.05
+
+# English Wikipedia's vital articles by section, read through the MediaWiki API at most 3 requests
+# a second; fetch resumes after an interruption, build is offline and byte-reproducible.
+python3 tools/build_wikipedia_sections_pack.py fetch --spool build/wikipedia-en/vital.spool.jsonl --workers 4
+python3 tools/build_wikipedia_sections_pack.py build --spool build/wikipedia-en/vital.spool.jsonl \
+  --out build/wikipedia-en/full --version 2026.10.06
+
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
 python3 tools/build_vector_pack.py \
     --base-fapack ../fapacks/world-knowledge-biology/world-knowledge-biology-1.1.0.fapack \

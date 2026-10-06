@@ -10,6 +10,12 @@ import android.os.CancellationSignal
 import android.os.SystemClock
 import java.util.concurrent.Executors
 import kotlin.coroutines.resume
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import xyz.fieldatlas.research.GeoPoint
@@ -34,9 +40,11 @@ class DeviceLocation(private val context: Context) {
         if (!hasPermission()) return null
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
         if (!manager.isLocationEnabled) return null
-        // GPS needs precise permission; with approximate only, the system still serves the
-        // network and passive providers (fuzzed to about 2 km), which suits city answers.
+        // GPS needs precise permission; with approximate only, the system still serves the fused,
+        // network and passive providers (fuzzed to about 2 km), which suits city answers. The
+        // fused provider is Android's own, so it works without Play Services (GrapheneOS).
         val providers = buildList {
+            add(LocationManager.FUSED_PROVIDER)
             if (granted(Manifest.permission.ACCESS_FINE_LOCATION)) add(LocationManager.GPS_PROVIDER)
             add(LocationManager.NETWORK_PROVIDER)
             add(LocationManager.PASSIVE_PROVIDER)
@@ -47,8 +55,16 @@ class DeviceLocation(private val context: Context) {
         }.maxByOrNull { it.elapsedRealtimeNanos }
         if (recent != null && ageMillis(recent) <= FRESH_MILLIS) return recent.toPoint()
 
-        val fresh = providers.firstOrNull { it != LocationManager.PASSIVE_PROVIDER }?.let { provider ->
-            withTimeoutOrNull(FIX_TIMEOUT_MILLIS) { requestFix(manager, provider) }
+        // Every active provider is asked at once and the first fix wins: offline, the fused
+        // provider may wait on GPS anyway, and a cold GPS indoors can take most of a minute.
+        val active = providers.filter { it != LocationManager.PASSIVE_PROVIDER }
+        val fresh = if (active.isEmpty()) null else withTimeoutOrNull(FIX_TIMEOUT_MILLIS) {
+            callbackFlow {
+                val requests = active.map { provider -> launch { send(requestFix(manager, provider)) } }
+                // Once every provider has answered, even with no fix, there is nothing left to wait for.
+                launch { requests.joinAll(); close() }
+                awaitClose()
+            }.filterNotNull().firstOrNull()
         }
         return (fresh ?: recent?.takeIf { ageMillis(it) <= USABLE_MILLIS })?.toPoint()
     }
@@ -75,11 +91,11 @@ class DeviceLocation(private val context: Context) {
     private fun ageMillis(location: Location) =
         (SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos) / 1_000_000L
 
-    private fun Location.toPoint(): GeoPoint? = runCatching { GeoPoint(latitude, longitude) }.getOrNull()
+    private fun Location.toPoint(): GeoPoint? = runCatching { GeoPoint(latitude, longitude, ageMillis(this) / 60_000L) }.getOrNull()
 
     private companion object {
         const val FRESH_MILLIS = 10 * 60 * 1000L
         const val USABLE_MILLIS = 2 * 60 * 60 * 1000L
-        const val FIX_TIMEOUT_MILLIS = 20_000L
+        const val FIX_TIMEOUT_MILLIS = 45_000L
     }
 }

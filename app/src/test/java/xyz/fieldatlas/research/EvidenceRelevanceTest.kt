@@ -552,4 +552,86 @@ class EvidenceRelevanceTest {
         val town = "Kopermolen Vaals concerts"
         assertEquals(listOf(museum), EvidenceRelevance.keep(listOf(museum), FtsQuery.from(town)!!.terms, question = town))
     }
+
+    private fun osm(id: String, destination: String, category: String, place: String, vararg lines: String) = Evidence(
+        "osm-place-$id", "osm-place-$id:0000", "$destination — $place", "https://www.openstreetmap.org/node/$id",
+        (listOf("Destination: $destination", "Category: $category", "Place: $place") + lines +
+            "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)").joinToString("\n"), -20.0,
+    )
+
+    @Test fun aListingAnswersWithWhatItSaysNotItsLabelsOrItsTown() {
+        val question = "need a 24 hour pharmacy in Bangkok around Sukhumvit"
+        // "Hours in source" is not an hour and "24/7" not a 24-hour pharmacy; Bangkok is every listing's town.
+        val kfc = osm("n1", "Bangkok", "Eat", "KFC", "Type: fast_food", "Hours in source: 24/7")
+        val hostel = osm("n2", "Bangkok", "Sleep", "Home16 Hostel", "Type: hostel", "Hours in source: 24/7")
+        val pharmacy = osm("n3", "Bangkok", "Health", "eXta Plus Pharmacy", "Type: pharmacy", "Address: Sukhumvit 4 Alley")
+        assertEquals(listOf(pharmacy), EvidenceRelevance.keep(listOf(kfc, hostel, pharmacy), FtsQuery.from(question)!!.terms, question = question))
+    }
+
+    @Test fun aListingNamedAfterAPersonOrMonumentAnswersOnlyAPlaceLookupOrItsTown() {
+        val station = osm("n4", "Dubai", "Transport", "Ibn Battuta", "Type: train station")
+        val person = "Who was Ibn Battuta?"
+        assertTrue(EvidenceRelevance.keep(listOf(station), FtsQuery.from(person)!!.terms, question = person).isEmpty())
+        val restaurant = osm("n5", "Graz", "Eat", "Taj Mahal", "Type: restaurant", "Cuisine: indian", "Vegan: vegan options")
+        val monument = "Who built the Taj Mahal and when?"
+        assertTrue(EvidenceRelevance.keep(listOf(restaurant), FtsQuery.from(monument)!!.terms, question = monument).isEmpty())
+        // Naming the town, or asking about the venue's hours, still reaches the listing.
+        val metro = "Where is the Ibn Battuta metro station in Dubai?"
+        assertEquals(listOf(station), EvidenceRelevance.keep(listOf(station), FtsQuery.from(metro)!!.terms, question = metro))
+        val louvre = Evidence("wv-place-9", "wv-place-9:0000", "Paris — Louvre", "https://en.wikivoyage.org",
+            "Destination: Paris\nCategory: See\nPlace: Louvre\nDescription: The world's largest art museum.\nHours in source: W-M 09:00-18:00", -20.0)
+        val hours = "Is the Louvre open on Mondays?"
+        assertEquals(listOf(louvre), EvidenceRelevance.keep(listOf(louvre), FtsQuery.from(hours)!!.terms, question = hours))
+    }
+
+    @Test fun anotherLanguagesPhrasebookIsNotEvidenceWithoutALanguageWord() {
+        val phrasebook = Evidence("wvs-35557-0018", "wvs-35557-0018:0001", "Telugu phrasebook — Phrase list > Transportation > Directions",
+            "https://en.wikivoyage.org/w/index.php?oldid=5320538", "- Turn right. : kudi vypu ki tirugu\n- left : left (yedama)\n- Watch for the _____. : -- kosam chudandi", -5.0)
+        val wallet = Evidence("wp-55164087-0009", "wp-55164087-0009:0000", "Cryptocurrency wallet — Technology > Seed phrases", "https://en.wikipedia.org",
+            "A seed phrase is a list of words which store all the information needed to recover a cryptocurrency wallet. Keep it offline, written on paper.", -20.0)
+        val question = "What is a seed phrase and why should I keep it offline?"
+        assertEquals(listOf(wallet), EvidenceRelevance.keep(listOf(phrasebook, wallet), FtsQuery.from(question)!!.terms, question = question))
+        val thai = Evidence("wvs-1-0003", "wvs-1-0003:0000", "Thai phrasebook — Phrase list > Basics", "https://en.wikivoyage.org",
+            "- Thank you. : khop khun (ขอบคุณ)\n- Please. : karuna", -5.0)
+        val words = "Thai words for thank you"
+        assertEquals(listOf(thai), EvidenceRelevance.keep(listOf(thai), FtsQuery.from(words)!!.terms, question = words))
+    }
+
+    @Test fun aBlogChunkOfPageFurnitureIsNotEvidenceForAnExplanation() {
+        val prose = "Vitalik Buterin is the originator of Ethereum, but also a strong supporter of research aimed at bringing aging " +
+            "under medical control. He made a 2.4 million dollar donation to the SENS Research Foundation."
+        val furniture = Evidence("fightaging-interview", "fightaging-interview:0000", "An interview with Vitalik Buterin", "https://www.fightaging.org",
+            "      Posted by Reason\n\n        Read 6 Comments      \n\n      Add a Comment\n\n$prose", -28.0)
+        val article = furniture.copy(chunkId = "fightaging-interview:0001", text = prose)
+        val question = "What did Vitalik Buterin donate to aging research?"
+        assertEquals(listOf(article), EvidenceRelevance.keep(listOf(furniture, article), FtsQuery.from(question)!!.terms, question = question))
+        // A source-only request reads what it was given.
+        val summary = "Summarize what the attached notes say about Vitalik Buterin"
+        assertEquals(listOf(furniture, article), EvidenceRelevance.keep(listOf(furniture, article), FtsQuery.from(summary)!!.terms, question = summary))
+    }
+
+    @Test fun aOneWordTitleMustBeTheQuestionsSubjectNotTheEndOfItsCompound() {
+        val leather = Evidence("swp-8608-0000", "swp-8608-0000:0000", "Wallet — Overview", "https://simple.wikipedia.org",
+            "A wallet is a small flat container, mostly of leather or fabric, that a person uses to hold cash, credit cards, identification cards, etc. " +
+                "Most men usually keep their wallets in their pockets. A cryptocurrency wallet is a device, program, or service that stores public and/or private keys.", -14.0)
+        val hardware = Evidence("wp-55164087-0005", "wp-55164087-0005:0000", "Cryptocurrency wallet — Types of Wallets > Cold storage > Hardware wallets", "https://en.wikipedia.org",
+            "A hardware wallet is a small device that stores the user's private keys offline; it keeps the key safe because signing happens inside the device.", -18.0)
+        val question = "How does a hardware wallet keep my private key safe?"
+        assertEquals(listOf(hardware), EvidenceRelevance.keep(listOf(leather, hardware), FtsQuery.from(question)!!.terms, question = question))
+        // The modifier in the passage makes the one-word title the subject: tides are ocean tides.
+        val tide = Evidence("swp-tide", "swp-tide:0000", "Tide — Overview", "https://simple.wikipedia.org",
+            "A tide is the periodic rising and falling of Earth's ocean surface caused mainly by the gravitational pull of the Moon acting on the oceans. Tides cause changes in the depth of marine waters.", -14.0)
+        val tides = "How do ocean tides rise and fall each day?"
+        assertEquals(listOf(tide), EvidenceRelevance.keep(listOf(tide), FtsQuery.from(tides)!!.terms, question = tides))
+    }
+
+    @Test fun aShortStemMatchesItsOwnFormsAndContractionFragmentsDoNotCount() {
+        fun passage(text: String) = Evidence("d-$text", "d-$text:0", "Article", "local", text, -1.0)
+        assertTrue(EvidenceRelevance.keep(listOf(passage("The earthquake hurt the town.")), listOf("ears", "hurt")).isEmpty())
+        val ear = passage("Ear infections hurt.")
+        assertEquals(listOf(ear), EvidenceRelevance.keep(listOf(ear), listOf("ears", "hurt")))
+        // "we're" leaves "re" behind; it is not a second term the passage must hold.
+        val lost = passage("Lost hikers should stay put.")
+        assertEquals(listOf(lost), EvidenceRelevance.keep(listOf(lost), listOf("re", "lost")))
+    }
 }

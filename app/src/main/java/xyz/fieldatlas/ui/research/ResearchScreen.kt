@@ -125,14 +125,15 @@ fun ResearchScreen(
     var questionFocused by remember { mutableStateOf(false) }
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
     var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
-    // Keep the first-run examples focused on the bounty's research task rather than
-    // mirroring whichever pack happens to be installed on the device: a place lookup, then
-    // explanation, comparison and reasoning, each answered by a named Encyclopedia article.
+    // The first-run examples are what a traveller tries first, each on a path whose first answer
+    // appears at once, offline: the best vegan places in the city the phone is in, an explanation
+    // that opens with its encyclopedia article, an emergency answered from its official guide,
+    // and a phrase quoted from a phrasebook.
     val exampleQuestions = listOf(
-        ExampleQuestion("Best vegan restaurants in Berlin", FieldAtlasIcons.Food, TileTone.Clay),
-        ExampleQuestion("What is photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Sage),
-        ExampleQuestion("Compare mitosis and meiosis", FieldAtlasIcons.Research, TileTone.Gold),
-        ExampleQuestion("Why did the Berlin Wall fall?", FieldAtlasIcons.Document, TileTone.Paper),
+        ExampleQuestion("Best vegan restaurants in the city I'm in", FieldAtlasIcons.Food, TileTone.Clay),
+        ExampleQuestion("Why did the Berlin Wall fall?", FieldAtlasIcons.Knowledge, TileTone.Sage),
+        ExampleQuestion("Someone is choking. What do I do?", FieldAtlasIcons.Info, TileTone.Gold),
+        ExampleQuestion("How do I say thank you in Japanese?", FieldAtlasIcons.Document, TileTone.Paper),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),

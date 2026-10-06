@@ -45,7 +45,15 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.runtime.produceState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.FlowRow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
+import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MoreScreen(
     proof: ProofModel,
@@ -60,6 +68,8 @@ fun MoreScreen(
     var showModel by rememberSaveable { mutableStateOf(false) }
     var showDiagnostics by rememberSaveable { mutableStateOf(false) }
     var showTechnical by rememberSaveable { mutableStateOf(false) }
+    var showLicences by rememberSaveable { mutableStateOf(false) }
+    var showLicenceText by rememberSaveable { mutableStateOf<String?>(null) }
     var includeQuestion by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
@@ -207,6 +217,52 @@ fun MoreScreen(
                     facts.forEachIndexed { index, fact ->
                         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ProofRow(fact)
+                    }
+                }
+            }
+            MoreDivider()
+            MoreSection {
+                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showLicences = !showLicences },
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    FieldAtlasIconTile(FieldAtlasIcons.Document, size = 36.dp)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        MoreCardTitle("Licences")
+                        Text("Open-source components, data and their licences.", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    FieldAtlasExpandIcon(showLicences, Modifier.semantics {
+                        contentDescription = if (showLicences) "Hide licences" else "Show licences"
+                    })
+                }
+                if (showLicences) {
+                    val assets = LocalContext.current.assets
+                    // The same files as in the repository; a unit test keeps the copies identical.
+                    fun read(path: String) = runCatching { assets.open(path).bufferedReader().use { it.readText() } }.getOrNull()
+                    val notices by produceState<Pair<String?, String?>?>(null) {
+                        value = withContext(Dispatchers.IO) {
+                            read("licenses/NOTICE.txt") to read("licenses/THIRD_PARTY_NOTICES.md")?.let(::readableNotices)
+                        }
+                    }
+                    val texts by produceState(emptyList<String>()) {
+                        value = withContext(Dispatchers.IO) {
+                            assets.list("licenses").orEmpty().filter { it.endsWith(".txt") && it != "NOTICE.txt" }.map { "licenses/$it" } +
+                                assets.list("ocr/licenses").orEmpty().map { "ocr/licenses/$it" }
+                        }
+                    }
+                    notices?.first?.let { Text(it.trim(), style = MaterialTheme.typography.bodySmall) }
+                    notices?.second?.let { AnswerMarkdownRenderer(blocks = parseAnswerMarkdown(it), sourceCount = 0, onCitation = {}) }
+                    Text("Full licence texts", style = MaterialTheme.typography.titleSmall)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        texts.forEach { path ->
+                            TextButton(shape = FieldAtlasButtonShape, onClick = {
+                                showLicenceText = if (showLicenceText == path) null else path
+                            }) { Text(licenceLabel(path)) }
+                        }
+                    }
+                    showLicenceText?.let { path ->
+                        val text by produceState<String?>(null, path) { value = withContext(Dispatchers.IO) { read(path) } }
+                        text?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                     }
                 }
             }

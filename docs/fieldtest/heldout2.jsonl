@@ -1,0 +1,48 @@
+{"id": "nh-p01", "cat": "places", "q": "first time in Mexico City, where should I go for really good street food?"}
+{"id": "nh-p02", "cat": "places", "q": "need a 24 hour pharmacy in Bangkok, ideally somewhere around Sukhumvit"}
+{"id": "nh-p03", "cat": "places", "q": "Which museums in Madrid are actually worth it if I only have one day?"}
+{"id": "nh-p04", "cat": "places", "q": "Best beaches in Cape Town where you can actually swim? I heard the water is freezing"}
+{"id": "nh-p05", "cat": "places", "q": "where's the closest ATM? ideally a proper bank one, not Euronet", "gps": [41.8986, 12.4769]}
+{"id": "nh-p06", "cat": "places", "q": "hungry. any good local places to eat around here that aren't too expensive?", "gps": [37.5665, 126.978]}
+{"id": "nh-v01", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [52.52, 13.405]}
+{"id": "nh-v02", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [34.0522, -118.2437]}
+{"id": "nh-t01", "cat": "travel", "q": "Lisbon to Porto by train, do I need to book ahead or can I just buy a ticket at the station on the day?"}
+{"id": "nh-t02", "cat": "travel", "q": "Should I bring euros to change in Morocco or just take out dirhams from an ATM when I land?"}
+{"id": "nh-t03", "cat": "travel", "q": "what do I need to get a tourist SIM card in India? can I just buy one at Delhi airport"}
+{"id": "nh-t04", "cat": "travel", "q": "Flying into Bali on a UK passport. Can I get a visa on arrival and how much is it?"}
+{"id": "nh-t05", "cat": "travel", "q": "what should I wear to visit temples in Thailand, and is there anything I shouldn't do inside?"}
+{"id": "nh-t06", "cat": "travel", "q": "Is Rio de Janeiro safe for a solo traveller? Which areas should I avoid at night?"}
+{"id": "nh-t07", "cat": "travel", "q": "how does public transport work in Istanbul? do I need some kind of card for the metro and ferries"}
+{"id": "nh-e01", "cat": "emergency", "q": "been throwing up with bad diarrhea since last night and there's no pharmacy anywhere. how do I make a rehydration drink and when should I start worrying?"}
+{"id": "nh-e02", "cat": "emergency", "q": "A monkey bit my hand and broke the skin. We're in a village with no hospital nearby. What should I do right now, and do I need rabies shots?"}
+{"id": "nh-e03", "cat": "emergency", "q": "I think my friend broke her ankle on the trail. We're about 3 hours' walk from the car and there's no signal. How do we splint it, and should we try to move her?"}
+{"id": "nh-e04", "cat": "emergency", "q": "we're at about 4200 m on a trek and my friend has a pounding headache, threw up twice and is stumbling like he's drunk. what do we do"}
+{"id": "nh-e05", "cat": "emergency", "q": "Someone in our group collapsed in the heat on a hike. Their skin is hot, they're confused and they've almost stopped sweating. What do I do?"}
+{"id": "nh-x01", "cat": "explanation", "q": "How does GPS on my phone work when I have no internet or signal?"}
+{"id": "nh-x02", "cat": "explanation", "q": "why do my ears pop on planes, and why does it hurt more when we're landing?"}
+{"id": "nh-x03", "cat": "explanation", "q": "Why does jet lag happen, and why is flying east supposed to be worse than flying west?"}
+{"id": "nh-x04", "cat": "explanation", "q": "what causes the northern lights and why can you only see them near the poles"}
+{"id": "nh-x05", "cat": "explanation", "q": "why do onions make you cry when you cut them?"}
+{"id": "nh-c01", "cat": "comparison", "q": "DEET vs picaridin, which mosquito repellent is better for a trip to the tropics?"}
+{"id": "nh-c02", "cat": "comparison", "q": "ibuprofen or paracetamol for a fever and headache, what's the difference and which should I take?"}
+{"id": "nh-c03", "cat": "comparison", "q": "Madrid to Barcelona: is the high-speed train or a flight the better option?"}
+{"id": "nh-c04", "cat": "comparison", "q": "whats the actual difference between a hurricane, a typhoon and a cyclone"}
+{"id": "nh-c05", "cat": "comparison", "q": "The card machine asks if I want to pay in euros or in my home currency. Which one is cheaper?"}
+{"id": "nh-s01", "cat": "synthesis", "q": "Why did the Western Roman Empire collapse while the eastern half lasted almost another thousand years?"}
+{"id": "nh-s02", "cat": "synthesis", "q": "how did Singapore go from a poor port to one of the richest countries in the world in about 50 years?"}
+{"id": "nh-s03", "cat": "synthesis", "q": "Is intermittent fasting actually better than just eating less if you want to lose weight? What does the research say?"}
+{"id": "nh-s04", "cat": "synthesis", "q": "how did the Black Death change wages and life for peasants in Europe afterwards?"}
+{"id": "nh-r01", "cat": "reasoning", "q": "Road trip is 840 km. The rental uses 6.5 litres per 100 km and petrol is 1.89 euros a litre. If 3 of us split the fuel, how much does each person pay?"}
+{"id": "nh-r02", "cat": "reasoning", "q": "I've got 2,000,000 Vietnamese dong left. The exchange office gives 25,400 dong per US dollar and takes a 3% commission. How many dollars do I get back?"}
+{"id": "nh-r03", "cat": "reasoning", "q": "3 of us are hiking and we won't reach any water until the end of day 2. If each person drinks 3.5 litres a day, how much water do we need to carry from the start, and how much will it weigh per person?"}
+{"id": "nh-r04", "cat": "reasoning", "q": "My flight leaves Singapore at 23:50 local time and takes 13 h 45 min to London. Singapore is UTC+8 and London is UTC+1 right now. What time is it in London when I land?"}
+{"id": "nh-y01", "cat": "crypto", "q": "whats the difference between a seed phrase and a private key? if i lose my phone with the wallet on it is my crypto gone"}
+{"id": "nh-y02", "cat": "crypto", "q": "How can someone send me an encrypted message if we've never shared a password? How does public key cryptography actually work?"}
+{"id": "nh-y03", "cat": "crypto", "q": "what is a layer 2 rollup on Ethereum and why are fees there so much cheaper than on mainnet?"}
+{"id": "nh-l01", "cat": "lookup", "q": "tell me about Georgia, the country not the US state"}
+{"id": "nh-l02", "cat": "lookup", "q": "who was Ibn Battuta?"}
+{"id": "nh-l03", "cat": "lookup", "q": "When was the Taj Mahal built, and who built it?"}
+{"id": "nh-l04", "cat": "lookup", "q": "how long is the Danube and how many countries does it flow through"}
+{"id": "nh-l05", "cat": "lookup", "q": "where is Kilimanjaro and how tall is it?"}
+{"id": "nh-l06", "cat": "lookup", "q": "tell me about Montevideo"}
+{"id": "nh-l07", "cat": "lookup", "q": "Who invented the World Wide Web, and when?"}

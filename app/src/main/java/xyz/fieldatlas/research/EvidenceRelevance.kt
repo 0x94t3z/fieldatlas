@@ -67,7 +67,12 @@ object EvidenceRelevance {
         question: String? = null,
     ): List<Evidence> {
         if (questionTerms.isEmpty()) return evidence
-        val kept = gate(evidence, questionTerms, expandedTerms, question)
+        // Page furniture and another language's phrases say nothing, whatever words they share.
+        val readable = evidence.filterNot { item ->
+            isForeignPhrasebook(item, question) ||
+                (question != null && PromptBuilder.allowsModelExplanation(question) && isNavigationBoilerplate(item))
+        }
+        val kept = gate(readable, questionTerms, expandedTerms, question)
         val overview = overviewSubjects(question)
         if (kept.isNotEmpty() || overview.isEmpty() || comparisonTerms(question).isNotEmpty()) return kept
         // "What is danksharding?" asks for a definition, but when no saved passage defines the
@@ -76,7 +81,7 @@ object EvidenceRelevance {
         // model answering from nothing. A title alone ("2-MeV Fast Neutrons") does not count.
         val subjectTerms = overview.flatMap { FtsQuery.from(it)?.terms.orEmpty() }.toSet()
         val otherTerms = questionTerms.filterNot { it in subjectTerms || it in lookupWrappers || it in genericTerms }
-        return rankByPassage(evidence.filter { item ->
+        return rankByPassage(readable.filter { item ->
             val passage = topicalText(item.text)
             !isTravelListing(item) && overview.any { containsPhrase(passage, it) } &&
                 (otherTerms.isEmpty() || tokens(item.title + " " + passage).let { body -> otherTerms.any { body.matches(it) } })
@@ -123,7 +128,7 @@ object EvidenceRelevance {
                         questionTerms.all { tokens(topicalText(item.text)).matches(it) }))) &&
                 (!generalExplanation || !isTravelListing(item)) &&
                 (!generalExplanation || overview.isNotEmpty() || isStrongConceptMatch(item) ||
-                    isSupportedConceptMatch(item, relevanceTerms) || explanationTopicMatches(item, relevanceTerms)) &&
+                    isSupportedConceptMatch(item, relevanceTerms) || explanationTopicMatches(item, relevanceTerms, question)) &&
                 destinationMatches(item, question) && categoryMatches(item, question) && placeAsked(item, question) &&
                 dietaryMatches(item, question) &&
                 // The definition of the asked subject stays even when the question also names
@@ -149,7 +154,7 @@ object EvidenceRelevance {
     /** An incidental phrase in a long article is not enough for a general explanation.
      * Prefer a named topic in the title, or a compact explanatory statement in the body.
      * Specific source/study questions retain the normal relevance path. */
-    private fun explanationTopicMatches(item: Evidence, terms: List<String>): Boolean {
+    private fun explanationTopicMatches(item: Evidence, terms: List<String>, question: String?): Boolean {
         val topicTerms = terms.filterNot { it in setOf("both", "same", "need", "needs", "affect", "different", "differ", "useful") }
         if (topicTerms.isEmpty()) return false
         val title = tokens(item.title)
@@ -164,9 +169,73 @@ object EvidenceRelevance {
                 explanation.containsMatchIn(sentence) &&
                     topicTerms.count { tokens(sentence).matches(it) } >= required
             } || hasOverviewStatement(item, listOf(item.title.substringBefore(" — "))).let { overview ->
-                // This fallback requires an explicitly named sectioned reference topic.
-                overview && " — " in item.title && titleHits > 0
+                // This fallback requires an explicitly named sectioned reference topic, and a title
+                // of one question word must be the question's subject, not the last word of it.
+                overview && " — " in item.title && titleHits > 0 &&
+                    (titleHits >= 2 || question == null || titleSubjectIsQuestionSubject(item, question, topicTerms))
             }
+    }
+
+    /**
+     * "Wallet — Overview" (a leather one) defines the last word of "how does a hardware wallet keep
+     * my key safe", not its subject: when the question puts another of its content words right
+     * before the title's word, the passage must say that word too. "Tide — Overview" says "ocean"
+     * for "what causes ocean tides"; the wallet article never says "hardware". English puts the
+     * narrowing noun in the singular ("hardware wallet", "ocean tides", "seed phrase"), so a plural
+     * before the title's word ends its own phrase instead: "two ways agriculture changed societies"
+     * asks about agriculture, not about a "ways agriculture".
+     */
+    private fun titleSubjectIsQuestionSubject(item: Evidence, question: String, topicTerms: List<String>): Boolean {
+        val head = tokenPattern.findAll(item.title.substringBefore(" — ")).map { it.value.lowercase() }.firstOrNull() ?: return false
+        val words = tokenPattern.findAll(question).map { it.value.lowercase() }.toList()
+        val modifiers = words.indices.filter { index -> index > 0 && setOf(words[index]).matches(head) }
+            .map { index -> words[index - 1] }
+            .filter { before -> topicTerms.any { term -> term.equals(before, ignoreCase = true) } && !isPluralNoun(before) }
+        if (modifiers.isEmpty()) return true
+        val body = tokens(topicalText(item.text))
+        return modifiers.any { modifier -> body.matches(modifier) }
+    }
+
+    /** "ways" and "reasons", but not "glass", "bus" or "basis": a word spelled as a plural. */
+    private fun isPluralNoun(word: String): Boolean =
+        word.length > 3 && word.endsWith("s") && !word.endsWith("ss") && !word.endsWith("us") && !word.endsWith("is")
+
+    /**
+     * A blog chunk that is mostly page furniture: three or more lines like "Permalink", "Posted by",
+     * "Read 6 Comments" or "Add a Comment", or one such line with under 40% letters in what it
+     * shows. A table of constants with no such line stays (a consensus spec's parameters are a
+     * quarter letters). Only a question the model may explain drops it; a source-only request
+     * reads whatever it attached.
+     */
+    private fun isNavigationBoilerplate(item: Evidence): Boolean {
+        if (isTravelListing(item)) return false
+        val markers = item.text.lineSequence().count { navigationLine.matches(it) }
+        if (markers >= 3) return true
+        val visible = item.text.filterNot(Char::isWhitespace)
+        return markers >= 1 && visible.isNotEmpty() && visible.count(Char::isLetter) < visible.length * 0.4
+    }
+
+    private val navigationLine = Regex("(?i)^\\s*(?:permalink|posted by\\b.*|add a comment|(?:read\\s+)?\\d*\\s*comments?|comments?\\s*\\(\\d+\\)|" +
+        "view comments?|reply|share(?: this)?|tags?:.*|filed under\\b.*)\\s*[|]*\\s*$")
+
+    /**
+     * A phrasebook's lines ("Telugu phrasebook — Phrase list > Directions") answer a question that
+     * names a language or asks how to say something; for any other question they match English
+     * words only ("seed phrase" found "Phrase list", "lose my phone" found "I'm lost / Police!").
+     */
+    private fun isForeignPhrasebook(item: Evidence, question: String?): Boolean =
+        question != null && item.title.contains(" phrasebook — ", ignoreCase = true) && !namesLanguage(question)
+
+    private val languageAsked = Regex("(?i)\\b(?:phrasebooks?|languages?|speak|speaks|speaking|spoken|pronounce|pronounced|pronunciation|" +
+        "translate|translated|translation|how (?:do|to|would) (?:i|you|we) say|words? for|phrases? for|vocabulary)\\b")
+
+    private fun namesLanguage(question: String): Boolean {
+        if (languageAsked.containsMatchIn(question) || Phrasebook.ask(question) != null) return true
+        val words = tokenPattern.findAll(question).map { it.value }.toList()
+        return words.indices.any { index ->
+            Phrasebook.books(words[index]).isNotEmpty() ||
+                (index + 1 < words.size && Phrasebook.books(words[index] + " " + words[index + 1]).isNotEmpty())
+        }
     }
 
     /** "What is the capital of Canada?" asks for one fact about a subject. No article is
@@ -185,7 +254,10 @@ object EvidenceRelevance {
     internal fun isRequestedOverview(item: Evidence, question: String?): Boolean {
         if (!item.title.endsWith(" — Overview") || isTravelListing(item)) return false
         val parent = item.title.removeSuffix(" — Overview").trim()
-        return overviewSubjects(question).any { it.equals(parent, ignoreCase = true) }
+        val subjects = overviewSubjects(question)
+        // "Georgia (country) — Overview" answers "tell me about Georgia, the country".
+        return subjects.any { it.equals(parent, ignoreCase = true) } ||
+            question != null && subjects.any { SubjectLookup.overviewOf(it, listOf(item), question) != null }
     }
 
     private fun isAdjacentOverview(item: Evidence, anchor: Evidence): Boolean {
@@ -225,7 +297,9 @@ object EvidenceRelevance {
     /** Article sections a reference names "<section> of <place>" ("History of Japan"). */
     private const val SECTION_NOUNS = "history|geography|culture|economy|politics|government|religion|cuisine|literature|music|architecture"
 
-    internal fun overviewSubjects(question: String?): List<String> {
+    internal fun overviewSubjects(raw: String?): List<String> {
+        // "whats X" and "im" route like their spelled-out forms.
+        val question = raw?.let(QuestionText::normalised)
         if (question == null || !PromptBuilder.allowsModelExplanation(question) || isAttributeQuestion(question)) return emptyList()
         comparisonTerms(question).takeIf { it.size == 2 }?.let { return it }
         val definition = Regex("(?i)^\\s*(?:please\\s+)?(?:what is|what are|what was|what were|explain|describe|tell me about|tell me|teach me about|" +
@@ -235,7 +309,9 @@ object EvidenceRelevance {
         if (words.size !in 1..4 || words.first().lowercase() in setOf("how", "why", "whether", "my", "our", "this", "that", "these", "those")) return emptyList()
         // "What is a boat?" names the same topic as "Boat — Overview"; any leading article
         // otherwise prevents the section title from matching.
+        // "a layer 2 rollup on Ethereum" asks about the rollup; the place or system it is on is context.
         val subject = definition.replace(Regex("(?i)^(?:the|an?)\\s+"), "")
+            .replace(Regex("\\s+(?:on|in|of|for|at)\\s+\\p{Lu}[\\p{L}\\p{N}'-]*(?:\\s+\\p{Lu}[\\p{L}\\p{N}'-]*)*$"), "")
         // "Japan's history" and "Japan history" are written "History of Japan" in reference titles.
         val possessive = Regex("^([\\p{L}\\p{N} -]+?)'s?\\s+([\\p{L}\\p{N} -]+)$").find(subject)
             ?: Regex("(?i)^([\\p{L}\\p{N} -]+?)\\s+($SECTION_NOUNS)$").find(subject)
@@ -340,15 +416,21 @@ object EvidenceRelevance {
      */
     private fun placeAsked(item: Evidence, question: String?): Boolean {
         if (question == null || !isStructuredPlace(item)) return true
-        if (placeRequest.containsMatchIn(question)) return true
-        // A named venue: "Is the Louvre open on Mondays?", "Opening hours of the Rijksmuseum".
-        val place = item.text.lineSequence().firstOrNull { it.startsWith("Place: ") }?.removePrefix("Place: ")?.trim()
-        if (place != null && place.length >= 4 && containsPhrase(question, place)) return true
         val destination = item.text.lineSequence().firstOrNull()?.takeIf { it.startsWith("Destination: ") }
-            ?.removePrefix("Destination: ")?.trim()?.takeIf(String::isNotEmpty) ?: return false
-        return listOf(destination, destination.substringBefore('/'), destination.substringBefore(" (")).distinct()
-            .any { name -> containsPhrase(question, name) }
+            ?.removePrefix("Destination: ")?.trim()?.takeIf(String::isNotEmpty)
+        if (destination != null && listOf(destination, destination.substringBefore('/'), destination.substringBefore(" (")).distinct()
+            .any { name -> containsPhrase(question, name) }) return true
+        // A venue named in the question answers a lookup or a question about its hours ("Is the
+        // Louvre open on Mondays?"), not one about who or what it is named after: "who was Ibn
+        // Battuta?" packed the Dubai metro station, "Taj Mahal" a restaurant in Graz.
+        val place = item.text.lineSequence().firstOrNull { it.startsWith("Place: ") }?.removePrefix("Place: ")?.trim()
+        if (place != null && place.length >= 4 && containsPhrase(question, place)) {
+            return VenueLookup.isPlaceLookup(question) || hoursAsked.containsMatchIn(question)
+        }
+        return placeRequest.containsMatchIn(question)
     }
+
+    private val hoursAsked = Regex("(?i)\\b(open|opens|opening|closed|closes|closing|hours|admission|entry|tickets?|fee|fees)\\b")
 
     private val placeRequest = Regex(
         "(?i)\\b(restaurants?|caf[eé]s?|eat|eating|food|meals?|dining|bars?|pubs?|drinks?|drinking|nightlife|hotels?|hostels?|" +
@@ -375,7 +457,7 @@ object EvidenceRelevance {
         val bodyTokens = tokens(if (hasIndexTags) passage else item.title + " " + passage)
         // Research vocabulary ("study", "outcomes", "different") occurs in almost every paper,
         // so sharing it is no sign that a passage is about the question's subject.
-        val contentTerms = questionTerms.filterNot(lookupWrappers::contains)
+        val contentTerms = questionTerms.filterNot { it in lookupWrappers || it in contractionFragments }
             .let { terms -> terms.filterNot(genericTerms::contains).ifEmpty { terms } }
         val questionHits = contentTerms.count { term -> bodyTokens.matches(term) }
         val expandedHits = expandedTerms
@@ -398,17 +480,41 @@ object EvidenceRelevance {
             isSupportedConceptMatch(item, contentTerms)
     }
 
-    /** A map listing answers one part of "a vegan food stop and a museum", so it needs two of the
-     * question's subject words (usually the city and its kind), not most of them. Destination,
-     * category and diet are still checked separately. */
+    /**
+     * A map listing answers one part of "a vegan food stop and a museum", so one of the question's
+     * subject words in what the listing SAYS is enough: its name, kind, cuisine, description,
+     * address or diet. Never the template's labels ("Hours in source" is not a 24-hour pharmacy),
+     * and never its own town, which every listing of the town shares: counting both let a hostel
+     * named Sukhumvit and a KFC answer for a pharmacy in Bangkok. Destination, category and diet
+     * are still checked separately.
+     */
     private fun isPlaceRelevant(item: Evidence, questionTerms: List<String>): Boolean {
-        val terms = questionTerms.filterNot { it in lookupWrappers || it in genericTerms || it in placeInstructionTerms }
+        val destination = listingValue(item.text, "Destination")?.let(::tokens).orEmpty()
+        val terms = questionTerms.filterNot {
+            it in lookupWrappers || it in genericTerms || it in placeInstructionTerms || it in contractionFragments || destination.matches(it)
+        }
         if (terms.isEmpty()) return true
-        val body = tokens(item.title + " " + item.text)
-        return terms.count { body.matches(it) } >= minOf(2, terms.size)
+        val said = tokens(listingFields.mapNotNull { field -> listingValue(item.text, field) }.joinToString(" "))
+        return terms.any { said.matches(it) }
     }
 
+    /** The lines of a listing that describe the place itself; "Vegan" is its diet claim, "Brand" its chain. */
+    private val listingFields = listOf("Place", "Type", "Cuisine", "Description", "Address", "Vegan", "Brand")
+
+    private fun listingValue(text: String, field: String): String? =
+        text.lineSequence().firstOrNull { it.startsWith("$field: ") }?.removePrefix("$field: ")?.trim()?.takeIf(String::isNotEmpty)
+
     private val placeInstructionTerms = setOf("listing", "listings", "stop", "stops", "visit", "visits", "trip", "suggest")
+
+    /**
+     * Words a place search within one destination ignores: how the lookup is phrased ("best",
+     * "suggest") and where ("near", "around") say nothing about the kind of place asked for, yet
+     * match place names ("Kaya's Best Döner") once the city no longer separates its listings.
+     */
+    internal val placeSearchFiller: Set<String> = lookupWrappers + placeInstructionTerms + setOf("near", "nearby", "around", "close")
+
+    /** What is left of "we're", "I'll", "you've" once the apostrophe splits them; not words. */
+    private val contractionFragments = setOf("re", "ll", "ve", "s", "t", "d", "m")
 
     /**
      * A good semantic match that also shares one of the question's own content words. In a
@@ -441,15 +547,30 @@ object EvidenceRelevance {
 
     private fun Set<String>.matches(term: String): Boolean {
         val lower = term.lowercase()
+        if (lower in contractionFragments) return false
         // As in FtsQuery: a short word or a number is not a stem. "mev" is not "mevalonate".
         if (lower.codePointCount(0, lower.length) <= 3) return FtsQuery.shortForms(lower).any(::contains)
         if (lower.all(Char::isDigit)) return lower in this
         val stem = stem(lower)
+        // "ears" stems to "ear", the start of "earth" and "earthquake": a stem this short matches
+        // its own forms only, as FtsQuery searches it.
+        if (stem.codePointCount(0, stem.length) <= 3) {
+            // "tides" loses its "es" to "tid", which names none of its forms; the word less its "s"
+            // ("tide") is its singular unless the letter before the "es" is one that takes "es"
+            // itself ("boxes", "buses" and "dishes" are "box", "bus" and "dish").
+            val singularBeforeEs = lower.takeIf { it.length > 4 && it.endsWith("es") && !takesEs(it.dropLast(2)) }?.dropLast(1)
+            return lower in this || FtsQuery.shortForms(stem).any(::contains) ||
+                (singularBeforeEs != null && any { token -> token.startsWith(singularBeforeEs) })
+        }
         // The stem of "embassies" ("embassi") is not a prefix of "embassy", so a plural
         // question would otherwise reject every listing that names the place in the singular.
         val singular = if (lower.length > 4 && lower.endsWith("ies")) lower.dropLast(3) + "y" else null
         return any { token -> token.startsWith(stem) || (singular != null && token.startsWith(singular)) }
     }
+
+    /** Whether a word's plural is spelled with "es": "box", "bus", "quiz", "dish", "church". */
+    private fun takesEs(base: String): Boolean =
+        base.endsWith("s") || base.endsWith("x") || base.endsWith("z") || base.endsWith("ch") || base.endsWith("sh")
 
     private fun stem(term: String): String = when {
         term.length > 4 && term.endsWith("ies") -> term.dropLast(2)

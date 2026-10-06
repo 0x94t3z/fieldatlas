@@ -141,4 +141,22 @@ class SourceLeadTest {
         assertTrue(events.none { it is ResearchEvent.Lead })
         assertTrue(events.last() is ResearchEvent.Failed)
     }
+    @Test fun anAbbreviationOpeningABracketContinuesTheSentence() {
+        val split = SourceLead.sentences("Change money at a bank (e.g. Attijariwafa) for the best rate. Avoid the street changers.")
+        assertEquals(2, split.size)
+        assertTrue(split.first(), split.first().endsWith("(e.g. Attijariwafa) for the best rate."))
+    }
+
+    @Test fun anExtendedQuoteStopsBeforeAListLeadInAndTwoQuotesShareTheRoom() {
+        val fares = Evidence("wvs-f", "wvs-f:0", "Paris — Get around > Fares", "https://en.wikivoyage.org/w/index.php?oldid=1",
+            "The card can be loaded with fares. It cannot be loaded with credit.\nThe following cards are available:\n- Navigo Easy\n- Navigo Découverte\nA bank card can also be used.", 0.0)
+        val extended = SourceLead.extend(SourceLead.Lead("S1", "The card can be loaded with fares."), listOf(PromptSource("S1", fares)))
+        assertEquals("The card can be loaded with fares. It cannot be loaded with credit.", extended.text)
+        val long = (1..40).joinToString(" ") { "Sentence number $it says a little more about the fares." }
+        val source = PromptSource("S1", Evidence("wvs-l", "wvs-l:0", "Paris — Get around > Fares", "https://en.wikivoyage.org/w/index.php?oldid=1", long, 0.0))
+        val alone = SourceLead.extend(SourceLead.Lead("S1", "Sentence number 1 says a little more about the fares."), listOf(source))
+        val shared = SourceLead.extend(SourceLead.Lead("S1", "Sentence number 1 says a little more about the fares.", listOf("S1" to "Sentence number 30 says a little more about the fares.")), listOf(source))
+        assertTrue(alone.text.length > 700 && alone.text.length <= 1_000)
+        assertTrue(shared.text.length <= 700 && shared.more.single().second.length <= 700)
+    }
 }

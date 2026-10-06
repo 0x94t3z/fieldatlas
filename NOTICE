@@ -1,0 +1,9 @@
+Field Atlas
+Copyright 2026 Field Atlas contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Part of this software comes from the vbuterin/fieldatlas fork, branch vector-search
+(commits 337d334 to 769e85d, merged in 4967a49); see the README's Acknowledgements.
+
+Third-party components and data, with their licences, are listed in THIRD_PARTY_NOTICES.md.

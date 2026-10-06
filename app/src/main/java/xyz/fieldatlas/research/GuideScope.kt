@@ -20,11 +20,15 @@ object GuideScope {
         "could", "do", "does", "did", "should", "would", "will", "i", "i'm", "i've", "my", "we", "tell", "please", "the", "a", "an",
         "in", "on", "at", "for", "if", "any", "best", "give", "list", "find", "show", "explain", "describe", "compare", "help")
 
-    /** Whether the question names a place, or anything else, with a capital letter. */
+    /**
+     * Whether the question names a place, or anything else, with a capital letter followed by
+     * lowercase. An acronym ("GPS", "DEET", "SIM") is a thing, not a name: its article is read like
+     * any subject's, and no destination guide answers it.
+     */
     fun namesPlace(question: String): Boolean {
         val starts = sentenceStart.findAll(question).map { it.groups[1]!!.range.first }.toSet()
         return word.findAll(question).any { m ->
-            m.value.first().isUpperCase() && m.value != "I" && !m.value.startsWith("I'") &&
+            m.value.first().isUpperCase() && m.value.drop(1).any(Char::isLowerCase) && !m.value.startsWith("I'") &&
                 (m.range.first !in starts || m.value.lowercase() !in openers)
         }
     }

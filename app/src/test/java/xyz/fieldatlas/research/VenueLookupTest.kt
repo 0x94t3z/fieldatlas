@@ -163,4 +163,9 @@ class VenueLookupTest {
         assertEquals(answer, 1, Regex("Leaf House").findAll(answer).count())
         assertTrue(answer, "Green Bowl" in answer)
     }
+    @Test fun aDecisionBetweenWaysToPayIsNoPlaceLookup() {
+        assertFalse(VenueLookup.isPlaceLookup("Should I bring euros to change in Morocco or just take out dirhams from an ATM when I land?"))
+        assertTrue(VenueLookup.isPlaceLookup("Where can I find an ATM near the station in Fez?"))
+        assertTrue(VenueLookup.isPlaceLookup("Find an ATM near me"))
+    }
 }

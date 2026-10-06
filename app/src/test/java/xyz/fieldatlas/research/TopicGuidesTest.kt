@@ -80,4 +80,22 @@ class TopicGuidesTest {
         assertEquals(before.title, TopicGuides.pick("How can I reduce jet lag after flying from New York to Singapore?", "jet lag",
             listOf(background, before), 2).first().title)
     }
+    @Test fun anAcronymMayNameAGuideAndATopicWithoutAPlaceReadsItsGuides() {
+        assertTrue(TopicGuides.names("DEET vs picaridin, which repellent is better for the tropics?").let { "DEET" in it && "picaridin" in it })
+        assertEquals(listOf("Money", "Shopping"), TopicGuides.guidesFor(listOf("Buy")))
+        assertEquals("a guide the question's words name comes first", "Flying and health",
+            TopicGuides.guidesFor(listOf("Stay healthy"), "why do my ears pop on planes and why does it hurt more when landing?").first())
+        assertEquals(emptyList<String>(), TopicGuides.guidesFor(listOf("Talk")))
+        val dcc = section("Money — Card costs > Dynamic currency conversion",
+            "When you are paying by card in a foreign currency, some merchants will offer to convert the transaction into your home currency. This is called Dynamic Currency Conversion. If this is offered, you should decline it.")
+        val cash = section("Money — Cash", "Carry some cash for small purchases.")
+        val repellents = section("Pests — Bugs > Repellents", "DEET-based repellents are the most common. Icaridin is as effective, with no odor.")
+        val ants = section("Pests — Bugs > Ants", "Ants are a nuisance in the tropics.")
+        val question = "The card machine asks if I want to pay in euros or in my home currency. Which one is cheaper?"
+        val picked = TopicGuides.pickAcross(question, listOf("Money", "Pests"), mapOf("Money" to listOf(cash, dcc), "Pests" to listOf(ants, repellents)), 2)
+        assertEquals(dcc.title, picked.first().title)
+        val lead = TravelSections.lead(question, "Money", picked.mapIndexed { i, e -> PromptSource("S${i + 1}", e) })!!
+        assertTrue(lead.text, lead.text.startsWith("When you are paying by card in a foreign currency"))
+        assertEquals(repellents.title, TopicGuides.pickAcross("DEET vs picaridin, which repellent is better for the tropics?", listOf("Pests"), mapOf("Pests" to listOf(ants, repellents)), 2).first().title)
+    }
 }

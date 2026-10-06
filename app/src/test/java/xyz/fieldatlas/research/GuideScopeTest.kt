@@ -15,7 +15,9 @@ class GuideScopeTest {
         assertFalse(GuideScope.namesPlace("How do hostels compare with guesthouses for a solo traveller on a budget?"))
         assertTrue(GuideScope.namesPlace("I lost my passport in Avelia. What should I do?"))
         assertTrue("a place may open the question", GuideScope.namesPlace("Avelton: how do I cross the street?"))
-        assertTrue("an acronym names a thing; the guides then stay as before", GuideScope.namesPlace("What is CRISPR?"))
+        assertFalse("an acronym names a thing, not a place", GuideScope.namesPlace("What is CRISPR?"))
+        assertFalse(GuideScope.namesPlace("How does GPS work when I have no signal?"))
+        assertTrue("the place beside the acronym still counts", GuideScope.namesPlace("How do I get a SIM card in Vietnam?"))
     }
 
     @Test fun aQuestionThatNamesNoPlaceReadsNoDestinationsGuideOrListings() = runBlocking {

@@ -39,6 +39,18 @@ object VenueLookup {
     private val veganWord = Regex("(?i)\\bvegans?\\b")
     private val vegetarianWord = Regex("(?i)\\bvegetarians?\\b")
     private val bestWord = Regex("(?i)\\bbest\\b")
+    // Asking for the places worth going to, not the closest ones.
+    private val qualityWords = Regex("(?i)\\b(best|top|recommend\\w*|good|great)\\b")
+    private val nearestWords = Regex("(?i)\\b(nearest|closest)\\b")
+    // "the closest ATM, ideally a proper bank one, not Euronet": a named brand to leave out. Only a
+    // capitalised name counts, so "not too expensive" and "not just snacks" exclude nothing.
+    private val exclusion = Regex("\\b(?:[Nn]ot|[Nn]o|[Aa]void(?:ing)?|[Ee]xcept|other than|rather than|instead of)\\s+(?:an?\\s+|the\\s+)?(\\p{Lu}[\\p{L}&'-]{2,})")
+    private val bankWords = Regex("(?i)\\b(banks?|banca|banco|banque|bancaire|sparkasse|caixa|postamat|post ?office|poste)\\b")
+
+    /** Brand or place names the question asks to leave out. */
+    private fun excluded(question: String): List<String> = exclusion.findAll(question).map { it.groupValues[1].lowercase() }.toList()
+
+    private fun leftOut(listing: Listing, names: List<String>) = names.any { listing.name.lowercase().contains(it) }
     private val openNow = Regex("(?i)\\b(open|closed)\\b.{0,30}\\b(now|today|tonight|currently)\\b|\\b(currently|still) (open|closed)\\b")
     private val word = Regex("[\\p{L}\\p{N}]+")
     private val genericWords = setOf(
@@ -55,6 +67,14 @@ object VenueLookup {
         "vegetarians", "name", "few", "couple", "good", "great", "nice", "options", "option", "spots", "spot", "proper",
         "meals", "meal", "snacks", "snack", "serve", "serves", "serving", "easy", "go", "should", "can", "you", "dine",
         "dinner", "lunch", "breakfast", "somewhere", "anywhere", "any", "there", "here", "city", "town", "area",
+        // How someone feels about the trip or the price, which no listing states in these words:
+        // "hungry, any good local places that aren't too expensive?", "museums actually worth it
+        // if I only have one day?". Required in every listing, they emptied whole cities.
+        "hungry", "starving", "really", "actually", "worth", "one", "two", "day", "only", "just", "first", "time",
+        "too", "very", "aren", "isn", "don", "doesn", "expensive", "cheap", "cheaper", "inexpensive", "affordable",
+        "budget", "pricey", "local", "locals", "authentic", "typical", "traditional", "famous", "popular", "decent",
+        "tasty", "delicious", "quick", "must", "see", "go", "worthwhile", "recommended", "top", "favourite", "favorite",
+        "looking", "want", "like", "need", "get", "kids", "family", "friends", "people", "tourists", "tourist",
     )
 
     /** A request for places to go, answerable from place listings alone. */
@@ -68,11 +88,16 @@ object VenueLookup {
     private val dietFood = Regex("(?i)\\b(vegans?|vegetarians?)\\b.*\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b|" +
         "\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b.*\\b(vegans?|vegetarians?)\\b")
     private val askWords = Regex("(?i)\\b(name|try|should i|where do|where can|options|go to)\\b")
+    // "Should I bring euros or take out dirhams from an ATM?" weighs two ways to pay; it asks for no ATM.
+    private val decision = Regex("(?i)\\bshould i\\b.*\\bor\\b")
+    private val seeks = Regex("(?i)\\b(find|where|nearest|closest|near)\\b")
 
     private fun isLookup(question: String) =
         (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
             (lookupWords.containsMatchIn(question) || askWords.containsMatchIn(question) || openNow.containsMatchIn(question)) &&
-            !complexWords.containsMatchIn(question)
+            !complexWords.containsMatchIn(question) &&
+            // An everyday essential named in a decision between alternatives is a place to find only when asked to find it.
+            !(!venueWords.containsMatchIn(question) && !dietFood.containsMatchIn(question) && decision.containsMatchIn(question) && !seeks.containsMatchIn(question))
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
 
@@ -132,6 +157,13 @@ object VenueLookup {
         val diet: String?,
         val essential: Essential? = null,
     )
+
+    /**
+     * "The best vegan restaurants in the city I'm in": places to go for, so the answer ranks a
+     * whole city's places rather than the closest few. "Nearest" asks for distance.
+     */
+    fun asksBest(question: String): Boolean = qualityWords.containsMatchIn(question) &&
+        !nearestWords.containsMatchIn(question) && essential(question) == null
 
     /** The listing categories a near-me question asks for, so the lookup can filter early. */
     fun nearbyCategories(question: String): Set<String> = request(question).categories
@@ -270,8 +302,14 @@ object VenueLookup {
             val meals = osm.filter { it.type in MEAL_TYPES }
             val chosen = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else osm
             val clock = now.takeIf { openNow.containsMatchIn(question) }
-            val ordered = clock?.let { time -> chosen.sortedBy { openRank(it.hours, time) } } ?: chosen
-            return osmAnswer(question, diet, ordered.onePerBusiness(request) { it.name }.take(OSM_LISTINGS), request.essential?.noun, clock)
+            val picks = guidePicks(evidence, chosen.first().destination)
+            val ordered = clock?.let { time -> chosen.sortedBy { openRank(it.hours, time) } }
+                ?: if (asksBest(question)) {
+                    val chains = chainNames(evidence)
+                    chosen.sortedWith { a, b -> compareRanks(bestRanks(a, request, picks, chains), bestRanks(b, request, picks, chains)) }
+                } else chosen
+            val shown = ordered.onePerBusiness(request) { it.name }.take(OSM_LISTINGS)
+            return osmAnswer(question, diet, shown, request.essential?.noun, clock, guided = shown.any { brand(it.name) in picks })
         }
         val shown = listings.take(4)
 
@@ -346,25 +384,105 @@ object VenueLookup {
     const val LOCATION_UNAVAILABLE = "I couldn't get this phone's location. Turn on Location (GPS works " +
         "offline) and allow Field Atlas to use it, or name the city in your question."
 
+    // "Where am I?", "What city am I in?", "What's my location?": the phone's own position, named.
+    private val whereAmI = Regex(
+        "(?i)^\\s*(?:where am i|where are we|" +
+            "(?:what|which) (?:city|town|village|country|place|area|neighbou?rhood|district|street|state|province|region|part of town) " +
+            "(?:am i|are we) in|what(?:'s|’s| is) (?:my|our) (?:current |exact )?(?:location|position|address)|" +
+            "what(?:'s|’s| is) this (?:place|town|city|village|area|neighbou?rhood))(?: now| right now| exactly)?\\s*[?.!]*\\s*$",
+    )
+
+    fun isWhereAmI(question: String): Boolean = whereAmI.containsMatchIn(question)
+
+    private val digit = Regex("\\p{N}")
+
+    /**
+     * The town in a mapped address, which the map data writes as "street number, postcode town":
+     * "Verlengde Voorstraat 56, 1949CN Wijk aan Zee" is in Wijk aan Zee.
+     */
+    internal fun townOf(address: String): String? {
+        if (',' !in address) return null
+        val town = address.substringAfterLast(',').trim().split(Regex("\\s+"))
+            .filterNot { digit.containsMatchIn(it) }.joinToString(" ").trim()
+        return town.takeIf { it.length >= 2 && it.any(Char::isLetter) && it.length <= 40 }
+    }
+
+    private fun coordinates(point: GeoPoint): String = String.format(Locale.US, "%.5f° %s, %.5f° %s",
+        kotlin.math.abs(point.lat), if (point.lat >= 0) "N" else "S", kotlin.math.abs(point.lon), if (point.lon >= 0) "E" else "W")
+
+    /**
+     * Where this phone is, worked out on the phone: the town the nearest mapped addresses name,
+     * the travel guide's destination for the area, the coordinates, and the closest mapped places.
+     */
+    fun whereAnswer(point: GeoPoint, places: List<NearbyPlace>): Result {
+        val nearest = places.sortedBy { it.distanceKm }
+        val town = nearest.take(WHERE_ADDRESSES).mapNotNull { place -> field(place.evidence.text, "Address")?.let(::townOf) }
+            .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+        val city = cityOf(nearest)
+        val landmarks = nearest.filter { place -> field(place.evidence.text, "Place")?.isNotBlank() == true }
+            .distinctBy { field(it.evidence.text, "Place")!!.lowercase() }.take(WHERE_LANDMARKS)
+        val answer = buildString {
+            appendFixAge(point.ageMinutes)
+            when {
+                town != null -> {
+                    append("You're in **").append(escapeMarkdown(town)).append("**, going by the addresses of the places mapped nearest you.")
+                    if (city != null && !city.equals(town, ignoreCase = true)) {
+                        append(" The travel guides cover this area under **").append(escapeMarkdown(city)).append("**.")
+                    }
+                }
+                city != null -> append("You're in or near **").append(escapeMarkdown(city)).append("**, where the map files the places nearest you.")
+                else -> append("No saved map collection has places near you, so I can't name the town.")
+            }
+            append("\n\nYour position: ").append(coordinates(point)).append(", from this phone's GPS, which works without a connection.")
+            if (landmarks.isNotEmpty()) {
+                append("\n\nNearest mapped places:\n\n")
+                landmarks.forEachIndexed { index, place ->
+                    val text = place.evidence.text
+                    append("- **").append(escapeMarkdown(field(text, "Place")!!)).append("**")
+                    field(text, "Type")?.takeIf(String::isNotBlank)?.let { append(" (").append(escapeMarkdown(it)).append(')') }
+                    append(", ").append(GeoDistance.label(place.distanceKm))
+                    place.bearingDegrees?.let { append(" to the ").append(GeoDistance.compass(it)) } ?: append(" away")
+                    append(". [S").append(index + 1).append("]\n")
+                }
+                append("\nMap data © OpenStreetMap contributors (ODbL).")
+            }
+        }
+        return Result(answer, landmarks.map { it.evidence })
+    }
+
+    /** A position from an earlier fix may be from somewhere else: the answer says how old it is. */
+    private fun StringBuilder.appendFixAge(minutes: Long) {
+        if (minutes < OLD_FIX_MINUTES) return
+        append("Using this phone's last known location, from ").append(GeoDistance.ageLabel(minutes))
+        append(" ago; no newer fix was available. ")
+    }
+
+    private const val OLD_FIX_MINUTES = 10L
+    private const val WHERE_ADDRESSES = 20
+    private const val WHERE_LANDMARKS = 3
+
     /**
      * Nearest matching places from the phone's coordinates. Distance bands come first so a
      * fully vegan place 9 km away never outranks one around the corner; within a band, fully
      * vegan places lead when vegan food was asked for.
      */
-    fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now()): Result {
+    fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now(),
+                     fixAgeMinutes: Long = 0): Result {
         val request = request(question)
         val clock = now.takeIf { openNow.containsMatchIn(question) }
+        if (clock == null && asksBest(question)) bestNearby(question, request, places, fixAgeMinutes)?.let { return it }
         val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
-        val matched = places.mapNotNull { place ->
-            listing(place.evidence, question, request, destinationRequired = false)?.let { it to place.distanceKm }
-        }.distinctBy { (listing, _) -> listing.name.lowercase() to listing.location?.lowercase() }
+        val (matched, unmatchedWords) = nearbyMatches(question, request, places)
         val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES }
         val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
+        val wantsBank = request.essential?.category == "Money" && bankWords.containsMatchIn(question)
         val chosen = pool.sortedWith(compareBy(
             // "Pharmacy open now near me": a place open by its recorded hours comes before a
             // closer one recorded as closed.
             { (listing, _) -> clock?.let { openRank(listing.hours, it) } ?: 0 },
             { (_, distance) -> DISTANCE_BANDS_KM.indexOfFirst { distance <= it }.let { if (it < 0) DISTANCE_BANDS_KM.size else it } },
+            // "Ideally a proper bank one": an ATM a bank or post office runs, by its mapped name, first.
+            { (listing, _) -> if (wantsBank && !bankWords.containsMatchIn(listing.name)) 1 else 0 },
             { (listing, _) -> if (request.diet == "vegan" && listing.vegan == "fully vegan") 0 else 1 },
             { (_, distance) -> distance },
         )).onePerBusiness(request) { (listing, _) -> listing.name }.take(OSM_LISTINGS)
@@ -375,6 +493,7 @@ object VenueLookup {
         }
         val snapshot = chosen.firstNotNullOfOrNull { (listing, _) -> listing.snapshot }
         val answer = buildString {
+            appendFixAge(fixAgeMinutes)
             clock?.let { appendOpenSummary(chosen.map { (listing, _) -> listing }, it, city = null) }
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline; nearest places are listed first")
@@ -384,6 +503,7 @@ object VenueLookup {
             if (request.diet == "vegan") append(" that OpenStreetMap tags as fully vegan or serving vegan options")
             snapshot?.let { append(" (map data as of ").append(it).append(')') }
             append(":\n\n")
+            appendUnmatched(unmatchedWords)
             chosen.forEachIndexed { index, (listing, distance) ->
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
                 append(listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { "listed place" })
@@ -393,7 +513,7 @@ object VenueLookup {
                 listing.extras().takeIf(String::isNotBlank)?.let { append("; ").append(it) }
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 append('.')
-                listing.location?.takeIf(String::isNotBlank)?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
+                appendWhere(listing)
                 appendHours(listing, clock)
                 listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
@@ -410,13 +530,155 @@ object VenueLookup {
             clock?.let { time -> chosen.count { (listing, _) -> OpeningHours.status(listing.hours, time) is OpeningHours.Status.Open } })
     }
 
+    /** The city the map files the nearest places under: where this phone is. */
+    private fun cityOf(places: List<NearbyPlace>): String? = places.sortedBy { it.distanceKm }.take(15)
+        .mapNotNull { field(it.evidence.text, "Destination")?.substringBefore('/')?.takeIf(String::isNotBlank) }
+        .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+
+    /** Eat listings in a city's Wikivoyage guide, by business name: places the guide itself recommends. */
+    private fun guidePicks(items: List<Evidence>, city: String?): Map<String, Evidence> = items
+        .filter { it.documentId.startsWith("wv-place-") && field(it.text, "Category") == "Eat" }
+        .filter { city == null || field(it.text, "Destination")?.substringBefore('/').equals(city, ignoreCase = true) }
+        .mapNotNull { item -> field(item.text, "Place")?.let { brand(it) to item } }
+        .filter { (key, _) -> key.length >= 3 }
+        .toMap()
+
+    /** Names on three or more of the listings nearby: a chain's branches. */
+    private fun chainNames(items: List<Evidence>): Set<String> = items
+        .mapNotNull { field(it.text, "Place")?.let(::brand) }
+        .groupingBy { it }.eachCount().filter { (key, count) -> count >= 3 && key.length >= 3 }.keys
+
+    /**
+     * Order for "best" with no ratings offline, lower first at each step: fully vegan when vegan
+     * food was asked for, recommended by the city's Wikivoyage guide, a sit-down restaurant before a
+     * café or fast food, an independent place before a chain, then the more completely mapped.
+     */
+    private fun bestRanks(listing: Listing, request: Request, picks: Map<String, Evidence>, chains: Set<String>): List<Int> {
+        val key = brand(listing.name)
+        return listOf(
+            if (request.diet == "vegan" && listing.vegan != "fully vegan") 1 else 0,
+            if (key in picks || listing.evidence.documentId.startsWith("wv-place-")) 0 else 1,
+            when (listing.type) { "restaurant" -> 0; null, "cafe" -> 1; else -> 2 },
+            if (key in chains) 1 else 0,
+            3 - listOfNotNull(listing.hours, listing.cuisine, listing.checked).size,
+        )
+    }
+
+    private fun compareRanks(a: List<Int>, b: List<Int>): Int =
+        a.zip(b).firstOrNull { (x, y) -> x != y }?.let { (x, y) -> x.compareTo(y) } ?: 0
+
+    private const val BEST_PREAMBLE = "There are no ratings offline, so these are ordered by what the map and the travel " +
+        "guide record: "
+
+    /** [guide]: only when a listed place is also in the city's Wikivoyage guide is that order claimed. */
+    private fun StringBuilder.appendBestOrder(diet: String?, guide: Boolean) {
+        append(BEST_PREAMBLE)
+        if (diet == "vegan") append("fully vegan places first, then ")
+        if (guide) append("places the city's Wikivoyage guide also recommends, ")
+        append("sit-down restaurants before cafés and fast food, ")
+        append("and independent places before chains.")
+    }
+
+    /**
+     * Listings near the phone that fit the request. Words of the question that no listing nearby
+     * carries ("hungry", "cheap") must not empty the whole area: the places that fit everything else
+     * are kept, and [appendUnmatched] says which words none of them mention.
+     */
+    private fun nearbyMatches(question: String, request: Request, places: List<NearbyPlace>): Pair<List<Pair<Listing, Double>>, List<String>> {
+        val leftOut = excluded(question)
+        fun matches(words: String) = places.mapNotNull { place ->
+            listing(place.evidence, words, request, destinationRequired = false)?.takeUnless { leftOut(it, leftOut) }?.let { it to place.distanceKm }
+        }.distinctBy { (listing, _) -> listing.name.lowercase() to listing.location?.lowercase() }
+        val strict = matches(question)
+        if (strict.isNotEmpty() || request.essential != null) return strict to emptyList()
+        val words = FtsQuery.from(question)?.terms.orEmpty().filterNot { it in genericWords || it in nearbyWords || it == request.diet }
+        if (words.isEmpty()) return strict to emptyList()
+        // Kind, diet and type still apply; only the free words are relaxed.
+        val loose = matches(listOfNotNull(request.diet, "places near me").joinToString(" "))
+        return loose to words.filter { term -> loose.none { (listing, _) -> word.findAll(listing.evidence.text.lowercase()).any { it.value == term } } }
+    }
+
+    private fun StringBuilder.appendUnmatched(words: List<String>) {
+        if (words.isEmpty()) return
+        append("None of these saved listings mentions ").append(words.joinToString(", ") { "“$it”" })
+        append("; they are the places nearby that fit the rest of the question.\n\n")
+    }
+
+    /** An address when mapped; otherwise coordinates, which any offline map app can find. */
+    private fun StringBuilder.appendWhere(listing: Listing) {
+        val address = listing.location?.takeIf(String::isNotBlank)
+        address?.let { append(" Address: ").append(escapeMarkdown(it.take(100))).append('.') }
+        if (address == null && listing.latitude != null && listing.longitude != null) {
+            append(" Coordinates: ").append("%.5f, %.5f".format(Locale.ROOT, listing.latitude, listing.longitude)).append('.')
+        }
+    }
+
+    /**
+     * The best places around this phone: the city it is in, named, and that city's places ranked as
+     * [bestRanks] says, distance last. Null when nothing matched, so the caller says so as before.
+     */
+    private fun bestNearby(question: String, request: Request, places: List<NearbyPlace>, fixAgeMinutes: Long): Result? {
+        val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
+        val (matched, unmatchedWords) = nearbyMatches(question, request, places)
+        val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES }
+        val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
+        if (pool.isEmpty()) return null
+        val city = cityOf(places)
+        val local = city?.let { name -> pool.filter { (listing, _) -> listing.destination.equals(name, ignoreCase = true) } }
+            ?.takeIf { it.isNotEmpty() } ?: pool
+        val picks = guidePicks(places.map { it.evidence }, city)
+        val chains = chainNames(places.map { it.evidence })
+        val chosen = local.sortedWith { a, b ->
+            compareRanks(bestRanks(a.first, request, picks, chains), bestRanks(b.first, request, picks, chains))
+                .takeIf { it != 0 } ?: a.second.compareTo(b.second)
+        }.onePerBusiness(request) { (listing, _) -> listing.name }.take(OSM_LISTINGS)
+        val guides = chosen.mapNotNull { (listing, _) ->
+            picks[brand(listing.name)]?.takeIf { it.chunkId != listing.evidence.chunkId }
+        }.distinctBy { it.chunkId }
+        val snapshot = chosen.firstNotNullOfOrNull { (listing, _) -> listing.snapshot }
+        val answer = buildString {
+            appendFixAge(fixAgeMinutes)
+            append(city?.let { "Near you in **${escapeMarkdown(it)}**. " } ?: "Near you. ")
+            appendBestOrder(request.diet, guide = guides.isNotEmpty())
+            snapshot?.let { append(" Map data as of ").append(it).append('.') }
+            append("\n\n")
+            appendUnmatched(unmatchedWords)
+            chosen.forEachIndexed { index, (listing, distance) ->
+                append("- **").append(escapeMarkdown(listing.name)).append("** — ")
+                append(listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { "listed place" })
+                listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
+                append("; ").append(GeoDistance.label(distance))
+                bearings[listing.evidence.chunkId]?.let { append(" to the ").append(GeoDistance.compass(it)) } ?: append(" away")
+                append('.')
+                appendWhere(listing)
+                appendHours(listing, null)
+                append(" [S${index + 1}]")
+                val guide = picks[brand(listing.name)]?.takeIf { it.chunkId != listing.evidence.chunkId }
+                guide?.let { item ->
+                    field(item.text, "Description")?.takeIf(String::isNotBlank)?.let { description ->
+                        append(" The Wikivoyage guide: “").append(escapeMarkdown(descriptionExcerpt(description))).append("”")
+                    } ?: append(" Also listed in the Wikivoyage guide.")
+                    append(" [S${chosen.size + guides.indexOfFirst { it.chunkId == item.chunkId } + 1}]")
+                }
+                append('\n')
+            }
+            append("\nDistances are straight-line from this phone's location, which stayed on the phone. ")
+            append("Tags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
+        }
+        return Result(answer, chosen.map { (listing, _) -> listing.evidence } + guides)
+    }
+
     /** OpenStreetMap wording: tags say what mappers recorded, so each place states its label and date. */
-    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String?, clock: LocalDateTime?): Result {
+    private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String?, clock: LocalDateTime?,
+                          guided: Boolean = false): Result {
         val city = listings.first().destination
         val snapshot = listings.firstNotNullOfOrNull { it.snapshot }
         val answer = buildString {
             clock?.let { appendOpenSummary(listings, it, city) }
-            if (bestWord.containsMatchIn(question)) {
+            if (clock == null && asksBest(question)) {
+                appendBestOrder(diet, guide = guided)
+                append(' ')
+            } else if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline")
                 append(if (diet == "vegan") "; fully vegan places are listed first. " else ". ")
             }

@@ -29,11 +29,18 @@ object EmergencyGuideMatch {
             "twisted ankle", "twisted my ankle", "rolled my ankle", "swollen ankle", "ankle is swollen",
             "can't put weight", "cant put weight", "cannot put weight", "twisted his ankle", "twisted her ankle",
             "rolled his ankle", "rolled her ankle", "wrist is swollen", "swollen wrist", "swollen and bent", "bent wrist",
-            "arm is bent", "leg is bent", "looks broken", "might be broken", "may be broken", "think it's broken", "broken bone"),
+            "arm is bent", "leg is bent", "looks broken", "might be broken", "may be broken", "think it's broken", "broken bone",
+            // "I think my friend broke her ankle on the trail": the trail words alone pointed to the outdoors guide.
+            "broke her ankle", "broke his ankle", "broke my ankle", "broke an ankle", "broke her leg", "broke his leg", "broke my leg",
+            "broke her arm", "broke his arm", "broke my arm", "broke her wrist", "broke his wrist", "broke my wrist", "broke a bone"),
         "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike"),
         "safe-drinking-water" to listOf("drink", "drinkable", "stream water", "river water", "lake water", "purify water", "disinfect water", "boil water"),
         "signaling" to listOf("signal for help", "rescue signal", "attract rescuers", "call for help without signal"),
         "heat-illness" to listOf("heatstroke", "overheated", "stopped sweating", "not sweating"),
+        "stroke" to listOf("face is drooping", "drooping face", "face droops"),
+        "poisoning" to listOf("swallowed bleach", "swallowed some bleach", "drank bleach", "swallowed poison", "swallowed pills",
+            "swallowed some pills", "swallowed medicine",
+            "swallowed detergent", "swallowed antifreeze"),
         "anaphylaxis" to listOf("throat is swelling", "throat swelling", "swollen throat", "tongue is swelling", "lips are swelling"),
         "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head"),
         "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water",
@@ -43,7 +50,7 @@ object EmergencyGuideMatch {
             "monkey scratched", "scratched by a monkey", "dog scratched", "scratched by a dog", "cat scratched", "scratched by a cat",
             "bat scratched", "scratched by a bat", "animal scratch"),
         "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite", "snake bit", "bit by a snake"),
-        "tick-bites" to listOf("remove a tick", "removing a tick"),
+        "tick-bites" to listOf("remove a tick", "removing a tick", "tick bit", "bitten by a tick", "bit by a tick"),
         "carbon-monoxide" to listOf("gas heater", "space heater", "kerosene heater", "paraffin heater", "generator", "charcoal",
             "camp stove", "gas stove", "co alarm", "co detector", "carbon monoxide alarm", "carbon monoxide detector"),
     )
@@ -75,13 +82,14 @@ object EmergencyGuideMatch {
         "lyme", "rabies", "drowning", "hypothermia", "frostbite", "hyperthermia", "heatstroke", "dehydration", "sunburn",
         "lightning", "earthquake", "quake", "aftershock", "tsunami", "flood", "wildfire", "bushfire", "hurricane", "typhoon",
         "cyclone", "tornado", "blackout", "blizzard", "defibrillator", "resuscitation", "giardia", "mayday", "unresponsive",
-        "stranded", "cardiopulmonary",
+        "stranded", "cardiopulmonary", "splint",
     )
 
     /** Everyday words ("snake", "cut", "lost", "water") count only alongside one of these. */
     private val danger = Regex(
         "(?i)\\b(first aid|treat|treatment|treating|injured|injury|injuries|hurt|hurts|wound|wounded|pain|painful|emergency|" +
             "someone|somebody|bleeding|bled|swollen|swelling|hospital|ambulance|survive|surviving|survival|safety|safe|" +
+            "choking|can'?t breathe|cannot breathe|isn'?t breathing|not breathing|no pulse|unresponsive|not responding|collapsed|" +
             "what should i do|what do i do|what to do|help|signs?|symptoms?|bitten|bit me|stung|got (lost|bit|stung|burned|burnt)|" +
             "lost (in|on|while)|stuck|stranded|rescue|unconscious|not breathing|dizzy|faint|fainted|" +
             // How people describe it in the moment: "a snake bit my friend, what do we do?"
@@ -116,6 +124,66 @@ object EmergencyGuideMatch {
     )
     /** Beyond this many words a question must describe a personal situation to be routed to a guide. */
     private const val SHORT_QUESTION_WORDS = 30
+    private const val HEAT_BONUS = 3
+
+    /** Someone who can faint or stop responding, unlike the tomato plants and cakes that also "collapse". */
+    private const val PERSON = "he|she|they|someone|somebody|anyone|everyone|friend|child|kid|baby|toddler|son|daughter|wife|husband|" +
+        "partner|mom|mum|dad|mother|father|grandma|grandpa|grandmother|grandfather|brother|sister|person|man|woman|boy|girl|" +
+        "guy|lady|people|patient|hiker|tourist|runner|player|worker"
+
+    /**
+     * Heat illness in everyday words: someone "fainted in the heat" or "collapsed in the sun". No
+     * single keyword says it, and the model alone once told a bystander to give water to a person
+     * who had fainted.
+     */
+    private val heatCollapse = Regex(
+        "(?i)\\b(faint\\w*|collaps\\w*|passed out|pass(?:es|ing)? out|dizz\\w*|confus\\w*)\\b.{0,40}\\b(?:in|from|out in|under) (?:the )?" +
+            "(?:heat|hot sun|sun|heatwave|heat wave)\\b|" +
+            "\\b(?:in|from|out in|under) (?:the )?(?:heat|hot sun|sun|heatwave|heat wave)\\b.{0,40}\\b(faint\\w*|collaps\\w*|passed out|pass(?:es|ing)? out|dizz\\w*|confus\\w*)",
+    )
+    /** A person fainted: "how do I stop my tomato plants collapsing in the heat?" is gardening, not first aid. */
+    private val someoneFainted = Regex(
+        "(?i)\\b(faint\\w*|passed out|pass(?:es|ing)? out|dizz\\w*|confus\\w*|" +
+            "(?:i|we|you|$PERSON)(?:['’]s|['’]ve| (?:has|have|had|is|was|were|are|just|nearly|almost|suddenly|then|keeps?|kept))* collaps\\w*|" +
+            // "My dad was walking in the sun and collapsed."
+            "(?:i|we|you|$PERSON)\\b[^.?!]{0,60}? and (?:then |suddenly )?collapsed)\\b",
+    )
+    /** In a heat collapse these are the fever, the cooling and the sips of water, not hypothermia, a burn or water safety. */
+    private val heatTerms = setOf("body temperature", "cold water", "cool water", "cold", "wet", "water", "drink", "drinking water")
+
+    /**
+     * No breathing, no pulse, no response: whatever led to it, CPR comes first. "Not responding to
+     * treatment" or "to my texts" is not this sign.
+     */
+    private val noSignsOfLife = Regex(
+        "(?i)\\b((?:not|isn['’]?t|wasn['’]?t|stopped|no longer) breathing|(?:doesn['’]?t|does not) breathe|no pulse|no heartbeat|" +
+            "unresponsive|not responding|won['’]?t wake up|(?:$PERSON)\\b(?:[^.?!]{0,60}? and)? (?:isn['’]?t|wasn['’]?t) responding)\\b(?! to\\b)",
+    )
+    /** In or out of the water: the drowning guide starts with rescue breaths. */
+    private val inWater = Regex(
+        "(?i)\\b(drown\\w*|swimm\\w*|underwater|(?:in|into|under|out of) (?:the |a |an |our |my |his |her |their )?(?:\\w+ )?" +
+            "(?:water|pool|river|lake|sea|ocean|surf|bath|bathtub|tub|pond|creek|stream|canal|flood|floodwater))\\b",
+    )
+    /** A blocked or swelling airway: these guides' own steps are for a person who cannot breathe. */
+    private val airwayGuides = setOf("choking", "anaphylaxis")
+
+    /** A person in the question: "why is she choking?" describes someone, "why do tsunamis form?" does not. */
+    private val someoneInvolved = Regex("(?i)\\b(i|i'm|i've|me|my|we|we're|our|us|you|your|he|he's|she|she's|they|they're|him|her|them|" +
+        "his|their|someone|somebody|anyone|friend|child|kid|baby|son|daughter|wife|husband|partner|mom|mum|dad|mother|father|" +
+        "brother|sister|person|man|woman|boy|girl|people|patient|hiker|tourist)\\b")
+
+    /**
+     * "What causes tsunamis?" and "How do avalanches form?" ask for an explanation, not for first
+     * aid; a guide's numbered steps do not answer them. Danger words or a person's own situation
+     * still route to the guide ("what is the treatment for a snakebite?"), and "what is the fastest
+     * way to stop a seizure?" asks for the steps.
+     */
+    private val explanation = Regex(
+        "(?i)^\\s*(?:what (?:causes|caused|is|are|was|were)\\b(?! the (?:\\w+ ){0,2}(?:ways?|things?) to\\b)|" +
+            "why (?:do|does|did|is|are|was|were)\\b|" +
+            "how (?:do|does|did|is|are) (?!i\\b|we\\b|you\\b|my\\b|our\\b|someone\\b|somebody\\b)[\\p{L}' -]{2,40}? " +
+            "(?:form|forms|formed|work|works|happen|happens|occur|occurs|start|starts|spread|spreads|develop|develops|get made|made)\\b)",
+    )
 
     fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? {
         val text = " " + normalize(question) + " "
@@ -125,6 +193,10 @@ object EmergencyGuideMatch {
         // that only names a hazard is research, not first aid.
         if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return null
         val dangerous = danger.containsMatchIn(question)
+        // A single explanation question about a thing, with no one in it and nothing dangerous happening.
+        if (explanation.containsMatchIn(question) && !dangerous && !personalSituation.containsMatchIn(question) &&
+            !someoneInvolved.containsMatchIn(question) && question.trim().trimEnd('?', '.', '!').none { it == '?' }) return null
+        val heat = heatCollapse.containsMatchIn(question) && someoneFainted.containsMatchIn(question)
         val scored = guides.map { guide ->
             val terms = (guide.keywords + guide.title + synonyms[guide.id].orEmpty())
                 .map(::normalize).filter(String::isNotBlank).distinct()
@@ -134,6 +206,7 @@ object EmergencyGuideMatch {
             var specific = false
             for (term in terms) {
                 if (" $term " !in text && !(term.length >= 5 && " ${term}s " in text)) continue
+                if (heat && term in heatTerms) continue
                 val phrase = ' ' in term
                 if (phrase || term in strongWords || term in own) specific = true
                 score += when {
@@ -148,11 +221,37 @@ object EmergencyGuideMatch {
             // A guide's required context (a height for altitude sickness) is itself specific.
             val context = requiredContext[guide.id]?.containsMatchIn(question)
             val enough = specific || score >= 2 || context == true
-            guide to (if (!enough || context == false) 0 else score)
+            Triple(guide, if (!enough || context == false) 0 else score, specific)
+        }
+        // The snakebite and flood guides have no CPR step, so a person who is not breathing gets CPR,
+        // or the drowning guide's rescue breaths in water. When a choking or swelling airway is the
+        // main sign, its own guide stays: those steps are for a person who cannot breathe.
+        val top = scored.maxOfOrNull { it.second } ?: 0
+        val revive = when {
+            !noSignsOfLife.containsMatchIn(question) -> null
+            scored.any { (guide, score, specific) -> guide.id in airwayGuides && specific && score > 0 && score == top } -> null
+            inWater.containsMatchIn(question) -> "drowning"
+            else -> "cpr"
+        }
+        // "Fainted in the heat" names no heat-illness keyword; it decides only when no other guide
+        // scores at all (hives after peanuts, a spider bite, a stove in the tent), which matters more,
+        // and only when a person or a danger sign is in the question.
+        // A fuel word alone does not rule it out: pumping gas on a hot day is still the heat.
+        val heatOnly = heat && (dangerous || someoneInvolved.containsMatchIn(question)) &&
+            scored.none { (guide, score, _) -> guide.id != "heat-illness" && score > 0 }
+        val ranked = scored.map { (guide, score, _) ->
+            guide to when {
+                guide.id == revive -> maxOf(score, 1)
+                heatOnly && guide.id == "heat-illness" -> maxOf(score, 1) + HEAT_BONUS
+                else -> score
+            }
         }.filter { it.second > 0 }
-        if (scored.isEmpty()) return null
-        val best = scored.maxWith(compareBy<Pair<EmergencyGuide, Int>> { it.second }.thenBy { if (it.first.urgent) 1 else 0 })
-        return best.first.takeIf { words.size <= 4 || dangerous || intent.containsMatchIn(question) }
+        if (ranked.isEmpty()) return null
+        val best = ranked.maxWith(
+            compareBy<Pair<EmergencyGuide, Int>> { it.first.id == revive }.thenBy { it.second }.thenBy { if (it.first.urgent) 1 else 0 },
+        )
+        // "He fell off the ladder and isn't responding" asks for nothing, but the sign is the emergency.
+        return best.first.takeIf { words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) }
     }
 
     private fun normalize(text: String) = text.lowercase(Locale.ROOT).replace('’', '\'')
@@ -174,6 +273,89 @@ object EmergencyGuideMatch {
         "(?i)\\b(see a (health care provider|doctor)|seek (medical|emergency|immediate)|get (medical|emergency) (help|care)|" +
             "call (911|112|999|your local emergency number)|emergency (room|department))\\b",
     )
+
+    /**
+     * Clinical words for the signs people type. The heat guide lists "confusion" and "loss of
+     * consciousness" under heat stroke; the person writes "confused" and "collapsed", and ranked on
+     * the question's own words the section that fits the case lost to the guide's introduction.
+     * Keys are matched as whole words in the question; the values join the ranking query.
+     */
+    private val layLexicon = linkedMapOf(
+        "confus\\w*" to "confusion",
+        "collaps\\w*|passed out|pass(?:es|ing)? out|faint\\w*|blacked out|unconscious" to "fainting loss of consciousness unconscious",
+        "threw up|throw(?:s|ing|n)? up|being sick|been sick|puk\\w*" to "vomiting nausea",
+        "stumbl\\w*|stagger\\w*|wobbl\\w*|unsteady" to "balance coordination",
+        "(?:stopped|not|isn'?t|no longer|barely|hardly) sweating" to "dry skin",
+        "swollen|swell\\w*|puff(?:y|ed)" to "swelling",
+        "broke|broken|cracked|snapped" to "fracture fractured broken bone",
+        "can'?t breathe|cannot breathe|out of breath|struggling to breathe|gasping|short of breath" to "shortness of breath",
+        "diarrhoea" to "diarrhea",
+        "bit|bitten" to "bite",
+        "stung" to "sting",
+    ).map { (lay, clinical) -> Regex("(?i)\\b(?:$lay)\\b") to clinical }
+
+    /** The question's words for ranking, with the clinical names of the signs it describes. */
+    private fun rankingQuery(question: String): List<String> {
+        val clinical = layLexicon.filter { (lay, _) -> lay.containsMatchIn(question) }.joinToString(" ") { it.second }
+        return xyz.fieldatlas.research.QueryTerms.of(question) + xyz.fieldatlas.research.QueryTerms.of(clinical)
+    }
+
+    /** Signs that make the case the guide's emergency, not its mild form (heat stroke, not heat cramps). */
+    private val severeSigns = Regex(
+        "(?i)\\b(confus\\w*|collaps\\w*|unconscious|unresponsive|passed out|pass(?:es|ing)? out|faint\\w*|stumbl\\w*|stagger\\w*|" +
+            "slurr\\w*|seiz\\w*|(?:not|isn'?t|stopped) breathing|drowsy|blue lips)\\b",
+    )
+    /** An instruction to get emergency help now, however the guide words it. */
+    private val emergencyInstruction = Regex(
+        "(?i)\\b(call (?:911|112|999|000|an ambulance|emergency services|(?:your|the) local emergency number|for help)|" +
+            "medical emergency|life[- ]threatening|fatal|" +
+            "(?:go down|descend|seek (?:medical |emergency )?(?:help|attention|care)|get (?:medical |emergency )?help|" +
+            "get (?:\\w+ )?to (?:a |the )?hospital)[^.!?\\n]{0,40}\\b(?:immediately|right away|at once|now)|" +
+            "(?:immediately|right away) (?:go down|descend|seek|get|call))\\b",
+    )
+    /** "Call 911 if the seizure lasts longer than 5 minutes" is a condition to check, not the instruction for every case. */
+    private val conditional = Regex("(?i)\\b(if|unless|when|whenever|in case)\\b")
+    private val sentenceBreak = Regex("(?<=[.!?])\\s+|\\n")
+
+    /** Whether any one sentence tells the reader to get emergency help without a condition on it. */
+    private fun urgentNow(text: String): Boolean =
+        sentenceBreak.split(text).any { emergencyInstruction.containsMatchIn(it) && !conditional.containsMatchIn(it) }
+
+    /** A sentence that tells the reader to do something, as opposed to one that describes the illness. */
+    private val imperative = Regex(
+        "(?i)(?:^|[.!?:]\\s+|\\n|- |\\d+\\. )(?:do not|don'?t|never|always|call|move|get|give|offer|apply|remove|keep|stay|seek|cool|" +
+            "loosen|go|drink|send|check|wash|use|put|hold|press|cover|elevate|rest|stop|avoid|lie|sit|turn|tilt|start|continue|time|" +
+            "wait|follow|treat|place|wrap|take|run|leave|ask|tell|look|listen|find|carry|bring|learn|remember|protect|immobili[sz]e|" +
+            "splint|raise|lower|warm|signal|build|boil|add|let|store|have|make|flag|minimi[sz]e|control|eat|stand|lay|try|contact|" +
+            "rub|capture|remain|talk|wipe|scrape|push|pinch|watch|open|tap|position|rinse|flush|soak|cut|tie|shield|descend|climb|" +
+            "spend|drop|crouch|crawl|evacuate|head|shelter|unplug|close|fill|pack|wear|monitor|note|reduce|encourage|perform|begin|" +
+            "administer|pour|limit|consult|allow|help|support|lift|lean|breathe|count|repeat|alternate|squeeze|pull|roll)\\b|" +
+            "\\b(?:should|must|need to|needs to)\\b",
+    )
+    /** "What is CPR?", "Summary": the guide's definition, which answers only a question for one. */
+    private val definitionHeading = Regex("(?i)^(what (is|are|does)\\b|summary$|overview$|background$)")
+    private val asksDefinition = Regex(
+        "(?i)\\bwhat (?:is|are|does) (?!(?:the )?(?:best|fastest|quickest|right|safest|first|most|correct|proper) )(?:a |an |the )?[\\p{L}' -]{2,30}(?: mean)?\\s*[?.!]*\\s*$|" +
+            "\\bdefin(?:e|ition)\\b|\\bmeaning of\\b",
+    )
+    /** "When should I start worrying?": the guide's get-help-if list is the answer. */
+    private val asksWhenToWorry = Regex(
+        "(?i)\\b(when (?:should|do|would|must) (?:i|we|you|they|someone) (?:start )?(?:worr\\w*|be worried|be concerned|get help|need help|" +
+            "seek help|call|go to|see a doctor|take (?:him|her|them) (?:in|to))|" +
+            "when (?:do|does|would|should) (?:he|she|they|it|someone) need|should (?:i|we) (?:worry|be worried|be concerned|get help|call)|" +
+            "when (?:is it|to) (?:time to )?(?:get|seek|call|go)|how (?:do|will|would) (?:i|we) know (?:if|when|whether)|" +
+            "(?:is|are) (?:it|this|he|she|they) (?:serious|dangerous|an emergency)|do (?:i|we) need (?:a doctor|a hospital|help|to go)|" +
+            "when (?:do|should) (?:i|we) (?:go|get) to (?:a |the )?(?:hospital|doctor|er))\\b",
+    )
+    /** Prose this long with no list is an article; the lead quotes its one paragraph for the case. */
+    private const val LONG_PROSE_CHARS = 1_500
+    /** A pointer to a web page or an app inside guide text: nothing an offline reader can follow. */
+    private val onlinePointer = Regex(
+        "(?i)\\b(?:see|visit|check|go to|download|consult|read|find)\\b[^.!?\\n]*?\\b(?:web ?sites?|web ?pages?|online|internet|" +
+            "the (?:[\\p{L}()/ ]+ )?(?:app|site)|an app|apps|www\\.|https?://|\\.gov|\\.org|\\.com)\\b",
+    )
+    /** The site of a sting or wound is a place on the body. */
+    private val bodySite = Regex("(?i)\\b(?:sting|bite|wound|injury|injection|burn|affected) site\\b")
 
     /**
      * The guide split into citable sections (a heading with its follow-on blocks), in reading
@@ -219,21 +401,38 @@ object EmergencyGuideMatch {
     fun select(question: String, guide: EmergencyGuide, maxTokens: Int): List<Evidence> {
         val all = sections(guide)
         if (all.isEmpty()) return all
-        val ranked = xyz.fieldatlas.research.Bm25.rank(all, xyz.fieldatlas.research.QueryTerms.of(question))
+        val ranked = xyz.fieldatlas.research.Bm25.rank(all, rankingQuery(question))
         val wantsSigns = asksSigns.containsMatchIn(question)
         val flagged = redFlags.containsMatchIn(question)
+        val severe = severeSigns.containsMatchIn(question)
+        val worried = asksWhenToWorry.containsMatchIn(question)
+        val definition = asksDefinition.containsMatchIn(question)
         fun priority(e: Evidence): Double {
             val heading = e.title.substringAfter(": ", "")
             val signs = signsHeading.containsMatchIn(heading)
-            // Guides state the overall procedure early ("General strategy"), details later.
+            val action = actionHeading.containsMatchIn(heading)
+            val list = e.text.contains("\n- ") || e.text.contains("\n1. ")
+            // Guides state the overall procedure early ("General strategy"), details later. Any
+            // stronger a prior and the heat guide's cramps come before its heat stroke; any weaker
+            // and the seizure guide's "call 911 if" list comes before its steps.
             val position = e.chunkId.substringAfterLast(':').toInt()
-            return e.score + 3.0 * (1.0 - position.toDouble() / all.size) +
+            return e.score + 2.0 * (1.0 - position.toDouble() / all.size) +
                 // The main steps come before the "what not to do" list when only one fits.
-                (if (actionHeading.containsMatchIn(heading)) (if (avoidHeading.containsMatchIn(heading)) 2.0 else 3.0) else 0.0) +
-                (if (e.text.contains("\n- ") || e.text.contains("\n1. ")) 1.0 else 0.0) +
+                (if (action) (if (avoidHeading.containsMatchIn(heading)) 2.0 else 3.0) else 0.0) +
+                (if (list) 1.0 else 0.0) +
                 (if (signs) (if (wantsSigns) 4.0 else -1.0) else 0.0) +
                 // "He cannot put weight on it": the guide's when-to-get-care section leads, not home care.
-                (if (flagged && seeksCare.containsMatchIn(e.text)) 6.0 else 0.0)
+                (if (flagged && seeksCare.containsMatchIn(e.text)) 6.0 else 0.0) +
+                // Confused and collapsed: the section that says to call for help now, not the mild
+                // form's "sips of water". A "call 911 if" condition is not that instruction.
+                (if (severe && urgentNow(e.text)) 4.0 else 0.0) +
+                // "When should I worry?" is answered by the guide's get-help-if list.
+                (if (worried && (emergencyInstruction.containsMatchIn(e.text) || seeksCare.containsMatchIn(e.text))) 5.0 else 0.0) +
+                // A headingless opening with no list and nothing to do is the guide's introduction;
+                // quoted first, it once became the whole visible answer to a heat stroke.
+                (if (heading.isBlank() && !list && all.size > 1 && !imperative.containsMatchIn(e.text)) -3.0 else 0.0) +
+                // "What is CPR?" explains the term; it leads only when the term is what was asked.
+                (if (definitionHeading.containsMatchIn(heading) && !signs && !action && !definition) -2.0 else 0.0)
         }
         val order = ranked.sortedByDescending(::priority)
         val kept = mutableListOf<Evidence>()
@@ -252,18 +451,63 @@ object EmergencyGuideMatch {
      * The key section exactly as published, shown by the app under the model's answer, so the
      * source wording is always on screen even if the model condenses or garbles a step.
      */
-    fun officialSteps(section: Evidence, citation: Int, publisher: String): String = buildString {
+    fun officialSteps(section: Evidence, citation: Int, publisher: String, question: String = ""): String = buildString {
         append("**Source excerpt from ").append(publisher).append(", as published** [S").append(citation).append("]\n\n")
         // sections() puts the heading on the first line; show it as a caption, then the body.
         val heading = section.title.substringAfter(": ", "")
         val lines = section.text.lines()
         val body = if (heading.isNotBlank() && lines.firstOrNull() == heading) lines.drop(1) else lines
-        if (body !== lines) append("_").append(heading).append("_\n\n")
-        for (line in body.filter(String::isNotBlank)) {
-            val item = line.trimStart().let { it.startsWith("- ") || Regex("^\\d+\\. ").containsMatchIn(it) }
-            append(line).append(if (item) "\n" else "\n\n")
+        val blocks = body.filter(String::isNotBlank)
+        // An article with no list (altitude sickness, drowning) quoted whole pushes the answer for
+        // this case off the screen: only the paragraph for the case is quoted, and the citation
+        // still opens the whole guide.
+        val article = blocks.size >= 3 && blocks.none(::isListItem) && blocks.sumOf { it.length } > LONG_PROSE_CHARS
+        val quoted = if (article) {
+            val best = bestParagraph(question, blocks)
+            listOf((if (best > 0) "… " else "") + blocks[best] + (if (best < blocks.lastIndex) " …" else ""))
+        } else {
+            if (body !== lines) append("_").append(heading).append("_\n\n")
+            blocks
+        }
+        for (line in quoted) {
+            val kept = withoutOnlinePointers(line) ?: continue
+            append(kept).append(if (isListItem(kept)) "\n" else "\n\n")
         }
     }.trimEnd()
+
+    private fun isListItem(line: String) = line.trimStart().let { it.startsWith("- ") || Regex("^\\d+\\. ").containsMatchIn(it) }
+
+    /**
+     * The paragraph of an article that fits the case: the question's words and the clinical names
+     * of its signs, an instruction over a description, and with a severe sign the paragraph that
+     * says to get help now ("Go down immediately and seek medical attention").
+     */
+    private fun bestParagraph(question: String, paragraphs: List<String>): Int {
+        val severe = severeSigns.containsMatchIn(question)
+        // Evidence rejects blank fields, and these records exist only to be ranked, so the
+        // paragraph's ordinal stands in for a title and the ranker's name for a source.
+        val ranked = xyz.fieldatlas.research.Bm25.rank(
+            paragraphs.mapIndexed { index, text -> Evidence("paragraph", "paragraph:$index", "Paragraph ${index + 1}", "bm25", text, 0.0) },
+            rankingQuery(question),
+        )
+        val scores = ranked.associate { it.chunkId.substringAfterLast(':').toInt() to it.score }
+        return paragraphs.indices.maxByOrNull { index ->
+            scores.getValue(index) + (if (imperative.containsMatchIn(paragraphs[index])) 1.0 else 0.0) +
+                (if (severe && urgentNow(paragraphs[index])) 4.0 else 0.0)
+        } ?: 0
+    }
+
+    /**
+     * The line without any sentence that sends the reader to a web page or an app ("for more
+     * information, see the CDC site"): the reader is offline. Null when nothing else was in it.
+     */
+    private fun withoutOnlinePointers(line: String): String? {
+        val marker = Regex("^\\s*(?:- |\\d+\\. )").find(line)?.value.orEmpty()
+        val sentences = Regex("(?<=[.!?])\\s+").split(line.substring(marker.length))
+        val kept = sentences.filterNot { onlinePointer.containsMatchIn(it) && !bodySite.containsMatchIn(it) }
+        if (kept.size == sentences.size) return line
+        return (marker + kept.joinToString(" ")).takeIf { it.any(Char::isLetter) }
+    }
 
     /** Written by the app after the model's answer, never by the model. */
     fun safetyNote(guide: EmergencyGuide): String = buildString {

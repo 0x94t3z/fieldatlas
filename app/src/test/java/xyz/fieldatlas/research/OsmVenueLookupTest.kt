@@ -50,7 +50,8 @@ class OsmVenueLookupTest {
         // Ice cream is not a restaurant when meal places exist; fully vegan comes first.
         assertEquals(listOf(fully, options), result.sources)
         val answer = result.answer
-        assertTrue(answer.startsWith("I can't verify a current “best” ranking offline; fully vegan places are listed first."))
+        assertTrue(answer, answer.startsWith("There are no ratings offline, so these are ordered by what the map and the travel " +
+            "guide record: fully vegan places first, then sit-down restaurants before cafés and fast food"))
         assertTrue(answer.contains("OpenStreetMap lists these places in Berlin as fully vegan or serving vegan options (map data as of 2026-09-28)"))
         assertTrue(answer.contains("- **Green Garden** — fully vegan restaurant; thai, vietnamese."))
         assertTrue(answer.contains("Listing last checked: 2026-09-08. [S1]"))
@@ -58,7 +59,8 @@ class OsmVenueLookupTest {
         assertTrue(answer.contains("No check date recorded. [S2]"))
         assertTrue(answer.contains("Map data © OpenStreetMap contributors (ODbL)."))
         assertFalse(answer.contains("Frozen Joy"))
-        assertFalse(answer.contains("Wikivoyage"))
+        // No guide listing was retrieved, so none is quoted and the ordering note does not claim one.
+        assertFalse(answer.contains("The Wikivoyage guide:"))
     }
 
     @Test fun `osm places are preferred over free-text listings and other cities are excluded`() {

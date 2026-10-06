@@ -1,177 +1,208 @@
-# Field Atlas 1.3.0
+# Field Atlas 1.4.0
 
-A public release for offline use without a connection: emergency guidance from published guides,
-more file types, open-now place answers and faster answers on low-end phones, checked on a Redmi
-13C in airplane mode. It is not a claim that answer quality or bounty acceptance criteria have
-been met; the known limitations below still apply. Notes for the previous version:
-[1.2.1](field-atlas-1.2.1.md).
+A public release that takes on the three weaknesses Vitalik named on 26 September: speed,
+difficult questions, and "Tell me the best vegan restaurants in [city I am currently in]". On 60
+questions written after the last change and graded blind against internet search plus a frontier
+model, Field Atlas with its default model reaches 38% of the reference answers: below the bounty's "more than 50%" bar with the default model, and 52% with the optional 4B on the questions without a phone position. The honest reading is in the evaluation; the earlier, looked-at sets score higher and are reported as development data.
+Notes for the previous version: [1.3.0](field-atlas-1.3.0.md).
+
+## Vitalik's three points
+
+- **"The best vegan restaurants in the city I am currently in."** Asked near the phone, the answer
+  now names the city the phone is in and ranks that city's places rather than listing the nearest
+  six: fully vegan places first, then those the city's Wikivoyage guide also recommends, sit-down
+  restaurants before cafés and fast food, independent places before chains. There are no ratings
+  offline, and the answer says so. Each place has its distance, compass direction, address or
+  coordinates and the date the map recorded it. The location comes from Android's own fused, GPS
+  and network providers, without Google Play Services; a fix older than ten minutes is used only
+  with its age stated. Asked from Berlin and from Los Angeles on questions written after the change,
+  it scored 7.5 and 7 out of 10 against 9 for the web reference; on the 60 fresh questions, from two more cities, it scored 6.0 and 7.0 out of 10 against 8.0 and 8.0 for the web reference.
+- **Difficult questions.** The explanation, comparison and synthesis questions a 1B model breaks on are where Field Atlas is
+  weakest. On the 60 fresh questions the default 2B reached 51% of the reference on explanations,
+  24% on comparisons and 30% on synthesis (the optional 4B: 64%, 55% and 39%). What helped: the
+  fitting section of the English Wikipedia article quoted as the opening, each subject of a
+  comparison read, and the model's inventions removed (warnings a guide never gives, medicine and
+  recipe amounts). What did not: the 2B's own prose, which still contradicts the passage it was given.
+- **Speed.** On a Redmi 13C, every answer after the first starts about 20 seconds sooner: the
+  model keeps the instructions it has already read (heat pump question 38.9 s to 18.5 s to the
+  first word). Answers that need no model start at once even while it loads: near-me and "best
+  in the city I'm in", "Where am I?", phrases from the phrasebooks, emergency guides and numbers,
+  and calculations. On the Redmi 13C in this release's checks, in airplane mode: a phrasebook line 4 s, a fuel-cost
+  split 0 s, the heat-stroke guide with the model's steps 40–52 s, an explanation quoting the English
+  article's section 1 m 45 s, "Tell me about Japan" 2 m 24 s, the best vegan restaurants in Berlin
+  3 s ([device record](../evidence/physical/redmi-13c-android13/README.md)).
 
 ## Changes
 
-- **Emergency questions are answered from published guides, offline.** Ask Research what to do
-  (“someone is choking”, “I got bitten by a snake, what should I do?”, “is it safe to drink
-  stream water?”) and the model answers from the matching bundled guide only, citing it, with
-  the guide's key steps shown word for word above its answer the moment the question is asked.
-  41 guides cover first aid, heat and cold, outdoors and survival, and disasters, from CDC,
-  NIOSH, NIH, the National Weather Service, the National Park Service, FEMA and the U.S. Fire
-  Administration (public domain) and four Wikipedia articles (CC BY-SA 4.0). They ship inside
-  the app, so they work before any download; if the model cannot run, the guide is shown as
-  published. See [Emergency knowledge](../emergency.md).
-- **Everyday accounts of an emergency find their guide.** “A snake bit my friend, what do we
-  do?”, “my friend fell in a cold river and is shivering” or a long description of what happened
-  now open the matching guide, dictated text without punctuation included. Before, some got the
-  model alone, which on the snakebite question advised ice and raising the limb, both against the
-  guide. When an injury question mentions a red-flag sign, the guide's when-to-get-care section
-  leads. Ordinary questions that share the words (bit rates, a cat that bites) stay in research.
-- **Questions that need no model no longer wait for it.** Near-me lookups, and emergency guides
-  when the model is not ready, start immediately, even while the model is loading or if it
-  cannot load on a low-memory phone.
-- **Near-me help reaches farther.** For hospitals, clinics, pharmacies, police and drinking water,
-  the search widens from 15 km to 50 km and then 100 km when little is close.
-- **“Open now” is checked against the phone's clock.** Asked which places are open now, the app
-  reads each place's mapped opening hours, marks it open (and until when) or closed at the
-  phone's current time, and lists open places first. A near-me search keeps widening while
-  everything close is closed, so a 24-hour pharmacy farther away is found at night. Hours it
-  cannot read are not guessed, and for a named city the answer says it assumed the phone is set
-  to that city's time. Recorded hours can still be out of date. “Pharmacy open now in Berlin” is a
-  lookup like “which pharmacies are open now”, and hours with commas between days
-  (“Mo-Fr 08:00-20:00, Sa 09:00-19:00”) are read as separate rules.
-- **Museum questions list museums.** “Which museums are listed in London?” lists only places
-  mapped as museums or galleries in that city, so a zoo, or a museum in Oxford, no longer
-  appears; a trip question asking for a food stop and a museum gets both.
-- **Places without an address show coordinates.** Most Tokyo listings in the map data have no
-  address; they now give coordinates that any offline map app finds, and a Japanese address
-  without a street name is shown whole on its card.
-- **More files can be attached.** Word (.docx), PowerPoint (.pptx), OpenDocument (.odt, .odp) and
-  EPUB books, HTML as readable text, HEIC/GIF/BMP photos, UTF-16 without a byte-order mark and
-  Windows-1252 text. Older Office formats, spreadsheets and archives get a message saying how to
-  convert them.
-- **PDFs are read from their text layer on every Android version.** Before, Android 13–14 ran text
-  recognition on every page (an 8-page PDF now reads in about 3 seconds on a Redmi 13C), and
-  Android 15+ appended recognized text to the text layer, nearly doubling it. Recognition now runs
-  only on pages without real text, at most 30 per file.
-- **Long files are read in part instead of refused.** Up to 50 MB, 300,000 characters and 1,000
-  PDF pages; what was not read is listed in the preview and in the answer.
-- **Answers about files use better excerpts.** Passages break at paragraphs and sentences, and are
-  ranked by the question's distinctive words (part codes such as K-9 and K9 match). Summary
-  questions take passages from across the whole file. When an answer used only part of a file,
-  the app itself adds a line saying how many passages it used and from which pages.
-- **The amount of file text fits the phone.** Prompt size is now measured in tokens with an
-  estimate calibrated against the real tokenizer (it never undercounted in testing), not in bytes.
-  The app learns how fast the phone reads a prompt and sizes file evidence so the wait before the
-  first word stays near 40 seconds: fast phones get up to about 1,800 tokens of file text, slow
-  phones the best few passages. Instructions that cannot apply to a question are left out.
-- **Attached files survive the app being closed.** If Android closes Field Atlas while a picker or
-  the camera is open, the files are restored and read again with the question.
-- **Answers are easier to read and pass on.** Citations are small numbered marks attached to the
-  words they support. Copy and Share sit at the top of every answer and include the sources;
-  sharing works without a connection (Bluetooth, nearby share, SMS). A place answer opens with its
-  result in one sentence, with the caveats beneath it, and each place card shows open or closed,
-  diet and distance as labels. History can be searched and each saved answer shared.
-- **Answers start about 25% sooner on 8-core phones.** The model now uses six threads instead of
-  four. On a Redmi 13C, the same question's first word came at 71.7 s instead of 94.7 s, and
-  writing went from 3.69 to 4.06 tokens a second; eight threads were slower at writing, so two
-  cores stay free for the phone. See [the measurements](../../scripts/patches/README.md#thread-count).
-- **Answer details show where the time went.** “Prompt reading” gives the tokens the model read
-  and how long that took; “Writing speed” now counts the writing only (it divided by the whole
-  wait, showing 1.6 tokens a second for a model writing at 4.4).
-- **“Tell me Japan history” starts with its source.** Everyday phrasings (“tell me …”, “what do you
-  know about …”, “give me an overview of …”) and titles such as “History of Japan” for “Japan
-  history” now open the answer with the encyclopedia's own words, cited, while the model's
-  explanation is still being written.
-- **Research no longer looks stuck while the model reads and writes.** The reading bar moves between
-  the engine's block reports at the speed measured so far, never ahead of it, with the time left
-  ("about 20 s left"); the live draft follows the newest text instead of freezing once an answer
-  grew past its first lines.
-- **New 3D app icon and opening animation.** The launcher icon is the 3D compass coin, and on
-  launch the coin turns once and settles face-on while the app starts (about 0.75 s, no added
-  delay; cold start on the Redmi 13C stayed at 0.7–0.75 s). Themed icons keep the flat outline.
-- **More library questions find their overview passage.** A question such as “Explain autophagy
-  and distinguish …” now uses the saved passage that defines the topic, as “Explain autophagy and
-  how …” already did, instead of being answered by the model alone.
-- **Fixes.** Stopping voice input while the recogniser was still decoding could crash the app (it freed the recogniser under the recording thread; found with Android's malloc debug, the kind of bug a hardened allocator such as GrapheneOS's turns into a crash). A very large file could crash the app (out of memory); a camera photo could not be
-  retried after a storage error; every photo was named “Camera photo.jpg”; a full disk said “Could
-  not read this file”; the text preview stuttered on long files; nested list steps showed flat; the live draft could
-  show a list marker as text (“…- Do not drive”).
+- **Optional Qwen3.5 4B on 8 GB phones.** Library offers Qwen3.5 4B (3.0 GB) on phones that report
+  at least 7,000,000,000 bytes of memory. Graded blind on 96 questions it reached 57% of the
+  reference against 48% for the 2B, with about half the factual errors, but it answers about 2.5
+  times slower. It needs about 3.5 GB resident: on a 6 GB Redmi 13C Android stopped the app as it
+  loaded, so 6 GB phones are not offered it, and no 8 GB phone has run it yet. If the app ends
+  while loading a model other than the 2B, the next load uses the 2B and Library says why.
+- **Encyclopedia in depth.** A new optional collection: 49,822 English Wikipedia vital articles
+  by section (1.4 GB). It is never searched. When an explanation's subject is found in the
+  Encyclopedia ("Heat pump", "Jet lag", "Onion"), the app reads that article's sections here and
+  adds the ones that fit the question ("Operation" for how, "Causes" for why, "Eye irritation" for
+  why onions make you cry), within a reading budget sized to the phone's speed, and quotes the
+  fitting section as the opening instead of the definition. Graded blind side by side with the same
+  build without it: the fork's 31 lookup questions went from 45% to 55% of the reference, our own
+  from 57% to 59%, with fewer factual errors. A Simple English one-line stub ("A hurricane is a
+  tropical cyclone") is followed to the full article; a casual lookup ("tell me about Georgia, the
+  country") reads its article whatever collections are installed.
+- **Comparisons and choices.** "DEET vs picaridin, which is better?", "ibuprofen or paracetamol?"
+  and "what's the difference between a hurricane, a typhoon and a cyclone" now read each named
+  subject's article (up to three), and a choice keeps the model's answer under the quoted guide
+  section instead of a quote alone. Casual spelling ("whats", "im") routes like the spelled-out
+  form.
+- **Places in a named city.** A place search stays inside the city the question names
+  ("Mexico City" also covers "Mexico City/Centro"), the title boosts that ranked "Cookstown — TIME"
+  for "first time in Mexico City" are off for listing packs, and a listing counts as relevant only
+  by its own name, type, cuisine, description or address, never by a template label. The
+  Essentials search in a city fell from 14–40 s to under a second. Words no listing nearby carries
+  ("hungry", "cheap") no longer empty a whole area: the places that fit the rest are listed and the
+  gap is stated; "not Euronet" leaves that brand out; "a proper bank one" puts banks' machines first;
+  a place without an address shows its coordinates; the "best" ordering claims the travel guide only
+  when a listed place is in it.
+- **Travel guides by section.** The Travel guides collection is now Wikivoyage's guides read by
+  section ("Japan — Buy > Cash", "Hanoi — Stay safe > Traffic"), with travel topics (Passport, Jet
+  lag) and phrasebooks. A question naming a place and a practical topic quotes that place's own
+  section: a visa from "Entry requirements", a metro ticket from "By public transport", a SIM card
+  from "Mobile phones", a budget from "Costs". A beach or district without a guide is read through
+  the place its overview names, and so is a place whose guide lacks the section asked ("Flying into
+  Bali, visa on arrival?" reads Indonesia's entry requirements). A journey "Lisbon to Porto by
+  train" reads the country's rail advice; "<city> airport" adds the airport's own guide; a transit
+  card question finds the fares section; a safety question quotes the safety section, never the
+  metro timetable, and "Is Rio safe for a solo traveller?" opens with the guide's own verdict; a
+  dress-code question for temples quotes both what to wear and what not to do; a budget question
+  quotes only a section about costs. A question that names no place reads the topic guide for its
+  topic ("pay in euros or my home currency?" reads Money's section on dynamic currency conversion;
+  "why do my ears pop on planes?" reads Flying and health), as a lead above the model.
+- **Phrases.** "How do I say thank you in Japanese?" or "Basic phrases for Vietnam" is answered
+  with the phrasebook's own lines, in the script with the pronunciation it gives. A line is the
+  whole answer only when it says each asked word and nothing else ("can you help me" is not
+  "Help!"; "check in" is not the bill); otherwise it leads and the model adds the rest. When the
+  phrasebook has only a related line ("I'm a vegetarian" for "I'm vegan"), the answer says so.
+- **"Where am I?"** names the town from the addresses of the nearest mapped places, gives the
+  coordinates and the three closest mapped places with distance and direction.
+- **Emergencies.** A carbon monoxide guide (42 guides in all), and the police, ambulance and fire
+  numbers of 242 countries and territories, read from a bundled table, cited. Everyday accounts
+  ("someone fainted in the heat", "broke her ankle on the trail", "swallowed a button battery",
+  "what is the fastest way to stop a seizure?") reach their guide; a question that only asks to
+  explain a hazard ("what causes tsunamis?") is researched instead. The guide section that fits the
+  person's signs leads: "collapsed in the heat, confused, stopped sweating" opens with Heat Stroke
+  (call emergency services, do not give fluids), not the guide's introduction or heat cramps; a
+  long guide quotes the paragraph for the case; sentences pointing to a website are left out of
+  the quote. A "do not" the guide never gives is removed from the model's steps, and a home-remedy
+  recipe amount the sources do not state is removed; the model is asked to answer a yes/no or
+  "when should I worry" question first. No breathing, no pulse or unresponsive opens CPR (or
+  drowning in water) whatever else is mentioned; hives after peanuts stays with anaphylaxis.
+- **Calculations on the phone.** Fuel economy and range, a trip's fuel cost split among the
+  people, walking or driving time against the daylight left, hiking time, money at a given rate
+  with a tip, changing money at a quoted rate less a commission or flat fee ("25,400 dong per
+  dollar, 3% commission"), water for a group over the days given ("until the end of day 2"),
+  power-bank watt-hours, temperatures, the time in another city, a landing time across time zones
+  when the offsets are given, recipes, boiling point at altitude, the time between two clock times,
+  a clock time plus or minus a duration ("when do I leave to arrive by 9:00?"), and a price per
+  night times the nights with a discount or tax. Every number in the question must be used and the
+  asking clause must name the calculation, or the result is a lead for the model rather than the
+  answer; a head count without a unit ("3 of us"), a charge without its percentage, a trip that
+  names places (time zones) or an ambiguous figure returns no calculation rather than a wrong one.
+- **Cryptography & Ethereum collection.** 22,805 passages from the EIPs, ERCs and consensus
+  specifications, NIST's post-quantum standards and 123 Wikipedia articles, with vector search. A
+  question naming a proposal quotes its own summary.
+- **Model answers.** The model builds on the saved passages and adds its own knowledge only for
+  basic facts; an amount of medicine never appears in its text; it no longer remarks that the
+  person is offline, and never sends them online.
+- **Places.** A place stays in its own city when its address names a large city nearby (the
+  5 October map rebuilds); a restaurant's branches are listed once; opening hours are read from
+  the OpenStreetMap specification, so a split shift ("Mo-Sa 09:00-12:00, Mo-Fr 14:00-19:00") is
+  open in both shifts.
+- **Library.** A collection installed in a newer version switches the older one off; a paused
+  download of a replaced version is removed, while one whose catalog entry only changed its wording
+  or address resumes. Model downloads resume, and the 4B's download, pause and errors show on its
+  own card.
+- **First screen.** The examples are paths that answer offline at once: the best vegan
+  restaurants in the city you're in, an explanation that opens with its encyclopedia article, an
+  emergency, and a phrase.
+- **Licences.** More → Licences shows every component and data source with its licence, and the
+  full licence texts the app ships. The LICENSE file is now the verbatim Apache-2.0 text, a NOTICE
+  file names the copyright holders, and the README credits the vbuterin/fieldatlas fork merged in
+  4967a49.
+- **Provenance fix.** 1.3.0's opening-hours reader followed another submission's MIT-licensed
+  parser closely, and some unit tests used its question texts; both were replaced (see the
+  [release audit](../compliance/release-audit.md#provenance-audit-of-other-submissions-material-5-october-2026)).
+- **Fixes.** A near-me question no longer waits the full 45 seconds when no location provider
+  can get a fix. "Ohm's law" and other names with a possessive are found by title. A paused
+  download of a replaced collection version no longer holds its space. "Vegan bar near me" in
+  Berlin finds the five bars within 5 km again (a category lookup had read only the nearest 800
+  points). Short search terms match their own forms ("ears" no longer finds earthquakes, "tides"
+  finds "tide"). A long emergency guide no longer stops the app on the phone (a blank title in its
+  paragraph ranking), and two calculator patterns that Android's regex engine rejects were
+  rewritten.
+
+## Measured
+
+Blind grading against a frontier model's web-researched answers, each answer on its own, two
+graders per answer ([method](../evaluation.md#140-on-60-new-held-out-questions-october-7); every answer
+and grade in [results-1.4.0](../fieldtest/results-1.4.0/)):
+
+| Questions | Qwen3.5 2B (default) | Qwen3.5 4B (optional, 8 GB phones) |
+| --- | --- | --- |
+| 60 held-out questions written after the last change | 38% of the reference | 52% on the 55 without a phone position |
+| The 48 questions of 6 October (diagnosed, now development data) | 58% (34% before the fixes) | – |
+| Our 61 development questions | 61% | – |
+| The fork's 31 lookup questions (development) | 54% | – |
+| The 42 earlier held-out questions (development) | 54% | – |
+
+By category on the fresh questions, the 2B: Vitalik's question 81%, casual lookups 64%, explanation 51%,
+emergencies 47%, places 45%, synthesis 30%, cryptography 26%, comparison 24%, practical travel 20%,
+reasoning with numbers 14%. References and graders are frontier models of one family, so these are
+development measures, not an independent score.
 
 ## Verification
 
-- 574 JVM unit tests pass (10 opt-in desktop tests skipped), including real-tokenizer counts,
-  generated DOCX/PPTX/ODT/EPUB files, a zip bomb, emergency-question routing against all bundled
-  guides, questions that must not be routed to a guide, and opening-hours rules (split shifts,
-  past midnight, holidays, open-ended closing times, unreadable hours, comma-separated days).
-  139 Python tests pass (57 scripts, 12 packtool, 6 benchmark, 64 builders).
-- Desktop, the 24-question release suite (same model, seed and collections as 1.2.0): 15 pass,
-  8 partial, 1 fail; judged about as useful as an online frontier answer on 16½ of 23 (72%),
-  up from 65% before the travel and retrieval fixes. The reviewer is the author's assistant and
-  the questions were used to find the problems, so this is not a held-out score. See
-  [Evaluation](../evaluation.md#after-the-retrieval-and-travel-fixes-october-4).
-- Desktop, Qwen3.5 2B, 7 attachment questions × 5 seeds: 33/35 passed the fixture checks (1.2.1:
-  32/35). Keyword checks, not an accuracy score.
-- Desktop, Qwen3.5 2B, 6 emergency questions × 2 seeds: 10 of 12 model answers were clean; two
-  contained one garbled sentence each, beside the verbatim source excerpt.
-- Redmi 13C, Android 13, airplane mode, installed over 1.2.1 with data kept:
-  - snakebite question: the CDC/NIOSH source excerpt on screen in 4 s, cited model answer in 1 min 4 s;
-  - 8-page text PDF ready in about 3 s; answer cited to page 6 in 53 s once the phone's speed was
-    learned (2 min 31 s before the evidence budget was sized to the phone);
-  - DOCX 39 s, EPUB (cited to chapter 3) 44 s, PPTX (cited to slides 2 and 3) 41 s, photo of a
-    printed sign read with OCR 36 s, all correct; nearest-hospital lookup about 1 s;
-  - after the travel fixes, installed over the earlier 1.3.0 build: “Which pharmacies near me are
-    open now?” in 2 s, widening to 50 km in a rural area and listing two 24/7 pharmacies and one
-    open until 21:30 first, then the three nearer pharmacies with no recorded hours; “Which vegan
-    restaurants in Berlin are open now?” marked two of six open at the phone's 10:39 and stated
-    the Berlin-time assumption. Each card showed its open or closed status;
-  - final build, installed over the earlier 1.3.0 build: “A snake bit my friend. What do we do?”
-    showed the CDC/NIOSH excerpt within seconds and the cited answer in 58 s (52 s on the build
-    before the last two fixes);
-    “Pharmacy open now in Berlin” was answered as a lookup in 43 s, with no model (before the fix:
-    3 min 1 s and uncited); CDC's one-page “Make Water Safe During an Emergency” PDF answered “How
-    long do I boil the water?” in 39 s, correctly, citing page 1.
-- Device tests on the same phone: all 68 instrumented tests pass, including the 9 attachment-reader
-  tests (a 3-page text PDF reads in 852 ms). Eleven of them had been failing
-  on 1.2.1 as well because they expected older wording and layouts (for example licence details
-  now in a pack's About sheet, and citations that open a preview before the full source), the
-  microphone test never granted the microphone, and the offline test still forbade the internet
-  permission that downloads use; they were updated to the current interface and to the policy in
-  `scripts/verify_offline.sh`. One real defect found on the way (the original-file viewer could
-  keep its loading spinner after a file was read) was fixed by publishing the loaded file on the
-  main thread.
-- Memory-safety check for GrapheneOS-class hardware, on the same phone: the device suite and a
-  full model answer were run with Android's malloc debug (guard bytes, freed-memory tracking,
-  pointer checks) on every native library: llama.cpp, Tesseract, Vosk and SQLite. It found the
-  voice crash above and nothing else; after the fix the suite passed with no reports.
-- Release lint and the offline packaging audit pass. APK size 108.4 MB (1.2.1: 100.7 MB); most of
-  the increase is the PDF text library, its fonts and the BouncyCastle crypto library it uses for encrypted PDFs.
-- Public APK: built from the tagged source with the project release key (certificate SHA-256
-  `131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`); signature, offline
-  packaging, ZIP alignment and all 22 ARM64 ELF alignment checks pass. The phone checks above
-  used a locally signed build of the same source; the public-key APK was not installed on a phone.
+799 JVM tests pass (16 opt-in desktop tests run separately against the real collections); 147 Python
+tests pass; an instrumentation test on the Redmi 13C compiles every regular-expression literal of the
+app with Android's engine and runs the calculators there. The build was installed over 1.3.0 on a
+Redmi 13C with its data kept, the five 1.4.0 collections imported, and checked in airplane mode with
+Wi-Fi and mobile data off ([device record](../evidence/physical/redmi-13c-android13/README.md)).
+Details in [verification.md](../verification.md#v140-october-67).
 
 ## Known limitations
 
-- The guides are information, not training, and many are written for the United States. Severe
-  bleeding has no bundled tourniquet guidance; the choking and drowning guides are Wikipedia text.
-  These need review by a clinician. The model's part of an emergency answer can misstate a step;
-  the verbatim source excerpt above it keeps the guide's own wording. See [Emergency knowledge](../emergency.md#limits-you-should-know).
-- On a slow phone a long file is answered from a few passages; the added coverage line says so.
-- A named-city question about essentials (“pharmacy open now in Berlin”) is answered from a
-  keyword search and can list only one or two places, some in the surrounding area (the Berlin
-  answer above listed one pharmacy in Potsdam). Near-me questions search by distance and are not
-  affected.
-- The 1.2.1 limitations on citation repair and model reasoning still apply.
+- **Below the bounty's bar on new questions with the default model.** On 60 fresh questions the default 2B reaches 38% of the reference, the optional 4B 52% on the 55
+  without a phone position. Practical travel (20%) and reasoning with numbers (14%) are weakest: a
+  wording the guide-section rules or the calculators do not cover falls to the 2B, which gets
+  arithmetic, dates and consequences wrong, and a guide section read for the wrong part of a
+  question can still be quoted. Where the app answers without the model (lookups, places near the
+  phone and in a named city, emergency guides and numbers, phrases, calculations it recognises) it
+  is far better than the model's own text.
+- **Hardware.** Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16).
+  Not yet run on a Pixel, on GrapheneOS, or on any 8 GB phone, so the optional 4B has not run on a
+  phone that is offered it.
+- **Map data.** Places tagged fully vegan that serve dairy, and places filed under a nearby city,
+  can still appear; the tags are as mapped. Hours and menus can be out of date.
+- **Emergency guides** are information, not training, and many are written for the United States;
+  severe bleeding has no bundled tourniquet guidance; the choking and drowning guides are Wikipedia
+  text. See [Emergency knowledge](../emergency.md#limits-you-should-know).
+- **Not checked for this release:** network traffic during research, the in-app model download on a
+  phone, and a clean install of the public APK following only the README.
 
 ## Installation
 
 Download `fieldatlas.apk` and check `fieldatlas.apk.sha256`. Requires Android 13+ and an arm64
-device. It installs over 1.2.1 with data kept. Model and knowledge packs are installed
-separately; queries run locally after setup. Downloads and catalog refresh require a connection.
-The emergency guides ship inside the app.
+device. It installs over 1.3.0 with data kept. Models and collections are downloaded in the app
+(or imported as `.fapack`); queries run locally after setup. Downloads and catalog refresh need a
+connection. The emergency guides and numbers ship inside the app.
 
-App version: 1.3.0 (17). GitHub channel: release (`v1.3.0`).
-
-APK SHA-256: `28036d47f8a62e9e40b720b948d5206f4a53d58e4a62cbb4d0df05b3da42b267`.
+App version: 1.4.0 (18). GitHub channel: release (`v1.4.0`).
 
 ## Release assets
 
-- App release `v1.3.0`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
-- No collection changed in this release; each stays on its existing knowledge release.
+- App release `v1.4.0`: `fieldatlas.apk`, `fieldatlas.apk.sha256`.
+- Collections, each with its `.fapack`, `SHA256SUMS` and source lock:
+  `knowledge-wikivoyage-guides-2026.09.01`, `knowledge-vegan-places-2026.10.05`,
+  `knowledge-essentials-2026.10.05`, `knowledge-crypto-ethereum-2026.10.05` and the new
+  `knowledge-wikipedia-en-vital-2026.10.06`. The Encyclopedia, Travel places and Biology
+  collections are unchanged.

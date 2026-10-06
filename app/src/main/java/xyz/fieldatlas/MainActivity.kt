@@ -247,7 +247,8 @@ class MainActivity : ComponentActivity() {
                 onCancelKnowledgeDownload = setupViewModel::cancelKnowledgeDownload,
                 onQuestionChange = researchViewModel::updateQuestion,
                 onSubmit = {
-                    if (xyz.fieldatlas.research.VenueLookup.isNearMe(researchState.question) &&
+                    if ((xyz.fieldatlas.research.VenueLookup.isNearMe(researchState.question) ||
+                            xyz.fieldatlas.research.VenueLookup.isWhereAmI(researchState.question)) &&
                         !container.deviceLocation.hasPermission()
                     ) {
                         explainLocation = true

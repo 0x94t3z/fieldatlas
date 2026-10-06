@@ -38,6 +38,8 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         "wikivoyage-guides" -> "Travel guides"
         "osm-vegan-places" -> "Vegan places"
         "osm-essentials" -> "Essentials"
+        "crypto-ethereum" -> "Cryptography & Ethereum"
+        "wikipedia-en-vital" -> "Encyclopedia in depth"
         else -> title
     },
     kind = when (type) {
@@ -83,6 +85,6 @@ fun knowledgeCategory(id: String, declared: String = ""): KnowledgeCategory =
             id.startsWith("general-reference") -> KnowledgeCategory.Encyclopedia
         "wiktionary" in id || "phrasebook" in id -> KnowledgeCategory.Language
         "wikibooks" in id || "how-to" in id -> KnowledgeCategory.HowTo
-        "biology" in id || "science" in id -> KnowledgeCategory.Science
+        "biology" in id || "science" in id || "crypto" in id || "ethereum" in id -> KnowledgeCategory.Science
         else -> KnowledgeCategory.Other
     }

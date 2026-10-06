@@ -80,6 +80,84 @@ class KnowledgeSearchOrderTest {
                 // The pharmacy lies a little north-east of the point.
                 assertEquals("north-east", xyz.fieldatlas.research.GeoDistance.compass(health.single().bearingDegrees!!))
                 assertEquals(3, database.nearbyPlaces(52.5200, 13.4050, 2.0, 10).size)
+                // A pack with no listing of the kind asked is not read at all.
+                assertEquals(emptyList<String>(), database.nearbyPlaces(52.5200, 13.4050, 2.0, 10, setOf("Sleep")).map { it.evidence.documentId })
+                // The nearest are kept before their text is read; the limit applies to them.
+                assertEquals(listOf("osm-place-cafe"), database.nearbyPlaces(52.5200, 13.4050, 2.0, 1).map { it.evidence.documentId })
+            } finally {
+                database.close()
+            }
+        }
+    }
+
+    /** A place pack as the OpenStreetMap builders write it; each listing lies the given kilometres due north of Berlin Mitte. */
+    private fun placePack(name: String, withColumn: Boolean, listings: List<Triple<String, String, Double>>): File {
+        val db = File(temp.root, "$name.sqlite")
+        BundledSQLiteDriver().open(db.path).use { sql ->
+            fun exec(text: String) { sql.prepare(text).use { it.step() } }
+            exec("PRAGMA user_version=1")
+            exec("CREATE VIRTUAL TABLE chunks_fts USING fts5(chunk_id UNINDEXED,document_id UNINDEXED,title,source UNINDEXED,text)")
+            exec("CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL" + (if (withColumn) ", category TEXT)" else ")"))
+            exec("BEGIN")
+            listings.forEachIndexed { index, (id, category, kmNorth) ->
+                sql.prepare("INSERT INTO chunks_fts(rowid, chunk_id, document_id, title, source, text) VALUES(?,?,?,?,?,?)").use {
+                    it.bindLong(1, index + 1L); it.bindText(2, "$id:0000"); it.bindText(3, "osm-place-$id"); it.bindText(4, "Berlin — $id")
+                    it.bindText(5, "https://example.org/$id"); it.bindText(6, "Destination: Berlin\nCategory: $category\nPlace: $id"); it.step()
+                }
+                sql.prepare(if (withColumn) "INSERT INTO place_points VALUES(?,?,?,?)" else "INSERT INTO place_points VALUES(?,?,?)").use {
+                    // GeoDistance's earth radius, so a listing's distance is the kilometres given.
+                    it.bindLong(1, index + 1L); it.bindDouble(2, 52.52 + kmNorth * 180 / (6371.0 * Math.PI)); it.bindDouble(3, 13.405)
+                    if (withColumn) it.bindText(4, category); it.step()
+                }
+            }
+            exec("COMMIT")
+        }
+        return db
+    }
+
+    @Test fun nearbyPlacesReadListingsUntilEnoughOfTheKindMatch() {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        // "Vegan bar near me" in Berlin: one bar 1 km away, a thousand restaurants nearer than the
+        // other bars, which lie 4.4 to 4.7 km out. Reading only the nearest 800 listings found the
+        // one bar at every radius.
+        val bars = listOf("belushis" to 1.03, "alaska" to 4.43, "barkett" to 4.51, "klunkerkranich" to 4.58, "silent-jazz-bar" to 4.71)
+            .map { (id, km) -> Triple(id, "Drink", km) }
+        val restaurants = (0 until 1000).map { Triple("restaurant-%04d".format(it), "Eat", 1.5 + it * 0.002) }
+        val barIds = bars.map { "osm-place-${it.first}" }
+        for (withColumn in listOf(false, true)) {
+            val database = KnowledgeDatabase.open(placePack("bars-$withColumn", withColumn, restaurants + bars))
+            try {
+                fun ids(radiusKm: Double, limit: Int, categories: Set<String> = emptySet()) =
+                    database.nearbyPlaces(52.52, 13.405, radiusKm, limit, categories).map { it.evidence.documentId }
+                assertEquals("column=$withColumn", barIds, ids(5.0, 200, setOf("Drink")))
+                assertEquals("column=$withColumn", barIds, ids(15.0, 200, setOf("Drink")))
+                assertEquals("column=$withColumn", barIds.take(2), ids(5.0, 2, setOf("Drink")))
+                // The radius still bounds the read, and the common kind and plain lookups are unchanged.
+                assertEquals("column=$withColumn", barIds.take(1), ids(2.0, 200, setOf("Drink")))
+                assertEquals("column=$withColumn", (0 until 200).map { "osm-place-restaurant-%04d".format(it) }, ids(5.0, 200, setOf("Eat")))
+                val nearest = listOf(barIds.first(), "osm-place-restaurant-0000", "osm-place-restaurant-0001")
+                assertEquals("column=$withColumn", nearest, ids(5.0, 3))
+                assertEquals("column=$withColumn", nearest, ids(5.0, 3, setOf("Drink", "Eat")))
+            } finally {
+                database.close()
+            }
+        }
+    }
+
+    @Test fun nearbyPlacesBreakDistanceTiesAtTheLimitByChunkId() {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        // Two listings on one spot, written in the reverse of chunk id order: the limit keeps the
+        // one that sorting every place in the circle keeps, whether or not the text decides.
+        val listings = listOf(Triple("twin-b", "Eat", 1.0), Triple("twin-a", "Eat", 1.0), Triple("far", "Eat", 1.5))
+        for (withColumn in listOf(false, true)) {
+            val database = KnowledgeDatabase.open(placePack("twins-$withColumn", withColumn, listings))
+            try {
+                for (categories in listOf(emptySet<String>(), setOf("Eat"))) {
+                    fun ids(limit: Int) = database.nearbyPlaces(52.52, 13.405, 2.0, limit, categories).map { it.evidence.documentId }
+                    assertEquals("column=$withColumn $categories", listOf("osm-place-twin-a"), ids(1))
+                    assertEquals("column=$withColumn $categories", listOf("osm-place-twin-a", "osm-place-twin-b"), ids(2))
+                    assertEquals("column=$withColumn $categories", listOf("osm-place-twin-a", "osm-place-twin-b", "osm-place-far"), ids(3))
+                }
             } finally {
                 database.close()
             }

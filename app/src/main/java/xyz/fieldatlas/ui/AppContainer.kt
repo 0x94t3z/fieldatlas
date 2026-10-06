@@ -196,8 +196,17 @@ class AppContainer(context: Context) {
     fun resumableModelBytes(offer: ModelOffer = ModelOffers.recommended): Long = modelDownload.resumableBytes(offer)
     fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long = knowledgePackDownload.resumableBytes(pack)
 
+    /** Paused downloads of collection versions the catalog has replaced; called before any download starts. */
+    fun discardStaleKnowledgeDownloads(): Int = knowledgePackDownload.discardStale(catalogRepository.state.value.packs)
+
     suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset = provisioningMutex.withLock {
-        val selected = catalogRepository.selectForDownload(pack)
+        val selected = runCatching { catalogRepository.selectForDownload(pack) }.getOrElse { error ->
+            // A paused download of a version the catalog replaced (vegan places 2026.10.02 after
+            // 2026.10.05 arrived) can never finish; its partial file would hold the space forever.
+            // If the entry only changed its wording or category, the same bytes resume on the next tap.
+            knowledgePackDownload.discardPartial(pack, catalogRepository.state.value.packs)
+            throw error
+        }
         val installed = knowledgePackDownload.install(selected, onProgress)
         // Keep older versions available for rollback, but don't search duplicate editions.
         registry.list().filter { it.type == PackType.KNOWLEDGE && it.id == pack.id &&
@@ -421,16 +430,16 @@ class AppContainer(context: Context) {
                 prefs.edit().apply { if (value == null) remove(key) else putFloat(key, value.toFloat()) }.apply()
             }
     }
+    // Article depth read more of a subject's article: graded blind it raised the fork's lookup
+    // questions from 45% to 55% of the reference and our own from 57% to 59%, for about 20 s more
+    // reading on a slow phone when the English collection is installed.
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
-        emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed)
+        emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
+        articleDepth = true)
 
-    /** Questions the app answers itself, so they can run before (or without) the model. */
+    /** Questions the app answers itself, so they can run before (or without) the model; decided where they are answered. */
     fun answersWithoutModel(question: String, hasAttachments: Boolean): Boolean =
-        xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null ||
-            (!hasAttachments && xyz.fieldatlas.research.Calculators.solve(question)?.complete == true) ||
-            (!hasAttachments && (xyz.fieldatlas.research.VenueLookup.isNearMe(question) ||
-                xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides) != null ||
-                emergencyNumbers?.let { xyz.fieldatlas.emergency.EmergencyNumbers.answer(question, it) } != null))
+        researchOrchestrator.answersWithoutModel(question, hasAttachments)
 
     val researchViewModelFactory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {

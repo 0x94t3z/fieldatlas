@@ -151,7 +151,8 @@ class EmergencyGuideMatchTest {
             "My friend twisted his ankle and can't walk" to "fractures-sprains",
             "A tick bit me on the hike" to "tick-bites",
         )
-        val wrong = cases.mapNotNull { (q, id) -> match(q).takeIf { it != id }?.let { "$q -> $it (want $id)" } }
+        // No guide at all is a failure too.
+        val wrong = cases.mapNotNull { (q, id) -> match(q).let { got -> if (got != id) "$q -> $got (want $id)" else null } }
         assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
     }
 
@@ -200,5 +201,185 @@ class EmergencyGuideMatchTest {
         val guide = book.guides.first { it.id == "fractures-sprains" }
         val first = EmergencyGuideMatch.select("My friend fell off a bike and his wrist is swollen and bent. What should we do?", guide, 400).first()
         assertTrue(first.title, "Serious Injuries" in first.title)
+    }
+
+
+    @Test fun heatIllnessInEverydayWordsAndExplanationsLeftToResearch() {
+        assertEquals("heat-illness", match("Someone fainted in the heat at a festival. What should I do?"))
+        assertEquals("heat-illness", match("my friend collapsed in the sun and seems confused"))
+        // A stove in a hot tent is carbon monoxide first.
+        assertNotEquals("heat-illness", match("It's hot in our tent with the gas stove on and my friend is dizzy and confused, what do we do?"))
+        // Explanations are research, not first-aid steps.
+        assertNull(match("What causes tsunamis?"))
+        assertNull(match("How do avalanches form?"))
+        assertNull(match("Why do people get altitude sickness?"))
+        // Danger words or a person's own situation still open the guide.
+        assertEquals("snakebite", match("What is the treatment for a snake bite?"))
+        assertEquals("cpr", match("how do I do CPR"))
+        assertEquals("choking", match("Why is the baby choking?"))
+        assertEquals("choking", match("What is happening to him? He can't breathe!"))
+        assertEquals("cpr", match("Why is he unresponsive?"))
+        assertEquals("hypothermia", match("How does hypothermia start, and how do I warm him up?"))
+    }
+
+    @Test fun aSpecificSignOutranksHeatAsTheCause() {
+        assertEquals("cpr", match("My friend collapsed in the sun and isn't breathing, what do I do?"))
+        assertEquals("cpr", match("My dad collapsed in the heat and isn't breathing"))
+        assertEquals("anaphylaxis", match("A bee stung my son in the hot sun and now he is dizzy and his throat is swelling"))
+        assertEquals("head-injury", match("She collapsed in the sun and hit her head"))
+        assertNotEquals("heat-illness", match("The CO alarm is going off, it's really hot in the room and my son is dizzy and confused. What do I do?"))
+        assertNotEquals("heat-illness", match("Our CO detector is beeping, it's hot in here and my wife feels dizzy, what should we do?"))
+        assertNotEquals("heat-illness", match("It's hot in the cabin with the wood burner going and my wife is dizzy and has a headache, what should I do?"))
+        assertEquals("heat-illness", match("Someone fainted in the heat at a festival. What should I do?"))
+        // Two everyday words of another guide outrank the heat too: hives after peanuts, a spider bite.
+        assertEquals("anaphylaxis", match("My daughter fainted in the sun after eating peanuts and has hives"))
+        assertEquals("anaphylaxis", match("Dad collapsed in the heat, his face is swelling and he has hives"))
+        assertEquals("spider-bites", match("My friend fainted in the sun after a spider bite, what should we do?"))
+        assertEquals("poisoning", match("My kid swallowed pills and fainted in the sun"))
+        assertEquals("stroke", match("My wife fainted in the heat and her face is drooping"))
+        assertEquals("cpr", match("My friend collapsed in the heat and isn't responding"))
+    }
+
+    @Test fun noBreathingNoPulseOrNoResponseOpensCprWhateverTheCause() {
+        // The snakebite and flood guides have no CPR step.
+        assertEquals("cpr", match("My friend isn't breathing after a snake bite"))
+        assertEquals("cpr", match("My friend isn't breathing after a snake bite, what do I do?"))
+        assertEquals("cpr", match("My friend has no pulse after a snake bite"))
+        assertEquals("cpr", match("My son is not responding after a snake bite"))
+        assertEquals("cpr", match("My friend stopped breathing after a snake bite"))
+        assertEquals("cpr", match("My son isn't responding after a snake bite"))
+        assertEquals("cpr", match("My friend was hit by lightning and is unresponsive, what do we do?"))
+        // The sign is the emergency even when nothing is asked.
+        assertEquals("cpr", match("He fell off the ladder and isn't responding"))
+        assertEquals("cpr", match("someone collapsed and is not breathing"))
+        assertEquals("cpr", match("Why is he unresponsive?"))
+        // In the water, the drowning guide's rescue breaths come first.
+        assertEquals("drowning", match("The baby is unresponsive in the flood water"))
+        assertEquals("drowning", match("My friend isn't breathing in the cold water"))
+        assertEquals("drowning", match("We pulled him out of the pool and he isn't breathing"))
+        // A blocked or swelling airway keeps its own steps.
+        assertEquals("anaphylaxis", match("My friend got stung by a bee and his throat is swelling and he isn't breathing"))
+        assertEquals("choking", match("He's choking, I tried the Heimlich and he's still not breathing"))
+        // Not responding to treatment or to texts is not the sign.
+        assertEquals("tick-bites", match("My friend has been unresponsive to antibiotics since a tick bite, what should we do?"))
+        assertNull(match("My mom isn't responding to my texts, what should I do?"))
+        assertNull(match("My app isn't responding, what do I do?"))
+        assertNull(match("My son's phone isn't responding, what do I do?"))
+        // Without the sign, the cause's own guide still opens.
+        assertEquals("snakebite", match("My friend is unconscious after a snake bite"))
+    }
+
+    @Test fun theBestWayToStopOrTreatSomethingIsFirstAid() {
+        val cases = mapOf(
+            "What is the fastest way to stop a seizure?" to "seizures",
+            "What is the fastest way to stop an allergic reaction?" to "anaphylaxis",
+            "What is the fastest way to stop a heart attack?" to "heart-attack",
+            "What is the best way to stop a snake bite from spreading venom?" to "snakebite",
+            "What is the best way to cool a burned hand?" to "burns",
+            "What is the best way to purify stream water?" to "safe-drinking-water",
+            "What is the best way to prevent frostbite?" to "frostbite",
+            "What is the most effective way to prevent frostbite?" to "frostbite",
+            "What are the quickest ways to stop a seizure?" to "seizures",
+        )
+        val wrong = cases.mapNotNull { (q, id) -> match(q).let { got -> if (got != id) "$q -> $got (want $id)" else null } }
+        assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
+        assertNull(match("What causes tsunamis?"))
+        assertNull(match("What is the best way to learn about tsunamis?"))
+    }
+
+    @Test fun coolingAndFuelWordsDoNotHideAHeatCollapse() {
+        assertEquals("heat-illness", match("She fainted in the heat and her body temperature is very high"))
+        assertEquals("heat-illness", match("My friend collapsed in the heat, we poured cold water on him, what else should we do?"))
+        assertEquals("heat-illness", match("Someone fainted in the heat, should I give them water to drink?"))
+        assertEquals("heat-illness", match("My dad passed out from the heat while pumping gas, what should I do?"))
+        assertEquals("heat-illness", match("She passed out in the sun next to the barbecue, what do we do?"))
+        assertEquals("heat-illness", match("My friend collapsed in the heat, we poured cool water on her, what next?"))
+        assertEquals("heat-illness", match("He got dizzy in the sun while drinking water, what should I do?"))
+        // Without the heat these are still hypothermia, and a stove or heater that scores is still carbon monoxide.
+        assertEquals("hypothermia", match("My friend's body temperature is 34°C and he is shivering, what do I do?"))
+        assertEquals("hypothermia", match("My friend fell into cold water and is shivering, what do I do?"))
+        assertEquals("carbon-monoxide", match("We have a charcoal grill in the tent and my friend collapsed from the heat"))
+        assertEquals("carbon-monoxide", match("My friend fainted from the heat next to the gas heater in our cabin, what do we do?"))
+    }
+
+    @Test fun plantsAndCakesThatCollapseInTheHeatAreNotFirstAid() {
+        assertNull(match("How do I stop my tomato plants collapsing in the heat?"))
+        assertNull(match("How do I keep my cake from collapsing in the heat?"))
+        assertNull(match("My tomato plants collapsed in the heat, what should I do?"))
+        assertNull(match("The tent collapsed in the heat of the afternoon, what should we do?"))
+        assertEquals("heat-illness", match("My dad was walking in the sun and collapsed, what should I do?"))
+        assertEquals("heat-illness", match("my friend collapsed in the sun and seems confused"))
+    }
+
+    @Test fun aHeatCollapseWithSevereSignsLeadsWithHeatStroke() {
+        // Scored 2/10 in the field: the introduction, cramps and exhaustion filled the budget, heat
+        // stroke ("call 911", "do NOT give fluids") was dropped, and the model advised sips of water.
+        val guide = book.guides.single { it.id == "heat-illness" }
+        val question = "Someone in our group collapsed in the heat on a hike. Their skin is hot, they're confused and they've almost stopped sweating. What do I do?"
+        // 350 tokens is what a slow phone gets; heat stroke must be the one section that always fits.
+        for (budget in listOf(350, 700, 2_000)) {
+            val kept = EmergencyGuideMatch.select(question, guide, budget)
+            assertTrue("$budget: ${kept.first().title}", kept.first().title.endsWith("Heat Stroke"))
+            assertTrue(kept.first().text, "Do NOT give fluids." in kept.first().text)
+        }
+        // The introduction says nothing to do and is read last when it is read at all.
+        val all = EmergencyGuideMatch.select(question, guide, 4_000)
+        assertEquals(4, all.size)
+        assertEquals(guide.title, all.last().title)
+        assertTrue(EmergencyGuideMatch.select("Someone fainted in the heat at a festival. What should I do?", guide, 700).first().title.endsWith("Heat Stroke"))
+        // Without a severe sign the mild form keeps its place.
+        assertTrue(EmergencyGuideMatch.select("I have painful cramps in my legs after running in the heat, what do I do?", guide, 700).first().title.endsWith("Heat Cramps"))
+    }
+
+    @Test fun laySignsRankTheSectionThatNamesThemClinically() {
+        val fractures = book.guides.single { it.id == "fractures-sprains" }
+        val question = "I think my friend broke her ankle on the trail. We're about 3 hours' walk from the car and there's no signal. How do we splint it, and should we try to move her?"
+        assertEquals("fractures-sprains", match(question))
+        assertTrue(EmergencyGuideMatch.select(question, fractures, 700).first().title.endsWith("Treatment for Serious Injuries"))
+        // "Swollen but I can still walk" is the minor injury, not the opening advice to stop the activity.
+        val minor = EmergencyGuideMatch.select("I twisted my ankle hiking. It is swollen but I can still walk on it. What should I do?", fractures, 700)
+        assertTrue(minor.first().title, minor.first().title.endsWith("Treatment of Minor Injuries"))
+        // The bundled poisoning guide is a general summary with a US number; a swallowed battery needs
+        // the emergency department and specific steps it lacks, so that question keeps to research.
+        assertNull(match("My child swallowed a button battery. What do I do?"))
+    }
+
+    @Test fun aSeizureLeadsWithItsStepsAndAWorryQuestionBringsTheCallList() {
+        val guide = book.guides.single { it.id == "seizures" }
+        val steps = EmergencyGuideMatch.select("Someone is having a seizure on the bus. What should I do?", guide, 350)
+        assertTrue(steps.first().title, "Steps to keeping a person safe" in steps.first().title)
+        val worried = EmergencyGuideMatch.select("My friend had a seizure, when should I worry and call for help?", guide, 700)
+        assertTrue(worried.joinToString { it.title }, worried.any { "call 911 if one or more" in it.title })
+        val dehydration = book.guides.single { it.id == "dehydration" }
+        val worry = EmergencyGuideMatch.select("I have diarrhoea and feel dizzy, when should I worry about dehydration?", dehydration, 350).first()
+        assertTrue(worry.text, "Get medical help right away if" in worry.text)
+    }
+
+    @Test fun aDefinitionHeadingLeadsOnlyWhenTheTermIsAsked() {
+        val guide = book.guides.single { it.id == "cpr" }
+        assertTrue(EmergencyGuideMatch.select("My dad collapsed and isn't breathing, what do I do?", guide, 700).first().title.endsWith("How is CPR done?"))
+        assertTrue(EmergencyGuideMatch.select("What is CPR?", guide, 700).first().title.endsWith("What is CPR?"))
+    }
+
+    @Test fun theVerbatimLeadQuotesTheParagraphForTheCaseAndNoWebPointers() {
+        val altitude = book.guides.single { it.id == "altitude-sickness" }
+        val question = "we're at about 4200 m on a trek and my friend has a pounding headache, threw up twice and is stumbling like he's drunk. what do we do"
+        val lead = EmergencyGuideMatch.officialSteps(EmergencyGuideMatch.select(question, altitude, 700).first(), 1, altitude.source.publisher, question)
+        assertTrue(lead, "Go down immediately and seek medical attention." in lead)
+        assertFalse(lead, "Every year, rangers" in lead)
+        assertTrue(lead, "…" in lead)
+        assertTrue(lead, lead.startsWith("**Source excerpt from ${altitude.source.publisher}, as published** [S1]"))
+        // A short section is shown whole under its heading, minus the sentence that points to a web site.
+        val heat = book.guides.single { it.id == "heat-illness" }
+        val stroke = EmergencyGuideMatch.sections(heat).single { it.title.endsWith("Heat Stroke") }
+        val excerpt = EmergencyGuideMatch.officialSteps(stroke, 1, heat.source.publisher, "collapsed in the heat and confused")
+        assertTrue(excerpt, "_Heat Stroke_" in excerpt)
+        assertTrue(excerpt, "Do NOT give fluids." in excerpt)
+        assertTrue(excerpt, "Using a fan to blow air" in excerpt)
+        assertFalse(excerpt, "see the Centers for Disease Control" in excerpt)
+        // The sting site is a place on the body, not a web site.
+        val stings = book.guides.single { it.id == "insect-stings" }
+        val sting = EmergencyGuideMatch.officialSteps(EmergencyGuideMatch.select("A bee stung me, what do I do?", stings, 700).first(), 1, stings.source.publisher)
+        assertTrue(sting, "Wash the site with soap and water." in sting)
     }
 }

@@ -1,6 +1,7 @@
 package xyz.fieldatlas.research
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,5 +77,18 @@ class FtsQueryTest {
         assertEquals("(\"bus\" OR \"buses\" OR \"busing\" OR \"bused\" OR \"bussing\" OR \"bussed\")", FtsQuery.from("bus")!!.matchExpression)
         // "7702"* matched the postcode 77020.
         assertEquals("(\"eip\" OR \"eips\" OR \"eiping\" OR \"eiped\") AND \"7702\"", FtsQuery.from("EIP-7702")!!.matchExpression)
+    }
+
+    @Test fun aShortStemMatchesWholeWordsAndContractionsLeaveNoFragments() {
+        // "ear"* found earthquakes and Earth Day for a question about ears; "we're" left the term "re".
+        val ears = FtsQuery.from("why do my ears pop on planes, and why does it hurt more when we're landing?")!!
+        assertEquals(listOf("ears", "pop", "planes", "hurt", "more", "landing"), ears.terms)
+        assertTrue(ears.matchExpression, ears.matchExpression.startsWith("(\"ears\" OR \"ear\" OR \"earing\" OR \"eared\") AND "))
+        assertFalse(ears.matchExpression.contains("\"ear\"*"))
+        assertEquals("(\"ties\" OR \"tie\" OR \"tied\" OR \"tying\")", FtsQuery.from("ties")!!.matchExpression)
+        assertEquals("a longer stem still matches as a prefix", "\"season\"*", FtsQuery.from("seasons")!!.matchExpression)
+        assertEquals(null, FtsQuery.from("can't won't I'll they've it's we're I'd I'm"))
+        assertEquals(listOf("japan", "population"), FtsQuery.from("Japan's population")!!.terms)
+        assertEquals(listOf("rain"), FtsQuery.from("Won't it rain?")!!.terms)
     }
 }

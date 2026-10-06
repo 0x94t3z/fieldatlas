@@ -208,4 +208,48 @@ From saved sources
         assertEquals("Rest and drink water.", AnswerChecks.removeDoses("Rest and drink water.", "What helps a cold?"))
         assertFalse("a 5G network is no dose", AnswerChecks.removeDoses("A 5G network is faster.", "How fast is 5G?").contains("_Amounts"))
     }
+
+    @Test fun aHomeRemedyAmountTheSourcesDoNotGiveIsRemoved() {
+        // The 2B model gave a rehydration drink one sixth of the sugar it needs and credited the WHO.
+        val ort = file("ort.txt", "Oral rehydration therapy is a treatment for dehydration: the sick person drinks water mixed with sugar and salt. They don't stop eating food.")
+        val answer = "You can make a rehydration drink at home. Add one level teaspoon of sugar per litre of water and half a level teaspoon of salt. Keep eating your usual food."
+        assertEquals("You can make a rehydration drink at home. Keep eating your usual food.\n\n" + AnswerChecks.RECIPE_NOTE,
+            AnswerChecks.removeDoses(answer, "How do I make a rehydration drink for diarrhoea?", listOf(ort)))
+        // The amount the source states stays, in either spelling.
+        val who = file("who.txt", "Mix 6 level teaspoons of sugar and half a level teaspoon of salt in one litre of clean water.")
+        val right = "Mix six teaspoons of sugar and ½ teaspoon of salt in 1 litre of water."
+        assertEquals(right, AnswerChecks.removeDoses(right, "How do I make a rehydration drink?", listOf(who)))
+        // Outside a health context a kitchen measure is a recipe, not a dose.
+        val cake = "Add 2 cups of sugar and a pinch of salt."
+        assertEquals(cake, AnswerChecks.removeDoses(cake, "How do I bake a sponge cake?", listOf(ort)))
+    }
+
+    private val heatStroke = Evidence("emergency:heat-illness", "emergency:heat-illness:3", "Heat exhaustion and heat stroke: Heat Stroke", "https://www.weather.gov/safety/heat-illness",
+        "Heat Stroke\n- Symptoms: Throbbing headache; confusion; slurred speech; nausea; dizziness; body temperature above 103°F; hot, red, dry or damp skin; rapid and strong pulse; fainting; loss of consciousness.\n" +
+            "- First Aid: Call 911 or get the victim to a hospital immediately. Heat stroke is a severe medical emergency. Delay can be fatal. Move the victim to a cooler, preferably air-conditioned, environment. " +
+            "Reduce body temperature with cool cloths or bath. Use fan if heat index temperatures are below the high 90s. A fan can make you hotter at higher temperatures. Do NOT give fluids.", 1.0)
+    private val heatExhaustion = Evidence("emergency:heat-illness", "emergency:heat-illness:2", "Heat exhaustion and heat stroke: Heat Exhaustion", "https://www.weather.gov/safety/heat-illness",
+        "Heat Exhaustion\n- Symptoms: Heavy sweating; weakness or tiredness; cool, pale, clammy skin; fast, weak pulse; muscle cramps; dizziness, nausea or vomiting; headache; fainting.\n" +
+            "- First Aid: Move person to a cooler environment, preferably a well air-conditioned room. Loosen clothing. Apply cool, wet cloths or have person sit in a cool bath. Offer sips of water. " +
+            "Seek immediate medical attention if the person vomits, symptoms worsen or last longer than 1 hour", 1.0)
+
+    @Test fun aWarningTheGuideNeverGivesIsRemovedAndStepsRenumbered() {
+        // Under the heat guide the model wrote "do not give food or drink unless they can swallow", cited to a section that says no such thing.
+        val answer = "1. Call 911 or get them to a hospital immediately [S1].\n2. Move them to a cooler place [S1].\n" +
+            "3. Do not give food or drink unless they are able to swallow safely [S2].\n4. Do not give fluids [S1].\n5. Cool the skin with wet cloths [S1]."
+        assertEquals("1. Call 911 or get them to a hospital immediately [S1].\n2. Move them to a cooler place [S1].\n3. Do not give fluids [S1].\n4. Cool the skin with wet cloths [S1].",
+            AnswerChecks.removeUnsupportedWarnings(answer, listOf(heatStroke, heatExhaustion)))
+    }
+
+    @Test fun aWarningInsideAParagraphGoesAloneAndTheGuidesOwnStay() {
+        val answer = "Move them somewhere cooler and cool the skin [S1]. Never give them anything to eat until a doctor has seen them [S1]. Do not give fluids [S1]."
+        assertEquals("Move them somewhere cooler and cool the skin [S1]. Do not give fluids [S1].", AnswerChecks.removeUnsupportedWarnings(answer, listOf(heatStroke)))
+        // Uncited, a warning is checked against every source, and one the guide gives in other words stays.
+        assertEquals("Don't give the person fluids.", AnswerChecks.removeUnsupportedWarnings("Don't give the person fluids.", listOf(heatStroke, heatExhaustion)))
+        val seizure = file("seizures.txt", "Don't put anything in their mouth. This can hurt their teeth or jaw.")
+        assertEquals("Do not put anything in their mouth [S1].", AnswerChecks.removeUnsupportedWarnings("Do not put anything in their mouth [S1].", listOf(seizure)))
+        val none = "1. Move them to a cooler place [S1].\n2. Cool the skin [S1]."
+        assertEquals(none, AnswerChecks.removeUnsupportedWarnings(none, listOf(heatStroke)))
+        assertEquals(answer, AnswerChecks.removeUnsupportedWarnings(answer, emptyList()))
+    }
 }

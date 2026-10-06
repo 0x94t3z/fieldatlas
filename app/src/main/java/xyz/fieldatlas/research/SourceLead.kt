@@ -78,30 +78,37 @@ object SourceLead {
 
     /**
      * The lead with each quote continued in its source: the sentences that follow it, across
-     * paragraphs and list items, up to about [maxChars], ending on a complete sentence. Used when
-     * the quote is the whole answer, so it says as much as the saved passage does, word for word.
+     * paragraphs and list items, up to about [maxChars], ending on a complete sentence and before
+     * a list lead-in ("The following cards are available:"). Used when the quote is the whole
+     * answer, so it says as much as the saved passage does, word for word. Two quotes share the
+     * room: each gets seven tenths of it.
      */
     fun extend(lead: Lead, sources: List<PromptSource>, maxChars: Int = EXTENDED_CHARS): Lead {
-        fun flat(text: String) = text.lines().joinToString(" ") { it.trim().removePrefix("- ").removePrefix("* ").removePrefix("• ") }
-            .replace(Regex("\\s+"), " ").trim()
+        val each = if (lead.more.isEmpty()) maxChars else maxChars * 7 / 10
+        // A line ending in ":" leads into a list; it is kept apart so the sentences stop before it.
+        fun flat(text: String) = text.lines().map { it.trim().removePrefix("- ").removePrefix("* ").removePrefix("• ") }.filter(String::isNotEmpty)
+            .joinToString("") { if (it.endsWith(":")) "$it\n" else "$it " }.replace(Regex("[ \\t]+"), " ").trim()
         fun longer(citation: String, quote: String): String {
             val text = sources.firstOrNull { it.citationId == citation }?.evidence?.text ?: return quote
             val passage = flat(EvidenceRelevance.passageText(text))
             val start = passage.indexOf(flat(quote)).takeIf { it >= 0 } ?: return quote
             val out = StringBuilder()
-            for (sentence in sentences(passage.substring(start))) {
-                if (out.isNotEmpty() && out.length + 1 + sentence.length > maxChars) break
+            for (sentence in passage.substring(start).split('\n').flatMap { sentences(it.trim()) }) {
+                if (out.isNotEmpty() && out.length + 1 + sentence.length > each) break
                 // "Also known as: …" is a list of names and the media note a link, not part of the text.
                 if (sentence.startsWith("Also known as:") || sentence.startsWith("Wikimedia Commons has media")) break
+                // An unfinished sentence (a list lead-in, or the passage's cut end) is left out rather than quoted.
+                if (out.isNotEmpty() && sentence.last() !in TERMINAL) break
                 if (out.isNotEmpty()) out.append(' ')
                 out.append(sentence)
             }
-            return out.toString().takeIf { it.length >= quote.length && it.last() in ".!?\"”’)" } ?: quote
+            return out.toString().takeIf { it.length >= quote.length && it.last() in TERMINAL } ?: quote
         }
         return Lead(lead.citationId, longer(lead.citationId, lead.text), lead.more.map { (id, q) -> id to longer(id, q) })
     }
 
     private const val EXTENDED_CHARS = 1_000
+    private const val TERMINAL = ".!?\"”’)"
 
     internal fun sentences(paragraph: String): List<String> {
         val result = mutableListOf<String>()
@@ -110,8 +117,9 @@ object SourceLead {
             // The match begins after the terminal punctuation and may carry a closing quote.
             val end = match.range.first + match.value.takeWhile { it in "\"”’)" }.length
             val candidate = paragraph.substring(start, end)
+            // An abbreviation may open a bracket or a quotation: "(e.g. a dinghy)", "(approx. 2 km)".
             val lastWord = candidate.trimEnd('.', '!', '?', '"', '”', '’', ')')
-                .substringAfterLast(' ').lowercase()
+                .substringAfterLast(' ').trimStart('(', '[', '"', '“', '\'', '‘').lowercase()
             // Single initials ("J. Smith") and listed abbreviations continue the sentence.
             if (lastWord in abbreviations || (lastWord.length == 1 && lastWord[0].isLetter())) continue
             result += candidate.trim()

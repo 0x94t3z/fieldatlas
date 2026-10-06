@@ -91,7 +91,7 @@ class AttachmentScopeTest {
         var searches = 0
         val events = ResearchOrchestrator(Retriever { _, _, _ -> searches++; listOf(library) },
             FakeInferenceGateway(listOf("Vegan restaurant evidence [S1].")))
-            .research("Explain vegan restaurants").toList()
+            .research("List vegan restaurants").toList()
         assertTrue(events.last() is ResearchEvent.Complete)
         assertEquals(1, searches)
         assertEquals("library-venue", events.filterIsInstance<ResearchEvent.Sources>().single().evidence.single().documentId)

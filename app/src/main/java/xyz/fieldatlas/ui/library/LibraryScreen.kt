@@ -505,7 +505,7 @@ internal fun packVisual(asset: InstalledAsset): PackVisual {
         asset.type == PackType.AUDIO -> PackVisual(Icons.Outlined.Mic, TileTone.Paper)
         "guides" in id -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
         listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
-        listOf("biology", "science", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
+        listOf("biology", "science", "longevity", "health", "crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
         else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
     }
 }

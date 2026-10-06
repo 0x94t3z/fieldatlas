@@ -1,0 +1,40 @@
+Applications Memory Usage (in Kilobytes):
+Uptime: 1650275095 Realtime: 3728020553
+
+** MEMINFO in pid 11013 [xyz.fieldatlas] **
+                   Pss  Private  Private  SwapPss      Rss     Heap     Heap     Heap
+                 Total    Dirty    Clean    Dirty    Total     Size    Alloc     Free
+                ------   ------   ------   ------   ------   ------   ------   ------
+  Native Heap    42952    41788     1144  1587334    43976  2252384  2223169    29214
+  Dalvik Heap    10681     8912     1736     1984    11432    22261    11131    11130
+ Dalvik Other     5794     2268       32       84     9676                           
+        Stack      624      604       20     1224      632                           
+       Ashmem       22        4        0        0      520                           
+    Other dev       13        0       12        0      428                           
+     .so mmap     2383      220      856      654    28088                           
+    .jar mmap     1550        0      480        0    26572                           
+    .apk mmap     3845        0     3820        0     4576                           
+    .ttf mmap      417        0      196        0      648                           
+    .dex mmap      119        0      112        0      656                           
+    .oat mmap      438        0        4        0    12532                           
+    .art mmap     1028      612       28      151    10952                           
+   Other mmap      621       40       20        0     3160                           
+    GL mtrack     9456     9456        0        0     9456                           
+      Unknown      281      172       96     1140      672                           
+        TOTAL  1672795    64076     8556  1592571   163976  2274645  2234300    40344
+ 
+ App Summary
+                       Pss(KB)                        Rss(KB)
+                        ------                         ------
+           Java Heap:     9552                          22384
+         Native Heap:    41788                          43976
+                Code:     5804                          80164
+               Stack:      604                            632
+            Graphics:     9456                           9456
+       Private Other:     5428
+              System:  1600163
+             Unknown:                                    7364
+ 
+           TOTAL PSS:  1672795            TOTAL RSS:   163976       TOTAL SWAP PSS:  1592571
+ 
+ Objects

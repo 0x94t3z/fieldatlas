@@ -98,13 +98,23 @@ class DesktopResearchTest {
             val selected = manualEvidence?.let { Json.decodeFromJsonElement<List<Evidence>>(it.getValue(question)) }
             val recordingRetriever = object : Retriever {
                 override fun hasEligiblePacks(query: String) = multi.hasEligiblePacks(query)
-                override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence> {
-                    val evidence = selected?.take(limit) ?: multi.searchForQuestion(query, question, limit, onProgress)
+                override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence> =
+                    searchQuestion(query, question, limit, false, onProgress)
+                // A place lookup searches only the place collections, as on the phone.
+                override suspend fun searchQuestion(query: String, question: String, limit: Int, placesOnly: Boolean,
+                                                    onProgress: suspend (SearchProgress) -> Unit): List<Evidence> {
+                    val evidence = selected?.take(limit) ?: multi.searchForQuestion(query, question, limit, onProgress, placesOnly)
                     searches += buildJsonObject {
-                        put("query", query); put("limit", limit)
+                        put("query", query); put("limit", limit); put("placesOnly", placesOnly)
                         put("candidates", Json.encodeToJsonElement(evidence))
                     }
                     return evidence
+                }
+                override suspend fun article(article: String, limit: Int): List<Evidence> = multi.article(article, limit).also { evidence ->
+                    searches += buildJsonObject {
+                        put("query", "article: $article"); put("limit", limit)
+                        put("candidates", Json.encodeToJsonElement(evidence))
+                    }
                 }
                 // Near-me lookups read the same place packs by coordinates, as on the phone.
                 override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>) =
@@ -147,7 +157,9 @@ class DesktopResearchTest {
             ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides }, emergencyNumbers = { numbers }, location = { position },
                 // A phone's learned reading speed (estimated tokens per second), so the desktop run
                 // packs the evidence that phone would; unset keeps the unknown-phone default.
-                prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull())).research(question, attachments = attachments).collect { event ->
+                prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull()),
+                // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
+                articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0").research(question, attachments = attachments).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
                     is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }

@@ -224,4 +224,248 @@ class CalculatorsTest {
         assertTrue(text("The bar opens at 9 pm and closes at 2 am. How long is it open?").contains("From 21:00 to 02:00 the next day is **5 h**."))
         assertNull(solve("What time is it in Lima when it is 9:00 in Paris and 10:00 in Rome?")?.takeIf { "From" in it.text })
     }
+
+
+    @Test fun aClockTimePlusOrMinusADuration() {
+        val gate = solve("My flight departs at 14:20 and boarding closes 30 minutes before. When must I be at the gate?")!!
+        assertTrue(gate.text, "14:20 minus 30 min is **13:50**" in gate.text)
+        assertTrue(gate.complete)
+        assertTrue(text("My train leaves at 9:40 and the trip takes 2 h 35. When do I arrive?").contains("**12:15**"))
+        assertTrue(text("The night bus leaves at 22:30 and takes 9 hours. What time does it arrive?").contains("**07:30 the next day**"))
+        // Another place's clock needs its time zone: not a plain sum.
+        assertNull(solve("My flight leaves at 23:50 local time and takes 13 h 45 min. What time is it at home (UTC+1) when I land?"))
+        // No direction given: not guessed.
+        assertNull(solve("I have a meeting at 15:00 and 45 minutes. When?"))
+        // A known end counts back.
+        assertTrue(text("I need to arrive by 9:00 and the walk takes 25 minutes. When must I leave?").contains("**08:35**"))
+        assertTrue(text("My train arrives at 18:00 and the journey takes 3 hours. When does it leave?").contains("**15:00**"))
+        assertTrue(text("If I start hiking at 7:30 and it takes 5 hours, when will I finish?").contains("**12:30**"))
+        // A second leg the sum would leave out is not answered with half of it.
+        assertNull(solve("My train leaves at 9:40 and takes 2 hours, then a 30-minute bus ride. When do I arrive?"))
+        assertNull(solve("My train leaves at 9:40 and takes 2 hours, then the bus takes an hour. When do I arrive?"))
+    }
+
+    @Test fun aPricePerNightForSeveralNightsWithADiscount() {
+        val hostel = solve("A hostel costs 18 euros a night. How much for 9 nights with a 10% discount?")!!
+        assertTrue(hostel.text, "18.00 euros × 9 nights = **162.00 euros**" in hostel.text)
+        assertTrue(hostel.text, "**145.80 euros**" in hostel.text)
+        assertTrue(hostel.complete)
+        assertTrue(text("A room is €45 per night. What do 3 nights cost plus 7% tax?").contains("**€144.45**"))
+        // One price and no count: nothing to multiply.
+        assertNull(solve("A hostel costs 18 euros a night. Is that cheap?"))
+        // What this sum does not cover is left to research rather than half answered.
+        assertNull(solve("A dorm bed costs 18 euros per person per night. How much for 3 people for 4 nights?"))
+        assertNull(solve("A hostel costs 18 euros a night plus tax of 2 euros a night. How much for 4 nights?"))
+        assertNull(solve("A room is €45 per night. What do 3 nights cost with a 10% booking fee?"))
+        assertNull(solve("A hostel costs 18 euros a night. How much for 9 nights in dollars?"))
+        assertNull(solve("A bike costs 5 euros an hour. How much for 2.5 hours?"))
+        assertNull(solve("A room is €100 per night including 10% VAT. How much for 3 nights?"))
+        assertNull(solve("The room is 50 euros a night after a 20% discount. How much for 3 nights?"))
+    }
+
+    @Test fun theClockTimesRoleComesFromTheNearestRoleWordAndTheAskFromTheFirstVerb() {
+        // "Leave to arrive by 9:00": the time is the arrival, and leaving is what is asked.
+        assertTrue(text("When do I leave to arrive by 9:00 if the walk takes 25 minutes?").contains("09:00 minus 25 min is **08:35**"))
+        assertTrue(text("What time do I need to leave to arrive at 9:00 if the walk takes 25 minutes?").contains("**08:35**"))
+        assertTrue(text("The walk takes 25 minutes. When must I leave to arrive by 9:00?").contains("**08:35**"))
+        assertTrue(text("Boarding closes at 13:50 and the walk to the gate takes 15 minutes. When must I leave to get to the gate?").contains("**13:35**"))
+        assertTrue(text("When do we set off to be back by 18:00 if the hike takes 4 hours?").contains("18:00 minus 4 h is **14:00**"))
+        assertTrue(solve("When do I leave to arrive by 9:00 if the walk takes 25 minutes?")!!.complete)
+        // The time is another trip's start ("the ferry leaves at 7:15") and a start is asked: not one sum.
+        assertNull(solve("The ferry leaves at 7:15 and the drive takes 45 minutes. When do we leave to get there in time?"))
+        assertNull(solve("My train leaves at 9:40 and the walk takes 20 minutes. When must I leave to be there?"))
+        // Both ends asked: one sum cannot give both.
+        assertNull(solve("My train leaves at 9:40 and takes 2 h 35. When do I leave and when do I arrive?"))
+        assertNull(solve("My train leaves at 9:40 and takes 2 h 35. When do I leave and arrive?"))
+        // The plain forms keep their answers.
+        assertTrue(text("The ferry leaves at 7:15 and the crossing takes 45 minutes. When do we arrive?").contains("07:15 plus 45 min is **08:00**"))
+        assertTrue(text("When will I arrive if I leave at 9:40 and the trip takes 2 hours?").contains("**11:40**"))
+        assertTrue(text("The hike takes 6 hours and we must be back by 17:00. When do we start?").contains("**11:00**"))
+    }
+
+    @Test fun aDurationBeforeOrAfterAnotherEventIsNotCountedFromTheTime() {
+        assertNull(solve("We set off at 6:00 and it is 4 hours before we get there. When do we arrive?"))
+        assertNull(solve("We start hiking at 12:00 and have 6 hours before sunset. When is sunset?"))
+        assertNull(solve("It's 15:00 now and we have 3 hours before dark. When does it get dark?"))
+        assertNull(solve("The museum opens at 9:00 and I want to spend 3 hours there before lunch. When is lunch?"))
+        assertNull(solve("The bus departs at 8:00 and it's 6 hours before we arrive. When do we get there?"))
+        assertNull(solve("I land at 14:00 and have 3 hours before my train. When does the train leave?"))
+        assertNull(solve("I land at 14:00 and there are 3 hours until my train. When does the train leave?"))
+        assertNull(solve("The tour starts at 9:00 and we meet 2 hours after lunch. When do we meet?"))
+        // "Before" the time's own event still counts back.
+        assertTrue(text("My flight departs at 14:20 and boarding closes 30 minutes before departure. When must I be at the gate?").contains("**13:50**"))
+        assertTrue(text("My flight departs at 14:20 and boarding closes 30 minutes before the flight. When must I be at the gate?").contains("**13:50**"))
+        assertTrue(text("I need to be at the station 20 minutes before my train at 9:40. When must I be there?").contains("**09:20**"))
+        assertTrue(text("The tour starts at 9:00 and we should arrive 15 minutes early. When should we get there?").contains("**08:45**"))
+        // "After" and "later" run forward from the event they name.
+        assertTrue(text("The bus leaves 15 minutes after the train arrives at 10:00. When does the bus leave?").contains("10:00 plus 15 min is **10:15**"))
+        assertTrue(text("I need to leave 30 minutes after the meeting ends at 15:00. When do I leave?").contains("**15:30**"))
+        assertTrue(text("I arrive at 10:00 and leave 3 hours later. When do I leave?").contains("10:00 plus 3 h is **13:00**"))
+        assertTrue(text("We leave at 9:00 and arrive 3 hours later. When do we arrive?").contains("**12:00**"))
+    }
+
+    @Test fun minutesAfterTheHoursWithoutTheirUnit() {
+        val train = solve("My train leaves at 9:40 and takes 2 hrs 45. When do I arrive?")!!
+        assertTrue(train.text, "09:40 plus 2 h 45 min is **12:25**" in train.text)
+        assertTrue(train.complete)
+        assertTrue(text("The bus leaves at 22:30 and takes 9 hours 30. When does it arrive?").contains("**08:00 the next day**"))
+        assertTrue(text("My train leaves at 9:40 and takes 2 hours and 45. When do I arrive?").contains("**12:25**"))
+        assertTrue(text("My train leaves at 9:40 and takes 2h35. When do I arrive?").contains("**12:15**"))
+        assertTrue(text("My train leaves at 9:40 and takes 2 hours 30 minutes. When do I arrive?").contains("**12:10**"))
+        // A single digit after the hours is not read as minutes, and is not dropped either.
+        assertNull(solve("My train leaves at 9:40 and takes 2 hours 5. When do I arrive?"))
+    }
+
+    @Test fun aTripBetweenNamedPlacesIsLeftToTheirTimeZones() {
+        assertNull(solve("My flight leaves Paris at 10:00 and takes 8 hours. What time do I land in New York?"))
+        assertNull(solve("my flight leaves paris at 10:00 and takes 8 hours. what time do i land in new york?"))
+        assertNull(solve("My train leaves Paris at 9:40 and takes 3 h 35. When do I get to London?"))
+        assertNull(solve("The night bus to Chiang Mai leaves at 22:30 and takes 9 hours. What time does it arrive?"))
+        // No place named: the plain sum stands.
+        assertTrue(text("My flight leaves at 10:00 and takes 8 hours. What time do I land?").contains("10:00 plus 8 h is **18:00**"))
+        assertTrue(text("The museum in Paris opens at 9:00 and the visit takes 3 hours. When do we finish?").contains("**12:00**"))
+    }
+
+    @Test fun peopleCountedWithoutAUnitWordAreASecondMultiplier() {
+        assertNull(solve("There are 3 of us. A dorm bed costs 15 euros a night. How much for 4 nights?"))
+        assertNull(solve("€18 a night per person. How much for 4 nights for the two of us?"))
+        assertNull(solve("We are 3. A dorm bed costs 15 euros a night. How much for 4 nights?"))
+        assertNull(solve("A dorm bed is €20 per night. How much for both of us for 3 nights?"))
+        assertNull(solve("A dorm bed costs 15 euros a night. How much for 4 nights for two?"))
+        assertNull(solve("Ski rental is 30 euros a day. How much for 6 days for my son and me?"))
+        assertNull(solve("A hostel is 20 euros per night per person and we stay 3 nights. Total?"))
+        assertNull(solve("Bikes are €15 a day each. How much for 3 days?"))
+        val hostel = solve("A hostel costs 18 euros a night. How much for 9 nights?")!!
+        assertTrue(hostel.text, "18.00 euros × 9 nights = **162.00 euros**" in hostel.text)
+        assertTrue(hostel.complete)
+        assertTrue(text("A tour costs €40 per person. How much for 3 people?").contains("**€120.00**"))
+        assertTrue(text("A bed in a 6-bed dorm costs €18 a night. How much for 4 nights?").contains("**€72.00**"))
+    }
+
+    @Test fun aUnitPriceWithoutItsCurrencyIsNotMultiplied() {
+        assertNull(solve("A room costs 60 euros plus 10 per person. How much for 3 people?"))
+        assertNull(solve("We are 2 per room and each room costs 60 euros. How much for 3 rooms?"))
+        assertNull(solve("A tour costs €50 plus 5 per person. How much for 4 people?"))
+        assertNull(solve("Tickets are 12 per person. How much for 4 people?"))
+        // A number the sum would leave out.
+        assertNull(solve("A room costs 60 euros a night plus 10 a day. How much for 3 nights?"))
+        assertTrue(text("A room is €45 per night. What do 3 nights cost?").contains("**€135.00**"))
+    }
+
+    @Test fun aChargeWithoutItsPercentageIsNotLeftOut() {
+        assertNull(solve("A room is €45 per night plus tax. How much for 3 nights?"))
+        assertNull(solve("A room is €45 per night plus VAT. How much for 3 nights?"))
+        assertNull(solve("A room is €45 per night minus a discount. How much for 3 nights?"))
+        assertNull(solve("A room is €45 per night. What do 3 nights cost plus 7% tax and a cleaning fee?"))
+        // "Percent" is a percentage and is applied.
+        val hostel = solve("A hostel costs 18 euros a night. How much for 9 nights with a 10 percent discount?")!!
+        assertTrue(hostel.text, "**145.80 euros**" in hostel.text)
+        assertTrue(hostel.complete)
+        assertTrue(text("A room is €45 per night. How much for 4 nights with 15 percent off?").contains("**€153.00**"))
+    }
+
+    @Test fun aTripsFuelCostSplitAmongThePeople() {
+        // 840 × 6.5 ÷ 100 = 54.6 L; × 1.89 = 103.19; ÷ 3 = 34.40.
+        val trip = solve("Road trip is 840 km. The rental uses 6.5 litres per 100 km and petrol is 1.89 euros a litre. If 3 of us split the fuel, how much does each person pay?")!!
+        assertTrue(trip.text, "**54.6 litres**" in trip.text)
+        assertTrue(trip.text, "**103.19 euros**" in trip.text)
+        assertTrue(trip.text, "**34.40 euros each**" in trip.text)
+        assertTrue(trip.complete)
+        // Miles and US gallons: 300 ÷ 35 = 8.57 gal; × 3.60 = 30.86.
+        assertTrue(text("The drive is 300 miles and the car does 35 mpg. Gas is $3.60 a gallon. Total fuel cost?").contains("**$30.86**"))
+        // British money means imperial gallons: 260 ÷ 42 = 6.19 gal = 28.14 L; × 1.45 = 40.81; ÷ 3 = 13.60.
+        assertTrue(text("The hire car does 42 mpg and we have 260 miles to drive; petrol is £1.45 a litre. What's the fuel bill between 3 of us?").contains("**£13.60 each**"))
+        // Kilometres per litre, and a price with no currency named where fuel is spoken of: 980 ÷ 14 = 70 L; × 1.45 = 101.50.
+        assertTrue(text("My car gets 14 km per litre. If I drive 980 km and fuel is 1.45 a litre, how much fuel money do I need?").contains("**101.50**"))
+        assertTrue(text("Our camper burns 12 litres per 100 km. The route is 1,450 km and diesel is 1.75 euros a litre. Split between the two of us, what do we each pay?").contains("**152.25 euros each**"))
+        // Half the driving is not doubled on a guess.
+        assertNull(solve("Road trip of 1,200 km, each way. The van uses 9 L/100 km, diesel 1.60 euros a litre. How much for fuel?"))
+        // A split asked for without a head count leads; a toll the sum leaves out keeps it a lead.
+        assertFalse(solve("Drive 500 km at 7 L/100 km with diesel at 1.80 euros a litre. How much do we each pay?")!!.complete)
+        assertFalse(solve("The car uses 7 L/100 km and the trip is 500 km; fuel is 1.80 euros a litre and the toll is 25 euros. Total cost?")!!.complete)
+    }
+
+    @Test fun changingMoneyAtAQuotedRateLessTheCommission() {
+        // 2,000,000 ÷ 25,400 = 78.74; × 0.97 = 76.38.
+        val dong = solve("I've got 2,000,000 Vietnamese dong left. The exchange office gives 25,400 dong per US dollar and takes a 3% commission. How many dollars do I get back?")!!
+        assertTrue(dong.text, "**78.74 US dollars** before the commission" in dong.text)
+        assertTrue(dong.text, "**76.38 US dollars**" in dong.text)
+        assertTrue(dong.complete)
+        // The other way round, and "one euro buys" as the rate: 300 × 4.28 = 1,284; × 0.96 = 1,232.64.
+        assertTrue(text("One euro buys 4.28 zloty at the kiosk, which keeps a 4% fee. If I change 300 euros, how many zloty will I walk away with?").contains("**1,232.64 zloty**"))
+        // A flat fee in the money handed over comes off first: (400 − 5) × 0.86 = 339.70.
+        assertTrue(text("The bank gives 0.86 pounds per euro and charges a flat 5 euro fee. How many pounds for 400 euros?").contains("**339.70 pounds**"))
+        assertTrue(text("1 USD = 17.2 Mexican pesos. How many pesos is $250?").contains("**4,300.00 Mexican pesos**"))
+        // Dots between the thousands, for money written that way: 1,500,000 ÷ 17,100 = 87.72; 3,000,000 ÷ 25,400 = 118.11.
+        assertTrue(text("I've got 1.500.000 rupiah left. 1 euro is 17.100 rupiah. How many euros is that?").contains("**87.72 euros**"))
+        assertTrue(text("The exchange office gives 25.400 dong per dollar. How many dollars do I get for 3.000.000 dong?").contains("**118.11 dollars**"))
+        assertTrue(text("Rate 36,5 baht per euro. How many baht for 100 euros?").contains("**3,650.00 baht**"))
+        // "1.250 dollars" could be 1.25 or 1,250: not guessed.
+        assertNull(solve("The rate is 1.250 dollars to the euro. How many euros do I get for 500 dollars?"))
+        // A fee named without its size, a fee that is not the changer's, two amounts, or two kinds of fee.
+        assertNull(solve("1 euro is 38 lira and the office takes a commission. How many lira for 200 euros?"))
+        assertNull(solve("I have 500 dollars. 1 dollar is 36 baht. The hotel charges a 10% fee for late checkout. How many baht do I get?"))
+        assertNull(solve("The exchange rate is 25,400 dong per dollar. I have 2,000,000 dong and 50 dollars. How many dollars in all?"))
+        assertNull(solve("I have 200 euros. 1 euro is 4.3 zloty. The exchange office takes 2% commission and a 5 zloty fee. How many zloty do I get?"))
+        // A bill with a service charge keeps its sum: 40 ÷ 1.27 = 31.50; × 1.1 = 34.65.
+        assertTrue(text("One pound is 1.27 dollars. There is a service charge of 10% on my 40 dollar dinner. How much is the dinner in pounds with the charge?").contains("**34.65 pounds**"))
+    }
+
+    @Test fun waterReadsTheDaysAsTheQuestionGivesThem() {
+        // 3 × 2 × 3.5 = 21 L, 7 L (7 kg) each; "day 2" once read as one day.
+        val hike = solve("3 of us are hiking and we won't reach any water until the end of day 2. If each person drinks 3.5 litres a day, how much water do we need to carry from the start, and how much will it weigh per person?")!!
+        assertTrue(hike.text, "3 people × 2 days × 3.5 L = **21 litres**" in hike.text)
+        assertTrue(hike.text, "7 L (7 kg) each" in hike.text)
+        assertTrue(hike.complete)
+        assertTrue(text("Two of us won't find water until the third day. If we each drink 4 litres a day, how much do we need to start with?").contains("**24 litres**"))
+        assertTrue(text("We're a group of 5 on a 2-day hike and each person needs 2.5 litres of water a day. How much water do we bring?").contains("**25 litres**"))
+        assertTrue(text("There's no water for 48 hours on this trail and the three of us drink 3 litres a day each. How much water is that?").contains("2 days (48 hours) × 3 L = **18 litres**"))
+        assertTrue(text("Each hiker drinks 3 litres a day. How much water for a 5-day trek for 6 hikers?").contains("**90 litres**"))
+        assertTrue(text("I drink about 2.5 litres a day. How much water do I need for a week?").contains("7 days (1 week) × 2.5 L = **17.5 litres**"))
+        assertTrue(solve("How much water do I need for a 3-day hike at 3 litres a day?")!!.complete)
+        // Nights, no head count, a weekend or a child drinking half: the sum leads and says what it assumed.
+        val nights = solve("We need 3 litres of water per person per day on the trek. How much for 4 nights?")!!
+        assertTrue(nights.text, "**12 litres**" in nights.text)
+        assertTrue(nights.text, "This counts one person" in nights.text)
+        assertTrue(nights.text, "4 nights as 4 days" in nights.text)
+        assertFalse(nights.complete)
+        assertFalse(solve("We're camping for the weekend, 4 litres a day each, 3 of us. How much water?")!!.complete)
+        assertFalse(solve("3 of us, 3 litres per person per day, 2 days, plus 1 litre each for cooking. Total?")!!.complete)
+        assertNull(solve("We are 4 and drink 3 litres a day each for the 2 days; one of us is a child who drinks half. How much water?"))
+    }
+
+    @Test fun landingTimeAcrossTimeZonesFromTheOffsetsGiven() {
+        // 23:50 + 13 h 45 min = 13:35 Singapore time the next day; London is 7 h behind: 06:35.
+        val london = solve("My flight leaves Singapore at 23:50 local time and takes 13 h 45 min to London. Singapore is UTC+8 and London is UTC+1 right now. What time is it in London when I land?")!!
+        assertTrue(london.text, "London is 7 h behind Singapore (UTC+1 against UTC+8), so you land at **06:35 the next day**, London time." in london.text)
+        assertTrue(london.complete)
+        assertTrue(text("My flight departs New York at 18:30 and the flight time is 7 h 10 min. New York is UTC-4 and Paris is UTC+2. What time do I land in Paris?").contains("**07:40 the next day**"))
+        assertTrue(text("I leave Tokyo at 11:00 on a 9 hour 30 minute flight to Los Angeles. Tokyo is GMT+9, Los Angeles is GMT-7. What time is it in Los Angeles when I arrive?").contains("**04:30**, Los Angeles time"))
+        assertTrue(text("I take off from Lima at 23:10 (UTC−5) and fly 11 h 30 min to Madrid (UTC+2). What time do I land?").contains("**17:40 the next day**"))
+        assertTrue(text("The flight is 13 h 45 min and leaves at 23:50 Singapore time (UTC+8). London is UTC+1. When do I land, London time?").contains("**06:35 the next day**"))
+        // The gap given in words, either way round.
+        assertTrue(text("Our train leaves Madrid at 07:00 and takes 11 hours to Lisbon. Lisbon is one hour behind Madrid. When do we arrive, Lisbon time?").contains("**17:00**"))
+        assertTrue(text("Leaving Sydney at 21:45, the flight to Auckland takes 3 hours 5 minutes. Auckland is 2 hours ahead of Sydney. When do we touch down, Auckland time?").contains("**02:50 the next day**"))
+        assertTrue(text("Tokyo is 8 hours ahead of London. My flight leaves London at 13:00 and takes 11 hours 50 minutes. When do I land?").contains("**08:50 the next day**"))
+        // A landing time and the departure asked counts back: 18:30 − 13 h = 05:30 Singapore, 22:30 London the day before.
+        assertTrue(text("London is UTC+1 and Singapore is UTC+8. I land in Singapore at 18:30 after a 13 h flight. What time did I leave London?").contains("**22:30 the day before**"))
+        // One offset, city names alone, or a second leg: not guessed.
+        assertNull(solve("My flight leaves at 23:50 local time and takes 13 h 45 min. What time is it at home (UTC+1) when I land?"))
+        assertNull(solve("My flight leaves Paris at 10:00 and takes 8 hours. What time do I land in New York?"))
+        assertNull(solve("I'm flying from London to Bangkok, leaving at 21:00 London time; the flight takes 11 hours 20 minutes and there's a 2-hour layover in Doha. Bangkok is 6 hours ahead. When do I land?"))
+        assertNull(solve("My flight leaves Singapore at 23:50 and takes 13 h 45 min to London. Singapore is UTC+8 and London is UTC+1. I then take a 2 hour train. What time do I reach Oxford?"))
+    }
+
+    @Test fun everyNumberMustBeUsedAndTheAskingClauseIsJudged() {
+        // A number the sum left out keeps the answer a lead.
+        assertFalse(solve("1 euro is 38 lira. I paid 860 lira for the taxi and 200 lira for lunch. How much in euros?")!!.complete)
+        assertFalse(solve("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; my bank in town gives 0.86 with no fee. How much more would I get at the bank?")!!.complete)
+        // Scene-setting words in a declarative sentence do not make a fully answered question a lead.
+        assertTrue(solve("A cake for 8 people needs 200 g of brown sugar. How much for 6 people?")!!.complete)
+        assertTrue(solve("The night bus leaves at 22:30 and takes 9 hours. What time does it arrive?")!!.complete)
+        assertTrue(solve("It's 95°F. What is that?")!!.complete)
+        // The asking clause must ask for what was worked out.
+        assertFalse(solve("My baby has a fever of 39°C. What do I do?")!!.complete)
+        assertFalse(solve("How much is 2,000,000 dong in dollars at 25,400 dong per dollar, and is the exchange office at the airport any good?")!!.complete)
+    }
 }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Test
 import xyz.fieldatlas.inference.FakeInferenceGateway
 
@@ -41,7 +42,7 @@ class NearbyVenueTest {
 
     @Test fun distanceBandsComeBeforeFullyVeganAndRestaurantsExcludeIceCream() {
         val result = VenueLookup.nearbyAnswer(
-            "Tell me the best vegan restaurants near me",
+            "vegan restaurants near me",
             listOf(NearbyPlace(corner, 0.35), NearbyPlace(iceCream, 0.2), NearbyPlace(farFully, 8.4),
                 NearbyPlace(nearFully, 0.8)),
             15.0,
@@ -49,7 +50,7 @@ class NearbyVenueTest {
         // Within 1 km: fully vegan first, then options; the 8.4 km fully vegan place comes last.
         assertEquals(listOf(nearFully, corner, farFully), result.sources)
         val answer = result.answer
-        assertTrue(answer.contains("- **Leaf Bowl** — fully vegan restaurant, 800 m away; thai."))
+        assertTrue(answer, answer.contains("- **Leaf Bowl** — fully vegan restaurant, 800 m away; thai. Coordinates: 52.50000, 13.40000."))
         assertTrue(answer.contains("- **Corner Curry** — vegan options restaurant, 350 m away"))
         assertTrue(answer.contains("8.4 km away"))
         assertTrue(answer.contains("(map data as of 2026-10-02)"))
@@ -57,10 +58,102 @@ class NearbyVenueTest {
         assertFalse(answer.contains("Cold Cone"))
     }
 
+    private fun guide(id: String, name: String, description: String) = Evidence(
+        documentId = "wv-place-$id", chunkId = "wv-place-$id:0000", title = "Berlin — $name",
+        source = "https://en.wikivoyage.org/w/index.php?oldid=$id",
+        text = "Destination: Berlin\nCategory: Eat\nPlace: $name\nDescription: $description", score = 0.0,
+    )
+
+    @Test fun theBestAroundThePhoneAreTheCitysBestNotTheClosest() {
+        val chain = (5..7).map { place("$it", "Vegan Burger Co", "fully vegan", type = "fast food") }
+        val favourite = guide("9", "Far Garden", "A local favourite for green curry and noodles.")
+        val result = VenueLookup.nearbyAnswer(
+            "Tell me the best vegan restaurants in the city I am currently in",
+            listOf(NearbyPlace(corner, 0.35), NearbyPlace(iceCream, 0.2), NearbyPlace(nearFully, 0.8),
+                NearbyPlace(farFully, 8.4), NearbyPlace(favourite, 8.5)) + chain.mapIndexed { i, it -> NearbyPlace(it, 0.1 + i) },
+            15.0,
+        )
+        // Fully vegan first; within that, the place the city's guide recommends, then a sit-down
+        // restaurant before a fast-food chain; the closest "vegan options" place comes after them.
+        assertEquals(listOf(farFully, nearFully, chain.first(), corner, favourite), result.sources)
+        val answer = result.answer
+        assertTrue(answer, answer.startsWith("Near you in **Berlin**. There are no ratings offline"))
+        // A mapped place without an address gives its coordinates, as the city lookups do.
+        assertTrue(answer, answer.contains("- **Far Garden** — fully vegan restaurant; thai; 8.4 km away. Coordinates: 52.50000, 13.40000. [S1] " +
+            "The Wikivoyage guide: “A local favourite for green curry and noodles.” [S5]"))
+        assertFalse("one entry per chain", answer.indexOf("Vegan Burger Co") != answer.lastIndexOf("Vegan Burger Co"))
+        assertFalse(answer.contains("Cold Cone"))
+        assertTrue(answer.contains("location, which stayed on the phone"))
+    }
+
+    @Test fun anOldFixIsUsedOnlyWithItsAge() {
+        val fresh = VenueLookup.nearbyAnswer("best vegan restaurants near me", listOf(NearbyPlace(nearFully, 0.8)), 15.0)
+        assertFalse(fresh.answer.contains("last known location"))
+        val old = VenueLookup.nearbyAnswer("best vegan restaurants near me", listOf(NearbyPlace(nearFully, 0.8)), 15.0, fixAgeMinutes = 95)
+        assertTrue(old.answer, old.answer.startsWith("Using this phone's last known location, from 2 hours ago"))
+        // A plain list of the nearest places says so too.
+        val list = VenueLookup.nearbyAnswer("vegan restaurants near me", listOf(NearbyPlace(nearFully, 0.8)), 15.0, fixAgeMinutes = 30)
+        assertTrue(list.answer, list.answer.startsWith("Using this phone's last known location, from 30 minutes ago"))
+    }
+
+    @Test fun onlyAQualityQuestionRanksTheCity() {
+        assertTrue(VenueLookup.asksBest("Tell me the best vegan restaurants in the city I am currently in"))
+        assertTrue(VenueLookup.asksBest("Can you recommend vegan food near me?"))
+        assertFalse(VenueLookup.asksBest("nearest vegan restaurant, the best you can find"))
+        assertFalse(VenueLookup.asksBest("vegan restaurants near me"))
+        assertFalse(VenueLookup.asksBest("best pharmacy near me"))
+    }
+
     @Test fun cuisineWordsStillFilterButLocationWordsDoNot() {
         val sushi = place("5", "Roll Haus", "vegan options", cuisine = "sushi")
         val result = VenueLookup.nearbyAnswer("vegan sushi near me", listOf(NearbyPlace(corner, 0.1), NearbyPlace(sushi, 2.0)), 15.0)
         assertEquals(listOf(sushi), result.sources)
+    }
+
+    @Test fun wordsNoListingCarriesDoNotEmptyTheArea() {
+        // "hungry, any good local places that aren't too expensive?": no listing says "hungry" or
+        // "expensive", so the places nearby that fit the rest are listed and the gap is stated.
+        val result = VenueLookup.nearbyAnswer("hungry. any good local places to eat around here that aren't too expensive?",
+            listOf(NearbyPlace(corner, 0.35), NearbyPlace(nearFully, 0.8)), 15.0)
+        // "good" ranks the city's places, and without a diet word the closer restaurant leads.
+        assertEquals(listOf(corner, nearFully), result.sources)
+        assertFalse(result.answer, result.answer.contains("fit the rest of the question"))
+        // A word no listing carries at all is reported rather than emptying the area.
+        val rooftop = VenueLookup.nearbyAnswer("vegan places with a rooftop near me", listOf(NearbyPlace(corner, 0.35), NearbyPlace(nearFully, 0.8)), 15.0)
+        assertEquals(listOf(nearFully, corner), rooftop.sources)
+        assertTrue(rooftop.answer, rooftop.answer.contains("None of these saved listings mentions “rooftop”; they are the places nearby that fit the rest of the question."))
+        // A cuisine some listing carries still filters (see cuisineWordsStillFilterButLocationWordsDoNot).
+        val sushi = place("5", "Roll Haus", "vegan options", cuisine = "sushi")
+        assertEquals(listOf(sushi), VenueLookup.nearbyAnswer("vegan sushi near me", listOf(NearbyPlace(corner, 0.1), NearbyPlace(sushi, 2.0)), 15.0).sources)
+    }
+
+    private fun atm(id: String, name: String) = Evidence(
+        documentId = "osm-place-$id", chunkId = "osm-place-$id:0000", title = "Rome — $name",
+        source = "https://www.openstreetmap.org/node/$id",
+        text = listOf("Destination: Rome", "Category: Money", "Place: $name", "Type: ATM", "Latitude: 41.9", "Longitude: 12.5",
+            "Map data snapshot: 2026-10-05 (© OpenStreetMap contributors)").joinToString("\n"),
+        score = 0.0,
+    )
+
+    @Test fun anExcludedBrandIsLeftOutAndABankIsPreferred() {
+        val euronet = atm("11", "ATM · Euronet")
+        val worldwide = atm("12", "ATM · Euronet Worldwide")
+        val bank = atm("13", "ATM · Banca Intesa")
+        val plain = atm("14", "ATM")
+        val result = VenueLookup.nearbyAnswer("where's the closest ATM? ideally a proper bank one, not Euronet",
+            listOf(NearbyPlace(euronet, 0.05), NearbyPlace(worldwide, 0.1), NearbyPlace(plain, 0.2), NearbyPlace(bank, 0.4)), 5.0)
+        // Within the same distance band the bank's machine leads; both Euronet entries are left out.
+        assertEquals(listOf(bank, plain), result.sources)
+        assertTrue(result.answer, result.answer.contains("Coordinates: 41.90000, 12.50000"))
+        // "not too expensive" names no brand and excludes nothing.
+        assertEquals(2, VenueLookup.nearbyAnswer("ATM near me, not too expensive", listOf(NearbyPlace(euronet, 0.05), NearbyPlace(bank, 0.4)), 5.0).sources.size)
+    }
+
+    @Test fun theBestOrderClaimsTheGuideOnlyWhenAGuideListingIsThere() {
+        val result = VenueLookup.nearbyAnswer("Tell me the best vegan restaurants in the city I am currently in",
+            listOf(NearbyPlace(corner, 0.35), NearbyPlace(nearFully, 0.8)), 15.0)
+        assertFalse(result.answer, result.answer.contains("Wikivoyage guide also recommends"))
+        assertTrue(result.answer, result.answer.contains("fully vegan places first, then sit-down restaurants before cafés and fast food"))
     }
 
     @Test fun nothingNearbySaysSoWithoutInventingPlaces() {
@@ -106,5 +199,34 @@ class NearbyVenueTest {
         assertEquals("12 km", GeoDistance.label(12.7))
         // Berlin Alexanderplatz to Brandenburg Gate is about 2.6 km.
         assertEquals(2.6, GeoDistance.km(52.5219, 13.4132, 52.5163, 13.3777), 0.15)
+    }
+
+
+    @Test fun whereAmINamesTheTownFromTheNearestAddresses() {
+        fun mapped(id: String, name: String, type: String, address: String?, km: Double, bearing: Double) = NearbyPlace(
+            Evidence("osm-place-$id", "osm-place-$id:0", "Amsterdam — $name", "https://www.openstreetmap.org/node/$id",
+                listOfNotNull("Destination: Amsterdam", "Category: Buy", "Place: $name", "Type: $type", address?.let { "Address: $it" },
+                    "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)").joinToString("\n"), 0.0), km, bearing)
+        val places = listOf(
+            mapped("1", "SPAR Poliste", "supermarket", "Verlengde Voorstraat 56, 1949CN Wijk aan Zee", 0.12, 0.0),
+            mapped("2", "Toilets", "toilets", null, 0.3, 90.0),
+            mapped("3", "De Zon", "pharmacy", "Relweg 2, 1949EC Wijk aan Zee", 0.4, 180.0),
+            mapped("4", "Station", "bus station", "Stationsplein 1, 1976 IJmuiden", 4.0, 200.0),
+        )
+        assertTrue(VenueLookup.isWhereAmI("Where am I?"))
+        assertTrue(VenueLookup.isWhereAmI("what city am I in right now"))
+        assertFalse(VenueLookup.isWhereAmI("Where am I supposed to buy a metro ticket in Paris?"))
+        val answer = VenueLookup.whereAnswer(GeoPoint(52.4936, 4.5973), places)
+        assertTrue(answer.answer, answer.answer.startsWith("You're in **Wijk aan Zee**"))
+        assertTrue(answer.answer, "The travel guides cover this area under **Amsterdam**." in answer.answer)
+        assertTrue(answer.answer, "52.49360° N, 4.59730° E" in answer.answer)
+        assertTrue(answer.answer, "- **SPAR Poliste** (supermarket), 120 m to the north. [S1]" in answer.answer)
+        assertEquals(3, answer.sources.size)
+        assertEquals("Wijk aan Zee", VenueLookup.townOf("Verlengde Voorstraat 56, 1949CN Wijk aan Zee"))
+        assertEquals("London", VenueLookup.townOf("10 Downing Street, SW1A 2AA London"))
+        assertNull(VenueLookup.townOf("Hoofddorpplein 6H"))
+        // Without any mapped places the position is still given.
+        val bare = VenueLookup.whereAnswer(GeoPoint(-33.9, 151.2), emptyList())
+        assertTrue(bare.answer, "33.90000° S, 151.20000° E" in bare.answer && bare.sources.isEmpty())
     }
 }

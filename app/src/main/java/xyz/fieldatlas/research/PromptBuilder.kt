@@ -18,7 +18,7 @@ Answer from the model's offline knowledge only. Do not invent citations. Answer 
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
     private const val GUIDE_POLICY = """/no_think
-You are an offline first-aid and safety assistant. The evidence is an official guide. Use only the guide excerpts below; never add treatments, medicines, doses, tools or steps that are not in them. Answer for the situation in the question: first the most urgent actions, as short numbered steps close to the guide's wording, then any "do not" warnings that apply. Cite each step with the exact source number, such as [S1]. If the guide says to get emergency help, say that first. If the question's situation is not covered (for example a child, pregnancy, another injury or another country), say what the guide does not cover. No introduction or closing remarks; under 150 words."""
+You are an offline first-aid and safety assistant. The evidence is an official guide. Use only the guide excerpts below; never add treatments, medicines, doses, tools or steps that are not in them. Answer for the situation in the question: first the most urgent actions, as short numbered steps close to the guide's wording, then only the "do not" warnings the guide itself gives. Cite each step with the exact source number, such as [S1]. If the guide says to get emergency help, say that first. If the question asks yes/no or when (for example "do I need rabies shots?", "should we move her?", "when should I worry?"), answer that in one sentence from the guide before the steps; if the guide does not say, say so. If the question's situation is not covered (for example a child, pregnancy, another injury or another country), say what the guide does not cover. No introduction or closing remarks; under 150 words."""
     // The person is offline: answers must be things they can do now, without a connection.
     private const val OFFLINE_PERSON = """
 The person asking is offline, with no internet and maybe no phone signal. Never suggest searching online, websites, online reviews, apps or social media; give steps they can do now without a connection. They know they are offline: answer directly and never mention internet access."""
@@ -28,7 +28,22 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
     private val LOCAL_PLACE_REQUEST = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|near|around|in)\\b")
     private val SOURCE_ONLY_REQUEST = Regex("(?i)\\b(summari[sz]e|according to|(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?))\\b")
 
-    fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
+    /**
+     * [base] with the [depth] passages of its subject's article after its own sources, whole and in
+     * room of their own: the sources [base] chose keep their numbers and excerpts, and none of them
+     * is given up for depth.
+     */
+    fun withDepth(question: String, base: PackedPrompt, depth: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
+        val kept = base.sources.map { it.evidence }
+        if (kept.isEmpty()) return base
+        val extra = depth.filter { item -> kept.none { it.documentId == item.documentId && it.chunkId == item.chunkId } }
+        if (extra.isEmpty()) return base
+        // Each source also carries a short header ("[S3]", title, source) besides its text.
+        val room = extra.sumOf { it.text.length + 200 } * 100 / (CHARS_PER_TOKEN * EVIDENCE_PERCENT) + 1
+        return build(question, kept + extra, minOf(MAX_CONTEXT_TOKENS, contextTokenBudget + room), whole = extra.map { it.chunkId }.toSet())
+    }
+
+    fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int, whole: Set<String> = emptySet()): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         require(contextTokenBudget in MIN_CONTEXT_TOKENS..MAX_CONTEXT_TOKENS) {
             "contextTokenBudget must be between $MIN_CONTEXT_TOKENS and $MAX_CONTEXT_TOKENS"
@@ -51,7 +66,8 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             // Bounded reference chunks can contain qualifications in independent
             // paragraphs. Preserve them whole instead of selecting by word overlap.
             // The shared evidence budget below still applies; never truncate to fit.
-            val text = if (EvidenceRelevance.isRequestedOverview(item, question) && passage.length <= 2_400) {
+            // Depth passages were already chosen and sized for this question; they go in whole.
+            val text = if (item.chunkId in whole || EvidenceRelevance.isRequestedOverview(item, question) && passage.length <= 2_400) {
                 passage
             } else relevantExcerpt(question, passage)
             if (text.isBlank()) return@forEachIndexed
@@ -119,7 +135,22 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
     }
 
     internal fun allowsModelExplanation(question: String): Boolean =
-        !VENUE_QUESTION.containsMatchIn(question) && !SOURCE_ONLY_REQUEST.containsMatchIn(question)
+        !asksForPlaces(question) && !SOURCE_ONLY_REQUEST.containsMatchIn(question)
+
+    /**
+     * A question about places, answered only from listings. An explanation or comparison of a kind
+     * of place that names no place ("how do hostels compare with guesthouses?", "why are museums
+     * closed on Mondays?") is explained like any other question.
+     */
+    private fun asksForPlaces(question: String): Boolean = VENUE_QUESTION.containsMatchIn(question) &&
+        (VenueLookup.isPlaceLookup(question) || !EXPLANATORY.containsMatchIn(question) || NAMED_PLACE.containsMatchIn(question))
+
+    private val EXPLANATORY = Regex("(?i)^\\s*(?:how (?:do|does|did|is|are|can|should)|why|explain|describe|compare|" +
+        "what(?:'s|’s| is| are) the (?:difference|differences|point)|is it (?:worth|better|cheaper))\\b")
+    // "in lisbon", "near the Louvre": a place, not "in terms of" or "in the morning".
+    private val NAMED_PLACE = Regex("(?i)\\b(?:in|near|around|at)\\s+(?!(?:a|an|my|your|our|their|his|her|its|this|that|these|those|" +
+        "terms|general|particular|advance|total|fact|case|order|summer|winter|spring|autumn|fall|the (?:morning|evening|afternoon|day|night|week|end))\\b)" +
+        "(?:the\\s+)?\\p{L}")
 
     private fun takeWholeCodePoints(value: String, maxChars: Int): String {
         if (maxChars <= 0) return ""

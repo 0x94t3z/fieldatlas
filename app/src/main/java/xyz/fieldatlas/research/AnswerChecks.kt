@@ -220,33 +220,130 @@ object AnswerChecks {
     private val sentenceEnd = Regex("(?<=[.!?])\\s+")
     private val sourceHeading = Regex("(?i)^\\W*from saved sources\\W*$")
 
+    // A kitchen measure in a home remedy: "6 level teaspoons", "half a teaspoon", "2 drops", "¼ cup".
+    private val householdAmount = Regex(
+        "(?i)(?<![\\p{L}\\p{N}])(\\d+(?:[.,/]\\d+)?|½|¼|¾|one|two|three|four|five|six|seven|eight|nine|ten|twelve|half(?: an?| of a)?|a quarter(?: of a)?|an?)\\s+" +
+            "(?:(?:-|–|to)\\s*\\d+\\s+)?(?:level |heaped |heaping |small |large |big |flat )?" +
+            "(teaspoons?|tsps?|tablespoons?|tbsps?|cups?|pinch(?:es)?|grams?|g|litres?|liters?|ml|drops?|capfuls?|caps?)(?![\\p{L}\\p{N}])",
+    )
+    private val remedyIngredient = Regex("(?i)\\b(sugar|salt|baking soda|bicarbonate(?: of soda)?|bicarb|bleach|chlorine|glucose|honey)\\b")
+    // Where a home mixture is the treatment and an amount wrong by a factor can do harm.
+    private val remedyContext = Regex(
+        "(?i)\\b(dehydrat\\w*|rehydrat\\w*|diarrh?o?ea|vomit\\w*|throw(?:ing|n)? up|threw up|electrolytes?|ors|oral rehydration|" +
+            "purif\\w*|disinfect\\w*|sterili[sz]\\w*|(?:make|making|treat\\w*) (?:the |stream |river |lake )?water (?:safe|drinkable)|drinking water|safe to drink)\\b",
+    )
+    private val quantityWords = mapOf(
+        "a" to "1", "an" to "1", "one" to "1", "two" to "2", "three" to "3", "four" to "4", "five" to "5", "six" to "6", "seven" to "7",
+        "eight" to "8", "nine" to "9", "ten" to "10", "twelve" to "12", "½" to "1/2", "¼" to "1/4", "¾" to "3/4",
+    )
+    private val unitWords = mapOf("tsp" to "teaspoon", "tbsp" to "tablespoon", "g" to "gram", "liter" to "litre", "capful" to "cap")
+
+    /** "six level teaspoons" and "6 tsp" are the same amount: quantity and unit in one spelling. */
+    private fun amount(match: MatchResult): String {
+        val raw = match.groupValues[1].lowercase()
+        val quantity = when {
+            raw.startsWith("half") -> "1/2"
+            raw.startsWith("a quarter") -> "1/4"
+            else -> quantityWords[raw] ?: raw.replace(',', '.')
+        }
+        val unit = match.groupValues[2].lowercase().removeSuffix("es").removeSuffix("s").let { unitWords[it] ?: it }
+        return "$quantity $unit"
+    }
+
     /**
      * Removes amounts of medicine from the model's own explanation, sentence by sentence, and says
      * so. A 2B model turned a source's overdose figure ("150 mg/kg") into a recommended dose; the
      * number was in the source, so checking numbers against sources cannot catch it. Exact
      * quotations under "From saved sources" are the sources' own words and stay.
+     *
+     * For dehydration, diarrhoea or water treatment, a kitchen-measure amount of sugar, salt, soda
+     * or bleach goes too unless the same amount is in [sources]: the model once gave a rehydration
+     * drink one sixth of the sugar it needs and credited the WHO.
      */
-    fun removeDoses(text: String, question: String): String {
+    fun removeDoses(text: String, question: String, sources: List<Evidence> = emptyList()): String {
         val aboutMedicine = medicineWord.containsMatchIn(question)
         fun isDose(sentence: String) = doseAmount.findAll(sentence).any { m ->
             m.groupValues[1].lowercase() in medicineUnits || aboutMedicine || medicineWord.containsMatchIn(sentence)
         }
+        val remedy = remedyContext.containsMatchIn(question)
+        val stated = sources.flatMap { source -> householdAmount.findAll(source.text).map(::amount).toList() }.toSet()
+        fun isRecipe(sentence: String) = (remedy || remedyContext.containsMatchIn(sentence)) && remedyIngredient.containsMatchIn(sentence) &&
+            householdAmount.findAll(sentence).any { amount(it) !in stated }
         var quotes = false
-        var removed = false
+        var removedDose = false
+        var removedRecipe = false
         val kept = text.lines().mapNotNull { line ->
             if (sourceHeading.matches(line.trim())) quotes = true
-            if (quotes || !isDose(line)) return@mapNotNull line
+            if (quotes || !(isDose(line) || isRecipe(line))) return@mapNotNull line
             val sentences = line.split(sentenceEnd)
-            val rest = sentences.filterNot(::isDose)
-            removed = true
+            val rest = sentences.filterNot { isDose(it) || isRecipe(it) }
+            if (sentences.any(::isDose)) removedDose = true
+            if (sentences.any(::isRecipe)) removedRecipe = true
             // A list item or line that was only an amount goes; "1. Take 400 mg." leaves no step.
             rest.joinToString(" ").takeIf { it.trim().trimStart('-', '*', '•').trim().replace(Regex("^\\d+[.)]\\s*"), "").any(Char::isLetter) }
         }
-        if (!removed) return text
-        return kept.joinToString("\n").trimEnd() + "\n\n" + DOSE_NOTE
+        if (!removedDose && !removedRecipe) return text
+        return kept.joinToString("\n").trimEnd() + listOfNotNull(DOSE_NOTE.takeIf { removedDose }, RECIPE_NOTE.takeIf { removedRecipe })
+            .joinToString("") { "\n\n$it" }
     }
 
     const val DOSE_NOTE = "_Amounts of medicine are left out of this explanation: follow the package leaflet, or ask a pharmacist or doctor._"
+    const val RECIPE_NOTE = "_Amounts for a home mixture are left out of this explanation because the saved sources do not give them: " +
+        "use a packaged oral rehydration sachet if you have one, or ask a pharmacist or health worker for the mixture._"
+
+    private val warningWord = Regex("(?i)\\b(do not|don'?t|never|avoid|must not|mustn'?t|should not|shouldn'?t)\\b")
+    private val listMarker = Regex("^(\\s*)(?:([-*•+])|(\\d+)([.)]))\\s+")
+    private val sentenceOrLine = Regex("(?<=[.!?])\\s+|\\n")
+
+    /**
+     * Keeps a "do not" only when the cited guide says it. The model adds warnings of its own to a
+     * guide's steps ("do not give food or drink unless they can swallow", under a heat guide that
+     * says not to give fluids at all) and, cited, they read as the guide's. A warning stays when
+     * the best single sentence of the cited source (of any source, when it cites none) shares at
+     * least three of its content words or at least half of them; otherwise the sentence or step
+     * goes and the steps are renumbered.
+     */
+    fun removeUnsupportedWarnings(text: String, sources: List<Evidence>): String {
+        if (sources.isEmpty() || !warningWord.containsMatchIn(text)) return text
+        val sentences = sources.map { source -> sentenceOrLine.split(source.text).map { QueryTerms.of(it).toSet() } }
+        fun supported(sentence: String): Boolean {
+            // The warning words themselves are not content: "don't give fluids" is about fluids.
+            val words = QueryTerms.of(warningWord.replace(sentence.replace(citation, " "), " ")).toSet()
+            if (words.isEmpty()) return true
+            val cited = citation.findAll(sentence).map { it.groupValues[1].toInt() - 1 }.filter { it in sources.indices }.toList()
+            val pool = (cited.ifEmpty { sources.indices.toList() }).flatMap { sentences[it] }
+            val shared = pool.maxOfOrNull { it.intersect(words).size } ?: 0
+            return shared >= 3 || shared * 2 >= words.size
+        }
+        var changed = false
+        val lines = text.split("\n").mapNotNull { line ->
+            if (!warningWord.containsMatchIn(line)) return@mapNotNull line
+            val marker = listMarker.find(line)?.value.orEmpty()
+            val parts = sentenceEnd.split(line.substring(marker.length))
+            val kept = parts.filter { !warningWord.containsMatchIn(it) || supported(it) }
+            if (kept.size == parts.size) return@mapNotNull line
+            changed = true
+            (marker + kept.joinToString(" ")).takeIf { kept.any { part -> part.any(Char::isLetter) } }
+        }
+        if (!changed) return text
+        return renumbered(lines).joinToString("\n").replace(Regex("\\n{3,}"), "\n\n").trimEnd()
+    }
+
+    /** Numbered steps counted again from 1 after a removal; a paragraph between lists starts a new count. */
+    private fun renumbered(lines: List<String>): List<String> {
+        var count = 0
+        return lines.map { line ->
+            val marker = listMarker.find(line)
+            when {
+                marker != null && marker.groupValues[3].isNotEmpty() -> {
+                    count++
+                    "${marker.groupValues[1]}$count${marker.groupValues[4]} ${line.substring(marker.range.last + 1)}"
+                }
+                marker == null && line.isNotBlank() -> { count = 0; line }
+                else -> line
+            }
+        }
+    }
 
     /**
      * The person asking has no connection, so an answer must not send them online. A sentence

@@ -48,22 +48,22 @@ class KnowledgeCatalogTest {
     @Test fun veganPlacesDownloadMatchesBuiltArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "osm-vegan-places" }
-        assertEquals("2026.10.02", pack.version)
-        assertEquals(40_088_517L, pack.bytes)
-        assertEquals("6cc944185c18de577060833645ee91a4da511c2c32df77ffc3b4dbfaf2dd8f7c", pack.sha256)
+        assertEquals("2026.10.05", pack.version)
+        assertEquals(40_068_046L, pack.bytes)
+        assertEquals("4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd", pack.sha256)
         assertEquals("ODbL-1.0", pack.license)
-        assertTrue(pack.url.endsWith("/knowledge-vegan-places-2026.10.02/osm-vegan-places-2026.10.02.fapack"))
+        assertTrue(pack.url.endsWith("/knowledge-vegan-places-2026.10.05/osm-vegan-places-2026.10.05.fapack"))
     }
 
     @Test fun essentialsDownloadMatchesBuiltArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "osm-essentials" }
-        assertEquals("2026.10.02", pack.version)
-        assertEquals(1_781_105_631L, pack.bytes)
-        assertEquals("e04fb8b89f627ef1cd8d0fb37f961d5d6b51acc7bc64d933d2b932db76bd6d62", pack.sha256)
+        assertEquals("2026.10.05", pack.version)
+        assertEquals(1_781_015_519L, pack.bytes)
+        assertEquals("a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9", pack.sha256)
         assertEquals("ODbL-1.0", pack.license)
         assertEquals("Places", pack.category)
-        assertTrue(pack.url.endsWith("/knowledge-essentials-2026.10.02/osm-essentials-2026.10.02.fapack"))
+        assertTrue(pack.url.endsWith("/knowledge-essentials-2026.10.05/osm-essentials-2026.10.05.fapack"))
     }
 
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
@@ -74,11 +74,21 @@ class KnowledgeCatalogTest {
         assertEquals("Encyclopedia", encyclopedia.category)
         assertTrue(encyclopedia.url.endsWith("/knowledge-simplewiki-2025.12.29/simplewiki-2025.12.29.fapack"))
         val guides = catalog.packs.single { it.id == "wikivoyage-guides" }
-        assertEquals(374_600_710L, guides.bytes)
-        assertEquals("2684b5b664aedb15aafb905a2dffccdd059dc589d10a382fdddec17c8bef60b2", guides.sha256)
+        assertEquals(419_107_865L, guides.bytes)
+        assertEquals("1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83", guides.sha256)
         assertEquals("Travel", guides.category)
-        assertTrue(guides.url.endsWith("/knowledge-wikivoyage-guides-2025.12.29/wikivoyage-guides-2025.12.29.fapack"))
+        assertTrue(guides.url.endsWith("/knowledge-wikivoyage-guides-2026.09.01/wikivoyage-guides-2026.09.01.fapack"))
         assertTrue(catalog.packs.all { it.category.isNotBlank() })
+    }
+
+    @Test fun cryptographyDownloadMatchesBuiltArtifact() {
+        val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
+        val pack = catalog.packs.single { it.id == "crypto-ethereum" }
+        assertEquals("2026.10.05", pack.version)
+        assertEquals(77_678_612L, pack.bytes)
+        assertEquals("b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7", pack.sha256)
+        assertEquals("Science", pack.category)
+        assertTrue(pack.url.endsWith("/knowledge-crypto-ethereum-2026.10.05/crypto-ethereum-2026.10.05.fapack"))
     }
 
     @Test fun rejectsDuplicateAndInsecureEntries() {
