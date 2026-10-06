@@ -133,8 +133,7 @@ internal fun SourcePreviewSheet(
                     }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(place?.name ?: evidence.title, style = MaterialTheme.typography.titleLarge,
-                        fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold)
+                    Text(place?.name ?: evidence.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Normal)
                     Text(
                         sourcePresentation(evidence).takeIf { it.isAttachment }?.metadata
                             ?: sourceDisplayName(evidence.source),

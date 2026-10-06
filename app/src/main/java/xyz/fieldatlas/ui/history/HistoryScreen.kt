@@ -264,7 +264,7 @@ private fun SavedSourceRow(number: Int, title: String, onClick: () -> Unit) {
                 Text("$number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
-        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, fontFamily = FieldAtlasEditorial,
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
             maxLines = 2, overflow = TextOverflow.Ellipsis)
         Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))

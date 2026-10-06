@@ -46,7 +46,6 @@ import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -372,7 +371,7 @@ private fun SavedPassagePreview(evidence: Evidence, index: Int, cited: Boolean, 
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${index + 1} · ${evidence.title}", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                Text("${index + 1} · ${evidence.title}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 if (cited) FieldAtlasStatusPill("Cited", StatusTone.Positive)
                 else FieldAtlasStatusPill("Not cited")
             }
@@ -451,8 +450,6 @@ private fun AnswerSourceCard(
                 Text(
                     evidence.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontFamily = if (source.isAttachment) MaterialTheme.typography.bodyLarge.fontFamily else FieldAtlasEditorial,
-                    fontWeight = FontWeight.SemiBold,
                     maxLines = if (source.isAttachment) 1 else 2,
                     overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
