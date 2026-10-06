@@ -11,6 +11,8 @@ class FakeInferenceGateway(private val tokens: List<String> = emptyList()) : Inf
     override val state: StateFlow<InferenceState> = mutableState.asStateFlow()
     var generateCalls: Int = 0
         private set
+    /** Each generation's prompt and the length of its fixed opening, in call order. */
+    val prompts = mutableListOf<Pair<String, Int>>()
 
     override suspend fun load(modelPath: String, systemPrompt: String) {
         require(modelPath.isNotBlank()) { "modelPath must not be blank" }
@@ -18,8 +20,9 @@ class FakeInferenceGateway(private val tokens: List<String> = emptyList()) : Inf
         mutableState.value = InferenceState.Ready
     }
 
-    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
         require(prompt.isNotBlank()) { "prompt must not be blank" }
+        prompts += prompt to savedPrefixChars
         require(maxTokens > 0) { "maxTokens must be positive" }
         generateCalls++
         mutableState.value = InferenceState.Generating

@@ -51,7 +51,7 @@ class AttachmentEvidenceTest {
                 override val contextWindowTokens = window
                 override suspend fun load(modelPath: String, systemPrompt: String) = Unit
                 override suspend fun unload() = Unit
-                override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int) = kotlinx.coroutines.flow.flow {
+                override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) = kotlinx.coroutines.flow.flow {
                     captured = prompt; output = maxTokens; emit("Answer [S1]")
                 }
             }

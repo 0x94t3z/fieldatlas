@@ -22,7 +22,7 @@ class PrefillSpeedTest {
             override val state = kotlinx.coroutines.flow.MutableStateFlow<xyz.fieldatlas.inference.InferenceState>(xyz.fieldatlas.inference.InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
             override suspend fun unload() = Unit
-            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int) = kotlinx.coroutines.flow.flow {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) = kotlinx.coroutines.flow.flow {
                 captured = prompt; emit("Answer [S1]")
             }
         }

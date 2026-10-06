@@ -47,4 +47,6 @@ data class PackedPrompt(
     val prompt: String,
     val sources: List<PromptSource>,
     val mixedAnswer: Boolean = false,
+    /** Length of the fixed instructions that open [prompt], the same for every prompt of its kind. */
+    val savedPrefixChars: Int = 0,
 )

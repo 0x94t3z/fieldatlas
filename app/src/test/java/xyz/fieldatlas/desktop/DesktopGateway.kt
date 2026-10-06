@@ -55,7 +55,7 @@ internal class DesktopGateway(
     val calls = mutableListOf<JsonObject>()
     override suspend fun load(modelPath: String, systemPrompt: String) = Unit
     override suspend fun unload() = Unit
-    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
         val request = buildJsonObject {
             put("messages", buildJsonArray {
                 add(buildJsonObject { put("role", "system"); put("content", systemPrompt ?: system) })

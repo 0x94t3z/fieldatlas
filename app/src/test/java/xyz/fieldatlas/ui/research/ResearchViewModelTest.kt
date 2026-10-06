@@ -122,7 +122,7 @@ class ResearchViewModelTest {
         val gateway = object : InferenceGateway {
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
-            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
                 try {
                     emit("first")
                     awaitCancellation()

@@ -63,10 +63,13 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             sources += PromptSource(citationId, item, excerpt = text)
             remaining -= block.length
         }
+        // The text up to here is the same for every prompt of this kind, so the engine reads it once.
+        var fixed = 0
         val prompt = buildString {
             append(if (allowsModelExplanation(question)) MIXED_POLICY else POLICY)
             append(OFFLINE_PERSON)
             append("\nEvidence contains selected excerpts, not complete documents. Do not infer that omitted information is absent from the full source.")
+            fixed = length
             if (sources.size < evidence.size) append(" Some retrieved passages could not fit; do not claim this is a complete synthesis of all retrieved evidence.")
             if (VENUE_QUESTION.containsMatchIn(question)) append(VENUE_POLICY)
             append("\n\nEVIDENCE:\n")
@@ -75,7 +78,7 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             append(question.trim())
             append("\n\nANSWER:")
         }
-        return PackedPrompt(prompt, sources, mixedAnswer = allowsModelExplanation(question))
+        return PackedPrompt(prompt, sources, mixedAnswer = allowsModelExplanation(question), savedPrefixChars = fixed)
     }
 
     /**
@@ -85,30 +88,34 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
     fun buildGuide(question: String, sections: List<Evidence>): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         val sources = sections.mapIndexed { index, section -> PromptSource("S${index + 1}", section, excerpt = section.text) }
+        var fixed = 0
         val prompt = buildString {
             append(GUIDE_POLICY)
             append(OFFLINE_PERSON_GUIDE)
+            fixed = length
             append("\n\nEVIDENCE:\n")
             append(sources.joinToString("\n\n") { "[${it.citationId}]\nTitle: ${compactMetadata(it.evidence.title)}\nExcerpt: ${it.evidence.text}" })
             append("\n\nQUESTION:\n")
             append(question.trim())
             append("\n\nANSWER:")
         }
-        return PackedPrompt(prompt, sources, mixedAnswer = false)
+        return PackedPrompt(prompt, sources, mixedAnswer = false, savedPrefixChars = fixed)
     }
 
     fun buildModelOnly(question: String): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
+        var fixed = 0
         val prompt = buildString {
             append(MODEL_ONLY_POLICY)
             append(OFFLINE_PERSON)
+            fixed = length
             if (VENUE_QUESTION.containsMatchIn(question) &&
                 LOCAL_PLACE_REQUEST.containsMatchIn(question)) append(MODEL_ONLY_VENUE_POLICY)
             append("\n\nQUESTION:\n")
             append(question.trim())
             append("\n\nANSWER:")
         }
-        return PackedPrompt(prompt, emptyList(), mixedAnswer = allowsModelExplanation(question))
+        return PackedPrompt(prompt, emptyList(), mixedAnswer = allowsModelExplanation(question), savedPrefixChars = fixed)
     }
 
     internal fun allowsModelExplanation(question: String): Boolean =

@@ -88,7 +88,9 @@ class LlamaInferenceGateway internal constructor(
         }
     }
 
-    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> = flow {
+    override val reusedPromptTokens: Int get() = engine.reusedPromptTokens()
+
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
         require(prompt.isNotBlank()) { "prompt must not be blank" }
         require(maxTokens > 0) { "maxTokens must be positive" }
         lifecycleMutex.withLock {
@@ -104,7 +106,7 @@ class LlamaInferenceGateway internal constructor(
                 if (seed >= 0) engine.setSamplerSeed(seed) else engine.setSamplerSeed(-1)
                 val generated = StringBuilder()
                 try {
-                    engine.sendUserPrompt(prompt, maxTokens).collect { token ->
+                    engine.sendUserPrompt(prompt, maxTokens, prompt.take(savedPrefixChars.coerceIn(0, prompt.length))).collect { token ->
                         emit(token)
                         generated.append(token)
                         if (generated.length >= MIN_LOOP_CHARS * 2 && hasDuplicatedTail(generated)) {

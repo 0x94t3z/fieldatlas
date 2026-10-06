@@ -119,7 +119,7 @@ class SourceLeadTest {
 
     @Test fun leadSurvivesAFailedModelExplanation() = runBlocking {
         val failing = object : InferenceGateway by FakeInferenceGateway() {
-            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> =
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
                 flow { throw IllegalStateException("native decode failed") }
         }
         val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(overview("Friction", friction)) }, failing)
@@ -133,7 +133,7 @@ class SourceLeadTest {
 
     @Test fun withoutLeadAFailedGenerationStillFails() = runBlocking {
         val failing = object : InferenceGateway by FakeInferenceGateway() {
-            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int): Flow<String> =
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
                 flow { throw IllegalStateException("native decode failed") }
         }
         val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, failing)

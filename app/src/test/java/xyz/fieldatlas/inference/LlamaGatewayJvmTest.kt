@@ -69,13 +69,25 @@ class LlamaGatewayJvmTest {
                 "system:sys",
                 "reset:sys",
                 "seed:-1",
+                "prefix:",
                 "reset:planner persona",
                 "seed:-1",
+                "prefix:",
                 "reset:sys",
                 "seed:17",
+                "prefix:",
             ),
             engine.calls,
         )
+    }
+
+    @Test fun theFixedOpeningOfAPromptReachesTheEngine() = runBlocking {
+        val engine = FakeEngine()
+        val gateway = LlamaInferenceGateway(engine)
+        gateway.load("/m.gguf", "sys")
+        gateway.generate("Rules. EVIDENCE: a QUESTION: b", 4, null, -1, "Rules.".length).toList()
+        gateway.generate("short", 4, null, -1, 99).toList()
+        assertEquals(listOf("prefix:Rules.", "prefix:short"), engine.calls.filter { it.startsWith("prefix:") })
     }
 
     @Test fun nativeLoadAndGenerationNeverRunOnTheCollectorThread() = runBlocking {
@@ -114,7 +126,8 @@ class LlamaGatewayJvmTest {
             state.value = InferenceEngine.State.ModelReady
         }
 
-        override fun sendUserPrompt(message: String, predictLength: Int): Flow<String> = flow {
+        override fun sendUserPrompt(message: String, predictLength: Int, savedPrefix: String): Flow<String> = flow {
+            calls += "prefix:$savedPrefix"
             state.value = InferenceEngine.State.Generating
             try {
                 tokens.take(predictLength).forEach { emit(it) }

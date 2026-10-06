@@ -32,7 +32,7 @@ class EmergencyRoutingTest {
         var prompt = ""
         override suspend fun load(modelPath: String, systemPrompt: String) = Unit
         override suspend fun unload() = Unit
-        override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int) = flow {
+        override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) = flow {
             this@Recording.prompt = prompt
             if (fail) error("native failure")
             emit(reply)

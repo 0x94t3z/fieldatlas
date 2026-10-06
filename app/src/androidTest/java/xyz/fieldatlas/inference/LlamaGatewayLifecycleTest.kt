@@ -82,7 +82,7 @@ class LlamaGatewayLifecycleTest {
             state.value = InferenceEngine.State.ModelReady
         }
 
-        override fun sendUserPrompt(message: String, predictLength: Int): Flow<String> = flow {
+        override fun sendUserPrompt(message: String, predictLength: Int, savedPrefix: String): Flow<String> = flow {
             state.value = InferenceEngine.State.ProcessingUserPrompt
             state.value = InferenceEngine.State.Generating
             try {

@@ -511,7 +511,7 @@ class ResearchOrchestrator(
             var generationFailed = false
             val generateStartedAt = monotonicMillis()
             try {
-                inference.generate(packed.prompt, outputBudget).collect { token ->
+                inference.generate(packed.prompt, outputBudget, savedPrefixChars = packed.savedPrefixChars).collect { token ->
                     if (firstTokenAt == null) {
                         firstTokenAt = monotonicMillis()
                         // The engine's own count; read before it clears its progress.
@@ -534,10 +534,12 @@ class ResearchOrchestrator(
                 generationFailed = true
             }
             val finishedAt = monotonicMillis()
-            // Learn this phone's reading speed from the wait before the first token.
+            // Learn this phone's reading speed from the wait before the first token, counting only the
+            // part of the prompt the engine read: restored instructions cost no reading time.
             firstTokenAt?.let { first ->
+                val read = if (inference.reusedPromptTokens > 0) packed.prompt.substring(packed.savedPrefixChars) else packed.prompt
                 prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
-                    TokenEstimate.of(packed.prompt), first - generateStartedAt)
+                    TokenEstimate.of(read), first - generateStartedAt)
             }
             // Evidence-only answers: move a citation to the source its details actually come from
             // and correct a 12-hour time that disagrees with the 24-hour time the source states.

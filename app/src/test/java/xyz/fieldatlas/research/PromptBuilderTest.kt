@@ -249,4 +249,22 @@ class PromptBuilderTest {
         )
         prompts.forEach { assertTrue(it, "The person asking is offline, with no internet and maybe no phone signal." in it) }
     }
+
+    @Test fun everyPromptOfOneKindOpensWithTheSameFixedInstructions() {
+        fun source(n: Int) = Evidence("d$n", "d$n:0", "Doc $n", "local", "Passage number $n about rivers and tides.", 0.0)
+        val first = PromptBuilder.build("Why do rivers flood?", listOf(source(1)), 2048)
+        val second = PromptBuilder.build("How do tides work in estuaries?", listOf(source(2), source(3)), 2048)
+        val opening = first.prompt.take(first.savedPrefixChars)
+        assertTrue(opening, opening.endsWith("absent from the full source."))
+        assertEquals(opening, second.prompt.take(second.savedPrefixChars))
+        assertFalse("the evidence is not part of the fixed opening", opening.contains("Passage number"))
+        val strict = PromptBuilder.build("Summarize my saved notes about rivers", listOf(source(1)), 2048)
+        assertTrue(strict.prompt.take(strict.savedPrefixChars).endsWith("absent from the full source."))
+        assertTrue(opening != strict.prompt.take(strict.savedPrefixChars))
+        val guide = PromptBuilder.buildGuide("Someone is bleeding", listOf(source(1)))
+        assertFalse(guide.prompt.take(guide.savedPrefixChars).contains("EVIDENCE:"))
+        assertTrue(guide.prompt.substring(guide.savedPrefixChars).startsWith("\n\nEVIDENCE:"))
+        val alone = PromptBuilder.buildModelOnly("What is a rainbow?")
+        assertTrue(alone.prompt.substring(alone.savedPrefixChars).startsWith("\n\nQUESTION:"))
+    }
 }

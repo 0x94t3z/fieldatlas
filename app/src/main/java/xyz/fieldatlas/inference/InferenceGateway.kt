@@ -14,7 +14,17 @@ interface InferenceGateway {
     val promptProgress: StateFlow<PromptProgress?> get() = NO_PROGRESS
 
     suspend fun load(modelPath: String, systemPrompt: String)
-    fun generate(prompt: String, maxTokens: Int, systemPrompt: String? = null, seed: Int = -1): Flow<String>
+
+    /**
+     * Generates an answer to [prompt]. Its first [savedPrefixChars] characters are fixed
+     * instructions that many prompts share: an engine that can keep the model state after reading
+     * them once restores it instead of reading them again; others read the whole prompt.
+     */
+    fun generate(prompt: String, maxTokens: Int, systemPrompt: String? = null, seed: Int = -1, savedPrefixChars: Int = 0): Flow<String>
+
+    /** Prompt tokens the last generation restored instead of reading; 0 when it read them all. */
+    val reusedPromptTokens: Int get() = 0
+
     suspend fun unload()
 
     /**
