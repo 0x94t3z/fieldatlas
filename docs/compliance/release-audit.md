@@ -38,8 +38,8 @@ numbers at a pinned revision, the EIP and ERC repositories, NIST publications).
 
 ### Public artifact verification
 
-Built the optimized public-key APK from app source at `4c294d8`: version 1.4.0 (18),
-108,762,500 bytes, SHA-256 `a371d31fafc898182d9a7f902caa8db587818a4e27b72ac76a868caf9f6002d2`. The certificate matches the existing public release
+Built the optimized public-key APK from app source at `a72b082`: version 1.4.0 (18),
+108,762,220 bytes, SHA-256 `34803a89e454746e73d1e225073e323f0e7d68877917fc28ef0f610a579a13b5`. The certificate matches the existing public release
 certificate recorded below (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
 Release build and lint passed (0 errors, 47 warnings); 799 JVM tests passed and 16 opt-in desktop tests were skipped in the
 ordinary run (run separately against the real collections). All 147 Python tests passed (57
