@@ -17,7 +17,7 @@ import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.ui.presentation.knowledgeCategory
 import xyz.fieldatlas.assets.PackType
-import xyz.fieldatlas.assets.RecommendedModel
+import xyz.fieldatlas.assets.ModelOffers
 import xyz.fieldatlas.assets.PackImportInfo
 import xyz.fieldatlas.ui.theme.*
 import androidx.compose.ui.semantics.contentDescription
@@ -41,9 +41,12 @@ fun SetupScreen(
     importingName: String? = null,
     online: Boolean = rememberSetupConnectivity(),
     importingPack: PackImportInfo? = null,
+    /** A model other than the recommended one is downloading (started from Library). */
+    otherModelDownloading: Boolean = false,
 ) {
+    val recommended = ModelOffers.recommended
     val model = packs.firstOrNull { it.type == PackType.MODEL }
-    val busy = importing || downloading || knowledgeDownloadKey != null
+    val busy = importing || downloading || otherModelDownloading || knowledgeDownloadKey != null
     val blockedReason = when {
         importing || !online -> null // The single import/offline notice explains unavailable actions.
         busy -> "Another download is in progress."
@@ -72,17 +75,19 @@ fun SetupScreen(
                 item { SetupSection(1, "Answer model", "Required") }
                 item {
                     if (importing && importingPack?.type == PackType.MODEL) {
-                        SetupImportCard(if (importingPack.id == RecommendedModel.id) "Qwen3.5 2B" else importingPack.title,
+                        SetupImportCard(if (importingPack.id == recommended.id) recommended.name else importingPack.title,
                             importingName, "Importing model", FieldAtlasIcons.Archive)
                     } else SetupDownloadRow(
-                        title = if (model == null || model.id == RecommendedModel.id) "Qwen3.5 2B" else model.title,
+                        title = if (model == null || model.id == recommended.id) recommended.name else model.title,
                         icon = FieldAtlasIcons.Archive,
-                        bytes = RecommendedModel.bytes, installed = model != null,
+                        bytes = recommended.bytes, installed = model != null,
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
                         details = "Recommended model · Apache 2.0", onDownload = onDownloadModel, onCancel = onCancelDownload,
-                        subtitle = if (model == null || model.id == RecommendedModel.id) "Q4_K_M · Compact" else null,
+                        subtitle = if (model == null || model.id == recommended.id) "Q4_K_M · Compact" else null,
                         blockedReason = blockedReason,
+                        // The verified model is moved into place, not unpacked from a copy.
+                        freeBytesNeeded = recommended.bytes - resumableModelBytes.coerceIn(0, recommended.bytes) + 512_000_000L,
                     )
                 }
                 item {
@@ -157,7 +162,7 @@ fun SetupScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (!importing && !downloading && model == null) Text(
+                if (!importing && !downloading && !otherModelDownloading && model == null) Text(
                     "Add a model to start. Knowledge can come later.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
@@ -168,13 +173,14 @@ fun SetupScreen(
                 val waitingMessage = when {
                     importing && importingPack?.type == PackType.MODEL -> "Your model is importing. Research will be ready when it finishes."
                     importing -> "Your pack is importing. Please wait before starting research."
-                    downloading && downloadedBytes >= RecommendedModel.bytes -> "Your model is being checked and installed. Please wait."
-                    downloading -> "Your model is downloading. Research will be ready after installation."
+                    downloading && downloadedBytes >= recommended.bytes -> "Your model is being checked and installed. Please wait."
+                    downloading || otherModelDownloading -> "Your model is downloading. Research will be ready after installation."
                     else -> null
                 }
                 waitingMessage?.let { Text(it, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                FieldAtlasPrimaryButton("Start researching", onContinue, enabled = model != null && !importing && !downloading,
+                FieldAtlasPrimaryButton("Start researching", onContinue,
+                    enabled = model != null && !importing && !downloading && !otherModelDownloading,
                     modifier = Modifier.fillMaxWidth())
             }
         }
@@ -219,6 +225,7 @@ private fun SetupDownloadRow(
     downloading: Boolean, busy: Boolean, downloadedBytes: Long, resumableBytes: Long, details: String,
     onDownload: () -> Unit, onCancel: () -> Unit,
     subtitle: String? = null, blockedReason: String? = null, inGroup: Boolean = false,
+    freeBytesNeeded: Long = bytes * 2 + 512_000_000L,
 ) {
     var confirm by rememberSaveable(title, bytes) { mutableStateOf(false) }
     val installing = downloading && downloadedBytes >= bytes
@@ -270,7 +277,7 @@ private fun SetupDownloadRow(
         text = { Text("$details\n\n" + (if (resumableBytes > 0)
             "${downloadSize(resumableBytes)} is saved. About ${downloadSize(bytes - resumableBytes.coerceIn(0, bytes))} remains if the server supports resume; otherwise the full download may be needed. "
             else "Uses ${downloadSize(bytes)} of internet data. ") +
-            "Allow about ${downloadSize(bytes * 2 + 512_000_000L)} free while installing. Works offline afterward.") },
+            "Allow about ${downloadSize(freeBytesNeeded)} free while installing. Works offline afterward.") },
         confirmButton = { TextButton(shape = FieldAtlasButtonShape, enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
             Text(if (resumableBytes > 0) "Resume" else "Download") } },
         dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirm = false }) { Text("Not now") } })

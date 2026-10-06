@@ -9,35 +9,24 @@ import kotlinx.serialization.json.Json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** The same pinned artifact as models/compact-qwen3.5-2b.example.json. */
-object RecommendedModel {
-    const val id = "qwen3.5-2b-q4-k-m"
-    const val version = "1.0.0"
-    const val title = "Qwen3.5 2B — Q4_K_M Compact"
-    const val license = "Apache-2.0"
-    const val bytes = 1_396_198_496L
-    const val sha256 = "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8"
-    const val url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/resolve/7d26695454df6de5fbcce2e58681e62dae06ce43/Qwen_Qwen3.5-2B-Q4_K_M.gguf"
-}
-
-class RecommendedModelDownload(
+/** Downloads a pinned [ModelOffer], verifies it and installs it as a model pack. */
+class ModelDownload internal constructor(
     private val storageRoot: File,
     private val registry: AssetRegistry,
     private val footprint: StorageFootprint = StorageFootprint { listOf(storageRoot) },
+    private val downloader: VerifiedResumableDownload = VerifiedResumableDownload(),
 ) {
-    fun resumableBytes(): Long = File(storageRoot,
-        "model-downloads/${RecommendedModel.id}-${RecommendedModel.version}.part")
-        .length().coerceIn(0, RecommendedModel.bytes)
+    fun resumableBytes(spec: ModelOffer): Long = partialFile(spec).length().coerceIn(0, spec.bytes)
 
-    suspend fun install(onProgress: (Long) -> Unit): InstalledAsset = withContext(Dispatchers.IO) {
-        val spec = RecommendedModel
+    private fun partialFile(spec: ModelOffer) = File(storageRoot, "model-downloads/${spec.id}-${spec.version}.part")
+
+    suspend fun install(spec: ModelOffer, onProgress: (Long) -> Unit): InstalledAsset = withContext(Dispatchers.IO) {
         registry.list().firstOrNull { it.id == spec.id && it.version == spec.version }
             ?.let { return@withContext it }
         val destination = File(storageRoot, "packs/${spec.id}/${spec.version}")
-        val staging = File(storageRoot, "model-downloads").apply { mkdirs() }
-        val partial = File(staging, "${spec.id}-${spec.version}.part")
+        val partial = partialFile(spec).apply { parentFile?.mkdirs() }
         // A process can die after the verified model was moved but before registry.add().
-        // Return that orphan to staging and verify it rather than fetching 1.4 GB again.
+        // Return that orphan to staging and verify it rather than fetching gigabytes again.
         if (destination.exists()) {
             val orphan = File(destination, "model.gguf")
             if (orphan.isFile && orphan.length() == spec.bytes) {
@@ -52,7 +41,7 @@ class RecommendedModelDownload(
         check(storageRoot.usableSpace - 512_000_000L >= remaining + StorageBudget.METADATA_RESERVE_BYTES) {
             "Not enough free space for this model"
         }
-        VerifiedResumableDownload().download(spec.url, spec.bytes, spec.sha256, partial, onProgress)
+        downloader.download(spec.url, spec.bytes, spec.sha256, partial, onProgress)
         // History, attachments and caches can grow while a long transfer is running.
         // Count the completed staging file again before committing the installation.
         // On rejection it stays resumable; do not delete verified user downloads.

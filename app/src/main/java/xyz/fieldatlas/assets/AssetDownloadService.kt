@@ -76,7 +76,7 @@ class AssetDownloadService : Service() {
 
     private fun notification(status: AssetDownloadStatus): Notification {
         val title = when (status.kind) {
-            AssetDownloadKind.MODEL -> "Downloading model"
+            AssetDownloadKind.MODEL -> "Downloading ${status.model?.name ?: "model"}"
             AssetDownloadKind.KNOWLEDGE -> "Downloading ${status.pack?.title ?: "collection"}"
             null -> "Preparing download"
         }

@@ -1,0 +1,17 @@
+{
+  "converter": "Q4_K_M artifact published by bartowski (commit 4168f45a16a1290d65a4ec0fa312ae917a4c15d6; the file was first uploaded 2026-03-10) from Qwen/Qwen3.5-4B, whose latest revision before that upload is 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "expectedSha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+  "id": "qwen3.5-4b-q4-k-m",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Optional larger model: ARM64 CPU inference on the pinned runtime's 8192-token context; qwen35 architecture, the same family and chat template as the 2B; 3.0 GB artifact. It needs about 3.5 GB resident, because llama.cpp keeps a 2.7 GB repacked copy of the weights besides the mapped file, plus 0.58 GB of context and compute buffers, so the app offers and loads it only on phones reporting at least 7,000,000,000 bytes of memory (8 GB class). On a Redmi 13C (6 GB) llama-bench read 6.6-7.3 and wrote 2.3 tokens/s against 16-17.5 and 5.2-5.45 for the 2B, so answers take about 2.5 times as long, but Android killed the app 0.2 s after the model loaded in it; an Infinix X6840 (4 GB) was killed twice and then rebooted. Not yet run on an 8 GB phone",
+  "quantizer": "Q4_K_M artifact published by bartowski; expected upstream SHA-256 13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+  "sourceUrls": [
+    "https://huggingface.co/Qwen/Qwen3.5-4B",
+    "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/blob/4168f45a16a1290d65a4ec0fa312ae917a4c15d6/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "Qwen3.5 4B — Q4_K_M",
+  "upstreamModel": "Qwen/Qwen3.5-4B",
+  "version": "1.0.0"
+}

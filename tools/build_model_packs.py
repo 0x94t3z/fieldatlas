@@ -122,7 +122,10 @@ def write_zip(entries: list[tuple[str, Path | bytes]], out_path: Path) -> None:
             if isinstance(source, bytes):
                 archive.writestr(info, source)
             else:
-                with source.open("rb") as handle, archive.open(info, "w") as dest:
+                # An entry over 2 GiB (the 4B GGUF) needs ZIP64 fields; smaller packs keep the
+                # plain layout, so their bytes and published hashes do not change.
+                large = source.stat().st_size > zipfile.ZIP64_LIMIT
+                with source.open("rb") as handle, archive.open(info, "w", force_zip64=large) as dest:
                     shutil.copyfileobj(handle, dest, 1 << 20)
 
 

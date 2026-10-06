@@ -22,6 +22,14 @@ interface PrefillSpeed {
             return (rate * TARGET_SECONDS - FRAME_TOKENS).toInt().coerceIn(MIN_EVIDENCE, AttachmentEvidence.EVIDENCE_TOKENS)
         }
 
+        /**
+         * Where [modelId]'s rate is saved. The recommended model keeps the key it had before each
+         * model had its own, so an update does not forget what the phone has learned.
+         */
+        fun storageKey(modelId: String?): String =
+            if (modelId == null || modelId == xyz.fieldatlas.assets.ModelOffers.recommended.id) "prefill_tokens_per_second"
+            else "prefill_tokens_per_second:$modelId"
+
         /** Blends a new measurement in, so one slow run (a hot phone) does not swing it alone. */
         fun update(previous: Double?, promptTokens: Int, prefillMillis: Long): Double? {
             if (promptTokens < 200 || prefillMillis < 500) return previous

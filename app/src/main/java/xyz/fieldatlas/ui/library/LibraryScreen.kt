@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
+import xyz.fieldatlas.assets.ModelOffer
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.AssetCardModel
 import xyz.fieldatlas.ui.presentation.toAssetCardModel
@@ -97,8 +98,22 @@ fun LibraryScreen(
     onDownloadKnowledge: (KnowledgeCatalogEntry) -> Unit = {},
     onCancelKnowledgeDownload: () -> Unit = {},
     resumableKnowledgeBytes: (KnowledgeCatalogEntry) -> Long = { 0 },
+    /** Models this phone has the memory for; the ones not installed get a download card. */
+    modelOffers: List<ModelOffer> = emptyList(),
+    downloadingModelId: String? = null,
+    modelDownloadedBytes: Long = 0,
+    modelDownloadError: String? = null,
+    modelDownloadErrorId: String? = null,
+    onDownloadModel: (ModelOffer) -> Unit = {},
+    onCancelModelDownload: () -> Unit = {},
+    resumableModelBytes: (ModelOffer) -> Long = { 0 },
+    /** A model is loading or answering; switching then would wait for it, so it is offered after. */
+    modelBusy: Boolean = false,
+    modelFits: (InstalledAsset) -> Boolean = { true },
+    modelNotice: String? = null,
 ) {
     val models = packs.filter { it.type == PackType.MODEL }
+    val modelDownloads = modelOffers.filterNot { offer -> models.any { it.id == offer.id && it.version == offer.version } }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
     val speech = packs.filter { it.type == PackType.AUDIO }
     // Installed packs carry no category of their own; the catalog's label wins when it lists the pack.
@@ -153,11 +168,13 @@ fun LibraryScreen(
             }
             if (packs.isNotEmpty()) item { StorageSummary(models, knowledge, speech) }
             item { SectionLabel("Answer model") }
+            if (modelNotice != null) item { EmptyLibraryNote(modelNotice) }
             if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
-            if (models.size > 1) {
+            if (models.count(modelFits) > 1) {
                 item {
                     Text(
-                        "Choose one model to use for answers.",
+                        if (modelBusy) "Choose one model to use for answers once the current one finishes loading or answering."
+                        else "Choose one model to use for answers.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -165,13 +182,29 @@ fun LibraryScreen(
             }
             items(models.size, key = { "model:${models[it].id}:${models[it].version}" }) { index ->
                 val asset = models[index]
+                val fits = modelFits(asset)
                 AssetCard(
                     model = asset.toAssetCardModel(),
                     visual = packVisual(asset),
-                    selectedModel = asset == activeModel,
-                    onActivateModel = if (asset == activeModel) null else ({ onActivateModel(asset) }),
+                    selectedModel = asset == activeModel && fits,
+                    onActivateModel = if (asset == activeModel || !fits) null else ({ onActivateModel(asset) }),
+                    activateEnabled = !modelBusy,
+                    note = if (fits) null else "needs more memory than this phone has",
                     onDelete = { onDeletePack(asset) },
                     asset = asset,
+                )
+            }
+            items(modelDownloads.size, key = { "model-offer:${modelDownloads[it].id}:${modelDownloads[it].version}" }) { index ->
+                val offer = modelDownloads[index]
+                ModelDownloadCard(
+                    offer = offer,
+                    downloading = downloadingModelId == offer.id,
+                    busy = importing || modelDownloading || knowledgeDownloadKey != null,
+                    downloadedBytes = modelDownloadedBytes,
+                    resumableBytes = resumableModelBytes(offer),
+                    error = modelDownloadError?.takeIf { modelDownloadErrorId == offer.id },
+                    onDownload = { onDownloadModel(offer) },
+                    onCancel = onCancelModelDownload,
                 )
             }
             item { SectionLabel("Knowledge collections") }
@@ -354,6 +387,99 @@ internal fun KnowledgeDownloadCard(
     }
 }
 
+/** A model this phone can run but has not installed: download, progress, pause and resume. */
+@Composable
+internal fun ModelDownloadCard(
+    offer: ModelOffer,
+    downloading: Boolean,
+    busy: Boolean,
+    downloadedBytes: Long,
+    resumableBytes: Long = 0,
+    error: String? = null,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    var confirmDownload by rememberSaveable(offer.id, offer.version) { mutableStateOf(false) }
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 44.dp, tone = TileTone.Sage)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(offer.name, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    "${formatAssetBytes(offer.bytes)} · ${offer.license}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Text(
+            offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
+                " For phones with ${offer.minimumMemoryLabel} of memory or more.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (!downloading && resumableBytes > 0) {
+            Text("${formatAssetBytes(resumableBytes)} saved · ready to resume",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary)
+        }
+        if (downloading) {
+            val installing = downloadedBytes >= offer.bytes
+            if (installing) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            } else {
+                LinearProgressIndicator(
+                    progress = { (downloadedBytes.toFloat() / offer.bytes).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(if (installing) "Verifying and installing in background" else
+                    "${downloadedBytes / 1_000_000} / ${offer.bytes / 1_000_000} MB · continues in background",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (!installing) TextButton(shape = FieldAtlasButtonShape, onClick = onCancel) { Text("Pause") }
+            }
+        } else {
+            if (error != null) {
+                Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+            }
+            FieldAtlasPrimaryButton(
+                text = if (resumableBytes > 0) "Resume download" else "Download model",
+                onClick = { confirmDownload = true },
+                enabled = !busy,
+                modifier = Modifier.fillMaxWidth().semantics {
+                    contentDescription = "${if (resumableBytes > 0) "Resume" else "Download"} ${offer.name}"
+                },
+                leadingIcon = FieldAtlasIcons.Import,
+            )
+        }
+    }
+    if (confirmDownload) {
+        AlertDialog(
+            onDismissRequest = { confirmDownload = false },
+            title = { Text("${if (resumableBytes > 0) "Resume" else "Download"} ${offer.name}?") },
+            text = {
+                Text((if (resumableBytes > 0)
+                    "${formatAssetBytes(resumableBytes)} is saved. About ${formatAssetBytes(offer.bytes - resumableBytes.coerceIn(0, offer.bytes))} remains if the server supports resume; otherwise the full download may be needed. "
+                    else "Uses ${formatAssetBytes(offer.bytes)} of internet data. ") +
+                    // The verified file is moved into place, not copied: what is left to fetch plus
+                    // Android's margin.
+                    "Installation needs about ${sizeGb(offer.bytes - resumableBytes.coerceIn(0, offer.bytes) + 512_000_000L)} GB free. " +
+                    "Afterward it works offline, and you can switch between models here.")
+            },
+            confirmButton = {
+                TextButton(shape = FieldAtlasButtonShape, enabled = !busy, onClick = {
+                    confirmDownload = false
+                    onDownload()
+                }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
+            },
+            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") } },
+        )
+    }
+}
+
 private fun sizeGb(bytes: Long): String = String.format("%.1f", bytes / 1_000_000_000.0)
 
 @Composable
@@ -427,6 +553,9 @@ private fun AssetCard(
     onToggleResearch: ((Boolean) -> Unit)? = null,
     selectedModel: Boolean = false,
     onActivateModel: (() -> Unit)? = null,
+    activateEnabled: Boolean = true,
+    /** Shown after the size and version, for a reason the pack cannot be used. */
+    note: String? = null,
     onDelete: (() -> Unit)? = null,
     inGroup: Boolean = false,
     asset: InstalledAsset? = null,
@@ -447,14 +576,15 @@ private fun AssetCard(
             Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(model.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${model.size} · v${model.version}" + if (inactive) " · not used" else "",
+                    "${model.size} · v${model.version}" + (if (inactive) " · not used" else "") + (note?.let { " · $it" } ?: ""),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             when {
                 selectedModel -> FieldAtlasStatusPill("In use", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-                onActivateModel != null -> TextButton(shape = FieldAtlasButtonShape, onClick = onActivateModel) { Text("Use model") }
+                onActivateModel != null -> TextButton(shape = FieldAtlasButtonShape, onClick = onActivateModel,
+                    enabled = activateEnabled) { Text("Use model") }
                 onToggleResearch != null -> Switch(
                     checked = enabled,
                     onCheckedChange = onToggleResearch,

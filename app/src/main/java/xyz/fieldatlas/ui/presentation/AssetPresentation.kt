@@ -30,6 +30,7 @@ fun deriveSetupNextAction(packs: List<InstalledAsset>, importing: Boolean): Setu
 fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
     title = when (id) {
         "qwen3.5-2b-q4-k-m" -> "Qwen3.5 2B"
+        "qwen3.5-4b-q4-k-m" -> "Qwen3.5 4B"
         "world-knowledge-biology" -> "Biology & longevity"
         "wikivoyage-places" -> "Travel places"
         // Short names, as in the download catalog; the source is in About this collection.

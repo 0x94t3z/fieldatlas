@@ -93,8 +93,8 @@ class KnowledgeSetupTest {
     }
 
     private val model = xyz.fieldatlas.assets.InstalledAsset(
-        xyz.fieldatlas.assets.RecommendedModel.id, "1", xyz.fieldatlas.assets.PackType.MODEL,
-        xyz.fieldatlas.assets.RecommendedModel.title, "Apache 2.0", 100, "a".repeat(64), "/unused")
+        xyz.fieldatlas.assets.ModelOffers.recommended.id, "1", xyz.fieldatlas.assets.PackType.MODEL,
+        xyz.fieldatlas.assets.ModelOffers.recommended.title, "Apache 2.0", 100, "a".repeat(64), "/unused")
 
     @Test fun optionalDownloadDoesNotBlockResearchWithInstalledModel() {
         var continued = false

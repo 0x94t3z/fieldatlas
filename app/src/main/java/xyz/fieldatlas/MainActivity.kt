@@ -203,6 +203,7 @@ class MainActivity : ComponentActivity() {
             }
 
             val catalogState by container.catalogState.collectAsStateWithLifecycle()
+            val modelNotice by container.modelNotice.collectAsStateWithLifecycle()
             FieldAtlasApp(
                 answersWithoutModel = container::answersWithoutModel,
                 sourceLicense = container::emergencyLicense,
@@ -211,7 +212,10 @@ class MainActivity : ComponentActivity() {
                 importingName = setupState.importingName,
                 importingPack = setupState.importingPack,
                 downloading = setupState.downloading,
+                downloadingModelId = setupState.downloadingModelId,
                 downloadedBytes = setupState.downloadedBytes,
+                modelError = setupState.modelError,
+                modelErrorId = setupState.modelErrorId,
                 offerKnowledge = setupState.offerKnowledge,
                 availableKnowledge = xyz.fieldatlas.assets.catalogWithActiveDownload(
                     catalogState.packs, setupState.activeKnowledgeDownload),
@@ -231,6 +235,11 @@ class MainActivity : ComponentActivity() {
                 onImportPack = { openPicker { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) } },
                 onDownloadModel = setupViewModel::downloadRecommendedModel,
                 resumableModelBytes = container.resumableModelBytes(),
+                modelOffers = container.modelOffers,
+                onDownloadModelOffer = setupViewModel::downloadModel,
+                resumableOfferBytes = container::resumableModelBytes,
+                modelFits = container::modelFits,
+                modelNotice = modelNotice,
                 resumableKnowledgeBytes = container::resumableKnowledgeBytes,
                 onCancelDownload = setupViewModel::cancelDownload,
                 onDismissKnowledgeOffer = setupViewModel::dismissKnowledgeOffer,

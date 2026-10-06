@@ -121,12 +121,47 @@ model's steps 51% (5), the model's own text with or without a quoted passage 32-
   reference on new questions: a correct quoted passage followed by a garbled or wrong
   explanation (the 2008 crisis dated to September 2008, the Silk Road as direct trade between
   China and Europe, a 13-hour time difference between New York and Singapore in summer). Qwen3.5
-  4B writes better but was five to ten times slower in earlier tests (see below), too slow for
-  the phones this app targets.
+  4B answers better but about 2.5 times slower (next section), so it is an optional download.
 - **Synthesis and explanation evidence.** Simple English Wikipedia articles are short; they
   define a subject but rarely explain causes or mechanisms in enough depth.
 - **Map tags.** Places tagged fully vegan that serve dairy, and places outside the city they are
   filed under, still reach answers; the tags are as mapped.
+
+### Qwen3.5 4B as an optional model (October 6)
+
+The same code ran with Qwen3.5 4B Q4_K_M on every question that does not use the phone's
+position: 56 of ours and 40 held-out. Each question's 2B answer, 4B answer and reference went to
+three different graders in one session, twice, as above.
+
+| Questions | Qwen3.5 2B | Qwen3.5 4B | Factual errors per answer, 2B / 4B | 4B better / worse |
+| --- | --- | --- | --- | --- |
+| Our 56 | 55.2% | 59.9% | 1.08 / 0.57 | 25 / 10 |
+| Held-out 40 | 37.1% | 52.7% | 1.30 / 0.53 | 22 / 4 |
+| All 96 | 47.6% | 56.9% | 1.17 / 0.55 | 47 / 14 |
+
+The 4B gains most where the model writes the answer: explanation 43% to 63% of the reference,
+comparison 38% to 55%, synthesis 34% to 44%. Two graders scoring the same answer differed by
+0.39 points on average over 261 answers. The 4B's held-out share is only just above the bar, and
+40 questions is a small sample.
+
+On a Redmi 13C (6 GB), measured with llama-bench, the 4B read 6.6-7.3 tokens a second and wrote
+2.3, against 16-17.5 and 5.2-5.45 for the 2B. At those speeds the 70 answers that use the model
+take a median 204 s of model time instead of 81 s (90th percentile 336 s against 130 s). Keeping
+the instructions already read ([`scripts/patches/README.md`](../scripts/patches/README.md))
+saves 396 tokens of reading from the second answer on: about 20 s for the 2B, as measured on the
+Redmi, and by the same arithmetic 55-60 s for the 4B. An Infinix X6840 (4 GB) was killed twice
+running the 4B, and the third attempt restarted the phone.
+
+In the app on the same Redmi, the 4B loaded and 0.2 s later Android killed the app for memory,
+after closing 49 other processes during the load. The 4B needs about 3.5 GB resident: llama.cpp
+keeps a 2.7 GB repacked copy of the weights besides the mapped file, plus 0.58 GB of context and
+compute buffers.
+
+So the 2B stays the default, and the 4B is an optional download in Library on phones that report
+at least 7,000,000,000 bytes of memory, which 8 GB phones do. No 8 GB phone was available to test
+it on. The app does not load the 4B on a phone with less memory, and if the app ends while
+loading it or in the 15 s after, the next load uses the 2B, when installed, and makes it the
+selected model; Library says why.
 
 ## 1.3.0 review against the bounty bar (October 4)
 
@@ -160,7 +195,7 @@ What keeps answers below the bar, most impact first:
    pathways of eukaryotic cells” (yeast are eukaryotes), senescent cells “generally eliminated
    before becoming permanent” (they accumulate with age), a muddled battery example. These are 2B
    model limits; the 4B model did better on the attachment fixtures (34/35 vs 32/35) but is about
-   ten times slower on a low-end phone.
+   ten times slower on a low-end phone (about 2.5 times as measured on October 6; see above).
 2. **Relevant saved passages are often not found.** Autophagy, study types, yeast-to-human and
    the speed question retrieved no sources although the Encyclopedia covers these topics, so the
    model answered alone and unverified.

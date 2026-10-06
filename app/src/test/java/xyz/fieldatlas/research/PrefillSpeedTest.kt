@@ -16,6 +16,12 @@ class PrefillSpeedTest {
         assertEquals(20.0 * 0.6 + 40.0 * 0.4, PrefillSpeed.update(20.0, 2000, 50_000)!!, 1e-9)
         assertEquals(20.0, PrefillSpeed.update(20.0, 50, 10)!!, 1e-9)
     }
+    @Test fun eachModelLearnsItsOwnSpeedAndTheDefaultKeepsItsOldOne() {
+        // Saved before models had their own speed: the recommended model must still find it.
+        assertEquals("prefill_tokens_per_second", PrefillSpeed.storageKey(xyz.fieldatlas.assets.ModelOffers.recommended.id))
+        assertEquals("prefill_tokens_per_second", PrefillSpeed.storageKey(null))
+        assertEquals("prefill_tokens_per_second:qwen3.5-4b-q4-k-m", PrefillSpeed.storageKey(xyz.fieldatlas.assets.ModelOffers.larger.id))
+    }
     @Test fun aLearnedSlowSpeedShrinksTheNextPrompt() = kotlinx.coroutines.runBlocking {
         var captured = ""
         val gateway = object : xyz.fieldatlas.inference.InferenceGateway {

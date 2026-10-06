@@ -12,13 +12,16 @@ import java.security.MessageDigest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import xyz.fieldatlas.assets.AssetImporter
 import xyz.fieldatlas.assets.AssetRegistry
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
-import xyz.fieldatlas.assets.RecommendedModelDownload
+import xyz.fieldatlas.assets.ModelDownload
+import xyz.fieldatlas.assets.ModelOffer
+import xyz.fieldatlas.assets.ModelOffers
 import xyz.fieldatlas.assets.KnowledgeCatalog
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.assets.KnowledgePackDownload
@@ -70,7 +73,23 @@ class AppContainer(context: Context) {
     }
     private val storageFootprint = xyz.fieldatlas.assets.StorageFootprint.forApp(appContext)
     private val provisioningMutex = Mutex()
-    private val recommendedModelDownload = RecommendedModelDownload(appContext.filesDir, registry, storageFootprint)
+    private val modelDownload = ModelDownload(appContext.filesDir, registry, storageFootprint)
+    /** Total memory as Android reports it: a little under the size on the box. */
+    val deviceMemoryBytes: Long by lazy {
+        android.app.ActivityManager.MemoryInfo().also {
+            appContext.getSystemService(android.app.ActivityManager::class.java).getMemoryInfo(it)
+        }.totalMem
+    }
+    /** Models this phone has the memory for, whether installed or not. */
+    val modelOffers: List<ModelOffer> by lazy { ModelOffers.all.filter { it.fits(deviceMemoryBytes) } }
+    /** False for a pinned model this phone has too little memory to run. */
+    fun modelFits(asset: InstalledAsset): Boolean = ModelOffers.byId(asset.id)?.fits(deviceMemoryBytes) ?: true
+    private val modelPreferences = appContext.getSharedPreferences("models", Context.MODE_PRIVATE)
+    private val modelScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
+    private var settleJob: kotlinx.coroutines.Job? = null
+    private val mutableModelNotice = MutableStateFlow<String?>(null)
+    /** Why the model in use is not the one that was selected, until another model is chosen. */
+    val modelNotice: StateFlow<String?> = mutableModelNotice.asStateFlow()
     private val catalogRepository = xyz.fieldatlas.assets.KnowledgeCatalogRepository(
         appContext.assets.open("knowledge/catalog.json").bufferedReader().use { KnowledgeCatalog.parse(it.readText()) },
         File(appContext.filesDir, "knowledge-catalog.json"),
@@ -171,10 +190,10 @@ class AppContainer(context: Context) {
     }
     suspend fun inspectImportPack(uri: Uri) = importer.inspect(uri)
 
-    suspend fun downloadRecommendedModel(onProgress: (Long) -> Unit): InstalledAsset =
-        provisioningMutex.withLock { recommendedModelDownload.install(onProgress).also { refreshPacks() } }
+    suspend fun downloadModel(offer: ModelOffer, onProgress: (Long) -> Unit): InstalledAsset =
+        provisioningMutex.withLock { modelDownload.install(offer, onProgress).also { refreshPacks() } }
 
-    fun resumableModelBytes(): Long = recommendedModelDownload.resumableBytes()
+    fun resumableModelBytes(offer: ModelOffer = ModelOffers.recommended): Long = modelDownload.resumableBytes(offer)
     fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long = knowledgePackDownload.resumableBytes(pack)
 
     suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset = provisioningMutex.withLock {
@@ -188,20 +207,66 @@ class AppContainer(context: Context) {
         installed
     }
 
-    suspend fun loadModel() {
+    /** One model change at a time, so a second request never reads a half-written load record. */
+    private val modelMutex = Mutex()
+
+    /**
+     * Loads the selected model. It runs to the end even when the screen that asked is recreated
+     * (a rotation cancels its scope): the native load cannot be stopped, and bookkeeping cut short
+     * would leave the load record, the loaded model and its prompt speed wrong.
+     */
+    suspend fun loadModel() = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+        modelMutex.withLock { loadModelLocked() }
+    }
+
+    private suspend fun loadModelLocked() {
         if (inference.state.value is InferenceState.Failed) inference.unload()
+        // A request that waited for another load finds the model ready.
+        if (inference.state.value == InferenceState.Ready && loadedModel != null) return
         check(inference.state.value == InferenceState.Idle) { "Model is already loaded or loading" }
         val models = packs.value.filter { it.type == PackType.MODEL }
-        val modelPack = models.firstOrNull { it.active } ?: models.firstOrNull()
-            ?: error("Install a verified model pack first")
+        val choice = xyz.fieldatlas.assets.chooseModel(models, deviceMemoryBytes,
+            modelPreferences.getString(UNFINISHED_LOAD, null))
+        val modelPack = choice.pack
         val modelFile = java.io.File(modelPack.rootPath, "model.gguf")
         check(modelFile.isFile) { "Verified model file is missing" }
-        inference.load(modelFile.absolutePath, SYSTEM_PROMPT)
-        loadedModel = modelPack.id to modelPack.version
-        if (models.none { it.active }) {
+        choice.notice?.let { notice ->
+            mutableModelNotice.value = notice
+            errorBus.report("Model", notice)
+        }
+        if (!modelPack.active) {
             registry.setActiveModel(modelPack.id, modelPack.version)
             refreshPacks()
         }
+        // A model other than the recommended one can run the phone out of memory. Android killed
+        // the app 0.2 s after the 4B finished loading on a 6 GB phone, so the record stays from
+        // the start of the load until the phone has settled; if the app is killed in between,
+        // the next load falls back instead of trying again.
+        settleJob?.cancel()
+        val guarded = modelPack.id != ModelOffers.recommended.id
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            modelPreferences.edit().apply {
+                if (guarded) putString(UNFINISHED_LOAD, xyz.fieldatlas.assets.modelLoadKey(modelPack))
+                else remove(UNFINISHED_LOAD)
+            }.commit()
+        }
+        var loaded = false
+        try {
+            inference.load(modelFile.absolutePath, SYSTEM_PROMPT)
+            loaded = true
+        } finally {
+            if (guarded && loaded) {
+                settleJob = modelScope.launch {
+                    kotlinx.coroutines.delay(MODEL_SETTLE_MILLIS)
+                    modelPreferences.edit().remove(UNFINISHED_LOAD).commit()
+                }
+            } else if (guarded) {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    modelPreferences.edit().remove(UNFINISHED_LOAD).commit()
+                }
+            }
+        }
+        loadedModel = modelPack.id to modelPack.version
     }
 
     /** Directory of the active dictation model (audio pack), or null to use the built-in one. */
@@ -212,24 +277,40 @@ class AppContainer(context: Context) {
         return directory?.takeIf { it.isDirectory }?.absolutePath
     }
 
-    suspend fun unloadModel() {
+    suspend fun unloadModel() = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+        modelMutex.withLock { unloadModelLocked() }
+    }
+
+    private suspend fun unloadModelLocked() {
         inference.unload()
         loadedModel = null
+        // A released model can no longer run the phone out of memory.
+        if (settleJob?.isActive == true) {
+            settleJob?.cancel()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                modelPreferences.edit().remove(UNFINISHED_LOAD).commit()
+            }
+        }
     }
 
     /** Which model pack the running native engine was loaded from, if any. */
-    private var loadedModel: Pair<String, String>? = null
+    @Volatile private var loadedModel: Pair<String, String>? = null
 
     /**
      * Selects the model pack used by future loads. If a model is currently loaded, the swap is
      * applied immediately: the running model is released and the selected pack is loaded, so the
      * research screen never runs a different model than the one the library marks as selected.
      */
-    suspend fun setActiveModel(asset: InstalledAsset) {
+    suspend fun setActiveModel(asset: InstalledAsset) = kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+        modelMutex.withLock { setActiveModelLocked(asset) }
+    }
+
+    private suspend fun setActiveModelLocked(asset: InstalledAsset) {
         require(asset.type != PackType.KNOWLEDGE) { "Only answer- or speech-model packs can be selected" }
         require(packs.value.any { it.id == asset.id && it.version == asset.version }) {
             "Model pack is not installed"
         }
+        if (asset.type == PackType.MODEL) mutableModelNotice.value = null
         if (asset.type != PackType.MODEL) {
             // Speech model swap: no inference reload involved.
             registry.setActiveModel(asset.id, asset.version)
@@ -242,10 +323,10 @@ class AppContainer(context: Context) {
             return
         }
         val reload = loadedModel != null
-        if (reload) unloadModel()
+        if (reload) unloadModelLocked()
         registry.setActiveModel(asset.id, asset.version)
         refreshPacks()
-        if (reload) loadModel()
+        if (reload) loadModelLocked()
     }
 
     fun proof(metrics: ResearchMetrics?, completion: ResearchCompletion?): ProofModel =
@@ -302,6 +383,8 @@ class AppContainer(context: Context) {
         if (asset.type == PackType.MODEL && loadedModel == asset.id to asset.version) {
             runCatching { unloadModel() }
         }
+        // The note explains why a model is not in use; it is stale once a model is removed.
+        if (asset.type == PackType.MODEL) mutableModelNotice.value = null
         registry.remove(asset.id, asset.version)
         refreshPacks()
     }
@@ -324,13 +407,18 @@ class AppContainer(context: Context) {
             appContext.assets.open("emergency/numbers.json").bufferedReader().use { xyz.fieldatlas.emergency.EmergencyNumbers.book(it.readText()) }
         }.getOrNull()
     }
-    /** Remembered across launches: the first file answer after an update should not start blind. */
+    /**
+     * Remembered across launches: the first file answer after an update should not start blind.
+     * Kept per model, since a larger model reads a prompt several times slower.
+     */
     private val prefillSpeed = object : xyz.fieldatlas.research.PrefillSpeed {
         private val prefs = appContext.getSharedPreferences("research", Context.MODE_PRIVATE)
+        private fun key() = xyz.fieldatlas.research.PrefillSpeed.storageKey(loadedModel?.first)
         override var tokensPerSecond: Double?
-            get() = prefs.getFloat("prefill_tokens_per_second", -1f).takeIf { it > 0f }?.toDouble()
+            get() = prefs.getFloat(key(), -1f).takeIf { it > 0f }?.toDouble()
             set(value) {
-                prefs.edit().apply { if (value == null) remove("prefill_tokens_per_second") else putFloat("prefill_tokens_per_second", value.toFloat()) }.apply()
+                val key = key()
+                prefs.edit().apply { if (value == null) remove(key) else putFloat(key, value.toFloat()) }.apply()
             }
     }
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
@@ -406,6 +494,8 @@ class AppContainer(context: Context) {
             "You are an offline assistant on this phone. Follow the current research prompt: " +
                 "use supplied sources when present, otherwise answer from model knowledge. " +
                 "Never invent citations, claim internet access, or present changing facts as verified current facts."
+        const val UNFINISHED_LOAD = "unfinished_load"
+        const val MODEL_SETTLE_MILLIS = 15_000L
         const val BUNDLED_REFERENCE_ID = "fieldatlas-reference"
         const val BUNDLED_REFERENCE_VERSION = "1.0.0"
         const val BUNDLED_REFERENCE_MANIFEST_SHA256 =

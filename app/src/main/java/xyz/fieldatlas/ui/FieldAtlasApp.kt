@@ -73,7 +73,10 @@ fun FieldAtlasApp(
     importingName: String? = null,
     importingPack: xyz.fieldatlas.assets.PackImportInfo? = null,
     downloading: Boolean = false,
+    downloadingModelId: String? = null,
     downloadedBytes: Long = 0,
+    modelError: String? = null,
+    modelErrorId: String? = null,
     offerKnowledge: Boolean = false,
     availableKnowledge: List<KnowledgeCatalogEntry> = emptyList(),
     catalogRefreshing: Boolean = false,
@@ -91,6 +94,12 @@ fun FieldAtlasApp(
     onImportPack: () -> Unit,
     onDownloadModel: () -> Unit = {},
     resumableModelBytes: Long = 0,
+    /** Models this phone has the memory for, offered in Library when not installed. */
+    modelOffers: List<xyz.fieldatlas.assets.ModelOffer> = emptyList(),
+    onDownloadModelOffer: (xyz.fieldatlas.assets.ModelOffer) -> Unit = {},
+    resumableOfferBytes: (xyz.fieldatlas.assets.ModelOffer) -> Long = { 0 },
+    modelFits: (InstalledAsset) -> Boolean = { true },
+    modelNotice: String? = null,
     resumableKnowledgeBytes: (KnowledgeCatalogEntry) -> Long = { 0 },
     onCancelDownload: () -> Unit = {},
     onDismissKnowledgeOffer: () -> Unit = {},
@@ -147,14 +156,19 @@ fun FieldAtlasApp(
     }
     FieldAtlasTheme {
         if (!ready || offerKnowledge) {
+            val recommendedDownloading = downloadingModelId == null ||
+                downloadingModelId == xyz.fieldatlas.assets.ModelOffers.recommended.id
             SetupScreen(
                 packs = packs,
                 importing = importing,
                 importingName = importingName,
                 importingPack = importingPack,
-                downloading = downloading,
+                downloading = downloading && recommendedDownloading,
+                otherModelDownloading = downloading && !recommendedDownloading,
                 downloadedBytes = downloadedBytes,
-                error = setupError,
+                error = setupError ?: modelError?.takeIf {
+                    modelErrorId == null || modelErrorId == xyz.fieldatlas.assets.ModelOffers.recommended.id
+                },
                 onImportPack = onImportPack,
                 onDownloadModel = onDownloadModel,
                 resumableModelBytes = resumableModelBytes,
@@ -340,6 +354,17 @@ fun FieldAtlasApp(
                         resumableKnowledgeBytes = resumableKnowledgeBytes,
                         onDownloadKnowledge = onDownloadKnowledge,
                         onCancelKnowledgeDownload = onCancelKnowledgeDownload,
+                        modelOffers = modelOffers,
+                        downloadingModelId = downloadingModelId.takeIf { downloading },
+                        modelDownloadedBytes = downloadedBytes,
+                        modelDownloadError = modelError,
+                        modelDownloadErrorId = modelErrorId,
+                        onDownloadModel = onDownloadModelOffer,
+                        onCancelModelDownload = onCancelDownload,
+                        resumableModelBytes = resumableOfferBytes,
+                        modelBusy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating,
+                        modelFits = modelFits,
+                        modelNotice = modelNotice,
                         onAskExample = { question ->
                             onAskAnotherQuestion()
                             onQuestionChange(question)
