@@ -1,6 +1,6 @@
 # Release audit
 
-Updated 5 October 2026. **Owner approved v1.2.0, v1.2.1 and v1.3.0 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 7 October 2026. **Owner approved v1.2.0, v1.2.1 and v1.3.0 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
 ## Provenance audit of other submissions' material (5 October 2026)
 
@@ -33,6 +33,36 @@ Shared ideas remain where they are general: answering arithmetic exactly instead
 model, quoting an Ethereum proposal's own summary, and a table of emergency numbers. Those
 are implemented here independently, from primary sources (the Wikipedia list of emergency
 numbers at a pinned revision, the EIP and ERC repositories, NIST publications).
+
+## v1.4.0 release handoff (7 October 2026)
+
+### Public artifact verification
+
+Built the optimized public-key APK from app source at `4c294d8`: version 1.4.0 (18),
+108,762,500 bytes, SHA-256 `a371d31fafc898182d9a7f902caa8db587818a4e27b72ac76a868caf9f6002d2`. The certificate matches the existing public release
+certificate recorded below (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
+Release build and lint passed (0 errors, 47 warnings); 799 JVM tests passed and 16 opt-in desktop tests were skipped in the
+ordinary run (run separately against the real collections). All 147 Python tests passed (57
+scripts, 12 packtool, 6 benchmark, 72 builders). The offline packaging audit (`verify_offline.sh`)
+passed. Five knowledge releases accompany the app: `knowledge-wikivoyage-guides-2026.09.01`,
+`knowledge-vegan-places-2026.10.05`, `knowledge-essentials-2026.10.05`,
+`knowledge-crypto-ethereum-2026.10.05` and `knowledge-wikipedia-en-vital-2026.10.06`, each with its
+`SHA256SUMS` and source lock; the catalog in the app names their sizes and checksums.
+
+Phone checks used a locally signed build of the same source on a Redmi 13C (Android 13, airplane
+mode, Wi-Fi and mobile data off, installed over 1.3.0 with data kept, the five 1.4.0 collections
+imported from files); the public-key APK was not installed on a phone. The first 1.4.0 build
+stopped on launch: Android's ICU regex engine reads `[:.]` as the start of a POSIX class, which the
+JVM the unit tests run on accepts. Two calculator patterns were rewritten and an instrumentation
+test now compiles every pattern literal of the app on the device.
+
+### Answer quality against the bounty bar
+
+On 60 held-out questions written after the last change, graded blind against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 38% of the reference and the optional Qwen3.5 4B 52% on the 55 without a phone position: the bounty's bar is not met with the default model, and only just, on 8 GB phones, with the 4B. The measurement method, its limits (frontier references and graders of one family,
+development sets looked at during the changes) and every graded answer are published
+([evaluation](../evaluation.md#140-on-60-new-held-out-questions-october-7),
+[results](../fieldtest/results-1.4.0/)). The requirement ledger ([bounty-31.json](bounty-31.json))
+records each requirement as pass, partial or fail with the evidence for it.
 
 ## v1.3.0 release handoff (5 October 2026)
 
