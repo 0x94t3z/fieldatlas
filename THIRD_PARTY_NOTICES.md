@@ -4,6 +4,7 @@ This file is a navigation index for significant source and runtime components. I
 
 | Component | Pinned version | License | Upstream license |
 | --- | --- | --- | --- |
+| `vbuterin/fieldatlas` fork, branch `vector-search` (retrieval, history, voice, pack toolchain, Biology pack; see README Acknowledgements) | commits 337d334–769e85d, merged in 4967a49 | carries this repository's Apache-2.0 LICENSE | [vbuterin/fieldatlas](https://github.com/vbuterin/fieldatlas/tree/vector-search) |
 | `ggml-org/llama.cpp` | commit `60081bb2b5b3294165a4d67c5cbeebe74c868014` | MIT | [llama.cpp LICENSE](https://github.com/ggml-org/llama.cpp/blob/60081bb2b5b3294165a4d67c5cbeebe74c868014/LICENSE) |
 | `Qwen/Qwen3.5-2B` / bartowski GGUF | revisions pinned in `models/compact-qwen3.5-2b.example.json` | Apache-2.0 | [Qwen3.5-2B model card](https://huggingface.co/Qwen/Qwen3.5-2B) |
 | `Qwen/Qwen3.5-4B` / bartowski GGUF (optional download) | revisions pinned in `models/compact-qwen3.5-4b.example.json` | Apache-2.0 | [Qwen3.5-4B model card](https://huggingface.co/Qwen/Qwen3.5-4B) |

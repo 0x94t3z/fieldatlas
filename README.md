@@ -106,6 +106,24 @@ The [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) shows the ori
 | Pack tooling | Python · `.fapack` | Build and validate model and knowledge archives |
 | Build tooling | Gradle · Android NDK · CMake | Build the app and native runtime |
 
+## Acknowledgements
+
+Part of Field Atlas comes from a fork of this repository,
+[github.com/vbuterin/fieldatlas](https://github.com/vbuterin/fieldatlas/tree/vector-search), branch
+`vector-search`. Its commits 337d334 to 769e85d (24–25 September 2026, authored in Git as
+"user.email &lt;me@me.com&gt;") were merged here in 4967a49. They added:
+
+- multi-collection retrieval with semantic (vector) search and query expansion;
+- answer history, and answers that keep generating when the app is in the background;
+- voice input with a bundled Vosk English model;
+- the deterministic pack toolchain (`content2fapack.py`, `stream_pack.py`, `fapack_convert.py`,
+  `build_model_packs.py`, `build_vector_pack.py`, `wiki_mini_build.py`, `wiki_extract_numbers.py`) and
+  the end-to-end test tools with their question lists (`e2e_test.py`, `e2e_battery.py`);
+- the first version of the llama.cpp generation patch in `scripts/patches/`;
+- the Biology & longevity vector pack, which the app still downloads from that fork.
+
+Later work in this repository builds on these parts.
+
 ## For developers and data builders
 
 - [Build the Android app](docs/building.md)
