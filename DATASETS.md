@@ -127,7 +127,9 @@ Both CirrusSearch packs were rebuilt a second time from their spools and were by
 They were published on 2 October as releases `knowledge-simplewiki-2025.12.29` and
 `knowledge-wikivoyage-guides-2025.12.29`, each carrying the `.fapack`, `SOURCE.json`, the
 spool and its `.meta.json` (Wikimedia keeps CirrusSearch dumps for only a few weeks), and
-`SHA256SUMS`.
+`SHA256SUMS`. The flat guides release was superseded by the guides-by-section collection
+(`knowledge-wikivoyage-guides-2026.09.01`) and removed from GitHub after 1.4.0 was published; the
+Encyclopedia release stays.
 
 ## Broader travel places (keyword-only builder)
 
@@ -191,7 +193,7 @@ Singapore 102, Chiang Mai 85. The `.fapack` is 40,088,517 bytes, SHA-256
 two builds from the same cache were byte-identical. The cache is 88 MB of raw Overpass JSON.
 Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
 `2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
-the main server refused further connections). It is published as release `knowledge-vegan-places-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
+the main server refused further connections). It was published as release `knowledge-vegan-places-2026.10.02` (superseded by `knowledge-vegan-places-2026.10.05`, which carries the same cache, and removed from GitHub after 1.4.0 was published), carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
 
 **Rebuild, 5 October 2026.** Same Overpass cache, with the address-city rule above: a
 restaurant whose address says Malmö was filed under Copenhagen, 28 km away in another country.
@@ -248,7 +250,9 @@ about 2 GB of memory on an Apple Silicon Mac). All 31 Overpass responses came fr
 `maps.mail.ru` mirror, with data timestamps from `2026-10-02T08:04:36Z` to
 `2026-10-02T16:29:06Z`; the raw cache is 1.0 GB, or 180 MB compressed. It was published on 3 October as release
 `knowledge-essentials-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the cache
-(`osm-essentials-overpass-cache-2026.10.02.tar.gz`) and `SHA256SUMS`.
+(`osm-essentials-overpass-cache-2026.10.02.tar.gz`) and `SHA256SUMS`; superseded by
+`knowledge-essentials-2026.10.05`, which carries the same cache, and removed from GitHub after
+1.4.0 was published.
 
 **Rebuild, 5 October 2026.** Same cache, with the vegan-places address-city rule. 12,823
 places changed destination, among them 306 from Quezon City to Manila, 247 from El Alto to La
