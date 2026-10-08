@@ -9,6 +9,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FieldAtlasThemeTest {
+    @Test fun answersAndSourcesShareACompactReadingAndDisclosureScale() {
+        assertEquals(FieldAtlasEditorial, FieldAtlasReadingStyle.fontFamily)
+        assertEquals(15.sp, FieldAtlasReadingStyle.fontSize)
+        assertEquals(24.sp, FieldAtlasReadingStyle.lineHeight)
+        assertEquals(FieldAtlasSans, FieldAtlasDisclosureStyle.fontFamily)
+        assertEquals(13.sp, FieldAtlasDisclosureStyle.fontSize)
+        assertEquals(21.sp, FieldAtlasDisclosureStyle.lineHeight)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.Medium, FieldAtlasDisclosureStyle.fontWeight)
+    }
+
     @Test fun collectionStatusUsesTheCylinderDatabaseVectorNotTheBook() {
         val path = FieldAtlasIcons.Database.root[0] as androidx.compose.ui.graphics.vector.VectorPath
         assertTrue(path.pathData.any { it is androidx.compose.ui.graphics.vector.PathNode.RelativeArcTo })

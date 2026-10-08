@@ -338,7 +338,7 @@ fun FieldAtlasDisclosureRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
-    labelStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
+    labelStyle: androidx.compose.ui.text.TextStyle = FieldAtlasDisclosureStyle,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp)

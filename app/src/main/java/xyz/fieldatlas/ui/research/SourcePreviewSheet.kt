@@ -46,11 +46,11 @@ import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.sourceDisplayName
 import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
-import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
 import xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
 
 /** A map listing ("Place: …", "Latitude: …") laid out for someone standing in the street. */
 internal data class PlaceSheetContent(
@@ -202,9 +202,8 @@ internal fun SourcePreviewSheet(
                     } else {
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
                             // Plain text, never Markdown: saved passages cannot add links or citations.
-                            Text(evidence.text.trim(), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge.copy(
-                                fontSize = 15.sp, lineHeight = 24.sp),
-                                fontFamily = FieldAtlasEditorial, maxLines = 9, overflow = TextOverflow.Ellipsis)
+                            Text(evidence.text.trim(), Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
+                                maxLines = 9, overflow = TextOverflow.Ellipsis)
                         }
                         Text("Original saved text. The model's wording is not verified against it.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -49,6 +49,17 @@ val FieldAtlasSans = FontFamily(listOf(400, 450, 500, 600, 650, 700, 750, 800).m
         variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
 })
 
+/** One reading scale for answers, live drafts, History and original source prose. */
+val FieldAtlasReadingStyle = TextStyle(
+    fontFamily = FieldAtlasEditorial, fontSize = 15.sp, lineHeight = 24.sp,
+)
+
+/** Secondary answer/source controls never inherit the larger question/body scale. */
+val FieldAtlasDisclosureStyle = TextStyle(
+    fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium,
+    fontSize = 13.sp, lineHeight = 21.sp,
+)
+
 /** Preserve the original Start research control independently of interface typography. */
 val FieldAtlasResearchButtonStyle = TextStyle(
     fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold,

@@ -52,6 +52,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.StatusTone
 import xyz.fieldatlas.ui.theme.FieldAtlasDisclosureRow
 import xyz.fieldatlas.ui.theme.FieldAtlasFactRow
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
+import xyz.fieldatlas.ui.theme.FieldAtlasSans
 
 @Composable
 fun AnswerScreen(
@@ -198,7 +200,7 @@ fun AnswerScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(lead),
                                 sourceCount = state.sources.size, onCitation = openPreview,
-                                bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium))
+                                bodyStyle = FieldAtlasReadingStyle.copy(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium))
                             notes?.let {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Info, contentDescription = null,
@@ -227,8 +229,7 @@ fun AnswerScreen(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
                             onCitation = openPreview,
-                            bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
-                                lineHeight = 29.sp),
+                            bodyStyle = FieldAtlasReadingStyle,
                             sourceTitles = state.sources.map { it.title },
                         )
                     }
@@ -478,7 +479,7 @@ private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Un
 
 @Composable
 private fun AnswerDisclosureContent(label: String, expanded: Boolean, onClick: () -> Unit) {
-    FieldAtlasDisclosureRow(label, expanded, onClick, labelStyle = MaterialTheme.typography.bodyMedium)
+    FieldAtlasDisclosureRow(label, expanded, onClick)
 }
 
 private data class AnswerSourceGroup(

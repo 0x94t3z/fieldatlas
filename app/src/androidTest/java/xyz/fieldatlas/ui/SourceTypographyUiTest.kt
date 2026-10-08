@@ -20,6 +20,7 @@ import xyz.fieldatlas.ui.research.AnswerScreen
 import xyz.fieldatlas.ui.research.ResearchUiState
 import xyz.fieldatlas.ui.research.SourcePreviewSheet
 import xyz.fieldatlas.ui.sources.SourceTextContent
+import xyz.fieldatlas.ui.sources.SourcesScreen
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 
 /** Typography fixtures only: never alter real saved answers or source text. */
@@ -35,7 +36,7 @@ class SourceTypographyUiTest {
         return layouts.single()
     }
 
-    @Test fun sourceListAndDisclosureUseCompactFontsWithoutChangingTheAnswerBody() {
+    @Test fun sourceListAndDisclosureUseTheSharedCompactReadingScale() {
         val answer = "A saved result.\n\n[S1]"
         compose.setContent { FieldAtlasTheme {
             Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -44,7 +45,8 @@ class SourceTypographyUiTest {
             }
         } }
         compose.onNodeWithText("A saved result.").performScrollTo()
-        assertEquals(17.sp, textLayout("A saved result.").layoutInput.style.fontSize)
+        assertEquals(15.sp, textLayout("A saved result.").layoutInput.style.fontSize)
+        assertEquals(24.sp, textLayout("A saved result.").layoutInput.style.lineHeight)
         compose.onNodeWithText(title).performScrollTo()
         assertEquals(14.sp, textLayout(title).layoutInput.style.fontSize)
         compose.onNodeWithText("Answer details").performScrollTo()
@@ -69,6 +71,35 @@ class SourceTypographyUiTest {
         assertEquals(15.sp, textLayout(passage).layoutInput.style.fontSize)
         assertEquals(24.sp, textLayout(passage).layoutInput.style.lineHeight)
         compose.onNodeWithText(passage).assertIsDisplayed()
+    }
+
+    @Test fun technicalIdentifiersUsesTheSameCompactDisclosureScaleExpandedAndCollapsed() {
+        compose.setContent { FieldAtlasTheme {
+            SourcesScreen(evidence, 1, 1, "Example licence", {})
+        } }
+        compose.onNodeWithText("Technical identifiers").performScrollTo()
+        assertEquals(13.sp, textLayout("Technical identifiers").layoutInput.style.fontSize)
+        assertEquals(21.sp, textLayout("Technical identifiers").layoutInput.style.lineHeight)
+        compose.onNodeWithText("Technical identifiers").performClick()
+        compose.onNodeWithText("Hide technical identifiers").performScrollTo()
+        assertEquals(13.sp, textLayout("Hide technical identifiers").layoutInput.style.fontSize)
+        compose.onNodeWithText("Document").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Chunk").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Hide technical identifiers").performScrollTo().performClick()
+        compose.onNodeWithText("Technical identifiers").assertIsDisplayed()
+        compose.onNodeWithText("Document").assertDoesNotExist()
+    }
+
+    @Test fun technicalIdentifiersRemainsReachableInDarkModeAtDoubleTextSize() {
+        compose.setContent { FieldAtlasTheme(darkTheme = true) {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
+                SourcesScreen(evidence, 1, 1, "Example licence", {})
+            }
+        } }
+        compose.onNodeWithText("Technical identifiers").performScrollTo().performClick()
+        compose.onNodeWithText("Chunk").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Hide technical identifiers").performScrollTo().performClick()
+        compose.onNodeWithText("Technical identifiers").assertIsDisplayed()
     }
 
     @Test fun uncitedDarkPreviewAtDoubleTextSizeDoesNotClaimCitation() {

@@ -56,7 +56,7 @@ import xyz.fieldatlas.ui.research.answerCardPreview
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasExpandIcon
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
-import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
 import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 
 /**
@@ -191,13 +191,13 @@ private fun HistoryCard(
                     sourceCount = record.evidence.size,
                     onCitation = { if (it in record.evidence.indices) onOpenSource(it) },
                     modifier = Modifier.fillMaxWidth(),
-                    bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FieldAtlasEditorial, fontSize = 16.sp, lineHeight = 26.sp),
+                    bodyStyle = FieldAtlasReadingStyle,
                     sourceTitles = record.evidence.map { it.title },
                 )
             } else {
                 Text(
                     answerPreview,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FieldAtlasEditorial, fontSize = 15.sp, lineHeight = 24.sp),
+                    style = FieldAtlasReadingStyle,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

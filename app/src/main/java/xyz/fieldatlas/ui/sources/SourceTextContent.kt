@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.serialization.json.Json
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
 
 /** Format whitespace only, preserving duplicate keys, numeric spelling and string escapes. */
 internal fun formattedSourceJson(text: String): String? {
@@ -81,8 +82,7 @@ internal fun SourceTextContent(text: String, language: String?, recognizedText: 
             }
             SelectionContainer {
                 Text(if (recognizedText && !rawOcr) readable else text,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
-                        fontSize = 15.sp, lineHeight = 24.sp))
+                    style = FieldAtlasReadingStyle)
             }
             if (recognizedText && !rawOcr && readable != text) Text("Extra blank lines hidden. Copy keeps the original recognized text.",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

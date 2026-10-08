@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.em
 import androidx.compose.foundation.shape.RoundedCornerShape
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
 
 @Composable
 fun AnswerMarkdownRenderer(
@@ -61,7 +62,7 @@ fun AnswerMarkdownRenderer(
     sourceCount: Int,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
-    bodyStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FieldAtlasEditorial, lineHeight = 29.sp),
+    bodyStyle: TextStyle = FieldAtlasReadingStyle,
     sourceTitles: List<String> = emptyList(),
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
