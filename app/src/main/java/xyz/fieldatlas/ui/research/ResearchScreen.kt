@@ -445,7 +445,15 @@ fun ResearchScreen(
             }
         }
         if (exampleQuestions.isNotEmpty() && !state.isRunning && !hasReadyAnswer) {
-            item { FieldAtlasSectionLabel("A few places to start", Modifier.padding(top = 4.dp)) }
+            item {
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    FieldAtlasSectionLabel("A few places to start", Modifier.weight(1f))
+                    Text("Tap to try", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     exampleQuestions.chunked(2).forEachIndexed { rowIndex, row ->
@@ -469,8 +477,6 @@ fun ResearchScreen(
                                                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                             Text(example.question, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
-                                        Text("Tap to try", style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
                             }

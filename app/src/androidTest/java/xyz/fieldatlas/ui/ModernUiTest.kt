@@ -115,18 +115,45 @@ class ModernUiTest {
             ResearchScreen(ResearchUiState(), InferenceState.Ready, 1,
                 onQuestionChange = { draft = it }, onSubmit = { submitted++ }, onStop = {}, onPrepareModel = {}, onOpenAnswer = {})
         } }
-        compose.onAllNodesWithText("Tap to try", useUnmergedTree = true).assertCountEquals(4)
+        compose.onAllNodesWithText("Tap to try", useUnmergedTree = true).assertCountEquals(1)
+        compose.onNodeWithText("A few places to start").performScrollTo()
+        val heading = compose.onNodeWithText("A few places to start").fetchSemanticsNode().boundsInRoot
+        val hint = compose.onNodeWithText("Tap to try").fetchSemanticsNode().boundsInRoot
+        assertEquals(heading.center.y, hint.center.y, 1f)
+        assertTrue(heading.right <= hint.left)
         val first = compose.onNodeWithContentDescription("Use example: Find a pharmacy near me")
         first.performScrollTo()
         val a = first.fetchSemanticsNode().boundsInRoot
         val b = compose.onNodeWithContentDescription("Use example: Why did the Berlin Wall fall?").fetchSemanticsNode().boundsInRoot
         assertEquals(a.top, b.top, 1f)
         assertTrue(a.right <= b.left)
-        val hints = compose.onAllNodesWithText("Tap to try", useUnmergedTree = true)
-        assertEquals(hints[0].fetchSemanticsNode().boundsInRoot.top,
-            hints[1].fetchSemanticsNode().boundsInRoot.top, 1f)
+        capture("suggestions-shared-hint-light")
         first.performClick()
         compose.runOnIdle { assertEquals("Find a pharmacy near me", draft); assertEquals(0, submitted) }
+    }
+
+    @Test fun sharedSuggestionHintFitsNarrowDarkLayoutAtDoubleTextSize() {
+        var draft = ""
+        var submitted = 0
+        compose.setContent { FieldAtlasTheme(darkTheme = true) {
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
+                Box(Modifier.width(320.dp).height(640.dp)) {
+                    ResearchScreen(ResearchUiState(), InferenceState.Ready, 1,
+                        onQuestionChange = { draft = it }, onSubmit = { submitted++ }, onStop = {},
+                        onPrepareModel = {}, onOpenAnswer = {})
+                }
+            }
+        } }
+        compose.onNodeWithText("A few places to start").performScrollTo()
+        compose.onAllNodesWithText("Tap to try", useUnmergedTree = true).assertCountEquals(1)
+        compose.onNodeWithText("Tap to try").assertIsDisplayed()
+        val heading = compose.onNodeWithText("A few places to start").fetchSemanticsNode().boundsInRoot
+        val hint = compose.onNodeWithText("Tap to try").fetchSemanticsNode().boundsInRoot
+        assertTrue(heading.right <= hint.left)
+        assertEquals(heading.center.y, hint.center.y, 1f)
+        capture("suggestions-shared-hint-dark-double-text")
+        compose.onNodeWithContentDescription("Use example: Why did the Berlin Wall fall?").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("Why did the Berlin Wall fall?", draft); assertEquals(0, submitted) }
     }
 
     @Test fun filenameRemainsOneLineAndKeepsItsOriginalAccessibleText() {
