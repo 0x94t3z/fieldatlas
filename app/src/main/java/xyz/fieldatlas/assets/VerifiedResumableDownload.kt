@@ -12,7 +12,7 @@ import kotlin.coroutines.coroutineContext
 
 /** Keeps incomplete bytes across process death; only a full pinned checksum can complete a download. */
 internal class VerifiedResumableDownload(
-    private val open: (String, Long) -> HttpURLConnection = ::openHttps,
+    private val open: (String, Long) -> HttpURLConnection = { url, offset -> openHttps(url, offset) },
 ) {
     suspend fun download(
         url: String,
@@ -38,17 +38,18 @@ internal class VerifiedResumableDownload(
         onProgress(offset)
 
         var connection = open(url, offset)
-        // A changed or nonconforming server may reject the old offset. Keep the saved bytes
-        // until a fresh full response is ready, then replace them rather than append blindly.
-        if (offset > 0 && (connection.responseCode == 416 ||
-                (connection.responseCode == HttpURLConnection.HTTP_PARTIAL &&
-                    !validContentRange(connection.getHeaderField("Content-Range"), offset,
-                        expectedBytes, connection.contentLengthLong)))) {
-            connection.disconnect()
-            connection = open(url, 0)
-            offset = 0
-        }
         try {
+            // Header reads can throw too. Own the connection before inspecting the response,
+            // including range recovery, so interrupted large downloads never leak a socket.
+            // Keep saved bytes until a valid fresh response is ready.
+            if (offset > 0 && (connection.responseCode == 416 ||
+                    (connection.responseCode == HttpURLConnection.HTTP_PARTIAL &&
+                        !validContentRange(connection.getHeaderField("Content-Range"), offset,
+                            expectedBytes, connection.contentLengthLong)))) {
+                connection.disconnect()
+                connection = open(url, 0)
+                offset = 0
+            }
             val append = when (connection.responseCode) {
                 HttpURLConnection.HTTP_OK -> {
                     check(connection.contentLengthLong < 0 || connection.contentLengthLong == expectedBytes) {
@@ -122,24 +123,38 @@ internal fun validContentRange(value: String?, start: Long, total: Long, content
         (contentLength < 0 || contentLength == end - start + 1)
 }
 
-private fun openHttps(address: String, offset: Long): HttpURLConnection {
+internal fun openHttps(address: String, offset: Long,
+    connect: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },
+): HttpURLConnection {
     var current = address
     repeat(6) {
         val url = URL(current)
-        check(url.protocol == "https") { "Downloads must use HTTPS" }
-        val connection = (url.openConnection() as HttpURLConnection).apply {
-            instanceFollowRedirects = false
-            connectTimeout = 20_000
-            readTimeout = 60_000
-            setRequestProperty("Accept-Encoding", "identity")
-            if (offset > 0) setRequestProperty("Range", "bytes=$offset-")
+        val endpoint = url.toURI()
+        check(endpoint.scheme == "https" && !endpoint.host.isNullOrBlank() && endpoint.userInfo == null &&
+            endpoint.fragment == null && (endpoint.port == -1 || endpoint.port in 1..65535)) {
+            "Downloads must use HTTPS without credentials or fragments"
         }
-        val status = connection.responseCode
-        if (status !in 300..399) return connection
-        val location = connection.getHeaderField("Location")
-        connection.disconnect()
-        check(!location.isNullOrBlank()) { "Download redirected without a location" }
-        current = URL(url, location).toString()
+        val connection = connect(url)
+        var handedOff = false
+        try {
+            connection.apply {
+                instanceFollowRedirects = false
+                connectTimeout = 20_000
+                readTimeout = 60_000
+                setRequestProperty("Accept-Encoding", "identity")
+                if (offset > 0) setRequestProperty("Range", "bytes=$offset-")
+            }
+            val status = connection.responseCode
+            if (status !in 300..399) {
+                handedOff = true
+                return connection
+            }
+            val location = connection.getHeaderField("Location")
+            check(!location.isNullOrBlank()) { "Download redirected without a location" }
+            current = URL(url, location).toString()
+        } finally {
+            if (!handedOff) connection.disconnect()
+        }
     }
     error("Too many download redirects")
 }

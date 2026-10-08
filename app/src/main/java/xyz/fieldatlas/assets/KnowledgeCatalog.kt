@@ -2,7 +2,6 @@ package xyz.fieldatlas.assets
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.net.URI
 
 @Serializable
 data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCatalogEntry>) {
@@ -21,10 +20,10 @@ data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCat
                 }
                 require(pack.bytes in 1..StorageBudget.MAX_TOTAL_BYTES) { "Invalid pack size" }
                 require(pack.sha256.matches(Regex("[0-9a-f]{64}"))) { "Invalid pack checksum" }
-                val uri = URI(pack.url)
-                require(uri.scheme == "https" && !uri.host.isNullOrBlank() &&
-                    uri.userInfo == null && uri.path.endsWith(".fapack")) {
-                    "Knowledge downloads must use HTTPS fapack URLs"
+                // Use exactly the transfer boundary's rules: don't save a catalog whose
+                // default links the downloader will later reject (fragments/invalid ports).
+                require(pack.url == validatedDownloadUrl(pack.url, ".fapack")) {
+                    "Knowledge download URL must not contain surrounding whitespace"
                 }
             }
         }

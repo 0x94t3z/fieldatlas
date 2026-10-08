@@ -74,6 +74,13 @@ class AppContainer(context: Context) {
     private val storageFootprint = xyz.fieldatlas.assets.StorageFootprint.forApp(appContext)
     private val provisioningMutex = Mutex()
     private val modelDownload = ModelDownload(appContext.filesDir, registry, storageFootprint)
+    private val sourcePreferences = appContext.getSharedPreferences("download-sources", Context.MODE_PRIVATE)
+    val downloadSources = xyz.fieldatlas.assets.DownloadSources(
+        sourcePreferences.all.mapNotNull { (key, value) -> (value as? String)?.let { key to it } }.toMap(),
+        { sources -> sourcePreferences.edit().clear().apply {
+            sources.forEach { (key, value) -> putString(key, value) }
+        }.commit() },
+    )
     /** Total memory as Android reports it: a little under the size on the box. */
     val deviceMemoryBytes: Long by lazy {
         android.app.ActivityManager.MemoryInfo().also {
@@ -190,8 +197,8 @@ class AppContainer(context: Context) {
     }
     suspend fun inspectImportPack(uri: Uri) = importer.inspect(uri)
 
-    suspend fun downloadModel(offer: ModelOffer, onProgress: (Long) -> Unit): InstalledAsset =
-        provisioningMutex.withLock { modelDownload.install(offer, onProgress).also { refreshPacks() } }
+    suspend fun downloadModel(offer: ModelOffer, downloadUrl: String = offer.url, onProgress: (Long) -> Unit): InstalledAsset =
+        provisioningMutex.withLock { modelDownload.install(offer, downloadUrl, onProgress).also { refreshPacks() } }
 
     fun resumableModelBytes(offer: ModelOffer = ModelOffers.recommended): Long = modelDownload.resumableBytes(offer)
     fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long = knowledgePackDownload.resumableBytes(pack)
@@ -199,7 +206,7 @@ class AppContainer(context: Context) {
     /** Paused downloads of collection versions the catalog has replaced; called before any download starts. */
     fun discardStaleKnowledgeDownloads(): Int = knowledgePackDownload.discardStale(catalogRepository.state.value.packs)
 
-    suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset = provisioningMutex.withLock {
+    suspend fun downloadKnowledge(pack: KnowledgeCatalogEntry, downloadUrl: String = pack.url, onProgress: (Long) -> Unit): InstalledAsset = provisioningMutex.withLock {
         val selected = runCatching { catalogRepository.selectForDownload(pack) }.getOrElse { error ->
             // A paused download of a version the catalog replaced (vegan places 2026.10.02 after
             // 2026.10.05 arrived) can never finish; its partial file would hold the space forever.
@@ -207,7 +214,7 @@ class AppContainer(context: Context) {
             knowledgePackDownload.discardPartial(pack, catalogRepository.state.value.packs)
             throw error
         }
-        val installed = knowledgePackDownload.install(selected, onProgress)
+        val installed = knowledgePackDownload.install(selected, downloadUrl, onProgress)
         // Keep older versions available for rollback, but don't search duplicate editions.
         registry.list().filter { it.type == PackType.KNOWLEDGE && it.id == pack.id &&
             it.version != pack.version && it.enabled

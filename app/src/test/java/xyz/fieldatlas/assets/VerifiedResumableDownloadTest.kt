@@ -2,6 +2,7 @@ package xyz.fieldatlas.assets
 
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.file.Files
@@ -88,6 +89,109 @@ class VerifiedResumableDownloadTest {
         }
     }
 
+    @Test fun interruptedResponseHeadersReleaseTheConnectionAndPreserveProgress() = runBlocking {
+        val saved = body.copyOfRange(0, 9)
+        withPartial(saved) { partial ->
+            val response = object : FakeConnection(206, body) {
+                override fun getResponseCode(): Int = throw IOException("Connection interrupted")
+            }
+            val downloader = VerifiedResumableDownload { _, _ -> response }
+            assertThrows(IOException::class.java) {
+                runBlocking { downloader.download("https://example.test/pack", body.size.toLong(), Sha256.digest(body), partial) {} }
+            }
+            assertEquals(true, response.disconnected)
+            assertArrayEquals(saved, partial.readBytes())
+        }
+    }
+
+    @Test fun failingRangeRestartReleasesRejectedConnectionWithoutDiscardingPartial() = runBlocking {
+        val saved = body.copyOfRange(0, 9)
+        withPartial(saved) { partial ->
+            val rejected = FakeConnection(416, byteArrayOf())
+            val downloader = VerifiedResumableDownload { _, offset ->
+                if (offset > 0) rejected else throw IOException("Offline")
+            }
+            assertThrows(IOException::class.java) {
+                runBlocking { downloader.download("https://example.test/pack", body.size.toLong(), Sha256.digest(body), partial) {} }
+            }
+            assertEquals(true, rejected.disconnected)
+            assertArrayEquals(saved, partial.readBytes())
+        }
+    }
+
+    @Test fun redirectHeaderFailuresReleaseTheConnection() {
+        val response = object : FakeConnection(302, byteArrayOf()) {
+            override fun getHeaderField(name: String?): String? = throw IllegalStateException("Header failed")
+        }
+        assertThrows(IllegalStateException::class.java) {
+            openHttps("https://example.test/pack", 0) { response }
+        }
+        assertEquals(true, response.disconnected)
+    }
+
+    @Test fun connectionConfigurationFailuresReleaseTheConnection() {
+        val response = object : FakeConnection(200, body) {
+            override fun setRequestProperty(key: String?, value: String?) = throw IllegalStateException("Configuration failed")
+        }
+        assertThrows(IllegalStateException::class.java) {
+            openHttps("https://example.test/pack", 0) { response }
+        }
+        assertEquals(true, response.disconnected)
+    }
+
+    @Test fun openingResponseHeaderFailuresReleaseTheConnection() {
+        val response = object : FakeConnection(200, body) {
+            override fun getResponseCode(): Int = throw IOException("Header interrupted")
+        }
+        assertThrows(IOException::class.java) {
+            openHttps("https://example.test/pack", 0) { response }
+        }
+        assertEquals(true, response.disconnected)
+    }
+
+    @Test fun insecureCredentialedOrFragmentRedirectsAreRejectedBeforeTheNextRequest() {
+        for (target in listOf("http://mirror.test/file", "https://name:password@mirror.test/file",
+            "https://mirror.test/file#fragment", "https://mirror.test:65536/file")) {
+            var calls = 0
+            val response = object : FakeConnection(302, byteArrayOf()) {
+                override fun getHeaderField(name: String?): String? = target
+            }
+            assertThrows(IllegalStateException::class.java) {
+                openHttps("https://example.test/pack", 9) { calls++; response }
+            }
+            assertEquals(1, calls)
+            assertEquals(true, response.disconnected)
+        }
+    }
+
+    @Test fun validSignedRedirectPreservesRangeAndTransfersConnectionOwnership() {
+        val redirect = object : FakeConnection(302, byteArrayOf()) {
+            override fun getHeaderField(name: String?): String? = "https://cdn.test/file?signature=fixture"
+        }
+        val final = FakeConnection(206, body)
+        var calls = 0
+        val returned = openHttps("https://example.test/pack", 9) { if (calls++ == 0) redirect else final }
+        assertEquals(2, calls)
+        assertEquals(true, redirect.disconnected)
+        assertEquals(false, final.disconnected)
+        assertEquals("bytes=9-", final.getRequestProperty("Range"))
+        assertEquals("identity", final.getRequestProperty("Accept-Encoding"))
+        returned.disconnect()
+    }
+
+    @Test fun redirectLoopsAreBoundedAndEveryHopIsReleased() {
+        val responses = mutableListOf<FakeConnection>()
+        assertThrows(IllegalStateException::class.java) {
+            openHttps("https://example.test/pack", 0) {
+                object : FakeConnection(302, byteArrayOf()) {
+                    override fun getHeaderField(name: String?): String? = "/pack"
+                }.also(responses::add)
+            }
+        }
+        assertEquals(6, responses.size)
+        assertEquals(true, responses.all { it.disconnected })
+    }
+
     private suspend fun withPartial(bytes: ByteArray, block: suspend (File) -> Unit) {
         val directory = Files.createTempDirectory("atlas-resume-test").toFile()
         try {
@@ -99,13 +203,14 @@ class VerifiedResumableDownloadTest {
         }
     }
 
-    private class FakeConnection(
+    private open class FakeConnection(
         private val status: Int,
         private val bytes: ByteArray,
         private val range: String? = null,
     ) : HttpURLConnection(URL("https://example.test/pack")) {
         override fun connect() = Unit
-        override fun disconnect() = Unit
+        var disconnected = false
+        override fun disconnect() { disconnected = true }
         override fun usingProxy() = false
         override fun getResponseCode() = status
         override fun getContentLengthLong() = bytes.size.toLong()

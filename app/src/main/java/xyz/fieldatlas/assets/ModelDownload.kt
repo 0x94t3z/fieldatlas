@@ -20,7 +20,8 @@ class ModelDownload internal constructor(
 
     private fun partialFile(spec: ModelOffer) = File(storageRoot, "model-downloads/${spec.id}-${spec.version}.part")
 
-    suspend fun install(spec: ModelOffer, onProgress: (Long) -> Unit): InstalledAsset = withContext(Dispatchers.IO) {
+    suspend fun install(spec: ModelOffer, downloadUrl: String = spec.url, onProgress: (Long) -> Unit): InstalledAsset = withContext(Dispatchers.IO) {
+        validatedDownloadUrl(downloadUrl, ".gguf")
         registry.list().firstOrNull { it.id == spec.id && it.version == spec.version }
             ?.let { return@withContext it }
         val destination = File(storageRoot, "packs/${spec.id}/${spec.version}")
@@ -41,7 +42,7 @@ class ModelDownload internal constructor(
         check(storageRoot.usableSpace - 512_000_000L >= remaining + StorageBudget.METADATA_RESERVE_BYTES) {
             "Not enough free space for this model"
         }
-        downloader.download(spec.url, spec.bytes, spec.sha256, partial, onProgress)
+        downloader.download(downloadUrl, spec.bytes, spec.sha256, partial, onProgress)
         // History, attachments and caches can grow while a long transfer is running.
         // Count the completed staging file again before committing the installation.
         // On rejection it stays resumable; do not delete verified user downloads.
@@ -60,7 +61,7 @@ class ModelDownload internal constructor(
                 type = PackType.MODEL,
                 title = spec.title,
                 license = spec.license,
-                sourceUrls = listOf(spec.url),
+                sourceUrls = listOf(spec.url, downloadUrl).distinct(),
                 artifacts = listOf(PackArtifact("model.gguf", spec.bytes, spec.sha256)),
             ),
         ).encodeToByteArray()

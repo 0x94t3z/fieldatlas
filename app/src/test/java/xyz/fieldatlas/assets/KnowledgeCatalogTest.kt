@@ -7,6 +7,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KnowledgeCatalogTest {
+    @Test fun catalogRejectsDefaultsTheTransferWouldReject() {
+        val valid = KnowledgeCatalogRepositoryTest.catalog("astronomy")
+        for (invalid in listOf(valid.replace(".fapack", ".fapack#fragment"),
+            valid.replace("https://", "https://name:password@"),
+            valid.replace("https://example.org", " https://example.org"),
+            valid.replace("https://example.org", "https://example.org:65536"))) {
+            assertThrows(IllegalArgumentException::class.java) { KnowledgeCatalog.parse(invalid) }
+        }
+    }
     @Test fun rejectsMalformedEntriesAndUnsupportedSchema() {
         val valid = KnowledgeCatalogRepositoryTest.catalog("astronomy")
         for (invalid in listOf(valid.replace("edition-a", "../unsafe"),

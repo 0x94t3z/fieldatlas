@@ -5,11 +5,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /** Network access is confined to this explicit, user-started provisioning action. */
-class KnowledgePackDownload(
+class KnowledgePackDownload internal constructor(
     private val storageRoot: File,
     private val registry: AssetRegistry,
     private val importer: AssetImporter,
     private val footprint: StorageFootprint = StorageFootprint { listOf(storageRoot) },
+    private val downloader: VerifiedResumableDownload = VerifiedResumableDownload(),
 ) {
     fun resumableBytes(pack: KnowledgeCatalogEntry): Long =
         File(storageRoot, "knowledge-downloads/${pack.id}-${pack.version}.part")
@@ -39,8 +40,9 @@ class KnowledgePackDownload(
             .count { it.delete() }
     }
 
-    suspend fun install(pack: KnowledgeCatalogEntry, onProgress: (Long) -> Unit): InstalledAsset =
+    suspend fun install(pack: KnowledgeCatalogEntry, downloadUrl: String = pack.url, onProgress: (Long) -> Unit): InstalledAsset =
         withContext(Dispatchers.IO) {
+            validatedDownloadUrl(downloadUrl, ".fapack")
             val downloadDir = File(storageRoot, "knowledge-downloads").apply { mkdirs() }
             val partial = File(downloadDir, "${pack.id}-${pack.version}.part")
             registry.list().firstOrNull { it.id == pack.id && it.version == pack.version }?.let { installed ->
@@ -56,7 +58,7 @@ class KnowledgePackDownload(
             check(storageRoot.usableSpace - 512_000_000L >= peakGrowth) {
                 "Not enough free space to download and install this collection"
             }
-            VerifiedResumableDownload().download(pack.url, pack.bytes, pack.sha256, partial, onProgress)
+            downloader.download(downloadUrl, pack.bytes, pack.sha256, partial, onProgress)
             // A killed process can leave an extracted pack without a registry entry.
             val orphan = File(storageRoot, "packs/${pack.id}/${pack.version}")
             if (orphan.exists()) check(orphan.deleteRecursively()) { "Could not clear interrupted collection install" }

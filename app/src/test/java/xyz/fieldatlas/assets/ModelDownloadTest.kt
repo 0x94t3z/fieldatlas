@@ -8,6 +8,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -59,6 +60,49 @@ class ModelDownloadTest {
             error("Network must not be opened")
         })
         assertEquals(first, offline.install(offer("compact-model")) {})
+    }
+
+    @Test fun mirrorInstallsTheSamePinnedFileAndRetainsOriginalProvenance() = runBlocking {
+        val root = folder.newFolder("mirror")
+        val registry = AssetRegistry(root)
+        val opened = mutableListOf<String>()
+        val spec = offer("compact-model")
+        val url = "https://mirror.test/weights.gguf"
+        val installed = download(root, registry, opened).install(spec, url) {}
+        assertEquals(listOf(url), opened)
+        assertArrayEquals(body, File(installed.rootPath, "model.gguf").readBytes())
+        val manifest = PackManifestParser.parse(File(installed.rootPath, "manifest.json").readBytes())
+        assertEquals(listOf(spec.url, url), manifest.sourceUrls)
+        assertEquals(spec.sha256, manifest.artifacts.single().sha256)
+    }
+
+    @Test fun mirrorCannotChangeChecksumEvenWhenFileSizeMatches() = runBlocking {
+        val root = folder.newFolder("wrong-mirror")
+        val registry = AssetRegistry(root)
+        val saving = ModelDownload(root, registry, downloader = VerifiedResumableDownload { _, _ ->
+            OkConnection(ByteArray(body.size))
+        })
+        assertThrows(IllegalStateException::class.java) {
+            runBlocking { saving.install(offer("compact-model"), "https://mirror.test/weights.gguf") {} }
+        }
+        assertTrue(registry.list().isEmpty())
+        assertEquals(0L, saving.resumableBytes(offer("compact-model")))
+    }
+
+    @Test fun invalidMirrorDoesNotTouchInstalledOrPartialData() = runBlocking {
+        val root = folder.newFolder("invalid-mirror")
+        val registry = AssetRegistry(root)
+        val partial = File(root, "model-downloads/compact-model-1.0.0.part").apply {
+            parentFile!!.mkdirs(); writeBytes(body.copyOfRange(0, 9))
+        }
+        val saving = ModelDownload(root, registry, downloader = VerifiedResumableDownload { _, _ ->
+            error("Must not contact this server")
+        })
+        assertThrows(IllegalArgumentException::class.java) {
+            runBlocking { saving.install(offer("compact-model"), "http://mirror.test/weights.gguf") {} }
+        }
+        assertArrayEquals(body.copyOfRange(0, 9), partial.readBytes())
+        assertTrue(registry.list().isEmpty())
     }
 
     private class OkConnection(private val bytes: ByteArray) : HttpURLConnection(URL("https://example.test/model")) {

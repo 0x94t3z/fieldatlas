@@ -57,7 +57,7 @@ class BackgroundAssetDownloads(
                 // Versions before the optional larger model saved no id; theirs was the recommended one.
                 val id = preferences.getString(PENDING_MODEL, null)
                 val offer = if (id == null) ModelOffers.recommended else ModelOffers.byId(id)
-                if (offer == null) clearPending() else startModel(offer)
+                if (offer == null) clearPending() else startModel(offer, resume = true)
             }
             AssetDownloadKind.KNOWLEDGE.name -> {
                 val pack = runCatching {
@@ -66,37 +66,45 @@ class BackgroundAssetDownloads(
                     KnowledgeCatalog.parse(Json.encodeToString(KnowledgeCatalog(1, listOf(saved))))
                         .packs.single()
                 }.getOrNull()
-                if (pack == null) clearPending() else startKnowledge(pack)
+                if (pack == null) clearPending() else startKnowledge(pack, resume = true)
             }
             else -> clearPending()
         }
     }
 
-    fun startModel(offer: ModelOffer = ModelOffers.recommended): Boolean =
-        start(AssetDownloadKind.MODEL, null, offer, offer.bytes) { onProgress ->
-            container.downloadModel(offer, onProgress)
+    fun startModel(offer: ModelOffer = ModelOffers.recommended, resume: Boolean = false): Boolean =
+        start(AssetDownloadKind.MODEL, null, offer, DownloadArtifact.model(offer), resume) { url, onProgress ->
+            container.downloadModel(offer, url, onProgress)
         }
 
-    fun startKnowledge(pack: KnowledgeCatalogEntry): Boolean = start(
-        AssetDownloadKind.KNOWLEDGE, pack, null, pack.bytes,
-    ) { onProgress -> container.downloadKnowledge(pack, onProgress) }
+    fun startKnowledge(pack: KnowledgeCatalogEntry, resume: Boolean = false): Boolean = start(
+        AssetDownloadKind.KNOWLEDGE, pack, null, DownloadArtifact.knowledge(pack), resume,
+    ) { url, onProgress -> container.downloadKnowledge(pack, url, onProgress) }
 
     private fun start(
         kind: AssetDownloadKind,
         pack: KnowledgeCatalogEntry?,
         model: ModelOffer?,
-        totalBytes: Long,
-        install: suspend ((Long) -> Unit) -> InstalledAsset,
+        artifact: DownloadArtifact,
+        resume: Boolean,
+        install: suspend (String, (Long) -> Unit) -> InstalledAsset,
     ): Boolean = synchronized(this) {
         if (mutableState.value.active) return@synchronized false
         mutableState.value = mutableState.value.copy(
-            kind = kind, pack = pack, model = model, downloadedBytes = 0, totalBytes = totalBytes,
+            kind = kind, pack = pack, model = model, downloadedBytes = 0, totalBytes = artifact.bytes,
             errorKind = null, errorModel = null, error = null,
         )
+        val downloadUrl: String
         try {
+            // Freeze the server together with the pinned identity BEFORE starting the service.
+            // Editing settings affects only the next user-started transfer, even after process death.
+            downloadUrl = if (resume) restoredDownloadUrl(artifact,
+                preferences.getString(PENDING_ARTIFACT, null), preferences.getString(PENDING_URL, null))
+            else container.downloadSources.urlFor(artifact)
             check(preferences.edit().putString(PENDING_KIND, kind.name)
                 .putString(PENDING_PACK, pack?.let { Json.encodeToString(it) })
-                .putString(PENDING_MODEL, model?.id).commit()) {
+                .putString(PENDING_MODEL, model?.id)
+                .putString(PENDING_ARTIFACT, artifact.key).putString(PENDING_URL, downloadUrl).commit()) {
                 "Could not save download state"
             }
             AssetDownloadService.start(context)
@@ -111,7 +119,7 @@ class BackgroundAssetDownloads(
         }
         job = scope.launch {
             try {
-                install { bytes ->
+                install(downloadUrl) { bytes ->
                     mutableState.update { current ->
                         if (current.kind == kind) current.copy(downloadedBytes = bytes) else current
                     }
@@ -153,7 +161,8 @@ class BackgroundAssetDownloads(
     }
 
     private fun clearPending() {
-        preferences.edit().remove(PENDING_KIND).remove(PENDING_PACK).remove(PENDING_MODEL).commit()
+        preferences.edit().remove(PENDING_KIND).remove(PENDING_PACK).remove(PENDING_MODEL)
+            .remove(PENDING_ARTIFACT).remove(PENDING_URL).commit()
     }
 
     fun dismissKnowledgeOffer() {
@@ -164,5 +173,7 @@ class BackgroundAssetDownloads(
         const val PENDING_KIND = "kind"
         const val PENDING_PACK = "pack"
         const val PENDING_MODEL = "model"
+        const val PENDING_ARTIFACT = "artifact"
+        const val PENDING_URL = "url"
     }
 }
