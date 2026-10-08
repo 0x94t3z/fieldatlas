@@ -6,8 +6,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,13 +19,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,6 +32,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.contentDescription
@@ -38,6 +42,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.DateFormat
 import java.util.Date
 import java.time.Instant
@@ -91,14 +96,14 @@ fun HistoryScreen(
     }
     // The header scrolls with the list so long histories are not clipped under a fixed title.
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
         contentPadding = PaddingValues(top = 20.dp, bottom = 18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             FieldAtlasPageHeader(
-                title = stringResource(R.string.history_title),
-                subtitle = "Past questions and answers, kept on this phone.",
+                title = "Your notebook",
+                subtitle = "Past questions, kept on this phone.",
             )
         }
         // Search earns its space once History is longer than a screen.
@@ -158,13 +163,15 @@ private fun HistoryCard(
     val answerPreview = remember(record.answer) { answerCardPreview(record.answer) }
     FieldAtlasCard(Modifier.fillMaxWidth()
         .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+        // The click indication is outside Card's own surface; clip it before clickable
+        // so pressed/focused feedback follows the same corners in both states.
+        .clip(MaterialTheme.shapes.medium)
         .clickable(onClickLabel = if (expanded) "Collapse answer" else "Expand answer") { expanded = !expanded },
-        contentPadding = 16.dp) {
+        contentPadding = 18.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top) {
-                Text(record.question, style = MaterialTheme.typography.titleMedium,
-                    fontFamily = FieldAtlasEditorial,
+                Text(record.question, style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 25.sp),
                     modifier = Modifier.weight(1f), maxLines = if (expanded) Int.MAX_VALUE else 2,
                     overflow = TextOverflow.Ellipsis)
                 FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -184,11 +191,13 @@ private fun HistoryCard(
                     sourceCount = record.evidence.size,
                     onCitation = { if (it in record.evidence.indices) onOpenSource(it) },
                     modifier = Modifier.fillMaxWidth(),
+                    bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FieldAtlasEditorial, fontSize = 16.sp, lineHeight = 26.sp),
+                    sourceTitles = record.evidence.map { it.title },
                 )
             } else {
                 Text(
                     answerPreview,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FieldAtlasEditorial, fontSize = 15.sp, lineHeight = 24.sp),
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -196,47 +205,20 @@ private fun HistoryCard(
             if (expanded && record.sources.isNotEmpty()) {
                 Text(if (record.evidence.isEmpty()) "Saved source titles" else "Saved sources", style = MaterialTheme.typography.titleSmall)
                 record.sources.forEachIndexed { index, source ->
-                    if (index < record.evidence.size) SavedSourceRow(index + 1, source) { onOpenSource(index) }
+                    if (index < record.evidence.size) SavedSourceRow(index + 1, source,
+                        xyz.fieldatlas.ui.sourcePresentation(record.evidence[index]).isAttachment) { onOpenSource(index) }
                     else Text("• $source", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    FilledTonalButton(shape = FieldAtlasButtonShape,
-                        onClick = { onAskAgain(record.question) },
-                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurface,
-                        ),
-                    ) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Ask again", modifier = Modifier.padding(start = 6.dp))
-                    }
-                    val context = androidx.compose.ui.platform.LocalContext.current
-                    androidx.compose.material3.OutlinedIconButton(
-                        onClick = {
-                            xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
-                                xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))
-                        },
-                        modifier = Modifier.size(44.dp),
-                        shape = FieldAtlasButtonShape,
-                    ) {
-                        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share, contentDescription = "Share answer",
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(19.dp))
-                    }
-                    androidx.compose.material3.OutlinedIconButton(
-                        onClick = { confirmDelete = true },
-                        modifier = Modifier.size(44.dp),
-                        shape = FieldAtlasButtonShape,
-                    ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = "Delete from History",
-                            tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
-                    }
-                }
+                val context = androidx.compose.ui.platform.LocalContext.current
+                HistoryActions(onAskAgain = { onAskAgain(record.question) },
+                    onShare = {
+                        xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
+                            xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))
+                    }, onDelete = { confirmDelete = true })
             }
         }
     }
@@ -250,22 +232,62 @@ private fun HistoryCard(
     }
 }
 
+/** A clear repeat action plus quiet utilities; large text never shrinks the tap targets. */
 @Composable
-private fun SavedSourceRow(number: Int, title: String, onClick: () -> Unit) {
+internal fun HistoryActions(onAskAgain: () -> Unit, onShare: () -> Unit, onDelete: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        val stacked = maxWidth < 280.dp || LocalDensity.current.fontScale > 1.3f
+        val repeat: @Composable (Modifier) -> Unit = { modifier ->
+            androidx.compose.material3.OutlinedButton(onClick = onAskAgain,
+                modifier = modifier.heightIn(min = 48.dp), shape = FieldAtlasButtonShape,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                Icon(Icons.Outlined.Refresh, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Ask again", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+            }
+        }
+        val utilities: @Composable () -> Unit = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HistoryUtilityButton(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share, "Share answer", onShare)
+                HistoryUtilityButton(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Trash, "Delete from History", onDelete)
+            }
+        }
+        if (stacked) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(Modifier.fillMaxWidth())
+            Box(Modifier.align(Alignment.End)) { utilities() }
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            repeat(Modifier)
+            Spacer(Modifier.weight(1f))
+            utilities()
+        }
+    }
+}
+
+@Composable
+private fun HistoryUtilityButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+    xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(onClick, label, icon,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable
+private fun SavedSourceRow(number: Int, title: String, isAttachment: Boolean, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClickLabel = "Preview source $number", onClick = onClick)
-            .heightIn(min = 44.dp).padding(vertical = 4.dp),
+            .heightIn(min = 52.dp).padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        androidx.compose.material3.Surface(Modifier.size(30.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+        androidx.compose.material3.Surface(Modifier.size(24.dp), color = MaterialTheme.colorScheme.surfaceVariant,
             shape = MaterialTheme.shapes.small) {
             androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
                 Text("$number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             }
         }
         Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-            maxLines = 2, overflow = TextOverflow.Ellipsis)
+            maxLines = if (isAttachment) 1 else 2,
+            overflow = if (isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis)
         Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight, contentDescription = null,
             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
     }

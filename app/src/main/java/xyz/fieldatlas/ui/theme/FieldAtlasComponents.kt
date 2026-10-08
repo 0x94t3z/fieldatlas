@@ -7,6 +7,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -37,8 +42,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -49,23 +58,78 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
 
 enum class StatusTone { Neutral, Positive, Attention }
 
 /** Buttons are rounded rectangles across the app; Material's default pill shape is not used. */
-val FieldAtlasButtonShape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+val FieldAtlasButtonShape = FieldAtlasLayout.ControlShape
 
-/** Status chips use a tighter corner so they read as labels, not as buttons. */
-val FieldAtlasChipShape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
+/** Status labels retain the approved pill silhouette, independent of control corners. */
+val FieldAtlasChipShape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+
+/** Mockup-sized artwork inside an independent 48dp accessible switch target. */
+@Composable
+fun FieldAtlasSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    compact: Boolean = false,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    val position by animateFloatAsState(if (checked) 1f else 0f, label = "switch thumb")
+    val colors = MaterialTheme.colorScheme
+    Box(modifier.size(48.dp)
+        .then(if (focused) Modifier.border(2.dp, colors.primary, FieldAtlasButtonShape) else Modifier)
+        .toggleable(value = checked, enabled = enabled, role = Role.Switch,
+            interactionSource = interaction, indication = null, onValueChange = onCheckedChange),
+        contentAlignment = Alignment.Center) {
+        Box(Modifier.size(width = if (compact) 36.dp else 40.dp, height = if (compact) 22.dp else 26.dp)
+            .alpha(if (enabled) 1f else 0.38f)
+            .background(if (checked) colors.primary else colors.outline, CircleShape)
+            .testTag("compact-switch-track")) {
+            // Relative offset follows reading direction, without scaling the touch target.
+            val inset = if (compact) 3f else 4f
+            Box(Modifier.offset(x = (inset + 14f * position).dp, y = inset.dp)
+                .size(if (compact) 16.dp else 18.dp)
+                .background(if (checked) colors.onPrimary else colors.surface, CircleShape)
+                .testTag("compact-switch-thumb"))
+        }
+    }
+}
+
+/** No surface or press fill; a focus outline keeps keyboard navigation visible. */
+@Composable
+fun FieldAtlasBareIconButton(
+    onClick: () -> Unit,
+    description: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    iconSize: Dp = 20.dp,
+    tint: Color = MaterialTheme.colorScheme.primary,
+    enabled: Boolean = true,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val focused by interaction.collectIsFocusedAsState()
+    Box(modifier.size(48.dp)
+        .then(if (focused) Modifier.border(2.dp, tint, FieldAtlasButtonShape) else Modifier)
+        .clickable(enabled = enabled, interactionSource = interaction, indication = null, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Icon(icon, description, Modifier.size(iconSize), tint = if (enabled) tint else tint.copy(alpha = tint.alpha * 0.38f))
+    }
+}
 
 @Composable
 fun FieldAtlasPageHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineLarge)
+        Text(title, style = titleStyle)
         Text(
             subtitle,
             style = MaterialTheme.typography.bodyMedium,
@@ -82,12 +146,10 @@ fun FieldAtlasTopBar(
     action: (@Composable () -> Unit)? = null,
 ) {
     TopAppBar(
-        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        title = { Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold) },
         navigationIcon = {
             if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(FieldAtlasIcons.Back, contentDescription = "Back")
-                }
+                FieldAtlasBareIconButton(onBack, "Back", FieldAtlasIcons.Back)
             }
         },
         actions = { action?.invoke() },
@@ -106,9 +168,10 @@ fun FieldAtlasStatusPill(
     containerColor: Color? = null,
     contentColor: Color? = null,
     icon: ImageVector? = null,
+    compact: Boolean = false,
 ) {
     val defaultColors = when (state) {
-        StatusTone.Neutral -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        StatusTone.Neutral -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurfaceVariant
         StatusTone.Positive -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         StatusTone.Attention -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
     }
@@ -117,15 +180,28 @@ fun FieldAtlasStatusPill(
         color = containerColor ?: defaultColors.first,
         contentColor = contentColor ?: defaultColors.second,
         shape = FieldAtlasChipShape,
+        border = if (state == StatusTone.Neutral && containerColor == null)
+            BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)) else null,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            modifier = Modifier.padding(horizontal = if (compact) 8.dp else 10.dp,
+                vertical = if (compact) 4.dp else 7.dp),
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
-            if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(text = text, style = MaterialTheme.typography.labelLarge)
+            if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(
+                if (icon == FieldAtlasIcons.Offline || icon == FieldAtlasIcons.Citation) 16.dp else 14.dp))
+            Text(text = text, style = if (compact) MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp, lineHeight = 14.sp) else MaterialTheme.typography.labelMedium)
         }
+    }
+}
+
+/** One compact visible close control with a full 48dp touch target. */
+@Composable
+fun FieldAtlasCloseButton(onClick: () -> Unit, description: String) {
+    IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) {
+        Icon(FieldAtlasIcons.Close, description, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -141,7 +217,9 @@ fun FieldAtlasCard(
         colors = CardDefaults.cardColors(containerColor = containerColor),
         shape = MaterialTheme.shapes.medium,
         // A hairline keeps cards distinct from the paper without heavy shadows.
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(
+            alpha = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) 0.09f else 0.1f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(contentPadding),
@@ -160,6 +238,7 @@ fun FieldAtlasIconTile(
     modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp = 40.dp,
     tone: TileTone = TileTone.Sage,
+    iconSize: Dp = size / 2,
 ) {
     val colors = MaterialTheme.colorScheme
     val (container, content) = when (tone) {
@@ -168,8 +247,8 @@ fun FieldAtlasIconTile(
         TileTone.Paper -> colors.surfaceVariant to colors.onSurfaceVariant
         TileTone.Forest -> colors.primary to colors.onPrimary
         // A warm wash outside the green family, for when tiles in one list should all differ.
-        TileTone.Clay -> if (colors.background.luminance() > 0.5f) Color(0xFFF2DED3) to Color(0xFF6B3420)
-            else Color(0xFF4A2B21) to Color(0xFFF3D5C6)
+        TileTone.Clay -> if (colors.background.luminance() > 0.5f) Color(0xFFF2DED2) to Color(0xFF754333)
+            else Color(0xFF51372C) to Color(0xFFEFC7B2)
     }
     Surface(
         modifier = modifier.size(size),
@@ -177,7 +256,9 @@ fun FieldAtlasIconTile(
         contentColor = content,
         shape = MaterialTheme.shapes.small,
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.padding(size / 4))
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(iconSize))
+        }
     }
 }
 
@@ -194,16 +275,16 @@ fun FieldAtlasPrimaryButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.heightIn(min = 52.dp).semantics { role = Role.Button },
-        // The main call to action keeps the softer card radius.
-        shape = MaterialTheme.shapes.medium,
+        modifier = modifier.heightIn(min = if (leadingIcon == FieldAtlasIcons.ResearchSparkles) 58.dp else 52.dp).semantics { role = Role.Button },
+        shape = if (leadingIcon == FieldAtlasIcons.ResearchSparkles) FieldAtlasLayout.ResearchButtonShape else FieldAtlasButtonShape,
         contentPadding = ButtonDefaults.ContentPadding,
     ) {
         if (leadingIcon != null) {
             Icon(leadingIcon, contentDescription = null, modifier = Modifier.size(leadingIconSize))
             androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
         }
-        Text(text, style = MaterialTheme.typography.labelLarge)
+        Text(text, style = if (leadingIcon == FieldAtlasIcons.ResearchSparkles) FieldAtlasResearchButtonStyle
+            else MaterialTheme.typography.labelLarge)
         if (trailingIcon != null) {
             androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
             Icon(trailingIcon, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -242,10 +323,10 @@ fun FieldAtlasExpandIcon(
 ) {
     val rotation by animateFloatAsState(if (expanded) 180f else 0f, label = "expand")
     Icon(
-        Icons.Outlined.KeyboardArrowDown,
+        FieldAtlasIcons.ChevronRight,
         contentDescription = null,
         tint = tint,
-        modifier = modifier.size(22.dp).rotate(rotation),
+        modifier = modifier.size(20.dp).rotate(rotation + 90f),
     )
 }
 
@@ -257,6 +338,7 @@ fun FieldAtlasDisclosureRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    labelStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.bodyLarge,
 ) {
     Row(
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp)
@@ -272,7 +354,7 @@ fun FieldAtlasDisclosureRow(
         Text(
             label,
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge,
+            style = labelStyle,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -402,20 +484,20 @@ fun FieldAtlasDeleteDialog(
 ) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onKeep) {
         Surface(
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(26.dp),
+            shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 12.dp,
         ) {
             Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp, bottom = 18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(Modifier.size(48.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                Surface(Modifier.size(48.dp), shape = FieldAtlasButtonShape,
                     color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f),
                     contentColor = MaterialTheme.colorScheme.error) {
                     Icon(FieldAtlasIcons.Trash, contentDescription = null,
                         modifier = Modifier.padding(12.dp))
                 }
-                Text(title, style = MaterialTheme.typography.headlineSmall, fontFamily = FieldAtlasEditorial,
+                Text(title, style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold)
                 Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

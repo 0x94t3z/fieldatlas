@@ -57,7 +57,7 @@ private fun localPreview(file: File, edge: Int): State<PreviewImage> = produceSt
 @Composable
 internal fun AttachmentThumbnail(file: File, name: String, modifier: Modifier = Modifier.size(64.dp), onClick: () -> Unit) {
     val image by localPreview(file, 256)
-    Box(modifier.clip(RoundedCornerShape(12.dp))
+    Box(modifier.clip(MaterialTheme.shapes.medium)
         .background(MaterialTheme.colorScheme.surfaceVariant)
         .clickable(onClickLabel = "Preview image", onClick = onClick), contentAlignment = Alignment.Center) {
         image.bitmap?.let {
@@ -84,7 +84,7 @@ internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () 
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("Image preview", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close image preview") }
+                    IconButton(onClick = onClose) { Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Close, "Close image preview") }
                 }
                 Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(0.dp)).onSizeChanged { size = it }
                     .pointerInput(file) {
@@ -103,9 +103,9 @@ internal fun AttachmentImagePreview(file: File, canRemove: Boolean, onClose: () 
                     } ?: if (image.loading) CircularProgressIndicator() else Text("This image preview is no longer available.", Modifier.padding(24.dp))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { zoomTo(scale / 1.5f) }, enabled = image.bitmap != null && scale > 1f) { Icon(Icons.Default.ZoomOut, "Zoom out") }
+                    IconButton(onClick = { zoomTo(scale / 1.5f) }, enabled = image.bitmap != null && scale > 1f) { Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ZoomOut, "Zoom out") }
                     TextButton(shape = FieldAtlasButtonShape, onClick = { zoomTo(1f) }, enabled = image.bitmap != null) { Text("Reset zoom") }
-                    IconButton(onClick = { zoomTo(scale * 1.5f) }, enabled = image.bitmap != null && scale < 5f) { Icon(Icons.Default.ZoomIn, "Zoom in") }
+                    IconButton(onClick = { zoomTo(scale * 1.5f) }, enabled = image.bitmap != null && scale < 5f) { Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ZoomIn, "Zoom in") }
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     if (onReadText != null) TextButton(shape = FieldAtlasButtonShape, onClick = onReadText) { Text("Recognized text") }

@@ -139,4 +139,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // UI instrumentation needs its host activity, but it must not ship in an ordinary release.
+    if (android.testBuildType == "release") {
+        add("releaseImplementation", libs.androidx.compose.ui.test.manifest)
+    }
 }

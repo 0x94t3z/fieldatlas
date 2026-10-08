@@ -25,7 +25,8 @@ class KnowledgeSetupTest {
         compose.runOnIdle { assertEquals(0, refreshes) }
         compose.onNodeWithText("Mineralogy").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Import a pack").performScrollTo().assertIsEnabled()
-        compose.onNodeWithText("Refresh collections").performScrollTo().performClick()
+        compose.onNodeWithText("Discover").performScrollTo().performClick()
+        compose.onNodeWithText("Refresh").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, refreshes) }
     }
 
@@ -59,10 +60,10 @@ class KnowledgeSetupTest {
         compose.onNodeWithText("Refresh").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, calls) }
         compose.onNodeWithText("Refreshing…").assertIsNotEnabled()
-        compose.onNodeWithText("Import a saved pack").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Import .fapack").performScrollTo().assertIsEnabled()
     }
 
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = foregroundComposeRule()
     private val biology = KnowledgeCatalogEntry("biology", "1", "Biology & longevity", "Local biology sources",
         "Public data", 1567877980, "0".repeat(64), "https://example.org/biology.fapack", true)
 
@@ -125,7 +126,7 @@ class KnowledgeSetupTest {
         compose.onNodeWithText("You’re offline. Import saved packs, or reconnect to download.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Refresh failed").assertDoesNotExist()
         compose.onNodeWithContentDescription("Download Biology & longevity").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithText("Import a saved pack").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Import .fapack").performScrollTo().assertIsEnabled()
         compose.onNodeWithText("Start researching").assertIsEnabled()
     }
 

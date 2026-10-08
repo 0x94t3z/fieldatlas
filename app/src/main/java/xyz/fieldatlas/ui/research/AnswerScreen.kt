@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.research.AttachmentProvenance
 import xyz.fieldatlas.ui.sourceDisplayName
@@ -106,7 +107,7 @@ fun AnswerScreen(
             }))
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(start = 18.dp, end = 18.dp, top = 8.dp, bottom = 20.dp),
+                contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
@@ -149,7 +150,7 @@ fun AnswerScreen(
                             },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            androidx.compose.material3.TextButton(onClick = onOpenLibrary) {
+                            androidx.compose.material3.TextButton(shape = FieldAtlasButtonShape, onClick = onOpenLibrary) {
                                 Text(if (suggestTravel) "Add travel collection" else "Browse knowledge collections")
                             }
                         }
@@ -221,12 +222,14 @@ fun AnswerScreen(
                             modifier = Modifier.padding(top = 4.dp))
                     }
                 } else item {
-                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 20.dp) {
                         AnswerMarkdownRenderer(
                             blocks = presentation.blocks,
                             sourceCount = state.sources.size,
                             onCitation = openPreview,
-                            bodyStyle = MaterialTheme.typography.bodyLarge,
+                            bodyStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
+                                lineHeight = 29.sp),
+                            sourceTitles = state.sources.map { it.title },
                         )
                     }
                 }
@@ -348,17 +351,12 @@ internal fun shareAnswer(context: android.content.Context, question: String, tex
 private fun AnswerShareActions(shareText: String, question: String) {
     val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     val context = androidx.compose.ui.platform.LocalContext.current
-    androidx.compose.material3.IconButton(onClick = {
+    xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(onClick = {
         clipboard.setText(androidx.compose.ui.text.AnnotatedString(shareText))
         android.widget.Toast.makeText(context, "Answer and sources copied", android.widget.Toast.LENGTH_SHORT).show()
-    }) {
-        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy, contentDescription = "Copy answer with sources",
-            modifier = Modifier.size(21.dp), tint = MaterialTheme.colorScheme.primary)
-    }
-    androidx.compose.material3.IconButton(onClick = { shareAnswer(context, question, shareText) }) {
-        Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share, contentDescription = "Share answer with sources",
-            modifier = Modifier.size(21.dp), tint = MaterialTheme.colorScheme.primary)
-    }
+    }, description = "Copy answer with sources", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy)
+    xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(onClick = { shareAnswer(context, question, shareText) },
+        description = "Share answer with sources", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share)
 }
 
 @Composable
@@ -434,7 +432,7 @@ private fun AnswerSourceCard(
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
                                     text = number.toString(),
-                                    style = MaterialTheme.typography.titleMedium,
+                                    style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.semantics {
@@ -449,7 +447,7 @@ private fun AnswerSourceCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(
                     evidence.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Medium),
                     maxLines = if (source.isAttachment) 1 else 2,
                     overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
@@ -463,7 +461,7 @@ private fun AnswerSourceCard(
                 )
             }
             Icon(
-                Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight,
                 contentDescription = "Open source",
                 tint = MaterialTheme.colorScheme.primary,
             )
@@ -480,7 +478,7 @@ private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Un
 
 @Composable
 private fun AnswerDisclosureContent(label: String, expanded: Boolean, onClick: () -> Unit) {
-    FieldAtlasDisclosureRow(label, expanded, onClick)
+    FieldAtlasDisclosureRow(label, expanded, onClick, labelStyle = MaterialTheme.typography.bodyMedium)
 }
 
 private data class AnswerSourceGroup(

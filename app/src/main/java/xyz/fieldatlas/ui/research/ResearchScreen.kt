@@ -4,6 +4,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.HorizontalDivider
@@ -69,6 +73,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.semantics.stateDescription
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
@@ -91,6 +99,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.draw.alpha
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun ResearchScreen(
     state: ResearchUiState,
@@ -130,41 +139,58 @@ fun ResearchScreen(
     // that opens with its encyclopedia article, an emergency answered from its official guide,
     // and a phrase quoted from a phrasebook.
     val exampleQuestions = listOf(
-        ExampleQuestion("Best vegan restaurants in the city I'm in", FieldAtlasIcons.Food, TileTone.Clay),
+        ExampleQuestion("Find a pharmacy near me", FieldAtlasIcons.Place, TileTone.Clay),
         ExampleQuestion("Why did the Berlin Wall fall?", FieldAtlasIcons.Knowledge, TileTone.Sage),
-        ExampleQuestion("Someone is choking. What do I do?", FieldAtlasIcons.Info, TileTone.Gold),
-        ExampleQuestion("How do I say thank you in Japanese?", FieldAtlasIcons.Document, TileTone.Paper),
+        ExampleQuestion("Someone is choking. What do I do?", FieldAtlasIcons.Heart, TileTone.Gold),
+        ExampleQuestion("How do I say thank you in Japanese?", FieldAtlasIcons.Globe, TileTone.Paper),
     )
     LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
         state = listState,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            FieldAtlasPageHeader(
+            if (state.isRunning) {
+                Column(Modifier.padding(top = 8.dp)) {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 32.dp).padding(top = 4.dp),
+                        contentAlignment = Alignment.CenterStart) {
+                        Text("Researching", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)))
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Looking into your question.", style = MaterialTheme.typography.headlineLarge.copy(
+                            fontSize = 28.sp, lineHeight = 33.6.sp, fontWeight = FontWeight(650), letterSpacing = (-0.025f).em))
+                        Text("Working locally. Your question stays on this phone.", style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            } else FieldAtlasPageHeader(
                 title = when {
-                    state.isRunning -> "Researching"
                     hasReadyAnswer -> "Your research"
-                    else -> "What are you investigating today?"
+                    else -> "What would you\nlike to know?"
                 },
                 subtitle = when {
-                    state.isRunning -> "Working on this phone. Nothing leaves it."
                     hasReadyAnswer -> "Your answer is ready to read."
-                    else -> "Ask across the knowledge saved on this phone."
+                    else -> "Research with what’s saved on your phone."
                 },
-                modifier = Modifier.padding(top = if (state.isRunning || hasReadyAnswer) 16.dp else 22.dp),
+                modifier = Modifier.padding(top = if (hasReadyAnswer) 16.dp else 22.dp),
+                titleStyle = if (hasReadyAnswer) MaterialTheme.typography.headlineLarge.copy(
+                    fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight(650), letterSpacing = (-0.8).sp)
+                    else MaterialTheme.typography.displaySmall,
             )
         }
         // The design drops the status chips while research runs, keeping focus on progress.
         if (!state.isRunning) item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Reflects the real connection: research runs on the phone either way.
                 val online = xyz.fieldatlas.ui.setup.rememberSetupConnectivity()
-                FieldAtlasStatusPill(if (online) "Works offline" else "Offline now", if (online) StatusTone.Neutral else StatusTone.Positive,
+                FieldAtlasStatusPill(if (online) "Works offline" else "Offline now", StatusTone.Positive,
                     icon = FieldAtlasIcons.Offline)
                 FieldAtlasStatusPill(
                     if (collectionCount == 1) "1 collection" else "$collectionCount collections",
                     icon = FieldAtlasIcons.Database,
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -182,21 +208,19 @@ fun ResearchScreen(
                 ResearchQuestionPanel(
                     question = state.question,
                     onEdit = if (hasReadyAnswer && !state.isRunning) ({ editReadyQuestion = true }) else null,
+                    running = state.isRunning,
                 )
             }
         } else item {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.medium,
-                color = if (MaterialTheme.colorScheme.background.luminance() > 0.5f) {
-                    Color.White
-                } else {
-                    MaterialTheme.colorScheme.surface
-                },
+                shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.CardShape,
+                shadowElevation = 0.dp,
+                color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(
-                    if (questionFocused || voiceState.phase == VoicePhase.Recording) 2.dp else 1.dp,
+                    1.dp,
                     if (questionFocused || voiceState.phase == VoicePhase.Recording) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outline,
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f),
                 ),
             ) {
                 Column {
@@ -210,9 +234,10 @@ fun ResearchScreen(
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth()
-                            .heightIn(min = 76.dp)
+                            .padding(top = if (state.attachments.isNotEmpty()) 12.dp else 4.dp)
+                            .heightIn(min = if (state.attachments.isNotEmpty() && state.question.isNotBlank()) 48.dp else 96.dp, max = 220.dp)
                             .onFocusChanged { questionFocused = it.isFocused }
-                            .padding(horizontal = 16.dp, vertical = 16.dp)
+                            .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 14.dp)
                             .semantics { contentDescription = "Research question" },
                         decorationBox = { innerTextField ->
                             Box {
@@ -227,24 +252,26 @@ fun ResearchScreen(
                             }
                         },
                     )
+                    HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f))
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp, bottom = 8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box {
-                            IconButton(
+                            TextButton(
+                                shape = FieldAtlasButtonShape,
                                 onClick = { attachmentMenuOpen = true },
                                 enabled = state.canAddAttachment,
-                                modifier = Modifier.size(48.dp),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                ),
+                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add attachment" },
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                             ) {
                                 Icon(
-                                    FieldAtlasIcons.AttachFile,
-                                    contentDescription = "Add attachment",
-                                    modifier = Modifier.size(22.dp),
+                                    FieldAtlasIcons.Plus,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
                                 )
+                                Text("Add a file", style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(start = 6.dp))
                             }
                             if (attachmentMenuOpen && state.canAddAttachment) {
                                 AttachmentSheet(
@@ -256,6 +283,10 @@ fun ResearchScreen(
                             }
                         }
                         Spacer(Modifier.weight(1f))
+                        if (state.attachments.isNotEmpty() && voiceState.phase != VoicePhase.Recording) {
+                            Text(if (state.attachments.size == 1) "1 file" else "${state.attachments.size} files", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 8.dp))
+                        }
                         val recording = voiceState.phase == VoicePhase.Recording
                         if (recording) {
                             VoiceLevelMeter(voiceState.level, Modifier.padding(end = 10.dp))
@@ -287,7 +318,7 @@ fun ResearchScreen(
                                 when (voiceState.phase) {
                                     VoicePhase.Starting, VoicePhase.Processing -> CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                                     VoicePhase.Recording -> Icon(Icons.Filled.Stop, contentDescription = "Stop recording")
-                                    VoicePhase.Idle -> Icon(Icons.Outlined.Mic, contentDescription = "Speak question")
+                                    VoicePhase.Idle -> Icon(FieldAtlasIcons.Mic, contentDescription = "Speak question")
                                 }
                             }
                         }
@@ -344,22 +375,35 @@ fun ResearchScreen(
         if (hasReadyAnswer) {
             item {
                 val citedSourceCount = readyCitationCount(state.answer, state.sources.size)
-                FieldAtlasCard(Modifier.fillMaxWidth()) {
+                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+                    BoxWithConstraints(Modifier.fillMaxWidth()) {
+                    val stackTiming = maxWidth < 280.dp || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+                    val timing: @Composable () -> Unit = {
+                        state.metrics?.totalMillis?.let { duration ->
+                            Text("Took ${formatResearchElapsed(duration)}",
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.semantics { contentDescription = "Completed in ${formatResearchElapsed(duration)}" })
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Surface(
-                            modifier = Modifier.size(40.dp),
+                            modifier = Modifier.size(36.dp),
                             shape = MaterialTheme.shapes.small,
                             color = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         ) {
-                            Icon(FieldAtlasIcons.Check, contentDescription = null, modifier = Modifier.padding(8.dp))
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(FieldAtlasIcons.Document, contentDescription = null, modifier = Modifier.size(20.dp))
+                            }
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Answer ready", style = MaterialTheme.typography.titleLarge)
+                            Text("Answer ready", style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight(650), letterSpacing = (-0.3).sp))
                             Text(
                                 if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
                                     "Lookup · no model generation"
@@ -369,32 +413,25 @@ fun ResearchScreen(
                                     "$citedSourceCount local " +
                                         if (citedSourceCount == 1) "source cited." else "sources cited."
                                 },
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 18.sp),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            if (stackTiming) timing()
                         }
-                        state.metrics?.totalMillis?.let { duration ->
-                            FieldAtlasStatusPill(
-                                text = "Took ${formatResearchElapsed(duration)}",
-                                state = StatusTone.Neutral,
-                                modifier = Modifier.semantics { contentDescription = "Completed in ${formatResearchElapsed(duration)}" },
-                            )
-                        }
+                        if (!stackTiming) timing()
+                    }
                     }
                     val preview = answerCardPreview(state.answer)
                     if (preview.isNotEmpty()) {
-                        Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(FieldAtlasIcons.Document, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
-                            Text(preview, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                        Text(preview, style = MaterialTheme.typography.bodyMedium.copy(
+                                fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial, fontSize = 16.sp, lineHeight = 26.sp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
                                 maxLines = 3, overflow = TextOverflow.Ellipsis)
-                        }
                     }
                     FieldAtlasPrimaryButton(
                         text = "Read answer",
                         onClick = onOpenAnswer,
                         modifier = Modifier.fillMaxWidth(),
-                        trailingIcon = FieldAtlasIcons.ChevronRight,
                     )
                 }
             }
@@ -408,28 +445,34 @@ fun ResearchScreen(
             }
         }
         if (exampleQuestions.isNotEmpty() && !state.isRunning && !hasReadyAnswer) {
-            item { FieldAtlasSectionLabel("Try an example", Modifier.padding(top = 4.dp)) }
+            item { FieldAtlasSectionLabel("A few places to start", Modifier.padding(top = 4.dp)) }
             item {
-                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-                    Column {
-                        exampleQuestions.forEachIndexed { index, example ->
-                            if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                            Row(
-                                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp)
-                                    .clickable(onClickLabel = "Use this example") {
-                                        onQuestionChange(example.question)
-                                        scope.launch { listState.animateScrollToItem(0) }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    exampleQuestions.chunked(2).forEachIndexed { rowIndex, row ->
+                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEachIndexed { columnIndex, example ->
+                                Surface(
+                                    modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 148.dp)
+                                        .semantics { contentDescription = "Use example: ${example.question}" },
+                                    onClick = { onQuestionChange(example.question); scope.launch { listState.animateScrollToItem(0) } },
+                                    shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.CardShape, color = MaterialTheme.colorScheme.surface,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)),
+                                ) {
+                                    Column(Modifier.fillMaxHeight().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            FieldAtlasIconTile(example.icon, size = 36.dp, tone = example.tone)
+                                            Spacer(Modifier.weight(1f))
+                                            Icon(FieldAtlasIcons.OpenExternal, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                            Text(listOf("Nearby", "Explore", "Safety guide", "Languages")[rowIndex * 2 + columnIndex],
+                                                style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                            Text(example.question, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                        Text("Tap to try", style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                FieldAtlasIconTile(example.icon, size = 36.dp, tone = example.tone)
-                                Text(example.question, modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium)
-                                Icon(FieldAtlasIcons.ChevronRight, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(18.dp))
+                                }
                             }
                         }
                     }
@@ -458,11 +501,21 @@ fun ResearchScreen(
 }
 
 @Composable
-internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
+internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?, running: Boolean = false) {
+    if (running) {
+        FieldAtlasCard(Modifier.fillMaxWidth()) {
+            Text("YOUR QUESTION", style = MaterialTheme.typography.labelSmall.copy(
+                fontSize = 10.sp, fontWeight = FontWeight(650), letterSpacing = 0.6.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(question, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium.copy(
+                fontSize = 15.sp, lineHeight = 24.sp, fontWeight = FontWeight(450)))
+        }
+        return
+    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        color = MaterialTheme.colorScheme.surface,
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -471,7 +524,7 @@ internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (onEdit != null) {
                     IconButton(onClick = onEdit) {
-                        Icon(Icons.Outlined.Edit, contentDescription = "Edit question",
+                        Icon(FieldAtlasIcons.Edit, contentDescription = "Edit question",
                             modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -507,18 +560,21 @@ private fun ResearchAction(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // A source lead arrives before the model writes; until then the model is still reading.
-                Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty()),
-                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                if (state.startedAtNanos != null) {
-                    Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty()),
+                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
+                            fontWeight = FontWeight(650)))
+                    if (state.startedAtNanos != null) {
+                        Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
+                    }
                 }
-                FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 40.dp),
+                FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurface,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     )) { Text("Stop") }
             }
             ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
@@ -614,29 +670,31 @@ private data class ExampleQuestion(val question: String, val icon: ImageVector, 
 private fun ResearchSteps(steps: List<ResearchStep>) {
     Column(Modifier.fillMaxWidth()) {
         steps.forEachIndexed { index, step ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    StepMarker(step.status)
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(Modifier.width(24.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    StepMarker(index + 1, step.status)
                     if (index < steps.lastIndex) {
-                        Box(Modifier.width(2.dp).heightIn(min = 18.dp).height(if (step.status == StepStatus.Active) 34.dp else 20.dp)
+                        Box(Modifier.width(2.dp).weight(1f).heightIn(min = 18.dp)
                             .background(if (step.status == StepStatus.Done) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.outlineVariant))
                     }
                 }
-                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(step.title, style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (step.status == StepStatus.Pending) FontWeight.Normal else FontWeight.SemiBold,
+                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = if (index < steps.lastIndex) 18.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(step.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp),
+                        fontWeight = FontWeight.Medium,
                         color = if (step.status == StepStatus.Pending) MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.onSurface)
                     step.detail?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (step.status == StepStatus.Active) {
+                        val indicator = Modifier.padding(top = 5.dp).fillMaxWidth().height(5.dp)
+                            .semantics { contentDescription = "Research progress" }
                         val progress = step.progress
-                        if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth().padding(top = 3.dp),
-                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
-                        else LinearProgressIndicator(Modifier.fillMaxWidth().padding(top = 3.dp),
-                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                        if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = indicator,
+                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
+                        else LinearProgressIndicator(indicator,
+                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                     }
                 }
             }
@@ -645,17 +703,29 @@ private fun ResearchSteps(steps: List<ResearchStep>) {
 }
 
 @Composable
-private fun StepMarker(status: StepStatus) {
+private fun StepMarker(number: Int, status: StepStatus) {
     val primary = MaterialTheme.colorScheme.primary
-    when (status) {
-        StepStatus.Done -> Surface(Modifier.size(22.dp), shape = CircleShape, color = primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary) {
-            Icon(FieldAtlasIcons.Check, contentDescription = "Done", modifier = Modifier.padding(4.dp))
+    val background = when (status) {
+        StepStatus.Done -> primary
+        StepStatus.Active, StepStatus.Pending -> MaterialTheme.colorScheme.surface
+    }
+    val foreground = when (status) {
+        StepStatus.Done -> MaterialTheme.colorScheme.onPrimary
+        StepStatus.Active, StepStatus.Pending -> primary
+    }
+    Surface(Modifier.size(24.dp).semantics {
+        contentDescription = "Step $number"
+        stateDescription = when (status) { StepStatus.Done -> "Completed"; StepStatus.Active -> "In progress"; StepStatus.Pending -> "Pending" }
+    }, shape = CircleShape, color = background, contentColor = foreground,
+        border = if (status == StepStatus.Done) null else BorderStroke(2.dp,
+            if (status == StepStatus.Active) primary else MaterialTheme.colorScheme.outlineVariant)) {
+        Box(contentAlignment = Alignment.Center) {
+            when (status) {
+                StepStatus.Done -> Icon(FieldAtlasIcons.Check, null, Modifier.size(15.dp))
+                StepStatus.Active -> Box(Modifier.size(9.dp).background(primary, CircleShape))
+                StepStatus.Pending -> Unit
+            }
         }
-        StepStatus.Active -> Box(Modifier.size(22.dp).border(2.dp, primary, CircleShape), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(8.dp).background(primary, CircleShape))
-        }
-        StepStatus.Pending -> Box(Modifier.size(22.dp).border(2.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape))
     }
 }
 

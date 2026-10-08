@@ -15,6 +15,7 @@ The app shows this list and the full licence texts it ships (Apache-2.0, llama.c
 | Vosk small English speech model | `vosk-model-small-en-us-0.15` | Apache-2.0 | [Vosk models](https://alphacephei.com/vosk/models) |
 | BGE-small vector encoder | selected and pinned by each vector fapack manifest | MIT | [BGE-small model card](https://huggingface.co/BAAI/bge-small-en-v1.5) |
 | Source Serif 4 | current Google Fonts source | SIL Open Font License 1.1 | [`docs/licenses/source-serif-4-OFL.txt`](docs/licenses/source-serif-4-OFL.txt) |
+| Manrope (bundled interface font) | Google Fonts variable font | SIL Open Font License 1.1 | [`docs/licenses/manrope-OFL.txt`](docs/licenses/manrope-OFL.txt) |
 | AndroidX and Jetpack Compose | versions in `gradle/libs.versions.toml` | Apache-2.0 | [AndroidX license notice](https://source.android.com/docs/setup/about/licenses) |
 | Kotlin | `2.1.0` | Apache-2.0 | [Kotlin license](https://github.com/JetBrains/kotlin/blob/v2.1.0/license/LICENSE.txt) |
 | kotlinx.serialization | `1.4.0` | Apache-2.0 | [kotlinx.serialization LICENSE](https://github.com/Kotlin/kotlinx.serialization/blob/v1.4.0/LICENSE.txt) |
@@ -49,4 +50,3 @@ The four project-authored starter documents are dedicated to the public domain u
 | US federal first-aid and safety pages | bundled emergency guides | public domain (US government works) | CDC, NIOSH, NIH/NLM, NIH/NIAMS, NWS/NOAA, NPS, FEMA and the U.S. Fire Administration |
 
 The bundled emergency guides (`app/src/main/assets/emergency/guides.json`) quote US federal government pages (CDC, NIOSH, NIH/NLM, NIH/NIAMS, NWS/NOAA, NPS, FEMA and the U.S. Fire Administration), which are public-domain works of the US government, and four English Wikipedia articles at pinned revisions under CC BY-SA 4.0 (credit: Wikipedia contributors; each guide records its URL, revision and retrieval date). Sources, checksums and the build procedure are in `DATASETS.md` and `tools/build_emergency_data.py`.
-

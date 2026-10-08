@@ -1,335 +1,206 @@
 package xyz.fieldatlas.ui.more
 
-import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
-
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import xyz.fieldatlas.inference.InferenceState
-import xyz.fieldatlas.proof.ProofFact
-import xyz.fieldatlas.proof.ProofModel
-import xyz.fieldatlas.proof.ProofState
-import xyz.fieldatlas.ui.theme.FieldAtlasCard
-import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
-import xyz.fieldatlas.ui.theme.FieldAtlasIcons
-import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
-import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
-import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
-import xyz.fieldatlas.ui.theme.StatusTone
-import xyz.fieldatlas.ui.theme.FieldAtlasExpandIcon
-import xyz.fieldatlas.ui.theme.FieldAtlasStatusDot
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.runtime.produceState
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.layout.FlowRow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
-import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import xyz.fieldatlas.assets.InstalledAsset
+import xyz.fieldatlas.assets.PackType
+import xyz.fieldatlas.inference.InferenceState
+import xyz.fieldatlas.proof.ProofModel
+import xyz.fieldatlas.ui.presentation.formatAssetBytes
+import xyz.fieldatlas.ui.theme.*
 
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+/** One tap to information; only the model's memory control expands inline. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MoreScreen(
-    proof: ProofModel,
-    inferenceState: InferenceState,
-    onPrepareModel: () -> Unit,
-    onReleaseModel: () -> Unit,
-    onExportDiagnostics: (Boolean) -> Unit,
-    onOpenBenchmark: () -> Unit,
-    diagnosticsText: String = "",
-    onClearDiagnostics: () -> Unit = {},
+    proof: ProofModel, inferenceState: InferenceState,
+    onPrepareModel: () -> Unit, onReleaseModel: () -> Unit,
+    onExportDiagnostics: (Boolean) -> Unit, onOpenBenchmark: () -> Unit,
+    diagnosticsText: String = "", onClearDiagnostics: () -> Unit = {},
+    packs: List<InstalledAsset> = emptyList(), onOpenLibrary: () -> Unit = {},
+    onOpenDownloadSources: () -> Unit = {},
 ) {
-    var showModel by rememberSaveable { mutableStateOf(false) }
-    var showDiagnostics by rememberSaveable { mutableStateOf(false) }
-    var showTechnical by rememberSaveable { mutableStateOf(false) }
-    var showLicences by rememberSaveable { mutableStateOf(false) }
-    var showLicenceText by rememberSaveable { mutableStateOf<String?>(null) }
+    var modelExpanded by rememberSaveable { mutableStateOf(false) }
+    var sheet by rememberSaveable { mutableStateOf<String?>(null) }
     var includeQuestion by rememberSaveable { mutableStateOf(false) }
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
-        contentPadding = PaddingValues(bottom = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+    val model = packs.firstOrNull { it.type == PackType.MODEL && it.active } ?: packs.firstOrNull { it.type == PackType.MODEL }
+    val busy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating
+    val loaded = inferenceState == InferenceState.Ready || inferenceState == InferenceState.Generating
+    val status = when (inferenceState) {
+        InferenceState.Ready -> "Ready"; InferenceState.Loading -> "Preparing"
+        InferenceState.Generating -> "Researching"; is InferenceState.Failed -> "Needs attention"
+        InferenceState.Idle -> if (model == null) "Missing" else "Saved"
+    }
+    LazyColumn(Modifier.fillMaxSize().padding(horizontal = 22.dp),
+        contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+        item { FieldAtlasPageHeader("More", "Settings and app details.", titleStyle = MaterialTheme.typography.headlineLarge.copy(
+            fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight(650))) }
         item {
-            FieldAtlasPageHeader(
-                title = "More",
-                subtitle = "Settings and app details.",
-                modifier = Modifier.padding(top = 18.dp, bottom = 4.dp),
-            )
-        }
-        item {
-            FieldAtlasCard(Modifier.fillMaxWidth(),
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                contentPadding = 12.dp) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Privacy, size = 36.dp, tone = xyz.fieldatlas.ui.theme.TileTone.Forest)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("Privacy & offline use")
-                        Text(
-                            "Download online. Research offline. No account needed, and questions stay on this phone.",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-            }
-        }
-        item {
-            // One grouped card with hairlines between rows, as in the design.
             FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                Column {
+                    SettingRow(FieldAtlasIcons.Model, "Answer model", model?.let {
+                        "${it.title.substringBefore(" — ")} · ${formatAssetBytes(it.installedBytes)}"
+                    }, expanded = modelExpanded, onClick = { modelExpanded = !modelExpanded }, status = status)
+                    AnimatedVisibility(modelExpanded) {
+                        Column {
+                            MoreDivider()
+                            if (model == null) MoreAction("Add model", onOpenLibrary)
+                            else ModelMemoryControls(loaded, !busy,
+                                { if (it) onPrepareModel() else onReleaseModel() }, { sheet = "model" })
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            MoreGroup("On this phone") {
+                SettingRow(FieldAtlasIcons.Offline, "Offline readiness", "Model, collections and voice.", onClick = { sheet = "readiness" })
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Storage, "Download sources", "Defaults and alternative servers.", onClick = onOpenDownloadSources)
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Benchmark, "Performance check", "18 questions · quality and speed.", onClick = onOpenBenchmark)
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Info, "App & device", "Version, memory and saved packs.", onClick = { sheet = "device" })
+            }
+        }
+        item {
+            MoreGroup("Help & information") {
+                SettingRow(FieldAtlasIcons.Diagnostics, "Troubleshooting", "Recent issues and support reports.", onClick = { sheet = "support" })
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Privacy, "Privacy & offline use", "Questions stay on this phone.", onClick = { sheet = "privacy" })
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Document, "Licences", "Components, data and their licences.", onClick = { sheet = "licences" })
+            }
+        }
+    }
+    when (sheet) {
+        "licences" -> LicenceSheet { sheet = null }
+        "device" -> DeviceInfoSheet(proof, onAbout = { sheet = "about" }, onDismiss = { sheet = null })
+        "support" -> SupportSheet(diagnosticsText, includeQuestion, { includeQuestion = it }, onClearDiagnostics,
+            { onExportDiagnostics(includeQuestion) }, { sheet = null })
+        "readiness" -> FieldAtlasInfoSheet("Offline readiness", { sheet = null }) {
+            MoreNote("What is available without internet.")
             Column {
-            MoreSection {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showModel = !showModel },
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 36.dp)
+                ReadinessRow(FieldAtlasIcons.Model, "Model", model?.title?.substringBefore(" — ") ?: "Add one to generate answers.", if (model == null) "Missing" else "Saved", model != null)
+                MoreDivider()
+                val count = packs.count { it.type == PackType.KNOWLEDGE }
+                ReadinessRow(FieldAtlasIcons.Database, "Knowledge", "Saved sources for cited answers.", if (count == 0) "Not added" else "$count saved", count > 0)
+                MoreDivider()
+                ReadinessRow(FieldAtlasIcons.Mic, "Voice", "Dictation works on this phone.", if (packs.any { it.type == PackType.AUDIO }) "Saved" else "Included", true)
+            }
+            MoreNote("Downloads need internet. Your saved files stay available offline.")
+            MoreAction("Manage in Library", { sheet = null; onOpenLibrary() })
+        }
+        "model" -> FieldAtlasInfoSheet("Answer model", { sheet = null }) {
+            model?.let {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    FieldAtlasIconTile(FieldAtlasIcons.Model, size = 36.dp, iconSize = 20.dp)
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("Answer model")
-                        Text(modelStatus(inferenceState), style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    FieldAtlasStatusPill(
-                        when (inferenceState) {
-                            InferenceState.Ready -> "Ready"
-                            InferenceState.Loading -> "Preparing"
-                            InferenceState.Generating -> "Researching"
-                            InferenceState.Idle -> "Not loaded"
-                            is InferenceState.Failed -> "Needs attention"
-                        },
-                        when (inferenceState) {
-                            InferenceState.Ready -> StatusTone.Positive
-                            is InferenceState.Failed -> StatusTone.Attention
-                            else -> StatusTone.Neutral
-                        },
-                    )
-                    FieldAtlasExpandIcon(showModel, Modifier.semantics {
-                        contentDescription = if (showModel) "Hide model actions" else "Show model actions"
-                    })
-                }
-                if (showModel) {
-                    if (inferenceState == InferenceState.Idle || inferenceState is InferenceState.Failed) {
-                        FieldAtlasPrimaryButton("Prepare model", onPrepareModel, Modifier.fillMaxWidth())
-                    } else if (inferenceState == InferenceState.Ready) {
-                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = onReleaseModel, modifier = Modifier.fillMaxWidth()) {
-                            Text("Free up memory")
-                        }
+                        Text(it.title.substringBefore(" — "), style = MaterialTheme.typography.titleSmall)
+                        MoreNote("${formatAssetBytes(it.installedBytes)} · version ${it.version}")
                     }
                 }
+                MoreInfoBlock("Saved on this phone", "Freeing memory keeps the model file. Load it again when you need an answer.")
+                if (inferenceState is InferenceState.Failed) Text(inferenceState.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                MoreAction("Model details and options", { sheet = null; onOpenLibrary() })
             }
-            MoreDivider()
-            MoreSection(Modifier.clickable(onClick = onOpenBenchmark)) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Benchmark, size = 36.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("Performance check")
-                        Text("18 questions · answer quality and speed.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, modifier = Modifier.size(20.dp))
-                }
-            }
-            MoreDivider()
-            MoreSection {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showDiagnostics = !showDiagnostics },
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Diagnostics, size = 36.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("Troubleshooting")
-                        Text("Recent issues and support reports.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    FieldAtlasExpandIcon(showDiagnostics, Modifier.semantics {
-                        contentDescription = if (showDiagnostics) "Hide export options" else "Show export options"
-                    })
-                }
-                if (showDiagnostics) {
-                    if (diagnosticsText.isNotBlank()) {
-                        Text("Recent technical details", style = MaterialTheme.typography.titleSmall)
-                        Text("These may describe an earlier issue that has already been resolved.",
-                            style = MaterialTheme.typography.bodySmall)
-                        Text(diagnosticsText, style = MaterialTheme.typography.bodySmall)
-                        TextButton(shape = FieldAtlasButtonShape, onClick = onClearDiagnostics) { Text("Clear details") }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Include latest question")
-                            Text("Off by default", style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = includeQuestion, onCheckedChange = { includeQuestion = it },
-                            modifier = Modifier.semantics { contentDescription = "Include latest question" })
-                    }
-                    OutlinedButton(shape = FieldAtlasButtonShape, onClick = { onExportDiagnostics(includeQuestion) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(FieldAtlasIcons.Import, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text("Save support report", modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-            MoreDivider()
-            MoreSection {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showTechnical = !showTechnical },
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Info, size = 36.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("App & device")
-                        Text("Storage, memory, and offline checks.", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    FieldAtlasExpandIcon(showTechnical, Modifier.semantics {
-                        contentDescription = if (showTechnical) "Hide details" else "Show details"
-                    })
-                }
-                if (showTechnical) {
-                    val facts = proof.offline + proof.device + proof.latestRun
-                    facts.forEachIndexed { index, fact ->
-                        if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        ProofRow(fact)
-                    }
-                }
-            }
-            MoreDivider()
-            MoreSection {
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showLicences = !showLicences },
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    FieldAtlasIconTile(FieldAtlasIcons.Document, size = 36.dp)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        MoreCardTitle("Licences")
-                        Text("Open-source components, data and their licences.", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    FieldAtlasExpandIcon(showLicences, Modifier.semantics {
-                        contentDescription = if (showLicences) "Hide licences" else "Show licences"
-                    })
-                }
-                if (showLicences) {
-                    val assets = LocalContext.current.assets
-                    // The same files as in the repository; a unit test keeps the copies identical.
-                    fun read(path: String) = runCatching { assets.open(path).bufferedReader().use { it.readText() } }.getOrNull()
-                    val notices by produceState<Pair<String?, String?>?>(null) {
-                        value = withContext(Dispatchers.IO) {
-                            read("licenses/NOTICE.txt") to read("licenses/THIRD_PARTY_NOTICES.md")?.let(::readableNotices)
-                        }
-                    }
-                    val texts by produceState(emptyList<String>()) {
-                        value = withContext(Dispatchers.IO) {
-                            assets.list("licenses").orEmpty().filter { it.endsWith(".txt") && it != "NOTICE.txt" }.map { "licenses/$it" } +
-                                assets.list("ocr/licenses").orEmpty().map { "ocr/licenses/$it" }
-                        }
-                    }
-                    notices?.first?.let { Text(it.trim(), style = MaterialTheme.typography.bodySmall) }
-                    notices?.second?.let { AnswerMarkdownRenderer(blocks = parseAnswerMarkdown(it), sourceCount = 0, onCitation = {}) }
-                    Text("Full licence texts", style = MaterialTheme.typography.titleSmall)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        texts.forEach { path ->
-                            TextButton(shape = FieldAtlasButtonShape, onClick = {
-                                showLicenceText = if (showLicenceText == path) null else path
-                            }) { Text(licenceLabel(path)) }
-                        }
-                    }
-                    showLicenceText?.let { path ->
-                        val text by produceState<String?>(null, path) { value = withContext(Dispatchers.IO) { read(path) } }
-                        text?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                    }
-                }
-            }
-            }
-            }
+        }
+        "about" -> FieldAtlasInfoSheet("About Field Atlas", { sheet = null }, onBack = { sheet = "device" }, backDescription = "Back to app and device") {
+            Text("Field Atlas ${xyz.fieldatlas.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleMedium)
+            MoreNote("Open-source research on this phone. No account needed.")
+            MoreInfoBlock("Read the sources", "Check important answers against their saved sources. A generated answer is not a guarantee of accuracy.")
+        }
+        "privacy" -> FieldAtlasInfoSheet("Privacy & offline use", { sheet = null }) {
+            MoreInfoBlock("On this phone", "Research, collection search and voice input run locally after setup. No account needed, and questions stay on this phone.", FieldAtlasIcons.Lock)
+            MoreInfoBlock("When you connect", "Downloads contact their file hosts. External links open only when you choose them.", FieldAtlasIcons.Globe)
+            MoreInfoBlock("You choose what to share", "Support reports only include your latest question if you choose to include it.", FieldAtlasIcons.Share)
         }
     }
 }
 
+/** Mockup alignment: memory control on the left, Details at the trailing edge. */
 @Composable
-private fun MoreSection(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)) { content() }
-}
-
-@Composable
-private fun MoreDivider() {
-    HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-}
-
-@Composable
-private fun MoreCardTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium,
-        fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasSans, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
-private fun ProofRow(fact: ProofFact) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        FieldAtlasStatusDot(
-            when (fact.state) {
-                ProofState.Pass -> StatusTone.Positive
-                ProofState.Warning -> StatusTone.Attention
-                ProofState.Info, ProofState.Missing -> StatusTone.Neutral
-            },
-            Modifier.padding(top = 7.dp),
-        )
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(fact.label, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
-            Text(
-                "${stateLabel(fact.state)} · ${originLabel(fact)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+private fun ModelMemoryControls(loaded: Boolean, enabled: Boolean, onLoadedChange: (Boolean) -> Unit, onDetails: () -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(horizontal = 14.dp).padding(top = 4.dp, bottom = 6.dp)) {
+        val stacked = maxWidth < 260.dp || LocalDensity.current.fontScale > 1.3f
+        val toggle: @Composable () -> Unit = {
+            FieldAtlasSwitch(checked = loaded, enabled = enabled, compact = true,
+                onCheckedChange = onLoadedChange,
+                modifier = Modifier.semantics { contentDescription = "Model loaded" })
         }
-        Text(fact.value, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.End,
-            modifier = Modifier.weight(1f))
+        val details: @Composable () -> Unit = {
+            TextButton(onClick = onDetails, shape = FieldAtlasButtonShape,
+                modifier = Modifier.heightIn(min = 48.dp)) {
+                Text("Details", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
+            }
+        }
+        if (stacked) Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Loaded", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                toggle()
+            }
+            Box(Modifier.align(Alignment.End)) { details() }
+        } else Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Loaded", style = MaterialTheme.typography.bodyMedium)
+            toggle()
+            Spacer(Modifier.weight(1f))
+            details()
+        }
     }
 }
 
-private fun modelStatus(state: InferenceState): String = when (state) {
-    InferenceState.Idle -> "Saved on this phone. Ready to load."
-    InferenceState.Loading -> "Preparing your model…"
-    InferenceState.Ready -> "Ready for offline research."
-    InferenceState.Generating -> "Writing your answer…"
-    is InferenceState.Failed -> "Couldn't load. Tap to try again."
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SettingRow(icon: ImageVector, title: String, detail: String?, expanded: Boolean? = null, onClick: () -> Unit, status: String? = null) {
+    Row(Modifier.fillMaxWidth().semantics {
+        if (expanded != null) stateDescription = if (expanded) "Expanded" else "Collapsed"
+    }.clickable(role = Role.Button, onClick = onClick).heightIn(min = 72.dp).padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                status?.let { FieldAtlasStatusPill(it, if (it == "Ready" || it == "Saved") StatusTone.Positive else StatusTone.Neutral, compact = true) }
+            }
+            detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        if (expanded != null) FieldAtlasExpandIcon(expanded)
+    }
 }
 
-private fun stateLabel(state: ProofState): String = when (state) {
-    ProofState.Pass -> "Pass"
-    ProofState.Info -> "Info"
-    ProofState.Missing -> "Not measured"
-    ProofState.Warning -> "Warning"
+@Composable
+private fun MoreGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) { Column(content = content) }
+    }
 }
 
-private fun originLabel(fact: ProofFact): String = when (fact.origin) {
-    xyz.fieldatlas.proof.ProofOrigin.ManifestAudit -> "Manifest audit"
-    xyz.fieldatlas.proof.ProofOrigin.OsReport -> "Android report"
-    xyz.fieldatlas.proof.ProofOrigin.MeasuredQuery -> "Measured query"
+@Composable
+private fun ReadinessRow(icon: ImageVector, title: String, detail: String, value: String, available: Boolean) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(icon, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            MoreNote(detail)
+        }
+        FieldAtlasStatusPill(value, if (available) StatusTone.Positive else StatusTone.Neutral, compact = true)
+    }
 }

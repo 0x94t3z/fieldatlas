@@ -94,9 +94,9 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Original file", style = MaterialTheme.typography.titleLarge)
-                        Text(title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodySmall)
+                        Text(title, maxLines = 1, overflow = TextOverflow.MiddleEllipsis, style = MaterialTheme.typography.bodySmall)
                     }
-                    IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close original file") }
+                    IconButton(onClick = onClose) { Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Close, "Close original file") }
                 }
                 when {
                     content.loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }

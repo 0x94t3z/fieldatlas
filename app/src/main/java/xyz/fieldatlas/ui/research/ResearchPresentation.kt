@@ -14,14 +14,13 @@ typealias ResearchCompletion = DomainResearchCompletion
 internal fun researchProgressHeading(phase: ResearchPhase, answer: String, hasSources: Boolean): String =
     when (phase) {
         ResearchPhase.Planning -> "Understanding your question…"
-        ResearchPhase.Searching -> "Searching saved sources…"
+        ResearchPhase.Searching -> "Finding evidence"
         ResearchPhase.Generating -> when {
-            answer.isNotBlank() -> "Writing your answer…"
-            // Short enough to stay on one line beside a "1m 12s" timer and the Stop button.
-            hasSources -> "Reading sources…"
+            answer.isNotBlank() -> "Writing your answer"
+            hasSources -> "Reading your sources"
             else -> "Preparing your answer…"
         }
-        else -> "Writing your answer…"
+        else -> "Writing your answer"
     }
 
 internal fun readyCitationCount(answer: String, sourceCount: Int): Int =

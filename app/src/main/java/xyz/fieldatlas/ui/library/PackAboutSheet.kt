@@ -50,26 +50,23 @@ internal fun PackAboutSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
     ) {
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp).navigationBarsPadding(),
+                .padding(start = 22.dp, end = 22.dp, bottom = 22.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                FieldAtlasIconTile(visual.icon, size = 52.dp, tone = visual.tone)
+                FieldAtlasIconTile(visual.icon, size = 36.dp, tone = visual.tone, iconSize = 20.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(title, style = MaterialTheme.typography.titleLarge, fontFamily = FieldAtlasEditorial,
-                        fontWeight = FontWeight.SemiBold)
+                    Text(title, style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle)
                     if (asset.type == PackType.KNOWLEDGE) {
                         Text(knowledgeCategory(asset.id).label, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(FieldAtlasIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close")
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (asset.type == PackType.KNOWLEDGE) {
@@ -92,13 +89,10 @@ internal fun PackAboutSheet(
                 Text("Try asking", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     examples.take(4).forEach { question ->
-                        OutlinedButton(onClick = { onDismiss(); onAskExample(question) }, shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier.heightIn(min = 40.dp)) { Text(question, style = MaterialTheme.typography.labelLarge) }
+                        OutlinedButton(onClick = { onDismiss(); onAskExample(question) }, shape = FieldAtlasButtonShape,
+                            modifier = Modifier.heightIn(min = 48.dp)) { Text(question, style = MaterialTheme.typography.labelLarge) }
                     }
                 }
-            }
-            OutlinedButton(onClick = onDismiss, shape = FieldAtlasButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                Text("Done")
             }
         }
     }

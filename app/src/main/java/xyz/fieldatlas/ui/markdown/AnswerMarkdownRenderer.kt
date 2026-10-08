@@ -48,6 +48,9 @@ import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.em
 import androidx.compose.foundation.shape.RoundedCornerShape
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
@@ -58,7 +61,8 @@ fun AnswerMarkdownRenderer(
     sourceCount: Int,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
     modifier: Modifier = Modifier,
-    bodyStyle: TextStyle = MaterialTheme.typography.bodyLarge,
+    bodyStyle: TextStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FieldAtlasEditorial, lineHeight = 29.sp),
+    sourceTitles: List<String> = emptyList(),
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         blocks.forEach { block ->
@@ -104,13 +108,13 @@ fun AnswerMarkdownRenderer(
                     val (body, footer) = block.content.trailingCitations()
                     val linked = footer.filter { it in 1..sourceCount }
                     Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
-                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.background,
+                        shape = RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp),
                     ) {
                         Row(Modifier.height(IntrinsicSize.Min)) {
                             Box(
-                                Modifier.fillMaxHeight().width(3.dp)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                                Modifier.fillMaxHeight().width(2.dp)
+                                    .background(MaterialTheme.colorScheme.primary),
                             )
                             Column(
                                 Modifier.padding(start = 14.dp, top = 14.dp, end = 16.dp, bottom = 12.dp),
@@ -118,14 +122,14 @@ fun AnswerMarkdownRenderer(
                             ) {
                                 InlineBlock(
                                     content = if (linked.isEmpty()) block.content else body,
-                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                    style = bodyStyle.copy(
                                         fontFamily = FieldAtlasEditorial,
                                         fontStyle = FontStyle.Italic,
                                     ),
                                     sourceCount = sourceCount,
                                     onCitation = onCitation,
                                 )
-                                if (linked.isNotEmpty()) QuoteSourceFooter(linked, onCitation)
+                                if (linked.isNotEmpty()) QuoteSourceFooter(linked, onCitation, sourceTitles)
                             }
                         }
                     }
@@ -217,12 +221,12 @@ private fun InlineBlock(
     modifier: Modifier = Modifier,
 ) {
     val text = annotatedText(content, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primary, sourceCount)
+    val citationTarget = with(LocalDensity.current) { 48.dp.toSp() }
     val inlineCitations = content.citations().filter { it.number in 1..sourceCount }.distinctBy { it.number }
         .associate { citation ->
-            // A compact numbered badge, sized to its digits, so a citation reads as a footnote
-            // mark beside its word rather than a button that pushes punctuation away.
+            // The visible badge is compact, but its actual (non-overlapping) target is 48dp.
             "citation:${citation.number}" to InlineTextContent(
-                Placeholder((citation.number.toString().length * 0.5f + 1.05f).em, 1.2.em, PlaceholderVerticalAlign.TextCenter),
+                Placeholder(citationTarget, citationTarget, PlaceholderVerticalAlign.TextCenter),
             ) { CitationChip(citation.number, onCitation) }
         }
     Column(modifier) {
@@ -254,11 +258,10 @@ private fun SectionHeading(section: AnswerSection, style: TextStyle) {
 }
 
 @Composable
-private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
-    Row(
+private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit, sourceTitles: List<String>) {
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         numbers.forEach { number ->
             Surface(
@@ -274,7 +277,10 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Open source", style = MaterialTheme.typography.labelLarge)
+                    Text(sourceTitles.getOrNull(number - 1) ?: "Open source",
+                        modifier = Modifier.weight(1f), maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FieldAtlasEditorial, fontSize = 14.sp))
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -291,20 +297,17 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit) {
 
 @Composable
 private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
-    // Inset from the placeholder edges so adjacent badges ([1][2]) keep a hairline gap.
-    Box(Modifier.fillMaxSize().padding(horizontal = 1.5.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().clickable(onClickLabel = "Open source $number") { onCitation(number - 1) }
+        .semantics { contentDescription = "Open source $number" }, contentAlignment = Alignment.Center) {
         Surface(
-            modifier = Modifier.fillMaxSize()
-                .clip(RoundedCornerShape(6.dp))
-                .clickable(onClickLabel = "Open source $number") { onCitation(number - 1) }
-                .semantics { contentDescription = "Open source $number" },
+            modifier = Modifier.size(width = 36.dp, height = 30.dp),
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = RoundedCornerShape(6.dp),
+            shape = RoundedCornerShape(9.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = number.toString(),
+                    text = "[$number]",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold,
                         fontFeatureSettings = "tnum",

@@ -2,11 +2,44 @@ package xyz.fieldatlas.ui.theme
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FieldAtlasThemeTest {
+    @Test fun collectionStatusUsesTheCylinderDatabaseVectorNotTheBook() {
+        val path = FieldAtlasIcons.Database.root[0] as androidx.compose.ui.graphics.vector.VectorPath
+        assertTrue(path.pathData.any { it is androidx.compose.ui.graphics.vector.PathNode.RelativeArcTo })
+        assertEquals(24f, FieldAtlasIcons.Database.viewportWidth)
+    }
+
+    @Test fun restrainedShapeRolesKeepStatusPillsAndTheOriginalResearchControl() {
+        assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(10.dp), FieldAtlasButtonShape)
+        assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(16.dp), FieldAtlasLayout.CardShape)
+        assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp), FieldAtlasLayout.SheetShape)
+        assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(50), FieldAtlasChipShape)
+        assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(18.dp), FieldAtlasLayout.ResearchButtonShape)
+        assertEquals(20.sp, FieldAtlasSheetTitleStyle.fontSize)
+        assertEquals(androidx.compose.ui.text.font.FontWeight(650), FieldAtlasSheetTitleStyle.fontWeight)
+    }
+
+    @Test fun modernPaletteKeepsTheApprovedDarkMintAndReadableActions() {
+        assertEquals(Color(0xFFE8E9DE), fieldAtlasColorScheme(false).surfaceVariant)
+        assertEquals(Color(0xFFA6D8B9), fieldAtlasColorScheme(true).primary)
+        for (dark in listOf(false, true)) {
+            val colors = fieldAtlasColorScheme(dark)
+            assertTrue(contrastRatio(colors.primary, colors.onPrimary) >= 4.5f)
+        }
+    }
+
+    @Test fun originalResearchButtonTypographyIsIndependentOfNewInterfaceFont() {
+        assertEquals(androidx.compose.ui.text.font.FontFamily.Default, FieldAtlasResearchButtonStyle.fontFamily)
+        assertEquals(androidx.compose.ui.unit.TextUnit(14f, androidx.compose.ui.unit.TextUnitType.Sp), FieldAtlasResearchButtonStyle.fontSize)
+        assertEquals(androidx.compose.ui.text.font.FontWeight.SemiBold, FieldAtlasResearchButtonStyle.fontWeight)
+        assertEquals(androidx.compose.ui.unit.Dp(48f), FieldAtlasLayout.MinimumTouchTarget)
+    }
     @Test
     fun lightFieldNotebookUsesPaperAndForest() {
         val colors = fieldAtlasColorScheme(darkTheme = false)

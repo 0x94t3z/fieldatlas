@@ -17,7 +17,7 @@ import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 
 class AttachmentPreviewTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = foregroundComposeRule()
 
     @Test fun fullStripDisablesPaperclipUntilOneAttachmentIsRemoved() {
         compose.setContent {
@@ -44,7 +44,7 @@ class AttachmentPreviewTest {
             val item = AttachmentUiState("photo", "holiday-image.png", AttachmentPhase.Error,
                 error = "No readable text found.", kind = AttachmentKind.IMAGE, previewFile = file)
             compose.setContent { FieldAtlasTheme { AttachmentRows(listOf(item), true, { removed = it }, {}) } }
-            compose.onNodeWithText(item.displayName).assertDoesNotExist()
+            compose.onNodeWithText(item.displayName).assertIsDisplayed()
             compose.onNodeWithText("Check text").assertDoesNotExist()
             compose.onNodeWithText("Read issue · Details").assertDoesNotExist()
             compose.onNodeWithContentDescription("Read issue for ${item.displayName}").performClick()

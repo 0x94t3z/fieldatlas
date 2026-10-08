@@ -204,6 +204,7 @@ class MainActivity : ComponentActivity() {
 
             val catalogState by container.catalogState.collectAsStateWithLifecycle()
             val modelNotice by container.modelNotice.collectAsStateWithLifecycle()
+            val downloadSources by container.downloadSources.state.collectAsStateWithLifecycle()
             FieldAtlasApp(
                 answersWithoutModel = container::answersWithoutModel,
                 sourceLicense = container::emergencyLicense,
@@ -236,6 +237,15 @@ class MainActivity : ComponentActivity() {
                 onDownloadModel = setupViewModel::downloadRecommendedModel,
                 resumableModelBytes = container.resumableModelBytes(),
                 modelOffers = container.modelOffers,
+                downloadSources = downloadSources,
+                onSaveDownloadSource = { artifact, url ->
+                    runCatching { container.downloadSources.save(artifact, url) }.exceptionOrNull()
+                        ?.let { it.message ?: "Couldn't save the source. Try again." }
+                },
+                onResetDownloadSource = { artifact ->
+                    runCatching { container.downloadSources.reset(artifact) }.exceptionOrNull()
+                        ?.let { it.message ?: "Couldn't reset the source. Try again." }
+                },
                 onDownloadModelOffer = setupViewModel::downloadModel,
                 resumableOfferBytes = container::resumableModelBytes,
                 modelFits = container::modelFits,

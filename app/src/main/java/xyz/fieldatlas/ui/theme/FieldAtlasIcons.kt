@@ -1,5 +1,8 @@
 package xyz.fieldatlas.ui.theme
 
+import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -7,43 +10,68 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 object FieldAtlasIcons {
-    val Back by icon("Back", "M20 11H7.83L13.42 5.41 12 4l-8 8 8 8 1.42-1.41L7.83 13H20v-2z")
-    val ChevronRight by icon("ChevronRight", "M9 5l7 7-7 7-1.41-1.41L13.17 12 7.59 6.41 9 5z")
-    val Research by icon("Research", "M9.5 3a6.5 6.5 0 1 0 3.98 11.64L19.85 21 21 19.85l-6.36-6.37A6.5 6.5 0 0 0 9.5 3zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z")
-    val Library by icon("Library", "M4 4.5C4 3.67 4.67 3 5.5 3H11v15H6a2 2 0 0 0-2 2V4.5zM13 3h5.5c.83 0 1.5.67 1.5 1.5V20a2 2 0 0 0-2-2h-5V3z")
-    val More by icon("More", "M5 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm7 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4z")
-    val History by icon("History", "M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2.05 4.96l-1.44 1.42A9 9 0 1 0 13 3zm-1 5v6l5.25 3.15.75-1.23-4.5-2.67V8h-1.5z")
-    val Privacy by icon("Privacy", "M12 2 4 5v6c0 5.05 3.41 9.74 8 11 4.59-1.26 8-5.95 8-11V5l-8-3zm0 2.18L18 6.43V11c0 3.92-2.5 7.69-6 8.86C8.5 18.69 6 14.92 6 11V6.43l6-2.25zm-1 10.41-2.3-2.3-1.4 1.42L11 17.41l5.7-5.7-1.4-1.42-4.3 4.3z")
-    val Performance by icon("Performance", "M12 4a9 9 0 0 0-9 9c0 2.39.93 4.68 2.59 6.36L7 17.95A6.97 6.97 0 0 1 5 13a7 7 0 1 1 12 4.95l1.41 1.41A9 9 0 0 0 12 4zm4.24 4.34-5.66 3.17a2 2 0 1 0 1.91 1.91l3.17-5.66-.42.58z")
-    val Diagnostics by icon("Diagnostics", "M6 2h8l4 4v5h-2V7h-3V4H6v16h6v2H6a2 2 0 0 1-2-2V4c0-1.1.9-2 2-2zm11 11v4.17l1.59-1.58L20 17l-4 4-4-4 1.41-1.41L15 17.17V13h2z")
-    val Benchmark by icon("Benchmark", "M4 19h16v2H2V3h2v16zm3-2H5v-5h2v5zm4 0H9V7h2v10zm4 0h-2V9h2v8zm4 0h-2V4h2v13z")
-    val Import by icon("Import", "M11 3h2v10.17l3.59-3.58L18 11l-6 6-6-6 1.41-1.41L11 13.17V3zM5 19h14v2H5v-2z")
-    val AttachFile by icon("AttachFile", "M16.5 6.5 9.41 13.59a2 2 0 1 0 2.83 2.83l7.09-7.09a4 4 0 0 0-5.66-5.66l-8.5 8.5a6 6 0 0 0 8.49 8.49l7.08-7.08-1.41-1.42-7.08 7.09a4 4 0 0 1-5.66-5.66l8.5-8.5a2 2 0 1 1 2.83 2.83l-7.09 7.08a.01.01 0 0 1-.01 0 .01.01 0 0 1 0-.01l7.08-7.09 1.42 1.42z")
-    val Camera by icon("Camera", "M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9zm3 5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z")
-    val Photo by icon("Photo", "M4 3h16a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 2v14h16V5H4zm3.5 3a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm-2 9 4-4 2.5 2.5 3.5-4.5 4.5 6H5.5z")
-    val Check by icon("Check", "M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z")
-    val Citation by icon("Citation", "M7.5 6A3.5 3.5 0 0 0 4 9.5V14a3 3 0 0 0 3 3h3v-6H6V9.5C6 8.67 6.67 8 7.5 8H10V6H7.5zm9 0A3.5 3.5 0 0 0 13 9.5V14a3 3 0 0 0 3 3h3v-6h-4V9.5c0-.83.67-1.5 1.5-1.5H19V6h-2.5z")
-    val Offline by icon("Offline", "M3 4.3 4.3 3 21 19.7 19.7 21l-2.4-2.4A7.98 7.98 0 0 1 12 20a8 8 0 0 1-8-8c0-1.8.6-3.46 1.6-4.78L3 4.3zm4.06 5.05A5.96 5.96 0 0 0 6 12a6 6 0 0 0 9.82 4.61L7.06 9.35zM12 4c1.8 0 3.46.6 4.78 1.6L15.32 7.06A5.96 5.96 0 0 0 12 6c-.55 0-1.08.07-1.58.22L8.86 4.66A8.1 8.1 0 0 1 12 4z")
-    val Model by icon("Model", "M12 2 2 7v10l10 5 10-5V7L12 2zm0 2.24L19.76 8 12 11.88 4.24 8 12 4.24zM4 9.62l7 3.5v6.26l-7-3.5V9.62zm9 9.76v-6.26l7-3.5v6.26l-7 3.5z")
-    val Archive by icon("Archive", "M4 4h16v4H4V4zm1 6h14v10H5V10zm3 2v2h8v-2H8z")
-    val Knowledge by icon("Knowledge", "M20.5 3.5C12 3.4 5 6 3.5 12.5 2.6 16.4 5.2 20 9 20c7.6 0 11.7-9.5 11.5-16.5zM9 18c-2.7 0-4.1-2.1-3.5-4.8C6.6 8.9 11.5 6.2 18 5.6c-1 6.4-4.2 12.4-9 12.4zm-.8-1.5c3-4.1 5.6-6.1 8.4-7.8-4.3 1.1-7.6 3.7-10 7.2l1.6.6z")
-    val Place by icon("Place", "M12 2a8 8 0 0 0-8 8c0 5.4 8 12 8 12s8-6.6 8-12a8 8 0 0 0-8-8zm0 2a6 6 0 0 1 6 6c0 3.6-4 7.7-6 9.5C10 17.7 6 13.6 6 10a6 6 0 0 1 6-6zm0 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z")
-    val Collection by icon("Collection", "M3 5.5 9 3l6 2.5L21 3v15.5L15 21l-6-2.5L3 21V5.5zm2 1.3v11.3l3-1.25V5.55L5 6.8zm5-1.25v11.3l4 1.67V7.22L10 5.55zm6 1.67v11.3l3-1.25V5.97l-3 1.25z")
-    val Database by icon("Database", "M4 5c0-1.66 3.58-3 8-3s8 1.34 8 3v14c0 1.66-3.58 3-8 3s-8-1.34-8-3V5zm2 0c0 .55 2.24 1.5 6 1.5s6-.95 6-1.5-2.24-1.5-6-1.5S6 4.45 6 5zm0 4c0 .55 2.24 1.5 6 1.5s6-.95 6-1.5V7.3c-1.42.75-3.62 1.2-6 1.2s-4.58-.45-6-1.2V9zm0 5c0 .55 2.24 1.5 6 1.5s6-.95 6-1.5v-2c-1.42.75-3.62 1.2-6 1.2s-4.58-.45-6-1.2v2zm0 5c0 .55 2.24 1.5 6 1.5s6-.95 6-1.5v-2c-1.42.75-3.62 1.2-6 1.2s-4.58-.45-6-1.2v2z")
+    val Edit by prototypeIcon("Edit", "M4 16l-1 5 5-1L20 8l-4-4L4 16ZM13 7l4 4M16 4l2-2 4 4-2 2", false, 24f, PathFillType.NonZero)
+    val ZoomIn by prototypeIcon("ZoomIn", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0ZM15 15l6 6M7 10h6M10 7v6", false, 24f, PathFillType.NonZero)
+    val ZoomOut by prototypeIcon("ZoomOut", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0ZM15 15l6 6M7 10h6", false, 24f, PathFillType.NonZero)
+    val Warning by prototypeIcon("Warning", "M12 3l10 18H2L12 3ZM12 9v5m0 3h.01", false, 24f, PathFillType.NonZero)
+    val MoreOptions by prototypeIcon("MoreOptions", "M6.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z M13.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z M20.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z", false, 24f, PathFillType.NonZero)
+    val Back by prototypeIcon("Back", "M14 5l-7 7 7 7M7 12h14", false, 24f, PathFillType.NonZero)
+    val ChevronRight by prototypeIcon("ChevronRight", "M9 5l7 7 -7 7", false, 24f, PathFillType.NonZero)
+    val Research by prototypeIcon("Research", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0Z M15 15l6 6", false, 24f, PathFillType.NonZero)
+    val Library by prototypeIcon("Library", "M4.5 4H6.5a1.5 1.5 0 0 1 1.5 1.5V19.5a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5V5.5a1.5 1.5 0 0 1 1.5-1.5Z M11 4v17m4-17 5 16M3 8h5", false, 24f, PathFillType.NonZero)
+    val More by prototypeIcon("More", "M4 7h2m6 0h8M4 17h8m6 0h2 M12 7a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z M18 17a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z", false, 24f, PathFillType.NonZero)
+    val History by prototypeIcon("History", "M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2", false, 24f, PathFillType.NonZero)
+    val Privacy by prototypeIcon("Privacy", "M12 2l8 3v6c0 5-8 11-8 11S4 16 4 11V5l8-3Z M8 11l3 3 5 -6", false, 24f, PathFillType.NonZero)
+    val Performance by prototypeIcon("Performance", "M4 3v18h17M8 17v-5m4 5V7m4 10v-7m4 7V5", false, 24f, PathFillType.NonZero)
+    val Diagnostics by prototypeIcon("Diagnostics", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
+    val Benchmark by prototypeIcon("Benchmark", "M4 3v18h17M8 17v-5m4 5V7m4 10v-7m4 7V5", false, 24f, PathFillType.NonZero)
+    val Import by prototypeIcon("Import", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
+    val AttachFile by prototypeIcon("AttachFile", "M8 14l7 -7a3 3 0 0 1 4 4l-9 9a5 5 0 0 1-7-7l9-9", false, 24f, PathFillType.NonZero)
+    val Camera by prototypeIcon("Camera", "M8 6l2-3h4l2 3h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4Z M16 13a4 4 0 1 1-8 0a4 4 0 1 1 8 0Z", false, 24f, PathFillType.NonZero)
+    val Photo by prototypeIcon("Photo", "M6 3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z M10 8a2 2 0 1 1-4 0a2 2 0 1 1 4 0Z M3 17l5 -5 4 4 4 -7 5 8", false, 24f, PathFillType.NonZero)
+    val Check by prototypeIcon("Check", "M4 12l5 5L20 6", false, 24f, PathFillType.NonZero)
+    val Citation by prototypeIcon("Citation", "M10 5v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Zm11 0v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Z", true, 24f, PathFillType.NonZero)
+    val Offline by prototypeIcon("Offline", "M18 2h11v1h1v8h-7v2h5v2H18v3h3v2h-2v-1h-2v4h-2v3h2v2h-5v-4h-2v2h1v2H6v-4h2v-2H6v-2H4v-2H2v-6h2v3h2v2h2v-2h2v-2h2v-2h3V8h2V3h1V2Zm2 3v2h2V5h-2Z", true, 32f, PathFillType.EvenOdd)
+    val Model by prototypeIcon("Model", "M8 5H16a3 3 0 0 1 3 3V16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4M9 9h6v6H9z", false, 24f, PathFillType.NonZero)
+    val Archive by prototypeIcon("Archive", "M3 3h18v5H3V3Zm2 7h14v11H5V10Zm4 4h6", false, 24f, PathFillType.NonZero)
+    val Knowledge by prototypeIcon("Knowledge", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
+    val Place by prototypeIcon("Place", "M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z M14.5 10a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z", false, 24f, PathFillType.NonZero)
+    val Map by prototypeIcon("Map", "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15", false, 24f, PathFillType.NonZero)
+    val Collection by prototypeIcon("Collection", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
+    val Database by prototypeIcon("Database", "M20 5a8 3 0 1 1-16 0a8 3 0 1 1 16 0Z M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3", false, 24f, PathFillType.NonZero)
     val ResearchStart by icon("ResearchStart", "M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z")
     val AutoAwesome by icon("AutoAwesome", "M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zM9 23l2.5-5.5L17 15l-5.5-2.5L9 7l-2.5 5.5L1 15l5.5 2.5L9 23zm10-8l1.25 2.75L23 19l-2.75 1.25L19 23l-1.25-2.75L15 19l2.75-1.25L19 15z")
     val ResearchSparkles by icon("ResearchSparkles", "M8 7l2.3 5.7L16 15l-5.7 2.3L8 23l-2.3-5.7L0 15l5.7-2.3L8 7zM16 1l1.2 3.8L21 6l-3.8 1.2L16 11l-1.2-3.8L11 6l3.8-1.2L16 1zM20 16l.65 2.35L23 19l-2.35.65L20 22l-.65-2.35L17 19l2.35-.65L20 16z")
-    val Food by icon("Food", "M6 2v8c0 1.66 1.34 3 3 3v9h2v-9c1.66 0 3-1.34 3-3V2h-2v6H11V2H9v6H8V2H6zm11 0v20h2v-9h2V7c0-2.76-1.79-5-4-5z")
-    val Document by icon("Document", "M5 2h9l5 5v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 2v16h11V9h-5V4H6zm8 0v3h3l-3-3zM8 12h7v2H8v-2zm0 4h7v2H8v-2z")
-    val Share by icon("Share", "M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11A2.99 2.99 0 0 0 21 5a3 3 0 1 0-5.91.7L8.04 9.81A2.99 2.99 0 0 0 3 12a3 3 0 0 0 5.04 2.19l7.12 4.16c-.05.21-.08.43-.08.65A2.92 2.92 0 1 0 18 16.08z")
-    val Copy by icon("Copy", "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z")
+    val Food by prototypeIcon("Food", "M5 3v7m3-7v7m-6-7v7h6M5 10v11m10-18v18m0-18c5 2 5 8 0 9", false, 24f, PathFillType.NonZero)
+    val Document by prototypeIcon("Document", "M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6", false, 24f, PathFillType.NonZero)
+    val Share by prototypeIcon("Share", "M12 15V2m-5 5 5-5 5 5M5 12v9h14v-9", false, 24f, PathFillType.NonZero)
+    val Copy by prototypeIcon("Copy", "M10 8H19a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2Z M16 8V3H3v13h5", false, 24f, PathFillType.NonZero)
     val Call by icon("Call", "M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z")
-    val Close by icon("Close", "M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z")
-    val OpenExternal by icon("OpenExternal", "M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z")
-    val Trash by icon("Trash", "M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z")
+    val Close by prototypeIcon("Close", "M6 6l12 12M18 6 6 18", false, 24f, PathFillType.NonZero)
+    val OpenExternal by prototypeIcon("OpenExternal", "M6 18 18 6M6 6h12v12", false, 24f, PathFillType.NonZero)
+    val Trash by prototypeIcon("Trash", "M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7", false, 24f, PathFillType.NonZero)
     val Sparkle by icon("Sparkle", "M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2zm6 13 .9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9L18 15zM4 16l.6 1.4L6 18l-1.4.6L4 20l-.6-1.4L2 18l1.4-.6L4 16z")
-    val Lock by icon("Lock", "M17 9h-1V7a4 4 0 0 0-8 0v2H7a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM10 7a2 2 0 0 1 4 0v2h-4V7zm7 13H7v-9h10v9zm-5-7a1.5 1.5 0 0 0-1 2.62V18h2v-2.38A1.5 1.5 0 0 0 12 13z")
-    val Info by icon("Info", "M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm-1 6h2v7h-2v-7zm0-3h2v2h-2V7z")
+    val Lock by prototypeIcon("Lock", "M7 10H17a2 2 0 0 1 2 2V19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2Z M8 10V7a4 4 0 0 1 8 0v3M12 15v2", false, 24f, PathFillType.NonZero)
+    val Info by prototypeIcon("Info", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M12 10v7m0-11h.01", false, 24f, PathFillType.NonZero)
+
+    val Plus by prototypeIcon("Plus", "M12 4v16M4 12h16", false, 24f, PathFillType.NonZero)
+    val Mic by prototypeIcon("Mic", "M12 3H12a3 3 0 0 1 3 3V12a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z M5 10v2a7 7 0 0 0 14 0v-2M12 19v3", false, 24f, PathFillType.NonZero)
+    val Code by prototypeIcon("Code", "M8 7l-5 5 5 5m8-10 5 5-5 5m-3-14-2 18", false, 24f, PathFillType.NonZero)
+    val Pdf by prototypeIcon("Pdf", "M6 3h8l4 4v14H6V3Zm8 0v5h4 M8 15h8", false, 24f, PathFillType.NonZero)
+    val Download by prototypeIcon("Download", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
+    val Storage by prototypeIcon("Storage", "M5 4H19a2 2 0 0 1 2 2V8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z M5 14H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V16a2 2 0 0 1 2-2Z M17 7h.01M17 17h.01", false, 24f, PathFillType.NonZero)
+    val Heart by prototypeIcon("Heart", "M12 21S1 14 2 7c1-5 7-5 10-1 3-4 9-4 10 1 1 7-10 14-10 14Z", false, 24f, PathFillType.NonZero)
+    val Globe by prototypeIcon("Globe", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M16 12a4 9 0 1 1-8 0a4 9 0 1 1 8 0Z M3 12h18", false, 24f, PathFillType.NonZero)
+
+    private fun prototypeIcon(name: String, data: String, filled: Boolean, viewport: Float, rule: PathFillType) = lazy {
+        ImageVector.Builder(name, 24.dp, 24.dp, viewport, viewport).addPath(
+            pathData = PathParser().parsePathString(data).toNodes(),
+            fill = if (filled) SolidColor(Color.Black) else null,
+            stroke = if (filled) null else SolidColor(Color.Black),
+            strokeLineWidth = if (filled) 0f else 1.65f,
+            strokeLineCap = StrokeCap.Round, strokeLineJoin = StrokeJoin.Round, pathFillType = rule,
+        ).build()
+    }
 
     private fun icon(name: String, pathData: String) = lazy {
         ImageVector.Builder(

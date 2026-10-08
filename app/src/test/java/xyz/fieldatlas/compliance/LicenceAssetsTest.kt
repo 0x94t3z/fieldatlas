@@ -15,6 +15,7 @@ class LicenceAssetsTest {
             "NOTICE.txt" to "../NOTICE",
             "THIRD_PARTY_NOTICES.md" to "../THIRD_PARTY_NOTICES.md",
             "source-serif-4-OFL.txt" to "../docs/licenses/source-serif-4-OFL.txt",
+            "manrope-OFL.txt" to "../docs/licenses/manrope-OFL.txt",
             "llama.cpp-LICENSE.txt" to "../third_party/llama.cpp/LICENSE",
             "bouncycastle-LICENSE.txt" to "../docs/licenses/bouncycastle-LICENSE.txt",
             "llvm-LICENSE.txt" to "../docs/licenses/llvm-LICENSE.txt",

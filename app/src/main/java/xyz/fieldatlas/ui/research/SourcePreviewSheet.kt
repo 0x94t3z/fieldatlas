@@ -6,6 +6,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -26,22 +27,27 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.ui.sourceDisplayName
 import xyz.fieldatlas.ui.sourcePresentation
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
-import xyz.fieldatlas.ui.theme.FieldAtlasFactRow
+import xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
@@ -118,14 +124,14 @@ internal fun SourcePreviewSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
     ) {
         Column(
-            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                .padding(start = 20.dp, end = 20.dp, bottom = 20.dp).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.fillMaxWidth().heightIn(max = (LocalConfiguration.current.screenHeightDp * 0.88f).dp)
+                .navigationBarsPadding(),
         ) {
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Surface(Modifier.size(36.dp), color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.small) {
                     Box(contentAlignment = Alignment.Center) {
                         Text("${index + 1}", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold,
@@ -133,7 +139,11 @@ internal fun SourcePreviewSheet(
                     }
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(place?.name ?: evidence.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Normal)
+                    Text(place?.name ?: evidence.title, style = MaterialTheme.typography.titleSmall.copy(fontSize = 16.sp, lineHeight = 22.sp),
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = if (sourcePresentation(evidence).isAttachment) 1 else 2,
+                        overflow = if (sourcePresentation(evidence).isAttachment) androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis
+                            else androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(
                         sourcePresentation(evidence).takeIf { it.isAttachment }?.metadata
                             ?: sourceDisplayName(evidence.source),
@@ -141,82 +151,101 @@ internal fun SourcePreviewSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onDismiss) {
-                    Icon(FieldAtlasIcons.Close, contentDescription = "Close preview",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close preview")
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (cited) FieldAtlasStatusPill("Cited in this answer", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-                else FieldAtlasStatusPill("Provided · not cited")
-            }
-            if (place != null) {
-                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                    place.facts.forEach { (label, value) -> FieldAtlasFactRow(label, value) }
-                }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    place.address?.let { address ->
-                        SheetChipButton("Copy address", FieldAtlasIcons.Copy) { copy("Address", address) }
+            key(index, evidence) {
+                Column(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (cited) FieldAtlasStatusPill("Cited in this answer", StatusTone.Positive, icon = FieldAtlasIcons.Citation)
+                        else FieldAtlasStatusPill("Provided · not cited")
                     }
-                    SheetChipButton("Copy coordinates", FieldAtlasIcons.Copy) {
-                        copy("Coordinates", "%.6f, %.6f".format(java.util.Locale.ROOT, place.lat, place.lon))
-                    }
-                    place.phone?.let { phone ->
-                        SheetChipButton("Call", FieldAtlasIcons.Call) {
-                            launch(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' })),
-                                "No phone app is available.")
+                    if (place != null) {
+                        Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(12.dp)) {
+                            Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                place.facts.forEach { (label, value) ->
+                                    val copyValue = when (label) {
+                                        "Address" -> place.address
+                                        "Coordinates" -> "%.6f, %.6f".format(java.util.Locale.ROOT, place.lat, place.lon)
+                                        else -> null
+                                    }
+                                    PlaceDetailRow(label, value, copyValue?.let { { copy(label, it) } })
+                                }
+                            }
                         }
+                        Button(
+                            onClick = {
+                                val label = Uri.encode(place.name)
+                                launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")),
+                                    "No maps app is installed. Copy the coordinates instead.")
+                            },
+                            shape = FieldAtlasButtonShape,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        ) {
+                            Icon(FieldAtlasIcons.Map, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text("Open in maps", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
+                        }
+                        place.phone?.let { phone ->
+                            OutlinedButton(onClick = {
+                                launch(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' })),
+                                    "No phone app is available.")
+                            }, shape = FieldAtlasButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                                Icon(FieldAtlasIcons.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Text("Call this place", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                        Text("For offline directions, install Organic Maps or OsmAnd from F-Droid. Check hours and listing details before you go.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
+                            // Plain text, never Markdown: saved passages cannot add links or citations.
+                            Text(evidence.text.trim(), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 15.sp, lineHeight = 24.sp),
+                                fontFamily = FieldAtlasEditorial, maxLines = 9, overflow = TextOverflow.Ellipsis)
+                        }
+                        Text("Original saved text. The model's wording is not verified against it.",
+                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (nextIndex != null) {
+                            OutlinedButton(onClick = { onNext(nextIndex) }, shape = FieldAtlasButtonShape,
+                                modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Next source", style = MaterialTheme.typography.labelLarge) }
+                        }
+                        val openFull: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
+                            Icon(FieldAtlasIcons.OpenExternal, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Full source", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
+                        }
+                        // A place already has its main action (maps) above; one filled button per sheet.
+                        if (onOpenFull == null) Unit
+                        else if (place != null) TextButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
+                        else Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
                     }
                 }
-                Button(
-                    onClick = {
-                        val label = Uri.encode(place.name)
-                        launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")),
-                            "No maps app is installed. Copy the coordinates instead.")
-                    },
-                    shape = FieldAtlasButtonShape,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-                ) {
-                    Icon(FieldAtlasIcons.Collection, contentDescription = null, modifier = Modifier.size(19.dp))
-                    Text("Open in a maps app", Modifier.padding(start = 8.dp))
-                }
-                Text("Opens an offline maps app if one is installed, such as Organic Maps or OsmAnd (both on F-Droid). " +
-                    "Hours and menus can be out of date; check before you go.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
-                    // Plain text, never Markdown: saved passages cannot add links or citations.
-                    Text(evidence.text.trim(), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyLarge,
-                        fontFamily = FieldAtlasEditorial, maxLines = 9, overflow = TextOverflow.Ellipsis)
-                }
-                Text("Original saved text. The model's wording is not verified against it.",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (nextIndex != null) {
-                    OutlinedButton(onClick = { onNext(nextIndex) }, shape = FieldAtlasButtonShape,
-                        modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Next source") }
-                }
-                val openFull: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
-                    Icon(FieldAtlasIcons.OpenExternal, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text("Full source", Modifier.padding(start = 8.dp))
-                }
-                // A place already has its main action (maps) above; one filled button per sheet.
-                if (onOpenFull == null) Unit
-                else if (place != null) OutlinedButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
-                else Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
             }
         }
     }
 }
 
 @Composable
-private fun SheetChipButton(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, shape = RoundedCornerShape(18.dp), modifier = Modifier.heightIn(min = 40.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp)) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
-        Text(label, Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
+private fun PlaceDetailRow(label: String, value: String, onCopy: (() -> Unit)?) {
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val stacked = onCopy != null || maxWidth < 260.dp || LocalDensity.current.fontScale > 1.3f
+        Row(Modifier.fillMaxWidth().heightIn(min = if (onCopy != null) 56.dp else 36.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (stacked) Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(label, Modifier.weight(0.38f), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, Modifier.weight(0.62f), style = MaterialTheme.typography.bodyMedium)
+            }
+            if (onCopy != null) FieldAtlasBareIconButton(onCopy, "Copy ${label.lowercase(java.util.Locale.ROOT)}", FieldAtlasIcons.Copy)
+        }
     }
 }

@@ -64,6 +64,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
@@ -76,6 +79,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 
 @Composable
 fun LibraryScreen(
@@ -111,7 +117,11 @@ fun LibraryScreen(
     modelBusy: Boolean = false,
     modelFits: (InstalledAsset) -> Boolean = { true },
     modelNotice: String? = null,
+    modelDownloadUrl: (ModelOffer) -> String = { it.url },
+    knowledgeDownloadUrl: (KnowledgeCatalogEntry) -> String = { it.url },
+    onOpenDownloadSources: () -> Unit = {},
 ) {
+    var discovering by rememberSaveable { mutableStateOf(false) }
     val models = packs.filter { it.type == PackType.MODEL }
     val modelDownloads = modelOffers.filterNot { offer -> models.any { it.id == offer.id && it.version == offer.version } }
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
@@ -131,32 +141,29 @@ fun LibraryScreen(
     val activeSpeech = speech.firstOrNull { it.active } ?: speech.firstOrNull()
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 20.dp), verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FieldAtlasHeader(
-                        title = "Library",
-                        subtitle = "Models and knowledge on this phone.",
+                    xyz.fieldatlas.ui.theme.FieldAtlasPageHeader(
+                        title = "Your library",
+                        subtitle = "Choose what you carry offline.",
                         modifier = Modifier.weight(1f),
+                        titleStyle = MaterialTheme.typography.headlineLarge.copy(fontSize = 30.sp,
+                            lineHeight = 36.sp, fontWeight = FontWeight(650), letterSpacing = (-0.8).sp),
                     )
-                    FilledTonalButton(shape = FieldAtlasButtonShape, 
+                    xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(
                         onClick = onImportPack,
+                        description = "Import a pack",
+                        icon = FieldAtlasIcons.Plus,
                         enabled = !importing && !modelDownloading && knowledgeDownloadKey == null,
-                        contentPadding = PaddingValues(horizontal = 14.dp),
-                        modifier = Modifier.heightIn(min = 40.dp).semantics { contentDescription = "Import a pack" },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        ),
-                    ) {
-                        Icon(FieldAtlasIcons.Import, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(if (importing) "Verifying…" else "Import", modifier = Modifier.padding(start = 6.dp))
-                    }
+                    )
                 }
             }
+            if (importing) item { FieldAtlasStatusPill("Verifying…") }
             if (importError != null) {
                 item {
                     FieldAtlasCard(Modifier.fillMaxWidth()) {
@@ -167,6 +174,27 @@ fun LibraryScreen(
                 }
             }
             if (packs.isNotEmpty()) item { StorageSummary(models, knowledge, speech) }
+            item {
+                Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceVariant) {
+                    Row(Modifier.fillMaxWidth().padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("On this phone", "Discover").forEachIndexed { index, label ->
+                            val selected = discovering == (index == 1)
+                            Surface(onClick = { discovering = index == 1 }, modifier = Modifier.weight(1f).heightIn(min = 48.dp)
+                                .semantics { role = Role.Tab; this.selected = selected },
+                                shape = FieldAtlasButtonShape,
+                                color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent) {
+                                Box(Modifier.padding(horizontal = 6.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+                                    Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (!discovering && (modelDownloading || knowledgeDownloadKey != null)) item {
+                EmptyLibraryNote("Your download continues in the background. View its progress in Discover.")
+            }
+            if (!discovering) {
             item { SectionLabel("Answer model") }
             if (modelNotice != null) item { EmptyLibraryNote(modelNotice) }
             if (models.isEmpty()) item { EmptyLibraryNote("No local model installed") }
@@ -192,8 +220,12 @@ fun LibraryScreen(
                     note = if (fits) null else "needs more memory than this phone has",
                     onDelete = { onDeletePack(asset) },
                     asset = asset,
+                    onModelOptions = { discovering = true },
                 )
             }
+            }
+            if (discovering) {
+            item { SectionLabel("Answer models") }
             items(modelDownloads.size, key = { "model-offer:${modelDownloads[it].id}:${modelDownloads[it].version}" }) { index ->
                 val offer = modelDownloads[index]
                 ModelDownloadCard(
@@ -205,8 +237,11 @@ fun LibraryScreen(
                     error = modelDownloadError?.takeIf { modelDownloadErrorId == offer.id },
                     onDownload = { onDownloadModel(offer) },
                     onCancel = onCancelModelDownload,
+                    downloadUrl = modelDownloadUrl(offer),
                 )
             }
+            }
+            if (!discovering) {
             item { SectionLabel("Knowledge collections") }
             if (knowledge.isEmpty()) {
                 item {
@@ -248,7 +283,26 @@ fun LibraryScreen(
                     }
                 }
             }
-            item { xyz.fieldatlas.ui.theme.CatalogRefresh(catalogRefreshing, catalogError, onRefreshCatalog) }
+            item { TextButton(shape = FieldAtlasButtonShape, onClick = { discovering = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Browse collections") } }
+            }
+            if (discovering) {
+            item {
+                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    itemVerticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onOpenDownloadSources, shape = FieldAtlasButtonShape,
+                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(0.dp)) {
+                        Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
+                        Text("Download sources", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelMedium)
+                    }
+                    TextButton(onClick = onRefreshCatalog, enabled = !catalogRefreshing, shape = FieldAtlasButtonShape,
+                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(start = 12.dp)) {
+                        Text(if (catalogRefreshing) "Refreshing…" else "Refresh", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                catalogError?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error) }
+            }
             if (available.isNotEmpty()) {
                 item { SectionLabel("Available to download") }
                 items(available.size, key = { "available:${available[it].id}:${available[it].version}" }) { index ->
@@ -266,9 +320,12 @@ fun LibraryScreen(
                             resumableBytes = resumableKnowledgeBytes(candidate),
                             onDownload = { onDownloadKnowledge(candidate) },
                             onCancel = onCancelKnowledgeDownload,
+                            downloadUrl = knowledgeDownloadUrl(candidate),
                         )
                     }
                 }
+            }
+            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("No new collections available. Your saved packs are on this phone.") }
             }
             if (knowledgeDownloadError != null) {
                 item {
@@ -279,7 +336,8 @@ fun LibraryScreen(
                     }
                 }
             }
-            item { SectionLabel("Audio models") }
+            if (!discovering) {
+            item { SectionLabel("Voice") }
             if (speech.isEmpty()) {
                 item {
                     EmptyLibraryNote(
@@ -297,6 +355,7 @@ fun LibraryScreen(
                     onDelete = { onDeletePack(asset) },
                 )
             }
+            }
         }
     }
 }
@@ -310,6 +369,7 @@ internal fun KnowledgeDownloadCard(
     resumableBytes: Long = 0,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    downloadUrl: String = pack.url,
 ) {
     var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
@@ -374,7 +434,8 @@ internal fun KnowledgeDownloadCard(
                     else "Uses ${formatAssetBytes(pack.bytes)} of internet data. ") +
                     "Installation needs about " +
                     "${sizeGb(pack.bytes * 2 + 512_000_000L)} GB free while installing. " +
-                    "Afterward, the collection works offline.")
+                    "Afterward, the collection works offline.\n\n" +
+                    xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl))
             },
             confirmButton = {
                 TextButton(shape = FieldAtlasButtonShape, onClick = {
@@ -398,6 +459,7 @@ internal fun ModelDownloadCard(
     error: String? = null,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    downloadUrl: String = offer.url,
 ) {
     var confirmDownload by rememberSaveable(offer.id, offer.version) { mutableStateOf(false) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
@@ -467,7 +529,8 @@ internal fun ModelDownloadCard(
                     // The verified file is moved into place, not copied: what is left to fetch plus
                     // Android's margin.
                     "Installation needs about ${sizeGb(offer.bytes - resumableBytes.coerceIn(0, offer.bytes) + 512_000_000L)} GB free. " +
-                    "Afterward it works offline, and you can switch between models here.")
+                    "Afterward it works offline, and you can switch between models here.\n\n" +
+                    xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl))
             },
             confirmButton = {
                 TextButton(shape = FieldAtlasButtonShape, enabled = !busy, onClick = {
@@ -501,8 +564,8 @@ internal fun categoryVisual(category: KnowledgeCategory): PackVisual = when (cat
 internal fun packVisual(asset: InstalledAsset): PackVisual {
     val id = asset.id.lowercase()
     return when {
-        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Archive, TileTone.Sage)
-        asset.type == PackType.AUDIO -> PackVisual(Icons.Outlined.Mic, TileTone.Paper)
+        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
+        asset.type == PackType.AUDIO -> PackVisual(FieldAtlasIcons.Mic, TileTone.Paper)
         "guides" in id -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
         listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
         listOf("biology", "science", "longevity", "health", "crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
@@ -511,7 +574,9 @@ internal fun packVisual(asset: InstalledAsset): PackVisual {
 }
 
 @Composable
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 private fun StorageSummary(models: List<InstalledAsset>, knowledge: List<InstalledAsset>, speech: List<InstalledAsset>) {
+    var showDetails by rememberSaveable { mutableStateOf(false) }
     val parts = listOf(
         Triple("Models", models.sumOf { it.installedBytes }, MaterialTheme.colorScheme.primary),
         Triple("Knowledge", knowledge.sumOf { it.installedBytes }, Color(0xFF8DB59E)),
@@ -520,9 +585,29 @@ private fun StorageSummary(models: List<InstalledAsset>, knowledge: List<Install
     val total = parts.sumOf { it.second }
     if (total <= 0) return
     val count = models.size + knowledge.size + speech.size
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(if (count == 1) "1 pack saved" else "$count packs saved", Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)))
+        TextButton(onClick = { showDetails = true }, shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
+            Text("Storage", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelMedium)
+        }
+    }
+    if (showDetails) androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = { showDetails = false },
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
+        containerColor = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(Modifier.fillMaxWidth().verticalScroll(androidx.compose.foundation.rememberScrollState())
+            .padding(horizontal = 22.dp).navigationBarsPadding().padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Storage", Modifier.weight(1f), style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle)
+                xyz.fieldatlas.ui.theme.FieldAtlasCloseButton({ showDetails = false }, "Close Storage")
+            }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("${formatAssetBytes(total)} on this phone", style = MaterialTheme.typography.titleMedium,
+            Text("${formatAssetBytes(total)} on this phone", style = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
                 modifier = Modifier.weight(1f))
             Text(if (count == 1) "1 pack" else "$count packs", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -533,7 +618,7 @@ private fun StorageSummary(models: List<InstalledAsset>, knowledge: List<Install
                 Box(Modifier.weight(bytes.toFloat().coerceAtLeast(total * 0.02f)).fillMaxHeight().background(color))
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             parts.forEach { (label, bytes, color) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(8.dp).background(color, CircleShape))
@@ -541,6 +626,9 @@ private fun StorageSummary(models: List<InstalledAsset>, knowledge: List<Install
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
+        }
+        Text("Downloaded packs only. App files and saved answers are not included.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -560,50 +648,54 @@ private fun AssetCard(
     inGroup: Boolean = false,
     asset: InstalledAsset? = null,
     onAskExample: ((String) -> Unit)? = null,
+    onModelOptions: (() -> Unit)? = null,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var showAbout by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var showModelActions by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
+    val isAnswerModel = asset?.type == PackType.MODEL
     // A switched-off collection stays readable but visibly inactive.
     val inactive = onToggleResearch != null && !enabled
-    AssetSurface(inGroup) {
+    AssetSurface(inGroup, onClick = if (isAnswerModel) ({ showModelActions = true }) else null) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(if (inGroup) 8.dp else 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone,
+            if (inGroup) Box(Modifier.size(width = 32.dp, height = 36.dp), contentAlignment = Alignment.Center) {
+                Icon(visual.icon, null, Modifier.size(20.dp).alpha(if (inactive) 0.5f else 1f),
+                    tint = MaterialTheme.colorScheme.primary)
+            }
+            else FieldAtlasIconTile(visual.icon, size = 36.dp, tone = visual.tone,
                 modifier = Modifier.alpha(if (inactive) 0.5f else 1f))
             Column(Modifier.weight(1f).alpha(if (inactive) 0.6f else 1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(model.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(model.title, style = PackTitleStyle().copy(fontSize = if (inGroup) 14.sp else 16.sp,
+                    fontWeight = if (inGroup) FontWeight.SemiBold else FontWeight(650)),
+                    maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) Int.MAX_VALUE else 2,
+                    overflow = TextOverflow.Ellipsis)
                 Text(
                     "${model.size} · v${model.version}" + (if (inactive) " · not used" else "") + (note?.let { " · $it" } ?: ""),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 18.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (selectedModel) Text("In use", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary)
             }
             when {
-                selectedModel -> FieldAtlasStatusPill("In use", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-                onActivateModel != null -> TextButton(shape = FieldAtlasButtonShape, onClick = onActivateModel,
+                selectedModel -> Unit
+                onActivateModel != null && !isAnswerModel -> TextButton(shape = FieldAtlasButtonShape, onClick = onActivateModel,
                     enabled = activateEnabled) { Text("Use model") }
-                onToggleResearch != null -> Switch(
+                onToggleResearch != null -> xyz.fieldatlas.ui.theme.FieldAtlasSwitch(
                     checked = enabled,
                     onCheckedChange = onToggleResearch,
                     modifier = Modifier.semantics { contentDescription = "Use ${model.title} in research" },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.surface,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary,
-                        checkedBorderColor = MaterialTheme.colorScheme.primary,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
-                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
-                    ),
                 )
             }
             if (onDelete != null) {
                 // Deleting is rare, so it lives in the overflow menu rather than beside the toggle.
                 Box {
-                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
-                        Icon(Icons.Outlined.MoreHoriz, contentDescription = "More options for ${model.title}",
+                    IconButton(onClick = { if (isAnswerModel) showModelActions = true else menuOpen = true }, modifier = Modifier.size(48.dp)) {
+                        Icon(FieldAtlasIcons.MoreOptions, contentDescription = "More options for ${model.title}",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
@@ -623,7 +715,7 @@ private fun AssetCard(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         DropdownMenuItem(
                             text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
-                            leadingIcon = { Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                             onClick = { menuOpen = false; confirmDelete = true },
                         )
                     }
@@ -631,6 +723,14 @@ private fun AssetCard(
             }
         }
     }
+    if (showModelActions && asset != null) ModelActionsSheet(
+        title = model.title, detail = "${model.size} · v${model.version}", selected = selectedModel,
+        notice = note, useEnabled = activateEnabled, onUse = onActivateModel,
+        onDetails = { showModelActions = false; showAbout = true },
+        onOptions = onModelOptions?.let { { showModelActions = false; it() } },
+        onDelete = { showModelActions = false; confirmDelete = true },
+        onDismiss = { showModelActions = false },
+    )
     if (confirmDelete) {
         FieldAtlasDeleteDialog(
             title = "Delete ${model.title}?",
@@ -645,14 +745,16 @@ private fun AssetCard(
     }
 }
 
-/** Pack names in the sans reading face, as in the design; serif stays for page headings. */
+/** Pack names use the interface face; serif is reserved for research reading. */
 @Composable
 private fun PackTitleStyle() = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 20.sp)
 
 @Composable
-private fun AssetSurface(inGroup: Boolean, content: @Composable () -> Unit) {
-    if (inGroup) Box(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) { content() }
-    else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) { content() }
+private fun AssetSurface(inGroup: Boolean, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    if (inGroup) Box(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 14.dp)) { content() }
+    else FieldAtlasCard(Modifier.fillMaxWidth().then(if (onClick == null) Modifier else
+        Modifier.clip(xyz.fieldatlas.ui.theme.FieldAtlasLayout.CardShape)
+            .clickable(role = Role.Button, onClickLabel = "Model options", onClick = onClick)), contentPadding = 16.dp) { content() }
 }
 
 @Composable

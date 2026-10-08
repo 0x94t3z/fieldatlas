@@ -10,9 +10,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
 import xyz.fieldatlas.ui.presentation.knowledgeCategory
@@ -24,6 +28,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SetupScreen(
     packs: List<InstalledAsset>, importing: Boolean, downloading: Boolean,
@@ -43,6 +48,10 @@ fun SetupScreen(
     importingPack: PackImportInfo? = null,
     /** A model other than the recommended one is downloading (started from Library). */
     otherModelDownloading: Boolean = false,
+    onOpenDownloadSources: () -> Unit = {},
+    modelDownloadUrl: String = ModelOffers.recommended.url,
+    knowledgeDownloadUrl: (KnowledgeCatalogEntry) -> String = { it.url },
+    modelDownloadError: String? = null,
 ) {
     val recommended = ModelOffers.recommended
     val model = packs.firstOrNull { it.type == PackType.MODEL }
@@ -55,18 +64,62 @@ fun SetupScreen(
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = listState,
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { FieldAtlasBrandMark(Modifier.padding(top = 6.dp, bottom = 4.dp)) }
+                contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 12.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)) {
                 item {
-                    FieldAtlasHeader("Your research desk, offline.",
-                        "Download once. Ask, compare and check sources on this phone, without an account or a connection.")
+                    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(4.dp), itemVerticalAlignment = Alignment.CenterVertically) {
+                        Text("Field Atlas", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+                        TextButton(shape = FieldAtlasButtonShape, onClick = onOpenDownloadSources,
+                            modifier = Modifier.heightIn(min = 48.dp),
+                            contentPadding = PaddingValues(start = 8.dp, end = 0.dp)) {
+                            Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
+                            Text("Download sources", Modifier.padding(start = 8.dp),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)))
+                        }
+                    }
                 }
                 item {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FieldAtlasStatusPill("Private", StatusTone.Positive, icon = FieldAtlasIcons.Lock)
-                        FieldAtlasStatusPill("Cited", StatusTone.Positive, icon = FieldAtlasIcons.Citation)
+                    FieldAtlasPageHeader("A little setup.\nThen, offline.",
+                        "Choose what lives on your phone. You can change it later.",
+                        titleStyle = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = 28.sp, lineHeight = 33.sp, letterSpacing = (-0.9).sp))
+                }
+                item {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         FieldAtlasStatusPill("Offline", StatusTone.Positive, icon = FieldAtlasIcons.Offline)
+                        FieldAtlasStatusPill("Cited", StatusTone.Attention, icon = FieldAtlasIcons.Citation)
+                        val light = MaterialTheme.colorScheme.background.luminance() > 0.5f
+                        FieldAtlasStatusPill("Private", icon = FieldAtlasIcons.Lock,
+                            containerColor = if (light) Color(0xFFF2DED2) else Color(0xFF51372C),
+                            contentColor = if (light) Color(0xFF754333) else Color(0xFFEFC7B2))
+                    }
+                }
+                if (!importing) item {
+                    TextButton(shape = FieldAtlasButtonShape, onClick = onImportPack, enabled = !busy,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Icon(FieldAtlasIcons.Document, null, Modifier.size(20.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("Import .fapack", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(650)))
+                                Text("Model or knowledge pack", style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+                // Explain unavailable downloads before their controls, not at the end of the list.
+                if (!online) item {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top) {
+                        Icon(FieldAtlasIcons.Offline, null, Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary)
+                        Text("You’re offline. Import saved packs, or reconnect to download.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
                 if (importing && importingPack?.type !in setOf(PackType.MODEL, PackType.KNOWLEDGE)) item {
@@ -76,26 +129,35 @@ fun SetupScreen(
                 item {
                     if (importing && importingPack?.type == PackType.MODEL) {
                         SetupImportCard(if (importingPack.id == recommended.id) recommended.name else importingPack.title,
-                            importingName, "Importing model", FieldAtlasIcons.Archive)
+                            importingName, "Importing model", FieldAtlasIcons.Model)
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == recommended.id) recommended.name else model.title,
-                        icon = FieldAtlasIcons.Archive,
+                        icon = FieldAtlasIcons.Model,
                         bytes = recommended.bytes, installed = model != null,
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
                         details = "Recommended model · Apache 2.0", onDownload = onDownloadModel, onCancel = onCancelDownload,
-                        subtitle = if (model == null || model.id == recommended.id) "Q4_K_M · Compact" else null,
+                        subtitle = if (model == null || model.id == recommended.id) "Q4_K_M" else null,
                         blockedReason = blockedReason,
                         // The verified model is moved into place, not unpacked from a copy.
                         freeBytesNeeded = recommended.bytes - resumableModelBytes.coerceIn(0, recommended.bytes) + 512_000_000L,
+                        downloadUrl = modelDownloadUrl,
+                        downloadError = modelDownloadError,
+                        online = online,
                     )
                 }
                 item {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { SetupSection(2, "Knowledge", "Optional") }
+                    val refresh: @Composable () -> Unit = {
                         TextButton(shape = FieldAtlasButtonShape, onClick = onRefreshCatalog, enabled = online && !catalogRefreshing) {
                             Text(if (catalogRefreshing) "Refreshing…" else "Refresh")
                         }
+                    }
+                    if (LocalDensity.current.fontScale > 1.3f) Column(Modifier.fillMaxWidth()) {
+                        SetupSection(2, "Knowledge", "Optional · add later in Library")
+                        Box(Modifier.align(Alignment.End)) { refresh() }
+                    } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { SetupSection(2, "Knowledge", "Optional · add later in Library") }
+                        refresh()
                     }
                     if (online && catalogError != null) Text(catalogError,
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -109,7 +171,8 @@ fun SetupScreen(
                     .forEach { (category, group) -> item(key = "setup-category:${category.name}") { Column {
                     // One grouped card per category of optional collections, as in the design.
                     Text(category.label, style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                         Column {
                             group.sortedWith(compareByDescending<KnowledgeCatalogEntry> { it.recommended }.thenBy { it.title })
@@ -124,34 +187,13 @@ fun SetupScreen(
                                     resumableKnowledgeBytes(pack),
                                     "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
                                     { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
-                                    blockedReason = blockedReason, inGroup = true)
+                                    blockedReason = blockedReason, inGroup = true,
+                                    downloadUrl = knowledgeDownloadUrl(pack))
                             }
                         }
                     }
                 } } }
-                item {
-                    Text("Add knowledge now or later in Library.", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (!importing) {
-                        OutlinedButton(shape = FieldAtlasButtonShape, onClick = onImportPack, enabled = !busy,
-                            modifier = Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 48.dp)) {
-                            Icon(FieldAtlasIcons.Document, null, Modifier.size(18.dp))
-                            Text("Import a saved pack", modifier = Modifier.padding(start = 8.dp))
-                        }
-                    }
-                }
-                // Directly under the import button: offline, importing is the way forward.
-                if (!online) item {
-                    FieldAtlasCard(Modifier.fillMaxWidth(), containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
-                        contentPadding = 12.dp) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(FieldAtlasIcons.Offline, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("You’re offline. Import saved packs, or reconnect to download.",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
-                }
-                (knowledgeError ?: error)?.let { message -> item {
+                (knowledgeError ?: error?.takeUnless { it == modelDownloadError })?.let { message -> item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
                         Text("Setup couldn’t finish", style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.error)
@@ -198,7 +240,7 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
                     Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
-            filename?.let { Text(it, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis,
+            filename?.let { Text(it, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             LinearProgressIndicator(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primaryContainer)
@@ -210,11 +252,18 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
 
 @Composable
 private fun SetupSection(step: Int, title: String, hint: String) {
-    Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Step $step", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary)
-        Text("$title · ${hint.lowercase()}", style = MaterialTheme.typography.bodySmall,
+    if (hint == "Required") {
+        FlowRow(Modifier.fillMaxWidth().padding(top = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween, itemVerticalAlignment = Alignment.CenterVertically) {
+            Text("0$step / $title", style = MaterialTheme.typography.titleSmall)
+            Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text("0$step / $title", style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface)
+        Text(hint, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -226,15 +275,52 @@ private fun SetupDownloadRow(
     onDownload: () -> Unit, onCancel: () -> Unit,
     subtitle: String? = null, blockedReason: String? = null, inGroup: Boolean = false,
     freeBytesNeeded: Long = bytes * 2 + 512_000_000L,
+    downloadUrl: String,
+    downloadError: String? = null,
+    online: Boolean = true,
 ) {
     var confirm by rememberSaveable(title, bytes) { mutableStateOf(false) }
     val installing = downloading && downloadedBytes >= bytes
+    // Keep full names readable: with large text, the action gets its own line instead of
+    // competing with the name. Installed rows need only one textual status, not two pills.
+    val stackAction = LocalDensity.current.fontScale > 1.3f
+    val downloadAction: @Composable () -> Unit = {
+        if (!installed && !downloading && downloadError == null) {
+            FilledTonalIconButton(shape = FieldAtlasButtonShape, onClick = { confirm = true },
+                enabled = !busy && blockedReason == null,
+                modifier = Modifier.size(48.dp).semantics {
+                    contentDescription = if (resumableBytes > 0) "Resume $title" else "Download $title"
+                }, colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer)) {
+                Icon(FieldAtlasIcons.Download, null, Modifier.size(20.dp))
+            }
+        } else {
+        if (!installed && !downloading) FilledTonalButton(shape = FieldAtlasButtonShape,
+            onClick = { confirm = true },
+            enabled = !busy && blockedReason == null,
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            modifier = Modifier.heightIn(min = 48.dp).semantics {
+                contentDescription = if (downloadError != null) "Retry download $title"
+                    else if (resumableBytes > 0) "Resume $title" else "Download $title"
+            },
+            colors = ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ),
+        ) {
+            Text(if (downloadError != null) "Retry" else if (resumableBytes > 0) "Resume" else "Get",
+                style = MaterialTheme.typography.labelMedium)
+        }
+        }
+    }
     SetupRowSurface(inGroup) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(icon, size = 40.dp, tone = if (icon == FieldAtlasIcons.Place) TileTone.Gold else TileTone.Sage)
+            FieldAtlasIconTile(icon, size = 36.dp, tone = if (icon == FieldAtlasIcons.Place) TileTone.Gold else TileTone.Sage)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Text(title, style = if (inGroup) MaterialTheme.typography.titleSmall
+                    else MaterialTheme.typography.titleMedium)
                 val status = if (installed) "Installed" else if (!downloading && resumableBytes > 0)
                     "${downloadSize(resumableBytes)} saved · resume" else downloadSize(bytes)
                 Text(listOfNotNull(subtitle, status).joinToString(" · "),
@@ -243,21 +329,26 @@ private fun SetupDownloadRow(
                 if (!installed && !downloading && blockedReason != null) Text(blockedReason,
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (installed) FieldAtlasStatusPill("Installed", StatusTone.Positive, icon = FieldAtlasIcons.Check)
-            else if (!downloading) FilledTonalButton(shape = FieldAtlasButtonShape, 
-                onClick = { confirm = true },
-                enabled = !busy && blockedReason == null,
-                contentPadding = PaddingValues(horizontal = 14.dp),
-                modifier = Modifier.heightIn(min = 40.dp).semantics {
-                    contentDescription = if (resumableBytes > 0) "Resume $title" else "Download $title"
-                },
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            ) {
-                Icon(FieldAtlasIcons.Import, null, Modifier.size(18.dp))
-                Text(if (resumableBytes > 0) "Resume" else "Get", modifier = Modifier.padding(start = 6.dp))
+            if (installed) Icon(FieldAtlasIcons.Check, null, Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.primary)
+            else if (!stackAction) downloadAction()
+        }
+        if (stackAction && !installed && !downloading) Row(Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End) { downloadAction() }
+        if (downloadError != null && !installed && !downloading) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
+                Icon(FieldAtlasIcons.Warning, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error)
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("Download interrupted", style = MaterialTheme.typography.labelMedium)
+                    // Keep the actual failure visible; a checksum failure must not be called a connection issue.
+                    Text(downloadError, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (resumableBytes > 0) Text("${downloadSize(resumableBytes)} saved. Your progress is kept.",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!online) Text("Go online to retry.", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
         if (downloading) {
@@ -277,7 +368,8 @@ private fun SetupDownloadRow(
         text = { Text("$details\n\n" + (if (resumableBytes > 0)
             "${downloadSize(resumableBytes)} is saved. About ${downloadSize(bytes - resumableBytes.coerceIn(0, bytes))} remains if the server supports resume; otherwise the full download may be needed. "
             else "Uses ${downloadSize(bytes)} of internet data. ") +
-            "Allow about ${downloadSize(freeBytesNeeded)} free while installing. Works offline afterward.") },
+            "Allow about ${downloadSize(freeBytesNeeded)} free while installing. Works offline afterward.\n\n" +
+            xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl)) },
         confirmButton = { TextButton(shape = FieldAtlasButtonShape, enabled = !busy && blockedReason == null, onClick = { confirm = false; onDownload() }) {
             Text(if (resumableBytes > 0) "Resume" else "Download") } },
         dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirm = false }) { Text("Not now") } })

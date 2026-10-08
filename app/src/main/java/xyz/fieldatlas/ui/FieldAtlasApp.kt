@@ -3,10 +3,14 @@ package xyz.fieldatlas.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,6 +18,11 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -96,6 +105,9 @@ fun FieldAtlasApp(
     resumableModelBytes: Long = 0,
     /** Models this phone has the memory for, offered in Library when not installed. */
     modelOffers: List<xyz.fieldatlas.assets.ModelOffer> = emptyList(),
+    downloadSources: Map<String, String> = emptyMap(),
+    onSaveDownloadSource: (xyz.fieldatlas.assets.DownloadArtifact, String) -> String? = { _, _ -> null },
+    onResetDownloadSource: (xyz.fieldatlas.assets.DownloadArtifact) -> String? = { null },
     onDownloadModelOffer: (xyz.fieldatlas.assets.ModelOffer) -> Unit = {},
     resumableOfferBytes: (xyz.fieldatlas.assets.ModelOffer) -> Long = { 0 },
     modelFits: (InstalledAsset) -> Boolean = { true },
@@ -155,6 +167,18 @@ fun FieldAtlasApp(
         }
     }
     FieldAtlasTheme {
+        var showDownloadSources by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+        fun sourceFor(artifact: xyz.fieldatlas.assets.DownloadArtifact): String =
+            downloadSources[artifact.key] ?: artifact.defaultUrl
+        if (showDownloadSources) {
+            xyz.fieldatlas.ui.setup.DownloadSourcesSheet(
+                artifacts = (modelOffers.ifEmpty { listOf(xyz.fieldatlas.assets.ModelOffers.recommended) }
+                    .map(xyz.fieldatlas.assets.DownloadArtifact::model) +
+                    availableKnowledge.map(xyz.fieldatlas.assets.DownloadArtifact::knowledge)).distinctBy { it.key },
+                sources = downloadSources, onSave = onSaveDownloadSource, onReset = onResetDownloadSource,
+                onDismiss = { showDownloadSources = false },
+            )
+        }
         if (!ready || offerKnowledge) {
             val recommendedDownloading = downloadingModelId == null ||
                 downloadingModelId == xyz.fieldatlas.assets.ModelOffers.recommended.id
@@ -184,6 +208,12 @@ fun FieldAtlasApp(
                 onDownloadKnowledge = onDownloadKnowledge,
                 onCancelKnowledgeDownload = onCancelKnowledgeDownload,
                 onContinue = onDismissKnowledgeOffer,
+                onOpenDownloadSources = { showDownloadSources = true },
+                modelDownloadUrl = sourceFor(xyz.fieldatlas.assets.DownloadArtifact.model(xyz.fieldatlas.assets.ModelOffers.recommended)),
+                knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },
+                modelDownloadError = modelError?.takeIf {
+                    modelErrorId == null || modelErrorId == xyz.fieldatlas.assets.ModelOffers.recommended.id
+                },
             )
             return@FieldAtlasTheme
         }
@@ -256,59 +286,41 @@ fun FieldAtlasApp(
                     Modifier.fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .navigationBarsPadding()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                 ) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(22.dp),
+                        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.CardShape,
                         color = MaterialTheme.colorScheme.surface,
-                        shadowElevation = 6.dp,
+                        shadowElevation = 2.dp,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)),
                     ) {
-                        // Custom bar: Material's selected indicator is a fixed pill, and the app
-                        // uses rounded rectangles for every pressable surface.
-                        Row(
-                            Modifier.fillMaxWidth().height(76.dp).selectableGroup(),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            PrimaryDestination.entries.forEach { item ->
-                                val itemLabel = primaryLabel(item)
-                                val selected = navigation.primary == item
-                                Column(
-                                    modifier = Modifier.weight(1f).fillMaxHeight()
-                                        // No full-cell ripple: the indicator itself changes on selection.
-                                        .selectable(selected = selected, role = Role.Tab,
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null,
-                                            onClick = { navigation.select(item) })
-                                        .semantics { contentDescription = itemLabel },
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center,
-                                ) {
-                                    Box(
-                                        Modifier.size(width = 60.dp, height = 32.dp).background(
-                                            if (selected) {
-                                                if (darkTheme) MaterialTheme.colorScheme.primaryContainer else FieldAtlasColors.MenuSelection
-                                            } else Color.Transparent,
-                                            FieldAtlasButtonShape,
-                                        ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            primaryIcon(item), contentDescription = null,
-                                            tint = when {
-                                                !selected -> MaterialTheme.colorScheme.onSurfaceVariant
-                                                darkTheme -> MaterialTheme.colorScheme.onPrimaryContainer
-                                                else -> FieldAtlasColors.OnMenuSelection
-                                            },
-                                        )
+                        BoxWithConstraints(Modifier.fillMaxWidth()) {
+                            val textMeasurer = rememberTextMeasurer()
+                            val labelStyle = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 11.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold,
+                            )
+                            val labels = PrimaryDestination.entries.map { primaryLabel(it) }
+                            val availableLabelWidth = with(LocalDensity.current) {
+                                ((maxWidth - 16.dp) / 4 - 4.dp).toPx()
+                            }
+                            // Keep the four-across mockup at normal sizes. Reflow rather than
+                            // break words when accessibility text or a narrow window needs space.
+                            val columns = if (labels.any {
+                                textMeasurer.measure(it, labelStyle, softWrap = false).size.width > availableLabelWidth
+                            }) 2 else 4
+                            Column(
+                                Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(8.dp).selectableGroup(),
+                            ) {
+                                PrimaryDestination.entries.chunked(columns).forEach { items ->
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                        items.forEach { item ->
+                                            PrimaryNavigationItem(
+                                                item = item, selected = navigation.primary == item,
+                                                onClick = { navigation.select(item) }, modifier = Modifier.weight(1f),
+                                            )
+                                        }
                                     }
-                                    Text(
-                                        itemLabel,
-                                        modifier = Modifier.padding(top = 4.dp),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
                                 }
                             }
                         }
@@ -341,6 +353,7 @@ fun FieldAtlasApp(
                     )
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,
+                        onOpenDownloadSources = { showDownloadSources = true },
                         importing = importing,
                         modelDownloading = downloading,
                         importError = setupError,
@@ -365,6 +378,8 @@ fun FieldAtlasApp(
                         modelBusy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating,
                         modelFits = modelFits,
                         modelNotice = modelNotice,
+                        modelDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.model(it)) },
+                        knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },
                         onAskExample = { question ->
                             onAskAnotherQuestion()
                             onQuestionChange(question)
@@ -377,6 +392,9 @@ fun FieldAtlasApp(
                         navigation.select(PrimaryDestination.Research)
                     }, onDelete = onDeleteHistory)
                     PrimaryDestination.More -> MoreScreen(
+                        packs = packs,
+                        onOpenLibrary = { navigation.select(PrimaryDestination.Library) },
+                        onOpenDownloadSources = { showDownloadSources = true },
                         diagnosticsText = diagnosticsText,
                         onClearDiagnostics = onClearDiagnostics,
                         proof = proof,
@@ -389,6 +407,45 @@ fun FieldAtlasApp(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PrimaryNavigationItem(
+    item: PrimaryDestination,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val itemLabel = primaryLabel(item)
+    val indicatorColor by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        label = "Navigation selection",
+    )
+    Column(
+        modifier.heightIn(min = 56.dp)
+            .selectable(selected = selected, role = Role.Tab,
+                interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            .semantics { contentDescription = itemLabel }
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            Modifier.size(width = 48.dp, height = 32.dp)
+                .background(indicatorColor, xyz.fieldatlas.ui.theme.FieldAtlasLayout.ControlShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(primaryIcon(item), contentDescription = null, modifier = Modifier.size(21.dp),
+                tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(
+            itemLabel, modifier = Modifier.padding(top = 4.dp),
+            style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp, lineHeight = 16.sp),
+            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

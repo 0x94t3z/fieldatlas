@@ -40,7 +40,7 @@ fun LocationRationaleSheet(onAllow: () -> Unit, onNameCity: () -> Unit) {
         onDismissRequest = onNameCity,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
+        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
     ) {
         Column(
             Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 16.dp).navigationBarsPadding(),
@@ -48,8 +48,7 @@ fun LocationRationaleSheet(onAllow: () -> Unit, onNameCity: () -> Unit) {
         ) {
             FieldAtlasIconTile(FieldAtlasIcons.Place, size = 52.dp, tone = TileTone.Sage)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Find places near you?", style = MaterialTheme.typography.headlineSmall,
-                    fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold)
+                Text("Find places near you?", style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle)
                 Text("Field Atlas reads your position from the phone's GPS to list the closest saved places.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

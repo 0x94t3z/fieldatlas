@@ -84,13 +84,12 @@ fun SourcesScreen(
     ) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack, action = {
-                IconButton(onClick = { clipboard.setText(AnnotatedString(evidence.text)) }) {
-                    Icon(Icons.Outlined.ContentCopy, contentDescription = "Copy source text",
-                        modifier = Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
-                }
+                xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(
+                    onClick = { clipboard.setText(AnnotatedString(evidence.text)) },
+                    description = "Copy source text", icon = FieldAtlasIcons.Copy)
             })
             LazyColumn(
-                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 18.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 22.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -111,7 +110,10 @@ fun SourcesScreen(
                       )
                   }
                   Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SelectionContainer { Text(evidence.title, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 23.sp, lineHeight = 28.sp)) }
+                    SelectionContainer { Text(evidence.title, style = MaterialTheme.typography.titleMedium,
+                        maxLines = if (presentation.isAttachment) 1 else 2,
+                        overflow = if (presentation.isAttachment) androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis
+                            else androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                     Text(
                         presentation.metadata,
                         style = MaterialTheme.typography.bodySmall,

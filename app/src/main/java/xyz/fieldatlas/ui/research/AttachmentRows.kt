@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.attachments.*
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
@@ -29,32 +31,42 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
     var errorId by remember { mutableStateOf<String?>(null) }
     if (items.isNotEmpty()) LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         items(items, key = { it.id }) { item ->
             val imageFile = item.previewFile.takeIf { item.kind == AttachmentKind.IMAGE }
             if (item.kind != AttachmentKind.IMAGE) {
                 // Documents don't need a photo-sized tile. Keep the filename and read state in
                 // one compact row so an attached file doesn't stretch the whole question box.
-                Box(Modifier.width(232.dp).height(68.dp)) {
+                Box(Modifier.width(228.dp)) {
                     Surface(
                         onClick = { if (item.phase == AttachmentPhase.Error) errorId = item.id else previewId = item.id },
                         enabled = item.phase != AttachmentPhase.Reading,
-                        modifier = Modifier.fillMaxSize(),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 82.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.background,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxSize().padding(start = 12.dp, end = 48.dp),
+                            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 40.dp, top = 12.dp, bottom = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            Icon(FieldAtlasIcons.Document, null, Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.primary)
+                            Surface(Modifier.size(36.dp), color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = FieldAtlasButtonShape) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(when {
+                                        item.kind == AttachmentKind.PDF -> FieldAtlasIcons.Pdf
+                                        item.kind == AttachmentKind.TEXT && TextFileTypes.language(item.displayName) != null -> FieldAtlasIcons.Code
+                                        else -> FieldAtlasIcons.Document
+                                    },
+                                        null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
                             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(item.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis,
-                                    style = MaterialTheme.typography.bodySmall)
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), fontWeight = FontWeight.SemiBold)
                                 Text(
                                     if (item.phase == AttachmentPhase.Error) "Read issue" else
                                         if (item.phase == AttachmentPhase.Reading) "Reading…" else
@@ -68,16 +80,17 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                     }
                     IconButton(onClick = { remove(item.id) }, enabled = enabled,
                         modifier = Modifier.align(Alignment.CenterEnd).size(48.dp)) {
-                        Icon(Icons.Default.Close, "Remove ${item.displayName}", Modifier.size(18.dp),
+                        Icon(FieldAtlasIcons.Close, "Remove ${item.displayName}", Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f))
                     }
                 }
             } else {
-                    Box(Modifier.size(112.dp)) {
+                Column(Modifier.width(132.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(Modifier.size(132.dp)) {
                         if (imageFile != null) {
                             AttachmentThumbnail(imageFile, item.displayName, Modifier.fillMaxSize()) { imagePreviewId = item.id }
                         } else {
-                            Surface(Modifier.fillMaxSize(), shape = RoundedCornerShape(12.dp),
+                            Surface(Modifier.fillMaxSize(), shape = MaterialTheme.shapes.medium,
                                 color = MaterialTheme.colorScheme.surfaceVariant) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Icon(FieldAtlasIcons.Photo, "Image attachment", Modifier.size(28.dp))
@@ -86,9 +99,10 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                         }
                         IconButton(onClick = { remove(item.id) }, enabled = enabled,
                             modifier = Modifier.align(Alignment.TopEnd).size(48.dp)) {
-                            Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp), color = Color.Black.copy(alpha = 0.60f)) {
-                                Icon(Icons.Default.Close, "Remove ${item.displayName}",
-                                    Modifier.padding(5.dp).size(14.dp),
+                            Surface(shape = CircleShape, color = Color(0xFF24392D).copy(alpha = 0.8f),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))) {
+                                Icon(FieldAtlasIcons.Close, "Remove ${item.displayName}",
+                                    Modifier.padding(5.dp).size(12.dp),
                                     tint = Color.White.copy(alpha = if (enabled) 1f else 0.38f))
                             }
                         }
@@ -96,7 +110,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                             IconButton(onClick = { errorId = item.id },
                                 modifier = Modifier.align(Alignment.BottomStart).size(48.dp)) {
                                 Surface(shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.errorContainer) {
-                                    Icon(Icons.Default.Warning, "Read issue for ${item.displayName}",
+                                    Icon(FieldAtlasIcons.Warning, "Read issue for ${item.displayName}",
                                         Modifier.padding(7.dp).size(18.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
                                 }
                             }
@@ -107,6 +121,16 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                             }
                         }
                     }
+                    Text(item.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis,
+                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp), fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(start = 3.dp, end = 3.dp, top = 5.dp))
+                    Text(when (item.phase) {
+                        AttachmentPhase.Reading -> "Reading…"
+                        AttachmentPhase.Error -> "Read issue"
+                        AttachmentPhase.Ready -> "Photo · OCR"
+                    }, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 3.dp))
+                }
             }
         }
     }
@@ -140,7 +164,12 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                     items(blocks.size) { index ->
                         val (heading, text) = blocks[index]
                         if (heading != null) Text(heading, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
-                        if (text.isNotEmpty()) Text(text, style = MaterialTheme.typography.bodyMedium)
+                        if (text.isNotEmpty()) Text(text, style =
+                            if (extracted.kind == AttachmentKind.TEXT && TextFileTypes.language(extracted.displayName) != null)
+                                MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontSize = 13.sp, lineHeight = 21.sp)
+                            else MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
+                                lineHeight = 29.sp))
                     }
                 }
             },

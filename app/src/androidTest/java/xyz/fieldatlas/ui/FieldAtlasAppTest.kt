@@ -18,6 +18,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import org.junit.Rule
@@ -47,14 +50,14 @@ import xyz.fieldatlas.ui.setup.SetupScreen
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 
 class FieldAtlasAppTest {
-    @get:Rule val compose = createComposeRule()
+    @get:Rule val compose = foregroundComposeRule()
 
     @Test fun firstLaunchShowsSetupAndAccessibleImport() {
         render(packs = emptyList())
-        compose.onNodeWithText("Your research desk, offline.").assertExists()
-        compose.onNodeWithText("Download once. Ask, compare and check sources on this phone, without an account or a connection.").assertExists()
+        compose.onNodeWithText("A little setup.\nThen, offline.").assertExists()
+        compose.onNodeWithText("Choose what lives on your phone. You can change it later.").assertExists()
         compose.onNodeWithContentDescription("Download Qwen3.5 2B").assertExists().assertHasClickAction()
-        compose.onNodeWithText("Import a saved pack").performScrollTo().assertHasClickAction()
+        compose.onNodeWithText("Import .fapack").performScrollTo().assertHasClickAction()
         compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
     }
 
@@ -99,6 +102,7 @@ class FieldAtlasAppTest {
             }
         }
         // Reachable means one scroll away at 200% font on a narrow phone, not necessarily on screen.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Start research"))
         compose.onNodeWithText("Start research").performScrollTo().assertIsDisplayed().assertHasClickAction()
     }
 
@@ -274,9 +278,11 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("More").performClick()
         compose.onNodeWithText("Privacy & offline use").assertExists()
         compose.onNodeWithText("App & device").performScrollTo().performClick()
+        compose.onNodeWithText("Technical details").performScrollTo().performClick()
         compose.onNodeWithText("Internet permission").assertExists()
         compose.onNodeWithText("Absent").assertExists()
         compose.onNodeWithText("Pass · Manifest audit").assertExists()
+        compose.onNodeWithContentDescription("Close App & device").performClick()
         compose.onNodeWithText("Performance check").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(opened) }
     }

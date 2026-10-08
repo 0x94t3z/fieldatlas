@@ -12,11 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
 import xyz.fieldatlas.R
 
 object FieldAtlasColors {
@@ -28,20 +31,44 @@ object FieldAtlasColors {
 }
 
 /** Bundled so the notebook identity does not depend on an OEM's generic serif fallback. */
+@OptIn(ExperimentalTextApi::class)
 val FieldAtlasEditorial = FontFamily(
-    Font(R.font.source_serif_4_variable, weight = FontWeight.Normal),
-    Font(R.font.source_serif_4_variable, weight = FontWeight.Medium),
-    Font(R.font.source_serif_4_variable, weight = FontWeight.SemiBold),
-    Font(R.font.source_serif_4_variable, weight = FontWeight.Bold),
-    Font(R.font.source_serif_4_italic_variable, weight = FontWeight.Normal, style = FontStyle.Italic),
-    Font(R.font.source_serif_4_italic_variable, weight = FontWeight.SemiBold, style = FontStyle.Italic),
+    listOf(400, 500, 600, 700).map { weight ->
+        Font(R.font.source_serif_4_variable, weight = FontWeight(weight),
+            variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
+    } + listOf(400, 600, 700).map { weight ->
+        Font(R.font.source_serif_4_italic_variable, weight = FontWeight(weight), style = FontStyle.Italic,
+            variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
+    },
 )
 
-/**
- * Reading text and interface labels: the phone's own sans serif (Roboto on most Android
- * phones), so text matches the system and costs no bundled font. Headings use the serif.
- */
-val FieldAtlasSans: FontFamily = FontFamily.Default
+/** Locally bundled interface type; never needs Google Play services or a font download. */
+@OptIn(ExperimentalTextApi::class)
+val FieldAtlasSans = FontFamily(listOf(400, 450, 500, 600, 650, 700, 750, 800).map { weight ->
+    Font(R.font.manrope_variable, weight = FontWeight(weight),
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight)))
+})
+
+/** Preserve the original Start research control independently of interface typography. */
+val FieldAtlasResearchButtonStyle = TextStyle(
+    fontFamily = FontFamily.Default, fontWeight = FontWeight.SemiBold,
+    fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.1.sp,
+)
+
+object FieldAtlasLayout {
+    val ScreenPadding = 22.dp
+    val MinimumTouchTarget = 48.dp
+    val ControlShape = RoundedCornerShape(10.dp)
+    val CardShape = RoundedCornerShape(16.dp)
+    val SheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    // Kept separate: the user asked to preserve this control exactly.
+    val ResearchButtonShape = RoundedCornerShape(18.dp)
+}
+
+val FieldAtlasSheetTitleStyle = TextStyle(
+    fontFamily = FieldAtlasSans, fontWeight = FontWeight(650),
+    fontSize = 20.sp, lineHeight = 26.sp, letterSpacing = (-0.4f / 20).em,
+)
 
 private val FieldNotebookColors = lightColorScheme(
     primary = FieldAtlasColors.ForestGreen,
@@ -60,7 +87,7 @@ private val FieldNotebookColors = lightColorScheme(
     onBackground = Color(0xFF25312B),
     surface = Color(0xFFFFFDF7),
     onSurface = Color(0xFF25312B),
-    surfaceVariant = Color(0xFFE8E2D4),
+    surfaceVariant = FieldAtlasColors.SageWash,
     onSurfaceVariant = Color(0xFF555E57),
     surfaceTint = FieldAtlasColors.ForestGreen,
     // Material derives dialogs, menus, sheets and switch tracks from these containers; left
@@ -121,37 +148,40 @@ private val FieldNotebookDarkColors = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD2),
 )
 
-// Material's defaults with the serif for display and headline styles.
+// Interface uses Manrope; reading surfaces explicitly use the editorial serif.
 private val MaterialDefaults = Typography()
 
 private val FieldAtlasTypography = Typography(
-    displayLarge = MaterialDefaults.displayLarge.copy(fontFamily = FieldAtlasEditorial),
-    displayMedium = MaterialDefaults.displayMedium.copy(fontFamily = FieldAtlasEditorial),
+    displayLarge = MaterialDefaults.displayLarge.copy(fontFamily = FieldAtlasSans),
+    displayMedium = MaterialDefaults.displayMedium.copy(fontFamily = FieldAtlasSans),
     displaySmall = TextStyle(
-        fontFamily = FieldAtlasEditorial,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 36.sp,
-        lineHeight = 40.sp,
-        letterSpacing = (-0.4).sp,
+        fontFamily = FieldAtlasSans,
+        fontWeight = FontWeight.Bold,
+        fontSize = 39.sp,
+        lineHeight = 44.sp,
+        letterSpacing = (-1.8f / 39).em,
     ),
     headlineLarge = TextStyle(
-        fontFamily = FieldAtlasEditorial,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 30.sp,
-        lineHeight = 35.sp,
+        fontFamily = FieldAtlasSans,
+        fontWeight = FontWeight.Bold,
+        fontSize = 34.sp,
+        lineHeight = 38.sp,
+        letterSpacing = (-1.4f / 34).em,
     ),
     headlineMedium = TextStyle(
-        fontFamily = FieldAtlasEditorial,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 26.sp,
-        lineHeight = 31.sp,
+        fontFamily = FieldAtlasSans,
+        fontWeight = FontWeight.Bold,
+        fontSize = 27.sp,
+        lineHeight = 34.sp,
+        letterSpacing = (-0.9f / 27).em,
     ),
-    headlineSmall = MaterialDefaults.headlineSmall.copy(fontFamily = FieldAtlasEditorial, fontWeight = FontWeight.SemiBold),
+    headlineSmall = MaterialDefaults.headlineSmall.copy(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Bold,
+        fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.7f / 22).em),
     titleLarge = TextStyle(
         fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 21.sp,
-        lineHeight = 27.sp,
+        fontSize = 20.sp,
+        lineHeight = 28.sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FieldAtlasSans,
@@ -160,9 +190,9 @@ private val FieldAtlasTypography = Typography(
         lineHeight = 23.sp,
     ),
     titleSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 20.sp),
-    bodyLarge = TextStyle(fontFamily = FieldAtlasSans, fontSize = 17.sp, lineHeight = 26.sp),
-    bodyMedium = TextStyle(fontFamily = FieldAtlasSans, fontSize = 15.sp, lineHeight = 22.sp),
-    bodySmall = TextStyle(fontFamily = FieldAtlasSans, fontSize = 13.sp, lineHeight = 19.sp),
+    bodyLarge = TextStyle(fontFamily = FieldAtlasSans, fontSize = 17.sp, lineHeight = 27.sp),
+    bodyMedium = TextStyle(fontFamily = FieldAtlasSans, fontSize = 13.sp, lineHeight = 21.sp),
+    bodySmall = TextStyle(fontFamily = FieldAtlasSans, fontSize = 12.sp, lineHeight = 19.sp),
     labelLarge = TextStyle(
         fontFamily = FieldAtlasSans,
         fontWeight = FontWeight.SemiBold,
@@ -170,16 +200,16 @@ private val FieldAtlasTypography = Typography(
         lineHeight = 20.sp,
         letterSpacing = 0.1.sp,
     ),
-    labelMedium = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, lineHeight = 18.sp),
-    labelSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
+    labelMedium = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 18.sp),
+    labelSmall = TextStyle(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium, fontSize = 11.sp, lineHeight = 17.sp),
 )
 
 private val FieldAtlasShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    small = FieldAtlasLayout.ControlShape,
+    medium = FieldAtlasLayout.CardShape,
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(20.dp),
 )
 
 fun fieldAtlasColorScheme(darkTheme: Boolean): ColorScheme =
