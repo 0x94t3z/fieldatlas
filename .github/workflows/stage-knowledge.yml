@@ -45,6 +45,7 @@ jobs:
           import re
           import subprocess
           import tempfile
+          import urllib.parse
           from pathlib import Path
 
           PINS = {
@@ -73,21 +74,31 @@ jobs:
                   return hashlib.file_digest(stream, 'sha256').hexdigest()
 
           def release_state():
-              release = api('/releases/tags/' + tag)
+              pages = json.loads(gh('api', '--paginate', '--slurp',
+                                   'repos/' + REPO + '/releases?per_page=100'))
+              releases = [release for page in pages for release in page if release['tag_name'] == tag]
+              require(len(releases) == 1, 'Expected exactly one reviewed draft release')
+              release = releases[0]
               require(release['draft'], 'Only an unpublished draft may be modified')
               require(release['target_commitish'] == ANCHOR, 'Unexpected release source anchor')
               pages = json.loads(gh('api', '--paginate', '--slurp',
                                    'repos/' + REPO + '/releases/' + str(release['id']) + '/assets?per_page=100'))
               assets = [asset for page in pages for asset in page]
               require(len(assets) == len({asset['name'] for asset in assets}), 'Duplicate remote asset names')
-              return {asset['name']: asset for asset in assets}
+              return release, {asset['name']: asset for asset in assets}
+
+          def download(asset, path):
+              require(asset['state'] == 'uploaded', 'Transport asset is not fully uploaded')
+              with path.open('xb') as output:
+                  subprocess.run(['gh', 'api', 'repos/' + REPO + '/releases/assets/' + str(asset['id']),
+                                  '-H', 'Accept: application/octet-stream'], stdout=output, check=True)
 
           require(os.environ['GITHUB_REPOSITORY'] == REPO, 'Unexpected repository')
           require(re.fullmatch('[0-9a-f]{64}', os.environ['MANIFEST_SHA256']), 'Invalid manifest checksum')
           tag, name, size, checksum = PINS[os.environ['ARTIFACT']]
           latest = api('/releases/latest')['tag_name']
           require(latest == 'v1.3.0', 'Latest app release changed; review before proceeding')
-          assets = release_state()
+          release, assets = release_state()
           if name in assets:
               asset = assets[name]
               require(asset['state'] == 'uploaded' and asset['size'] == size and
@@ -97,8 +108,9 @@ jobs:
               with tempfile.TemporaryDirectory(prefix='knowledge-stage-', dir=os.environ['RUNNER_TEMP']) as directory:
                   root = Path(directory)
                   manifest_name = name + '.transfer.json'
-                  gh('release', 'download', tag, '--repo', REPO, '--pattern', manifest_name, '--dir', str(root))
                   manifest_path = root / manifest_name
+                  require(assets[manifest_name]['size'] <= 100000, 'Transport manifest asset is too large')
+                  download(assets[manifest_name], manifest_path)
                   require(manifest_path.stat().st_size <= 100000, 'Transport manifest is too large')
                   require(digest(manifest_path) == os.environ['MANIFEST_SHA256'], 'Transport manifest checksum mismatch')
                   manifest = json.loads(manifest_path.read_text())
@@ -114,7 +126,13 @@ jobs:
                   require(transport_size == manifest['transport']['bytes'] and transport_size <= size + 16777216,
                           'Transport size exceeds bound')
                   require(re.fullmatch('[0-9a-f]{64}', manifest['transport']['sha256']), 'Invalid transport checksum')
-                  gh('release', 'download', tag, '--repo', REPO, '--pattern', name + '.transfer.gz.part*', '--dir', str(root))
+                  require({n for n in assets if n.startswith(name + '.transfer.gz.part')} ==
+                          {chunk['name'] for chunk in chunks}, 'Unexpected or missing remote chunk')
+                  for chunk in chunks:
+                      asset = assets[chunk['name']]
+                      require(asset['size'] == chunk['bytes'] and asset.get('digest') == 'sha256:' + chunk['sha256'],
+                              'Remote chunk pins differ')
+                      download(asset, root / chunk['name'])
                   expected_names = {manifest_name, *(chunk['name'] for chunk in chunks)}
                   require({p.name for p in root.iterdir()} == expected_names, 'Unexpected or missing transport file')
                   transport = root / 'transport.gz'
@@ -138,13 +156,23 @@ jobs:
                           restored_hash.update(block)
                           output.write(block)
                   require(count == size and restored_hash.hexdigest() == checksum, 'Original bytes do not match catalog pins')
-                  assets = release_state()  # Recheck immediately before the only write.
+                  release, assets = release_state()  # Recheck immediately before the only write.
                   if name in assets:
                       require(assets[name]['state'] == 'uploaded' and assets[name]['size'] == size and
                               assets[name].get('digest') == 'sha256:' + checksum, 'Concurrent asset differs')
                   else:
-                      gh('release', 'upload', tag, str(restored), '--repo', REPO)  # Never --clobber.
-                  asset = release_state()[name]
+                      endpoint = release['upload_url'].split('{')[0]
+                      require(urllib.parse.urlsplit(endpoint).hostname == 'uploads.github.com', 'Unexpected upload host')
+                      config = 'header = ' + json.dumps('Authorization: Bearer ' + os.environ['GH_TOKEN'])
+                      result = subprocess.run(['curl', '--silent', '--show-error', '--proto', '=https',
+                                               '--connect-timeout', '30', '--max-time', '1800', '--config', '-',
+                                               '--request', 'POST', '--header', 'Content-Type: application/octet-stream',
+                                               '--upload-file', str(restored), '--write-out', '\n%{http_code}',
+                                               endpoint + '?name=' + urllib.parse.quote(name)],
+                                              input=config, capture_output=True, text=True)
+                      require(result.returncode == 0, 'Runner upload transport failure')
+                      require(result.stdout.rsplit('\n', 1)[-1] == '201', 'Runner upload was not accepted')
+                  asset = release_state()[1][name]
                   require(asset['state'] == 'uploaded' and asset['size'] == size and
                           asset.get('digest') == 'sha256:' + checksum, 'Uploaded asset checksum mismatch')
                   print('Restored and verified:', name, size, checksum)
