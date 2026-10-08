@@ -44,6 +44,10 @@ def verify(apk: Path, mapping: Path, dexdump: Path) -> None:
             check=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            # DEX strings use modified UTF-8; unrelated string literals can contain
+            # byte sequences that strict UTF-8 rejects. Class metadata is ASCII.
+            errors="replace",
         )
     section = class_section(result.stdout, descriptor)
     if "ABSTRACT" in section:
