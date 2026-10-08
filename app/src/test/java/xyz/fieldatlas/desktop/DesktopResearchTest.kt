@@ -33,6 +33,21 @@ class DesktopResearchTest {
         val model = File(config.getValue("model").jsonPrimitive.content).canonicalFile
         check(model.isFile) { "Model file missing" }
         val vectorFixture = config["vectorFixture"]?.jsonObject
+        val experiment = config["experimentalRetrieval"]?.jsonObject
+        if (experiment != null) {
+            check(manualEvidence == null && vectorFixture == null && databases.size == 1)
+            check(config.getValue("retrievalBackend").jsonPrimitive.content == "leviathan")
+            check(!experiment.getValue("productionAdopted").jsonPrimitive.boolean)
+            check(experiment.getValue("schemaVersion").jsonPrimitive.int == 1)
+            check(experiment.getValue("scope").jsonPrimitive.content == "desktop_full_pack_experiment")
+            for (key in listOf("source", "index", "binary")) {
+                val identity = experiment.getValue(key).jsonObject
+                val file = File(identity.getValue("path").jsonPrimitive.content).canonicalFile
+                check(file.length() == identity.getValue("bytes").jsonPrimitive.long && sha256(file) == identity.getValue("sha256").jsonPrimitive.content)
+                if (key == "source") check(file == databases.single())
+            }
+        }
+        check((config["retrievalBackend"]?.jsonPrimitive?.content == "leviathan") == (experiment != null))
         val vectorDatabase = vectorFixture?.getValue("database")?.jsonPrimitive?.content?.let { File(it).canonicalFile }
         val embedding = vectorFixture?.getValue("embedding")?.let { Json.decodeFromJsonElement<PackEmbedding>(it) }
         val discovery = vectorFixture?.getValue("discovery")?.let { Json.decodeFromJsonElement<PackDiscovery>(it) }
@@ -62,9 +77,18 @@ class DesktopResearchTest {
                 put("qualityVerdict", "UNSCORED: completion is not correctness")
                 put("evidenceMode", if (manualEvidence == null) "automatic retrieval" else "manual selection diagnostic")
                 put("answerPolicy", config["answerPolicy"] ?: JsonPrimitive("app"))
+                put("retrievalBackend", config["retrievalBackend"] ?: JsonPrimitive("app"))
+                put("experimentalRetrieval", experiment ?: JsonNull)
+                put("settings", buildJsonObject {
+                    put("seeds", config["seeds"] ?: buildJsonArray { add(17) })
+                    put("temperature", config["temperature"] ?: JsonPrimitive(0.3))
+                    put("attachments", attachedFiles ?: JsonNull)
+                    put("location", config["location"] ?: JsonNull)
+                })
                 put("identities", identities)
                 put("limitations", buildJsonArray {
                     add("Uses current app orchestration, relevance gate, prompt packing, and answer attribution directly.")
+                    if (experiment != null) add("Experimental single-pack Leviathan general search; specialized routes delegate to app. Full passages verified before normal prompt packing. Not Android or production adoption; rank is not comparable BM25 confidence.")
                     add(if (manualEvidence == null) "Uses automatic keyword retrieval." else "Retrieval bypassed with manually selected passages; not a retrieval score or guaranteed sufficient evidence.")
                     add(if (vectorFixture == null) "Keyword-only: vector encoder not enabled. Not full Android inference parity."
                         else "Real vector search/fusion with frozen encoder queries; no live desktop encoding. Missing query fixtures use keyword fallback. Not Android inference parity.")
@@ -95,17 +119,28 @@ class DesktopResearchTest {
                 },
             )
             val searches = mutableListOf<JsonObject>()
+            val experimental = experiment?.let { manifest ->
+                DesktopLeviathanRetriever(multi, databases.single(),
+                    File(manifest.getValue("index").jsonObject.getValue("path").jsonPrimitive.content),
+                    File(manifest.getValue("binary").jsonObject.getValue("path").jsonPrimitive.content))
+            }
+            try {
+            val backend: Retriever = experimental ?: multi
             val selected = manualEvidence?.let { Json.decodeFromJsonElement<List<Evidence>>(it.getValue(question)) }
             val recordingRetriever = object : Retriever {
                 override fun hasEligiblePacks(query: String) = multi.hasEligiblePacks(query)
+                override suspend fun destinations(question: String) = multi.destinations(question)
                 override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence> =
                     searchQuestion(query, question, limit, false, onProgress)
                 // A place lookup searches only the place collections, as on the phone.
                 override suspend fun searchQuestion(query: String, question: String, limit: Int, placesOnly: Boolean,
                                                     onProgress: suspend (SearchProgress) -> Unit): List<Evidence> {
-                    val evidence = selected?.take(limit) ?: multi.searchForQuestion(query, question, limit, onProgress, placesOnly)
+                    val started = System.nanoTime()
+                    val evidence = selected?.take(limit) ?: backend.searchQuestion(query, question, limit, placesOnly, onProgress)
                     searches += buildJsonObject {
                         put("query", query); put("limit", limit); put("placesOnly", placesOnly)
+                        put("elapsedMs", (System.nanoTime() - started) / 1_000_000.0)
+                        put("backend", if (experimental != null && !placesOnly) "leviathan" else "app")
                         put("candidates", Json.encodeToJsonElement(evidence))
                     }
                     return evidence
@@ -133,6 +168,11 @@ class DesktopResearchTest {
                     }
                     return evidence
                 }
+                override suspend fun titled(phrase: String, sections: List<String>, limit: Int, anchored: Boolean): List<Evidence> =
+                    multi.titled(phrase, sections, limit, anchored)
+                override suspend fun airportOverviews(place: String, limit: Int) = multi.airportOverviews(place, limit)
+                override suspend fun headed(phrase: String, words: List<String>, limit: Int, sections: List<String>): List<Evidence> =
+                    multi.headed(phrase, words, limit, sections)
                 override suspend fun sections(article: String, limit: Int): List<Evidence> = multi.sections(article, limit).also { evidence ->
                     searches += buildJsonObject {
                         put("query", "sections of: $article"); put("limit", limit)
@@ -178,6 +218,7 @@ class DesktopResearchTest {
                 put("status", if (metrics != null && error == null) "COMPLETED_UNSCORED" else "ERROR")
                 error?.let { put("error", it) }
                 put("searches", JsonArray(searches))
+                put("experimentalSearches", JsonArray(experimental?.traces.orEmpty()))
                 put("sources", Json.encodeToJsonElement(sources))
                 put("calls", JsonArray(gateway.calls))
                 put("visibleAnswer", AnswerText.finalized(answer.toString(), sources.size))
@@ -185,6 +226,7 @@ class DesktopResearchTest {
             }
             save()
             println("Desktop question recorded: $question -> ${rows.last()["status"]}")
+            } finally { experimental?.close() }
         }
         check(failures == 0) { "$failures desktop runs failed; partial report: $output" }
     }

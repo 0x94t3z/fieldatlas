@@ -71,6 +71,27 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         }
 
         val pool = candidates(alive, limit, null) { fraction -> onProgress(SearchProgress(0.3 + fraction * 0.5)) }
+        return rankPool(pool, limit, query, sanitized, alive, placeListing)
+            .map { row -> row.copy(matchedBy = keywordAttribution(row, alive)) }
+            .also { onProgress(SearchProgress(1.0)) }
+    }
+
+    /** Test candidate engines retain the app's title nomination and document diversity.
+     * Callers must verify candidates against this immutable pack before ranking them.
+     * Candidate scores must use one consistent ordering; they are not BM25 confidence. */
+    internal fun rankVerifiedCandidates(query: String, candidates: List<Evidence>, limit: Int): List<Evidence> {
+        require(limit in 1..50)
+        val sanitized = FtsQuery.from(query) ?: return emptyList()
+        val alive = sanitized.terms.filter { frequencyOf(it) > 0 }
+        val pool = LinkedHashMap<String, Evidence>()
+        candidates.forEach { row -> pool.putIfAbsent(row.documentId + ":" + row.chunkId, row) }
+        return rankPool(pool, limit, query, sanitized, alive, database.isPlaceListing())
+    }
+
+    private fun rankPool(
+        pool: LinkedHashMap<String, Evidence>, limit: Int, query: String,
+        sanitized: FtsQuery, alive: List<String>, placeListing: Boolean,
+    ): List<Evidence> {
         // Title boost: an article whose TITLE contains query terms ("World War I" for a WWI
         // question, "Taiwan" for a Taiwan question) is the single most valuable chunk this pack
         // can offer, but plain bm25 routinely loses its lede to unrelated pages that merely
@@ -114,8 +135,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
                 if (boost == null) row else row.copy(score = floor - (titleRows.size - boost))
             }
             .sortedBy { row -> row.score }
-        return pick(ranked, limit, query, sanitized).map { row -> row.copy(matchedBy = keywordAttribution(row, alive)) }
-            .also { onProgress(SearchProgress(1.0)) }
+        return pick(ranked, limit, query, sanitized)
     }
 
     /**

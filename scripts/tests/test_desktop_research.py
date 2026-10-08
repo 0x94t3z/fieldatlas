@@ -42,6 +42,15 @@ class DesktopResearchTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Model"):
             desktop.validate_inputs(pathlib.Path("/missing/model.gguf"), [], pathlib.Path("/missing/server"))
 
+    def test_incompatible_experimental_options_fail_before_server(self):
+        for options in [["--retrieval-backend", "leviathan"], ["--leviathan-manifest", "manifest.json"],
+                        ["--retrieval-backend", "leviathan", "--leviathan-manifest", "manifest.json", "--model-only"],
+                        ["--retrieval-backend", "leviathan", "--leviathan-manifest", "manifest.json", "--manual-selection", "ids.json"],
+                        ["--retrieval-backend", "leviathan", "--leviathan-manifest", "manifest.json", "--vector-fixture", "vectors.json"]]:
+            with patch("sys.argv", ["run", "--question", "question"] + options), patch.object(desktop.subprocess, "Popen") as server:
+                with self.assertRaises(SystemExit): desktop.main()
+                server.assert_not_called()
+
     def test_preserves_spaces_and_binds_only_loopback(self):
         command = desktop.server_command(pathlib.Path("/path with spaces/llama-server"), pathlib.Path("/model name.gguf"), 8127)
         self.assertEqual(command[0], "/path with spaces/llama-server")

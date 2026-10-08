@@ -1,5 +1,81 @@
 # fapack toolkit
 
+## Modular libraries and retrieval experiments
+
+`build_modular_library.py` builds independently importable, pre-indexed modules
+from a checksum-pinned JSONL corpus in the packtool document format. It preserves
+source identifiers and attribution, keeps whole documents together, and refuses
+to overwrite existing outputs. The shared streaming builder uses a disk-backed
+document index instead of retaining every identifier in RAM.
+
+```sh
+python3 tools/build_modular_library.py corpus.jsonl \
+  --input-sha256 ACTUAL_64_CHARACTER_SHA256 \
+  --out build/new-library --id general-reference --version 1.0.0 \
+  --title "General reference" --license CC-BY-SA-4.0 \
+  --source-url https://example.org/pinned-source-snapshot \
+  --module-text-bytes 250000000
+```
+
+Use the corpus's actual licence and source snapshot, not the example values.
+The output report records archive and installed payload sizes, hashes, builder
+sources and retrieval mode. It does not add offers to the app catalog or claim a
+20 GB library was built. Archives are capped at 1.5 decimal GB each and installed
+library payloads at 35 decimal GB; reduce the text target if a module exceeds its
+archive limit. The 50 GB app limit still includes models, retained editions,
+staging, indexes, app files and caches. Verify hosted artifacts, Android import
+peaks, citation access and useful retrieval before offering a configuration.
+Article-section inputs remain article-section collections, not ordinary-search
+coverage. Synthetic size tests are not knowledge modules.
+Keep all supplied sections of an article in one module: the builder groups
+`enw-PAGEID-SECTION` records and requires the original `0000` lead. It rejects
+mixed article-section/ordinary corpora to prevent runtime misclassification.
+This preserves the input's article boundaries, not completeness of the source
+encyclopedia: any upstream passage selection still needs its own evaluation.
+
+`benchmark_retrieval.py` compares the actual app SQL, compact candidate previews
+and an explicitly supplied upstream Leviathan CLI over identical saved records:
+
+```sh
+python3 tools/benchmark_retrieval.py --database content.sqlite \
+  --cases fixed-cases.json --work-dir build/new-retrieval-experiment \
+  --leviathan /path/to/verified/leviathan --records 5000 --repetitions 5
+```
+
+Cases are a JSON array with `id`, `query` and `goldChunkIds`; an empty gold list
+explicitly labels missing evidence. Use a fresh work directory. This experiment
+is offline and read-only with respect to the source database. It reports its
+subset, engine versions, timings, index sizes, source references and limits.
+Desktop CLI/process-start timings are not Android performance, and character
+counts are not Qwen token counts. Compact previews are selection aids only:
+retrieve the original full passage before reasoning about its qualifications.
+The experiment never enables a different production retriever.
+
+`plan_library_storage.py` verifies pinned local `.fapack` archives and every
+declared payload, then calculates sequential download/import and retained-version
+storage peaks without extraction, installation or networking:
+
+```sh
+python3 tools/plan_library_storage.py /path/to/storage-plan.json
+```
+
+The JSON input has `currentBytes`, `freeBytes`, a positive `growthReserveBytes`,
+and `operations`: each contains `archive`, `sha256`, `mode` (`download` for
+knowledge packs or `local-import` for any pack), and optional `partialBytes`.
+Archive paths are relative to the JSON file. Supply the complete current app
+footprint including APK/native libraries, old and disabled packs, app data and
+staged partials; partial bytes must already be included in `currentBytes`.
+Downloaded packs reserve archive size for extraction, matching the app's
+conservative admission check. Completed ZIPs remain counted through extraction
+and are released only after registration. Old editions are never subtracted.
+The plan reserves metadata per operation, growth room and device free-space
+headroom. Exit status is 1 for a budget/free-space failure and 2 for malformed
+inputs or failed integrity checks. Raw GGUF model downloads are not simulated;
+model `.fapack` local imports are. Model and archive bytes cannot inflate the
+reported selected knowledge payload. This is a planning check, not evidence of
+Android runtime peaks, complete footprint measurements, useful coverage or
+release readiness. Keep owner-specific plans and measurement reports private.
+
 Everything the app installs (`.fapack` files) is regenerated from source by the
 scripts in this directory. Packs themselves are not committed — only these tools
 and the pinned model/registry metadata are.

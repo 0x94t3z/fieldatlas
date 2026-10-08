@@ -6,8 +6,8 @@ needs ~2x the corpus size in RAM. For the 14 GB stackexchange and 19 GB wikipedi
 spools that is more than this machine has. This module produces byte-identical
 .fapack files (verified against packtool on the smaller corpora) by:
 
-  1. validating each jsonl row and indexing (document_id, byte offset), streaming;
-  2. sorting only the id->offset index (utf-8 byte order, same key as packtool);
+  1. validating each jsonl row into a bounded-cache, disk-backed id/offset index;
+  2. reading the index in utf-8 byte order (the same key as packtool);
   3. re-reading rows in sorted order, chunking per document, and inserting in
      batches into the same FTS5 schema.
 
@@ -28,6 +28,7 @@ import shutil
 import sqlite3
 import tempfile
 import zipfile
+from contextlib import closing
 from pathlib import Path
 
 from packtool.build_pack import (  # noqa: F401  (re-export BuildArtifacts)
@@ -41,6 +42,7 @@ from packtool.chunking import chunk_document
 from packtool.schema import DOCUMENT_ID, Document, DocumentError
 
 _BATCH = 2_000
+MAX_SOURCE_RECORD_BYTES = 32_000_000
 
 
 def _parse_row(raw: bytes, line_number: int) -> Document:
@@ -77,42 +79,59 @@ def _parse_row(raw: bytes, line_number: int) -> Document:
     )
 
 
-def _index_documents(path: Path) -> list[tuple[bytes, int]]:
-    """Validate every row, return (document_id utf-8 bytes, byte offset) sorted like packtool."""
-    index: list[tuple[bytes, int]] = []
-    seen: set[str] = set()
-    with path.open("rb") as fh:
-        line_number = 0
-        while True:
-            offset = fh.tell()
-            raw = fh.readline()
-            if not raw:
-                break
-            line_number += 1
-            if not raw.strip():
-                raise DocumentError(f"line {line_number}: blank lines are not allowed")
-            document = _parse_row(raw, line_number)
-            if document.document_id in seen:
-                raise DocumentError(f"line {line_number}: duplicate document_id: {document.document_id}")
-            seen.add(document.document_id)
-            index.append((document.document_id.encode("utf-8"), offset))
-    if not index:
-        raise DocumentError("input contains no documents")
-    index.sort(key=lambda item: item[0])
-    return index
+def _index_documents(path: Path, index_path: Path) -> None:
+    """Validate globally unique ids without an O(document-count) Python set/list.
+
+    BLOB ordering matches packtool's UTF-8 sort exactly. This scratch database is
+    never distributed and cannot change the final content database/ZIP bytes.
+    """
+    with closing(sqlite3.connect(index_path)) as index:
+        index.execute("PRAGMA journal_mode=OFF")
+        index.execute("PRAGMA synchronous=OFF")
+        index.execute("PRAGMA cache_size=-8192")
+        index.execute("PRAGMA temp_store=FILE")
+        index.execute("CREATE TABLE offsets (id BLOB PRIMARY KEY, offset INTEGER NOT NULL, line INTEGER NOT NULL) WITHOUT ROWID")
+        with path.open("rb") as fh:
+            line_number = 0
+            while True:
+                offset = fh.tell()
+                raw = fh.readline(MAX_SOURCE_RECORD_BYTES + 1)
+                if not raw:
+                    break
+                line_number += 1
+                if len(raw) > MAX_SOURCE_RECORD_BYTES:
+                    raise DocumentError(f"line {line_number}: document record exceeds 32 MB")
+                if not raw.strip():
+                    raise DocumentError(f"line {line_number}: blank lines are not allowed")
+                document = _parse_row(raw, line_number)
+                try:
+                    index.execute("INSERT INTO offsets VALUES (?, ?, ?)",
+                                  (document.document_id.encode("utf-8"), offset, line_number))
+                except sqlite3.IntegrityError as error:
+                    raise DocumentError(f"line {line_number}: duplicate document_id: {document.document_id}") from error
+                if line_number % _BATCH == 0:
+                    index.commit()
+        if not line_number:
+            raise DocumentError("input contains no documents")
+        index.commit()
 
 
-def _rows_in_order(path: Path, index):
-    with path.open("rb") as fh:
-        for line_number, (_, offset) in enumerate(index, 2):
+def _rows_in_order(path: Path, index_path: Path):
+    with closing(sqlite3.connect(f"{index_path.resolve().as_uri()}?mode=ro", uri=True)) as index, path.open("rb") as fh:
+        index.execute("PRAGMA cache_size=-8192")
+        for offset, line_number in index.execute("SELECT offset, line FROM offsets ORDER BY id"):
             fh.seek(offset)
-            yield _parse_row(fh.readline(), line_number)
+            raw = fh.readline(MAX_SOURCE_RECORD_BYTES + 1)
+            if len(raw) > MAX_SOURCE_RECORD_BYTES:
+                raise DocumentError(f"line {line_number}: document record exceeds 32 MB")
+            yield _parse_row(raw, line_number)
 
 
 def _iter_chunks(index, path: Path, chunker=chunk_document):
-    for document in _rows_in_order(path, index):
-        for chunk in chunker(document):
-            yield (chunk.chunk_id, chunk.document_id, chunk.title, chunk.source, chunk.text)
+    with closing(_rows_in_order(path, index)) as documents:
+        for document in documents:
+            for chunk in chunker(document):
+                yield (chunk.chunk_id, chunk.document_id, chunk.title, chunk.source, chunk.text)
 
 
 ALLOWED_TOKENIZERS = {"unicode61", "porter unicode61"}
@@ -126,7 +145,8 @@ def _build_database_streaming(path: Path, rows, fts_tokenizer: str = "unicode61"
         database.execute("PRAGMA page_size=4096")
         database.execute("PRAGMA journal_mode=OFF")
         database.execute("PRAGMA synchronous=OFF")
-        database.execute("PRAGMA temp_store=MEMORY")
+        database.execute("PRAGMA temp_store=FILE")
+        database.execute("PRAGMA cache_size=-8192")
         database.execute("PRAGMA user_version=1")
         database.execute(
             "CREATE VIRTUAL TABLE chunks_fts USING fts5("
@@ -157,7 +177,12 @@ def _build_database_streaming(path: Path, rows, fts_tokenizer: str = "unicode61"
         if database.execute("PRAGMA quick_check").fetchone() != ("ok",):
             raise RuntimeError("SQLite quick_check failed")
     finally:
-        database.close()
+        try:
+            close = getattr(rows, "close", None)
+            if close is not None:
+                close()
+        finally:
+            database.close()
 
 
 def build_pack_streaming(
@@ -205,13 +230,15 @@ def build_pack_streaming(
         if coverage_level not in {"demo", "focused", "broad"}:
             raise ValueError("coverage_level must be demo, focused, or broad")
 
-    index = _index_documents(input_path)
     output_dir.parent.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
     try:
+        index = temporary / ".document-index.sqlite"
+        _index_documents(input_path, index)
         database_path = temporary / "content.sqlite"
         _build_database_streaming(database_path, _iter_chunks(index, input_path, chunker), fts_tokenizer,
                                   extend_database)
+        index.unlink()
         database_size, database_hash = _digest(database_path)
         manifest = {
             "artifacts": [{"bytes": database_size, "path": "content.sqlite", "sha256": database_hash}],

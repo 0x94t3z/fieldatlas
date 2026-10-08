@@ -8,11 +8,14 @@ from pathlib import Path
 import socket
 import sqlite3
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "tools"))
+from prepare_research_index import validate_manifest
 
 
 def selected_evidence(path, databases, questions):
@@ -55,6 +58,8 @@ def main():
     parser.add_argument("--model", type=Path, default=ROOT / "build/model-cache/Qwen_Qwen3.5-2B-Q4_K_M.verified.gguf")
     parser.add_argument("--database", action="append", type=Path, help="Extracted content.sqlite; repeat for multiple packs")
     parser.add_argument("--model-only", action="store_true", help="Evaluate without collections")
+    parser.add_argument("--retrieval-backend", choices=["app", "leviathan"], default="app", help="Test-only general-search backend; specialized app routes remain unchanged")
+    parser.add_argument("--leviathan-manifest", type=Path, help="Pinned full-pack manifest from tools/prepare_research_index.py")
     parser.add_argument("--manual-selection", type=Path, help="Diagnostic JSON mapping exact questions to ordered chunk IDs; bypasses retrieval only")
     parser.add_argument("--seeds", type=int, nargs="+", help="Answer seeds; each question runs once per seed (default 17)")
     parser.add_argument("--temperature", type=float, help="Answer temperature (default 0.3, as on the phone)")
@@ -71,6 +76,10 @@ def main():
         parser.error("Use --model-only or --database, not both")
     if any(not question.strip() for question in args.question):
         parser.error("Questions must not be blank")
+    if (args.retrieval_backend == "leviathan") != bool(args.leviathan_manifest):
+        parser.error("Leviathan backend requires its manifest; app backend must not use one")
+    if args.retrieval_backend == "leviathan" and (args.model_only or args.manual_selection or args.vector_fixture):
+        parser.error("Leviathan comparison cannot combine model-only, manual selection, or vector fixtures")
     databases = [] if args.model_only else args.database or [
         ROOT / "build/biology-retrieval-audit/content.sqlite",
         ROOT / "build/packs/travel/wikivoyage-places/content.sqlite",
@@ -80,7 +89,8 @@ def main():
     try:
         validate_inputs(model, databases, server)
         manual = selected_evidence(args.manual_selection, databases, args.question) if args.manual_selection else None
-    except (ValueError, OSError, sqlite3.Error) as error:
+        experiment = validate_manifest(args.leviathan_manifest, databases) if args.leviathan_manifest else None
+    except (ValueError, OSError, sqlite3.Error, KeyError, TypeError) as error:
         parser.error(str(error))
     output = args.output.resolve()
     if not output.is_relative_to(ROOT / "build"):
@@ -100,10 +110,16 @@ def main():
         "model": str(model), "databases": list(map(str, databases)),
         "questions": args.question, "output": str(output), "endpoint": endpoint,
         "answerPolicy": args.answer_policy,
+        "retrievalBackend": args.retrieval_backend,
         "provenance": {"gitCommit": git("rev-parse", "HEAD"), "gitStatus": git("status", "--short"),
                        "appKotlinSha256": digest.hexdigest(), "serverCommand": command,
+                       "desktopOptions": {"prefillTps": os.environ.get("FIELDATLAS_DESKTOP_PREFILL_TPS"),
+                                          "articleDepth": os.environ.get("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0"},
                        "llamaCommit": git("-C", "third_party/llama.cpp", "rev-parse", "HEAD")},
     }
+    if experiment is not None:
+        config["experimentalRetrieval"] = experiment
+        config["provenance"]["leviathanManifestSha256"] = hashlib.sha256(args.leviathan_manifest.read_bytes()).hexdigest()
     if args.vector_fixture:
         fixture = json.loads(args.vector_fixture.read_text())
         vector_database = Path(fixture["database"]).resolve()
@@ -135,6 +151,8 @@ def main():
         str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
         for path in [ROOT / "scripts/run_desktop_research.py",
                      ROOT / "app/src/test/java/xyz/fieldatlas/desktop/DesktopResearchTest.kt",
+                     ROOT / "app/src/test/java/xyz/fieldatlas/desktop/DesktopLeviathanRetriever.kt",
+                     ROOT / "tools/prepare_research_index.py",
                      ROOT / "app/src/test/java/xyz/fieldatlas/desktop/DesktopGateway.kt"]
         if path.is_file()
     }
