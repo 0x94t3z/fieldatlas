@@ -1,0 +1,153 @@
+name: Stage checksum-pinned knowledge assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      artifact:
+        description: Reviewed data asset to restore (never an APK)
+        required: true
+        type: choice
+        options:
+          - essentials
+          - essentials-source-cache
+          - wikipedia
+      manifest_sha256:
+        description: SHA-256 of the reviewed transport manifest
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: stage-knowledge-${{ inputs.artifact }}
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    if: github.repository == '0x94t3z/fieldatlas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ARTIFACT: ${{ inputs.artifact }}
+      MANIFEST_SHA256: ${{ inputs.manifest_sha256 }}
+    steps:
+      - name: Restore exact data bytes and verify the draft asset
+        working-directory: ${{ runner.temp }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import gzip
+          import hashlib
+          import json
+          import os
+          import re
+          import subprocess
+          import tempfile
+          from pathlib import Path
+
+          PINS = {
+              'essentials': ('knowledge-essentials-2026.10.05', 'osm-essentials-2026.10.05.fapack', 1781015519,
+                             'a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9'),
+              'essentials-source-cache': ('knowledge-essentials-2026.10.05', 'osm-essentials-overpass-cache-2026.10.02.tar.gz', 179524046,
+                                          '782207fe16e4d13fd7c9a1f5912c571f0e667fc379d5d48b74dd738071f43079'),
+              'wikipedia': ('knowledge-wikipedia-en-vital-2026.10.06', 'wikipedia-en-vital-2026.10.06.fapack', 1389700139,
+                            '7f824902de3769c26519d050dab4a3f0c0dd90fe62c3eb54316818f0e2655271'),
+          }
+          REPO = '0x94t3z/fieldatlas'
+          ANCHOR = 'bec88d1c778658f8dd07307c0b8d9880589acd02'
+
+          def require(ok, message):
+              if not ok:
+                  raise RuntimeError(message)
+
+          def gh(*args):
+              return subprocess.check_output(['gh', *args], text=True)
+
+          def api(path):
+              return json.loads(gh('api', 'repos/' + REPO + path))
+
+          def digest(path):
+              with path.open('rb') as stream:
+                  return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+          def release_state():
+              release = api('/releases/tags/' + tag)
+              require(release['draft'], 'Only an unpublished draft may be modified')
+              require(release['target_commitish'] == ANCHOR, 'Unexpected release source anchor')
+              pages = json.loads(gh('api', '--paginate', '--slurp',
+                                   'repos/' + REPO + '/releases/' + str(release['id']) + '/assets?per_page=100'))
+              assets = [asset for page in pages for asset in page]
+              require(len(assets) == len({asset['name'] for asset in assets}), 'Duplicate remote asset names')
+              return {asset['name']: asset for asset in assets}
+
+          require(os.environ['GITHUB_REPOSITORY'] == REPO, 'Unexpected repository')
+          require(re.fullmatch('[0-9a-f]{64}', os.environ['MANIFEST_SHA256']), 'Invalid manifest checksum')
+          tag, name, size, checksum = PINS[os.environ['ARTIFACT']]
+          latest = api('/releases/latest')['tag_name']
+          require(latest == 'v1.3.0', 'Latest app release changed; review before proceeding')
+          assets = release_state()
+          if name in assets:
+              asset = assets[name]
+              require(asset['state'] == 'uploaded' and asset['size'] == size and
+                      asset.get('digest') == 'sha256:' + checksum, 'Existing asset differs; refusing replacement')
+              print('Exact asset already exists; nothing replaced:', name)
+          else:
+              with tempfile.TemporaryDirectory(prefix='knowledge-stage-', dir=os.environ['RUNNER_TEMP']) as directory:
+                  root = Path(directory)
+                  manifest_name = name + '.transfer.json'
+                  gh('release', 'download', tag, '--repo', REPO, '--pattern', manifest_name, '--dir', str(root))
+                  manifest_path = root / manifest_name
+                  require(manifest_path.stat().st_size <= 100000, 'Transport manifest is too large')
+                  require(digest(manifest_path) == os.environ['MANIFEST_SHA256'], 'Transport manifest checksum mismatch')
+                  manifest = json.loads(manifest_path.read_text())
+                  require(manifest['schemaVersion'] == 1 and manifest['codec'] == 'gzip', 'Unsupported transport format')
+                  require(manifest['original'] == {'name': name, 'bytes': size, 'sha256': checksum}, 'Original pins differ')
+                  chunks = manifest['chunks']
+                  require(1 <= len(chunks) <= 128, 'Invalid chunk count')
+                  for index, chunk in enumerate(chunks):
+                      require(chunk['name'] == name + '.transfer.gz.part' + f'{index:04d}', 'Invalid chunk name or order')
+                      require(type(chunk['bytes']) is int and 0 < chunk['bytes'] <= 16777216, 'Invalid chunk size')
+                      require(re.fullmatch('[0-9a-f]{64}', chunk['sha256']), 'Invalid chunk checksum')
+                  transport_size = sum(chunk['bytes'] for chunk in chunks)
+                  require(transport_size == manifest['transport']['bytes'] and transport_size <= size + 16777216,
+                          'Transport size exceeds bound')
+                  require(re.fullmatch('[0-9a-f]{64}', manifest['transport']['sha256']), 'Invalid transport checksum')
+                  gh('release', 'download', tag, '--repo', REPO, '--pattern', name + '.transfer.gz.part*', '--dir', str(root))
+                  expected_names = {manifest_name, *(chunk['name'] for chunk in chunks)}
+                  require({p.name for p in root.iterdir()} == expected_names, 'Unexpected or missing transport file')
+                  transport = root / 'transport.gz'
+                  transport_hash = hashlib.sha256()
+                  with transport.open('xb') as output:
+                      for chunk in chunks:
+                          path = root / chunk['name']
+                          require(path.stat().st_size == chunk['bytes'] and digest(path) == chunk['sha256'], 'Chunk checksum mismatch')
+                          with path.open('rb') as source:
+                              while block := source.read(1024 * 1024):
+                                  transport_hash.update(block)
+                                  output.write(block)
+                  require(transport_hash.hexdigest() == manifest['transport']['sha256'], 'Transport checksum mismatch')
+                  restored = root / name
+                  restored_hash = hashlib.sha256()
+                  count = 0
+                  with gzip.open(transport, 'rb') as source, restored.open('xb') as output:
+                      while block := source.read(min(1024 * 1024, size - count + 1)):
+                          count += len(block)
+                          require(count <= size, 'Restored data exceeds pinned size')
+                          restored_hash.update(block)
+                          output.write(block)
+                  require(count == size and restored_hash.hexdigest() == checksum, 'Original bytes do not match catalog pins')
+                  assets = release_state()  # Recheck immediately before the only write.
+                  if name in assets:
+                      require(assets[name]['state'] == 'uploaded' and assets[name]['size'] == size and
+                              assets[name].get('digest') == 'sha256:' + checksum, 'Concurrent asset differs')
+                  else:
+                      gh('release', 'upload', tag, str(restored), '--repo', REPO)  # Never --clobber.
+                  asset = release_state()[name]
+                  require(asset['state'] == 'uploaded' and asset['size'] == size and
+                          asset.get('digest') == 'sha256:' + checksum, 'Uploaded asset checksum mismatch')
+                  print('Restored and verified:', name, size, checksum)
+          require(api('/releases/latest')['tag_name'] == latest, 'Latest app changed')
+          print('Draft remains unpublished. No APK, older release, tag, or other asset was changed.')
+          PY
