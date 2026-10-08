@@ -164,6 +164,46 @@ class KnowledgeSearchOrderTest {
         }
     }
 
+    /** A Wikivoyage place pack as its builder writes it: coordinates in the text, no place_points table. */
+    private fun guidePack(name: String, listings: List<Triple<String, String, Pair<Double, Double>>>): File {
+        val db = File(temp.root, "$name.sqlite")
+        BundledSQLiteDriver().open(db.path).use { sql ->
+            fun exec(text: String) { sql.prepare(text).use { it.step() } }
+            exec("PRAGMA user_version=1")
+            exec("CREATE VIRTUAL TABLE chunks_fts USING fts5(chunk_id UNINDEXED,document_id UNINDEXED,title,source UNINDEXED,text)")
+            listings.forEachIndexed { index, (title, category, point) ->
+                val id = "wv-place-1-%04d".format(index + 1)
+                sql.prepare("INSERT INTO chunks_fts VALUES(?,?,?,?,?)").use {
+                    it.bindText(1, "$id:0000"); it.bindText(2, id); it.bindText(3, title); it.bindText(4, "https://example.org/$id")
+                    it.bindText(5, "Destination: ${title.substringBefore(" — ")}\nCategory: $category\nPlace: ${title.substringAfter(" — ")}\n" +
+                        "Latitude: ${point.first}\nLongitude: ${point.second}")
+                    it.step()
+                }
+            }
+        }
+        return db
+    }
+
+    @Test fun aGuidePackWithoutCoordinatesAnswersNearbyForTheCityTheMapsNamed() {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        val database = KnowledgeDatabase.open(guidePack("guide", listOf(
+            Triple("Athens — Kostas", "Eat", 37.9770 to 23.7330), Triple("Athens — Far Taverna", "Eat", 38.05 to 23.80),
+            Triple("Athens/Plaka — Platanos", "Eat", 37.9720 to 23.7300), Triple("Athens — Acropolis", "See", 37.9715 to 23.7257),
+            Triple("Athens (Georgia) — Five & Ten", "Eat", 37.9760 to 23.7350),
+        )))
+        try {
+            assertEquals(emptyList<String>(), database.nearbyPlaces(37.9755, 23.7348, 2.0, 10, setOf("Eat")).map { it.evidence.title })
+            val eat = database.nearbyPlaces(37.9755, 23.7348, 2.0, 10, setOf("Eat"), city = "Athens")
+            // Nearest first, the district's listing included, the namesake in Georgia and the far taverna left out.
+            assertEquals(listOf("Athens — Kostas", "Athens/Plaka — Platanos"), eat.map { it.evidence.title })
+            assertEquals(0.23, eat.first().distanceKm, 0.05)
+            assertEquals(listOf("Athens — Acropolis"), database.nearbyPlaces(37.9755, 23.7348, 2.0, 10, setOf("See"), city = "athens").map { it.evidence.title })
+            assertEquals(3, database.nearbyPlaces(37.9755, 23.7348, 2.0, 10, city = "Athens").size)
+        } finally {
+            database.close()
+        }
+    }
+
     @Test fun indexFirstSearchMatchesFullRowRankingIncludingTies() {
         assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
         val db = File(temp.root, "ties.sqlite")

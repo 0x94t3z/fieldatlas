@@ -147,7 +147,8 @@ class EmergencyGuideMatchTest {
             "It's really hot and my friend stopped sweating and is confused" to "heat-illness",
             "My kid swallowed bleach, what do we do?" to "poisoning",
             "My friend fell and hit his head, he's dizzy" to "head-injury",
-            "We got caught in a lightning storm on the ridge" to "lightning",
+            // On a ridge the backcountry lightning guide is the one that helps (see thunderOnARidgeOpensTheBackcountryGuide).
+            "We got caught in a lightning storm on the ridge" to "lightning-backcountry",
             "My friend twisted his ankle and can't walk" to "fractures-sprains",
             "A tick bit me on the hike" to "tick-bites",
         )
@@ -339,9 +340,9 @@ class EmergencyGuideMatchTest {
         // "Swollen but I can still walk" is the minor injury, not the opening advice to stop the activity.
         val minor = EmergencyGuideMatch.select("I twisted my ankle hiking. It is swollen but I can still walk on it. What should I do?", fractures, 700)
         assertTrue(minor.first().title, minor.first().title.endsWith("Treatment of Minor Injuries"))
-        // The bundled poisoning guide is a general summary with a US number; a swallowed battery needs
-        // the emergency department and specific steps it lacks, so that question keeps to research.
-        assertNull(match("My child swallowed a button battery. What do I do?"))
+        // The general guide lacks battery-specific treatment. Show its poison-contact
+        // reference with that limitation, instead of allowing the model to invent steps.
+        assertEquals("poisoning", match("My child swallowed a button battery. What do I do?"))
     }
 
     @Test fun aSeizureLeadsWithItsStepsAndAWorryQuestionBringsTheCallList() {
@@ -381,5 +382,75 @@ class EmergencyGuideMatchTest {
         val stings = book.guides.single { it.id == "insect-stings" }
         val sting = EmergencyGuideMatch.officialSteps(EmergencyGuideMatch.select("A bee stung me, what do I do?", stings, 700).first(), 1, stings.source.publisher)
         assertTrue(sting, "Wash the site with soap and water." in sting)
+    }
+
+    @Test fun thunderOnARidgeOpensTheBackcountryGuide() {
+        // Scored 3/10 and 4/10 in the field: no guide matched and the model, answering alone, sent the
+        // asker to "a low-lying area where you cannot be struck".
+        assertEquals("lightning-backcountry", match("Caught in a thunderstorm on an exposed ridge, what's the safest thing to do?"))
+        assertEquals("lightning-backcountry", match("I'm on an exposed ridge and a thunderstorm is rolling in, I can already hear thunder. What's the safest thing to do?"))
+        assertEquals("lightning-backcountry", match("A thunderstorm is coming while we are on an exposed mountain ridge. What do we do?"))
+        // Indoors, or with no outdoor context, the general lightning guide keeps its place.
+        assertEquals("lightning", match("There's thunder outside and the lights flickered, is it safe to shower?"))
+        assertEquals("cpr", match("My friend was hit by lightning and is unresponsive, what do we do?"))
+        // An explanation is research.
+        assertNull(match("what causes thunderstorms?"))
+        assertNull(match("How do avalanches form?"))
+    }
+
+    @Test fun aColdCaseOnTheTrailLeadsWithTheWarmingSteps() {
+        // Scored 4/10 in the field: the symptom list led, and the model's first step was "take the
+        // temperature first" on a dark trail in the rain.
+        val guide = book.guides.single { it.id == "hypothermia" }
+        val question = "We're stuck on a trail in cold rain. My friend is shivering really hard, slurring his words and stumbling. It's getting dark. What should I do?"
+        for (budget in listOf(350, 700, 2_000)) {
+            val first = EmergencyGuideMatch.select(question, guide, budget).first()
+            assertTrue("$budget: ${first.title}", first.title.endsWith("try to warm the person up."))
+            assertTrue(first.text, "Remove any wet clothing" in first.text)
+        }
+        // Asked for the signs, the signs still lead.
+        assertTrue(EmergencyGuideMatch.select("What are the signs of hypothermia?", guide, 700).first().title.endsWith("What to look out for"))
+        // The heat guide's "Call 911 or get the victim to a hospital immediately" is an instruction and still leads.
+        val heat = book.guides.single { it.id == "heat-illness" }
+        assertTrue(EmergencyGuideMatch.select("my friend collapsed in the sun and seems confused", heat, 350).first().title.endsWith("Heat Stroke"))
+    }
+
+    @Test fun aShortGuideOrAnInjuryFarFromHelpPacksACompanion() {
+        fun ids(question: String) = EmergencyGuideMatch.pack(question, book.guides).map { it.id }
+        // The four-sentence bleeding guide gets the bleeding-control guide; no signal adds the outdoors guide.
+        assertEquals(listOf("severe-bleeding", "bleeding-control", "injured-outdoors"),
+            ids("Slipped on rocks and got a deep cut on my shin. Blood is soaking through the t-shirt I wrapped around it and there's no phone signal. How do I stop the bleeding?"))
+        assertEquals(listOf("severe-bleeding", "bleeding-control"), ids("My friend cut his leg badly and it is bleeding heavily. What should I do?"))
+        assertEquals(listOf("hypothermia", "emergency-shelter"),
+            ids("We're stuck on a trail in cold rain. My friend is shivering really hard, slurring his words and stumbling. It's getting dark. What should I do?"))
+        assertEquals(listOf("snakebite", "injured-outdoors"),
+            ids("my friend just got bitten by a snake on the ankle while hiking. no signal and we're about 3 hours from the car. what do we do right now?"))
+        assertEquals(listOf("fractures-sprains", "injured-outdoors"),
+            ids("I think my friend broke her ankle on the trail. We're about 3 hours' walk from the car and there's no signal. How do we splint it, and should we try to move her?"))
+        // A full guide in town stands alone; a non-emergency packs nothing.
+        assertEquals(listOf("heat-illness"), ids("Someone fainted in the heat at a festival. What should I do?"))
+        assertEquals(listOf("burns"), ids("burned the inside of my leg on a scooter exhaust pipe, it's blistered and really painful. how do i treat it and should i pop the blister?"))
+        assertEquals(emptyList<String>(), ids("what causes thunderstorms?"))
+    }
+
+    @Test fun packedGuidesLeadWithThePrimaryAndKeepItsExcerpt() {
+        val question = "Slipped on rocks and got a deep cut on my shin. Blood is soaking through the t-shirt I wrapped around it and there's no phone signal. How do I stop the bleeding?"
+        val guides = EmergencyGuideMatch.pack(question, book.guides)
+        val primary = guides.first()
+        for (budget in listOf(350, 700, 1_800)) {
+            val kept = EmergencyGuideMatch.select(question, guides, budget)
+            assertEquals("$budget", "emergency:severe-bleeding", kept.first().documentId)
+            assertTrue("$budget: ${kept.map { it.title }}", kept.any { it.documentId != primary.let { g -> "emergency:${g.id}" } })
+        }
+        val wide = EmergencyGuideMatch.select(question, guides, 1_800)
+        assertTrue(wide.joinToString { it.title }, wide.any { it.documentId == "emergency:injured-outdoors" })
+        assertTrue(wide.joinToString { it.title }, wide.any { it.title.endsWith("Direct pressure") })
+        // The quoted excerpt is the primary's own section, whatever else is packed.
+        val lead = EmergencyGuideMatch.officialSteps(wide.first(), 1, primary.source.publisher, question)
+        assertTrue(lead, "Cover with a clean cloth and apply pressure by pushing down with hands." in lead)
+        // One guide packs exactly as before.
+        val heat = book.guides.single { it.id == "heat-illness" }
+        val hot = "Someone fainted in the heat at a festival. What should I do?"
+        assertEquals(EmergencyGuideMatch.select(hot, heat, 700), EmergencyGuideMatch.select(hot, listOf(heat), 700))
     }
 }

@@ -147,7 +147,9 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     /**
      * Places within a box around a point, from the optional rowid-aligned `place_points` table
      * (OpenStreetMap packs). Distances are great-circle kilometres; callers sort and cut.
-     * A box crossing the antimeridian is searched as two longitude ranges.
+     * A box crossing the antimeridian is searched as two longitude ranges. A place pack without
+     * that table (the Wikivoyage listings) answers only when [city] names the destination the
+     * mapped packs file the nearest places under (see [nearbyInCity]).
      */
     internal fun nearbyPlaces(
         lat: Double,
@@ -155,8 +157,9 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         radiusKm: Double,
         limit: Int,
         categories: Set<String> = emptySet(),
+        city: String? = null,
     ): List<NearbyPlace> {
-        if (!hasPlacePoints()) return emptyList()
+        if (!hasPlacePoints()) return if (city == null) emptyList() else nearbyInCity(lat, lon, radiusKm, limit, categories, city)
         // Essentials holds no restaurants: its 10 km box in a dense city is thousands of rows read for nothing.
         if (!mayHold(categories)) return emptyList()
         // Packs that store each place's category filter in SQL; older packs are filtered on the
@@ -234,6 +237,50 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
             }
         }
         return places.sortedWith(compareBy({ it.distanceKm }, { it.evidence.chunkId })).take(limit)
+    }
+
+    /**
+     * A guide's listings near a point, for a place pack with no coordinate table: the listings
+     * titled with [city] ("Athens — Kostas", "Athens/Plaka — …") in one of [categories] that carry
+     * Latitude and Longitude lines, filtered to [radiusKm]. The title index narrows the read to the
+     * city's own listings, a few hundred rows, which is why no coordinate table is needed; a
+     * namesake elsewhere ("Athens (Georgia) — …") shares the first title word and is dropped by
+     * [DestinationScope.scopes].
+     */
+    private fun nearbyInCity(lat: Double, lon: Double, radiusKm: Double, limit: Int, categories: Set<String>, city: String): List<NearbyPlace> {
+        if (!isPlaceListing()) return emptyList()
+        val match = buildString {
+            append("{title} : ^\"").append(city.replace("\"", " ")).append("\" AND {text} : (\"latitude\"")
+            if (categories.isNotEmpty()) {
+                append(" AND (").append(categories.joinToString(" OR ") { "\"category " + it.replace("\"", " ") + "\"" }).append(')')
+            }
+            append(')')
+        }
+        val rows = synchronized(database) {
+            database.prepare(CITY_ROWS_SQL).use { statement ->
+                statement.bindText(1, match)
+                statement.bindInt(2, CITY_ROWS)
+                buildList {
+                    while (statement.step()) {
+                        add(Evidence(statement.getText(0), statement.getText(1), statement.getText(2), statement.getText(3), statement.getText(4), 0.0))
+                    }
+                }
+            }
+        }
+        fun line(text: String, key: String) = text.lineSequence().firstOrNull { it.startsWith("$key: ") }?.removePrefix("$key: ")?.trim()
+        return rows.mapNotNull { row ->
+            if (!DestinationScope.scopes(row.title, listOf(city))) return@mapNotNull null
+            val placeLat = line(row.text, "Latitude")?.toDoubleOrNull() ?: return@mapNotNull null
+            val placeLon = line(row.text, "Longitude")?.toDoubleOrNull() ?: return@mapNotNull null
+            if (placeLat !in -90.0..90.0 || placeLon !in -180.0..180.0) return@mapNotNull null
+            val distance = GeoDistance.km(lat, lon, placeLat, placeLon)
+            if (distance > radiusKm) return@mapNotNull null
+            NearbyPlace(
+                row.copy(score = distance, matchedBy = "within ${GeoDistance.label(distance)}"),
+                distance,
+                GeoDistance.bearing(lat, lon, placeLat, placeLon),
+            )
+        }.sortedWith(compareBy({ it.distanceKm }, { it.evidence.chunkId })).take(limit)
     }
 
     private val categoryPresence = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
@@ -538,6 +585,15 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
         private const val NEARBY_POINTS_SQL = NEARBY_POINTS + "p.lon BETWEEN ?3 AND ?4"
         private const val NEARBY_POINTS_WRAPPED_SQL = NEARBY_POINTS + "(p.lon >= ?3 OR p.lon <= ?4)"
         private const val ROWID_BATCH = 400
+        /** Listings read for one city from a pack without coordinates; a capital with districts has under two thousand. */
+        private const val CITY_ROWS = 3000
+
+        private const val CITY_ROWS_SQL = """
+            SELECT document_id, chunk_id, title, source, text
+            FROM chunks_fts
+            WHERE chunks_fts MATCH ?1
+            LIMIT ?2
+        """
         /** Titles read to confirm a destination; a city's own listings come well within them. */
         private const val DESTINATION_PROBE_ROWS = 40
 

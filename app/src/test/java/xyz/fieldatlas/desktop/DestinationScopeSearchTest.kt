@@ -21,7 +21,7 @@ class DestinationScopeSearchTest {
 
     /** A place pack as the Wikivoyage and OpenStreetMap builders write it: (document id, title, listing text). */
     private fun pack(name: String, rows: List<Triple<String, String, String>>): File {
-        val file = File(temp.root, "$name.sqlite")
+        val file = File(temp.root, "$name-${java.util.UUID.randomUUID()}.sqlite")
         BundledSQLiteDriver().open(file.path).use { sql ->
             fun exec(text: String) { sql.prepare(text).use { it.step() } }
             exec("PRAGMA user_version=1")
@@ -100,6 +100,17 @@ class DestinationScopeSearchTest {
         } finally {
             database.close()
         }
+    }
+
+    @Test fun theRetrieverResolvesTheDestinationsAQuestionNamesOnce() = runBlocking {
+        assumeTrue(!System.getenv("FIELDATLAS_DESKTOP_CONFIG").isNullOrBlank())
+        val retriever = MultiKnowledgeRetriever(databaseFiles = { listOf(beaches()) })
+        assertEquals(listOf("cape town"), retriever.destinations("good beaches in cape town? is anything open on sunday morning"))
+        assertEquals(listOf("Nice"), retriever.destinations("vegetarian restaurants in Nice"))
+        assertEquals(emptyList<String>(), retriever.destinations("Which museums are worth a day?"))
+        // The kind search for a city the first pass found nothing in still names it.
+        assertEquals(xyz.fieldatlas.research.VenueLookup.KindQuery("cape town beach", "cape town"),
+            xyz.fieldatlas.research.VenueLookup.kindQuery("good beaches in cape town?", emptyList(), retriever.destinations("good beaches in cape town?")))
     }
 
     @Test fun theMergedSearchScopesEachPlacePackToTheQuestionsDestination() = runBlocking {

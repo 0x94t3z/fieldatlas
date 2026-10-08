@@ -11,7 +11,8 @@ package xyz.fieldatlas.research
  */
 object TopicGuides {
     private const val MAX_WORDS = 3
-    private const val MAX_NAMES = 10
+    // Runs of two or three words are many and rarely a title; four of each are tried, longest first.
+    private const val MAX_RUNS = 4
     // A section must share a heading word (counted three times) or two words of its text.
     private const val MIN_SCORE = 2
 
@@ -27,6 +28,8 @@ object TopicGuides {
     )
     private val word = Regex("[\\p{L}\\p{N}][\\p{L}\\p{N}'-]*")
     private val token = Regex("[\\p{L}\\p{N}]+")
+    private val practicalAsk = Regex("(?i)\\b(?:how (?:do|can|should|to)|etiquette|customs?|reduce|prevent|manage)\\b")
+    private val actionHeading = Regex("(?i)\\b(?:how to|prepare|preparation|cope|coping|recover|recovery|etiquette|customs?|bathe)\\b")
 
     /**
      * The topic guides that answer each practical topic of a destination guide, for a question
@@ -53,20 +56,26 @@ object TopicGuides {
      * Names the topic's guide could have, from the question's runs of up to three words, longest
      * first: "jet lag", "passport". A run of capitalized words names a place ("New York", "Spain"),
      * which the place guides answer; an acronym ("DEET", "GPS") is a thing and may name a guide.
+     * Every single word of four letters or more is offered ("sauna", "tipping", "passport"): a long
+     * question must not push the one word that titles a guide past the list's end.
      */
     fun names(question: String): List<String> {
         val words = word.findAll(question).map { it.value.trim('\'', '-') }.filter(String::isNotEmpty).toList()
         // The question's first word is capitalized whatever it is.
         fun proper(i: Int) = i > 0 && words[i].first().isUpperCase() && words[i].drop(1).any(Char::isLowerCase)
         val names = ArrayList<String>()
-        for (n in MAX_WORDS downTo 1) for (start in 0..words.size - n) {
-            val run = words.subList(start, start + n)
-            if (run.first().lowercase() in edge || run.last().lowercase() in edge) continue
-            if ((start until start + n).all(::proper) || run.any { w -> w.all(Char::isDigit) }) continue
-            if (n == 1 && run[0].length < 4) continue
-            names += run.joinToString(" ")
+        for (n in MAX_WORDS downTo 1) {
+            val runs = ArrayList<String>()
+            for (start in 0..words.size - n) {
+                val run = words.subList(start, start + n)
+                if (run.first().lowercase() in edge || run.last().lowercase() in edge) continue
+                if ((start until start + n).all(::proper) || run.any { w -> w.all(Char::isDigit) }) continue
+                if (n == 1 && run[0].length < 4) continue
+                runs += run.joinToString(" ")
+            }
+            names += if (n == 1) runs else runs.distinctBy(String::lowercase).take(MAX_RUNS)
         }
-        return names.distinctBy(String::lowercase).take(MAX_NAMES)
+        return names.distinctBy(String::lowercase)
     }
 
     /**
@@ -78,6 +87,14 @@ object TopicGuides {
      * article or a single listing is not a guide.
      */
     fun pick(question: String, article: String, found: List<Evidence>, limit: Int): List<Evidence> = pickAcross(question, listOf(article), mapOf(article to found), limit)
+
+    /** Supplement a cultural destination guide only with topic sections that explicitly name that destination. */
+    fun pickForDestination(question: String, article: String, found: List<Evidence>, destinations: List<String>, limit: Int): List<Evidence> {
+        val names = destinations.filter { it.isNotBlank() && !it.equals(article, true) }
+            .map { Regex("(?i)(?<![\\p{L}])${Regex.escape(it)}(?![\\p{L}])") }
+        val headings = found.filter { row -> names.any { it.containsMatchIn(row.title) || it.containsMatchIn(row.text) } }.map { it.title }.toSet()
+        return pick(question, article, found.filter { it.title in headings }, limit)
+    }
 
     /** [pick] over several guides at once: the sections closest to the question of any of them, in the guides' order on ties. */
     fun pickAcross(question: String, articles: List<String>, found: Map<String, List<Evidence>>, limit: Int): List<Evidence> {
@@ -94,15 +111,17 @@ object TopicGuides {
         val guide = found.filter { it.source.contains("wikivoyage", ignoreCase = true) && it.title.startsWith("$article — ", ignoreCase = true) }
         if (guide.map { it.title }.distinct().size < 2) return emptyMap()
         val named = (FtsQuery.from(article)?.terms.orEmpty() + TravelSections.nameTerms(question)).map(TravelSections::stem).toSet()
-        val words = FtsQuery.from(question)?.terms.orEmpty().filterNot { it in TravelSections.filler }.map(TravelSections::stem).distinct().filterNot { it in named }
+        val synonyms = if (Regex("(?i)\\b(?:naked|nude|nudity)\\b").containsMatchIn(question)) listOf("nude", "nudity", "clothing", "swimwear") else emptyList()
+        val words = (FtsQuery.from(question)?.terms.orEmpty() + synonyms).filterNot { it in TravelSections.filler }.map(TravelSections::stem).distinct().filterNot { it in named }
         if (words.isEmpty()) return emptyMap()
         fun tokens(text: String) = token.findAll(TravelSections.fold(text)).map { it.value }.toSet()
         return guide.associateWith { item ->
             val own = tokens(TravelSections.ownHeading(item.title))
             val parents = tokens(item.title.substringAfter(" — ").substringBeforeLast(" > ", ""))
             val body = tokens(item.text)
-            fun shared(set: Set<String>) = words.count { w -> set.any { it.startsWith(w) } }
-            3 * shared(own) + shared(parents) + shared(body)
+            fun shared(set: Set<String>) = words.count { w -> set.any { TravelSections.matches(w, it) } }
+            val practical = if (practicalAsk.containsMatchIn(question) && actionHeading.containsMatchIn(TravelSections.ownHeading(item.title))) 6 else 0
+            practical + 3 * shared(own) + shared(parents) + shared(body)
         }.filterValues { it >= MIN_SCORE }
     }
 

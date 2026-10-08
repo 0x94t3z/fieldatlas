@@ -1,5 +1,7 @@
 package xyz.fieldatlas.research
 
+import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.TextStyle
 import java.util.Locale
@@ -9,8 +11,67 @@ object VenueLookup {
     /** [openNow] counts listed places open by their recorded hours, when the question asked. */
     data class Result(val answer: String, val sources: List<Evidence>, val openNow: Int? = null)
 
-    private val venueWords = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|museums?|sights?|attractions?|hotels?|hostels?|shops?|stores?|bars?)\\b")
-    private val lookupWords = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|any|need|is there|are there)\\b")
+    /**
+     * A kind of place a traveller asks for, mapped to the listing categories that hold it, the
+     * words a listing of that kind carries ([type], null when the category alone decides, as for
+     * sights), the words of a second place search for it ([query], null when the first search
+     * already finds the kind, as for restaurants), and mapped types that carry the kind's word
+     * without being one ([excludePattern]: a supermarket called "Maxi Market" is no market).
+     */
+    private class Kind(val wordPattern: String, val categories: Set<String>, typePattern: String?, val query: String?, excludePattern: String? = null) {
+        val words = Regex("(?i)\\b(?:$wordPattern)\\b")
+        val type = typePattern?.let { Regex("(?i)\\b(?:$it)\\b") }
+        val exclude = excludePattern?.let { Regex("(?im)^Type: (?:$it)$") }
+    }
+
+    // Listings of a kind without a type word are found by their category line ("Category: See"),
+    // which the full-text index holds like any other words. "See" alone, not "category see": the
+    // word every listing shares would flood the search with a city's shortest listings of any kind.
+    private const val SEE_QUERY = "see"
+    private val KINDS = listOf(
+        Kind("museums?|galler(?:y|ies)", setOf("See", "Do"), "museums?|galler(?:y|ies)", "museum"),
+        Kind("sights?|attractions?|must[- ]sees?|landmarks?", setOf("See", "Do"), null, SEE_QUERY),
+        Kind("things? to do|what (?:can|could) (?:we|i|you) do|what is there to do|anything (?:fun )?to do|activities|indoors?|rainy day",
+            setOf("See", "Do"), null, SEE_QUERY),
+        Kind("markets?|market halls?|halles", setOf("Buy", "Eat"), "markets?|halles?|mercados?|march[eé]s?|markt|bazaars?|souks?", "market halles",
+            excludePattern = "supermarket|convenience|mall|department store"),
+        Kind("baker(?:y|ies)|boulangeries?|p[aâ]tisseries?", setOf("Eat", "Buy"), "baker(?:y|ies)|boulangeries?|p[aâ]tisseries?|pastr(?:y|ies)|bread", "bakery"),
+        Kind("street[- ]food|food stalls?|hawker (?:centres?|centers?|stalls?)", setOf("Eat"),
+            "street[- ]?food|stalls?|stands?|hawkers?|taquer[ií]as?|puestos?|food trucks?|carts?", "street food"),
+        Kind("beach(?:es)?", setOf("See", "Do"), "beach(?:es)?|plages?|playas?|praias?|strand|swim\\w*", "beach"),
+        Kind("hotels?", setOf("Sleep"), "hotels?", "hotel"),
+        Kind("hostels?", setOf("Sleep"), "hostels?", "hostel"),
+        Kind("guest ?houses?|b&bs?|bed and breakfasts?|pensions?", setOf("Sleep"), "guest ?houses?|b&b|bed and breakfast|pensions?", "guest house"),
+        Kind("caf[eé]s?|coffee shops?", setOf("Eat", "Drink"), "caf[eé]|coffee", null),
+        Kind("bars?|pubs?", setOf("Drink"), "bars?|pubs?", null),
+        Kind("shops?|stores?|shopping", setOf("Buy"), null, null),
+        Kind("restaurants?|places? to eat|dining", setOf("Eat"), null, null),
+    )
+    // "Milk bars", "sushi bars": places to eat named after what they serve, not places to drink.
+    private val foodBar = Regex("(?i)\\b(milk|snack|salad|sushi|tapas|noodle|juice|soup|burger|sandwich|poke|smoothie|oyster|ramen) bars?\\b")
+    private fun foodBarKind(food: String): Kind {
+        // Poland's milk bars are listed under their own name too.
+        val type = if (food.equals("milk", ignoreCase = true)) "milk bars?|bar mleczny|mleczny" else "${Regex.escape(food)} bars?"
+        return Kind("${Regex.escape(food)} bars?", setOf("Eat"), type, "${food.lowercase()} bar")
+    }
+
+    /**
+     * A property the question wants of the places ("indoors", "with the kids") that no listing
+     * states as a category: listings whose text [said] it lead the answer, the rest still follow.
+     * [query] joins the kind search so such listings are retrieved at all.
+     */
+    private class Attribute(val name: String, wordPattern: String, saidPattern: String, val query: String) {
+        val words = Regex("(?i)\\b(?:$wordPattern)\\b")
+        val said = Regex("(?i)\\b(?:$saidPattern)\\b")
+    }
+    private val ATTRIBUTES = listOf(
+        Attribute("indoor", "indoors?|rain\\w*|wet weather|bad weather", "museums?|aquariums?|planetari(?:um|a)|cinemas?|indoors?|galler(?:y|ies)|librar(?:y|ies)",
+            "museum aquarium planetarium cinema indoor"),
+        Attribute("children", "kids?|children|child|famil(?:y|ies)|toddlers?", "children|kids?|famil(?:y|ies)|child", "children kids family"),
+    )
+
+    private val venueWords = Regex("(?i)\\b(?:" + KINDS.joinToString("|") { it.wordPattern } + "|" + foodBar.pattern.removePrefix("(?i)\\b").removeSuffix("\\b") + ")\\b")
+    private val lookupWords = Regex("(?i)\\b(best|good|recommend|suggest|find|list|which|where|any|need|is there|are there)\\b")
 
     /**
      * Everyday essentials a traveller asks for, mapped to the listing category and, where the
@@ -46,6 +107,8 @@ object VenueLookup {
     // capitalised name counts, so "not too expensive" and "not just snacks" exclude nothing.
     private val exclusion = Regex("\\b(?:[Nn]ot|[Nn]o|[Aa]void(?:ing)?|[Ee]xcept|other than|rather than|instead of)\\s+(?:an?\\s+|the\\s+)?(\\p{Lu}[\\p{L}&'-]{2,})")
     private val bankWords = Regex("(?i)\\b(banks?|banca|banco|banque|bancaire|sparkasse|caixa|postamat|post ?office|poste)\\b")
+    private val budgetWords = Regex("(?i)\\b(cheap|cheaper|cheapest|budget|inexpensive|affordable|backpackers?)\\b")
+    private val budgetSaid = Regex("(?i)\\b(hostels?|budget|cheap|dorm\\w*|backpackers?)\\b")
 
     /** Brand or place names the question asks to leave out. */
     private fun excluded(question: String): List<String> = exclusion.findAll(question).map { it.groupValues[1].lowercase() }.toList()
@@ -59,14 +122,18 @@ object VenueLookup {
         "cafés", "café", "places", "place", "eat", "food", "dining", "nearby", "some",
         "museums", "museum", "sights", "sight", "attractions", "attraction",
         "hotels", "hotel", "hostels", "hostel", "shops", "shop", "stores", "store",
-        "bars", "bar",
+        "bars", "bar", "markets", "market", "bakeries", "bakery", "beaches", "beach", "street", "stalls",
+        "things", "thing", "activities", "activity", "indoors", "indoor",
         // About when, not what: "open right now" is answered with the hours on file and a caveat.
-        "open", "right", "now", "today", "tonight", "currently", "closed", "still", "saved", "listings",
+        "open", "right", "now", "today", "tonight", "tomorrow", "currently", "closed", "still", "saved", "listings",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "mondays", "tuesdays", "wednesdays",
+        "thursdays", "fridays", "saturdays", "sundays", "morning", "afternoon", "evening", "night", "weekdays",
         // How people phrase a request, not what they want of the place.
-        "try", "staying", "stay", "week", "weekend", "days", "visit", "visiting", "trip", "eats", "eating", "vegans",
+        "try", "staying", "stay", "week", "weekend", "weekends", "days", "visit", "visiting", "trip", "eats", "eating", "vegans",
         "vegetarians", "name", "few", "couple", "good", "great", "nice", "options", "option", "spots", "spot", "proper",
         "meals", "meal", "snacks", "snack", "serve", "serves", "serving", "easy", "go", "should", "can", "you", "dine",
-        "dinner", "lunch", "breakfast", "somewhere", "anywhere", "any", "there", "here", "city", "town", "area",
+        "dinner", "lunch", "breakfast", "somewhere", "anywhere", "any", "anything", "there", "here", "city", "town", "area",
+        "heard", "got", "put", "together", "order", "full", "sees", "meant", "all", "walk", "walking", "walkable", "them", "last", "next",
         // How someone feels about the trip or the price, which no listing states in these words:
         // "hungry, any good local places that aren't too expensive?", "museums actually worth it
         // if I only have one day?". Required in every listing, they emptied whole cities.
@@ -74,7 +141,21 @@ object VenueLookup {
         "too", "very", "aren", "isn", "don", "doesn", "expensive", "cheap", "cheaper", "inexpensive", "affordable",
         "budget", "pricey", "local", "locals", "authentic", "typical", "traditional", "famous", "popular", "decent",
         "tasty", "delicious", "quick", "must", "see", "go", "worthwhile", "recommended", "top", "favourite", "favorite",
-        "looking", "want", "like", "need", "get", "kids", "family", "friends", "people", "tourists", "tourist",
+        "looking", "want", "like", "need", "get", "kids", "kid", "children", "child", "family", "friends", "people",
+        "tourists", "tourist", "touristy", "trap", "traps", "rain", "rainy", "raining", "weather",
+    )
+
+    /**
+     * A dish names the kitchen that serves it: "souvlaki" is answered by a Greek taverna whether or
+     * not its listing spells the dish out, and by a name written in the local script.
+     */
+    private val DISHES: Map<String, Set<String>> = mapOf(
+        "souvlaki" to setOf("greek", "σουβλάκι", "gyros"), "gyros" to setOf("greek", "souvlaki", "γύρος"), "gyro" to setOf("greek", "souvlaki"),
+        "moussaka" to setOf("greek"), "pho" to setOf("vietnamese", "phở"), "banh" to setOf("vietnamese"), "pierogi" to setOf("polish"),
+        "tapas" to setOf("spanish"), "paella" to setOf("spanish"), "ramen" to setOf("japanese"), "sushi" to setOf("japanese"),
+        "pizza" to setOf("italian", "pizzeria"), "pasta" to setOf("italian"), "curry" to setOf("indian"), "kebab" to setOf("turkish"),
+        "tacos" to setOf("mexican", "taqueria", "taquería"), "taco" to setOf("mexican", "taqueria", "taquería"), "bibimbap" to setOf("korean"),
+        "schnitzel" to setOf("austrian", "german"), "goulash" to setOf("hungarian"), "dumplings" to setOf("chinese"), "pad" to setOf("thai"),
     )
 
     /** A request for places to go, answerable from place listings alone. */
@@ -85,21 +166,36 @@ object VenueLookup {
 
     // "Pharmacy open now in Berlin" asks for places as plainly as "where is a pharmacy" does.
     // "Where do vegans eat in Montreal?", "Is it easy to eat vegan in Kuala Lumpur? Name a few places."
-    private val dietFood = Regex("(?i)\\b(vegans?|vegetarians?)\\b.*\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b|" +
-        "\\b(eat|eats|eating|food|places|spots|dine|meals?)\\b.*\\b(vegans?|vegetarians?)\\b")
+    private val dietFood = Regex("(?i)\\b(vegans?|vegetarians?)\\b.*\\b(eat|eats|eating|food|places|spots|dine|meals?|dinner|lunch|breakfast)\\b|" +
+        "\\b(eat|eats|eating|food|places|spots|dine|meals?|dinner|lunch|breakfast)\\b.*\\b(vegans?|vegetarians?)\\b")
     private val askWords = Regex("(?i)\\b(name|try|should i|where do|where can|options|go to)\\b")
+    private val barePlaceRequest = Regex("(?i)^\\s*(?:hotels?|hostels?|restaurants?|caf[eé]s?|museums?|markets?|bakeries)\\s+(?:in|near|around)\\b")
+    // "What can we do indoors?", "things to do with the kids": the activity itself is the ask. "What
+    // should we do?" is left out: it opens emergencies ("we are lost in a forest, what should we do?").
+    private val activityAsk = Regex("(?i)\\b(things? to do|what (?:can|could) (?:we|i|you) do|what is there to do|anything (?:fun )?to do|activities|rainy day)\\b")
     // "Should I bring euros or take out dirhams from an ATM?" weighs two ways to pay; it asks for no ATM.
     private val decision = Regex("(?i)\\bshould i\\b.*\\bor\\b")
     private val seeks = Regex("(?i)\\b(find|where|nearest|closest|near)\\b")
+    private val shopHours = Regex("(?i)\\b(?:shops?|stores?|supermarkets?|grocer(?:y|ies))\\b[^.?!]{0,60}\\b(?:open|closed|opening)\\b|" +
+        "\\b(?:open|closed|opening)\\b[^.?!]{0,60}\\b(?:shops?|stores?|supermarkets?|grocer(?:y|ies))\\b")
+    private val asksSpecificPlaces = Regex("(?i)\\b(?:find|where|nearest|closest|near|which|list|name|any|recommend\\w*)\\b")
+
+    /** General shop-opening rules belong to the destination guide, not arbitrary food listings. */
+    private fun generalShopHours(question: String) = shopHours.containsMatchIn(question) && !asksSpecificPlaces.containsMatchIn(question)
 
     private fun isLookup(question: String) =
         (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
-            (lookupWords.containsMatchIn(question) || askWords.containsMatchIn(question) || openNow.containsMatchIn(question)) &&
-            !complexWords.containsMatchIn(question) &&
+            (lookupWords.containsMatchIn(question) || askWords.containsMatchIn(question) || openNow.containsMatchIn(question) || barePlaceRequest.containsMatchIn(question) ||
+                dayAsk(question) != null ||
+                // An activity question is a lookup only for a named place: "what can we do indoors" in
+                // Copenhagen, not in a cabin with a leaking gas heater.
+                (activityAsk.containsMatchIn(question) && GuideScope.namesPlace(question))) &&
+            !complexWords.containsMatchIn(question) && !generalShopHours(question) &&
             // An everyday essential named in a decision between alternatives is a place to find only when asked to find it.
             !(!venueWords.containsMatchIn(question) && !dietFood.containsMatchIn(question) && decision.containsMatchIn(question) && !seeks.containsMatchIn(question))
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
+    private fun isGuidePlace(item: Evidence) = item.documentId.startsWith(WV_PREFIX)
 
     /**
      * A follow-up keyword query for fully vegan places in the destination the first pass found.
@@ -123,18 +219,56 @@ object VenueLookup {
 
     /** The city a question names, as spelled in the place listings already retrieved for it. */
     private fun destinationIn(question: String, evidence: List<Evidence>): String? = evidence.asSequence()
-        .filter { isOsmPlace(it) || it.documentId.startsWith("wv-place-") }
+        .filter { isOsmPlace(it) || isGuidePlace(it) }
         .mapNotNull { field(it.text, "Destination")?.substringBefore('/') }
         .firstOrNull { Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(it)}(?![\\p{L}\\p{N}])").containsMatchIn(question) }
 
     private val museumWord = Regex("(?i)\\b(museums?|galler(?:y|ies))\\b")
 
     /**
-     * A question asking for a museum in a city whose listings were retrieved ("suggest a vegan
-     * food stop and a museum visit in Berlin") gets one more search for that city's museums: the
-     * question's food words otherwise fill every slot, and the answer reaches for whatever the
-     * city overview mentions (a zoo) instead.
+     * A second place search for the kind of place a question asks for in a destination: its
+     * [query] runs within the place packs like the first search; its [scope] is passed to the
+     * search as the question, so the relevance gate judges the listings against the place alone.
+     * Listings of a kind rarely say the question's words: a cathedral is a "must-see" to the asker,
+     * "Category: See" to the guide.
      */
+    data class KindQuery(val query: String, val scope: String)
+
+    /**
+     * A question asking for a kind of place in a city whose listings were retrieved ("suggest a
+     * vegan food stop and a museum visit in Berlin", "one day in Seville, which sights", "food
+     * markets in lyon") gets one more search for that city's places of the kind: the question's
+     * other words otherwise fill every slot, and the answer reaches for whatever the city overview
+     * mentions (a zoo) instead. [destinations] are the places the packs confirmed the question
+     * names, for a city the first search found nothing in.
+     */
+    fun kindQuery(question: String, evidence: List<Evidence>, destinations: List<String> = emptyList()): KindQuery? {
+        val request = request(question)
+        if (request.essential != null) return null
+        val words = (request.kinds.mapNotNull { it.query } + request.attributes.map { it.query }).distinct()
+        if (words.isEmpty()) return null
+        val destination = destinationIn(question, evidence) ?: destinations.firstOrNull() ?: return null
+        return KindQuery("$destination " + words.joinToString(" "), destination)
+    }
+
+    /**
+     * The listings among [candidates] of the kind the question asks for in its destination, in the
+     * guide's own order: a Wikivoyage page lists its sights as the guide recommends them (document
+     * id wv-place-<page>-<nnnn>, lower first), and listings that state an asked property
+     * ("indoors", "with the kids") come before those that do not.
+     */
+    fun kindListings(question: String, candidates: List<Evidence>, evidence: List<Evidence>, destinations: List<String> = emptyList()): List<Evidence> {
+        val request = request(question)
+        val destination = destinationIn(question, evidence) ?: destinationIn(question, candidates) ?: destinations.firstOrNull() ?: return emptyList()
+        return guideOrder(candidates.filter { item ->
+            (isOsmPlace(item) || isGuidePlace(item)) &&
+                field(item.text, "Category") in request.categories &&
+                field(item.text, "Destination")?.substringBefore('/').equals(destination, ignoreCase = true) &&
+                (request.requestedType == null || request.requestedType.containsMatchIn(item.text))
+        }, request)
+    }
+
+    /** Kept for the museum-only callers: the museum search is [kindQuery] for a museum question. */
     fun museumQuery(question: String, evidence: List<Evidence>): String? {
         if (!museumWord.containsMatchIn(question)) return null
         return destinationIn(question, evidence)?.let { "$it museum" }
@@ -144,18 +278,30 @@ object VenueLookup {
     fun museumListings(question: String, candidates: List<Evidence>, evidence: List<Evidence>): List<Evidence> {
         val destination = destinationIn(question, evidence) ?: return emptyList()
         return candidates.filter { item ->
-            (isOsmPlace(item) || item.documentId.startsWith("wv-place-")) &&
+            (isOsmPlace(item) || isGuidePlace(item)) &&
                 field(item.text, "Category") == "See" &&
                 field(item.text, "Destination")?.substringBefore('/').equals(destination, ignoreCase = true) &&
                 (museumWord.containsMatchIn(field(item.text, "Place").orEmpty()) || museumWord.containsMatchIn(field(item.text, "Type").orEmpty()))
         }
     }
 
+    private val placeOrdinal = Regex("^wv-place-\\d+-(\\d+)$")
+
+    /** A guide listing's place on its page; map listings and legacy rows have none and keep their order. */
+    private fun ordinal(item: Evidence): Int = placeOrdinal.find(item.documentId)?.groupValues?.get(1)?.toIntOrNull() ?: Int.MAX_VALUE
+
+    private fun attributeRank(text: String, request: Request): Int = request.attributes.count { it.said.containsMatchIn(text) }
+
+    private fun guideOrder(items: List<Evidence>, request: Request): List<Evidence> =
+        items.sortedWith(compareBy({ -attributeRank(it.text, request) }, { ordinal(it) }))
+
     private data class Request(
         val categories: Set<String>,
         val requestedType: Regex?,
         val diet: String?,
         val essential: Essential? = null,
+        val kinds: List<Kind> = emptyList(),
+        val attributes: List<Attribute> = emptyList(),
     )
 
     /**
@@ -168,40 +314,44 @@ object VenueLookup {
     /** The listing categories a near-me question asks for, so the lookup can filter early. */
     fun nearbyCategories(question: String): Set<String> = request(question).categories
 
+    /**
+     * What the question asks for: every kind of place it names ("hostels or cheap hotels" wants
+     * both), the categories that hold them, and a type that any of their words satisfies. A kind
+     * without a type word (sights) leaves the category to decide for all of them.
+     */
     private fun request(question: String): Request {
         essential(question)?.let { need -> return Request(setOf(need.category), need.type, null, need) }
-        val categories = when {
-            Regex("(?i)\\b(museums?|sights?|attractions?)\\b").containsMatchIn(question) -> setOf("See", "Do")
-            Regex("(?i)\\b(hotels?|hostels?)\\b").containsMatchIn(question) -> setOf("Sleep")
-            Regex("(?i)\\b(shops?|stores?)\\b").containsMatchIn(question) -> setOf("Buy")
-            Regex("(?i)\\b(bars?)\\b").containsMatchIn(question) -> setOf("Drink")
-            Regex("(?i)\\b(caf[eé]s?)\\b").containsMatchIn(question) -> setOf("Eat", "Drink")
-            else -> setOf("Eat")
-        }
-        val requestedType = when {
-            Regex("(?i)\\bmuseums?\\b").containsMatchIn(question) -> Regex("(?i)\\bmuseums?\\b")
-            Regex("(?i)\\bhotels?\\b").containsMatchIn(question) -> Regex("(?i)\\bhotels?\\b")
-            Regex("(?i)\\bhostels?\\b").containsMatchIn(question) -> Regex("(?i)\\bhostels?\\b")
-            Regex("(?i)\\bcaf[eé]s?\\b").containsMatchIn(question) -> Regex("(?i)\\b(caf[eé]|coffee)\\b")
-            Regex("(?i)\\bbars?\\b").containsMatchIn(question) -> Regex("(?i)\\bbars?\\b")
-            else -> null
-        }
+        val foodBars = foodBar.findAll(question).map { foodBarKind(it.groupValues[1]) }.toList()
+        // "milk bars" is not also "bars".
+        val rest = foodBar.replace(question, " ")
+        val kinds = foodBars + KINDS.filter { it.words.containsMatchIn(rest) }
+        val categories = kinds.flatMap { it.categories }.toSet().ifEmpty { setOf("Eat") }
+        val requestedType = if (kinds.isNotEmpty() && kinds.all { it.type != null }) Regex(kinds.joinToString("|") { it.type!!.pattern }) else null
         val diet = when {
             veganWord.containsMatchIn(question) -> "vegan"
             vegetarianWord.containsMatchIn(question) -> "vegetarian"
             else -> null
         }
-        return Request(categories, requestedType, diet)
+        val attributes = if (kinds.isEmpty()) emptyList() else ATTRIBUTES.filter { it.words.containsMatchIn(question) }
+        return Request(categories, requestedType, diet, kinds = kinds, attributes = attributes)
+    }
+
+    /** Whether a listing's text says [term]: the word itself, a longer form of it ("swimming" for "swim"), or the kitchen a dish names. */
+    private fun says(text: String, term: String): Boolean {
+        val words = word.findAll(text.lowercase()).map { it.value }.toList()
+        if (words.any { it == term || (term.length >= 4 && it.length <= term.length + 4 && it.startsWith(term)) }) return true
+        return DISHES[term]?.any { alias -> alias in words } == true
     }
 
     /**
      * One listing if it satisfies the request's category, type, diet and qualifier words.
      * [destinationRequired] keeps city answers to places in the named city; nearby answers
      * locate by coordinates instead, so their location words are ignored as qualifiers.
+     * [relaxed] drops the qualifier words: the kind, type, diet and place still apply.
      */
-    private fun listing(item: Evidence, question: String, request: Request, destinationRequired: Boolean): Listing? {
+    private fun listing(item: Evidence, question: String, request: Request, destinationRequired: Boolean, relaxed: Boolean = false): Listing? {
         val legacyEat = item.documentId.startsWith("wv-eat-")
-        val newPlace = (item.documentId.startsWith("wv-place-") || isOsmPlace(item)) &&
+        val newPlace = (isGuidePlace(item) || isOsmPlace(item)) &&
             field(item.text, "Category") in request.categories
         if (!(legacyEat && "Eat" in request.categories) && !newPlace) return null
         val destination = field(item.text, "Destination")?.substringBefore('/')
@@ -213,15 +363,9 @@ object VenueLookup {
         val name = field(item.text, if (legacyEat) "Place to eat" else "Place")?.takeIf(String::isNotBlank)
             ?: return null
         if (request.requestedType != null && !request.requestedType.containsMatchIn(item.text)) return null
-        val ignored = if (destinationRequired) {
-            word.findAll(destination.orEmpty().lowercase()).map { it.value }.toSet()
-        } else nearbyWords
-        val qualifiers = if (request.essential != null) emptyList() else FtsQuery.from(question)?.terms.orEmpty().filterNot { term ->
-            term in genericWords || term in ignored || term == request.diet
-        }
-        if (!qualifiers.all { qualifier ->
-                word.findAll(item.text.lowercase()).any { it.value == qualifier }
-            }) return null
+        if (request.kinds.any { kind -> kind.exclude?.containsMatchIn(item.text) == true }) return null
+        val qualifiers = if (relaxed) emptyList() else freeWords(question, request, destinationRequired, destination)
+        if (!qualifiers.all { qualifier -> says(item.text, qualifier) }) return null
         if (request.diet == "vegan" && !veganWord.containsMatchIn(item.text)) return null
         if (request.diet == "vegetarian" && !veganWord.containsMatchIn(item.text) &&
             !vegetarianWord.containsMatchIn(item.text)) return null
@@ -245,6 +389,18 @@ object VenueLookup {
             latitude = field(item.text, "Latitude")?.toDoubleOrNull(),
             longitude = field(item.text, "Longitude")?.toDoubleOrNull(),
         )
+    }
+
+    /**
+     * The question's words that must appear in a listing: not how the request is phrased, the
+     * kind of place (the type regex judges that), the diet, or the place's own name.
+     */
+    private fun freeWords(question: String, request: Request, destinationRequired: Boolean, destination: String?): List<String> {
+        if (request.essential != null) return emptyList()
+        val ignored = if (destinationRequired) word.findAll(destination.orEmpty().lowercase()).map { it.value }.toSet() else nearbyWords
+        return FtsQuery.from(question)?.terms.orEmpty().filterNot { term ->
+            term in genericWords || term in ignored || term == request.diet
+        }
     }
 
     /**
@@ -282,14 +438,35 @@ object VenueLookup {
     private fun <T> List<T>.onePerBusiness(request: Request, name: (T) -> String): List<T> =
         if (request.essential != null) this else distinctBy { brand(name(it)).takeIf { b -> b.length >= 4 } ?: name(it).lowercase() }
 
+    /**
+     * The city's listings that fit the question. Words of the question that no listing carries
+     * ("polish", "picnic") must not empty the whole city, as they did not empty the area around the
+     * phone: the places that fit the kind, type, diet and city are kept, and the answer says which
+     * words none of them mention.
+     */
+    private fun cityMatches(question: String, request: Request, evidence: List<Evidence>): Pair<List<Listing>, List<String>> {
+        fun matches(relaxed: Boolean) = withinCity(evidence.mapNotNull { item ->
+            listing(item, question, request, destinationRequired = true, relaxed = relaxed)
+        }).distinctBy { it.destination.lowercase() to it.name.lowercase() }
+        val strict = matches(relaxed = false)
+        if (strict.isNotEmpty() || request.essential != null) return strict to emptyList()
+        val loose = matches(relaxed = true)
+        if (loose.isEmpty()) return loose to emptyList()
+        val words = freeWords(question, request, destinationRequired = true, destination = loose.first().destination)
+        if (words.isEmpty()) return loose to emptyList()
+        // Never relax a named cuisine/dish into unrelated restaurants.
+        if (words.any { it in DISHES && loose.none { listing -> says(listing.evidence.text, it) } }) return emptyList<Listing>() to words
+        return loose to words.filter { term -> loose.none { says(it.evidence.text, term) } }
+    }
+
     /** [now] is this phone's local time, used only when the question asks what is open now. */
     fun answer(question: String, evidence: List<Evidence>, now: LocalDateTime = LocalDateTime.now()): Result? {
         if (!isLookup(question)) return null
         val request = request(question)
         val diet = request.diet
-        val listings = withinCity(evidence.mapNotNull { item ->
-            listing(item, question, request, destinationRequired = true)
-        }).distinctBy { it.destination.lowercase() to it.name.lowercase() }
+        val day = dayAsk(question)
+        val (matched, unmatched) = cityMatches(question, request, evidence)
+        val listings = matched
             // Stable sort: retrieval order is kept within each group.
             .sortedBy { if (diet == "vegan" && it.vegan == "fully vegan") 0 else 1 }
         if (listings.isEmpty()) return null
@@ -304,29 +481,46 @@ object VenueLookup {
             val clock = now.takeIf { openNow.containsMatchIn(question) }
             val picks = guidePicks(evidence, chosen.first().destination)
             val ordered = clock?.let { time -> chosen.sortedBy { openRank(it.hours, time) } }
+                ?: day?.let { ask -> chosen.sortedBy { dayRank(it.hours, ask) } }
                 ?: if (asksBest(question)) {
                     val chains = chainNames(evidence)
                     chosen.sortedWith { a, b -> compareRanks(bestRanks(a, request, picks, chains), bestRanks(b, request, picks, chains)) }
                 } else chosen
             val shown = ordered.onePerBusiness(request) { it.name }.take(OSM_LISTINGS)
-            return osmAnswer(question, diet, shown, request.essential?.noun, clock, guided = shown.any { brand(it.name) in picks })
+            return osmAnswer(question, diet, shown, request.essential?.noun, clock, guided = shown.any { brand(it.name) in picks },
+                unmatched = unmatched, day = day)
         }
-        val shown = listings.take(4)
+        // The guide's own order (a page lists its sights as it recommends them), with the places
+        // that state an asked property first; a day question puts the places open that day first.
+        val guideOrdered = listings.sortedWith(compareBy(
+            { if (diet == "vegan" && it.vegan == "fully vegan") 0 else 1 },
+            { day?.let { ask -> dayRank(it.hours, ask) } ?: 0 },
+            { -attributeRank(it.evidence.text, request) },
+            { ordinal(it.evidence) },
+        ))
+        val shown = guideOrdered.take(WV_LISTINGS)
+        val ordered = shown.count { ordinal(it.evidence) != Int.MAX_VALUE } >= 2
 
         val city = shown.first().destination
         val answer = buildString {
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline. ")
             }
-            append("These unranked Wikivoyage listings for ")
-            append(city)
-            if (diet != null) {
-                append(" mention ")
-                append(diet)
-                append(" food. Some may offer dietary options rather than being entirely ")
-                append(diet)
+            day?.let { appendDaySummary(shown, it) }
+            if (ordered) {
+                append("These Wikivoyage listings for ").append(city)
+                appendDiet(diet)
+                append(", in the guide's order")
+                request.attributes.filter { attribute -> shown.any { attribute.said.containsMatchIn(it.evidence.text) } }
+                    .takeIf { it.isNotEmpty() }?.let { attributes ->
+                        append(", those described as ").append(attributes.joinToString(" and ") { it.name }).append(" first")
+                    }
+            } else {
+                append("These unranked Wikivoyage listings for ").append(city)
+                appendDiet(diet)
             }
             append(":\n\n")
+            appendUnmatched(unmatched, "in $city")
             shown.forEachIndexed { index, listing ->
                 append("- **")
                 append(escapeMarkdown(listing.name))
@@ -342,6 +536,7 @@ object VenueLookup {
                     append(escapeMarkdown(location.take(100)))
                     append('.')
                 }
+                day?.let { appendDayStatus(listing, it) }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." }
                     ?: "Listing check date not recorded.")
@@ -353,6 +548,12 @@ object VenueLookup {
             append("\nListings can change; confirm details before visiting.")
         }
         return Result(answer, shown.map(Listing::evidence))
+    }
+
+    private fun StringBuilder.appendDiet(diet: String?) {
+        if (diet == null) return
+        append(" mention ").append(diet)
+        append(" food. Some may offer dietary options rather than being entirely ").append(diet)
     }
 
     // Ways people point at where they are standing: by distance ("nearest", "close to me"), by
@@ -470,16 +671,21 @@ object VenueLookup {
                      fixAgeMinutes: Long = 0): Result {
         val request = request(question)
         val clock = now.takeIf { openNow.containsMatchIn(question) }
-        if (clock == null && asksBest(question)) bestNearby(question, request, places, fixAgeMinutes)?.let { return it }
+        val day = dayAsk(question)
+        if (clock == null && day == null && asksBest(question)) bestNearby(question, request, places, fixAgeMinutes)?.let { return it }
         val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
         val (matched, unmatchedWords) = nearbyMatches(question, request, places)
-        val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES }
+        val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES || isGuidePlace(listing.evidence) }
         val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
         val wantsBank = request.essential?.category == "Money" && bankWords.containsMatchIn(question)
+        // "Hostels or cheap hotels I can walk to": a hostel a kilometre off answers before a grand
+        // hotel on the square; within the circle asked for, the budget places lead.
+        val wantsBudget = request.essential == null && budgetWords.containsMatchIn(question)
         val chosen = pool.sortedWith(compareBy(
             // "Pharmacy open now near me": a place open by its recorded hours comes before a
             // closer one recorded as closed.
-            { (listing, _) -> clock?.let { openRank(listing.hours, it) } ?: 0 },
+            { (listing, _) -> clock?.let { openRank(listing.hours, it) } ?: day?.let { dayRank(listing.hours, it) } ?: 0 },
+            { (listing, _) -> if (wantsBudget && !budgetSaid.containsMatchIn(listing.evidence.text)) 1 else 0 },
             { (_, distance) -> DISTANCE_BANDS_KM.indexOfFirst { distance <= it }.let { if (it < 0) DISTANCE_BANDS_KM.size else it } },
             // "Ideally a proper bank one": an ATM a bank or post office runs, by its mapped name, first.
             { (listing, _) -> if (wantsBank && !bankWords.containsMatchIn(listing.name)) 1 else 0 },
@@ -495,6 +701,7 @@ object VenueLookup {
         val answer = buildString {
             appendFixAge(fixAgeMinutes)
             clock?.let { appendOpenSummary(chosen.map { (listing, _) -> listing }, it, city = null) }
+            day?.let { appendDaySummary(chosen.map { (listing, _) -> listing }, it) }
             if (bestWord.containsMatchIn(question)) {
                 append("I can't verify a current “best” ranking offline; nearest places are listed first")
                 append(if (request.diet == "vegan") ", fully vegan first within each distance. " else ". ")
@@ -504,17 +711,20 @@ object VenueLookup {
             snapshot?.let { append(" (map data as of ").append(it).append(')') }
             append(":\n\n")
             appendUnmatched(unmatchedWords)
+            appendVeganOnlyNote(request, chosen.map { (listing, _) -> listing })
             chosen.forEachIndexed { index, (listing, distance) ->
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
-                append(listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { "listed place" })
+                append(kindLabel(listing))
                 append(", ").append(GeoDistance.label(distance))
                 bearings[listing.evidence.chunkId]?.let { append(' ').append(GeoDistance.compass(it)) }
                 append(" away")
                 listing.extras().takeIf(String::isNotBlank)?.let { append("; ").append(it) }
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 append('.')
+                appendGuideDescription(listing)
                 appendWhere(listing)
                 appendHours(listing, clock)
+                day?.let { appendDayStatus(listing, it) }
                 listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
@@ -524,20 +734,51 @@ object VenueLookup {
                 append("\nIn an emergency, call the local emergency number first.")
             }
             append("\nDistances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings. ")
-            append("Tags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
+            append("Tags and hours can be out of date; confirm before visiting. ")
+            appendSourceCredit(chosen.map { (listing, _) -> listing })
         }
         return Result(answer, chosen.map { (listing, _) -> listing.evidence },
-            clock?.let { time -> chosen.count { (listing, _) -> OpeningHours.status(listing.hours, time) is OpeningHours.Status.Open } })
+            clock?.let { time -> chosen.count { (listing, _) -> status(listing.hours, time) is OpeningHours.Status.Open } })
+    }
+
+    /** "fully vegan restaurant" from the map's tags; a guide listing has none and says where it comes from. */
+    private fun kindLabel(listing: Listing): String =
+        listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { if (isGuidePlace(listing.evidence)) "listed in the Wikivoyage guide" else "listed place" }
+
+    /** A guide listing's own words: the map has tags, the guide has a description. */
+    private fun StringBuilder.appendGuideDescription(listing: Listing) {
+        if (!isGuidePlace(listing.evidence)) return
+        listing.description?.takeIf(String::isNotBlank)?.let { append(" “").append(escapeMarkdown(descriptionExcerpt(it))).append("”") }
+    }
+
+    private fun StringBuilder.appendSourceCredit(listings: List<Listing>) {
+        if (listings.any { isOsmPlace(it.evidence) }) append("Map data © OpenStreetMap contributors (ODbL).")
+        if (listings.any { isGuidePlace(it.evidence) }) {
+            if (listings.any { isOsmPlace(it.evidence) }) append(' ')
+            append("Guide listings are from the saved Wikivoyage guide.")
+        }
+    }
+
+    /**
+     * The saved map collections hold every pharmacy and station, but of places to eat only those
+     * tagged for vegan food. A plain food question answered from that collection alone is told so,
+     * rather than passing a vegan shortlist off as the places nearby.
+     */
+    private fun StringBuilder.appendVeganOnlyNote(request: Request, listings: List<Listing>) {
+        if (request.diet != null || "Eat" !in request.categories || request.essential != null) return
+        if (listings.isEmpty() || !listings.all { isOsmPlace(it.evidence) && it.vegan != null }) return
+        append("Of places to eat, the saved map collection holds only those tagged for vegan food, so these are the ")
+        append("vegan-friendly places nearby rather than everything around you.\n\n")
     }
 
     /** The city the map files the nearest places under: where this phone is. */
-    private fun cityOf(places: List<NearbyPlace>): String? = places.sortedBy { it.distanceKm }.take(15)
+    internal fun cityOf(places: List<NearbyPlace>): String? = places.sortedBy { it.distanceKm }.take(15)
         .mapNotNull { field(it.evidence.text, "Destination")?.substringBefore('/')?.takeIf(String::isNotBlank) }
         .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
 
     /** Eat listings in a city's Wikivoyage guide, by business name: places the guide itself recommends. */
     private fun guidePicks(items: List<Evidence>, city: String?): Map<String, Evidence> = items
-        .filter { it.documentId.startsWith("wv-place-") && field(it.text, "Category") == "Eat" }
+        .filter { isGuidePlace(it) && field(it.text, "Category") == "Eat" }
         .filter { city == null || field(it.text, "Destination")?.substringBefore('/').equals(city, ignoreCase = true) }
         .mapNotNull { item -> field(item.text, "Place")?.let { brand(it) to item } }
         .filter { (key, _) -> key.length >= 3 }
@@ -557,7 +798,7 @@ object VenueLookup {
         val key = brand(listing.name)
         return listOf(
             if (request.diet == "vegan" && listing.vegan != "fully vegan") 1 else 0,
-            if (key in picks || listing.evidence.documentId.startsWith("wv-place-")) 0 else 1,
+            if (key in picks || isGuidePlace(listing.evidence)) 0 else 1,
             when (listing.type) { "restaurant" -> 0; null, "cafe" -> 1; else -> 2 },
             if (key in chains) 1 else 0,
             3 - listOfNotNull(listing.hours, listing.cuisine, listing.checked).size,
@@ -586,22 +827,23 @@ object VenueLookup {
      */
     private fun nearbyMatches(question: String, request: Request, places: List<NearbyPlace>): Pair<List<Pair<Listing, Double>>, List<String>> {
         val leftOut = excluded(question)
-        fun matches(words: String) = places.mapNotNull { place ->
-            listing(place.evidence, words, request, destinationRequired = false)?.takeUnless { leftOut(it, leftOut) }?.let { it to place.distanceKm }
+        fun matches(relaxed: Boolean) = places.mapNotNull { place ->
+            listing(place.evidence, question, request, destinationRequired = false, relaxed = relaxed)?.takeUnless { leftOut(it, leftOut) }?.let { it to place.distanceKm }
         }.distinctBy { (listing, _) -> listing.name.lowercase() to listing.location?.lowercase() }
-        val strict = matches(question)
+        val strict = matches(relaxed = false)
         if (strict.isNotEmpty() || request.essential != null) return strict to emptyList()
-        val words = FtsQuery.from(question)?.terms.orEmpty().filterNot { it in genericWords || it in nearbyWords || it == request.diet }
+        val words = freeWords(question, request, destinationRequired = false, destination = null)
         if (words.isEmpty()) return strict to emptyList()
         // Kind, diet and type still apply; only the free words are relaxed.
-        val loose = matches(listOfNotNull(request.diet, "places near me").joinToString(" "))
-        return loose to words.filter { term -> loose.none { (listing, _) -> word.findAll(listing.evidence.text.lowercase()).any { it.value == term } } }
+        val loose = matches(relaxed = true)
+        return loose to words.filter { term -> loose.none { (listing, _) -> says(listing.evidence.text, term) } }
     }
 
-    private fun StringBuilder.appendUnmatched(words: List<String>) {
+    /** [where]: "nearby" for the phone's surroundings, "in Lyon" for a city. */
+    private fun StringBuilder.appendUnmatched(words: List<String>, where: String = "nearby") {
         if (words.isEmpty()) return
         append("None of these saved listings mentions ").append(words.joinToString(", ") { "“$it”" })
-        append("; they are the places nearby that fit the rest of the question.\n\n")
+        append("; they are the places ").append(where).append(" that fit the rest of the question.\n\n")
     }
 
     /** An address when mapped; otherwise coordinates, which any offline map app can find. */
@@ -620,7 +862,7 @@ object VenueLookup {
     private fun bestNearby(question: String, request: Request, places: List<NearbyPlace>, fixAgeMinutes: Long): Result? {
         val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
         val (matched, unmatchedWords) = nearbyMatches(question, request, places)
-        val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES }
+        val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES || isGuidePlace(listing.evidence) }
         val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
         if (pool.isEmpty()) return null
         val city = cityOf(places)
@@ -643,13 +885,15 @@ object VenueLookup {
             snapshot?.let { append(" Map data as of ").append(it).append('.') }
             append("\n\n")
             appendUnmatched(unmatchedWords)
+            appendVeganOnlyNote(request, chosen.map { (listing, _) -> listing })
             chosen.forEachIndexed { index, (listing, distance) ->
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
-                append(listOfNotNull(listing.vegan, listing.type).joinToString(" ").ifBlank { "listed place" })
+                append(kindLabel(listing))
                 listing.cuisine?.takeIf(String::isNotBlank)?.let { append("; ").append(escapeMarkdown(it.take(60))) }
                 append("; ").append(GeoDistance.label(distance))
                 bearings[listing.evidence.chunkId]?.let { append(" to the ").append(GeoDistance.compass(it)) } ?: append(" away")
                 append('.')
+                appendGuideDescription(listing)
                 appendWhere(listing)
                 appendHours(listing, null)
                 append(" [S${index + 1}]")
@@ -663,19 +907,21 @@ object VenueLookup {
                 append('\n')
             }
             append("\nDistances are straight-line from this phone's location, which stayed on the phone. ")
-            append("Tags and hours can be out of date; confirm before visiting. Map data © OpenStreetMap contributors (ODbL).")
+            append("Tags and hours can be out of date; confirm before visiting. ")
+            appendSourceCredit(chosen.map { (listing, _) -> listing })
         }
         return Result(answer, chosen.map { (listing, _) -> listing.evidence } + guides)
     }
 
     /** OpenStreetMap wording: tags say what mappers recorded, so each place states its label and date. */
     private fun osmAnswer(question: String, diet: String?, listings: List<Listing>, noun: String?, clock: LocalDateTime?,
-                          guided: Boolean = false): Result {
+                          guided: Boolean = false, unmatched: List<String> = emptyList(), day: DayAsk? = null): Result {
         val city = listings.first().destination
         val snapshot = listings.firstNotNullOfOrNull { it.snapshot }
         val answer = buildString {
             clock?.let { appendOpenSummary(listings, it, city) }
-            if (clock == null && asksBest(question)) {
+            day?.let { appendDaySummary(listings, it) }
+            if (clock == null && day == null && asksBest(question)) {
                 appendBestOrder(diet, guide = guided)
                 append(' ')
             } else if (bestWord.containsMatchIn(question)) {
@@ -692,6 +938,7 @@ object VenueLookup {
             }
             snapshot?.let { append(" (map data as of ").append(it).append(')') }
             append(":\n\n")
+            appendUnmatched(unmatched, "in $city")
             listings.forEachIndexed { index, listing ->
                 append("- **").append(escapeMarkdown(listing.name)).append("** — ")
                 append(listOfNotNull(listing.vegan, listing.type).joinToString(" "))
@@ -706,6 +953,7 @@ object VenueLookup {
                     append(" Coordinates: ").append("%.5f, %.5f".format(Locale.ROOT, listing.latitude, listing.longitude)).append('.')
                 }
                 appendHours(listing, clock)
+                day?.let { appendDayStatus(listing, it) }
                 listing.phone?.takeIf(String::isNotBlank)?.let { append(" Phone: ").append(escapeMarkdown(it.take(40))).append('.') }
                 append(' ')
                 append(listing.checked?.let { "Listing last checked: $it." } ?: "No check date recorded.")
@@ -716,10 +964,107 @@ object VenueLookup {
         return Result(answer, listings.map(Listing::evidence))
     }
 
-    private fun openRank(hours: String?, now: LocalDateTime) = when (OpeningHours.status(hours, now)) {
+    /**
+     * Opening status from hours as the guides and maps write them. OpenStreetMap values are read
+     * as they are; a Wikivoyage listing's hours are first put into the same form (see [guideHours]).
+     */
+    private fun status(hours: String?, now: LocalDateTime): OpeningHours.Status = OpeningHours.status(hours?.let(::guideHours), now)
+
+    private fun openRank(hours: String?, now: LocalDateTime) = when (status(hours, now)) {
         is OpeningHours.Status.Open -> 0
         OpeningHours.Status.Unknown -> 1
         OpeningHours.Status.Closed -> 2
+    }
+
+    private val ampm = Regex("(?i)\\b(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)\\b")
+    private val longDays = Regex("(?i)\\b(mon|tues?|wed(?:nes)?|thu(?:rs?)?|fri|sat(?:ur)?|sun)(?:day)?s?\\b")
+    // "M-F", "W" and "F" are how Wikivoyage abbreviates weekdays whose two letters would clash.
+    private val letterDays = Regex("\\b(M|W|F)\\b(?=[\\s,;-]|$)")
+    private val adjacentDays = Regex("\\b(Mo|Tu|We|Th|Fr|Sa|Su)\\s+(?=(?:Mo|Tu|We|Th|Fr|Sa|Su)\\b)")
+    private val daily = Regex("(?i)\\b(?:open\\s+)?(?:daily|every\\s*day)\\b[:,]?\\s*")
+
+    /**
+     * A Wikivoyage listing's hours in the OpenStreetMap form [OpeningHours] reads: "Daily 11:00-22:00"
+     * is every day, "M-F 07:00-18:00, Sa Su 07:00-15:00" is "Mo-Fr 07:00-18:00, Sa,Su 07:00-15:00",
+     * "Tu-Sa 07:00-12:00 and 15:00-19:00" lists two ranges, "7AM-3:30PM" is a 24-hour range. What is
+     * still not in that form ("lunch Th-Sa") stays unreadable and is reported as such, not as closed.
+     */
+    internal fun guideHours(hours: String): String = hours
+        .replace(daily, "")
+        .replace(Regex("(?i)\\s+and\\s+"), ", ")
+        .replace(Regex("(?i)\\bnoon\\b"), "12:00").replace(Regex("(?i)\\bmidnight\\b"), "24:00")
+        .replace(ampm) { m ->
+            if (m.groupValues[1].toInt() !in 1..12 || m.groupValues[2].ifEmpty { "0" }.toInt() !in 0..59) return@replace m.value
+            val hour = m.groupValues[1].toInt().let { h -> if (m.groupValues[3].equals("pm", true) && h < 12) h + 12 else if (m.groupValues[3].equals("am", true) && h == 12) 0 else h }
+            "%02d:%s".format(Locale.ROOT, hour, m.groupValues[2].ifEmpty { "00" })
+        }
+        .replace(longDays) { m -> m.groupValues[1].take(2).let { it[0].uppercaseChar() + it.substring(1).lowercase() } }
+        .replace(letterDays) { m -> when (m.groupValues[1]) { "M" -> "Mo"; "W" -> "We"; else -> "Fr" } }
+        .replace(adjacentDays) { m -> m.groupValues[1] + "," }
+        .trim()
+
+    /** "Open on Sunday morning": the weekday asked about, and the part of it if one was named. */
+    private data class DayAsk(val day: DayOfWeek, val part: String?) {
+        val label: String get() = day.getDisplayName(TextStyle.FULL, Locale.ENGLISH) + (part?.let { " $it" } ?: "")
+    }
+
+    private val dayWord = Regex("(?i)\\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?(?:\\s+(morning|afternoon|evening|night))?\\b")
+    private val openWord = Regex("(?i)\\b(open|opens|opening|closed|close|closes)\\b")
+
+    /** A question about a named weekday's opening ("is anything open on sunday morning?"); "open now" is answered by the clock instead. */
+    private fun dayAsk(question: String): DayAsk? {
+        if (!openWord.containsMatchIn(question) || openNow.containsMatchIn(question)) return null
+        val match = dayWord.find(question) ?: return null
+        return DayAsk(DayOfWeek.valueOf(match.groupValues[1].uppercase(Locale.ROOT)), match.groupValues[2].lowercase(Locale.ROOT).ifEmpty { null })
+    }
+
+    // These part-of-day boundaries are explicit approximations, not business-specific rules.
+    private val PART_WINDOWS = mapOf(
+        "morning" to (6 * 60 to 12 * 60),
+        "afternoon" to (12 * 60 to 18 * 60),
+        "evening" to (18 * 60 to 22 * 60),
+        "night" to (22 * 60 to 24 * 60),
+    )
+    private val REFERENCE_MONDAY: LocalDate = LocalDate.of(2026, 1, 5)
+
+    /** Whether recorded hours have the place open on the day (and part of it) asked about. */
+    private fun dayStatus(hours: String?, ask: DayAsk): OpeningHours.Status {
+        val date = REFERENCE_MONDAY.plusDays(ask.day.ordinal.toLong())
+        val window = ask.part?.let { PART_WINDOWS.getValue(it) } ?: (0 to 1440)
+        return OpeningHours.during(hours?.let(::guideHours), date, window.first, window.second)
+    }
+
+    private fun dayRank(hours: String?, ask: DayAsk) = when (dayStatus(hours, ask)) {
+        is OpeningHours.Status.Open -> 0
+        OpeningHours.Status.Unknown -> 1
+        OpeningHours.Status.Closed -> 2
+    }
+
+    private fun StringBuilder.appendDaySummary(listings: List<Listing>, ask: DayAsk) {
+        val statuses = listings.map { dayStatus(it.hours, ask) }
+        val open = statuses.count { it is OpeningHours.Status.Open }
+        val unknown = statuses.count { it == OpeningHours.Status.Unknown }
+        when {
+            open == listings.size -> append(if (open == 1) "This place is open on ${ask.label} by its recorded hours" else "All $open places below are open on ${ask.label} by their recorded hours")
+            open > 0 -> append("$open of the ${listings.size} places below ${if (open == 1) "is" else "are"} open on ${ask.label} by their recorded hours; those come first")
+            unknown == listings.size -> append("I can't tell which of these places are open on ${ask.label}: their hours aren't recorded in a form I can check")
+            unknown > 0 -> append("None of the places below can be confirmed open on ${ask.label} by its recorded hours")
+            else -> append("None of the places below is open on ${ask.label} by its recorded hours")
+        }
+        if (unknown in 1 until listings.size) {
+            append(". ").append(if (unknown == 1) "1 has" else "$unknown have").append(" no hours I can check")
+        }
+        append(". Recorded hours can be out of date and don't account for public holidays. ")
+    }
+
+    private fun StringBuilder.appendDayStatus(listing: Listing, ask: DayAsk) {
+        val hours = listing.hours?.takeIf(String::isNotBlank)
+        when (dayStatus(hours, ask)) {
+            is OpeningHours.Status.Open -> append(" **Open ${ask.label}**.")
+            OpeningHours.Status.Closed -> append(" **Closed ${ask.label}**.")
+            OpeningHours.Status.Unknown -> if (hours == null) append(" No opening hours recorded.")
+        }
+        hours?.let { append(" Hours in source: ").append(escapeMarkdown(it.take(80))).append('.') }
     }
 
     private fun clockLabel(now: LocalDateTime) =
@@ -730,7 +1075,7 @@ object VenueLookup {
      * no time-zone database for a named city, so the answer says what it assumed.
      */
     private fun StringBuilder.appendOpenSummary(listings: List<Listing>, now: LocalDateTime, city: String?) {
-        val statuses = listings.map { OpeningHours.status(it.hours, now) }
+        val statuses = listings.map { status(it.hours, now) }
         val open = statuses.count { it is OpeningHours.Status.Open }
         val unknown = statuses.count { it == OpeningHours.Status.Unknown }
         val checked = "by the opening hours mappers recorded, checked against this phone's clock (${clockLabel(now)})"
@@ -755,8 +1100,8 @@ object VenueLookup {
     private fun StringBuilder.appendHours(listing: Listing, clock: LocalDateTime?) {
         val hours = listing.hours?.takeIf(String::isNotBlank)
         if (clock != null) {
-            when (val status = OpeningHours.status(hours, clock)) {
-                is OpeningHours.Status.Open -> append(" **Open now**").append(status.until?.let { " until %02d:%02d".format(Locale.ROOT, it.hour, it.minute) } ?: "").append('.')
+            when (val state = status(hours, clock)) {
+                is OpeningHours.Status.Open -> append(" **Open now**").append(state.until?.let { " until %02d:%02d".format(Locale.ROOT, it.hour, it.minute) } ?: "").append('.')
                 OpeningHours.Status.Closed -> append(" **Closed now**.")
                 OpeningHours.Status.Unknown -> if (hours == null) append(" No opening hours recorded.")
             }
@@ -793,7 +1138,10 @@ object VenueLookup {
     }
 
     private const val OSM_PREFIX = "osm-place-"
+    private const val WV_PREFIX = "wv-place-"
     private const val OSM_LISTINGS = 6
+    /** Guide listings shown for a city: enough for a day's sights or a market round. */
+    private const val WV_LISTINGS = 6
     private val DISTANCE_BANDS_KM = listOf(1.0, 3.0, 10.0)
     private val MEAL_TYPES = setOf("restaurant", "fast food", "food court")
     private const val CITY_RADIUS_KM = 25.0

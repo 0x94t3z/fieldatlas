@@ -253,9 +253,12 @@ class CalculatorsTest {
         assertTrue(text("A room is €45 per night. What do 3 nights cost plus 7% tax?").contains("**€144.45**"))
         // One price and no count: nothing to multiply.
         assertNull(solve("A hostel costs 18 euros a night. Is that cheap?"))
+        // A price per person per night multiplies by both counts, and a flat charge per night is added after.
+        assertTrue(text("A dorm bed costs 18 euros per person per night. How much for 3 people for 4 nights?").contains("18.00 euros × 3 people × 4 nights = **216.00 euros**"))
+        val taxed = solve("A hostel costs 18 euros a night plus tax of 2 euros a night. How much for 4 nights?")!!
+        assertTrue(taxed.text, "Tax: 2.00 euros × 4 nights = **8.00 euros**" in taxed.text && "**80.00 euros**" in taxed.text)
+        assertTrue(taxed.complete)
         // What this sum does not cover is left to research rather than half answered.
-        assertNull(solve("A dorm bed costs 18 euros per person per night. How much for 3 people for 4 nights?"))
-        assertNull(solve("A hostel costs 18 euros a night plus tax of 2 euros a night. How much for 4 nights?"))
         assertNull(solve("A room is €45 per night. What do 3 nights cost with a 10% booking fee?"))
         assertNull(solve("A hostel costs 18 euros a night. How much for 9 nights in dollars?"))
         assertNull(solve("A bike costs 5 euros an hour. How much for 2.5 hours?"))
@@ -328,7 +331,8 @@ class CalculatorsTest {
 
     @Test fun peopleCountedWithoutAUnitWordAreASecondMultiplier() {
         assertNull(solve("There are 3 of us. A dorm bed costs 15 euros a night. How much for 4 nights?"))
-        assertNull(solve("€18 a night per person. How much for 4 nights for the two of us?"))
+        // A price per person takes the head count as its multiplier.
+        assertTrue(text("€18 a night per person. How much for 4 nights for the two of us?").contains("€18.00 × 4 nights × 2 people = **€144.00**"))
         assertNull(solve("We are 3. A dorm bed costs 15 euros a night. How much for 4 nights?"))
         assertNull(solve("A dorm bed is €20 per night. How much for both of us for 3 nights?"))
         assertNull(solve("A dorm bed costs 15 euros a night. How much for 4 nights for two?"))
@@ -459,7 +463,7 @@ class CalculatorsTest {
     @Test fun everyNumberMustBeUsedAndTheAskingClauseIsJudged() {
         // A number the sum left out keeps the answer a lead.
         assertFalse(solve("1 euro is 38 lira. I paid 860 lira for the taxi and 200 lira for lunch. How much in euros?")!!.complete)
-        assertFalse(solve("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; my bank in town gives 0.86 with no fee. How much more would I get at the bank?")!!.complete)
+        assertFalse(solve("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; the bus into town is number 22. How much do I get?")!!.complete)
         // Scene-setting words in a declarative sentence do not make a fully answered question a lead.
         assertTrue(solve("A cake for 8 people needs 200 g of brown sugar. How much for 6 people?")!!.complete)
         assertTrue(solve("The night bus leaves at 22:30 and takes 9 hours. What time does it arrive?")!!.complete)
@@ -467,5 +471,131 @@ class CalculatorsTest {
         // The asking clause must ask for what was worked out.
         assertFalse(solve("My baby has a fever of 39°C. What do I do?")!!.complete)
         assertFalse(solve("How much is 2,000,000 dong in dollars at 25,400 dong per dollar, and is the exchange office at the airport any good?")!!.complete)
+    }
+
+    @Test fun aWorkedOutTripLengthIsCarriedToTheClockTime() {
+        // 420 ÷ 140 = 3 h, plus two 10-minute stops: 8:15 + 3 h 20 min = 11:35. The stated stops replace the usual allowance.
+        val train = solve("train leaves at 8:15, the trip is 420 km and it averages 140 km/h while moving, plus two 10-minute stops. what time do we get in?")!!
+        assertTrue(train.text, "**3 h** of moving time. With 20 min of stops it takes **3 h 20 min**." in train.text)
+        assertTrue(train.text, "08:15 plus 3 h 20 min is **11:35**" in train.text)
+        assertTrue(train.complete)
+        assertFalse(train.text.contains("10-minute breaks each hour"))
+        assertTrue(text("Our bus leaves at 6:45 and the road is 300 km; it averages 75 km/h and makes one 30-minute stop. When do we arrive?").contains("06:45 plus 4 h 30 min is **11:15**"))
+        assertTrue(text("We set off at 9:00 to cycle 60 km at 15 km/h and plan a 45 minute lunch break. What time will we arrive?").contains("**13:45**"))
+        assertTrue(text("Driving 240 miles at 60 mph, leaving at 7:30 am with two 15-minute breaks. When do we get there?").contains("**12:00**"))
+        assertTrue(text("The train leaves at 22:10, covers 630 km at 90 km/h and stops twice for 10 minutes. When does it arrive?").contains("**05:30 the next day**"))
+        // The day named with the departure is kept.
+        assertTrue(text("The ferry leaves at 14:00 on Friday, the crossing is 180 km at 30 km/h, with a 20-minute stop at an island. What time do we get in?").contains("**20:20 on Friday**"))
+        // A known end counts back: 17:00 − 3 h 30 min.
+        val back = solve("We must be back at the car by 17:00. The walk is 12 km at 4 km/h with a 30-minute rest. When do we need to start?")!!
+        assertTrue(back.text, "start by **13:30**" in back.text)
+        assertTrue(back.complete)
+        // A span that is not a stop is another leg the sum would leave out, and a time with no role is not a start.
+        assertFalse(solve("train leaves at 8:15, the trip is 420 km and it averages 140 km/h, then a 30-minute bus to the hotel. what time do we get in?")!!.complete)
+        assertFalse(solve("We leave at 8:00, drive 200 km at 80 km/h and have a 1 hour meeting before heading back. When are we back?")!!.complete)
+        assertFalse(solve("I need to walk 26 km at 4 km/h; it's 10:00 and there are 7 hours of daylight left. When will I arrive?")!!.complete)
+        // Without stated stops the moving time is carried and says so; the plain time-plus-span sum does not answer beside it.
+        val plain = solve("The hike is 12 km at 4 km/h. We leave at 9:00. When do we arrive?")!!
+        assertTrue(plain.text, plain.text.endsWith("09:00 plus 3 h is **12:00** without stops."))
+        assertTrue(plain.complete)
+    }
+
+    @Test fun naismithReadsTheRulesOwnConstantsAndTheStops() {
+        // 18 ÷ 5 = 3 h 36 min, 900 ÷ 600 = 1 h 30 min, plus 45 min for lunch: 7:30 + 5 h 51 min = 13:21.
+        val hike = solve("We're planning an 18 km hike with 900 m of total climbing. Using Naismith's rule (1 hour per 5 km plus 1 hour per 600 m of ascent), how long should it take? If we start at 7:30 and stop 45 minutes for lunch, when do we finish?")!!
+        assertTrue(hike.text, "About **5 h 6 min**" in hike.text && "With 45 min of stops: **5 h 51 min**" in hike.text && "07:30 plus 5 h 51 min is **13:21**" in hike.text)
+        assertTrue(hike.complete)
+        // Other constants: 16 ÷ 4 = 4 h, 900 ÷ 450 = 2 h; and 30 minutes per 300 m is 600 m an hour.
+        val langmuir = solve("Naismith's rule with 1 hour per 4 km plus 1 hour per 450 m of climb: a 16 km walk with 900 m of ascent, how long?")!!
+        assertTrue(langmuir.text, "About **6 h**" in langmuir.text && "(1 hour per 4 km, plus 1 hour per 450 m of ascent)" in langmuir.text)
+        assertTrue(langmuir.complete)
+        assertTrue(solve("How long is a 20 km hike with 600 m of climbing by Naismith's rule (1 hour for every 5 km and 1 hour for every 600 m of ascent)?")!!.let { it.complete && "About **5 h**" in it.text })
+        assertTrue(solve("Using Naismith's rule (1 hour per 5 km plus 30 minutes per 300 m of ascent), how long is 15 km with 600 m of climb?")!!.let { it.complete && "About **4 h**" in it.text })
+        // The rule stated before the walk: its 5 km and 600 m are not the walk's.
+        assertTrue(text("Naismith's rule (1 hour per 5 km plus 1 hour per 600 m of ascent): how long for 10 km with 300 m of climbing?").contains("About **2 h 30 min**"))
+        // The time asked for the finish counts as asking how long; the stop is added: 2 h 30 min + 30 min from 8:00.
+        val finish = solve("We start the 10 km hike with 300 m of climbing at 8:00 and take a 30 minute break. When do we finish, by Naismith's rule?")!!
+        assertTrue(finish.text, "08:00 plus 3 h is **11:00**" in finish.text)
+        assertTrue(finish.complete)
+        assertTrue(text("A 24 km trail with 1,200 m of ascent. By Naismith's rule, how long will it take?").contains("About **6 h 48 min**"))
+        // A safety question beside the sum keeps it a lead, and a time with no role is not a start.
+        assertFalse(solve("Hike 12 km with 400 m of climbing. We start at 9:00. Is it safe to go alone and when will we finish?")!!.complete)
+        assertFalse(solve("The 10 km hike has 300 m of climbing; lunch is at 12:00. When do we finish?")!!.complete)
+    }
+
+    @Test fun twoExchangeOffersAreComparedNetOfTheirFees() {
+        // Kiosk: 250 × 0.84 − 3 = 207; bank: 250 × 0.86 = 215; 8 more at the bank.
+        val bank = solve("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; my bank in town gives 0.86 with no fee. How much more would I get at the bank?")!!
+        assertTrue(bank.text, "**207.00 pounds**" in bank.text && "At the bank's 0.86 with no fee: 250 euros × 0.86 = **215.00 pounds**" in bank.text)
+        assertTrue(bank.text, "The bank gives **8.00 pounds more** than the airport kiosk (215.00 against 207.00)." in bank.text)
+        assertTrue(bank.complete)
+        assertTrue(solve("250 euros, kiosk 0.84 pounds per euro and a £3 fee, bank 0.86 no fee, how much more at the bank?")!!.let { it.complete && "**8.00 pounds more**" in it.text })
+        // A fee in the money received, a percentage, a second rate named with its money, and a card instead of a place.
+        assertTrue(text("I have 500 dollars. The airport counter gives 36 baht per dollar with a 150 baht fee; the bank in town gives 36.8 with no fee. What's the difference?").contains("**550.00 baht more** than the airport counter"))
+        val zloty = solve("Changing 300 euros: the kiosk offers 4.2 zloty per euro and takes 3% commission, while the bank offers 4.1 zloty with no fee. Which gives me more?")!!
+        assertTrue(zloty.text, "**1,222.20 zloty**" in zloty.text && "**1,230.00 zloty**" in zloty.text && "The bank gives **7.80 zloty more** than the kiosk" in zloty.text)
+        assertTrue(zloty.complete)
+        assertTrue(text("The hotel desk changes money at 1,450 won per dollar with a 5,000 won fee; the bank gives 1,480 with no fee. How much more do I get at the bank for 200 dollars?").contains("**11,000.00 won more** than the hotel desk"))
+        assertTrue(text("1 pound is 1.25 dollars at the office, which charges a £5 fee. My card gives 1.27 with no fee. How much more do I get changing 400 pounds with the card?").contains("The card gives **14.25 dollars more** than the office (508.00 against 493.75)."))
+        // "Opens at 9" and "2 of us" are not rates; a third offer or two fees of one kind are not guessed at.
+        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and opens at 9. How many zloty do I get?")!!.let { it.complete || "At the" in it.text })
+        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and 2 of us are going. How many zloty?")!!.complete)
+        assertNull(solve("The kiosk gives 0.84 pounds per euro; the bank gives 0.86 and the hotel gives 0.80. How many pounds for 250 euros at the bank?"))
+        assertNull(solve("1 euro is 38 lira. The office takes 3% and the bank takes 5%. How many lira for 200 euros?"))
+    }
+
+    @Test fun aBillWithPercentagesThenFlatChargesPerUnit() {
+        // 180 × 4 = 720; × 0.85 = 612; × 1.12 = 685.44; plus 3.50 × 2 × 4 = 28: 713.44.
+        val hotel = solve("Our hotel is €180 a night for 4 nights. We get 15% off the room rate, then 12% tax is added to the discounted price, plus a city tax of €3.50 per person per night for the two of us. What's the total?")!!
+        assertTrue(hotel.text, "€180.00 × 4 nights = **€720.00**" in hotel.text && "**€612.00**" in hotel.text && "**€685.44**" in hotel.text)
+        assertTrue(hotel.text, "City tax: €3.50 × 2 people × 4 nights = **€28.00**" in hotel.text && "Total: €685.44 + €28.00 = **€713.44**" in hotel.text)
+        assertTrue(hotel.complete)
+        assertTrue(text("Our room is €120 a night for 3 nights with a 10% discount, then 8% tax on the discounted price. Total?").contains("**€349.92**"))
+        assertTrue(text("A hostel bed is 25 euros per person per night. How much for 3 people for 2 nights?").contains("25.00 euros × 3 people × 2 nights = **150.00 euros**"))
+        // A charge per stay is added once; rooms multiply a nightly price but not a per-person charge.
+        assertTrue(text("The apartment is $95 a night for 5 nights plus a cleaning fee of $40 per stay. Total?").contains("Total: $475.00 + $40.00 = **$515.00**"))
+        val rooms = solve("€60 a night for 2 rooms for 3 nights, plus a city tax of €2 per person per night for the four of us. How much is it?")!!
+        assertTrue(rooms.text, "€60.00 × 3 nights × 2 rooms = **€360.00**" in rooms.text && "City tax: €2.00 × 4 people × 3 nights = **€24.00**" in rooms.text && "**€384.00**" in rooms.text)
+        assertTrue(rooms.complete)
+        assertTrue(text("A campsite charges 12 euros per person per night plus 5 euros per tent per night. How much for 3 people in 2 tents for 4 nights?").contains("**184.00 euros**"))
+        val resort = solve("A room is £80 a night. How much for 4 nights with 20% off and a £10 per night resort fee?")!!
+        assertTrue(resort.text, "**£256.00**" in resort.text && "Resort fee: £10.00 × 4 nights = **£40.00**" in resort.text && "**£296.00**" in resort.text)
+        assertTrue(resort.complete)
+        // A second price with no word adding it, or a percentage on everything, is left to research.
+        assertNull(solve("The hotel is €100 a night for 3 nights. Breakfast is €12 per person per day for 2 of us. Total?"))
+        assertNull(solve("Room €100 a night for 3 nights, 10% tax on everything plus €5 city tax per night. Total?"))
+    }
+
+    @Test fun provisionsForAGroupOverTheDaysInPacks() {
+        // 14 × 2 × 3 = 84 eggs = 7 boxes of 12; 84 cups ÷ 30 a bag = 2.8, so 3 bags.
+        val breakfast = solve("cooking breakfast for 14 people for 3 mornings. everyone has 2 eggs and 2 cups of coffee each morning. eggs come in boxes of 12 and a 250 g bag of coffee makes 30 cups. how many boxes of eggs and bags of coffee do i need?")!!
+        assertTrue(breakfast.text, "Eggs: 14 people × 2 × 3 mornings = **84 eggs**; 84 ÷ 12 = 7, so **7 boxes**." in breakfast.text)
+        assertTrue(breakfast.text, "Coffee: 14 people × 2 cups × 3 mornings = **84 cups of coffee**; 84 ÷ 30 = 2.8, which rounds up to **3 bags**." in breakfast.text)
+        assertTrue(breakfast.complete)
+        assertTrue(text("8 of us for 2 mornings, each person has 3 pancakes and 1 cup of juice. A box of mix makes 20 pancakes and a carton of juice gives 8 cups. How many boxes and cartons?").let { "**3 boxes**" in it && "**2 cartons**" in it })
+        // Grams against grams: 6 × 125 × 4 = 3,000 g in 500 g packets.
+        assertTrue(text("Cooking dinner for 6 people for 4 nights: everyone eats 125 g of pasta each night and pasta comes in 500 g packets. How many packets?").contains("**3,000 g of pasta**; 3,000 ÷ 500 = 6, so **6 packets**"))
+        assertTrue(text("4 hikers for 5 days, 2 energy bars each per day, bars come in boxes of 12. How many boxes do we need?").contains("**40 bars**; 40 ÷ 12 = 3.33, which rounds up to **4 boxes**"))
+        assertTrue(text("10 campers, 3 breakfasts, each person has 2 slices of bread; a loaf has 20 slices. How many loaves?").contains("**60 slices of bread**; 60 ÷ 20 = 3, so **3 loaves**"))
+        assertTrue(text("12 people for 2 evenings, 2 beers each per evening, and beer is sold in packs of 6. How many packs?").contains("**48 beers**; 48 ÷ 6 = 8, so **8 packs**"))
+        assertTrue(solve("14 people, 3 mornings, 2 eggs each, how many eggs?")!!.let { it.complete && "**84 eggs**" in it.text })
+        // Money per person is a bill, and a number the sum left out keeps it a lead.
+        assertFalse(solve("Each of us has 2 bags; how many bags for 5 people on 3 flights?")!!.complete)
+        assertNull(solve("How many eggs do 14 people eat in 3 mornings at 2 each, and how many people live in Lagos?"))
+        assertFalse(solve("A tour costs €40 per person. How much for 3 people?")!!.text.contains("Buy a little extra"))
+    }
+
+    @Test fun theLandingDayIsNamedWhenTheDepartureDayIs() {
+        // 10:00 + 12 h 30 min = 22:30 Sydney time; Santiago is 14 h behind: 08:30, still Tuesday.
+        val santiago = solve("My flight leaves Sydney at 10:00 on Tuesday and takes 12 h 30 min to get to Santiago. Sydney is on UTC+11 and Santiago on UTC-3 right now. What day and local time do I land?")!!
+        assertTrue(santiago.text, "Santiago is 14 h behind Sydney (UTC−3 against UTC+11), so you land at **08:30 on Tuesday**, Santiago time." in santiago.text)
+        assertTrue(santiago.complete)
+        assertTrue(text("My flight leaves Tokyo at 17:30 on Sunday and takes 11 hours to London. Tokyo is UTC+9 and London is UTC+1. What day and local time do I land?").contains("**20:30 on Sunday**"))
+        assertTrue(text("Leaving New York at 21:00 on Friday, the flight to Paris takes 7 h 15 min. New York is UTC-4 and Paris UTC+2. Which day and what local time do I arrive?").contains("**10:15 on Saturday**"))
+        assertTrue(text("I fly from Dubai (UTC+4) at 02:10 on Wednesday for 14 hours to Los Angeles (UTC-7). What local time do I land?").contains("**05:10 on Wednesday**"))
+        // A plain sum keeps the day too.
+        assertTrue(solve("The night bus leaves at 23:30 on Saturday and takes 9 hours. What day and time do we arrive?")!!.let { it.complete && "23:30 plus 9 h is **08:30 on Sunday**" in it.text })
+        // Another question beside the landing keeps it a lead.
+        assertFalse(solve("My flight leaves Sydney at 10:00 on Tuesday and takes 12 h 30 min to get to Santiago. Sydney is on UTC+11 and Santiago on UTC-3 right now. What day do I land and is the airport far from town?")!!.complete)
     }
 }

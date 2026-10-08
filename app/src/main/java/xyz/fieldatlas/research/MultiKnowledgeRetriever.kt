@@ -204,22 +204,54 @@ class MultiKnowledgeRetriever(
         opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
     }.getOrNull()
 
+    /**
+     * The mapped packs answer from their coordinate tables first; the city they file the nearest
+     * places under then names the guide whose listings (which carry coordinates but no table) are
+     * read for the same circle, so a souvlaki taverna the guide recommends joins the map's places.
+     */
     override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>): List<NearbyPlace> =
         withContext(ioDispatcher) {
             require(limit in 1..200) { "Nearby limit must be between 1 and 200" }
-            databaseFiles().flatMap { file ->
-                runCatching {
-                    opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                        .nearbyPlaces(point.lat, point.lon, radiusKm, limit, categories)
-                }.getOrElse { error ->
-                    if (error is OutOfMemoryError) throw error
-                    opened.remove(file.absolutePath)?.close()
-                    emptyList()
-                }
-            }.distinctBy { Triple(it.evidence.documentId, it.evidence.chunkId, it.evidence.source) }
+            fun placesFrom(file: File, read: (KnowledgeDatabase) -> List<NearbyPlace>): List<NearbyPlace> = runCatching {
+                read(opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) })
+            }.getOrElse { error ->
+                if (error is OutOfMemoryError) throw error
+                if (error is CancellationException) throw error
+                opened.remove(file.absolutePath)?.close()
+                emptyList()
+            }
+            val files = databaseFiles()
+            val (mapped, guides) = files.partition { file -> openOrNull(file)?.hasPlacePoints() == true }
+            val fromMaps = mapped.flatMap { file -> placesFrom(file) { it.nearbyPlaces(point.lat, point.lon, radiusKm, limit, categories) } }
+            val city = VenueLookup.cityOf(fromMaps)
+            val fromGuides = if (city == null) emptyList() else guides.flatMap { file ->
+                placesFrom(file) { it.nearbyPlaces(point.lat, point.lon, radiusKm, limit, categories, city) }
+            }
+            (fromMaps + fromGuides).distinctBy { Triple(it.evidence.documentId, it.evidence.chunkId, it.evidence.source) }
                 .sortedWith(compareBy({ it.distanceKm }, { it.evidence.chunkId }))
                 .take(limit)
         }
+
+    /**
+     * The destinations [question] names that any place pack holds listings of, resolved once for
+     * the callers that need to know a place was named without a capital letter ("in lyon"); the
+     * search itself resolves them per pack (see [DestinationScope]).
+     */
+    override suspend fun destinations(question: String): List<String> = withContext(ioDispatcher) {
+        val candidates = DestinationScope.candidates(question)
+        if (candidates.isEmpty()) return@withContext emptyList()
+        databaseFiles().flatMap { file ->
+            runCatching {
+                val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                if (database.isPlaceListing()) DestinationScope.resolve(candidates, database::holdsDestination) else emptyList()
+            }.getOrElse { error ->
+                if (error is OutOfMemoryError) throw error
+                if (error is CancellationException) throw error
+                opened.remove(file.absolutePath)?.close()
+                emptyList()
+            }
+        }.distinctBy { it.lowercase() }
+    }
 
     /**
      * Prepares semantic hits ahead of the keyword list for one pack. Vector evidence arrives
@@ -393,5 +425,30 @@ class MultiKnowledgeRetriever(
         }
 
         private const val GUARANTEED_PER_PACK = 3
+    }
+
+    override suspend fun headed(phrase: String, words: List<String>, limit: Int, sections: List<String>): List<Evidence> = withContext(ioDispatcher) {
+        val wanted = words.filter(String::isNotBlank)
+        if (phrase.isBlank() || wanted.isEmpty()) return@withContext emptyList()
+        require(limit in 1..50) { "Title limit must be between 1 and 50" }
+        val match = buildString {
+            append("{title} : (").append(quoted(phrase)).append(" AND (").append(wanted.joinToString(" OR ", transform = ::quoted)).append(")")
+            sections.filter(String::isNotBlank).takeIf { it.isNotEmpty() }?.let { append(" AND (").append(it.joinToString(" OR ", transform = ::quoted)).append(")") }
+            append(")")
+        }
+        databaseFiles().flatMap { file ->
+            runCatching {
+                val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                // Unlike titled(), the pack of whole articles by section is read: the article on how a
+                // subject ended ("Dissolution of the Soviet Union") and the section headed with a
+                // condition ("Motion sickness — … > Seasickness") are only there.
+                if (database.isPlaceListing()) emptyList() else database.titled(match, limit)
+            }.getOrElse { error ->
+                if (error is OutOfMemoryError) throw error
+                if (error is CancellationException) throw error
+                opened.remove(file.absolutePath)?.close()
+                emptyList()
+            }
+        }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }.sortedBy { it.title.length }.take(limit)
     }
 }

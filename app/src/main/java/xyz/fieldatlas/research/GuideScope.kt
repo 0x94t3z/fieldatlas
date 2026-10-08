@@ -23,9 +23,12 @@ object GuideScope {
     /**
      * Whether the question names a place, or anything else, with a capital letter followed by
      * lowercase. An acronym ("GPS", "DEET", "SIM") is a thing, not a name: its article is read like
-     * any subject's, and no destination guide answers it.
+     * any subject's, and no destination guide answers it. [destinations] are the places the saved
+     * place packs confirmed the question names (see [DestinationScope]): "food markets in lyon"
+     * names Lyon as surely as a capital letter would.
      */
-    fun namesPlace(question: String): Boolean {
+    fun namesPlace(question: String, destinations: List<String> = emptyList()): Boolean {
+        if (destinations.isNotEmpty()) return true
         val starts = sentenceStart.findAll(question).map { it.groups[1]!!.range.first }.toSet()
         return word.findAll(question).any { m ->
             m.value.first().isUpperCase() && m.value.drop(1).any(Char::isLowerCase) && !m.value.startsWith("I'") &&
@@ -41,15 +44,16 @@ object GuideScope {
 
     /**
      * [evidence] without map listings and destination guide sections, for a question that names
-     * no place; [sectionsOf] finds a guide's sections titled with [HEADINGS], to tell a
-     * destination from a topic.
+     * no place ([destinations] as for [namesPlace]); [sectionsOf] finds a guide's sections titled
+     * with [HEADINGS], to tell a destination from a topic.
      */
     suspend fun withoutOtherPlaces(
         question: String,
         evidence: List<Evidence>,
+        destinations: List<String> = emptyList(),
         sectionsOf: suspend (String) -> List<Evidence>,
     ): List<Evidence> {
-        if (namesPlace(question)) return evidence
+        if (namesPlace(question, destinations)) return evidence
         val articles = evidence.filter(::isGuideSection).map { it.title.substringBefore(" — ").trim() }.distinct().take(MAX_ARTICLES)
         val destinations = articles.filter { article ->
             sectionsOf(article).any {

@@ -163,6 +163,110 @@ class VenueLookupTest {
         assertEquals(answer, 1, Regex("Leaf House").findAll(answer).count())
         assertTrue(answer, "Green Bowl" in answer)
     }
+    private fun guide(page: Int, ordinal: Int, destination: String, category: String, name: String, description: String, hours: String? = null) = Evidence(
+        documentId = "wv-place-$page-%04d".format(ordinal), chunkId = "wv-place-$page-%04d:0000".format(ordinal),
+        title = "$destination — $name", source = "https://en.wikivoyage.org/w/index.php?oldid=$page",
+        text = listOfNotNull("Destination: $destination", "Category: $category", "Place: $name", "Description: $description",
+            hours?.let { "Hours in source: $it" }, "Source page revision: 2026-09-20").joinToString("\n"),
+        score = -5.0,
+    )
+
+    @Test fun everyKindNamedCountsAndAFoodBarIsAPlaceToEat() {
+        // "hostels or cheap hotels": both kinds, so a hostel is no longer dropped by the hotel test.
+        val hostel = place("hostel", "Munich", "Jaegers Hostel", "Dormitories by the station")
+        val hotel = place("hotel", "Munich", "City Hotel", "Rooms")
+        val both = VenueLookup.answer("any hostels or cheap hotels in Munich?", listOf(hostel, hotel))!!
+        assertEquals(setOf(hostel, hotel), both.sources.toSet())
+        assertEquals(listOf(hostel), VenueLookup.answer("hostels in Munich", listOf(hostel, hotel))?.sources)
+        // A milk bar is a cheap canteen, listed under Eat; a bar question alone still asks for Drink.
+        val milkBar = guide(18228, 20, "Kraków/South", "Eat", "Bar Mleczny Południowy", "Budget \"milk bar\" or soup kitchen, cheap & cheerful.")
+        val cocktails = place("bar", "Kraków", "Night Bar", "Cocktails and vodka")
+        val question = "where can i get cheap traditional polish food in kraków? staying in kazimierz and heard the milk bars are the thing"
+        assertTrue(VenueLookup.isPlaceLookup(question))
+        val milk = VenueLookup.answer(question, listOf(cocktails, milkBar))!!
+        assertEquals(listOf(milkBar), milk.sources)
+        // The words no listing carries are stated instead of emptying the city.
+        assertTrue(milk.answer, milk.answer.contains("None of these saved listings mentions “polish”, “kazimierz”; they are the places in Kraków that fit the rest of the question."))
+        assertEquals(listOf(cocktails), VenueLookup.answer("Which bars are in Kraków?", listOf(cocktails, milkBar))?.sources)
+        assertEquals(setOf("Eat"), VenueLookup.nearbyCategories("sushi bars near me"))
+        assertEquals(setOf("Sleep"), VenueLookup.nearbyCategories("hostels or hotels near me"))
+    }
+
+    @Test fun aKindLookupSearchesTheCityForTheKindAndListsItInTheGuidesOrder() {
+        val flamenco = guide(32267, 20, "Seville", "Do", "La Casa del Flamenco", "A good spot to see real flamenco.")
+        val cathedral = guide(32267, 1, "Seville", "See", "Cathedral", "The largest Gothic cathedral in the world.")
+        val alcazar = guide(32267, 2, "Seville", "See", "Real Alcázar", "Royal palace.")
+        val plaza = guide(32267, 8, "Seville", "See", "Plaza de España", "Built for the 1929 exhibition.")
+        val tapas = guide(32267, 40, "Seville", "Eat", "Bodega", "Tapas since 1900.")
+        val question = "I've only got one full day in Seville. Which sights are must-sees, and in what order should I do them?"
+        assertTrue(VenueLookup.isPlaceLookup(question))
+        // The kind search names the destination the first pass found and asks for its See listings
+        // by category line; the destination alone is the question the relevance gate judges by.
+        assertEquals(VenueLookup.KindQuery("Seville see", "Seville"), VenueLookup.kindQuery(question, listOf(flamenco)))
+        assertEquals(VenueLookup.KindQuery("Madrid museum", "Madrid"), VenueLookup.kindQuery("Which museums in Madrid are worth it?", listOf(guide(1, 1, "Madrid", "See", "Prado", "Art."))))
+        assertNull(VenueLookup.kindQuery("Which vegan restaurants should I try in Seville?", listOf(tapas)))
+        // A city the first pass found nothing in is still named when the packs resolved it.
+        assertEquals(VenueLookup.KindQuery("lyon market halles", "lyon"), VenueLookup.kindQuery("good food markets in lyon?", emptyList(), listOf("lyon")))
+        // Candidates are kept to the destination and categories asked, lower ordinal first.
+        assertEquals(listOf(cathedral, alcazar, plaza, flamenco),
+            VenueLookup.kindListings(question, listOf(tapas, plaza, flamenco, alcazar, cathedral, guide(99, 1, "Granada", "See", "Alhambra", "Palace.")), listOf(flamenco)))
+        val result = VenueLookup.answer(question, listOf(flamenco, plaza, alcazar, cathedral, tapas))!!
+        assertEquals(listOf(cathedral, alcazar, plaza, flamenco), result.sources)
+        assertTrue(result.answer, result.answer.startsWith("These Wikivoyage listings for Seville, in the guide's order:"))
+        assertFalse(result.answer, result.answer.contains("None of these saved listings mentions"))
+    }
+
+    @Test fun indoorAndChildrenWordsRankSoftlyForAThingsToDoQuestion() {
+        val aquarium = guide(8183, 1, "Copenhagen/Amager", "See", "Den Blå Planet", "Largest aquarium in Northern Europe with 20,000 fish.")
+        val fortress = guide(8184, 4, "Copenhagen/Østerbro", "See", "Kastellet", "A star-shaped citadel; stroll the ramparts.")
+        val museum = guide(8189, 12, "Copenhagen/Indre By", "See", "Nationalmuseet", "National history museum with a children's wing.")
+        val park = guide(8189, 32, "Copenhagen/Indre By", "Do", "Kongens Have", "The most frequented park in the city.")
+        val question = "We're in Copenhagen with two kids (6 and 9) and it's meant to rain all day tomorrow. What can we do indoors?"
+        assertTrue(VenueLookup.isPlaceLookup(question))
+        assertFalse("an activity question without a named place is not a lookup", VenueLookup.isPlaceLookup("We are lost in a forest and it is getting dark. What should we do?"))
+        assertFalse(VenueLookup.isPlaceLookup("what can we do about a leaking gas heater in the cabin?"))
+        val kind = VenueLookup.kindQuery(question, listOf(park))!!
+        assertEquals("Copenhagen", kind.scope)
+        assertTrue(kind.query, kind.query.startsWith("Copenhagen see ") && "aquarium" in kind.query && "children" in kind.query)
+        // Both attributes beat one, one beats none; within a rank the guide's order holds.
+        val result = VenueLookup.answer(question, listOf(park, fortress, museum, aquarium))!!
+        assertEquals(listOf(museum, aquarium, fortress, park), result.sources)
+        assertTrue(result.answer, result.answer.startsWith("These Wikivoyage listings for Copenhagen, in the guide's order, those described as indoor and children first:"))
+        assertFalse(result.answer, result.answer.contains("None of these saved listings mentions"))
+    }
+
+    @Test fun marketsOpenOnANamedDayAreAnsweredFromTheRecordedHours() {
+        val halles = guide(20606, 91, "Lyon", "Buy", "Halles de Lyon Paul Bocuse", "The very best food.", "Tu-Sa 07:00-12:00 and 15:00-19:00, Su 07:00-12:00")
+        val croixRousse = guide(20606, 92, "Lyon", "Buy", "Croix-Rousse market", "Very popular market with local producers.", "Tu-Su 07:00-13:00")
+        val mall = guide(20606, 84, "Lyon", "Buy", "La Part-Dieu", "A huge shopping mall.", "M-Sa 10:00-20:00")
+        val wine = guide(20606, 95, "Lyon", "Buy", "Antic Wine", "Wines from all over the world.", "Tu-Su 11:00-20:00")
+        val question = "good food markets in lyon? want to put together a picnic with cheese, bread and saucisson. is anything open on sunday morning?"
+        assertTrue(VenueLookup.isPlaceLookup(question))
+        val superHalle = Evidence("osm-place-n7", "osm-place-n7:0000", "Lyon — La Super Halle", "https://www.openstreetmap.org/node/7",
+            "Destination: Lyon\nCategory: Buy\nPlace: La Super Halle\nType: supermarket\nHours in source: Mo-Sa 10:00-19:00\nLatitude: 45.76\nLongitude: 4.83", 0.0)
+        val result = VenueLookup.answer(question, listOf(mall, wine, superHalle, halles, croixRousse))!!
+        // Only the markets; the mall, the wine shop and a supermarket called Halle are not what was asked.
+        assertEquals(listOf(halles, croixRousse), result.sources)
+        assertTrue(result.answer, result.answer.startsWith("All 2 places below are open on Sunday morning by their recorded hours."))
+        assertTrue(result.answer, result.answer.contains("**Halles de Lyon Paul Bocuse** — The very best food. **Open Sunday morning**. Hours in source: Tu-Sa 07:00-12:00 and 15:00-19:00, Su 07:00-12:00."))
+        assertTrue(result.answer, result.answer.contains("None of these saved listings mentions “picnic”, “cheese”, “bread”, “saucisson”"))
+        // A market closed that day says so, and a day question lists the open ones first.
+        val sundayOff = guide(20606, 93, "Lyon", "Buy", "St Antoine Market", "The other major market.", "M-Sa 07:00-13:00")
+        val mixed = VenueLookup.answer("which markets in Lyon are open on Sundays?", listOf(sundayOff, croixRousse))!!
+        assertEquals(listOf(croixRousse, sundayOff), mixed.sources)
+        assertTrue(mixed.answer, mixed.answer.startsWith("1 of the 2 places below is open on Sunday by their recorded hours; those come first."))
+        assertTrue(mixed.answer, mixed.answer.contains("**Closed Sunday**."))
+    }
+
+    @Test fun guideHoursAreReadInTheMapsForm() {
+        assertEquals("11:00-22:00", VenueLookup.guideHours("Daily 11:00-22:00"))
+        assertEquals("Mo-Fr 07:00-18:00, Sa,Su 07:00-15:00", VenueLookup.guideHours("M-F 07:00-18:00, Sa Su 07:00-15:00"))
+        assertEquals("Tu-Sa 07:00-12:00, 15:00-19:00, Su 07:00-12:00", VenueLookup.guideHours("Tu-Sa 07:00-12:00 and 15:00-19:00, Su 07:00-12:00"))
+        assertEquals("07:00-15:30", VenueLookup.guideHours("7AM-3:30PM"))
+        assertEquals("Mo-Fr 9:00-17:00", VenueLookup.guideHours("Mon-Fri 9:00-17:00"))
+        assertEquals("Mo-Su 10:00-19:00", VenueLookup.guideHours("Mo-Su 10:00-19:00"))
+    }
+
     @Test fun aDecisionBetweenWaysToPayIsNoPlaceLookup() {
         assertFalse(VenueLookup.isPlaceLookup("Should I bring euros to change in Morocco or just take out dirhams from an ATM when I land?"))
         assertTrue(VenueLookup.isPlaceLookup("Where can I find an ATM near the station in Fez?"))

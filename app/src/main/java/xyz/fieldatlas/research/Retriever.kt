@@ -4,6 +4,9 @@ fun interface Retriever {
     /** Whether a search for this question could reach any enabled local collection. */
     fun hasEligiblePacks(query: String): Boolean = true
 
+    /** Place names confirmed against installed listing packs, including lowercase input. */
+    suspend fun destinations(question: String): List<String> = emptyList()
+
     /**
      * [onProgress] receives a monotonically increasing 0.0-1.0 estimate of retrieval work
      * completed plus how many matches so far came from vector (concept) search rather than
@@ -45,6 +48,14 @@ fun interface Retriever {
      * words ("Passport control").
      */
     suspend fun sections(article: String, limit: Int): List<Evidence> = emptyList()
+
+    /**
+     * Rows whose title holds [phrase] and one of [words] ("Soviet Union" and "dissolution"), and one
+     * of [sections] when given, shortest titles first, from every collection that is not a place
+     * listing, including the pack of whole articles by section that [titled] leaves out. Travel and
+     * place lookups keep to [titled], so an English article's headings never answer for a town.
+     */
+    suspend fun headed(phrase: String, words: List<String>, limit: Int, sections: List<String> = emptyList()): List<Evidence> = emptyList()
 
     /**
      * The article titled [article] from each collection that holds it, whole and in its own order:

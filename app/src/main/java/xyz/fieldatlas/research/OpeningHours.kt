@@ -161,6 +161,25 @@ object OpeningHours {
     fun status(hours: String?, now: LocalDateTime): Status {
         if (hours.isNullOrBlank()) return Status.Unknown
         val rules = rules(hours) ?: return Status.Unknown
+        return status(rules, now)
+    }
+
+    /** Any opening within a half-open window on a weekday, without guessing from a few sample times. */
+    fun during(hours: String?, date: java.time.LocalDate, fromMinute: Int = 0, untilMinute: Int = 1440): Status {
+        require(fromMinute in 0..1439 && untilMinute in (fromMinute + 1)..1440)
+        if (hours.isNullOrBlank()) return Status.Unknown
+        val parsed = rules(hours) ?: return Status.Unknown
+        val day = date.dayOfWeek.ordinal
+        val boundaries = on(parsed, day).orEmpty().flatMap { listOf(it.from, it.to) } +
+            on(parsed, (day + 6) % 7).orEmpty().flatMap { listOf(it.from - 1440, it.to - 1440) }
+        val probes = (listOf(fromMinute) + boundaries.flatMap { listOf(it, it - 1) })
+            .filter { it in fromMinute until untilMinute }.distinct().sorted()
+        val states = probes.map { status(parsed, date.atTime(it / 60, it % 60)) }
+        return states.firstOrNull { it is Status.Open }
+            ?: if (states.any { it == Status.Unknown }) Status.Unknown else Status.Closed
+    }
+
+    private fun status(rules: List<Rule>, now: LocalDateTime): Status {
         val day = now.dayOfWeek.ordinal
         val minute = now.hour * 60 + now.minute
         val today = on(rules, day).orEmpty()

@@ -17,6 +17,11 @@ For local places, name only places in the evidence. A dietary match must be stat
 Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them."""
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
+    // A word problem answered from its own figures: retrieved passages only lend the model foreign
+    // numbers, and the step lines let AnswerChecks.checkArithmetic recompute every result.
+    private const val ARITHMETIC_POLICY = """/no_think
+You are an offline assistant working out a word problem. The question contains every number the answer needs; use no other facts, prices, rates or rules. First list each quantity with its unit, one per line. Then write every step of the working as "a op b = c" on its own line, with one operation per line and the unit after the result, as in "€180 × 4 = €720" or "08:15 + 3 h 20 min = 11:35"; add a few words after the step only to say what it is. Use the given figures exactly as stated and never change or round them. Keep clock times in 24-hour form. End with one line "Answer: …" that states the result the question asks for, with its unit. No introduction, no assumptions beyond the question, under 150 words."""
+    private const val ARITHMETIC_LEAD = "The app has already worked out the following; keep these figures fixed and build on them:"
     private const val GUIDE_POLICY = """/no_think
 You are an offline first-aid and safety assistant. The evidence is an official guide. Use only the guide excerpts below; never add treatments, medicines, doses, tools or steps that are not in them. Answer for the situation in the question: first the most urgent actions, as short numbered steps close to the guide's wording, then only the "do not" warnings the guide itself gives. Cite each step with the exact source number, such as [S1]. If the guide says to get emergency help, say that first. If the question asks yes/no or when (for example "do I need rabies shots?", "should we move her?", "when should I worry?"), answer that in one sentence from the guide before the steps; if the guide does not say, say so. If the question's situation is not covered (for example a child, pregnancy, another injury or another country), say what the guide does not cover. No introduction or closing remarks; under 150 words."""
     // The person is offline: answers must be things they can do now, without a connection.
@@ -134,15 +139,41 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
         return PackedPrompt(prompt, emptyList(), mixedAnswer = allowsModelExplanation(question), savedPrefixChars = fixed)
     }
 
+    /**
+     * A self-contained word problem (see [WordProblem]) worked out from the question's own figures,
+     * with no evidence. [lead] is what a calculator already worked out, kept fixed. The answer is
+     * the model's working, so it is shown under the same unverified label as any model-only answer,
+     * and the app recomputes its step lines afterwards.
+     */
+    fun buildArithmetic(question: String, lead: String?): PackedPrompt {
+        require(question.isNotBlank()) { "question must not be blank" }
+        var fixed = 0
+        val prompt = buildString {
+            append(ARITHMETIC_POLICY)
+            append(OFFLINE_PERSON_GUIDE)
+            fixed = length
+            lead?.takeIf(String::isNotBlank)?.let { append("\n\n").append(ARITHMETIC_LEAD).append('\n').append(it.trim()) }
+            append("\n\nQUESTION:\n")
+            append(question.trim())
+            append("\n\nANSWER:")
+        }
+        return PackedPrompt(prompt, emptyList(), mixedAnswer = true, savedPrefixChars = fixed)
+    }
+
     internal fun allowsModelExplanation(question: String): Boolean =
         !asksForPlaces(question) && !SOURCE_ONLY_REQUEST.containsMatchIn(question)
+
+    internal fun requiresSavedSources(question: String): Boolean = SOURCE_ONLY_REQUEST.containsMatchIn(question)
 
     /**
      * A question about places, answered only from listings. An explanation or comparison of a kind
      * of place that names no place ("how do hostels compare with guesthouses?", "why are museums
-     * closed on Mondays?") is explained like any other question.
+     * closed on Mondays?") is explained like any other question, and so is a question about a
+     * practice at such places ("do you tip in restaurants in Egypt?"): it asks about tipping, a part
+     * of a travel guide (see [TravelSections.partHeadings]), not for restaurants to go to.
      */
     private fun asksForPlaces(question: String): Boolean = VENUE_QUESTION.containsMatchIn(question) &&
+        !(TravelSections.partHeadings(question).isNotEmpty() && !VenueLookup.isPlaceLookup(question)) &&
         (VenueLookup.isPlaceLookup(question) || !EXPLANATORY.containsMatchIn(question) || NAMED_PLACE.containsMatchIn(question))
 
     private val EXPLANATORY = Regex("(?i)^\\s*(?:how (?:do|does|did|is|are|can|should)|why|explain|describe|compare|" +

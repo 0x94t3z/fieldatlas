@@ -195,7 +195,7 @@ class SubjectLookupTest {
         val deet = SubjectLookup.candidates("DEET vs picaridin, which mosquito repellent is better for a trip to the tropics?", 2)
         assertEquals("DEET", deet.first().text)
         assertEquals(1, deet.first { it.text == "picaridin" }.run)
-        assertFalse(deet.any { it.text == "mosquito repellent" })
+        assertFalse("the two options lead; later phrases are only fallback candidates", deet.any { it.text == "mosquito repellent" && it.run < 2 })
         val train = SubjectLookup.candidates("Madrid to Barcelona: is the high-speed train or a flight the better option?", 2)
         assertEquals("high-speed train", train.first().text)
         assertTrue(train.any { it.text == "flight" })
@@ -249,11 +249,153 @@ class SubjectLookupTest {
         val jetLag = SubjectLookup.candidates("Why does jet lag happen, and why is flying east supposed to be worse than flying west?").first()
         assertEquals(article, SubjectLookup.fuller(jetLag, guide, listOf(article)))
         assertEquals(guide, SubjectLookup.fuller(jetLag, guide, listOf(null)))
-        // An alternative must still fit the candidate's other words.
+        // The same article in another collection is taken as it is; a different article must still fit the candidate's other words.
         val wallet = SubjectLookup.candidates("How does a hardware wallet keep my private key safe?").first { it.text == "wallet" }
         val stub = overview("swp-2-0000", "Wallet", "A wallet is a small case for money.")
         val leather = overview("enw-3-0000", "Wallet", "A wallet is a flat case or pouch, often used to carry small personal items such as physical currency, debit cards, and credit cards; identification documents.", "https://en.wikipedia.org/w/index.php?oldid=1")
-        assertEquals(stub, SubjectLookup.fuller(wallet, stub, listOf(leather)))
+        assertEquals(leather, SubjectLookup.fuller(wallet, stub, listOf(leather)))
+        val purse = overview("enw-4-0000", "Purse", "A purse is a small bag for carrying money and personal items, often with a strap or handle.", "https://en.wikipedia.org/w/index.php?oldid=1")
+        assertEquals(stub, SubjectLookup.fuller(wallet, stub, listOf(purse)))
+        assertFalse("the full article still fails the candidate it was taken for", SubjectLookup.accepts(wallet, leather))
+    }
+
+    @Test fun aConnectorStaysInsideANameButNotBetweenCommonWords() {
+        fun lookup(question: String) = SubjectLookup.candidates(question, 3, lookup = true).map { it.text }
+        val wall = lookup("When was the Great Wall of China built?")
+        assertTrue(wall.toString(), "Great Wall of China" in wall)
+        assertFalse("a piece never opens or closes with the connector", wall.any { it.startsWith("of ") || it.endsWith(" of") })
+        assertEquals("Statue of Liberty", SubjectLookup.candidates("How tall is the Statue of Liberty?", 3, lookup = true).first().text)
+        assertEquals("Dissolution of the Soviet Union", SubjectLookup.candidates("Why did the Dissolution of the Soviet Union happen so fast?").first().text)
+        val wine = lookup("Is a glass of red wine a day actually good for your heart?")
+        assertEquals(wine.toString(), "red wine", wine.first())
+        assertFalse("a measure is not the subject", wine.any { it == "glass" || it.startsWith("glass of") })
+        // "And" chains a comparison's subjects; it joins a name only when one subject is wanted.
+        val chained = SubjectLookup.candidates("What is the difference between Celsius and Fahrenheit?", 2)
+        assertEquals(setOf(0, 1), chained.map { it.run }.toSet())
+        assertEquals("Trinidad and Tobago", SubjectLookup.candidates("How does Trinidad and Tobago elect its parliament?").first().text)
+    }
+
+    @Test fun aLooseModifierDoesNotNarrowTheSubject() {
+        fun overview(title: String, text: String) = Evidence("wp-$title", "wp-$title:0", "$title — Overview", "local", text, 0.0)
+        val bitcoin = overview("Bitcoin", "Bitcoin is a digital and global money system cryptocurrency. It allows people to send or receive units across the internet.")
+        val halvingCandidates = SubjectLookup.candidates("when is the next bitcoin halving and what actually happens when it does", 3, lookup = true)
+        assertTrue(halvingCandidates.toString(), halvingCandidates.any { it.text == "bitcoin" })
+        val halving = halvingCandidates.first { it.text == "bitcoin" }
+        assertEquals("next", halving.modifier)
+        assertTrue("\"next\" says when, not which Bitcoin", SubjectLookup.accepts(halving, bitcoin))
+        val hot = SubjectLookup.candidates("What is the difference between a hot wallet and a cold wallet?", 2).first { it.text == "wallet" }
+        assertFalse(SubjectLookup.accepts(hot, overview("Wallet", "A wallet is a small flat case that a person uses to keep cash and cards in a pocket.")))
+        val maya = SubjectLookup.candidates("Why did the Classic Maya civilization collapse? Was it drought, war, or something else?")
+        val civilization = maya.first { it.text == "Maya civilization" }
+        assertEquals("Classic", civilization.modifier)
+        assertTrue("a capitalised word before a name is part of a longer name", SubjectLookup.accepts(civilization,
+            overview("Maya civilization", "The Maya civilization was a Mesoamerican civilization that existed from antiquity to the early modern period.")))
+        val common = maya.first { it.text == "civilization" }
+        assertFalse("a name before a common noun is the subject itself", SubjectLookup.accepts(common,
+            overview("Civilization", "A civilization is any complex society characterized by the development of the state and social stratification.")))
+    }
+
+    @Test fun aChoiceOptionStartsWhereItsNounPhraseDoes() {
+        val choice = SubjectLookup.choice("Is a hardware wallet like a Ledger or Trezor really safer than keeping crypto in a phone wallet app? Which is better?")!!
+        assertEquals("hardware wallet like a Ledger", choice.first)
+        assertEquals("Trezor", choice.second)
+        val candidates = SubjectLookup.candidates("Is a hardware wallet like a Ledger or Trezor really safer than keeping crypto in a phone wallet app? What can still go wrong?", 2)
+        assertEquals("hardware wallet", candidates.first().text)
+        assertEquals(1, candidates.first { it.text == "Ledger" }.run)
+        assertFalse("\"like\" is a simile, not a name's word", candidates.any { "like" in it.text.lowercase().split(' ') })
+        assertFalse(candidates.any { it.text == "Still" || it.text == "still" })
+        // The question's own phrases follow the options, for when neither names an article.
+        val fallback = SubjectLookup.candidates("Should I use a zig or a zag when travelling? How does a heat pump heat a house?", 2)
+        assertEquals(listOf("zig", "zag"), fallback.filter { it.run < 2 }.map { it.text })
+        assertTrue(fallback.toString(), fallback.any { it.text == "heat pump" && it.run >= 2 })
+        val train = SubjectLookup.choice("Madrid to Barcelona: is the high-speed train or a flight the better option?")!!
+        assertEquals("high-speed train", train.first)
+        assertEquals("flight", train.second)
+        assertEquals("credit", SubjectLookup.choice("Should I use a debit card or a credit card when travelling abroad?")!!.second)
+    }
+
+    @Test fun whatHappenedToASubjectIsExplained() {
+        assertTrue(SubjectLookup.explains("what happened to the aral sea? why did it shrink so much and has any of it come back?"))
+        assertTrue(SubjectLookup.explains("Whatever happened to the Concorde?"))
+        assertTrue(SubjectLookup.explains("what's the deal with Ethereum gas fees?"))
+        assertFalse(SubjectLookup.looksUp("what happened to the aral sea?"))
+        assertEquals("aral sea", SubjectLookup.candidates("what happened to the aral sea? why did it shrink so much and has any of it come back?").first().text)
+    }
+
+    @Test fun theScenariosPeopleAndTheSubjectsPredicateAreNotTheSubject() {
+        val seasick = SubjectLookup.candidates("Why do some people get seasick on boats and others don't, and what actually helps?")
+        assertEquals("seasick", seasick.first().text)
+        assertTrue("the condition's noun is tried too", seasick.any { it.text == "seasickness" })
+        assertFalse(seasick.any { it.text == "people" || it.text == "some people" })
+        assertEquals("seasickness", SubjectLookup.conditionOf("seasick"))
+        assertEquals("motion sickness", SubjectLookup.conditionOf("carsick"))
+        assertTrue(SubjectLookup.headsSection("seasickness"))
+        assertFalse("a lone common word heads too many sections", SubjectLookup.headsSection("wallet"))
+        val section = Evidence("enw-62580-0006", "enw-62580-0006:0000", "Motion sickness — Cause > Motion felt but not seen > Seasickness",
+            "https://en.wikipedia.org/w/index.php?oldid=1", "Seasickness is a form of motion sickness characterized by a feeling of nausea.", 0.0)
+        assertEquals(section, SubjectLookup.sectionOf("seasickness", listOf(section)))
+        // After a copula the phrase's last word says what the subject is: "the sky" is blue.
+        val sky = SubjectLookup.candidates("why is the sky blue but sunsets are orange and red?")
+        assertEquals("sky", sky.first().text)
+        assertFalse(sky.any { it.text == "sky blue" })
+        assertEquals("sunset", SubjectLookup.candidates("Why are sunsets red and orange?").first { it.text.startsWith("sunset") }.text.removeSuffix("s"))
+        // "water boil" is explained by the property "Boiling point", tried before the bare subject.
+        val boil = SubjectLookup.candidates("Why does water boil at a lower temperature up in the mountains?").map { it.text }
+        assertTrue(boil.toString(), boil.indexOf("boiling point") in 0 until boil.indexOf("water"))
+        assertTrue(boil.indexOf("boiling") in 0 until boil.indexOf("water"))
+        val gas = SubjectLookup.candidates("Why are Ethereum gas fees sometimes so high?").map { it.text }
+        assertEquals("Ethereum gas fees", gas.first())
+        assertFalse("\"sometimes\" frames the question", gas.any { "sometimes" in it })
+        val lake = SubjectLookup.candidates("How deep is Lake Baikal, and how much of the world's fresh water does it hold?", 3, lookup = true).map { it.text }
+        assertEquals("Lake Baikal", lake.first())
+        assertFalse(lake.any { it == "deep" || it == "hold" || it == "Depth" })
+    }
+
+    @Test fun theArticlesHeadingsMayMentionTheNarrowingWord() {
+        fun overview(id: String, title: String, text: String) = Evidence(id, "$id:0000", "$title — Overview", "https://en.wikipedia.org/w/index.php?oldid=1", text, 0.0)
+        val headphones = overview("enw-191884-0000", "Headphones", "Headphones are a pair of small loudspeaker drivers worn on or around the head over a user's ears.")
+        val candidate = SubjectLookup.candidates("How do noise-cancelling headphones actually work?").first { it.text == "headphones" }
+        assertEquals("noise-cancelling", candidate.modifier)
+        assertFalse(SubjectLookup.accepts(candidate, headphones))
+        assertTrue(SubjectLookup.accepts(candidate, headphones, listOf("Headphones — Overview", "Headphones — Ambient noise reduction", "Headphones — Specifications")))
+        assertFalse(SubjectLookup.accepts(candidate, headphones, listOf("Headphones — Specifications", "Headphones — Applications")))
+    }
+
+    @Test fun theArticleOnHowTheSubjectEndedIsReadToo() {
+        assertEquals(SubjectLookup.RELATED_WORDS, SubjectLookup.relatedWords("Why did the Soviet Union collapse so quickly in 1991?"))
+        assertNotNull(SubjectLookup.relatedWords("what happened to the aral sea?"))
+        assertNull(SubjectLookup.relatedWords("How does a heat pump heat a house?"))
+        assertEquals(listOf("Maya civilization", "Maya"), SubjectLookup.relatedNames("Maya civilization"))
+        assertEquals(listOf("Soviet Union"), SubjectLookup.relatedNames("Soviet Union"))
+        assertEquals(listOf("steam engine"), SubjectLookup.relatedNames("steam engine"))
+        assertEquals(emptyList<String>(), SubjectLookup.relatedNames("inflation"))
+        fun overview(id: String, title: String, text: String, source: String = "https://en.wikipedia.org/w/index.php?oldid=1") =
+            Evidence(id, "$id:0000", "$title — Overview", source, text, 0.0)
+        val dissolution = overview("enw-40494892-0000", "Dissolution of the Soviet Union",
+            "On 26 December 1991, the Soviet Union was formally dissolved. The collapse of the Soviet Union in 1991 resulted from several factors: chronic economic stagnation and intense ethnic nationalism.")
+        val party = overview("enw-35897659-0000", "History of the Communist Party of the Soviet Union (Bolsheviks)", "The party was founded in 1912.")
+        val late = overview("swp-32470-0000", "History of the Soviet Union (1985–1991)", "The history of the Soviet Union from 1985 to 1991 covers the dissolution of the Soviet Union.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val union = overview("swp-3600-0000", "Soviet Union", "The Soviet Union was a country.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val town = Evidence("enw-861325-0005", "enw-861325-0005:0000", "Khujand — History > Soviet Union", "https://en.wikipedia.org/w/index.php?oldid=1", "The town was in the Soviet Union.", 0.0)
+        assertEquals(dissolution, SubjectLookup.relatedTitle("Soviet Union", listOf(town, union, late, party, dissolution)))
+        assertEquals("a bracketed qualifier only when no plain title fits", late, SubjectLookup.relatedTitle("Soviet Union", listOf(union, late, party)))
+        assertNull(SubjectLookup.relatedTitle("Soviet Union", listOf(union, town)))
+        val maya = overview("enw-10443117-0000", "Classic Maya collapse", "In archaeology, the classic Maya collapse is a model to describe the destabilization of Classic Maya civilization.")
+        assertEquals(maya, SubjectLookup.relatedTitle("Maya", listOf(maya)))
+        assertNull("the name must be whole in the title", SubjectLookup.relatedTitle("Maya civilization", listOf(maya)))
+        val rome = overview("enw-1-0000", "Fall of the Western Roman Empire", "The fall of the Western Roman Empire was the loss of central political control.")
+        assertEquals(rome, SubjectLookup.relatedTitle("Western Roman Empire", listOf(rome)))
+    }
+
+    @Test fun aWhyQuestionOpensWithTheArticleThatNamesTheCause() {
+        fun overview(id: String, title: String, text: String) = Evidence(id, "$id:0000", "$title — Overview", "https://en.wikipedia.org/w/index.php?oldid=1", text, 0.0)
+        val union = overview("swp-3600-0000", "Soviet Union", "The Soviet Union was a transcontinental country that spanned much of Eurasia from 1922 to 1991.")
+        val dissolution = overview("enw-40494892-0000", "Dissolution of the Soviet Union",
+            "The collapse of the Soviet Union in 1991 resulted from several factors: chronic economic stagnation and intense ethnic nationalism.")
+        val sources = listOf(PromptSource("S1", union), PromptSource("S2", dissolution))
+        val lead = SubjectLookup.lead("Why did the Soviet Union collapse so quickly in 1991?", listOf(union, dissolution), sources)!!
+        assertEquals("S2", lead.citationId)
+        assertEquals(listOf("S1"), lead.more.map { it.first })
     }
 
     @Test fun theWordsAfterANameAreItsPredicate() {

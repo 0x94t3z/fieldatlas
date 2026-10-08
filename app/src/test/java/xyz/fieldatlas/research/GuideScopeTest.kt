@@ -20,6 +20,17 @@ class GuideScopeTest {
         assertTrue("the place beside the acronym still counts", GuideScope.namesPlace("How do I get a SIM card in Vietnam?"))
     }
 
+    @Test fun aLowercaseCityThePlacePacksConfirmNamesAPlace() = runBlocking {
+        val question = "good food markets in lyon? is anything open on sunday morning?"
+        assertFalse(GuideScope.namesPlace(question))
+        assertTrue(GuideScope.namesPlace(question, listOf("lyon")))
+        assertTrue(GuideScope.namesPlace("How do I get a SIM card in Vietnam?", emptyList()))
+        val listing = Evidence("wv-place-20606-0091", "wv-place-20606-0091:0", "Lyon — Halles de Lyon Paul Bocuse", "https://en.wikivoyage.org/w/index.php?oldid=2",
+            "Destination: Lyon\nCategory: Buy\nPlace: Halles de Lyon Paul Bocuse", 0.0)
+        assertEquals(listOf(listing), GuideScope.withoutOtherPlaces(question, listOf(listing), listOf("lyon")) { emptyList() })
+        assertEquals(emptyList<Evidence>(), GuideScope.withoutOtherPlaces(question, listOf(listing)) { emptyList() })
+    }
+
     @Test fun aQuestionThatNamesNoPlaceReadsNoDestinationsGuideOrListings() = runBlocking {
         val destination = guide("Avelton — Buy > Debit cards", "In Avelton foreign cards are refused; bring cash.")
         val topic = guide("Money — Cards", "A credit card gives more protection against fraud than a debit card.")

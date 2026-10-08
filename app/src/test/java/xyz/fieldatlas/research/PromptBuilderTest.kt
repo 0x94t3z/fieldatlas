@@ -289,4 +289,28 @@ class PromptBuilderTest {
         assertFalse(PromptBuilder.allowsModelExplanation("Tokyo's top sushi restaurants?"))
         assertFalse(PromptBuilder.allowsModelExplanation("Summarize these notes"))
     }
+
+    @Test fun aWordProblemIsWorkedOutFromItsOwnFiguresWithNoEvidence() {
+        val question = "Our hotel is €180 a night for 4 nights. We get 15% off, then 12% tax is added. What's the total?"
+        val packed = PromptBuilder.buildArithmetic(question, null)
+        assertTrue(packed.prompt.contains("The question contains every number the answer needs; use no other facts"))
+        assertTrue(packed.prompt.contains("list each quantity with its unit"))
+        assertTrue(packed.prompt.contains("\"a op b = c\" on its own line"))
+        assertTrue(packed.prompt.contains("End with one line \"Answer: …\""))
+        assertTrue(packed.prompt.endsWith("QUESTION:\n$question\n\nANSWER:"))
+        assertFalse(packed.prompt.contains("EVIDENCE"))
+        assertTrue(packed.sources.isEmpty())
+        // The working is the model's, so it is labelled as every model-only answer is.
+        assertTrue(packed.mixedAnswer)
+        assertEquals(packed.savedPrefixChars, PromptBuilder.buildArithmetic("1 + 1 + 1?", "lead").savedPrefixChars)
+        assertTrue(packed.prompt.substring(0, packed.savedPrefixChars).contains("never mention internet access"))
+    }
+
+    @Test fun aCalculatorsFiguresLeadTheWorkingAndStayFixed() {
+        val lead = "420 km ÷ 140 km/h = **3 h** of moving time."
+        val packed = PromptBuilder.buildArithmetic("train leaves at 8:15, 420 km at 140 km/h, two 10-minute stops. what time do we get in?", lead)
+        assertTrue(packed.prompt.contains("keep these figures fixed and build on them:\n$lead\n\nQUESTION:"))
+        assertFalse(PromptBuilder.buildArithmetic("1 + 1 + 1?", "  ").prompt.contains("keep these figures fixed"))
+        assertThrows(IllegalArgumentException::class.java) { PromptBuilder.buildArithmetic(" ", null) }
+    }
 }

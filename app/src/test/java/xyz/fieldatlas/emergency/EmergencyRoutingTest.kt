@@ -39,29 +39,24 @@ class EmergencyRoutingTest {
         }
     }
 
-    @Test fun theModelAnswersFromTheGuideOnlyInStrictCitedMode() = runBlocking {
+    @Test fun aReadyModelCannotRewriteEmergencyInstructions() = runBlocking {
         val model = Recording("1. Seek emergency medical attention [S2].\n2. Do not try to suck out the venom [S3].")
         var searched = false
         val events = ResearchOrchestrator(Retriever { _, _, _ -> searched = true; emptyList() }, model, emergencyGuides = { guides })
             .research("My friend was bitten by a snake on the trail, what should we do?").toList()
         assertFalse("the library is not searched for a guide answer", searched)
-        assertTrue(model.prompt.contains("first-aid and safety assistant"))
-        assertTrue(model.prompt.contains("never add treatments"))
-        assertFalse("model knowledge is not invited", model.prompt.contains("your knowledge"))
-        assertTrue(model.prompt.contains("If a snake bites you"))
+        assertEquals("The guide is displayed without generation", "", model.prompt)
         val sources = events.filterIsInstance<ResearchEvent.Sources>().single().evidence
         assertTrue(sources.all { it.documentId == "emergency:snakebite" })
-        // The official steps are on screen before the model writes anything.
-        val first = events.filterIsInstance<ResearchEvent.Lead>().single().text
-        assertTrue(first, first.startsWith("**Source excerpt from CDC/NIOSH, as published** [S1]"))
         val text = answer(events)
-        assertTrue(text, text.contains("**For this situation**\n\n1. Seek emergency medical attention"))
-        assertTrue(text, text.contains("Source excerpt from CDC/NIOSH, as published"))
-        // The app shows the key section word for word, whatever the model wrote.
-        assertTrue(text, text.contains("- Seek emergency medical attention as soon as possible to start antivenom (if needed) and stop irreversible damage."))
+        assertFalse(text, text.contains("**For this situation**"))
+        assertFalse(text, text.contains("model isn't available"))
+        assertTrue(text, text.contains("shown as published by CDC/NIOSH [S1]"))
+        assertTrue(text, text.contains("Seek emergency medical attention as soon as possible to start antivenom (if needed) and stop irreversible damage."))
         assertTrue(text, text.contains("call your local emergency number first"))
         assertTrue(text, text.contains("written for the United States"))
         assertTrue(events.last() is ResearchEvent.Complete)
+        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
     @Test fun theGuideIsShownAsPublishedWhenTheModelIsNotReady() = runBlocking {
@@ -74,7 +69,7 @@ class EmergencyRoutingTest {
         assertTrue(events.last() is ResearchEvent.Complete)
     }
 
-    @Test fun theGuideIsShownAsPublishedWhenGenerationFails() = runBlocking {
+    @Test fun aFailingNativeModelCannotBlockPublishedGuidance() = runBlocking {
         val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Recording("", fail = true), emergencyGuides = { guides })
             .research("signs of hypothermia").toList()
         assertTrue(events.none { it is ResearchEvent.Failed })

@@ -31,6 +31,8 @@ object Calculators {
         val used: List<IntRange> = emptyList(),
         /** A value the question did not give was assumed and said so: the numbers lead, research answers. */
         val partial: Boolean = false,
+        /** How long the trip worked out takes, stated stops included, so a clock time in the question can be carried to its end. */
+        val durationMinutes: Int? = null,
     )
 
     private const val NUM = "(\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)"
@@ -40,21 +42,27 @@ object Calculators {
     // Every number in the question, thousands separators and decimals included; "6-bed" is not one.
     private val numberToken = Regex("(?<![\\d.,])\\d+(?:[.,]\\d+)*(?![\\d-]|[.,]\\d)")
 
-    // Anything beyond the arithmetic ("is it dangerous", "should I") is left to research.
+    // Anything beyond the arithmetic ("is it dangerous", "should I") is left to research. "How long should it
+    // take" asks for the time, not for advice.
     private val judgement = Regex(
-        "(?i)\\b(dangerous|danger|safe|safely|risky|risk|ok(?:ay)?|should|recommend|better|worse|why|explain|compare|" +
+        "(?i)\\b(dangerous|danger|safe|safely|risky|risk|ok(?:ay)?|(?<!long |time )should|recommend|better|worse|why|explain|compare|" +
             "healthy|enough|too (?:hot|cold|much|far|long)|worth|legal|allowed|can i (?:bring|take|carry|pack|use))\\b",
     )
 
     fun solve(question: String, today: LocalDate = LocalDate.now()): Result? {
+        // A trip whose length is worked out here: a clock time beside it is its start or end, so the plain
+        // time-plus-span sums stand aside and the worked-out length is carried to the clock instead.
+        val timed = listOfNotNull(naismith(question)?.let { it to HIKE }, travelTime(question)?.let { it to TRAVEL })
+        val chained = timed.singleOrNull()?.let { (r, w) -> chained(question, r.first)?.let { c -> (c to r.second) to (w + SHIFT + BREAKS) } }
+        val plainTimes = if (timed.isEmpty()) listOfNotNull(duration(question)?.let { it to DURATION }, shift(question)?.let { it to SHIFT }) else emptyList()
         val families = listOfNotNull(
-            fuel(question)?.let { it to FUEL }, fuelRange(question)?.let { it to FUEL + RANGE }, tripFuel(question)?.let { it to FUEL + TRIP },
-            naismith(question)?.let { it to HIKE }, travelTime(question)?.let { it to TRAVEL },
+            fuel(question)?.let { it to FUEL }, fuelRange(question)?.let { it to FUEL + RANGE }, tripFuel(question)?.let { it to FUEL + TRIP }) +
+            (chained?.let { listOf(it) } ?: timed) + listOfNotNull(
             (currency(question) ?: exchange(question))?.let { it to MONEY + EXCHANGE }, water(question)?.let { it to WATER },
             battery(question)?.let { it to BATTERY },
             temperature(question)?.let { it to TEMPERATURE }, clock(question, today)?.let { it to CLOCK }, arrival(question)?.let { it to ARRIVAL },
-            recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }, duration(question)?.let { it to DURATION },
-            shift(question)?.let { it to SHIFT }, perUnit(question)?.let { it to PER_UNIT },
+            recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }) + plainTimes + listOfNotNull(
+            perUnit(question)?.let { it to PER_UNIT }, provisions(question)?.let { it to PROVISIONS },
             units(question)?.let { it to UNITS }, percent(question)?.let { it to PERCENT })
         if (families.isEmpty()) return null
         val parts = families.map { it.first }
@@ -124,7 +132,7 @@ object Calculators {
         "could", "total", "each", "per", "and", "or", "with", "for", "from", "by", "the", "an", "my", "our", "we", "us", "me",
         "you", "your", "there", "be", "if", "at", "on", "of", "so", "then", "please", "tell", "show", "give", "number",
         "amount", "equivalent", "exactly", "round", "rounded", "all", "both", "one", "two", "three", "four", "five", "six",
-        "seven", "eight", "nine", "ten", "eleven", "twelve", "whole", "just", "only", "using", "use", "uses", "used", "rule",
+        "seven", "eight", "nine", "ten", "eleven", "twelve", "whole", "just", "only", "using", "use", "uses", "used", "rule", "every",
         "value", "values", "result", "answer", "quick", "quickly", "im", "it's", "i'm", "i've", "we're", "they", "their", "he", "she",
         // Negations lose their "'t" when the words are read: "won't", "don't", "isn't".
         "not", "no", "won", "don", "doesn", "didn", "isn", "aren", "wasn", "weren", "haven", "hasn", "wouldn", "shouldn", "couldn")
@@ -134,7 +142,7 @@ object Calculators {
     private val RANGE = setOf("tank", "holds", "full", "drive", "driving", "trip", "journey", "range", "reach", "go", "travel", "cover", "refuel")
     private val HIKE = setOf("hike", "hiking", "walk", "walking", "trek", "trekking", "trail", "route", "climb", "climbing", "ascent",
         "gain", "elevation", "naismith", "naismith's", "km", "kilometres", "kilometers", "metres", "meters", "ft", "feet", "miles",
-        "mile", "hours", "time", "of")
+        "mile", "hours", "hour", "minutes", "minute", "time", "of", "plus")
     private val TRAVEL = setOf("walk", "walking", "drive", "driving", "cycle", "cycling", "ride", "riding", "run", "running", "hike",
         "hiking", "speed", "average", "km", "kilometres", "kilometers", "miles", "mile", "mph", "hours", "hour", "daylight", "left",
         "dark", "before", "sunset", "nightfall", "make", "reach", "arrive", "time", "light")
@@ -167,12 +175,14 @@ object Calculators {
         "ferry", "plane", "boarding", "board", "boards", "closes", "close", "gate", "check", "starts", "start", "begins", "begin",
         "finish", "finishes", "end", "ends", "before", "after", "later", "earlier", "trip", "journey", "ride", "drive", "walk",
         "hike", "lasts", "minutes", "minute", "mins", "hours", "hour", "hrs", "reach", "there", "done", "meet", "meeting", "tour",
-        "am", "pm", "set", "off", "back", "return", "ready", "doors", "open", "opens")
+        "am", "pm", "set", "off", "back", "return", "ready", "doors", "open", "opens", "day", "which", "night", "on")
     private val PER_UNIT = setOf("night", "nights", "day", "days", "person", "people", "head", "ticket", "tickets", "hour", "hours",
         "week", "weeks", "room", "rooms", "costs", "cost", "price", "pay", "discount", "off", "tax", "vat", "service", "charge",
         "surcharge", "fee", "commission", "hostel", "hotel", "guesthouse", "dorm", "bed", "apartment", "rental", "car", "bike",
         "scooter", "tour", "class", "lesson", "stay", "staying", "book", "booking", "euros", "euro", "dollars", "dollar", "plus",
-        "minus", "applied", "spend", "spent", "altogether", "overall", "it", "us", "of", "percent", "cent")
+        "minus", "applied", "spend", "spent", "altogether", "overall", "it", "us", "of", "percent", "cent", "city", "tourist", "resort",
+        "cleaning", "levy", "supplement", "tent", "tents", "pitch", "campsite", "camping", "added", "then", "rate", "discounted", "price",
+        "total", "get", "we", "our", "for", "and", "the", "a", "an", "in", "with", "is", "what", "how", "much", "two", "three", "four")
     private val TRIP = setOf("road", "trip", "drive", "driving", "journey", "route", "way", "there", "road-trip", "roadtrip", "car",
         "rental", "hire", "rented", "hired", "van", "camper", "petrol", "fuel", "diesel", "gas", "gasoline", "pump", "price", "costs",
         "cost", "pay", "pays", "paying", "paid", "owe", "owes", "split", "splitting", "share", "shared", "sharing", "divide", "divided",
@@ -187,7 +197,25 @@ object Calculators {
         "flat", "fixed", "left", "over", "leftover", "remaining", "spare", "back", "home", "hand", "handing", "receive", "walk", "away",
         "end", "pocket", "worth", "local", "currency", "dollars", "dollar", "euros", "euro", "pounds", "pound", "per", "one", "against",
         "before", "after", "flying", "trip", "cost", "costs", "after", "net", "minus", "plus", "less", "percent", "cent", "got", "get",
-        "much", "many", "how", "if", "my", "i")
+        "much", "many", "how", "if", "my", "i",
+        // A second offer set against the first: "how much more at the bank", "which is the better deal".
+        "more", "extra", "difference", "which", "versus", "vs", "town", "street", "city", "other", "second", "deal", "option",
+        "instead", "compared", "would", "save", "saving", "savings", "cheaper", "or")
+    // Stops stated along a trip whose length is worked out: "two 10-minute stops", "stop 45 minutes for lunch".
+    private val BREAKS = setOf("stop", "stops", "stopping", "stopped", "break", "breaks", "rest", "rests", "resting", "pause", "pauses",
+        "lunch", "breakfast", "dinner", "coffee", "snack", "picnic", "halt", "halts", "minute", "minutes", "min", "mins", "hour", "hours",
+        "plus", "while", "moving", "including", "with", "and", "if", "start", "starts", "starting", "set", "off", "leave", "leaves",
+        "leaving", "train", "bus", "car", "trip", "ride", "drive", "get", "in", "on", "we", "arrive", "finish", "end", "there", "back",
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "day", "averages", "average", "speed")
+    private val PROVISIONS = setOf("people", "person", "persons", "mornings", "morning", "days", "day", "evenings", "evening", "nights",
+        "night", "breakfast", "breakfasts", "dinner", "dinners", "lunch", "lunches", "meals", "meal", "everyone", "everybody", "each",
+        "every", "boxes", "box", "bags", "bag", "packs", "pack", "packets", "packet", "cartons", "carton", "bottles", "bottle", "cans",
+        "can", "tins", "tin", "jars", "jar", "loaves", "loaf", "trays", "tray", "crates", "crate", "rolls", "roll", "tubs", "tub",
+        "buy", "bring", "need", "cooking", "cook", "cooks", "group", "trip", "camp", "camping", "hut", "hike", "trek", "come", "comes",
+        "sold", "makes", "make", "has", "have", "eats", "eat", "drinks", "drink", "of", "in", "enough", "supplies", "provisions",
+        "shopping", "shop", "food", "groceries", "total", "altogether", "all", "many", "much", "do", "we", "us", "for", "and", "the",
+        "how", "take", "carry", "want", "wants", "gets", "get", "uses", "use", "goes", "through", "per", "head", "apiece", "weekend",
+        "week", "our", "my", "friends", "kids", "children", "adults", "hikers", "guests", "campers", "us")
     private val ARRIVAL = setOf("flight", "flights", "fly", "flying", "flies", "plane", "airline", "leaves", "leave", "leaving", "departs",
         "depart", "departure", "departing", "takes", "take", "took", "taking", "lasts", "lasting", "long", "local", "time", "times",
         "utc", "gmt", "zone", "zones", "timezone", "timezones", "hours", "hour", "hrs", "hr", "min", "mins", "minutes", "minute",
@@ -208,6 +236,94 @@ object Calculators {
         val minutes = (totalHours * 60).roundToInt()
         val h = minutes / 60; val m = minutes % 60
         return if (h == 0) "$m min" else if (m == 0) "$h h" else "$h h $m min"
+    }
+
+    /* ---------- clock times, spans and the day they fall on ---------- */
+    /** Minutes since midnight for a [clockTime] match, or null for an impossible "13 pm". */
+    private fun minutesOf(t: MatchResult): Int? = if (t.groupValues[3].isNotEmpty()) {
+        val h = t.groupValues[1].toInt(); val m = t.groupValues[2].ifBlank { "0" }.toInt()
+        if (h !in 1..12 || m > 59) null else ((h % 12) + if (t.groupValues[3].lowercase().startsWith("p")) 12 else 0) * 60 + m
+    } else t.groupValues[4].toInt() * 60 + t.groupValues[5].toInt()
+    private fun clockOf(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
+    /** Minutes in a [span] match: "2 h 35", "2 hours and 35 minutes", "30 minutes". */
+    private fun spanMinutes(s: MatchResult): Int {
+        val g = s.groupValues
+        return when {
+            g[1].isNotEmpty() -> (num(g[1]) * 60 + g[2].toInt()).roundToInt()
+            g[3].isNotEmpty() -> (num(g[3]) * 60 + num(g[4].ifBlank { "0" })).roundToInt()
+            else -> num(g[5]).roundToInt()
+        }
+    }
+    private val weekdays = listOf("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+    private val weekdayAt = Regex("(?i)\\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b")
+    /** The weekday named in the clause that holds the clock time ("leaves at 10:00 on Tuesday"), so the answer can name its day. */
+    private fun weekdayOf(q: String, time: IntRange): Int? {
+        val clause = clauses.findAll(q).firstOrNull { time.first in it.range } ?: return null
+        return weekdayAt.findAll(clause.value).map { weekdays.indexOf(it.groupValues[1].lowercase()) }.distinct().singleOrNull()
+    }
+    /** " the next day", or " on Wednesday" when the start's weekday is known: how far from the start's day the result falls. */
+    private fun dayLabel(days: Int, weekday: Int?): String = when {
+        weekday != null -> " on ${weekdays[Math.floorMod(weekday + days, 7)].replaceFirstChar(Char::uppercaseChar)}"
+        days == 1 -> " the next day"; days > 1 -> " $days days later"; days == -1 -> " the day before"; days < -1 -> " ${-days} days before"
+        else -> ""
+    }
+    // A span is a stop when a break word sits near it in its clause: "two 10-minute stops", "stop 45 minutes for
+    // lunch", "a 20-minute break". "Then a 30-minute bus ride" is another leg, not a stop.
+    private val breakWord = Regex("(?i)\\b(?:stops?|stopping|stopped|breaks?|rests?|resting|pauses?|lunch|breakfast|dinner|coffee|snack|picnic|halts?)\\b")
+    private val breakCount = Regex("(?i)\\b(?:(two|three|four|five|six|seven|eight|nine|ten|\\d+)\\s+|(a|an|one)\\s+)$")
+    /** Each stop the question states, as the text it was read from (count included) and its minutes. */
+    private fun breaks(q: String): List<Pair<IntRange, Int>> = span.findAll(q).mapNotNull { s ->
+        val clause = clauses.findAll(q).firstOrNull { s.range.first in it.range } ?: return@mapNotNull null
+        val from = maxOf(clause.range.first, s.range.first - 30); val to = minOf(clause.range.last, s.range.last + 30)
+        if (!breakWord.containsMatchIn(q.substring(from, to + 1))) return@mapNotNull null
+        val prefix = breakCount.find(q.substring(clause.range.first, s.range.first))
+        val times = prefix?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }?.let { count(it) } ?: if (Regex("(?i)\\btwice\\b").containsMatchIn(clause.value)) 2 else 1
+        val start = prefix?.let { clause.range.first + it.range.first } ?: s.range.first
+        (start..s.range.last) to spanMinutes(s) * times
+    }.toList()
+    private fun stopsNote(stops: List<Pair<IntRange, Int>>): String {
+        val total = stops.sumOf { it.second }
+        val detail = if (stops.size == 1) "" else " (${stops.joinToString(" + ") { hours(it.second / 60.0) }})"
+        return "${hours(total / 60.0)} of stops$detail"
+    }
+    // The clock time's role, from the role word nearest before it in its clause.
+    private val chainStart = Regex("(?i)\\b(?:start\\w*|leav\\w+|depart\\w*|set(?:s|ting)? off|begin\\w*|head\\w* (?:out|off))\\b")
+    private val chainEnd = Regex("(?i)\\b(?:arriv\\w+|finish\\w*|end|ends|reach\\w*|be (?:back|there|home|at)|get (?:back|there|home|in)|by|before|deadline|close\\w*)\\b")
+    /**
+     * A trip whose length was worked out, carried to the one clock time the question gives: "leaves at 8:15 ...
+     * what time do we get in?" adds the length to a start, and "must be back by 17:00 ... when do we start?"
+     * counts it back from an end. Every span must be in the working (a stated stop, a rule's "1 hour per 5 km").
+     */
+    private fun chained(q: String, base: Result): Result? {
+        val minutes = base.durationMinutes ?: return null
+        if (!asksWhen.containsMatchIn(q)) return null
+        val t = clockTime.findAll(q).singleOrNull() ?: return null
+        if (span.findAll(q).any { s -> base.used.none { s.range.first in it } }) return null
+        val start = minutesOf(t) ?: return null
+        // The time's role from the nearest role word before it in its clause: "we start the hike ... at 8:00"
+        // is a start, "must be back at the car by 17:00" an end.
+        val clauseStart = clauses.findAll(q).firstOrNull { t.range.first in it.range }?.range?.first ?: 0
+        val before = q.substring(clauseStart, t.range.first)
+        val starts = chainStart.findAll(before).lastOrNull()?.range?.first ?: -1
+        val ends = chainEnd.findAll(before).lastOrNull()?.range?.first ?: -1
+        val asks = asked.findAll(q).toList()
+        val asksStart = asks.any { it.groupValues[1].isNotEmpty() || it.groupValues[3].isNotEmpty() }
+        val asksEnd = asks.any { it.groupValues[2].isNotEmpty() || it.groupValues[4].isNotEmpty() }
+        val back = when {
+            starts > ends && asksEnd && !asksStart -> false
+            ends > starts && asksStart && !asksEnd -> true
+            else -> return null
+        }
+        val end = start + if (back) -minutes else minutes
+        val day = Math.floorDiv(end, 24 * 60); val at = Math.floorMod(end, 24 * 60)
+        val label = dayLabel(day, weekdayOf(q, t.range))
+        val length = hours(minutes / 60.0)
+        // Without stated stops the length carried is the moving time; the base text's allowance for breaks is an estimate.
+        val moving = if (base.text.contains("10-minute breaks each hour")) " without stops" else ""
+        val line = if (back) "To finish by ${clockOf(start)}, start by **${clockOf(at)}$label**: ${clockOf(start)} minus $length$moving."
+            else "${clockOf(start)} plus $length is **${clockOf(at)}$label**$moving."
+        return base.copy(text = "${base.text}\n\n$line", facts = "${base.facts} ${clockOf(start)} ${if (back) "−" else "+"} $length = ${clockOf(at)}$label.",
+            used = base.used + listOf(t.range))
     }
 
     /* ---------- fuel economy ---------- */
@@ -239,23 +355,50 @@ object Calculators {
     // Height climbed, not height above the sea: "2,400 m elevation" is where the lake is.
     private val ascent = Regex("(?i)$NUM\\s*(m|meters?|metres?|ft|feet)\\b(?:\\s+of)?(?:\\s+(?:total|of))?\\s*(?:climb(?:ing)?|ascent|elevation gain|gain|uphill|vertical)")
     private val ascentAfter = Regex("(?i)(?:climb(?:ing)?|ascent|elevation gain|gain)\\s+(?:of\\s+)?$NUM\\s*(m|meters?|metres?|ft|feet)\\b")
+    // The rule's own constants when the question states them: "1 hour per 5 km plus 1 hour per 600 m of ascent",
+    // "1 hour for every 4 km and 1 hour for every 450 m", "30 minutes per 300 m of climb".
+    private const val RULE_TIME = "((?:1|one|an?)\\s*(?:hours?|hrs?|h)|$NUM\\s*(?:hours?|hrs?|h|minutes?|mins?))"
+    private const val RULE_PER = "\\s+(?:per|for\\s+(?:every|each)|every|each|for)\\s+"
+    private val ruleDistance = Regex("(?i)\\b$RULE_TIME$RULE_PER$NUM\\s*(km|kilometres?|kilometers?|mi|miles?)\\b")
+    private val ruleClimb = Regex("(?i)\\b$RULE_TIME$RULE_PER$NUM\\s*(m|metres?|meters?|ft|feet)\\b" +
+        "(?:\\s+(?:of\\s+)?(?:total\\s+)?(?:ascent|climb(?:ing)?|elevation(?:\\s+gain)?|gain|height|up|uphill|vertical))?")
+    private fun ruleMinutes(m: MatchResult): Double {
+        val phrase = m.groupValues[1]
+        val value = m.groupValues[2].ifBlank { "1" }.let(::num)
+        return if (Regex("(?i)min").containsMatchIn(phrase)) value else value * 60
+    }
     private fun naismith(q: String): Pair<Result, Set<String>>? {
         val hiking = Regex("(?i)\\b(naismith|hike|hiking|walk|walking|trek|trail)\\b").containsMatchIn(q) &&
-            Regex("(?i)\\bhow long|how many hours|how much time|naismith|time (?:will|would|does|do) (?:it|i|we) (?:take|need)").containsMatchIn(q)
+            (Regex("(?i)\\bhow long|how many hours|how much time|naismith|time (?:will|would|does|do) (?:it|i|we) (?:take|need)").containsMatchIn(q) ||
+                // "We start at 7:30; when do we finish?" asks for the walk's length too.
+                (asksWhen.containsMatchIn(q) && clockTime.containsMatchIn(q)))
         // "I walk at 5 km/h": a stated speed is used as given (travelTime), not Naismith's 5 km/h.
         if (!hiking || speed.containsMatchIn(q)) return null
-        val d = distanceOnly.find(q) ?: return null
+        val ruleD = ruleDistance.find(q); val ruleC = ruleClimb.find(q)
+        val ruleRanges = listOfNotNull(ruleD?.range, ruleC?.range)
+        // The rule's "5 km" and "600 m of ascent" are its constants, not the walk.
+        val d = distanceOnly.findAll(q).firstOrNull { m -> ruleRanges.none { m.range.first in it } } ?: return null
         val km = num(d.groupValues[1]) * (if (d.groupValues[2].lowercase().startsWith("mi")) 1.609344 else 1.0)
-        val up = ascent.find(q) ?: ascentAfter.find(q)
+        val up = (ascent.findAll(q) + ascentAfter.findAll(q)).firstOrNull { m -> ruleRanges.none { m.range.first in it } }
         val metres = up?.let { num(it.groupValues[1]) * (if (it.groupValues[2].lowercase().startsWith("f")) 0.3048 else 1.0) } ?: 0.0
-        val walk = km / 5.0; val climb = metres / 600.0
+        val kmPerHour = ruleD?.let { num(it.groupValues[3]) * (if (it.groupValues[4].lowercase().startsWith("mi")) 1.609344 else 1.0) / (ruleMinutes(it) / 60) } ?: 5.0
+        val climbPerHour = ruleC?.let { num(it.groupValues[3]) * (if (it.groupValues[4].lowercase().startsWith("f")) 0.3048 else 1.0) / (ruleMinutes(it) / 60) } ?: 600.0
+        if (km <= 0 || kmPerHour <= 0 || climbPerHour <= 0) return null
+        val walk = km / kmPerHour; val climb = metres / climbPerHour
+        val stops = breaks(q)
+        val stopMinutes = stops.sumOf { it.second }
+        val total = ((walk + climb) * 60).roundToInt() + stopMinutes
         val text = buildString {
-            append("About **${hours(walk + climb)}** of moving time by Naismith's rule (1 hour per 5 km, plus 1 hour per 600 m of ascent).\n\n")
-            append("Working: ${fmt(km)} km ÷ 5 km/h = ${hours(walk)}")
-            if (metres > 0) append(", plus ${fmt(metres, 0)} m ÷ 600 m/h = ${hours(climb)}")
-            append(".\n\nAdd time for breaks. The rule assumes a reasonably fit walker on good paths; steep descents, rough ground, heavy packs and heat all slow you down.")
+            append("About **${hours(walk + climb)}** of moving time by Naismith's rule (1 hour per ${fmt(kmPerHour)} km, plus 1 hour per ${fmt(climbPerHour, 0)} m of ascent).\n\n")
+            append("Working: ${fmt(km)} km ÷ ${fmt(kmPerHour)} km/h = ${hours(walk)}")
+            if (metres > 0) append(", plus ${fmt(metres, 0)} m ÷ ${fmt(climbPerHour, 0)} m/h = ${hours(climb)}")
+            append(".\n\n")
+            append(if (stops.isEmpty()) "Add time for breaks. " else "With ${stopsNote(stops)}: **${hours(total / 60.0)}**. ")
+            append("The rule assumes a reasonably fit walker on good paths; steep descents, rough ground, heavy packs and heat all slow you down.")
         }
-        return Result(text, true, "Naismith time = ${hours(walk + climb)}.", used = listOfNotNull(d.range, up?.range)) to emptySet()
+        val facts = "Naismith time = ${hours(walk + climb)}" + (if (stops.isEmpty()) "." else ", ${hours(total / 60.0)} with stops.")
+        return Result(text, true, facts, used = listOfNotNull(d.range, up?.range) + ruleRanges + stops.map { it.first },
+            durationMinutes = total) to emptySet()
     }
 
     /* ---------- a bill at a given exchange rate ---------- */
@@ -390,6 +533,17 @@ object Calculators {
         }
         return name.substringBeforeLast(' ', "").let { if (it.isEmpty()) plural else "$it $plural" }
     }
+    // The fee taken off is the money changer's: a hotel's "10% fee" in another sentence is not it.
+    private val changing = Regex("(?i)\\b(?:exchange|office|bureau|kiosk|booth|counter|bank|atm|changer|desk|card|app|rate|commission|convert\\w*|chang\\w+|money|cash|currency|gives?|offers?|quotes?)\\b")
+    // Who makes an offer, for naming it: "the airport kiosk", "my bank in town".
+    private const val PLACE_WORD = "(?:exchange|post|kiosk|booth|counter|bank|atm|airport|hotel|office|bureau|changer|desk|app|card)"
+    private val offerPlace = Regex("(?i)\\b((?:$PLACE_WORD\\s+)*$PLACE_WORD)\\b")
+    // A second rate given bare: "my bank in town gives 0.86 with no fee", "bank 0.86 no fee". Not a percentage, not
+    // an amount of money, and said to be what the place gives, so "opens at 9" is not a rate.
+    private val bareNumber = Regex("(?<![\\d.,])\\d(?:[\\d.,]*\\d)?(?!\\d|[.,]\\d|\\s*(?:%|per\\s?cent|am|pm|a\\.m|p\\.m|o'clock|:\\d))")
+    private val givesRate = Regex("(?i)(?:\\b(?:gives?|offers?|quotes?|pays?|does|rate(?:\\s+(?:is|of))?|is|=)\\s+(?:(?:you|me|us|only|about|around|just|a\\s+rate\\s+of)\\s+)*|\\b$PLACE_WORD\\s+)$")
+    private val comparisonAsk = Regex("(?i)\\bhow much (?:more|less|extra|better|worse)\\b|\\bdifference\\b|\\bwhich (?:\\w+\\s+){0,3}?(?:better|best|more|most|cheaper|worse|worst)\\b|" +
+        "\\bbetter (?:deal|rate|offer|option|off)\\b|\\b(?:save|saves|saving)\\b|\\bcheaper\\b|\\bwhich (?:should|do|would) (?:i|we)\\b|\\b(?:is|are) (?:it|the \\w+) (?:worth|better)\\b")
     private fun exchange(q: String): Pair<Result, Set<String>>? {
         // A tip is added to a bill, not taken from the money changed: that is currency()'s sum.
         if (tipWords.containsMatchIn(q)) return null
@@ -408,68 +562,126 @@ object Calculators {
         val perBase = parseAmount(if (per != null) per.groupValues[1] else eq!!.groupValues[2], local) ?: return null
         if (perBase <= 0 || canon(base) == canon(local)) return null
         // The amount changed sits outside the rate and is in one of its two currencies; a fee's money is not it.
-        val feeAt = flatFee.find(q)
-        val fees = pctFee.findAll(q).toList()
-        val amounts = Regex("(?i)(?<![\\d.,])$AMOUNT").findAll(q)
-            .filter { it.range.first !in r.range && it.range.last !in r.range && (feeAt == null || it.range.first !in feeAt.range) }.toList()
+        val flatFees = flatFee.findAll(q).toList()
+        val pctFees = pctFee.findAll(q).toList()
+        var amounts = Regex("(?i)(?<![\\d.,])$AMOUNT").findAll(q)
+            .filter { it.range.first !in r.range && it.range.last !in r.range && flatFees.none { f -> it.range.first in f.range } }.toList()
+        val symbolCurrency = mapOf("$" to "dollar", "€" to "euro", "£" to "pound", "¥" to "yen", "₹" to "rupee")
+        fun clauseOf(at: Int) = clauses.findAll(q).firstOrNull { at in it.range }
+        // "The bank offers 4.1 zloty": a second rate named with its money is an offer, not the amount changed, when
+        // it is in the money received, near the quoted rate and in a clause about changing money.
+        val offered = amounts.filter { m ->
+            val g = m.groupValues
+            val cur = symbolCurrency[g[1].ifBlank { g[4] }] ?: g[5]
+            canon(cur) == canon(local) && changing.containsMatchIn(clauseOf(m.range.first)?.value.orEmpty()) &&
+                parseAmount(g[2].ifBlank { g[3] }, cur)?.let { it >= perBase * 0.2 && it <= perBase * 5 } == true
+        }
+        val offeredRate = if (amounts.size == 2 && offered.size == 1) offered.single() else null
+        if (offeredRate != null) amounts = amounts.filter { it !== offeredRate }
         if (amounts.size != 1) return null
         val a = amounts.single().groupValues
-        val symbolCurrency = mapOf("$" to "dollar", "€" to "euro", "£" to "pound", "¥" to "yen", "₹" to "rupee")
         val amountCurrency = symbolCurrency[a[1].ifBlank { a[4] }] ?: a[5].ifBlank { return null }
         val amount = parseAmount(a[2].ifBlank { a[3] }, amountCurrency) ?: return null
         if (amount <= 0) return null
         val forward = when (canon(amountCurrency)) { canon(base) -> true; canon(local) -> false; else -> return null }
-        // Every fee named must have its size, and only one kind at a time: how a percentage and a flat fee
-        // combine is the office's rule, not arithmetic.
-        if (fees.size > 1 || (fees.isNotEmpty() && feeAt != null)) return null
-        // The fee taken off is the money changer's: a hotel's "10% fee" in another sentence is not it.
-        val changing = Regex("(?i)\\b(?:exchange|office|bureau|kiosk|booth|counter|bank|atm|changer|rate|commission|convert\\w*|chang\\w+|money|cash|currency)\\b")
-        fun clauseOf(at: Int) = clauses.findAll(q).firstOrNull { at in it.range }?.value.orEmpty()
-        val rateClause = clauseOf(r.range.first)
-        for (f in fees.map { it.range } + listOfNotNull(feeAt?.range)) {
-            val c = clauseOf(f.first)
-            if (c != rateClause && !changing.containsMatchIn(c) && !Regex("(?i)commission").containsMatchIn(q.substring(f))) return null
+        // A second offer: one bare number in a clause with exchange words, within 0.2-5 times the quoted rate so a
+        // head count or a year is not read as a rate. Two such numbers leave the question to research.
+        val taken = listOf(r.range, amounts.single().range) + flatFees.map { it.range } + pctFees.map { it.range } + listOfNotNull(offeredRate?.range)
+        val second = bareNumber.findAll(q).filter { n -> taken.none { n.range.first in it } && changing.containsMatchIn(clauseOf(n.range.first)?.value.orEmpty()) &&
+                givesRate.containsMatchIn(q.substring(0, n.range.first)) }
+            .mapNotNull { n -> parseAmount(n.value, local)?.takeIf { it >= perBase * 0.2 && it <= perBase * 5 }?.let { n.range to it } }.toList() +
+            listOfNotNull(offeredRate?.let { m -> m.range to parseAmount(m.groupValues[2].ifBlank { m.groupValues[3] }, local)!! })
+        if (second.size > 1) return null
+        val other = second.singleOrNull()
+        // Each fee belongs to the rate nearest before it in its sentence; a fee in a sentence with no rate is the
+        // changer's only if that sentence speaks of changing money.
+        val rates = listOfNotNull(r.range.first to 0, other?.let { it.first.first to 1 })
+        fun ownerOf(f: IntRange): Int? {
+            val sentence = clauseOf(f.first) ?: return null
+            val here = rates.filter { it.first in sentence.range }
+            if (here.isEmpty()) return if (changing.containsMatchIn(sentence.value) || Regex("(?i)commission").containsMatchIn(q.substring(f))) 0 else null
+            return (here.filter { it.first < f.first }.maxByOrNull { it.first } ?: here.minBy { it.first }).second
         }
+        val owners = (pctFees.map { it.range } + flatFees.map { it.range }).associateWith { ownerOf(it) ?: return null }
         val waived = noFee.findAll(q).map { it.range }.toList()
         val feeMentions = feeWord.findAll(q).filter { f -> waived.none { f.range.first in it } }.toList()
-        if (feeMentions.any { f -> fees.none { f.range.first in it.range } && (feeAt == null || f.range.first !in feeAt.range) }) return null
+        // Every fee named must have its size.
+        if (feeMentions.any { f -> owners.keys.none { f.range.first in it } }) return null
         val baseName = plural(base.replace(Regex("(?i)^u\\.?s\\.?(?=\\s)"), "US"))
         val localPlural = plural(localName)
         fun inBase(v: Double) = "${money(v)} $baseName"
         fun inLocal(v: Double) = "${money(v)} $localPlural"
         fun out(v: Double) = if (forward) inLocal(v) else inBase(v)
-        val before = if (forward) amount * perBase else amount / perBase
-        val text = StringBuilder()
-        text.append(if (forward) "${fmt(amount, 2)} $baseName × ${fmt(perBase, 4)} = **${inLocal(before)}**"
-            else "${fmt(amount, 2)} $localPlural ÷ ${fmt(perBase, 4)} = **${inBase(before)}**")
-        var after = before
         val used = mutableListOf(r.range, amounts.single().range)
-        if (fees.isNotEmpty()) {
-            val f = fees.single(); used += f.range
-            val pct = num(f.groupValues[1].ifBlank { f.groupValues[2] }.ifBlank { f.groupValues[3] })
-            if (pct <= 0 || pct >= 100) return null
-            after = before * (1 - pct / 100)
-            text.append(" before the commission.\n\nAfter the ${fmt(pct)}% commission: ${money(before)} × ${fmt(1 - pct / 100, 2)} = **${out(after)}**.")
-        } else if (feeAt != null) {
-            used += feeAt.range
-            val fa = Regex("(?i)$AMOUNT").find(feeAt.value)?.groupValues ?: return null
-            val feeCurrency = symbolCurrency[fa[1].ifBlank { fa[4] }] ?: fa[5].ifBlank { return null }
-            val fee = parseAmount(fa[2].ifBlank { fa[3] }, feeCurrency) ?: return null
-            // A fee in the money handed over comes off before the rate; one in the money received, after.
-            val feeInSource = when (canon(feeCurrency)) { canon(amountCurrency) -> true; canon(if (forward) local else base) -> false; else -> return null }
-            if (fee <= 0 || (feeInSource && fee >= amount) || (!feeInSource && fee >= before)) return null
-            text.append(" before the fee.\n\n")
-            if (feeInSource) {
-                after = if (forward) (amount - fee) * perBase else (amount - fee) / perBase
-                text.append("Less the ${money(fee)} ${if (forward) baseName else localPlural} fee first: ${fmt(amount - fee, 2)} ${if (forward) "×" else "÷"} ${fmt(perBase, 4)} = **${out(after)}**.")
-            } else {
-                after = before - fee
-                text.append("Less the ${money(fee)} ${if (forward) localPlural else baseName} fee: ${money(before)} − ${money(fee)} = **${out(after)}**.")
-            }
-        } else text.append(".")
-        text.append("\n\nThis uses the rate you gave; check the office's buy rate and any minimum fee before handing over the cash.")
-        val facts = "${fmt(amount, 2)} ${if (forward) baseName else localPlural} = ${out(after)}" + (if (after != before) " after the fee" else "") + "."
-        return Result(text.toString(), true, facts, used = used) to emptySet()
+        /** What one offer nets, and its working: the rate, then the one fee it names taken off. Null where the fee cannot be placed. */
+        fun offer(rate: Double, pct: MatchResult?, flat: MatchResult?, lead: String): Pair<Double, String>? {
+            // Only one kind of fee at a time: how a percentage and a flat fee combine is the office's rule, not arithmetic.
+            if (pct != null && flat != null) return null
+            val before = if (forward) amount * rate else amount / rate
+            val text = StringBuilder(lead)
+            text.append(if (forward) "${fmt(amount, 2)} $baseName × ${fmt(rate, 4)} = **${inLocal(before)}**"
+                else "${fmt(amount, 2)} $localPlural ÷ ${fmt(rate, 4)} = **${inBase(before)}**")
+            var after = before
+            if (pct != null) {
+                used += pct.range
+                val p = num(pct.groupValues[1].ifBlank { pct.groupValues[2] }.ifBlank { pct.groupValues[3] })
+                if (p <= 0 || p >= 100) return null
+                after = before * (1 - p / 100)
+                text.append(" before the commission.\n\nAfter the ${fmt(p)}% commission: ${money(before)} × ${fmt(1 - p / 100, 2)} = **${out(after)}**.")
+            } else if (flat != null) {
+                used += flat.range
+                val fa = Regex("(?i)$AMOUNT").find(flat.value)?.groupValues ?: return null
+                val feeCurrency = symbolCurrency[fa[1].ifBlank { fa[4] }] ?: fa[5].ifBlank { return null }
+                val fee = parseAmount(fa[2].ifBlank { fa[3] }, feeCurrency) ?: return null
+                // A fee in the money handed over comes off before the rate; one in the money received, after.
+                val feeInSource = when (canon(feeCurrency)) { canon(amountCurrency) -> true; canon(if (forward) local else base) -> false; else -> return null }
+                if (fee <= 0 || (feeInSource && fee >= amount) || (!feeInSource && fee >= before)) return null
+                text.append(" before the fee.\n\n")
+                if (feeInSource) {
+                    after = if (forward) (amount - fee) * rate else (amount - fee) / rate
+                    text.append("Less the ${money(fee)} ${if (forward) baseName else localPlural} fee first: ${fmt(amount - fee, 2)} ${if (forward) "×" else "÷"} ${fmt(rate, 4)} = **${out(after)}**.")
+                } else {
+                    after = before - fee
+                    text.append("Less the ${money(fee)} ${if (forward) localPlural else baseName} fee: ${money(before)} − ${money(fee)} = **${out(after)}**.")
+                }
+            } else text.append(".")
+            return after to text.toString()
+        }
+        // Two fees of one kind on one offer cannot both be its fee.
+        for (owner in 0..1) if (pctFees.count { owners[it.range] == owner } > 1 || flatFees.count { owners[it.range] == owner } > 1) return null
+        fun feesOf(owner: Int) = pctFees.singleOrNull { owners[it.range] == owner } to flatFees.singleOrNull { owners[it.range] == owner }
+        val (firstPct, firstFlat) = feesOf(0)
+        val (net, firstText) = offer(perBase, firstPct, firstFlat, "") ?: return null
+        val text = StringBuilder(firstText)
+        var facts = "${fmt(amount, 2)} ${if (forward) baseName else localPlural} = ${out(net)}" + (if (firstPct != null || firstFlat != null) " after the fee" else "") + "."
+        if (other != null) {
+            used += other.first
+            val (secondPct, secondFlat) = feesOf(1)
+            // The place named nearest before the rate: "the airport kiosk gives 0.84", "my bank in town gives 0.86".
+            fun placeOf(at: Int, fallback: String) = clauseOf(at)?.let { c ->
+                val found = offerPlace.findAll(c.value).toList()
+                (found.lastOrNull { c.range.first + it.range.first < at } ?: found.firstOrNull())?.groupValues?.get(1)?.lowercase()
+            } ?: fallback
+            val firstPlace = placeOf(r.range.first, "first offer"); val secondPlace = placeOf(other.first.first, "second offer")
+            val secondWaived = clauseOf(other.first.first)?.let { c -> noFee.containsMatchIn(c.value) } ?: false
+            val lead = "\n\nAt the $secondPlace's ${fmt(other.second, 4)}${if (secondPct == null && secondFlat == null && secondWaived) " with no fee" else ""}: "
+            val (otherNet, secondText) = offer(other.second, secondPct, secondFlat, lead) ?: return null
+            text.append(secondText)
+            val gap = otherNet - net
+            val name = if (forward) localPlural else baseName
+            text.append("\n\n")
+            text.append(when {
+                gap > 0.005 -> "The $secondPlace gives **${money(gap)} $name more** than the $firstPlace (${money(otherNet)} against ${money(net)})."
+                gap < -0.005 -> "The $firstPlace gives **${money(-gap)} $name more** than the $secondPlace (${money(net)} against ${money(otherNet)})."
+                else -> "Both come to the same: ${money(net)} $name."
+            })
+            facts = "${fmt(amount, 2)} ${if (forward) baseName else localPlural} = ${out(net)} at the $firstPlace, ${out(otherNet)} at the $secondPlace" +
+                (if (kotlin.math.abs(gap) > 0.005) ": ${money(kotlin.math.abs(gap))} $name more at the ${if (gap > 0) secondPlace else firstPlace}." else ".")
+        }
+        text.append("\n\nThis uses the rate${if (other != null) "s" else ""} you gave; check the office's buy rate and any minimum fee before handing over the cash.")
+        // Which offer is the better one is answered by the comparison; the words that ask it are covered.
+        val covered = if (other != null && comparisonAsk.containsMatchIn(q)) setOf("better", "worse", "should", "compare") else emptySet()
+        return Result(text.toString(), true, facts, used = used) to covered
     }
 
     /* ---------- water for a group ---------- */
@@ -480,7 +692,7 @@ object Calculators {
         "eighth" to 8, "ninth" to 9, "tenth" to 10)
     private const val N = "(\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
     private val groupSize = listOf(
-        Regex("(?i)\\b$N\\s+(?:of us|people|persons|hikers|adults|travell?ers|friends|walkers|climbers)\\b"),
+        Regex("(?i)\\b$N\\s+(?:of us|people|persons|hikers|adults|travell?ers|friends|walkers|climbers|campers|guests|students|scouts|cyclists|runners|kids|children|teenagers)\\b"),
         Regex("(?i)\\b(?:family|group|party|team) of $N\\b"),
         Regex("(?i)\\bwe(?:'re| are) $N\\b"),
         Regex("(?i)\\b(both|the two) of us\\b"),
@@ -625,7 +837,7 @@ object Calculators {
     private fun utc(minutes: Int) = if (minutes == 0) "UTC" else "UTC${if (minutes < 0) "−" else "+"}${kotlin.math.abs(minutes) / 60}" +
         (kotlin.math.abs(minutes) % 60).let { if (it == 0) "" else ":%02d".format(it) }
     private fun arrival(q: String): Pair<Result, Set<String>>? {
-        if (!Regex("(?i)\\bwhen\\b|\\bwhat time\\b|\\btime (?:is it|will it be|there)\\b").containsMatchIn(q)) return null
+        if (!asksWhen.containsMatchIn(q) && !Regex("(?i)\\btime (?:is it|will it be|there)\\b").containsMatchIn(q)) return null
         val gap = zoneGap.find(q)
         // "2 hours ahead" is the gap between the zones, not the flight's length.
         val times = clockTime.findAll(q).toList(); val spans = span.findAll(q).filter { gap == null || it.range.first !in gap.range }.toList()
@@ -714,7 +926,7 @@ object Calculators {
         // The time's role from the role word nearest it, and what is asked from the asking clause.
         val before = q.substring(0, t.range.first)
         // "Flight from Dubai at 02:15": leaving a place at a time is a start.
-        val fromPlace = Regex("\\b[Ff]rom\\s+$PLACE\\s*,?\\s*(?:at\\s+)?$").find(before)?.range?.first ?: -1
+        val fromPlace = Regex("\\b[Ff]rom\\s+$PLACE\\s*(?:\\([^)]*\\)\\s*)?,?\\s*(?:at\\s+)?$").find(before)?.range?.first ?: -1
         val starts = maxOf(startsAt.findAll(before).lastOrNull()?.range?.first ?: -1, fromPlace)
         val ends = endsAt.findAll(before).lastOrNull()?.range?.first ?: -1
         val wantsLanding = asksLanding.containsMatchIn(asking); val wantsTakeoff = asksTakeoff.containsMatchIn(asking)
@@ -727,7 +939,8 @@ object Calculators {
         val end = if (forward) start + duration + diff else start - duration - diff
         val day = Math.floorDiv(end, 24 * 60); val at = Math.floorMod(end, 24 * 60)
         fun clock(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
-        val dayNote = when { day == 1 -> " the next day"; day > 1 -> " $day days later"; day == -1 -> " the day before"; day < -1 -> " ${-day} days before"; else -> "" }
+        // "Leaves at 10:00 on Tuesday": the day named with the time is carried across the zones to the landing.
+        val dayNote = dayLabel(day, weekdayOf(q, t.range))
         val depLabel = depName?.let { "$it time" } ?: "departure time (${utc(depOffset)})"
         val arrLabel = arrName?.let { "$it time" } ?: "arrival time (${utc(arrOffset)})"
         val gapText = when {
@@ -860,11 +1073,14 @@ object Calculators {
         if (kmh <= 0) return null
         val need = km / kmh
         val left = timeLeft.find(q)
+        // Stops the question states replace the usual allowance; a daylight count is not a stop.
+        val stops = breaks(q).filter { s -> left == null || s.first.first !in left.range }
+        val withBreaks = if (stops.isEmpty()) need * 7 / 6 else need + stops.sumOf { it.second } / 60.0
         val text = buildString {
             append("${fmt(km)} km ÷ ${fmt(kmh)} km/h = **${hours(need)}** of moving time.")
             // Ten minutes' rest an hour is the usual allowance for walkers and drivers alike.
-            val withBreaks = need * 7 / 6
-            append(" With 10-minute breaks each hour it takes about **${hours(withBreaks)}**.")
+            append(if (stops.isEmpty()) " With 10-minute breaks each hour it takes about **${hours(withBreaks)}**."
+                else " With ${stopsNote(stops)} it takes **${hours(withBreaks)}**.")
             left?.let { m ->
                 val have = num(m.groupValues[1])
                 append("\n\n")
@@ -877,7 +1093,10 @@ object Calculators {
                 append(" Steep or rough ground, heat and tiredness slow you down further.")
             }
         }
-        return Result(text, true, "${fmt(km)} km at ${fmt(kmh)} km/h = ${hours(need)}.", used = listOfNotNull(v.range, d.range, left?.range)) to emptySet()
+        // The time the trip takes: with stated stops, the moving time plus the stops; otherwise the moving time
+        // alone, since the usual allowance is an estimate the question did not give.
+        return Result(text, true, "${fmt(km)} km at ${fmt(kmh)} km/h = ${hours(need)}.", used = listOfNotNull(v.range, d.range, left?.range) + stops.map { it.first },
+            durationMinutes = (withBreaks.takeIf { stops.isNotEmpty() } ?: need).times(60).roundToInt()) to emptySet()
     }
 
     /* ---------- the time in another city ---------- */
@@ -912,7 +1131,7 @@ object Calculators {
         return null
     }
     private fun clock(q: String, today: LocalDate): Pair<Result, Set<String>>? {
-        if (!Regex("(?i)\\bwhat time\\b|\\btime (?:is it|there|difference)\\b").containsMatchIn(q)) return null
+        if (!Regex("(?i)\\bwhat (?:local )?time\\b|\\b(?:what|which) day\\b|\\btime (?:is it|there|difference)\\b").containsMatchIn(q)) return null
         // An arrival time needs the flight's length, which a clock conversion would silently leave out.
         if (Regex("(?i)\\b(fly|flying|flight|land|lands|landing|arrive|arrives|arrival|depart\\w*|leave|leaves|take off|takes off)\\b").containsMatchIn(q)) return null
         val t = clockTime.find(q) ?: return null
@@ -964,9 +1183,10 @@ object Calculators {
     }
 
     /* ---------- a clock time plus or minus a duration ---------- */
-    // "2 h 35" or "9 hours 30" (minutes after the hours, without their unit), "2 hours and 35 minutes", "30 minutes".
+    // "2 h 35" or "9 hours 30" (minutes after the hours, without their unit), "2 hours and 35 minutes", "30 minutes",
+    // "10-minute" and "2-hour" as in "two 10-minute stops".
     private val span = Regex("(?i)\\b$NUM\\s*(?:hours?|hrs?|h)\\s*(?:and\\s+)?([0-5]\\d)\\b(?!-|\\s*(?:%|[a-z]))|" +
-        "\\b$NUM\\s*(?:hours?|hrs?|h)\\b(?:\\s*(?:and\\s*)?$NUM\\s*(?:minutes?|mins?|m)\\b)?|\\b$NUM\\s*(?:minutes?|mins?)\\b")
+        "\\b$NUM\\s*-?\\s*(?:hours?|hrs?|h)\\b(?:\\s*(?:and\\s*)?$NUM\\s*(?:minutes?|mins?|m)\\b)?|\\b$NUM\\s*-?\\s*(?:minutes?|mins?)\\b")
     // A duration the sum would leave out: "a 30-minute bus", "an hour", "half an hour".
     private val otherDuration = Regex("(?i)\\b\\d+(?:\\.\\d+)?\\s*-\\s*(?:minute|hour)s?\\b|\\b(?:an|one|half an|a quarter of an|a half) hour\\b|" +
         "\\bhalf(?:-| )hour\\b|\\b(?:a|one) (?:few|couple of) (?:minutes|hours)\\b|\\bthen\\b|\\bplus\\b")
@@ -979,7 +1199,8 @@ object Calculators {
     // "Have 3 hours" or "spend 3 hours there" is time spent at a place, not a trip that starts or ends at the time.
     private val dwell = Regex("(?i)\\b(?:have|has|had|got|spend|spending|stay|staying|wait|waiting)\\s+" +
         "(?:(?:about|around|only|just|another|a|an|for)\\s+)?$")
-    private val asksWhen = Regex("(?i)\\bwhen\\b|\\bwhat time\\b")
+    // "When", "what time", "what local time", "what day and local time", "which day".
+    private val asksWhen = Regex("(?i)\\bwhen\\b|\\bwhat (?:local )?time\\b|\\b(?:what|which) day\\b")
     // "Leaves Paris at 10:00", "land in New York", "the bus to Chiang Mai": a trip between places can cross
     // a time zone.
     private val travels = Regex("(?i)\\b(?:fly|flying|flies|flight|flights|plane|land|lands|landing|arrive|arrives|arriving|arrival|" +
@@ -1000,7 +1221,7 @@ object Calculators {
     // asks for a start, and "leave and arrive" for both, which one sum cannot give.
     private const val ASK_START = "leave|depart|set off|start|begin|go(?!\\s+(?:back|home))|head out|wake|get up"
     private const val ASK_END = "arrive|arrival|get (?:there|in|to|back|home)|reach|finish|end|land|be (?:there|back|done|home)|done|over|return|back"
-    private val asked = Regex("(?i)\\b(?:when|what time)\\b[^.?!]*?\\b(?:($ASK_START)|($ASK_END))\\b" +
+    private val asked = Regex("(?i)\\b(?:when|what (?:local )?time|(?:what|which) day)\\b[^.?!]*?\\b(?:($ASK_START)|($ASK_END))\\b" +
         "(?:\\s*,?\\s*(?:and|or)\\s+(?:[\\p{L}']+\\s+){0,2}?(?:($ASK_START)|($ASK_END))\\b)?")
     // "When do I leave" and "when to leave" ask; "When we leave at 9:40, ..." only gives the time's role.
     private val auxiliary = Regex("(?i)\\b(?:do|does|did|will|would|should|must|can|could|shall|need|needs|have|has|had|got|ought|" +
@@ -1072,20 +1293,24 @@ object Calculators {
         val at = Math.floorMod(end, 24 * 60)
         fun clock(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
         val length = hours(minutes / 60.0)
-        val dayNote = when { day > 0 -> " the next day"; day < 0 -> " the day before"; else -> "" }
+        val dayNote = dayLabel(day, weekdayOf(q, t.range))
         val text = "${clock(start)} ${if (back) "minus" else "plus"} $length is **${clock(at)}$dayNote**."
         return Result(text, true, "${clock(start)} ${if (back) "−" else "+"} $length = ${clock(at)}$dayNote.", used = listOf(t.range, s.range)) to emptySet()
     }
 
     /* ---------- a price per night, day or person, times how many ---------- */
-    private val unitPrice = Regex("(?i)(?:($SYMBOLS)\\s*$NUM|$NUM\\s*(?:($SYMBOLS)|((?:$CURRENCIES)s?)\\b)?)\\s*(?:a|an|per|each|every|/)\\s*" +
-        "(night|day|person|head|ticket|hour|week|room)\\b")
+    private const val UNIT = "(?:night|day|person|head|ticket|hour|week|room|adult|bed|guest|child|kid|tent|pitch|car|vehicle|bike|dog|stay|booking)"
+    // "€180 a night", "18 euros per person per night", "€3.50 per person per night": a price and every unit it is per.
+    private val unitPrice = Regex("(?i)(?:($SYMBOLS)\\s*$NUM|$NUM\\s*(?:($SYMBOLS)|((?:$CURRENCIES)s?)\\b)?)((?:\\s*(?:a|an|per|each|every|/)\\s*${UNIT}s?\\b)+)")
+    private val unitInPrice = Regex("(?i)\\b($UNIT)s?\\b")
     private val adjustment = Regex("(?i)$NUM\\s*$PCT\\s*(discount|off|tax|vat|service(?: charge)?|surcharge|fee|commission)|" +
         "(discount|tax|vat|service charge|surcharge|fee|commission)\\s+(?:of\\s+)?$NUM\\s*$PCT")
     // A charge named without the percentage it adds or takes off ("plus tax", "minus a discount") cannot be applied.
-    private val charge = Regex("(?i)\\b(?:tax(?:es)?|vat|fees?|service|(?:sur)?charges?|commissions?|discount(?:s|ed)?)\\b")
-    private val unitWords = Regex("(?i)\\b(?:\\d+(?:\\.\\d+)?|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\\s+" +
-        "(nights?|days?|people|persons?|heads?|tickets?|hours?|weeks?|rooms?|beds?|adults?|children|kids|guests?)\\b")
+    private val charge = Regex("(?i)\\b(?:tax(?:es)?|vat|fees?|service|(?:sur)?charges?|commissions?|discount(?:s|ed)?|levy|supplement)\\b")
+    // The name of a flat charge, for the working: "city tax of €3.50 per person per night".
+    private val chargeName = Regex("(?i)\\b((?:city|tourist|resort|cleaning|service|booking|local|bed|visitor)?\\s*(?:tax|fee|charge|surcharge|levy|supplement))\\b")
+    private val unitWords = Regex("(?i)\\b(\\d+(?:\\.\\d+)?|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\\s+" +
+        "(nights?|days?|people|persons?|heads?|tickets?|hours?|weeks?|rooms?|beds?|adults?|children|kids|guests?|tents?|pitches|cars?|vehicles?|bikes?|dogs?)\\b")
     // People counted without a unit word: "3 of us", "the two of us", "both of us", "for two", "we are 3",
     // "my son and me".
     private const val COUNT = "(?:\\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
@@ -1093,46 +1318,99 @@ object Calculators {
         "we(?:['’]re|\\s+are)\\s+$COUNT|my\\s+(?:wife|husband|partner|(?:boy|girl)?friends?|family|kids?|child(?:ren)?|parents|" +
         "sons?|daughters?|brothers?|sisters?|mum|mom|dad|mother|father)|and\\s+(?:me|i)|" +
         "for\\s+$COUNT\\b(?![.,]\\d|\\s*(?:%|$SYMBOLS))(?!\\s+(?:more|extra|additional|full|whole|percent|per\\s?cent|nights?|days?|" +
-        "people|persons?|heads?|tickets?|hours?|weeks?|months?|rooms?|beds?|adults?|children|kids|guests?|(?:$CURRENCIES)s?)\\b))\\b")
+        "people|persons?|heads?|tickets?|hours?|weeks?|months?|rooms?|beds?|adults?|children|kids|guests?|tents?|cars?|bikes?|dogs?|(?:$CURRENCIES)s?)\\b))\\b")
     // A second rate on the price ("€18 a night per person", "€15 a day each") multiplies by a count the question
     // may not give.
     private val secondRate = Regex("(?i)(?:\\b(?:per|each|every)|/)\\s*(?:night|day|person|head|ticket|hour|week|room|bed|adult|guest|" +
-        "child|kid|car|tent|vehicle)s?\\b|\\b(?:each|apiece|pp)\\b")
+        "child|kid|car|tent|vehicle|bike|dog|pitch|stay|booking)s?\\b|\\b(?:each|apiece|pp)\\b")
     // Anything this sum does not handle leaves the question to research: a tax already included, a
     // second price, another currency.
     private val beyondSum = Regex("(?i)\\b(?:includ\\w*|incl\\.?|inclusive|already|after (?:a |the )?\\d+|after (?:a |the )?(?:discount|tax)|" +
-        "convert\\w*|in (?:dollars|euros|pounds|yen|usd|eur|gbp)|exchange rate)\\b")
+        "convert\\w*|in (?:dollars|euros|pounds|yen|usd|eur|gbp)|exchange rate|on (?:everything|the total|the whole|all of it|top of (?:that|everything|the total)))\\b")
+    // "Plus a city tax of €3.50 per person per night": a further price is added to the bill when a word says so;
+    // "or €280 per week" offers another price instead.
+    private val additive = Regex("(?i)\\b(?:plus|and|with|add\\w*|extra|additional|on top|also|then)\\b")
+    /** The unit a count or a price names, with "people" and "heads" as persons, "kids" as children. */
+    private fun unitKey(word: String): String = when (val w = word.lowercase()) {
+        "people", "persons", "person", "head", "heads" -> "person"
+        "children", "child" -> "child"; "kids", "kid" -> "kid"; "pitches" -> "pitch"
+        else -> w.removeSuffix("s")
+    }
+    private fun unitPlural(unit: String, n: Int): String = if (n == 1) unit else when (unit) {
+        "person" -> "people"; "child" -> "children" ; else -> unit + "s"
+    }
     private fun perUnit(q: String): Pair<Result, Set<String>>? {
-        val p = unitPrice.find(q) ?: return null
+        val prices = unitPrice.findAll(q).toList()
+        val p = prices.firstOrNull() ?: return null
         if (beyondSum.containsMatchIn(q)) return null
-        val price = num(p.groupValues[2].ifBlank { p.groupValues[3] })
-        val currencyName = p.groupValues[1].ifBlank { p.groupValues[4] }.ifBlank { p.groupValues[5] }
+        fun priceOf(m: MatchResult) = num(m.groupValues[2].ifBlank { m.groupValues[3] })
+        fun currencyOf(m: MatchResult) = m.groupValues[1].ifBlank { m.groupValues[4] }.ifBlank { m.groupValues[5] }
+        fun unitsOf(m: MatchResult) = unitInPrice.findAll(m.groupValues[6]).map { unitKey(it.groupValues[1]) }.distinct().toList()
+        val price = priceOf(p); val currencyName = currencyOf(p)
         // In "60 euros plus 10 per person" the bare 10 is not the whole price: only a price in money is multiplied.
-        if (currencyName.isBlank()) return null
-        val unit = p.groupValues[6].lowercase()
-        val plural = if (unit == "person") "people" else unit + "s"
-        // Every count in the question must be of this unit: "3 people for 4 nights", or "3 of us" and "4
-        // nights", is two multipliers.
-        val counted = unitWords.findAll(q).filter { it.range.first !in p.range }.toList()
-        if (counted.size != 1 || headCount.containsMatchIn(q)) return null
-        if (secondRate.findAll(q).any { it.range.first !in p.range }) return null
-        val word = counted.single().groupValues[1].lowercase()
-        if (word != unit && word != plural && word != unit + "s") return null
-        val token = counted.single().value.substringBefore(' ')
-        if ('.' in token) return null
-        val n = count(token) ?: return null
-        // A second amount of money ("plus 2 euros a night") or a percentage this sum cannot place.
-        val amounts = Regex("(?i)$SYMBOLS\\s*$NUM|$NUM\\s*(?:$SYMBOLS|(?:$CURRENCIES)s?\\b)").findAll(q).count()
-        if (amounts != 1 || price <= 0) return null
-        val adjustments = adjustment.findAll(q).take(2).toList()
-        if (Regex("(?i)%|per\\s?cent\\b").findAll(q).count() != adjustments.size) return null
-        if (charge.findAll(q).any { c -> adjustments.none { c.range.first in it.range } }) return null
-        // Every number is the price, the count or a percentage applied: "plus 10 a day" is not dropped.
-        val used = listOf(p.range, counted.single().range) + adjustments.map { it.range }
-        if (numberToken.findAll(q).any { d -> used.none { d.range.first in it } }) return null
+        if (currencyName.isBlank() || price <= 0) return null
         fun amount(v: Double) = if (currencyName.length == 1) "$currencyName${money(v)}" else "${money(v)} $currencyName"
-        var total = price * n
-        val text = StringBuilder("${amount(price)} × $n $plural = **${amount(total)}**.")
+        // Every count in the question, each of a different unit: "3 people for 4 nights", or "3 of us" and "4 nights".
+        val counts = mutableMapOf<String, Pair<Int, IntRange>>()
+        for (c in unitWords.findAll(q).filter { c -> prices.none { c.range.first in it.range } }) {
+            val token = c.groupValues[1]
+            if ('.' in token) return null
+            val n = count(token) ?: return null
+            if (counts.put(unitKey(c.groupValues[2]), n to c.range) != null) return null
+        }
+        for (h in headCount.findAll(q).filter { h -> prices.none { h.range.first in it.range } }) {
+            val n = Regex("(?i)\\b$COUNT\\b").find(h.value)?.let { count(it.value) } ?: if (Regex("(?i)\\b(?:both|couple)\\b").containsMatchIn(h.value)) 2 else return null
+            if (counts.put("person", n to h.range) != null) return null
+        }
+        // "Each" or "per person" outside every price is a multiplier the question does not give.
+        if (secondRate.findAll(q).any { s -> prices.none { s.range.first in it.range } }) return null
+        // Each price has one amount of money: a bare "plus 2 euros" or a toll is a sum this one cannot place.
+        val amounts = Regex("(?i)$SYMBOLS\\s*$NUM|$NUM\\s*(?:$SYMBOLS|(?:$CURRENCIES)s?\\b)").findAll(q).count()
+        if (amounts != prices.size) return null
+        fun sentenceStart(at: Int) = clauses.findAll(q).firstOrNull { at in it.range }?.range?.first ?: 0
+        // The further prices are added to the bill; each must say so and be in the same money.
+        for (extra in prices.drop(1)) {
+            val lead = q.substring(sentenceStart(extra.range.first), extra.range.first)
+            if (currencyOf(extra).isBlank() || currencyOf(extra).lowercase().removeSuffix("s") != currencyName.lowercase().removeSuffix("s")) return null
+            if (!additive.containsMatchIn(lead) || Regex("(?i)\\bor\\s+(?:a\\s+|an\\s+|the\\s+)?(?:\\w+\\s+){0,2}$").containsMatchIn(lead)) return null
+        }
+        val used = mutableListOf<IntRange>()
+        val consumed = mutableSetOf<String>()
+        /** The price times the count of every unit it names, with a room count on a nightly price as a multiplier too. */
+        fun multiplied(m: MatchResult): Pair<Double, String>? {
+            var total = priceOf(m); val working = StringBuilder(amount(priceOf(m)))
+            val units = unitsOf(m).toMutableList()
+            // A nightly room price is per room; a per-person charge is not.
+            if (("night" in units || "day" in units) && "room" !in units && "person" !in units && "room" in counts) units += "room"
+            for (u in units) {
+                // "A cleaning fee of $40 per stay" is charged once.
+                if (u == "stay" || u == "booking") continue
+                val (n, at) = counts[u] ?: return null
+                consumed += u; used += at
+                total *= n; working.append(" × $n ${unitPlural(u, n)}")
+            }
+            return total to working.toString()
+        }
+        val (base, baseWorking) = multiplied(p) ?: return null
+        used += p.range
+        val adjustments = adjustment.findAll(q).toList()
+        if (Regex("(?i)%|per\\s?cent\\b").findAll(q).count() != adjustments.size) return null
+        // A percentage after a flat charge might be meant on the charge too: not guessed.
+        if (adjustments.any { a -> prices.drop(1).any { it.range.first < a.range.first } }) return null
+        // Every charge word is a percentage applied, names a flat charge added, or refers to the discount step.
+        val discounted = adjustments.any { it.value.lowercase().let { v -> "discount" in v || "off" in v } }
+        for (c in charge.findAll(q)) {
+            val inAdjustment = adjustments.any { c.range.first in it.range }
+            val namesExtra = prices.drop(1).any { e -> (c.range.first in sentenceStart(e.range.first) until e.range.first && e.range.first - c.range.first <= 40) ||
+                (c.range.first > e.range.last && c.range.first - e.range.last <= 25 && q.substring(e.range.last + 1, c.range.first).none { it in ".?!;" }) }
+            val refersToStep = discounted && c.value.lowercase() == "discounted"
+            // "The campsite charges 12 euros": the verb before a price names no charge of its own.
+            val verb = c.value.lowercase().startsWith("charge") && prices.any { it.range.first - c.range.last in 1..3 }
+            if (!inAdjustment && !namesExtra && !refersToStep && !verb) return null
+        }
+        used += adjustments.map { it.range }
+        var total = base
+        val text = StringBuilder("$baseWorking = **${amount(base)}**.")
         for (a in adjustments) {
             val percent = num(a.groupValues[1].ifBlank { a.groupValues[4] })
             val kind = a.groupValues[2].ifBlank { a.groupValues[3] }.lowercase()
@@ -1142,7 +1420,118 @@ object Calculators {
             text.append("\n\nWith the ${fmt(percent)}% ${if (kind == "off") "discount" else kind}: ${amount(total)} × ${fmt(1 + (if (down) -percent else percent) / 100, 2)} = **${amount(after)}**.")
             total = after
         }
-        return Result(text.toString(), true, "${amount(price)} × $n $plural = ${amount(total)} in all.", used = used) to emptySet()
+        val extras = prices.drop(1).map { e ->
+            val (sum, working) = multiplied(e) ?: return null
+            used += e.range
+            // The charge's name is the one nearest the price: "plus 7% tax and a €2 per night city tax" names the city tax.
+            val before = chargeName.findAll(q.substring(sentenceStart(e.range.first), e.range.first).takeLast(40)).lastOrNull()
+            val after = chargeName.find(q.substring(e.range.last + 1).take(25).substringBefore('.'))
+            val name = (after ?: before)?.groupValues?.get(1)?.trim()?.replaceFirstChar(Char::uppercaseChar) ?: "Plus"
+            text.append("\n\n$name: $working = **${amount(sum)}**.")
+            sum
+        }
+        if (extras.isNotEmpty()) {
+            val all = total + extras.sum()
+            text.append("\n\nTotal: ${amount(total)} + ${extras.joinToString(" + ") { amount(it) }} = **${amount(all)}**.")
+            total = all
+        }
+        // Every count was multiplied by something, and every number is a price, a count or a percentage applied.
+        if (counts.keys.any { it !in consumed }) return null
+        if (numberToken.findAll(q).any { d -> used.none { d.range.first in it } }) return null
+        return Result(text.toString(), true, "$baseWorking${if (extras.isNotEmpty()) " plus the extras" else ""} = ${amount(total)} in all.", used = used) to emptySet()
+    }
+
+    /* ---------- provisions for a group over the days ---------- */
+    // "Everyone has 2 eggs", "each person gets 3 slices", "2 cups of coffee each": what one person has.
+    private val perHead = Regex("(?i)\\b(?:everyone|everybody|each(?:\\s+(?:person|of us|one|hiker|guest|adult|camper|kid|child))?|every\\s+(?:one|person|hiker|guest)|per\\s+(?:person|head)|a\\s+head|apiece|all of us)\\b")
+    private val perDayCue = Regex("(?i)\\b(?:each|every|per|a)\\s+(?:morning|day|evening|night|meal|breakfast|dinner|lunch)\\b")
+    private val mealDays = Regex("(?i)\\b$N\\s+(?:full\\s+)?(mornings?|days?|evenings?|nights?|breakfasts?|dinners?|lunch(?:es)?|meals?)\\b")
+    private const val PACK = "(box|boxes|bag|bags|pack|packs|packet|packets|carton|cartons|tray|trays|crate|crates|bottle|bottles|can|cans|tin|tins|jar|jars|roll|rolls|sachet|sachets|tube|tubes|loaf|loaves|case|cases|tub|tubs|pouch|pouches|six-?packs?)"
+    private const val MEASURE = "(g|grams?|kg|kilos?|ml|l|litres?|liters?)"
+    // "2 eggs", "2 cups of coffee", "150 g of pasta", "3 slices of bread": a count or measure and what it is of.
+    private val item = Regex("(?i)\\b$NUM\\s*(?:$MEASURE|(?:(?!of\\b)[a-z]+\\s+)?(cups?|slices?|pieces?|bars?|portions?|servings?|scoops?|spoons?|sachets?|rolls?|[a-z]+s))\\b(?:\\s+of\\s+([a-z]+))?")
+    // "Eggs come in boxes of 12", "beer is sold in packs of 6".
+    private val packOf = Regex("(?i)\\b([a-z]+)\\s+(?:come|comes|are|is|sold|packed|bought|available)?\\s*(?:in|by the)\\s+$PACK\\s+of\\s+$NUM\\s*$MEASURE?\\b")
+    // "A 250 g bag of coffee makes 30 cups", "a loaf has 20 slices", "one pack holds 10".
+    private val packMakes = Regex("(?i)\\b(?:a|an|one|each|every)\\s+(?:$NUM\\s*$MEASURE\\s+)?$PACK\\s+(?:of\\s+([a-z]+)\\s+)?(?:makes|gives|yields|serves|holds|contains|has|brews|does|is enough for|is good for|lasts)\\s+(?:about\\s+|around\\s+)?$NUM\\s*([a-z]+)?")
+    // "500 g packets of pasta", "1.5 litre bottles of water".
+    private val packSized = Regex("(?i)\\b$NUM\\s*$MEASURE\\s+$PACK(?:\\s+of\\s+([a-z]+))?\\b")
+    private fun grams(value: Double, unit: String) = when (unit.lowercase().take(2)) { "kg", "ki" -> value * 1000; "l", "li" -> value * 1000; else -> value }
+    private fun packPlural(pack: String, n: Int): String {
+        val one = pack.lowercase().let { when { it == "loaves" -> "loaf"; it == "boxes" -> "box"; it == "pouches" -> "pouch"; it.endsWith("s") && !it.endsWith("ss") -> it.dropLast(1); else -> it } }
+        if (n == 1) return one
+        return when { one == "loaf" -> "loaves"; one == "box" -> "box" + "es"; one == "pouch" -> "pouches"; else -> one + "s" }
+    }
+    private fun same(a: String?, b: String?) = a != null && b != null && a.lowercase().removeSuffix("es").removeSuffix("s") == b.lowercase().removeSuffix("es").removeSuffix("s")
+    private class Item(val range: IntRange, val perPerson: Double, val measure: String?, val noun: String)
+    private class Pack(val range: IntRange, val pack: String, val size: Double, val measure: String?, val of: String?)
+    private fun provisions(q: String): Pair<Result, Set<String>>? {
+        if (!Regex("(?i)\\bhow (?:many|much)\\b").containsMatchIn(q) || !perHead.containsMatchIn(q)) return null
+        // Money per person is a bill, not a shopping list; drinking water over the days is water()'s sum.
+        if (Regex("(?i)$SYMBOLS|\\b(?:$CURRENCIES)s?\\b").containsMatchIn(q)) return null
+        if (Regex("(?i)$NUM\\s*(?:l|liters?|litres?)(?:\\s+of water)?\\s+(?:per|a|each)\\s+(?:person\\s+)?(?:per\\s+|a\\s+|each\\s+)?day").containsMatchIn(q)) return null
+        val groups = groupSize.flatMap { it.findAll(q) }
+        val people = groups.map { count(it.groupValues[1]) ?: 2 }.distinct().singleOrNull() ?: return null
+        val group = groups.minBy { it.range.first }
+        val packs = (packOf.findAll(q).map { m -> Pack(m.range, m.groupValues[2], num(m.groupValues[3]), m.groupValues[4].ifBlank { null }, m.groupValues[1]) } +
+            packMakes.findAll(q).map { m -> Pack(m.range, m.groupValues[3], num(m.groupValues[5]), m.groupValues[6].ifBlank { null }, m.groupValues[4].ifBlank { null }) } +
+            packSized.findAll(q).map { m -> Pack(m.range, m.groupValues[3], num(m.groupValues[1]), m.groupValues[2], m.groupValues[4].ifBlank { null }) })
+            .toList().let { all -> all.filter { p -> all.none { o -> o !== p && o.range.first <= p.range.first && o.range.last >= p.range.last && o.range != p.range } } }
+        val days = mealDays.findAll(q).filter { d -> packs.none { d.range.first in it.range } && !perDayCue.containsMatchIn(d.value) }.toList()
+        if (days.size > 1) return null
+        val dayCount = days.singleOrNull()?.let { count(it.groupValues[1]) } ?: if (perDayCue.containsMatchIn(q)) return null else 1
+        // What each person has: the counts in the sentences that say "everyone", "each", "per person".
+        val headSentences = clauses.findAll(q).filter { perHead.containsMatchIn(it.value) }.toList()
+        val taken = packs.map { it.range } + days.map { it.range } + listOf(group.range)
+        val items = item.findAll(q).filter { m -> headSentences.any { m.range.first in it.range } && taken.none { m.range.first in it } }
+            .map { m ->
+                val g = m.groupValues
+                // "150 g of pasta" and "2 cups of coffee" are measured; "2 eggs" is a count of the thing itself.
+                when {
+                    g[2].isNotBlank() -> Item(m.range, num(g[1]), g[2], g[4].ifBlank { g[2] })
+                    g[4].isNotBlank() -> Item(m.range, num(g[1]), g[3], g[4])
+                    else -> Item(m.range, num(g[1]), null, g[3])
+                }
+            }.toList()
+        if (items.isEmpty() || items.any { it.perPerson <= 0 }) return null
+        // Each item's pack: the one that names it, its measure, or the only pack left for the only item left.
+        val paired = mutableMapOf<Item, Pack>()
+        for (i in items) packs.firstOrNull { p -> same(p.of, i.noun) || same(p.of, i.measure) || (i.measure == null && same(p.measure, i.noun)) }?.let { paired[i] = it }
+        for (i in items.filter { it !in paired }) packs.firstOrNull { p -> p !in paired.values && p.measure != null && same(p.measure, i.measure) }?.let { paired[i] = it }
+        val leftItems = items.filter { it !in paired }; val leftPacks = packs.filter { it !in paired.values }
+        if (leftItems.size == 1 && leftPacks.size == 1) paired[leftItems.single()] = leftPacks.single()
+        else if (leftPacks.isNotEmpty()) return null
+        val dayWord = days.singleOrNull()?.groupValues?.get(2)?.lowercase()?.let { if (dayCount == 1) it.removeSuffix("s") else if (it.endsWith("s")) it else it + "s" }
+        val text = StringBuilder(); val facts = mutableListOf<String>()
+        for (i in items) {
+            val total = people * i.perPerson * dayCount
+            val measured = Regex("(?i)^$MEASURE$")
+            val measure = i.measure?.let { m -> if (measured.matches(m)) m else unitPlural(m.removeSuffix("s"), total.roundToInt()) }
+            val what = if (measure != null) "$measure of ${i.noun}" else unitPlural(i.noun.removeSuffix("s"), total.roundToInt())
+            val each = " ${fmt(i.perPerson)}" + (i.measure?.let { " $it" } ?: "")
+            text.append("${i.noun.replaceFirstChar(Char::uppercaseChar)}: $people people ×$each" + (if (dayCount > 1) " × $dayCount $dayWord" else "") + " = **${fmt(total)} $what**")
+            val pack = paired[i]
+            if (pack != null) {
+                // Grams against grams, cups against cups: a pack's measure must be the item's.
+                val itemMeasured = i.measure != null && measured.matches(i.measure)
+                val packMeasured = pack.measure != null && measured.matches(pack.measure)
+                if (itemMeasured != packMeasured) return null
+                fun dimension(unit: String) = if (unit.lowercase().startsWith("g") || unit.lowercase().startsWith("k")) "mass" else "volume"
+                if (itemMeasured && dimension(i.measure!!) != dimension(pack.measure!!)) return null
+                if (!itemMeasured && i.measure != null && pack.measure != null && !same(i.measure, pack.measure)) return null
+                val need = if (itemMeasured) grams(total, i.measure!!) else total
+                val size = if (packMeasured) grams(pack.size, pack.measure!!) else pack.size
+                if (size <= 0) return null
+                val n = kotlin.math.ceil(need / size - 1e-9).toInt()
+                val exact = need / size
+                text.append("; ${fmt(need)} ÷ ${fmt(size)} = ${fmt(exact, 2)}" + (if (exact == n.toDouble()) ", so **$n ${packPlural(pack.pack, n)}**." else ", which rounds up to **$n ${packPlural(pack.pack, n)}**."))
+                facts += "${fmt(total)} $what = $n ${packPlural(pack.pack, n)}"
+            } else { text.append("."); facts += "${fmt(total)} $what" }
+            text.append("\n\n")
+        }
+        text.append("Buy a little extra for breakages and seconds.")
+        val used = listOf(group.range) + days.map { it.range } + items.map { it.range } + paired.values.map { it.range }
+        return Result(text.toString().trim(), true, facts.joinToString("; ") + ".", used = used) to emptySet()
     }
 
     /* ---------- a recipe for more people ---------- */

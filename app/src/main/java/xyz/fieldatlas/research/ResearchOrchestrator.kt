@@ -109,6 +109,13 @@ class ResearchOrchestrator(
             // A first-aid question is answered from its guide ("my friend's body temperature is 34°C
             // and he is shivering"); the arithmetic stays only when it concerns that same danger.
             ?.takeIf { guide == null || it.guideId == guide.id }
+        // A word problem that gives every number it needs is answered from those numbers alone:
+        // retrieval only brought a parador's discount or a film about a train, which the model then
+        // worked into the sum. Its every written step is recomputed on the phone.
+        if (attachments.isEmpty() && phrase == null && guide == null && (calculation == null || !calculation.complete && calculation.guideId == null) &&
+            WordProblem.isSelfContained(question)) {
+            return arithmetic(question, calculation?.text, maxOutputTokens)
+        }
         if (calculation == null) {
             val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments)
             val numbers = guide?.let { emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) } }
@@ -149,6 +156,54 @@ class ResearchOrchestrator(
         }
         return leading(calculation.text + "\n\n",
             researchCore(calculation.followUp, resultLimit, contextTokenBudget, maxOutputTokens, attachments, calculation.guideId))
+    }
+
+    /** The model works a self-contained sum from the question's own numbers, each step checked. */
+    private fun arithmetic(question: String, lead: String?, maxOutputTokens: Int): Flow<ResearchEvent> = flow {
+        if (!activeRun.compareAndSet(false, true)) {
+            emit(ResearchEvent.Failed("Another local research run is active"))
+            return@flow
+        }
+        try {
+            val startedAt = monotonicMillis()
+            val packed = PromptBuilder.buildArithmetic(question, lead)
+            val prefix = lead?.let { "$it\n\n" } ?: ""
+            if (lead != null) emit(ResearchEvent.Lead(prefix))
+            val output = StringBuilder()
+            var firstTokenAt: Long? = null
+            var promptTokensRead: Int? = null
+            var generatedTokenCount = 0
+            inference.generate(packed.prompt, maxOutputTokens, savedPrefixChars = packed.savedPrefixChars).collect { token ->
+                if (firstTokenAt == null) {
+                    firstTokenAt = monotonicMillis()
+                    promptTokensRead = inference.promptProgress.value?.total?.takeIf { it > 0 }
+                }
+                generatedTokenCount++
+                output.append(token)
+                emit(ResearchEvent.Token(prefix + AnswerText.mixed(output.toString(), emptyList()), replace = true))
+            }
+            firstTokenAt?.let { first ->
+                val read = if (inference.reusedPromptTokens > 0) packed.prompt.substring(packed.savedPrefixChars) else packed.prompt
+                prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(read), first - startedAt)
+            }
+            val checked = AnswerChecks.checkArithmetic(AnswerText.visible(output.toString()), question)
+            emit(ResearchEvent.Token(prefix + AnswerText.mixed(checked, emptyList()), replace = true))
+            emit(ResearchEvent.Complete(ResearchMetrics(
+                retrievalMillis = 0,
+                timeToFirstTokenMillis = elapsed(startedAt, firstTokenAt ?: monotonicMillis()),
+                totalMillis = elapsed(startedAt, monotonicMillis()),
+                generatedTokenCount = generatedTokenCount,
+                citedSourceIds = emptySet(),
+                hasUnmappedCitation = false,
+                promptTokens = promptTokensRead,
+                promptMillis = firstTokenAt?.let { it - startedAt },
+            )))
+        } finally {
+            activeRun.set(false)
+        }
+    }.catch { error ->
+        if (error is CancellationException) throw error
+        emit(ResearchEvent.Failed(error.message ?: "Research failed"))
     }
 
     /** Text the app writes itself, kept above everything the research run shows. */
@@ -197,14 +252,15 @@ class ResearchOrchestrator(
                 )))
                 return@flow
             }
-            // An emergency question is answered by the model from the matching official guide only
-            // (strict, cited). If the model cannot run, the guide itself is shown as published.
+            // Emergency instructions must not be rewritten by the model. Real-model regression
+            // checks reversed official instructions despite lexical support; show the guide itself.
             val phraseAsk = phraseRequest(question, attachments.isNotEmpty())
             val guide = if (attachments.isEmpty()) (if (phraseAsk == null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) else null)
                 ?: preferredGuideId?.let { id -> emergencyGuides().firstOrNull { it.id == id } } else null
-            if (guide != null && inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready) {
+            if (guide != null) {
                 emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
-                emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide)))
+                emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
+                    modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question)))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = 0,
                     timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
@@ -285,8 +341,9 @@ class ResearchOrchestrator(
             // passage; the prompt still receives at most resultLimit sources.
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
-            val includeLibrary = guide == null && (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
+            val includeLibrary = (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
             val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
+            val destinations = if (includeLibrary && attachments.isEmpty()) retriever.destinations(question) else emptyList()
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
                     _searchProgress.value = progress.fraction
@@ -301,7 +358,7 @@ class ResearchOrchestrator(
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (guide == null && attachments.isEmpty() && evidence.isEmpty() && phraseAsk == null && retriever.hasEligiblePacks(question) &&
+            if (attachments.isEmpty() && evidence.isEmpty() && phraseAsk == null && retriever.hasEligiblePacks(question) &&
                 !EvidenceRelevance.isShortCausalQuestion(question)) {
                 emit(ResearchEvent.Planning(question))
                 try {
@@ -339,7 +396,7 @@ class ResearchOrchestrator(
             }
             // Fully vegan places can be a small minority of a city's vegan-tagged listings; one
             // more precise keyword pass puts them in front of the general matches.
-            if (guide == null && attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
+            if (attachments.isEmpty()) VenueLookup.fullyVeganQuery(question, evidence)?.let { query ->
                 val focused = EvidenceRelevance.keep(
                     retriever.searchForQuestion(query, question, candidateLimit, placesOnly = true) { progress ->
                         _searchProgress.value = progress.fraction
@@ -349,24 +406,23 @@ class ResearchOrchestrator(
                 )
                 evidence = (focused + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
-            // A trip question that also asks for a museum gets that city's museums, not the zoo
-            // its overview happens to mention.
-            if (guide == null && attachments.isEmpty()) VenueLookup.museumQuery(question, evidence)?.let { query ->
-                val museums = VenueLookup.museumListings(question,
-                    retriever.searchForQuestion(query, question, candidateLimit, placesOnly = true) { progress ->
+            // Search the requested kind within a confirmed destination, not the city's overview.
+            if (attachments.isEmpty()) VenueLookup.kindQuery(question, evidence, destinations)?.let { query ->
+                val places = VenueLookup.kindListings(question,
+                    retriever.searchForQuestion(query.query, query.scope, candidateLimit, placesOnly = true) { progress ->
                         _searchProgress.value = progress.fraction
-                    }, evidence)
-                if (museums.isNotEmpty()) evidence = (museums.take(MUSEUM_SLOTS) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    }, evidence, destinations)
+                if (places.isNotEmpty()) evidence = (places.take(resultLimit) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
             // A question naming one Ethereum proposal gets that proposal's own summary first.
-            if (guide == null && attachments.isEmpty()) ProposalLookup.named(question)?.let { label ->
+            if (attachments.isEmpty()) ProposalLookup.named(question)?.let { label ->
                 val summary = ProposalLookup.labels(label).flatMap { retriever.titled(it, ProposalLookup.SUMMARY_SECTIONS, PROPOSAL_CANDIDATES) }
                     .filter { ProposalLookup.isSummaryOf(it, label) }
                 if (summary.isNotEmpty()) evidence = (summary.take(PROPOSAL_SLOTS) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
             // "How do I say thank you in Thai?" reads the Thai phrasebook's phrase lists, whole.
             var phrasePicked = emptyList<Evidence>()
-            if (guide == null && phraseAsk != null) for (book in Phrasebook.books(phraseAsk.language)) {
+            if (phraseAsk != null) for (book in Phrasebook.books(phraseAsk.language)) {
                 val rows = retriever.article(book, Phrasebook.ROWS).filter { Phrasebook.isPhraseList(it, book) }
                 if (rows.isEmpty()) continue
                 phrasePicked = Phrasebook.pick(phraseAsk, rows, PHRASEBOOK_SLOTS)
@@ -377,41 +433,72 @@ class ResearchOrchestrator(
             var travelPlace: String? = null
             var travelPicked = emptyList<Evidence>()
             var airportGuide: String? = null
-            if (guide == null && attachments.isEmpty() && phrasePicked.isEmpty()) TravelSections.lookup(question)?.let { travel ->
+            var travelNames = destinations
+            var travelThings = emptyList<String>()
+            var travelJourney: TravelSections.Journey? = null
+            if (attachments.isEmpty() && phrasePicked.isEmpty() && !placesOnly) TravelSections.lookup(question)?.let { requested ->
+                val names = (requested.places + requested.candidates).distinct().take(12)
+                val titles = names.flatMap { name ->
+                    retriever.titled(name, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES, anchored = true)
+                }.filter { it.documentId.startsWith("wvs-") || it.source.contains("wikivoyage", true) }.map { it.title }
+                val resolved = TravelSections.resolved(requested.copy(candidates = names), titles)
+                val travel = resolved ?: requested.takeIf { it.places.isNotEmpty() } ?: return@let
+                travelNames = (destinations + travel.places).distinct()
+                travelThings = requested.places.filter { name -> travel.places.none { it.equals(name, true) } }
+                travelJourney = travel.journey
                 class Read(val place: String, val picked: List<Evidence>)
                 // Each section on its own, anchored to the place's own guide: a big guide's short
                 // "Buy > Shopping" titles must not crowd out "Get in > Entry requirements".
                 suspend fun read(place: String, sections: List<String>, needHeaded: Boolean = false): Read? {
                     val picked = TravelSections.pick(question, place,
-                        sections.flatMap { retriever.titled(place, listOf(it), TRAVEL_CANDIDATES, anchored = true) }, TRAVEL_SLOTS)
-                    if (picked.isEmpty() || (needHeaded && !TravelSections.coversPart(question, place, picked))) return null
+                        sections.flatMap { retriever.titled(place, listOf(it), TRAVEL_CANDIDATES, anchored = true) }, TRAVEL_SLOTS, travelNames)
+                    if (picked.isEmpty() || (needHeaded && !TravelSections.coversPart(question, place, picked, travel.journey, travelNames, travelThings))) return null
                     return Read(place, picked)
                 }
-                // The place a guide lies in, which its overview names: "Bondi Beach is a beach in Sydney".
-                suspend fun parent(place: String): String? =
-                    SubjectLookup.overviewOf(place, retriever.titled(place, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES))
-                        ?.let { TravelSections.parentOf(place, it.text) }
+                // Bounded city -> region -> country traversal, with cycle protection.
+                suspend fun parents(place: String): List<String> {
+                    val seen = linkedSetOf(place)
+                    val pending = ArrayDeque<String>().apply { add(place) }
+                    while (pending.isNotEmpty() && seen.size <= 8) {
+                        val current = pending.removeFirst()
+                        val overview = SubjectLookup.overviewOf(current,
+                            retriever.titled(current, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES, anchored = true)) ?: continue
+                        for (parent in TravelSections.parentsOf(current, overview.text)) {
+                            if (seen.size >= 9) break
+                            if (seen.none { it.equals(parent, true) }) { seen += parent; pending += parent }
+                        }
+                    }
+                    return seen.drop(1)
+                }
+                suspend fun parentRead(place: String, sections: List<String>, needHeaded: Boolean = true): Read? {
+                    for (parent in parents(place)) read(parent, sections, needHeaded)?.let { return it }
+                    return null
+                }
                 var read: Read? = null
                 val journey = travel.journey
                 if (journey != null) {
                     // "Lisbon to Porto by train": the country's rail advice when both lie in one country,
                     // else how to get into the destination.
-                    val country = parent(journey.origin)?.takeIf { it == parent(journey.destination) }
-                    read = country?.let { read(it, listOf("Get around"), needHeaded = true) }
-                        ?: read(journey.destination, (travel.sections + "Get in").distinct())
+                    val originParents = parents(journey.origin)
+                    val destinationParents = parents(journey.destination)
+                    for (country in originParents.filter { it in destinationParents }) {
+                        read = read(country, listOf("Get around"), needHeaded = true)
+                        if (read != null) break
+                    }
+                    if (read == null) read = read(journey.destination, (travel.sections + "Get in").distinct())
                 } else {
                     val named = travel.places.take(TRAVEL_PLACES)
                     var uncovered: Read? = null
                     for (place in named) {
                         val found = read(place, travel.sections) ?: continue
-                        if (TravelSections.coversPart(question, place, found.picked)) { read = found; break }
+                        if (TravelSections.coversPart(question, place, found.picked, travel.journey, travelNames, travelThings)) { read = found; break }
                         if (uncovered == null) uncovered = found
                     }
                     if (read == null && uncovered == null) {
-                        for (place in named) { read = parent(place)?.let { read(it, travel.sections) } ?: continue; break }
+                        for (place in named) { read = parentRead(place, travel.sections) ?: continue; break }
                     } else if (read == null) {
                         // "Flying into Bali, visa on arrival?": Bali's guide has no entry section; Indonesia's has.
-                        read = parent(uncovered!!.place)?.let { read(it, travel.sections, needHeaded = true) } ?: uncovered
+                        read = parentRead(uncovered!!.place, travel.sections) ?: uncovered
                     }
                 }
                 read?.let { found ->
@@ -431,7 +518,19 @@ class ResearchOrchestrator(
             }
             // "I lost my passport while travelling" reads the travel guide "Passport", found by its
             // title, when no place guide answered; an explanation reads its subject's article below.
-            if (guide == null && attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && !SubjectLookup.explains(question) &&
+            // Cultural practices can have a fuller topic guide than the country's short introduction.
+            // Only sections explicitly naming the resolved destination can supplement its guide.
+            if (attachments.isEmpty() && travelPlace != null && "Respect" in TravelSections.topicsOf(question)) {
+                for (name in TopicGuides.names(question).filterNot(VenueLookup::isVenueKind).sortedBy { it.count(Char::isWhitespace) }.take(TOPIC_NAMES)) {
+                    if (travelPlace.equals(name, true)) continue
+                    val related = TopicGuides.pickForDestination(question, name, retriever.sections(name, TOPIC_CANDIDATES), travelNames, 2)
+                    if (related.isEmpty()) continue
+                    evidence = (related + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    travelPicked = (related + travelPicked).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    break
+                }
+            }
+            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && !SubjectLookup.explains(question) &&
                 !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null) {
                 for (name in TopicGuides.names(question).filterNot(VenueLookup::isVenueKind)) {
                     val sections = TopicGuides.pick(question, name, retriever.sections(name, TOPIC_CANDIDATES), TRAVEL_SLOTS)
@@ -450,7 +549,7 @@ class ResearchOrchestrator(
             // articles it names, up to three ("are lions or tigers heavier" names two). The Simple
             // English article answers alone; the English one adds depth when that collection is read.
             val lookup = SubjectLookup.looksUp(question) && !VenueLookup.isPlaceLookup(question)
-            if (guide == null && attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && ProposalLookup.named(question) == null &&
+            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && ProposalLookup.named(question) == null &&
                 (SubjectLookup.leads(question) || lookup)) {
                 val wanted = SubjectLookup.subjectsWanted(question, lookup)
                 // "heat pump" found; "pump" alone, from the same noun phrase, is the same subject, not a second one.
@@ -473,9 +572,10 @@ class ResearchOrchestrator(
                     val byStandard = if (byTitle == null && byAlias == null && candidate.rest.isEmpty() && ' ' in phrase)
                         SubjectLookup.standardOf(phrase, retriever.titled(phrase, ProposalLookup.SUMMARY_SECTIONS, SUBJECT_CANDIDATES)) else null
                     // A subject with no article of its own may head a section of a broader one.
-                    val bySection = if (byTitle == null && byAlias == null && byStandard == null && candidate.rest.isEmpty() && ' ' in phrase)
+                    val bySection = if (byTitle == null && byAlias == null && byStandard == null && candidate.rest.isEmpty() && SubjectLookup.headsSection(phrase))
                         listOf(phrase, phrase + "s").firstNotNullOfOrNull { name ->
-                            SubjectLookup.sectionOf(phrase, retriever.titled(name, listOf(name), SUBJECT_CANDIDATES))
+                            SubjectLookup.sectionOf(phrase, retriever.headed(name, listOf(name), SUBJECT_CANDIDATES) +
+                                retriever.titled(name, listOf(name), SUBJECT_CANDIDATES))
                         } else null
                     // An article only English Wikipedia holds ("Debit card") is the subject when nothing else is.
                     val byArticle = if (articleDepth && byTitle == null && byAlias == null && byStandard == null && bySection == null)
@@ -491,10 +591,20 @@ class ResearchOrchestrator(
                                 ?.let { title -> SubjectLookup.overviewOf(title, retriever.titled(title, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES)) },
                         ))
                     } ?: found
-                    if (fuller != null && SubjectLookup.accepts(candidate, fuller) && subjects.none { it.documentId == fuller.documentId }) {
+                    val headings = if (fuller != null && articleDepth && !SubjectLookup.accepts(candidate, fuller))
+                        retriever.article(fuller.title.substringBefore(" — "), ArticleDepth.ARTICLE_ROWS).map { it.title } else emptyList()
+                    if (fuller != null && SubjectLookup.accepts(candidate, fuller, headings) && subjects.none { it.documentId == fuller.documentId }) {
                         subjects += fuller
                         foundRuns += candidate.run
                     }
+                }
+                if (articleDepth) SubjectLookup.relatedWords(question)?.let { words ->
+                    val related = subjects.toList().take(2).flatMap { subject ->
+                        SubjectLookup.relatedNames(subject.title.substringBefore(" — ")).mapNotNull { name ->
+                            SubjectLookup.relatedTitle(name, retriever.headed(name, words, SUBJECT_CANDIDATES, listOf(SubjectLookup.SECTION)))
+                        }
+                    }.distinctBy { it.documentId }.take(2)
+                    subjects += related.filter { found -> subjects.none { it.documentId == found.documentId } }
                 }
                 val encyclopedic = subjects.filter(ArticleDepth::isEncyclopedia)
                 if (articleDepth && encyclopedic.isNotEmpty()) {
@@ -509,8 +619,8 @@ class ResearchOrchestrator(
             // and has no article of its own is answered by the travel topic guides for its topic
             // ("Money"), which no title word names.
             var topicGuideRead = false
-            if (guide == null && attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && subjects.isEmpty() &&
-                !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null && !GuideScope.namesPlace(question) &&
+            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && subjects.isEmpty() &&
+                !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null && !GuideScope.namesPlace(question, travelNames) &&
                 TravelSections.inTravelContext(question)) {
                 val guides = TopicGuides.guidesFor(TravelSections.topicsOf(question), question)
                 // article(), not sections(): the answering section can lie past a 50-row cap
@@ -525,13 +635,13 @@ class ResearchOrchestrator(
                 }
             }
             // A question that names no place reads no one destination's guide or listings (see GuideScope).
-            if (guide == null && attachments.isEmpty() && !VenueLookup.isPlaceLookup(question)) {
-                evidence = GuideScope.withoutOtherPlaces(question, evidence) { article ->
+            if (attachments.isEmpty() && !VenueLookup.isPlaceLookup(question)) {
+                evidence = GuideScope.withoutOtherPlaces(question, evidence, travelNames) { article ->
                     retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
                 }
             }
             val retrievalFinishedAt = monotonicMillis()
-            (if (guide == null && attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
+            (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
                 val answerAt = monotonicMillis()
                 emit(ResearchEvent.Token(venue.answer))
@@ -547,7 +657,7 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
-            if (guide == null && attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
+            if (attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
                 // A source-only request cannot be satisfied by unsupported model knowledge.
                 // Finish normally so history and answer navigation retain the existing flow.
                 val answerAt = monotonicMillis()
@@ -569,9 +679,6 @@ class ResearchOrchestrator(
                 AttachmentEvidence.pack(question, selection, evidence,
                     minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
                     evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond))
-            } else if (guide != null) {
-                PromptBuilder.buildGuide(question, xyz.fieldatlas.emergency.EmergencyGuideMatch.select(question, guide,
-                    PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond)))
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
@@ -624,7 +731,7 @@ class ResearchOrchestrator(
                     ?: SubjectLookup.lead(question, subjects, packed.sources, depth)
             else null
             val guideQuote = if (attachments.isEmpty() && packed.mixedAnswer && referenceLead == null && phraseQuote == null)
-                TravelSections.lead(question, travelPlace, packed.sources.filter { s -> travelPicked.any { it.chunkId == s.evidence.chunkId && it.documentId == s.evidence.documentId } }, airportGuide)
+                TravelSections.lead(question, travelPlace, packed.sources.filter { s -> travelPicked.any { it.chunkId == s.evidence.chunkId && it.documentId == s.evidence.documentId } }, airportGuide, travelNames, travelThings)
             else null
             val lead = phraseQuote ?: referenceLead ?: guideQuote
             val leadText = lead?.render()?.let { text -> phraseNear?.let { "$text\n\n_${it}_" } ?: text }
@@ -642,13 +749,6 @@ class ResearchOrchestrator(
                 )))
                 return@flow
             }
-            // For an emergency the official steps appear at once, word for word; the model's answer
-            // for the person's situation streams in below them (it can take a minute on a slow phone).
-            val guideLead = guide?.let { g ->
-                packed.sources.firstOrNull()?.let { key ->
-                    xyz.fieldatlas.emergency.EmergencyGuideMatch.officialSteps(key.evidence, 1, g.source.publisher, question) + "\n\n**For this situation**\n\n"
-                }
-            }
             // A travel guide's own section is advice written for this need, so quoted at length it
             // is the answer. The 2B model's additions below a guide quote carried most travel
             // errors ("use designated crossings like Beer Street" after Hanoi's traffic advice).
@@ -662,9 +762,10 @@ class ResearchOrchestrator(
             // ("Entry requirements" for a visa), never for a topic guide found by its topic alone: a
             // parking paragraph quoted for a visa question answers nothing, while the model under a
             // lead still can.
-            if (guideQuote != null && guide == null && !asksCalculation(question) && !comparisonWords.containsMatchIn(question) &&
+            if (guideQuote != null && !asksCalculation(question) && !comparisonWords.containsMatchIn(question) &&
                 !SubjectLookup.isChoice(question) && !topicGuideRead && travelPlace != null &&
-                TravelSections.coversPart(question, travelPlace!!, travelPicked)) {
+                TravelSections.coversPart(question, travelPlace!!, travelPicked, travelJourney, travelNames, travelThings) &&
+                TravelSections.coversEveryClause(question, guideQuote, travelNames, travelThings)) {
                 val quoted = SourceLead.extend(guideQuote, packed.sources)
                 emit(ResearchEvent.Token(quoted.render() + "\n\n_" + GUIDE_QUOTE_NOTE + "_"))
                 emit(ResearchEvent.Complete(ResearchMetrics(
@@ -679,9 +780,6 @@ class ResearchOrchestrator(
             }
             if (leadText != null) {
                 emit(ResearchEvent.Lead(leadText))
-            } else if (guideLead != null) {
-                // A lead, not a token: the progress line keeps showing how much the model has read.
-                emit(ResearchEvent.Lead(guideLead))
             } else {
                 // Field Atlas: an empty token flips the UI into the "writing" phase before the
                 // first real token arrives, so prefill progress can show as tokens read/written.
@@ -716,8 +814,7 @@ class ResearchOrchestrator(
                 // The verbatim lead is already a useful, cited answer. Keep it rather than
                 // discarding it because the slower explanation failed; without a lead the
                 // failure still surfaces exactly as before.
-                // An emergency question still gets its guide, as published, if the model fails.
-                if (lead == null && guide == null) throw error
+                if (lead == null) throw error
                 generationFailed = true
             }
             val finishedAt = monotonicMillis()
@@ -733,10 +830,7 @@ class ResearchOrchestrator(
             // The person is offline: advice to search the web, visit a site or use an app is removed.
             val raw = AnswerChecks.removeOfflineNarration(AnswerChecks.removeOnlineAdvice(output.toString(), question), question)
                 // The model's own explanation never carries an amount of medicine (see removeDoses).
-                .let { if (packed.mixedAnswer && guide == null) AnswerChecks.removeDoses(it, question, attributionEvidence) else it }
-                // A "do not" the guide never gives is the model's invention ("do not take any medication"
-                // under an altitude guide that relies on it).
-                .let { if (guide != null) AnswerChecks.removeUnsupportedWarnings(it, attributionEvidence) else it }
+                .let { if (packed.mixedAnswer) AnswerChecks.removeDoses(it, question, attributionEvidence) else it }
             val checked = if (packed.mixedAnswer) raw
                 else AnswerChecks.addTwelveHour(
                     AnswerChecks.repairTimes(AnswerChecks.repairCitations(raw, attributionEvidence), attributionEvidence),
@@ -744,7 +838,6 @@ class ResearchOrchestrator(
                 )
                 .let { text ->
                     if (packed.mixedAnswer || generationFailed) text
-                    else if (guide != null) "${guideLead.orEmpty()}$text\n\n_${xyz.fieldatlas.emergency.EmergencyGuideMatch.safetyNote(guide)}_"
                     else AnswerChecks.exceptionNote(question, attributionEvidence)?.let { "$text\n\n_${it}_" } ?: text
                 }
                 .let { text ->
@@ -758,7 +851,6 @@ class ResearchOrchestrator(
             } else if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
             val modelText = if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked
             val attributed = when {
-                generationFailed && guide != null -> xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide)
                 generationFailed -> compose(modelText) + "\n\n_The model explanation could not be completed._"
                 else -> compose(modelText)
             }
@@ -804,6 +896,7 @@ class ResearchOrchestrator(
         const val TRAVEL_SLOTS = 2
         const val SUBJECT_CANDIDATES = 10
         const val TOPIC_CANDIDATES = 50
+        const val TOPIC_NAMES = 12
         const val AIRPORT_CANDIDATES = 20
         // A number other than a year ("in 2026").
         private val quantity = Regex("(?<![\\p{L}\\p{N}])(?!(?:19|20)\\d\\d(?![\\p{N}]))\\d+(?:[.,]\\d+)?")

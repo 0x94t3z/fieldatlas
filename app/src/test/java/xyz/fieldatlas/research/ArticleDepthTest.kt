@@ -38,10 +38,68 @@ class ArticleDepthTest {
         val guide = passage("wvs-55-0000:0000", "Inflation — Overview", "A travel guide that happens to share the name.", "https://en.wikivoyage.org/w/index.php?oldid=5")
         val picked = ArticleDepth.pick("Why does inflation happen?", listOf(simple), mapOf("Inflation" to listOf(simple, guide)), listOf(simple), 10_000)
         assertTrue(picked.isEmpty())
-        // The cryptography collection's own copy of a Wikipedia article is not given depth.
+        // The cryptography collection's own Wikipedia articles are given depth like the others.
         val crypto = passage("wp-99-0000:0000", "Blockchain — Overview", "A blockchain is a list of records.")
-        assertTrue(ArticleDepth.pick("How does a blockchain work?", listOf(crypto),
-            mapOf("Blockchain" to listOf(passage("enw-77-0003:0000", "Blockchain — Structure", "Blocks hold batches of transactions."))), listOf(crypto), 10_000).isEmpty())
+        val structure = passage("wp-99-0003:0000", "Blockchain — Structure", "Blocks hold batches of transactions.")
+        assertTrue(ArticleDepth.isEncyclopedia(crypto))
+        assertEquals(listOf(structure.chunkId), ArticleDepth.pick("How does a blockchain work?", listOf(crypto),
+            mapOf("Blockchain" to listOf(crypto, structure)), listOf(crypto), 10_000).map { it.chunkId })
+        assertFalse(ArticleDepth.isEncyclopedia(passage("eip-01559-000:0000", "EIP-1559 — Abstract", "A fee market change.")))
+    }
+
+    @Test fun aLookupsLoneCommonNounReadsNoDepthAndTheNamedSubjectReadsMost() {
+        val baikal = passage("swp-20092-0000:0000", "Lake Baikal — Overview", "Lake Baikal is a lake in Siberia.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val water = passage("swp-939-0000:0000", "Water — Overview", "Water is a chemical compound.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val depthSection = passage("enw-18213-0002:0000", "Lake Baikal — Geography and hydrography > Water characteristics", "Baikal is the deepest lake in the world at 1,642 m and holds 23,615 km3 of fresh water.")
+        val density = passage("enw-33306-0007:0000", "Water — Properties > States > Density", "Water is densest at 4 °C.")
+        val question = "How deep is Lake Baikal, and how much of the world's fresh water does it hold?"
+        val picked = ArticleDepth.pick(question, listOf(baikal, water), mapOf("Lake Baikal" to listOf(baikal, depthSection), "Water" to listOf(water, density)), listOf(baikal, water), 10_000)
+        assertEquals(listOf(depthSection.chunkId), picked.map { it.chunkId })
+        // Two common nouns compared read alike; a lookup of two common nouns reads both.
+        val lion = passage("swp-1-0000:0000", "Lion — Overview", "The lion is a large cat.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val tiger = passage("swp-2-0000:0000", "Tiger — Overview", "The tiger is the largest cat.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val lionMore = passage("enw-1-0003:0000", "Lion — Description", "Adult male lions weigh 150 to 250 kg.")
+        val tigerMore = passage("enw-2-0002:0000", "Tiger — Characteristics", "Male Bengal tigers weigh 200 to 260 kg.")
+        val cats = ArticleDepth.pick("are lions or tigers heavier?", listOf(lion, tiger), mapOf("Lion" to listOf(lion, lionMore), "Tiger" to listOf(tiger, tigerMore)), listOf(lion, tiger), 10_000)
+        assertEquals(setOf(lionMore.chunkId, tigerMore.chunkId), cats.map { it.chunkId }.toSet())
+        // The named subject reads 60% of a tight budget; the other reads what is left.
+        val union = passage("swp-3600-0000:0000", "Soviet Union — Overview", "The Soviet Union was a country.", "https://simple.wikipedia.org/w/index.php?oldid=1")
+        val dissolution = passage("enw-40494892-0000:0000", "Dissolution of the Soviet Union — Overview", "The Soviet Union was dissolved in 1991.")
+        val unionSections = (1..4).map { passage("enw-26779-000$it:0000", "Soviet Union — History > Part $it", "The collapse came in stage $it. " + "x".repeat(260)) }
+        val dissolutionSections = (1..4).map { passage("enw-40494892-000$it:0000", "Dissolution of the Soviet Union — Causes > Cause $it", "The collapse had cause $it. " + "x".repeat(260)) }
+        val shared = ArticleDepth.pick("Why did the Soviet Union collapse?", listOf(union, dissolution),
+            mapOf("Soviet Union" to listOf(union) + unionSections, "Dissolution of the Soviet Union" to listOf(dissolution) + dissolutionSections), listOf(union, dissolution), 1_000)
+        assertEquals(2, shared.count { it.documentId.startsWith("enw-26779") })
+        assertEquals(1, shared.count { it.documentId.startsWith("enw-40494892") })
+    }
+
+    @Test fun theLeadChunkIsCutAtASentenceRatherThanLost() {
+        val sentence = "The Global Positioning System is a satellite-based navigation system owned by the United States Space Force. "
+        val lead = passage("enw-11866-0000:0000", "Global Positioning System — Overview", sentence.repeat(6).trim() + "\n\nAlso known as: GPS")
+        val principles = passage("enw-11866-0007:0000", "Global Positioning System — Principles", "The GPS satellites carry very stable atomic clocks. " + "word ".repeat(200))
+        val picked = ArticleDepth.pick(gpsQuestion, listOf(gpsSimple), mapOf("Global Positioning System" to listOf(gpsSimple, lead, principles)), listOf(gpsSimple), 1_500)
+        assertEquals(listOf(principles.chunkId, lead.chunkId), picked.map { it.chunkId })
+        val cut = picked.last().text
+        assertTrue(cut, cut.endsWith("Space Force."))
+        assertTrue(cut.length in ArticleDepth.MIN_CUT..(1_500 - principles.text.length))
+        assertFalse(cut.contains("Also known as"))
+        // Less than the minimum would say only what the subject is: nothing is cut.
+        assertEquals(null, ArticleDepth.truncated(lead, 200))
+        assertEquals(null, ArticleDepth.truncated(lead, sentence.length + 10))
+    }
+
+    @Test fun whatHappenedAndWhatItCostsAreAnsweredUnderTheirHeadings() {
+        val impact = passage("enw-68915-0009:0000", "Aral Sea — Impact on environment, economy, and public health", "The shrinking of the sea left salt flats and a ruined fishing industry.")
+        val solutions = passage("enw-68915-0017:0000", "Aral Sea — Solutions", "The Kok-Aral Dam raised the North Aral Sea's level and fish returned.")
+        val ecology = passage("enw-68915-0003:0000", "Aral Sea — Ecology > Native fish", "The sea had 20 native fish species.")
+        val ranked = ArticleDepth.ranked("what happened to the aral sea? why did it shrink so much and has any of it come back?", "Aral Sea", listOf(ecology, solutions, impact))
+        assertEquals(setOf(impact.chunkId, solutions.chunkId), ranked.take(2).map { it.chunkId }.toSet())
+        assertEquals(ecology.chunkId, ranked.last().chunkId)
+        val gas = passage("wp-9966-0005:0000", "Ethereum — Design > Gas", "Gas is the unit that measures the computational work of a transaction; its fee is paid in ether.")
+        val history = passage("wp-9966-0002:0000", "Ethereum — History > Founding", "Ethereum was proposed in 2013 by Vitalik Buterin.")
+        assertEquals(gas, ArticleDepth.answering("Why are Ethereum gas fees sometimes so high?", "Ethereum", listOf(history, gas)))
+        val health = passage("enw-904269-0004:0000", "Red wine — Health effects", "Moderate consumption has been studied for cardiovascular effects; the evidence is mixed.")
+        assertEquals(health, ArticleDepth.answering("Is a glass of red wine a day actually good for your heart? What does the current evidence say?", "Red wine", listOf(health)))
     }
 
     @Test fun theBudgetIsKeptWithoutCuttingAPassage() {

@@ -31,8 +31,16 @@ object ArticleDepth {
         return (rate * SECONDS * 4).toInt().coerceIn(MIN_CHARS, MAX_CHARS)
     }
 
-    /** Simple English ("swp-") and English Wikipedia ("enw-") passages; not the cryptography pack's copies. */
-    fun isEncyclopedia(item: Evidence): Boolean = item.documentId.startsWith("swp-") || item.documentId.startsWith("enw-")
+    /**
+     * Simple English ("swp-") and English Wikipedia ("enw-") passages, and the cryptography pack's
+     * own Wikipedia articles ("wp-"), whose sections explain wallets and fees as the others do.
+     */
+    fun isEncyclopedia(item: Evidence): Boolean =
+        item.documentId.startsWith("swp-") || item.documentId.startsWith("enw-") || item.documentId.startsWith("wp-")
+    /** Share of the depth budget the question's main subject reads; the others split the rest. */
+    private const val PRIMARY_SHARE = 60
+    /** A lead chunk cut to fit keeps at least this much, or nothing: a shorter cut says only what the subject is. */
+    internal const val MIN_CUT = 240
 
     /** Section headings that answer each kind of question: "why" is answered under "Causes". */
     private val kinds = listOf(
@@ -61,6 +69,15 @@ object ArticleDepth {
         Regex("(?i)\\bcry\\b|\\bcries\\b|\\btears?\\b|\\bsting|\\bitch|\\bburn|\\bhurt|\\bpain|\\bharm|\\bpoison|\\btoxic|\\ballerg") to
             Regex("(?i)\\b(?:irritation|adverse effects?|toxicity|side effects?|safety|poisoning|allerg\\w*|health)\\b"),
         Regex("(?i)\\bsalt|\\bsalin") to Regex("(?i)\\b(?:salinity|composition|chemistry|salt)\\b"),
+        // "What happened to the Aral Sea" is told by its history and what was done about it.
+        Regex("(?i)\\bhappen|\\bshr[ai]nk|\\bstory\\b|\\bdeal with\\b|\\bcome back\\b|\\brecover") to
+            Regex("(?i)\\b(?:history|background|impact|consequences|solutions?|recovery|restoration|current situation)\\b"),
+        // "Why are bananas so cheap", "why are gas fees high": the economics of the subject.
+        Regex("(?i)\\bfees?\\b|\\bcost|\\bprice|\\bcheap|\\bexpensive") to
+            Regex("(?i)\\b(?:economics?|fees?|gas|transaction fees?|market|trade|production|cultivation|pricing)\\b"),
+        // "Is red wine good for your heart? What does the evidence say": the research on its effects.
+        Regex("(?i)\\bevidence\\b|\\bstud(?:y|ies)\\b|\\bresearch\\b|\\brisks?\\b|\\bgood for\\b|\\bhealth") to
+            Regex("(?i)\\b(?:health effects?|effects?|research|safety)\\b"),
         Regex("(?i)\\bphases?\\b") to Regex("(?i)\\b(?:phases?)\\b"),
     )
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
@@ -81,25 +98,74 @@ object ArticleDepth {
         if (chars <= 0) return emptyList()
         val held = have.map { it.documentId to it.chunkId }.toMutableSet()
         val titles = subjects.filter(::isEncyclopedia).map { it.title.substringBefore(" — ") }.distinct()
-        val queues = titles.map { article ->
-            ArrayDeque(ranked(question, article, articles[article].orEmpty().filter { isEncyclopedia(it) && (it.documentId to it.chunkId) !in held },
-                chars / titles.size))
-        }
-        val picked = ArrayList<Evidence>()
-        var left = chars
-        while (queues.any { it.isNotEmpty() }) {
-            for (queue in queues) {
-                val next = queue.removeFirstOrNull() ?: continue
-                if ((next.documentId to next.chunkId) in held) continue
-                // Skip a chunk that does not fit rather than cut it; a shorter one may.
-                val cost = next.text.length - if (picked.any { follows(it, next) }) OVERLAP else 0
-                if (cost > left) continue
-                held += next.documentId to next.chunkId
-                picked += next
-                left -= cost
+        // The question's main subject is the name it writes with capitals ("Lake Baikal"), else its
+        // first phrase of more than one word, else its first subject. In a factual lookup a lone
+        // common noun beside such a subject ("Water", "Depth") is a word of the question, not what
+        // it is about, and reads no depth; a comparison's subjects ("Weather", "Climate") all do.
+        val primary = titles.firstOrNull { isName(question, it) } ?: titles.firstOrNull { ' ' in it } ?: titles.firstOrNull() ?: return emptyList()
+        val lookup = SubjectLookup.looksUp(question)
+        val read = if (lookup && (' ' in primary || isName(question, primary))) titles.filter { it == primary || ' ' in it || isName(question, it) } else titles
+        // The main subject reads most when it stands out from the others; equals share alike.
+        val weighted = read.size > 1 && (lookup || isName(question, primary))
+        val shares = read.associateWith { title ->
+            when {
+                read.size == 1 -> chars
+                !weighted -> chars / read.size
+                title == primary -> chars * PRIMARY_SHARE / 100
+                else -> chars * (100 - PRIMARY_SHARE) / 100 / (read.size - 1)
             }
         }
+        val queues = read.map { article ->
+            ArrayDeque(ranked(question, article, articles[article].orEmpty().filter { isEncyclopedia(it) && (it.documentId to it.chunkId) !in held },
+                shares.getValue(article)))
+        }
+        val allowance = read.map { shares.getValue(it) }.toIntArray()
+        val picked = ArrayList<Evidence>()
+        val deferred = ArrayList<Evidence>()
+        var left = chars
+        fun cost(next: Evidence) = next.text.length - if (picked.any { follows(it, next) }) OVERLAP else 0
+        fun take(next: Evidence, cost: Int) {
+            held += next.documentId to next.chunkId
+            picked += next
+            left -= cost
+        }
+        while (queues.any { it.isNotEmpty() }) {
+            for ((slot, queue) in queues.withIndex()) {
+                val next = queue.removeFirstOrNull() ?: continue
+                if ((next.documentId to next.chunkId) in held) continue
+                val cost = cost(next)
+                if (cost > allowance[slot]) {
+                    // The first lead chunk is cut at a sentence rather than lost; another chunk that
+                    // does not fit its subject's share may still fit what the other subjects leave.
+                    val cut = if (opensLead(next)) truncated(next, allowance[slot]) else null
+                    if (cut != null) { take(cut, cut.text.length); allowance[slot] -= cut.text.length } else deferred += next
+                    continue
+                }
+                take(next, cost)
+                allowance[slot] -= cost
+            }
+        }
+        for (next in deferred) {
+            if ((next.documentId to next.chunkId) in held) continue
+            val cost = cost(next)
+            if (cost <= left) take(next, cost)
+        }
         return joined(picked)
+    }
+
+    /** Whether [title] is written as a name in [question]: with its capitals, or capitalised past its first word. */
+    private fun isName(question: String, title: String): Boolean =
+        question.contains(title) || title.split(' ').drop(1).any { it.first().isUpperCase() }
+
+    private fun opensLead(item: Evidence): Boolean = item.documentId.endsWith("-0000") && chunkNumber(item) == 0
+
+    /** [item] cut to its last sentence ending within [max] characters, or null when less than [MIN_CUT] would remain. */
+    internal fun truncated(item: Evidence, max: Int): Evidence? {
+        if (max < MIN_CUT) return null
+        val text = item.text.lineSequence().filterNot { it.startsWith("Also known as:") }.joinToString("\n").trim()
+        if (text.length <= max) return item.copy(text = text)
+        val end = Regex("[.!?](?=\\s)").findAll(text.substring(0, max)).lastOrNull()?.range?.last ?: return null
+        return if (end + 1 >= MIN_CUT) item.copy(text = text.substring(0, end + 1)) else null
     }
 
     /** How well each section of [article] answers [question]; see [score]. */

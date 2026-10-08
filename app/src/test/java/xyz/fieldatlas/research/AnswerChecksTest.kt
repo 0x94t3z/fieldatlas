@@ -252,4 +252,115 @@ From saved sources
         assertEquals(none, AnswerChecks.removeUnsupportedWarnings(none, listOf(heatStroke)))
         assertEquals(answer, AnswerChecks.removeUnsupportedWarnings(answer, emptyList()))
     }
+
+    @Test fun aWrongStepResultIsRecomputedAndMarked() {
+        assertEquals("3 h + 20 min = 3 h 20 min (corrected on this phone)", AnswerChecks.checkArithmetic("3 h + 20 min = 3 h 30 min"))
+        assertEquals("612 × 1.12 = 685.44 (corrected on this phone)", AnswerChecks.checkArithmetic("612 × 1.12 = 672.20"))
+        assertEquals("€720 × 15% = €108 (corrected on this phone).", AnswerChecks.checkArithmetic("€720 × 15% = €100."))
+        assertEquals("- Fare: $1,200 x 3 = $3,600 (corrected on this phone) for the group", AnswerChecks.checkArithmetic("- Fare: $1,200 x 3 = $3,500 for the group"))
+        assertEquals("18 ÷ 30 = 0.6 bags (corrected on this phone)", AnswerChecks.checkArithmetic("18 ÷ 30 = 1 bags"))
+        assertEquals("09:40 + 25 min = 10:05 (corrected on this phone)", AnswerChecks.checkArithmetic("09:40 + 25 min = 10:15"))
+        assertEquals("7:30 + 5 h 51 min = 13:21 (corrected on this phone)", AnswerChecks.checkArithmetic("7:30 + 5 h 51 min = 12:21"))
+        assertEquals("250 euros * 0.84 = 210.00 pounds (corrected on this phone)", AnswerChecks.checkArithmetic("250 euros * 0.84 = 215.00 pounds"))
+        assertEquals("210.00 - 3.00 = 207.00 (corrected on this phone)", AnswerChecks.checkArithmetic("210.00 - 3.00 = 205.00"))
+        assertEquals("18 km ÷ 5 km/h = 3 h 36 min (corrected on this phone)", AnswerChecks.checkArithmetic("18 km ÷ 5 km/h = 2 h"))
+    }
+
+    @Test fun aCorrectChainAndRoundedFiguresAreLeftAlone() {
+        val train = "Distance: 420 km\nSpeed: 140 km/h\n420 km ÷ 140 km/h = 3 h\n2 × 10 min = 20 min\n3 h + 20 min = 3 h 20 min\n" +
+            "08:15 + 3 h 20 min = 11:35\nAnswer: 11:35"
+        assertEquals(train, AnswerChecks.checkArithmetic(train))
+        val hotel = "€180 × 4 = €720 (room)\n€720 × 0.85 = €612\n€612 × 1.12 = €685.44\n2 × €3.50 = €7.00\n4 × €7.00 = €28.00\n" +
+            "€685.44 + €28.00 = €713.44\nAnswer: €713.44"
+        assertEquals(hotel, AnswerChecks.checkArithmetic(hotel))
+        // A figure rounded to the precision it is written at is right; a quotient is not rounded up.
+        assertEquals("€612 × 1.12 = €685", AnswerChecks.checkArithmetic("€612 × 1.12 = €685"))
+        assertEquals("860 ÷ 38 = 22.63 euros", AnswerChecks.checkArithmetic("860 ÷ 38 = 22.63 euros"))
+        assertEquals("84 ÷ 12 = 7 boxes", AnswerChecks.checkArithmetic("84 ÷ 12 = 7 boxes"))
+        // Prose with numbers, and a sum the app cannot check, stay as written.
+        val prose = "The 4 nights at €180 come to €720 and the 12% tax applies after the discount."
+        assertEquals(prose, AnswerChecks.checkArithmetic(prose))
+        assertEquals("08:15 + 420 = 11:35", AnswerChecks.checkArithmetic("08:15 + 420 = 11:35"))
+        // A longer chain is not checked from its second operator.
+        assertEquals("2 × 4 nights × €3.50 = €28.00", AnswerChecks.checkArithmetic("2 × 4 nights × €3.50 = €28.00"))
+        assertEquals("3 h 36 min + 1 h 30 min + 45 min = 5 h 51 min", AnswerChecks.checkArithmetic("3 h 36 min + 1 h 30 min + 45 min = 5 h 51 min"))
+    }
+
+    @Test fun aLinearChainCarriesTheCorrectionIntoTheAnswer() {
+        val answer = "Room: €180 × 4 = €720\nDiscount: €720 × 0.85 = €612\nTax: €612 × 1.12 = €672.20\n**Answer:** €672.20 in total"
+        assertEquals("Room: €180 × 4 = €720\nDiscount: €720 × 0.85 = €612\nTax: €612 × 1.12 = €685.44 (corrected on this phone)\n" +
+            "**Answer:** €685.44 (corrected on this phone) in total", AnswerChecks.checkArithmetic(answer))
+        // A later step that starts from the wrong figure is recomputed from the corrected one.
+        val chain = "3 h + 20 min = 3 h 30 min\n08:15 + 3 h 30 min = 11:45\nAnswer: 11:45"
+        assertEquals("3 h + 20 min = 3 h 20 min (corrected on this phone)\n08:15 + 3 h 20 min = 11:35 (corrected on this phone)\nAnswer: 11:35 (corrected on this phone)",
+            AnswerChecks.checkArithmetic(chain))
+    }
+
+    @Test fun aBranchingWorkingOnlyNotesThatAStepWasCorrected() {
+        val branched = "€180 × 4 = €720\n€720 × 0.85 = €612\n€612 × 1.12 = €672.20\n2 × €3.50 = €7.00\n€672.20 + €7.00 = €679.20\nAnswer: €679.20"
+        assertEquals("€180 × 4 = €720\n€720 × 0.85 = €612\n€612 × 1.12 = €685.44 (corrected on this phone)\n2 × €3.50 = €7.00\n" +
+            "€685.44 + €7.00 = €692.44 (corrected on this phone)\nAnswer: €679.20\n\n" + AnswerChecks.STEP_CORRECTED_NOTE,
+            AnswerChecks.checkArithmetic(branched))
+        // An answer figure that no written step produced cannot be re-derived either.
+        val mental = "14 × 2 = 28\n28 × 3 = 84\n84 ÷ 12 = 7\n18 ÷ 30 = 1\nAnswer: 7 boxes and 2 bags"
+        assertEquals("14 × 2 = 28\n28 × 3 = 84\n84 ÷ 12 = 7\n18 ÷ 30 = 0.6 (corrected on this phone)\nAnswer: 7 boxes and 2 bags\n\n" +
+            AnswerChecks.STEP_CORRECTED_NOTE, AnswerChecks.checkArithmetic(mental))
+    }
+
+    private val book = xyz.fieldatlas.emergency.EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText())
+    private fun guideSections(id: String) = xyz.fieldatlas.emergency.EmergencyGuideMatch.sections(book.guides.single { it.id == id })
+
+    @Test fun aStepNamingABodySiteOrMedicineTheGuideNeverMentionsIsRemoved() {
+        // Scored 1/10 and 2/10 in the field: under the anaphylaxis guide the model wrote "give the
+        // epipen in the arm" (auto-injectors go in the thigh) and cited MedlinePlus, which says no such thing.
+        val anaphylaxis = guideSections("anaphylaxis")
+        assertEquals("Call emergency services immediately [S1].",
+            AnswerChecks.removeUnsupportedSteps("Call emergency services immediately [S1]. Give the epipen in the arm of the child if available [S1].", anaphylaxis))
+        assertEquals("1. Call 911 [S1].\n2. Give the auto-injector injection right away [S1].",
+            AnswerChecks.removeUnsupportedSteps("1. Call 911 [S1].\n2. Give the auto-injector injection right away [S1].\n3. Apply the epipen on the lip [S1].\n4. Give a second dose after 5 minutes [S1].", anaphylaxis))
+        // A body site the guide itself names stays.
+        val snakebite = guideSections("snakebite")
+        // sections() are in reading order: [S2] is "First Aid: If a snake bites you".
+        val bite = "1. Remove rings and watches before swelling starts [S2].\n2. Wash the bite with soap and water [S2].\n3. Mark the leading edge of swelling on the skin and write the time alongside it [S2]."
+        assertEquals(bite, AnswerChecks.removeUnsupportedSteps(bite, snakebite))
+    }
+
+    @Test fun aStepWithNoWordsFromTheGuideIsRemovedAndTheRestRenumbered() {
+        val hypothermia = guideSections("hypothermia")
+        // [S3] is "If you are not able to get medical help right away, try to warm the person up."
+        val answer = "1. Move your friend into a warm room or shelter to stop heat loss [S3].\n2. Rub the arms and legs briskly to restore circulation [S3].\n" +
+            "3. Remove wet clothing and wrap them in dry blankets for warmth [S3].\n4. Give them a cup of hot coffee every 20 minutes [S3]."
+        assertEquals("1. Move your friend into a warm room or shelter to stop heat loss [S3].\n2. Remove wet clothing and wrap them in dry blankets for warmth [S3].",
+            AnswerChecks.removeUnsupportedSteps(answer, hypothermia))
+        // The heat example from the warning check: the invented "unless they can swallow" goes, the guide's own "do not give fluids" stays.
+        val heat = "1. Call 911 or get them to a hospital immediately [S1].\n2. Move them to a cooler place [S1].\n" +
+            "3. Do not give food or drink unless they are able to swallow safely [S2].\n4. Do not give fluids [S1].\n5. Cool the skin with wet cloths [S1]."
+        assertEquals("1. Call 911 or get them to a hospital immediately [S1].\n2. Move them to a cooler place [S1].\n3. Do not give fluids [S1].\n4. Cool the skin with wet cloths [S1].",
+            AnswerChecks.removeUnsupportedSteps(heat, listOf(heatStroke, heatExhaustion)))
+    }
+
+    @Test fun inlineNumberingAndGroundedStepsAreLeftAlone() {
+        // The burns answer scored 7/10 and every step is the guide's; "2." is a step marker, not an invented number.
+        val burns = guideSections("burns")
+        // [S2] is "How to Treat Minor Burns".
+        val answer = "1. Remove all clothing/diapers/jewelry/metal from the area immediately [S2]. 2. Hold the burned skin under cool running water for 10–15 minutes if possible [S2]; " +
+            "otherwise apply a cool wet cloth or soak in a cool bath for five minutes [S2]. 3. Clean gently with soap and water [S2]. 4. Do not pop the blister as an opened blister can get infected [S2]. " +
+            "5. Cover lightly with sterile non-stick gauze taped over it [S2]."
+        assertEquals(answer, AnswerChecks.removeUnsupportedSteps(answer, burns))
+        assertEquals(answer, AnswerChecks.removeUnsupportedSteps(answer, emptyList()))
+    }
+
+    @Test fun unsupportedModelStepsCanBeEmptiedAndGettingHelpStays() {
+        val bleeding = guideSections("severe-bleeding")
+        // Nothing here is sufficiently grounded: do not retain guesses just to fill the answer.
+        val loose = "Stay calm and reassure them [S1]. Elevate the limb above the heart [S1]. Keep the person warm with a jacket [S1]."
+        val kept = AnswerChecks.removeUnsupportedSteps(loose, bleeding)
+        assertEquals("", kept)
+        // "Seek emergency medical assistance as soon as possible" shares no words with "until medical help arrives" and stays.
+        assertEquals("Remove any clothing covering the wound [S1]. Seek emergency medical assistance as soon as possible [S1].",
+            AnswerChecks.removeUnsupportedSteps("Remove any clothing covering the wound [S1]. Seek emergency medical assistance as soon as possible [S1].", bleeding))
+        // A heading and a blank line are formatting, not steps.
+        assertEquals("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].",
+            AnswerChecks.removeUnsupportedSteps("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].\n- Apply a tourniquet above the knee and note the time [S1].", bleeding))
+    }
 }

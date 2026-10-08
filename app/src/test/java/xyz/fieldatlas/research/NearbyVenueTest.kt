@@ -193,6 +193,60 @@ class NearbyVenueTest {
         assertEquals(0, inference.generateCalls)
     }
 
+    private fun sleep(id: String, name: String, type: String) = Evidence(
+        documentId = "osm-place-$id", chunkId = "osm-place-$id:0000", title = "Munich — $name",
+        source = "https://www.openstreetmap.org/node/$id",
+        text = listOf("Destination: Munich", "Category: Sleep", "Place: $name", "Type: $type", "Latitude: 48.1", "Longitude: 11.5",
+            "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)").joinToString("\n"),
+        score = 0.0,
+    )
+
+    @Test fun hostelsOrHotelsNearMeKeepsBothKinds() {
+        val hostel = sleep("21", "Jaegers Hostel", "hostel")
+        val hotel = sleep("22", "City Hotel", "hotel")
+        val question = "missed the last train out. any hostels or cheap hotels i can walk to from where i am?"
+        assertTrue(VenueLookup.isNearMe(question))
+        assertEquals(setOf("Sleep"), VenueLookup.nearbyCategories(question))
+        val result = VenueLookup.nearbyAnswer(question, listOf(NearbyPlace(hostel, 1.1), NearbyPlace(hotel, 0.4)), 5.0)
+        // "cheap" puts the hostel first although the hotel is closer; without it the nearer place leads.
+        assertEquals(listOf(hostel, hotel), result.sources)
+        assertEquals(listOf(hotel, hostel), VenueLookup.nearbyAnswer("hostels or hotels near me", listOf(NearbyPlace(hostel, 1.1), NearbyPlace(hotel, 0.4)), 5.0).sources)
+        // "walk" is how to get there, not a word a listing must carry.
+        assertTrue(result.answer, result.answer.contains("None of these saved listings mentions “missed”, “train”, “out”"))
+        assertFalse(result.answer, result.answer.contains("“walk”"))
+    }
+
+    private fun athens(id: String, name: String, type: String, cuisine: String?, vegan: String?, km: Double) = NearbyPlace(Evidence(
+        documentId = "osm-place-$id", chunkId = "osm-place-$id:0000", title = "Athens — $name", source = "https://www.openstreetmap.org/node/$id",
+        text = listOfNotNull("Destination: Athens", "Category: Eat", "Place: $name", "Type: $type", vegan?.let { "Vegan: $it" }, cuisine?.let { "Cuisine: $it" },
+            "Latitude: 37.97", "Longitude: 23.73", "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)").joinToString("\n"), 0.0), km)
+
+    private fun taverna(ordinal: Int, name: String, description: String, km: Double) = NearbyPlace(Evidence(
+        documentId = "wv-place-1808-%04d".format(ordinal), chunkId = "wv-place-1808-%04d:0000".format(ordinal), title = "Athens — $name",
+        source = "https://en.wikivoyage.org/w/index.php?oldid=1808",
+        text = "Destination: Athens\nCategory: Eat\nPlace: $name\nDescription: $description\nLatitude: 37.97\nLongitude: 23.73\nSource page revision: 2026-08-01", 0.0), km)
+
+    @Test fun aDishNamesItsKitchenAndGuideListingsJoinTheMapsPlaces() {
+        val burgers = athens("31", "Goody's Burger House", "fast food", null, "vegan options", 0.08)
+        val indian = athens("32", "Babaji", "restaurant", "indian", "vegan options", 0.15)
+        val greek = athens("33", "W", "restaurant", "greek", "vegan options", 0.38)
+        val kostas = taverna(69, "Σουβλάκι Κώστας 1950 (Kostas)", "It's authentic, friendly and fast.", 0.26)
+        val traditional = taverna(72, "The Traditional", "Traditional Greek food in a village tavern.", 0.58)
+        val question = "Starving. Where can I get a proper souvlaki or a decent local meal near here that isn't a tourist trap?"
+        assertTrue(VenueLookup.isNearMe(question))
+        val result = VenueLookup.nearbyAnswer(question, listOf(burgers, indian, greek, kostas, traditional), 2.0)
+        // Greek kitchens and the souvlaki stand, nearest first; the burger chain and the Indian place are not souvlaki.
+        assertEquals(listOf(kostas.evidence, greek.evidence, traditional.evidence), result.sources)
+        assertFalse(result.answer, result.answer.contains("None of these saved listings mentions"))
+        assertTrue(result.answer, result.answer.contains("- **Σουβλάκι Κώστας 1950 (Kostas)** — listed in the Wikivoyage guide, 260 m away. “It's authentic, friendly and fast.” Coordinates: 37.97000, 23.73000."))
+        assertTrue(result.answer, result.answer.contains("Map data © OpenStreetMap contributors (ODbL). Guide listings are from the saved Wikivoyage guide."))
+        // Only the vegan-tagged map collection answered a plain food question: the answer says so.
+        val veganOnly = VenueLookup.nearbyAnswer("where can I get a decent local meal near here?", listOf(burgers, indian, greek), 2.0)
+        assertTrue(veganOnly.answer, veganOnly.answer.contains("the saved map collection holds only those tagged for vegan food"))
+        assertFalse(result.answer.contains("holds only those tagged"))
+        assertFalse(VenueLookup.nearbyAnswer("vegan food near me", listOf(burgers, indian), 2.0).answer.contains("holds only those tagged"))
+    }
+
     @Test fun distanceLabelsAndHaversine() {
         assertEquals("350 m", GeoDistance.label(0.354))
         assertEquals("1.2 km", GeoDistance.label(1.234))
