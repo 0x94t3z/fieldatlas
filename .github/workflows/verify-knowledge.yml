@@ -1,0 +1,81 @@
+name: Verify public knowledge downloads
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.repository == '0x94t3z/fieldatlas'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - id: travel-guides
+            tag: knowledge-wikivoyage-guides-2026.09.01
+            file: wikivoyage-guides-2026.09.01.fapack
+            bytes: 419107865
+            sha256: 1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83
+          - id: vegan-places
+            tag: knowledge-vegan-places-2026.10.05
+            file: osm-vegan-places-2026.10.05.fapack
+            bytes: 40068046
+            sha256: 4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd
+          - id: essentials
+            tag: knowledge-essentials-2026.10.05
+            file: osm-essentials-2026.10.05.fapack
+            bytes: 1781015519
+            sha256: a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9
+          - id: crypto-ethereum
+            tag: knowledge-crypto-ethereum-2026.10.05
+            file: crypto-ethereum-2026.10.05.fapack
+            bytes: 77678612
+            sha256: b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7
+          - id: wikipedia
+            tag: knowledge-wikipedia-en-vital-2026.10.06
+            file: wikipedia-en-vital-2026.10.06.fapack
+            bytes: 1389700139
+            sha256: 7f824902de3769c26519d050dab4a3f0c0dd90fe62c3eb54316818f0e2655271
+    env:
+      ARTIFACT: ${{ toJSON(matrix) }}
+    steps:
+      - name: Download without authentication and check every byte
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import urllib.parse
+          import urllib.request
+
+          class HTTPSOnlyRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  if urllib.parse.urlsplit(newurl).scheme != 'https':
+                      raise RuntimeError('Refusing a non-HTTPS download redirect')
+                  return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+          artifact = json.loads(os.environ['ARTIFACT'])
+          url = 'https://github.com/0x94t3z/fieldatlas/releases/download/' + artifact['tag'] + '/' + artifact['file']
+          request = urllib.request.Request(url, headers={'User-Agent': 'FieldAtlas-public-data-verification'})
+          opener = urllib.request.build_opener(HTTPSOnlyRedirect())
+          digest = hashlib.sha256()
+          count = 0
+          # No GH_TOKEN, authorization headers, checkout, or writes to the repository/releases.
+          with opener.open(request, timeout=60) as response:
+              if response.status != 200:
+                  raise RuntimeError('Public download did not return HTTP 200')
+              while block := response.read(4 * 1024 * 1024):
+                  count += len(block)
+                  if count > artifact['bytes']:
+                      raise RuntimeError('Download exceeds pinned byte count')
+                  digest.update(block)
+          if count != artifact['bytes'] or digest.hexdigest() != artifact['sha256']:
+              raise RuntimeError('Public download size/SHA-256 differs from catalog pin')
+          print('Public full download verified:', artifact['id'], count, digest.hexdigest())
+          PY
