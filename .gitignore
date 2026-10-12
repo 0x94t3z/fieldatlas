@@ -46,3 +46,18 @@ venv/
 .ruff_cache/
 .coverage
 htmlcov/
+native/leviathan/target/
+third_party/leviathan/target/
+
+# Local signing material and private working records, never release inputs.
+*.p12
+*.pfx
+/private/
+/.claude/
+/.codex/
+/.sessions/
+/.transcripts/
+/sessions/
+/transcripts/
+/CLAUDE.local.md
+/docs/offline-knowledge-roadmap.md

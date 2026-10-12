@@ -1,5 +1,20 @@
 # Verification
 
+## Current source checks (October 12, 2026)
+
+The local optimized release passed 1,153 JVM tests; 53 opt-in tests were skipped.
+Release assembly, signing verification and 16 KiB APK alignment passed.
+
+An offline Redmi imported the consolidated 24.35 GB encyclopedia. Twelve pinned
+native-search queries matched the reference ordered source IDs inside the installed
+release app. Two retrieval regressions (chloroplasts and P/S waves) were rechecked
+on the device after fixes; both returned relevant cited excerpts in 16 seconds.
+These are targeted integration checks, not an independent answer-quality benchmark
+or evidence that every question is answered correctly. Raw device logs and personal
+development records are not distributed with the source.
+
+The checks below describe earlier revisions and their limits, not a new release.
+
 ## v1.4.0 (October 6–7)
 
 - **Automated:** 799 Android JVM tests ran with zero failures; 16 opt-in desktop tests were
