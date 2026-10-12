@@ -26,7 +26,9 @@ internal fun LicenceSheet(onDismiss: () -> Unit) {
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val paths by produceState<List<String>?>(null) {
         value = withContext(Dispatchers.IO) {
-            assets.list("licenses").orEmpty().filter { it.endsWith(".txt") && it != "NOTICE.txt" }.sorted()
+            assets.list("licenses").orEmpty().filter {
+                it.endsWith(".txt") && it != "NOTICE.txt" || it == "NATIVE_SEARCH_NOTICES.md"
+            }.sorted()
                 .map { "licenses/$it" } + assets.list("ocr/licenses").orEmpty().sorted().map { "ocr/licenses/$it" }
         }
     }

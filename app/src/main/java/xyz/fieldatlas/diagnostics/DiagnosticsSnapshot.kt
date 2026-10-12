@@ -20,7 +20,7 @@ data class InstalledAssetSummary(
 
 @Serializable
 data class DiagnosticsSnapshot(
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int = 3,
     val appVersion: String,
     val device: String,
     val apiLevel: Int,
@@ -29,6 +29,7 @@ data class DiagnosticsSnapshot(
     val memoryClassBytes: Long,
     val measuredPssBytes: Long,
     val measuredRssBytes: Long?,
+    /** Registered payload sizes only; this is not the complete app storage footprint. */
     val totalInstalledBytes: Long,
     val networkPermissionPresent: Boolean,
     val cleartextTrafficPermitted: Boolean,
@@ -37,6 +38,10 @@ data class DiagnosticsSnapshot(
     val latestResearchCompletion: ResearchCompletion? = null,
     val latestQuestion: String? = null,
     val notices: List<String> = emptyList(),
+    /** Measured on demand for support exports, never during ordinary UI snapshots. */
+    val storageMeasurement: StorageMeasurement? = null,
+    /** Read-only count on explicit export; null when unmeasured or history could not be loaded. */
+    val historyEntryCount: Int? = null,
 )
 
 data class DiagnosticsInput(

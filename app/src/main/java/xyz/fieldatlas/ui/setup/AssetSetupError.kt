@@ -5,6 +5,8 @@ import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
+import xyz.fieldatlas.assets.AssetImportException
+import xyz.fieldatlas.assets.BudgetDecision
 
 /** Actionable copy for setup and Library. Raw failures belong in diagnostics, not primary UI. */
 internal enum class AssetAction { MODEL_DOWNLOAD, COLLECTION_DOWNLOAD, PACK_IMPORT }
@@ -19,6 +21,13 @@ internal fun assetSetupError(error: Throwable, action: AssetAction): String {
     }
     if (causes.any { it is SSLException }) {
         return "A secure connection couldn't be made. Check your connection and try again later."
+    }
+    // A valid pack can fail either storage admission check. Do not mislabel that
+    // as an incompatible file, or ask users to download the same bytes again.
+    when (causes.filterIsInstance<AssetImportException>().firstNotNullOfOrNull { it.budgetDecision }) {
+        BudgetDecision.ExceedsGlobalLimit -> return "There isn't room within Field Atlas's 50 GB storage limit. Remove unused packs in Library, then try again."
+        BudgetDecision.InsufficientFreeSpace -> return "Not enough storage space on this phone. Free up space, then try again."
+        else -> Unit
     }
     val detail = causes.firstNotNullOfOrNull { it.message }.orEmpty().lowercase()
     if ("not enough" in detail && ("space" in detail || "storage" in detail)) {

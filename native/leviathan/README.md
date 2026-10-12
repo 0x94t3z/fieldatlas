@@ -1,0 +1,45 @@
+# Field Atlas native search bridge
+
+Leviathan 0.2.0 is vendored from upstream commit
+`f1070fe525527eec8ed52bfaf014b9e927224889`, Apache-2.0. Its LICENSE,
+NOTICE and THIRD_PARTY.md remain in `third_party/leviathan`.
+The sole upstream code change exposes SQLite's thread-safe interrupt handle.
+Query parsing, ranking and the index format are unchanged.
+
+This read-only JNI library uses upstream's library API with default features
+disabled. It does not launch a CLI, enable network code, or offer index writes.
+Integer handles refer to reference-counted stores; close cannot free an in-flight
+query. JVM entry points contain Rust panics and convert errors to exceptions.
+
+Build prerequisites: Rust 1.90 with `aarch64-linux-android`, Python 3, NDK
+29.0.13113456. Put cargo/rustc/rustdoc on PATH. Gradle builds the library from
+source using Cargo.lock. No binary is checked in. ARM64 linker pages use 16KiB.
+
+Only databases with the validated `fieldatlas_search` marker use native search.
+Old packs keep their original SQL path. A native failure falls back to the same
+pack's legacy posting index. Maps and specialized technical routes remain on
+their existing paths. Returned cards select IDs; original full records supply
+evidence. Native rank is never presented as the old BM25 confidence.
+
+`tools/build_dual_search_pack.py` creates a transitional single-content database:
+one original record copy and two posting indexes. It rejects unsupported
+auxiliary tables rather than dropping vectors/maps. It does not create or publish
+an installable `.fapack`; packaging, checksum updates and measured storage remain
+separate release steps. Do not modify an installed pack in place.
+
+Large-pack provisioning
+
+`tools/package_search_upgrade.py --compressed` produces a schema-2 knowledge
+pack with a STORED first manifest and STORED/DEFLATED artifacts. Schema 1 remains
+STORED-only; schema 2 is rejected for model/audio packs. Expanded artifact byte
+counts and SHA-256 checks are unchanged. Download catalogs must specify
+`installedBytes` for schema-2 archives; admission reserves remaining download
+bytes plus expanded bytes and verifies that count against the manifest.
+
+Seekable local document URIs are read directly rather than copied into staging.
+The source archive still counts conservatively against the 50 GB import budget,
+even when it lives outside app storage, and is never deleted by the importer.
+Pipe/cloud providers retain the spool-and-verify fallback and may require more
+space. Copy/extraction loops check coroutine cancellation between reads, remove
+their staging session on failure, and preserve downloaded archives for retry.
+This is format support, not evidence of completed full-size device acceptance.

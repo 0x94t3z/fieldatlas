@@ -16,6 +16,8 @@ class AnswerSectionTest {
             answerSection(heading("## ${SourceLead.HEADING}")))
         assertEquals(AnswerSection("From saved sources", "Quoted", quoted = true),
             answerSection(heading("## From saved sources")))
+        assertEquals(AnswerSection("From your saved sources", "Quoted", quoted = true),
+            answerSection(heading("## ${xyz.fieldatlas.research.GroundedKnowledgeAnswer.HEADING}")))
         // Model-written headings keep their own text and get no badge.
         assertNull(answerSection(heading("## Key characteristics")))
     }

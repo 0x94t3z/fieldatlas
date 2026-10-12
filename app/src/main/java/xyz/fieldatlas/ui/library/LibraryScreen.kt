@@ -250,10 +250,10 @@ fun LibraryScreen(
                     )
                 }
             }
-            if (knowledge.isNotEmpty()) {
+            xyz.fieldatlas.ui.presentation.knowledgeSelectionSummary(knowledge)?.let { summary ->
                 item {
                     Text(
-                        "Switched-on collections are searched for every question.",
+                        summary,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -261,26 +261,19 @@ fun LibraryScreen(
             }
             knowledgeGroups.forEach { (category, group) ->
                 item(key = "category:${category.name}") { CategoryLabel(category) }
-                item(key = "group:${category.name}") {
-                    // One grouped card per category, rows split by hairlines, as in the design.
-                    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-                        Column {
-                            group.forEachIndexed { index, asset ->
-                                if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                                AssetCard(
-                                    model = asset.toAssetCardModel(),
-                                    visual = packVisual(asset),
-                                    enabled = asset.enabled,
-                                    onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
-                                    onDelete = { onDeletePack(asset) },
-                                    inGroup = true,
-                                    asset = asset,
-                                    onAskExample = onAskExample,
-                                )
-                            }
-                        }
-                    }
+                // Each installed bundle is one collection. Do not pretend separate legacy
+                // archives are one installed bundle or hide their search/delete controls.
+                items(group.size, key = { "knowledge:${group[it].id}:${group[it].version}" }) { index ->
+                    val asset = group[index]
+                    AssetCard(
+                        model = asset.toAssetCardModel(),
+                        visual = packVisual(asset),
+                        enabled = asset.enabled,
+                        onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
+                        onDelete = { onDeletePack(asset) },
+                        asset = asset,
+                        onAskExample = onAskExample,
+                    )
                 }
             }
             item { TextButton(shape = FieldAtlasButtonShape, onClick = { discovering = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Browse collections") } }

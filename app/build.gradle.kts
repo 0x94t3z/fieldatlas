@@ -12,6 +12,23 @@ val syncBenchmarkAssets by tasks.registering(Sync::class) {
     into(generatedBenchmarkAssets.map { it.dir("benchmark") })
 }
 
+// Built from vendored pinned source, never downloaded as an opaque prebuilt .so.
+val generatedLeviathanJni = layout.buildDirectory.dir("generated/leviathanJni")
+val generatedLeviathanAssets = layout.buildDirectory.dir("generated/leviathanAssets")
+val buildLeviathanNative by tasks.registering(Exec::class) {
+    environment("CARGO_NET_OFFLINE", gradle.startParameter.isOffline.toString())
+    inputs.dir(rootProject.file("native/leviathan"))
+    inputs.dir(rootProject.file("third_party/leviathan/src"))
+    inputs.file(rootProject.file("third_party/leviathan/Cargo.toml"))
+    inputs.file(rootProject.file("tools/build_leviathan_native.py"))
+    outputs.dir(generatedLeviathanJni)
+    outputs.dir(generatedLeviathanAssets)
+    commandLine("python3", rootProject.file("tools/build_leviathan_native.py").absolutePath,
+        "--ndk", android.ndkDirectory.absolutePath,
+        "--output", generatedLeviathanJni.get().asFile.absolutePath,
+        "--assets", generatedLeviathanAssets.get().asFile.absolutePath)
+}
+
 val releaseSigningInputs = mapOf(
     "FIELDATLAS_KEYSTORE_PATH" to providers.environmentVariable("FIELDATLAS_KEYSTORE_PATH").orNull,
     "FIELDATLAS_STORE_PASSWORD" to providers.environmentVariable("FIELDATLAS_STORE_PASSWORD").orNull,
@@ -27,6 +44,9 @@ if (hasAnyReleaseSigningInput && !hasAllReleaseSigningInputs) {
 }
 
 android {
+    ndkVersion = "29.0.13113456"
+    sourceSets.getByName("main").jniLibs.srcDir(generatedLeviathanJni)
+    sourceSets.getByName("main").assets.srcDir(generatedLeviathanAssets)
     sourceSets.getByName("main").assets.srcDir(generatedBenchmarkAssets)
     namespace = "xyz.fieldatlas"
     compileSdk = 36
@@ -87,7 +107,7 @@ android {
     }
 }
 
-tasks.named("preBuild").configure { dependsOn(syncBenchmarkAssets) }
+tasks.named("preBuild").configure { dependsOn(syncBenchmarkAssets, buildLeviathanNative) }
 
 // Opt-in host runner uses the same SQLite version, with desktop JNI instead of Android JNI.
 // Nothing from this configuration is included in the APK or ordinary unit tests.

@@ -62,15 +62,17 @@ class DiagnosticsProviderTest {
         }
     }
 
-    @Test fun schemaTwoSerializesUnavailableRssAsNull() {
+    @Test fun schemaThreeKeepsUnmeasuredStorageAndUnavailableRssNull() {
         val snapshot = DiagnosticsProvider.create(
             appVersion = "1", device = "phone", apiLevel = 34, supportedAbis = listOf("arm64-v8a"),
             deviceTotalMemoryBytes = 4, memoryClassBytes = 1, measuredPssBytes = 2,
             measuredRssBytes = null, networkPermissionPresent = false, assets = emptyList(),
         )
-        assertEquals(2, snapshot.schemaVersion)
+        assertEquals(3, snapshot.schemaVersion)
         assertNull(snapshot.measuredRssBytes)
+        assertNull(snapshot.storageMeasurement)
         assertTrue(DiagnosticsProvider.toJson(snapshot).contains("\"measuredRssBytes\":null"))
+        assertTrue(DiagnosticsProvider.toJson(snapshot).contains("\"storageMeasurement\":null"))
     }
 
     private fun asset(id: String, bytes: Long) = InstalledAsset(

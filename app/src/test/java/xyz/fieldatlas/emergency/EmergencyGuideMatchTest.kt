@@ -69,6 +69,17 @@ class EmergencyGuideMatchTest {
         assertEquals("snakebite", match("We are a long way from our car. ".repeat(20) + question))
     }
 
+    @Test fun scientificComparisonsDoNotBecomeEmergencyInstructions() {
+        for (question in listOf(
+            "How do earthquake P waves differ from S waves?",
+            "How does a tsunami differ from a tidal wave?",
+            "How do earthquakes differ from aftershocks?",
+        )) assertNull(question, match(question))
+        // A comparison must not suppress an accompanying real request for help.
+        assertEquals("earthquake", match("How do earthquake P waves differ from S waves? What should I do right now?"))
+        assertEquals("earthquake", match("How do earthquake P waves differ from S waves when I am trapped and need help?"))
+    }
+
     @Test fun lengthyHistoricalQuestionsStayInResearch() {
         assertNull(match("Describe the history of the 2004 Indian Ocean tsunami, including the geological causes, the countries affected, the economic consequences and the changes in coastal infrastructure that followed over the next two decades."))
         // Long research questions that name a hazard and a safety or symptom word are not first aid.

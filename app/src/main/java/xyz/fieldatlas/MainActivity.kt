@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import xyz.fieldatlas.benchmark.BenchmarkCodec
+import xyz.fieldatlas.diagnostics.AndroidDiagnosticsCollector
 import xyz.fieldatlas.diagnostics.DiagnosticsProvider
 import xyz.fieldatlas.export.ExportStagingStore
 import xyz.fieldatlas.inference.InferenceState
@@ -322,9 +323,14 @@ class MainActivity : ComponentActivity() {
                     )
                     scope.launch {
                         withContext(Dispatchers.IO) {
+                            val exportSnapshot = snapshot.copy(
+                                historyEntryCount = container.answerHistory.diagnosticsEntryCount(),
+                            )
                             exportStore.stage(
                                 DIAGNOSTICS_EXPORT,
-                                DiagnosticsProvider.toJson(snapshot).toByteArray(),
+                                DiagnosticsProvider.toJson(
+                                    AndroidDiagnosticsCollector.withStorageMeasurement(this@MainActivity, exportSnapshot),
+                                ).toByteArray(),
                             )
                         }
                         diagnosticsExporter.launch("fieldatlas-diagnostics.json")

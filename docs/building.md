@@ -8,9 +8,16 @@ JDK 17, Gradle 8.13, Android Gradle Plugin 8.11.1, Kotlin 2.1.0, Compose BOM 202
 
 ## Build and check
 
+Native search also requires Rust 1.90.0 and its `aarch64-linux-android` target.
+Install [rustup](https://rustup.rs/) before the commands below. The checked-in
+`rust-toolchain.toml` selects the compiler, Android target and `rust-docs` component;
+the latter supplies standard-library license notices bundled in the APK.
+See the [rustup toolchain-file documentation](https://rust-lang.github.io/rustup/overrides.html#the-toolchain-file).
+
 ```sh
 git clone --recurse-submodules https://github.com/0x94t3z/fieldatlas.git
 cd fieldatlas
+rustup toolchain install 1.90.0 --profile minimal --component rust-docs --target aarch64-linux-android
 env -i PATH="$PATH" ./scripts/install_toolchain.sh
 git -C third_party/llama.cpp apply ../../scripts/patches/ai-chat-generation-fixes.patch
 ./gradlew --no-configuration-cache \
@@ -34,6 +41,7 @@ The current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md)
 | --- | --- |
 | `app/` | Android application and tests |
 | `third_party/llama.cpp/` | Pinned on-device inference runtime |
+| `native/leviathan/`, `third_party/leviathan/` | Native search bridge, locked dependencies and vendored source with notices |
 | `packtool/`, `fixtures/`, `tools/` | Pack creation and reproducible data inputs |
 | `models/` | Model provenance and expected hashes |
 | `benchmarks/` | Frozen questions and paired scorer |

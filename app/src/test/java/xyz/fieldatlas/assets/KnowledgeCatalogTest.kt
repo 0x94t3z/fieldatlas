@@ -7,6 +7,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class KnowledgeCatalogTest {
+    @Test fun expandedSizeIsOptionalForOldCatalogsAndStrictWhenProvided() {
+        val entry = KnowledgeCatalogRepositoryTest.entry("compressed")
+        fun catalog(size: Long) = """{"schemaVersion":1,"packs":[${entry.dropLast(1)},"installedBytes":$size}]}"""
+        assertEquals(24_346_003_429L, KnowledgeCatalog.parse(catalog(24_346_003_429L)).packs.single().installedBytes)
+        for (size in listOf(0L, -1L, 50_000_000_001L)) {
+            assertThrows(IllegalArgumentException::class.java) { KnowledgeCatalog.parse(catalog(size)) }
+        }
+        assertEquals(null, KnowledgeCatalog.parse(KnowledgeCatalogRepositoryTest.catalog("legacy")).packs.single().installedBytes)
+    }
     @Test fun catalogRejectsDefaultsTheTransferWouldReject() {
         val valid = KnowledgeCatalogRepositoryTest.catalog("astronomy")
         for (invalid in listOf(valid.replace(".fapack", ".fapack#fragment"),

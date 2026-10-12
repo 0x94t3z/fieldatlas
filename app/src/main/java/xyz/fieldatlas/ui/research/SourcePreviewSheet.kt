@@ -83,7 +83,7 @@ internal fun placeSheetContent(text: String): PlaceSheetContent? {
 /** Text shared by "Copy answer with sources": the answer, then each source with its link. */
 internal fun answerWithSources(question: String, answer: String, sources: List<Evidence>): String = buildString {
     if (question.isNotBlank()) append(question.trim()).append("\n\n")
-    append(answer.trim())
+    append(xyz.fieldatlas.text.MarkdownLiteral.decode(answer.trim()))
     if (sources.isNotEmpty()) {
         append("\n\nSources\n")
         sources.forEachIndexed { index, source -> append("[S${index + 1}] ${source.title} — ${source.source}\n") }

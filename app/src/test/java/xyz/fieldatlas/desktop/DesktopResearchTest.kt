@@ -184,6 +184,7 @@ class DesktopResearchTest {
             val answer = StringBuilder()
             var metrics: ResearchMetrics? = null
             var error: String? = null
+            var packedPrompt: String? = null
             val attachments = attachedFiles?.get(question)?.jsonArray.orEmpty().mapIndexed { index, file ->
                 val entry = file.jsonObject
                 ExtractedAttachment("desktop-$index", entry.getValue("name").jsonPrimitive.content,
@@ -199,7 +200,8 @@ class DesktopResearchTest {
                 // packs the evidence that phone would; unset keeps the unknown-phone default.
                 prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull()),
                 // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
-                articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0").research(question, attachments = attachments).collect { event ->
+                articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
+                onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
                     is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }
@@ -221,6 +223,7 @@ class DesktopResearchTest {
                 put("experimentalSearches", JsonArray(experimental?.traces.orEmpty()))
                 put("sources", Json.encodeToJsonElement(sources))
                 put("calls", JsonArray(gateway.calls))
+                packedPrompt?.let { put("packedPrompt", it) }
                 put("visibleAnswer", AnswerText.finalized(answer.toString(), sources.size))
                 put("metrics", Json.encodeToJsonElement(metrics))
             }

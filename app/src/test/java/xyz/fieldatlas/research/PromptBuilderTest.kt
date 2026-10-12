@@ -7,6 +7,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PromptBuilderTest {
+    @Test fun explanationWithSavedEvidenceDoesNotInviteUnsupportedMemoryFacts() {
+        val packed = PromptBuilder.build("Explain the network", listOf(first), 512)
+        assertTrue(packed.mixedAnswer)
+        assertTrue(packed.prompt.contains("do not add background facts, examples or history from memory"))
+        assertTrue(packed.prompt.contains("Missing information is not a negative finding"))
+        assertTrue(PromptBuilder.buildModelOnly("Explain the network").prompt.contains("offline knowledge only"))
+    }
     @Test fun paragraphSelectionUsesTheSameWordVariantsAsRetrieval() {
         val history = "The archive records the history of this invention. ".repeat(15).trim()
         val mechanism = "A boat floats because the upward buoyant force balances its weight."

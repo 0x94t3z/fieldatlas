@@ -50,6 +50,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import xyz.fieldatlas.R
 import xyz.fieldatlas.research.AnswerRecord
+import xyz.fieldatlas.text.MarkdownLiteral
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.research.answerCardPreview
@@ -302,7 +303,11 @@ private const val SEARCH_THRESHOLD = 4
 internal fun historyMatches(record: AnswerRecord, query: String): Boolean {
     val words = query.lowercase().split(Regex("\\s+")).filter(String::isNotBlank)
     if (words.isEmpty()) return true
-    val haystack = (listOf(record.question, record.answer.replace(Regex("\\[S\\d+]"), "")) + record.sources)
+    // Remove genuine app citations while encoded native source markers are still literal.
+    // Search is a plain-text destination; otherwise visible words such as "Standard"
+    // stored with a protected S could not be found in a quoted answer.
+    val answer = MarkdownLiteral.decode(record.answer.replace(Regex("\\[S\\d+]"), ""))
+    val haystack = (listOf(record.question, answer) + record.sources)
         .joinToString("\n").lowercase()
     return words.all { it in haystack }
 }

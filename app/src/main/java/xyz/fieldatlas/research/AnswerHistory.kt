@@ -1,6 +1,10 @@
 package xyz.fieldatlas.research
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption.NOFOLLOW_LINKS
+import java.nio.file.NoSuchFileException
+import java.nio.file.attribute.BasicFileAttributes
 import kotlin.collections.sortedByDescending
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +34,7 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
     private val json = Json { ignoreUnknownKeys = true }
     private val lock = Any()
     private var loaded = false
+    private var initialLoadSucceeded = false
     private val mutableRecords = MutableStateFlow<List<AnswerRecord>>(emptyList())
     val records: StateFlow<List<AnswerRecord>> = mutableRecords.asStateFlow()
 
@@ -39,10 +44,30 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
             if (loaded) return@withContext
             loaded = true
             runCatching {
-                if (file.isFile) json.decodeFromString(ListSerializer(AnswerRecord.serializer()), file.readText()) else null
+                val attributes = try {
+                    Files.readAttributes(file.toPath(), BasicFileAttributes::class.java, NOFOLLOW_LINKS)
+                } catch (_: NoSuchFileException) {
+                    null // A genuinely missing file is an empty history, not a read failure.
+                }
+                if (attributes == null) {
+                    initialLoadSucceeded = true
+                    null
+                } else {
+                    check(attributes.isRegularFile) { "History is not a regular file" }
+                    json.decodeFromString(ListSerializer(AnswerRecord.serializer()), file.readText())
+                }
             }.getOrNull()?.let { saved ->
                 mutableRecords.value = saved.sortedByDescending(AnswerRecord::createdAtEpochMs).take(MAX_ENTRIES)
+                initialLoadSucceeded = true
             }
+        }
+    }
+
+    /** Read-only support metadata; unknown after a failed load, never an inferred empty history. */
+    suspend fun diagnosticsEntryCount(): Int? {
+        ensureLoaded()
+        return synchronized(lock) {
+            mutableRecords.value.size.takeIf { initialLoadSucceeded }
         }
     }
 

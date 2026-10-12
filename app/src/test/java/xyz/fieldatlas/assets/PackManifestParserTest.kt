@@ -43,7 +43,14 @@ class PackManifestParserTest {
 
     @Test fun rejectsUnknownRootField() = rejects(manifest().replace("\"schemaVersion\": 1,", "\"schemaVersion\": 1, \"extra\": true,"))
     @Test fun rejectsUnknownArtifactField() = rejects(manifest().replace("\"bytes\":3", "\"bytes\":3,\"extra\":true"))
-    @Test fun rejectsUnsupportedSchema() = rejects(manifest().replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"))
+    @Test fun rejectsUnsupportedSchema() = rejects(manifest().replace("\"schemaVersion\": 1", "\"schemaVersion\": 3"))
+    @Test fun schemaTwoOnlyAcceptsKnowledge() {
+        val knowledge = manifest(type = "KNOWLEDGE").replace("\"schemaVersion\": 1", "\"schemaVersion\": 2")
+        assertEquals(2, PackManifestParser.parse(knowledge.encodeToByteArray()).schemaVersion)
+        for (type in listOf("MODEL", "AUDIO")) {
+            rejects(manifest(type = type).replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"))
+        }
+    }
     @Test fun rejectsStringSchemaNumber() = rejects(manifest().replace("\"schemaVersion\": 1", "\"schemaVersion\": \"1\""))
     @Test fun rejectsUppercaseHash() = rejects(manifest().replace("a".repeat(64), "A".repeat(64)))
     @Test fun rejectsShortHash() = rejects(manifest().replace("a".repeat(64), "a".repeat(63)))

@@ -37,13 +37,19 @@ object AndroidResearchPilot {
             return file
         }
         val source = pinned("source")
-        val index = pinned("index")
-        val binary = pinned("binary")
+        val nativePack = if (files.containsKey("nativeSource")) pinned("nativeSource") else null
+        val index = if (nativePack == null) pinned("index") else null
+        val binary = if (nativePack == null) pinned("binary") else null
         val model = pinned("model")
         val nativeDir = config.getValue("nativeDir").jsonPrimitive.content
         KnowledgeDatabase.open(source).use { }
         println("Android pilot: subprocess preflight, tempDir=${System.getProperty("java.io.tmpdir")}")
-        check(runLeviathan(listOf(binary.path, "--version")).trim() == "leviathan 0.1.0")
+        if (nativePack == null) check(runLeviathan(listOf(checkNotNull(binary).path, "--version")).trim() ==
+            (config["binaryVersion"]?.jsonPrimitive?.content ?: "leviathan 0.1.0"))
+        else {
+            check(LeviathanNative.available)
+            KnowledgeDatabase.open(nativePack).use { check(it.leviathanCandidates("water", 1) != null) }
+        }
         // Instantiate the existing JNI engine with our extracted library directory, not an
         // installed app context. No vendor code is modified and no normal app files are read.
         val engine = Class.forName("com.arm.aichat.internal.InferenceEngineImpl")
@@ -75,11 +81,13 @@ object AndroidResearchPilot {
         try {
             println("Android pilot: loading pinned model")
             native.load(model.path, system)
-            for (item in config.getValue("questions").jsonArray) for (mode in listOf("app", "leviathan")) {
+            val modes = listOf("app", if (nativePack == null) "leviathan" else "native")
+            for ((questionIndex, item) in config.getValue("questions").jsonArray.withIndex()) for (mode in
+                if (questionIndex % 2 == 0) modes else modes.reversed()) {
                 val question = item.jsonPrimitive.content
                 println("Android pilot: $mode / $question")
-                val baseline = MultiKnowledgeRetriever({ listOf(source) })
-                val experimental = if (mode == "leviathan") DesktopLeviathanRetriever(baseline, source, index, binary) else null
+                val baseline = MultiKnowledgeRetriever({ listOf(if (mode == "native") checkNotNull(nativePack) else source) })
+                val experimental = if (mode == "leviathan") DesktopLeviathanRetriever(baseline, source, checkNotNull(index), checkNotNull(binary)) else null
                 try {
                     val searches = mutableListOf<JsonObject>()
                     val backend: Retriever = experimental ?: baseline
@@ -108,7 +116,10 @@ object AndroidResearchPilot {
                     val answer = StringBuilder()
                     var metrics: ResearchMetrics? = null
                     var error: String? = null
-                    ResearchOrchestrator(recording, gateway, articleDepth = true).research(question).collect { event ->
+                    var packedPrompt: String? = null
+                    val researchStarted = System.nanoTime()
+                    ResearchOrchestrator(recording, gateway, articleDepth = true,
+                        onEvidencePacked = { packedPrompt = it.prompt }).research(question).collect { event ->
                         when (event) {
                             is ResearchEvent.Sources -> sources = event.evidence
                             is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }
@@ -127,15 +138,17 @@ object AndroidResearchPilot {
                         put("sources", Json.encodeToJsonElement(sources)); put("searches", JsonArray(searches))
                         put("experimentalSearches", JsonArray(experimental?.traces.orEmpty()))
                         put("inferenceCalls", calls); put("visibleAnswer", AnswerText.finalized(answer.toString(), sources.size))
+                        put("totalMillis", (System.nanoTime() - researchStarted) / 1_000_000.0)
+                        packedPrompt?.let { put("packedPrompt", it) }
                         put("metrics", Json.encodeToJsonElement(metrics))
                         put("memoryStatus", File("/proc/self/status").readLines().filter { it.startsWith("VmRSS:") || it.startsWith("VmHWM:") }.joinToString("\n"))
                     }
                     save()
                     println("Android pilot recorded: $mode -> ${rows.last()["status"]}")
-                } finally { experimental?.close() }
+                } finally { try { experimental?.close() } finally { baseline.close() } }
             }
             check(failures == 0) { "$failures pilot runs failed" }
-            for (name in listOf("source", "index", "binary", "model")) pinned(name)
+            for (name in files.keys) pinned(name)
         } finally {
             try { if (native.state.value is InferenceState.Ready || native.state.value is InferenceState.Failed) native.unload() }
             finally { engine.destroy() }

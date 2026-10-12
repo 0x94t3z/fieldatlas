@@ -27,6 +27,8 @@ class ResearchOrchestrator(
      * to the phone's reading speed and added after the passages chosen as before.
      */
     private val articleDepth: Boolean = false,
+    /** Optional in-process diagnostic observer. Nothing is logged by the app by default. */
+    private val onEvidencePacked: (PackedPrompt) -> Unit = {},
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -343,6 +345,7 @@ class ResearchOrchestrator(
             emit(ResearchEvent.Searching(question))
             val includeLibrary = (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
             val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
+            val technicalFocus = if (attachments.isEmpty()) TechnicalRuleFocus.from(question) else null
             val destinations = if (includeLibrary && attachments.isEmpty()) retriever.destinations(question) else emptyList()
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
@@ -351,15 +354,24 @@ class ResearchOrchestrator(
                 },
                 questionTerms,
                 question = question,
-            ).take(resultLimit) else emptyList()
+            ).let { technicalFocus?.prioritize(it) ?: it }.take(resultLimit) else emptyList()
             if (!includeLibrary) _searchProgress.value = 1.0
+
+            // One bounded discovery pass for each explicit missing clause. Each search
+            // retains the full question's scope; only already eligible passages enter.
+            if (includeLibrary && attachments.isEmpty() && technicalFocus == null && !placesOnly &&
+                retriever.hasEligiblePacks(question)) {
+                evidence = MultipartEvidence.recover(question, evidence, retriever, candidateLimit, resultLimit)
+            }
 
             // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (attachments.isEmpty() && evidence.isEmpty() && phraseAsk == null && retriever.hasEligiblePacks(question) &&
-                !EvidenceRelevance.isShortCausalQuestion(question)) {
+            if (attachments.isEmpty() && evidence.isEmpty() && phraseAsk == null && technicalFocus == null && retriever.hasEligiblePacks(question) &&
+                !EvidenceRelevance.isShortCausalQuestion(question) &&
+                !EvidenceRelevance.missingRequestedIdentifier(question, evidence) &&
+                !EvidenceRelevance.missingNamedMechanism(question, evidence)) {
                 emit(ResearchEvent.Planning(question))
                 try {
                     val raw = StringBuilder()
@@ -391,7 +403,7 @@ class ResearchOrchestrator(
                         questionTerms,
                         keywords,
                         question,
-                    ).take(resultLimit)
+                    ).let { technicalFocus?.prioritize(it) ?: it }.take(resultLimit)
                 }
             }
             // Fully vegan places can be a small minority of a city's vegan-tagged listings; one
@@ -415,7 +427,7 @@ class ResearchOrchestrator(
                 if (places.isNotEmpty()) evidence = (places.take(resultLimit) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
             // A question naming one Ethereum proposal gets that proposal's own summary first.
-            if (attachments.isEmpty()) ProposalLookup.named(question)?.let { label ->
+            if (attachments.isEmpty() && technicalFocus == null) ProposalLookup.named(question)?.let { label ->
                 val summary = ProposalLookup.labels(label).flatMap { retriever.titled(it, ProposalLookup.SUMMARY_SECTIONS, PROPOSAL_CANDIDATES) }
                     .filter { ProposalLookup.isSummaryOf(it, label) }
                 if (summary.isNotEmpty()) evidence = (summary.take(PROPOSAL_SLOTS) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
@@ -530,7 +542,7 @@ class ResearchOrchestrator(
                     break
                 }
             }
-            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && !SubjectLookup.explains(question) &&
+            if (attachments.isEmpty() && technicalFocus == null && travelPlace == null && phrasePicked.isEmpty() && !SubjectLookup.explains(question) &&
                 !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null) {
                 for (name in TopicGuides.names(question).filterNot(VenueLookup::isVenueKind)) {
                     val sections = TopicGuides.pick(question, name, retriever.sections(name, TOPIC_CANDIDATES), TRAVEL_SLOTS)
@@ -549,7 +561,7 @@ class ResearchOrchestrator(
             // articles it names, up to three ("are lions or tigers heavier" names two). The Simple
             // English article answers alone; the English one adds depth when that collection is read.
             val lookup = SubjectLookup.looksUp(question) && !VenueLookup.isPlaceLookup(question)
-            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && ProposalLookup.named(question) == null &&
+            if (attachments.isEmpty() && technicalFocus == null && travelPlace == null && phrasePicked.isEmpty() && ProposalLookup.named(question) == null &&
                 (SubjectLookup.leads(question) || lookup)) {
                 val wanted = SubjectLookup.subjectsWanted(question, lookup)
                 // "heat pump" found; "pump" alone, from the same noun phrase, is the same subject, not a second one.
@@ -598,6 +610,7 @@ class ResearchOrchestrator(
                         foundRuns += candidate.run
                     }
                 }
+                if (articleDepth) subjects += ArticleDepth.supportingSubjects(question, evidence, subjects)
                 if (articleDepth) SubjectLookup.relatedWords(question)?.let { words ->
                     val related = subjects.toList().take(2).flatMap { subject ->
                         SubjectLookup.relatedNames(subject.title.substringBefore(" — ")).mapNotNull { name ->
@@ -610,7 +623,7 @@ class ResearchOrchestrator(
                 if (articleDepth && encyclopedic.isNotEmpty()) {
                     val articles = encyclopedic.map { it.title.substringBefore(" — ") }.distinct()
                         .associateWith { retriever.article(it, ArticleDepth.ARTICLE_ROWS) }
-                    depth = ArticleDepth.pick(question, encyclopedic, articles, subjects + evidence,
+                    depth = ArticleDepth.pickForPrompt(question, encyclopedic, articles,
                         ArticleDepth.budget(prefillSpeed.tokensPerSecond))
                 }
                 if (subjects.isNotEmpty()) evidence = (subjects + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
@@ -619,7 +632,7 @@ class ResearchOrchestrator(
             // and has no article of its own is answered by the travel topic guides for its topic
             // ("Money"), which no title word names.
             var topicGuideRead = false
-            if (attachments.isEmpty() && travelPlace == null && phrasePicked.isEmpty() && subjects.isEmpty() &&
+            if (attachments.isEmpty() && technicalFocus == null && travelPlace == null && phrasePicked.isEmpty() && subjects.isEmpty() &&
                 !VenueLookup.isPlaceLookup(question) && ProposalLookup.named(question) == null && !GuideScope.namesPlace(question, travelNames) &&
                 TravelSections.inTravelContext(question)) {
                 val guides = TopicGuides.guidesFor(TravelSections.topicsOf(question), question)
@@ -657,7 +670,12 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
-            if (attachments.isEmpty() && evidence.isEmpty() && !PromptBuilder.allowsModelExplanation(question)) {
+            if (attachments.isEmpty() && technicalFocus == null && (EvidenceRelevance.missingRequestedIdentifier(question, evidence) ||
+                travelPlace == null && phrasePicked.isEmpty() && EvidenceRelevance.missingNamedMechanism(question, evidence + depth))) {
+                evidence = emptyList()
+            }
+            if (attachments.isEmpty() && evidence.isEmpty() && technicalFocus == null &&
+                (!PromptBuilder.allowsModelExplanation(question) || StudyApplicability.asks(question))) {
                 // A source-only request cannot be satisfied by unsupported model knowledge.
                 // Finish normally so history and answer navigation retain the existing flow.
                 val answerAt = monotonicMillis()
@@ -682,9 +700,39 @@ class ResearchOrchestrator(
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
-                PromptBuilder.build(question, evidence, contextTokenBudget).let { base ->
-                    if (depth.isEmpty()) base else PromptBuilder.withDepth(question, base, depth, contextTokenBudget)
-                }
+                PromptBuilder.buildKnowledge(question, evidence, subjects, depth, contextTokenBudget,
+                    prefillSpeed.tokensPerSecond)
+            }
+            onEvidencePacked(packed)
+            DeviceEvidenceGap.response(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })?.let { gap ->
+                emit(ResearchEvent.Token(gap))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
+            // Exact return-rule lookups must never turn a generic summary or a
+            // clipped rule into a model-invented negative finding. This also handles
+            // an empty packed result as a normal completion, preserving History UX.
+            if (attachments.isEmpty()) (PreciseReferenceAnswer.answer(question, packed)
+                ?: PreciseReferenceAnswer.conditionalAnswer(question, packed, subjects))?.let { reference ->
+                if (packed.sources.isNotEmpty()) emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
+                emit(ResearchEvent.Token(reference))
+                val audit = AnswerText.citationAudit(reference, packed.sources.size)
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = audit.citedSourceIds,
+                    hasUnmappedCitation = audit.hasUnmappedCitation,
+                )))
+                return@flow
             }
             // A question for one specific item the passages never mention ("the Wi-Fi password at
             // Cedar Lodge") gets a plain gap reply; a small model otherwise answers with whatever
@@ -720,6 +768,30 @@ class ResearchOrchestrator(
             } else {
                 emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
             }
+            if (attachments.isEmpty()) PartialComparison.answer(question, packed)?.let { partial ->
+                emit(ResearchEvent.Token(partial))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = AnswerText.citationAudit(partial, packed.sources.size).citedSourceIds,
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
+            if (attachments.isEmpty()) SavedReferenceAnswer.answer(question, packed, subjects)?.let { reference ->
+                emit(ResearchEvent.Token(reference))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = AnswerText.citationAudit(reference, packed.sources.size).citedSourceIds,
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             // A verbatim overview opening is only composed with mixed answers, whose stream
             // already replaces the whole answer on every token.
             val phraseSources = packed.sources.filter { s -> phrasePicked.any { it.chunkId == s.evidence.chunkId && it.documentId == s.evidence.documentId } }
@@ -752,8 +824,9 @@ class ResearchOrchestrator(
             // A travel guide's own section is advice written for this need, so quoted at length it
             // is the answer. The 2B model's additions below a guide quote carried most travel
             // errors ("use designated crossings like Beer Street" after Hanoi's traffic advice).
-            // An encyclopedia definition is not an answer to how or why; those keep the model, and
-            // so does a question with numbers in it, which asks for an answer worked out from them
+            // An encyclopedia definition is not a complete answer to how or why; those continue
+            // to the conservative source-excerpt finish below. Questions with numbers may still
+            // need a calculated answer worked out from them
             // ("how much water for a 6-hour hike?") that no quoted passage gives, and a comparison,
             // which one guide's section about one side does not make ("hostels compared with guesthouses").
             // A topic guide read for a choice or an explanation ("why do my ears pop on planes") leads
@@ -777,6 +850,25 @@ class ResearchOrchestrator(
                     hasUnmappedCitation = false,
                 )))
                 return@flow
+            }
+            // Ordinary source-backed explanations keep the selected originals. A
+            // model paraphrase can strengthen an observed condition into an operating
+            // rule even when its attribution is labelled unverified. Specialized routes
+            // above and model-only/attachment/phrase/guide paths keep their behavior.
+            if (attachments.isEmpty() && phraseAsk == null && travelPlace == null && !topicGuideRead) {
+                GroundedKnowledgeAnswer.answer(question, packed)?.let { grounded ->
+                    emit(ResearchEvent.Token(grounded))
+                    val audit = AnswerText.citationAudit(grounded, packed.sources.size)
+                    emit(ResearchEvent.Complete(ResearchMetrics(
+                        retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                        timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                        totalMillis = elapsed(startedAt, monotonicMillis()),
+                        generatedTokenCount = 0,
+                        citedSourceIds = audit.citedSourceIds,
+                        hasUnmappedCitation = audit.hasUnmappedCitation,
+                    )))
+                    return@flow
+                }
             }
             if (leadText != null) {
                 emit(ResearchEvent.Lead(leadText))
@@ -850,11 +942,12 @@ class ResearchOrchestrator(
                 emit(ResearchEvent.Token(compose(AnswerText.mixed(raw, attributionEvidence)), replace = true))
             } else if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
             val modelText = if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked
-            val attributed = when {
+            val composed = when {
                 generationFailed -> compose(modelText) + "\n\n_The model explanation could not be completed._"
                 else -> compose(modelText)
             }
-            if (generationFailed) emit(ResearchEvent.Token(attributed, replace = true))
+            val attributed = SavedEvidenceAppendix.append(composed, packed)
+            if (generationFailed || attributed != composed) emit(ResearchEvent.Token(attributed, replace = true))
             val citations = AnswerText.citationAudit(attributed, packed.sources.size)
             val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
             emit(

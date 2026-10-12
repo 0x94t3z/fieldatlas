@@ -593,7 +593,9 @@ object VenueLookup {
             "what(?:'s|’s| is) this (?:place|town|city|village|area|neighbou?rhood))(?: now| right now| exactly)?\\s*[?.!]*\\s*$",
     )
 
-    fun isWhereAmI(question: String): Boolean = whereAmI.containsMatchIn(question)
+    private val ownCoordinates = Regex("(?i)^\\s*(?:what(?:'s|’s| is| are)|show(?: me)?)\\s+(?:my|our)\\s+" +
+        "(?:(?:exact|current|gps)\\s+)*(?:coordinates|latitude and longitude)(?:\\s+(?:right now|now|currently))?\\s*[?.!]*\\s*$")
+    fun isWhereAmI(question: String): Boolean = whereAmI.containsMatchIn(question) || ownCoordinates.containsMatchIn(question)
 
     private val digit = Regex("\\p{N}")
 

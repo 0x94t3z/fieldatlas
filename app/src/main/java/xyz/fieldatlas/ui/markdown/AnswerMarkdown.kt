@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.markdown
 
+import xyz.fieldatlas.text.MarkdownLiteral
+
 sealed interface MarkdownBlock {
     data class Heading(val level: Int, val content: List<MarkdownInline>) : MarkdownBlock
     data class Paragraph(val content: List<MarkdownInline>) : MarkdownBlock
@@ -39,6 +41,7 @@ fun answerSection(heading: MarkdownBlock.Heading): AnswerSection? =
         xyz.fieldatlas.research.AnswerText.MODEL_LABEL -> AnswerSection("Model explanation", "Not verified", quoted = false)
         xyz.fieldatlas.research.SourceLead.HEADING -> AnswerSection("From the saved reference", "Quoted", quoted = true)
         "From saved sources" -> AnswerSection("From saved sources", "Quoted", quoted = true)
+        xyz.fieldatlas.research.GroundedKnowledgeAnswer.HEADING -> AnswerSection("From your saved sources", "Quoted", quoted = true)
         else -> null
     }
 
@@ -204,6 +207,12 @@ private class MarkdownParser(markdown: String) {
 
         var cursor = 0
         while (cursor < text.length) {
+            val literal = MarkdownLiteral.at(text, cursor)
+            if (literal != null) {
+                plain.append(literal.first)
+                cursor = literal.second
+                continue
+            }
             val citation = citationAt(text, cursor)
             if (citation != null) {
                 flushPlain()

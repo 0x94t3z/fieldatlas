@@ -8,8 +8,81 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import xyz.fieldatlas.text.MarkdownLiteral
 
 class SubjectLookupTest {
+    @Test fun modalWhyQuestionsReachExplanatoryArticleDepth() {
+        for (auxiliary in listOf("can", "could", "would", "should", "will", "may", "might", "must")) {
+            val question = "Why $auxiliary an enclosure leak despite its sealing membrane?"
+            assertTrue(question, SubjectLookup.explains(question))
+            assertTrue(question, SubjectLookup.leads(question))
+            assertFalse(question, SubjectLookup.looksUp(question))
+            val candidate = SubjectLookup.candidates(question).first()
+            assertEquals(question, "enclosure", candidate.text)
+            assertTrue(question, candidate.rest.isEmpty())
+        }
+        assertTrue(SubjectLookup.explains("According to the saved sources, why can an enclosure leak?"))
+        assertFalse(SubjectLookup.explains("How can I install a sealing membrane?"))
+        assertFalse(SubjectLookup.explains("Where can a sealing membrane be purchased?"))
+    }
+
+    @Test fun usingOnlySavedSourcesKeepsANumberedEventLookupReachable() {
+        val plain = "where was the 16th Summit of the Non-Aligned Movement held?"
+        val scoped = "Using only my saved sources, " + plain
+        assertEquals(SubjectLookup.looksUp(plain), SubjectLookup.looksUp(scoped))
+        val expected = SubjectLookup.candidates(plain, lookup = true)
+        assertTrue(expected.toString(), expected.any { it.text == "16th Summit of the Non-Aligned Movement" })
+        assertEquals(expected, SubjectLookup.candidates(scoped, lookup = true))
+        assertEquals(FtsQuery.from(plain)?.terms, FtsQuery.from(scoped)?.terms)
+    }
+
+    @Test fun auxiliaryPredicatesDoNotSpendTheSubjectPhraseBudgetOnObjects() {
+        for ((question, expected) in listOf(
+            "How do lichens obtain nutrients?" to "lichen",
+            "How does a siphon move water?" to "siphon",
+            "Why does induction heating warm a metal object?" to "induction heating",
+            "How do roots absorb minerals?" to "root",
+            "How does a qanat supply water?" to "qanat",
+            "How do warm fronts move across a continent?" to "warm front")) {
+            val found = SubjectLookup.candidates(question)
+            assertTrue("$question: $found", found.any { it.text == expected && it.rest.isEmpty() })
+            assertEquals("$question: $found", expected, found.first().text.removeSuffix("s"))
+        }
+        assertTrue(SubjectLookup.candidates("What causes ocean tides?").first().text.startsWith("ocean tide"))
+    }
+
+    @Test fun hyphenatedAliasMatchesOnlyTheSameWords() {
+        val voting = Evidence("swp-1-0000", "swp-1-0000:0001", "Plurality voting — Overview", "Local",
+            "Also known as: First past the post; FPTP", 0.0)
+        assertEquals("Plurality voting", SubjectLookup.aliasOf("first-past-the-post", listOf(voting)))
+        assertEquals("Plurality voting", SubjectLookup.aliasOf("first past the post", listOf(voting)))
+        assertNull(SubjectLookup.aliasOf("post", listOf(voting)))
+        assertNull(SubjectLookup.aliasOf("first-past-the-postal", listOf(voting)))
+    }
+    @Test fun sourceScopePrefixDoesNotSpendArticleLookupSlots() {
+        for (prefix in listOf("According to the saved sources, ", "Based on my notes: ",
+            "According to the saved travel guides, ", "According to local sources ")) {
+            val plain = "what causes ocean tides?"
+            assertEquals(prefix, SubjectLookup.phrases(plain), SubjectLookup.phrases(prefix + plain))
+        }
+        val question = "which hash function does Ethereum use?"
+        assertEquals(SubjectLookup.phrases(question),
+            SubjectLookup.phrases("According to the saved sources, " + question))
+    }
+
+    @Test fun sourceScopePreservesDiscoveryRoutingAndComparisonSubjects() {
+        for (plain in listOf("what causes ocean tides?", "which hash function does Ethereum use?",
+            "how does evaporation differ from boiling?", "compare hurricanes and tornadoes")) {
+            val scoped = "According to the saved sources, " + plain
+            assertEquals(plain, SubjectLookup.leads(plain), SubjectLookup.leads(scoped))
+            assertEquals(plain, SubjectLookup.looksUp(plain), SubjectLookup.looksUp(scoped))
+            assertEquals(plain, SubjectLookup.subjectsWanted(plain), SubjectLookup.subjectsWanted(scoped))
+            val lookup = SubjectLookup.looksUp(plain)
+            assertEquals(plain, SubjectLookup.candidates(plain, SubjectLookup.subjectsWanted(plain, lookup), lookup),
+                SubjectLookup.candidates(scoped, SubjectLookup.subjectsWanted(scoped, lookup), lookup))
+        }
+    }
+
     @Test fun theSubjectComesBeforeOtherWordsAndHeadNounsLead() {
         val pump = SubjectLookup.phrases("How does a heat pump heat a house?")
         assertTrue(pump.toString(), pump.indexOf("heat pump") in 0 until pump.indexOfFirst { ' ' !in it })
@@ -35,11 +108,16 @@ class SubjectLookupTest {
                 return listOf(hurricane, tornado).filter { it.title.startsWith(phrase, ignoreCase = true) }
             }
         }
-        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Tornadoes are smaller [S2].")))
+        val model = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Tornadoes are smaller [S2]."))
+        var observed: PackedPrompt? = null
+        val events = ResearchOrchestrator(retriever, model, onEvidencePacked = { observed = it })
             .research("How is a hurricane different from a tornado?").toList()
-        val lead = events.filterIsInstance<ResearchEvent.Lead>().first().text
-        assertTrue(lead, "> A hurricane is a large rotating storm that forms over warm ocean water. [S1]" in lead)
-        assertTrue(lead, "> A tornado is a violently rotating column of air that touches the ground. [S2]" in lead)
+        assertEquals(listOf(hurricane, tornado), observed!!.sources.map { it.evidence })
+        val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
+        assertTrue(answer, "> A hurricane is a large rotating storm that forms over warm ocean water. [S1]" in answer)
+        assertTrue(answer, "> A tornado is a violently rotating column of air that touches the ground. [S2]" in answer)
+        assertFalse(answer.contains("Tornadoes are smaller"))
+        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
     @Test fun aWordOfTheSubjectIsNotTheSubject() {
@@ -80,10 +158,16 @@ class SubjectLookupTest {
             override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> =
                 if ("abstract" in sections && phrase == "stealth address") listOf(abstract) else emptyList()
         }
-        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("They hide the recipient [S1].")))
+        var observed: PackedPrompt? = null
+        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("They hide the recipient [S1].")),
+            onEvidencePacked = { observed = it })
             .research("What is a stealth address in Ethereum?").toList()
-        val lead = events.filterIsInstance<ResearchEvent.Lead>().first().text
-        assertTrue(lead, "> This specification defines a standardized way of creating stealth addresses. [S1]" in lead)
+        assertEquals(listOf(abstract), observed!!.sources.map { it.evidence })
+        val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
+        assertTrue(answer, abstract.text in answer)
+        assertTrue(answer.contains("[S1]"))
+        assertFalse(answer.contains("They hide the recipient"))
+        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
     @Test fun aSectionHeadedWithTheSubjectIsTheLastResort() = runBlocking {
@@ -97,10 +181,15 @@ class SubjectLookupTest {
             override suspend fun titled(phrase: String, sections: List<String>, limit: Int): List<Evidence> =
                 if (sections == listOf(phrase) && phrase == "hardware wallets") listOf(town, section) else emptyList()
         }
-        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("It signs inside the device [S1].")))
+        var observed: PackedPrompt? = null
+        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("It signs inside the device [S1].")),
+            onEvidencePacked = { observed = it })
             .research("How does a hardware wallet keep my private key safe?").toList()
-        val lead = events.filterIsInstance<ResearchEvent.Lead>().first().text
-        assertTrue(lead, "> A hardware wallet is a small device that keeps the private key inside" in lead)
+        assertEquals(listOf(section), observed!!.sources.map { it.evidence })
+        val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
+        assertTrue(answer, section.text in answer)
+        assertFalse(answer.contains("It signs inside the device"))
+        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
         assertEquals(null, SubjectLookup.sectionOf("wallet", listOf(section)))
     }
 
@@ -293,6 +382,15 @@ class SubjectLookupTest {
         val common = maya.first { it.text == "civilization" }
         assertFalse("a name before a common noun is the subject itself", SubjectLookup.accepts(common,
             overview("Civilization", "A civilization is any complex society characterized by the development of the state and social stratification.")))
+    }
+
+    @Test fun omittedProperNameWordsCannotSelectADifferentEntity() {
+        val candidate = SubjectLookup.Candidate("River council", listOf("Silver"), "Silver")
+        fun record(text: String) = Evidence("fixture", "fixture:0", "River council — Overview", "local", text, 0.0)
+        assertFalse(SubjectLookup.accepts(candidate, record("The River council administers a district.")))
+        assertFalse(SubjectLookup.accepts(candidate, record("Silverware is traded by the River council.")))
+        assertFalse(SubjectLookup.accepts(candidate, record("Silver is a metal. The River council administers a district.")))
+        assertTrue(SubjectLookup.accepts(candidate, record("The Silver River council administers the northern district.")))
     }
 
     @Test fun aChoiceOptionStartsWhereItsNounPhraseDoes() {

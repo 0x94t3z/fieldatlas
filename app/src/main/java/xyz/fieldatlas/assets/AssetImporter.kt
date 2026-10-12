@@ -2,12 +2,14 @@ package xyz.fieldatlas.assets
 
 import android.content.Context
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.nio.channels.SeekableByteChannel
 import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +21,8 @@ import org.apache.commons.compress.archivers.zip.ZipFile
 import org.apache.commons.compress.archivers.zip.ZipMethod
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 
 data class PackImportInfo(val id: String, val title: String, val type: PackType)
 
@@ -36,6 +40,9 @@ class AssetImporter private constructor(
 ) {
     constructor(storageRoot: File, registry: AssetRegistry = AssetRegistry(storageRoot)) :
         this(storageRoot, registry, null, StorageFootprint { listOf(storageRoot) })
+
+    internal constructor(storageRoot: File, registry: AssetRegistry, footprint: StorageFootprint) :
+        this(storageRoot, registry, null, footprint)
 
     constructor(context: Context) : this(context.filesDir, AssetRegistry(context.filesDir), context, StorageFootprint.forApp(context))
 
@@ -58,9 +65,35 @@ class AssetImporter private constructor(
 
     suspend fun import(uri: Uri): InstalledAsset = withContext(Dispatchers.IO) {
         val resolver = context?.contentResolver ?: throw AssetImportException("No ContentResolver configured")
+        // Local document providers normally expose a seekable descriptor. Read the ZIP
+        // in place instead of storing a second full archive before extraction.
+        val direct = try { resolver.openFileDescriptor(uri, "r")?.let { ParcelFileDescriptor.AutoCloseInputStream(it) } }
+            catch (_: java.io.IOException) { null }
+        if (direct != null) {
+            val size = try { direct.channel.position(0); direct.channel.size().takeIf { it > 0 } }
+                catch (_: java.io.IOException) { null }
+            if (size != null) return@withContext direct.use {
+                importSeekable(it.channel, size, storageRoot.usableSpace)
+            }
+            direct.close() // Pipe/cloud providers retain the checked streaming fallback.
+        }
         val input = resolver.openInputStream(uri) ?: throw AssetImportException("Unable to open pack URI")
         input.use { import(it, storageRoot.usableSpace) }
     }
+
+    /** Caller owns the source; never delete it. Count it conservatively even outside app storage. */
+    internal suspend fun importSeekable(channel: SeekableByteChannel, archiveBytes: Long, freeBytes: Long): InstalledAsset =
+        withContext(Dispatchers.IO) {
+            importMutex.withLock {
+                requireImport(archiveBytes in 1..StorageBudget.MAX_TOTAL_BYTES && channel.size() == archiveBytes,
+                    "Invalid seekable archive size")
+                val session = createSession()
+                try {
+                    processArchive(null, session, freeBytes, externalArchiveBytes = archiveBytes,
+                        openZip = { ZipFile.builder().setSeekableByteChannel(channel).get() })
+                } finally { session.deleteRecursively() }
+            }
+        }
 
     suspend fun import(input: InputStream, freeBytes: Long): InstalledAsset = withContext(Dispatchers.IO) {
         importOnIo(input, freeBytes)
@@ -72,13 +105,14 @@ class AssetImporter private constructor(
         expectedId: String,
         expectedVersion: String,
         expectedType: PackType,
+        expectedInstalledBytes: Long? = null,
     ): InstalledAsset = withContext(Dispatchers.IO) {
         importMutex.withLock {
             requireImport(archive.isFile, "Downloaded pack is missing")
             val session = createSession()
             try {
                 processArchive(archive, session, storageRoot.usableSpace,
-                    Triple(expectedId, expectedVersion, expectedType))
+                    Triple(expectedId, expectedVersion, expectedType), expectedInstalledBytes)
             } finally {
                 session.deleteRecursively()
             }
@@ -94,6 +128,8 @@ class AssetImporter private constructor(
             val archive = File(session, "incoming.fapack")
             val archiveBytes = spoolArchive(input, archive, freeBytes)
             processArchive(archive, session, freeBytes - archiveBytes)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: AssetImportException) {
             throw error
         } catch (error: Exception) {
@@ -111,13 +147,16 @@ class AssetImporter private constructor(
     }
 
     private suspend fun processArchive(
-        archive: File,
+        archive: File?,
         session: File,
         freeBytesForExtraction: Long,
         expected: Triple<String, String, PackType>? = null,
+        expectedInstalledBytes: Long? = null,
+        externalArchiveBytes: Long = 0,
+        openZip: (() -> ZipFile)? = null,
     ): InstalledAsset {
         try {
-            return ZipFile.builder().setFile(archive).get().use { zip ->
+            return (openZip?.invoke() ?: ZipFile.builder().setFile(requireNotNull(archive)).get()).use { zip ->
                 val entries = zip.entries.toBoundedList(MAX_ARCHIVE_ENTRIES)
                 requireImport(entries.isNotEmpty(), "Pack is empty")
                 val manifestEntry = entries.first()
@@ -136,8 +175,15 @@ class AssetImporter private constructor(
                     )
                 }
                 val incomingBytes = checkedTotal(manifest.artifacts)
+                if (expectedInstalledBytes != null) {
+                    requireImport(incomingBytes == expectedInstalledBytes, "Installed size does not match catalog entry")
+                }
+                // Old catalogs reserve archive bytes for extraction. Schema 2 downloads
+                // must declare their expanded size so admission never assumes a ZIP ratio.
+                requireImport(expected == null || manifest.schemaVersion == 1 || expectedInstalledBytes != null,
+                    "Compressed download requires installed size in catalog")
                 val decision = StorageBudget.evaluate(
-                    maxOf(footprint.bytes(), registry.totalInstalledBytes()),
+                    Math.addExact(maxOf(footprint.bytes(), registry.totalInstalledBytes()), externalArchiveBytes),
                     Math.addExact(incomingBytes, StorageBudget.METADATA_RESERVE_BYTES),
                     freeBytesForExtraction,
                 )
@@ -152,7 +198,8 @@ class AssetImporter private constructor(
                 val declared = manifest.artifacts.associateBy { it.path }
                 val seen = mutableSetOf<String>()
                 entries.drop(1).forEach { entry ->
-                    validateEntry(entry)
+                    currentCoroutineContext().ensureActive()
+                    validateEntry(entry, allowDeflated = manifest.schemaVersion == 2)
                     requireImport(seen.add(entry.name), "Duplicate ZIP entry: ${entry.name}")
                     val artifact = declared[entry.name]
                         ?: throw AssetImportException("Undeclared ZIP entry: ${entry.name}")
@@ -162,6 +209,23 @@ class AssetImporter private constructor(
                 }
                 requireImport(seen == declared.keys, "Pack is missing declared artifacts")
 
+                // The archive and every extracted payload are already part of this footprint.
+                // Recheck after a potentially long extraction: History, attachments or caches
+                // may have grown since admission. Reserve only the pending registry metadata,
+                // not another copy of the payload, before the atomic move publishes the pack.
+                val finalDecision = StorageBudget.evaluate(
+                    Math.addExact(maxOf(footprint.bytes(), registry.totalInstalledBytes()), externalArchiveBytes),
+                    StorageBudget.METADATA_RESERVE_BYTES,
+                    storageRoot.usableSpace,
+                )
+                if (finalDecision != BudgetDecision.Allowed) {
+                    throw AssetImportException(
+                        "Storage changed during import: $finalDecision",
+                        budgetDecision = finalDecision,
+                    )
+                }
+
+                currentCoroutineContext().ensureActive()
                 finalRoot.parentFile?.mkdirs()
                 Files.move(extracted.toPath(), finalRoot.toPath(), StandardCopyOption.ATOMIC_MOVE)
                 val installed = InstalledAsset(
@@ -180,10 +244,13 @@ class AssetImporter private constructor(
                     registry.add(installed)
                 } catch (error: Exception) {
                     finalRoot.deleteRecursively()
+                    if (error is CancellationException) throw error
                     throw AssetImportException("Unable to persist asset registry", error)
                 }
                 installed
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: AssetImportException) {
             throw error
         } catch (error: Exception) {
@@ -191,12 +258,13 @@ class AssetImporter private constructor(
         }
     }
 
-    private fun spoolArchive(input: InputStream, archive: File, freeBytes: Long): Long {
+    private suspend fun spoolArchive(input: InputStream, archive: File, freeBytes: Long): Long {
         var copied = 0L
         val initialBytes = footprint.bytes()
         FileOutputStream(archive).use { output ->
             val buffer = ByteArray(COPY_BUFFER_BYTES)
             while (true) {
+                currentCoroutineContext().ensureActive()
                 val read = input.read(buffer)
                 if (read < 0) break
                 if (read == 0) continue
@@ -220,9 +288,10 @@ class AssetImporter private constructor(
         return copied
     }
 
-    private fun validateEntry(entry: ZipArchiveEntry, expectedName: String? = null) {
+    private fun validateEntry(entry: ZipArchiveEntry, expectedName: String? = null, allowDeflated: Boolean = false) {
         requireImport(!entry.isDirectory, "Directories are not valid pack entries")
-        requireImport(entry.method == ZipMethod.STORED.code, "Pack entries must use STORED compression")
+        requireImport(entry.method == ZipMethod.STORED.code || (allowDeflated && entry.method == ZipMethod.DEFLATED.code),
+            if (allowDeflated) "Pack entries must use STORED or DEFLATED compression" else "Pack entries must use STORED compression")
         requireImport(!entry.generalPurposeBit.usesEncryption(), "Encrypted pack entries are not allowed")
         requireImport(!entry.isUnixSymlink, "Symbolic links are not allowed")
         if (expectedName != null) requireImport(entry.name == expectedName, "$expectedName must be first")
@@ -244,7 +313,7 @@ class AssetImporter private constructor(
         return output.toByteArray()
     }
 
-    private fun writeVerified(
+    private suspend fun writeVerified(
         input: InputStream,
         entry: ZipArchiveEntry,
         artifact: PackArtifact,
@@ -262,6 +331,7 @@ class AssetImporter private constructor(
         FileOutputStream(outputFile).use { output ->
             val buffer = ByteArray(COPY_BUFFER_BYTES)
             while (copied < artifact.bytes) {
+                currentCoroutineContext().ensureActive()
                 val read = input.read(buffer, 0, minOf(buffer.size.toLong(), artifact.bytes - copied).toInt())
                 if (read < 0) break
                 if (read == 0) continue

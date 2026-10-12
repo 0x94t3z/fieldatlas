@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.ui.presentation.formatAssetBytes
+import xyz.fieldatlas.ui.presentation.collectionDescription
 import xyz.fieldatlas.ui.presentation.knowledgeCategory
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import xyz.fieldatlas.ui.theme.FieldAtlasEditorial
@@ -75,14 +76,15 @@ internal fun PackAboutSheet(
                 }
                 FieldAtlasStatusPill(formatAssetBytes(asset.installedBytes))
             }
-            asset.discovery?.coverageSummary?.takeIf(String::isNotBlank)?.let {
+            asset.collectionDescription()?.let {
                 Text(it, style = MaterialTheme.typography.bodyLarge)
             }
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FieldAtlasFactRow("Version", asset.version)
                 FieldAtlasFactRow("Licence", asset.license)
                 FieldAtlasFactRow("Checksum", asset.manifestSha256.take(12) + "… verified at install")
-                if (asset.type == PackType.KNOWLEDGE) FieldAtlasFactRow("Searched", "On this phone, no connection needed")
+                if (asset.type == PackType.KNOWLEDGE) FieldAtlasFactRow("Search", if (asset.enabled)
+                    "Enabled · works offline" else "Off · saved on this phone")
             }
             val examples = asset.discovery?.exampleQuestions.orEmpty()
             if (examples.isNotEmpty() && onAskExample != null) {

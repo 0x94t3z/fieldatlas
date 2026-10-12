@@ -22,7 +22,9 @@ class ResearchOrchestratorTest {
         val mechanism = "A boat floats because the upward buoyant force balances its weight."
         val source = Evidence("boat", "boat:0", "Boat — Principles", "Local",
             (omitted + " ").repeat(30) + "\n\n" + mechanism, -1.0)
-        val question = "Why do boats float?"
+        // A yes/no lookup keeps the generated attribution path. Ordinary how/why
+        // explanations now finish from copied originals (covered separately below).
+        val question = "Do boats float?"
         val packed = PromptBuilder.build(question, listOf(source), 2048)
         assertFalse(packed.prompt.contains(omitted))
         assertEquals(source, packed.sources.single().evidence)
@@ -80,7 +82,7 @@ class ResearchOrchestratorTest {
         val fact = Evidence("d", "c", "Mitosis", "Local", "Mitosis produces two cells.", -1.0)
         val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(fact) },
             FakeInferenceGateway(listOf("Model explanation\nGeneral fact [S1].\n", "From saved sources\n\"Mitosis produces two cells.\" [S1]")))
-            .research("Explain mitosis").toList()
+            .research("Does mitosis produce two cells?").toList()
         val answer = StringBuilder()
         events.filterIsInstance<ResearchEvent.Token>().forEach {
             if (it.replace) answer.clear()
@@ -91,6 +93,76 @@ class ResearchOrchestratorTest {
         assertTrue(answer.contains("\"Mitosis produces two cells.\" [S1]"))
         assertEquals(setOf("S1"), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
         assertTrue((events.last() as ResearchEvent.Complete).metrics.hasUnmappedCitation)
+    }
+
+    @Test fun sourceBackedExplanationNeverInvokesKnownConditionReversingModel() = runBlocking {
+        val fact = Evidence("luma", "luma:0", "Luma projector — Test", "fixture://luma",
+            "The Luma projector produces a beam through its emitter. The test establishes operation only after dry storage. " +
+                "It does not establish whether wet storage is safe or how long it could last.", -1.0)
+        val wrong = "Operation only occurs after dry storage. Wet storage is always dangerous [S1]."
+        val plain = "How does the Luma projector produce a beam?"
+        for (question in listOf(plain, "According to the saved sources, $plain")) {
+            val inference = FakeInferenceGateway(listOf(wrong))
+            val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(fact) }, inference)
+                .research(question, contextTokenBudget = 8192).toList()
+            val answer = events.filterIsInstance<ResearchEvent.Token>().joinToString("") { it.text }
+            val decoded = xyz.fieldatlas.text.MarkdownLiteral.decode(answer)
+            assertEquals(question, 0, inference.generateCalls)
+            assertTrue(decoded.contains(fact.text))
+            assertFalse(decoded.contains("Operation only occurs"))
+            assertFalse(decoded.contains("always dangerous"))
+            assertTrue(decoded.contains("Original excerpts, not a generated explanation"))
+            assertTrue(decoded.contains("may not fully answer"))
+            assertEquals(listOf(fact), events.filterIsInstance<ResearchEvent.Sources>().single().evidence)
+            val metrics = (events.last() as ResearchEvent.Complete).metrics
+            assertEquals(0, metrics.generatedTokenCount)
+            assertEquals(setOf("S1"), metrics.citedSourceIds)
+            assertFalse(metrics.hasUnmappedCitation)
+        }
+    }
+
+    @Test fun guardedExplanationCopiesEveryPackedSourceAndItsOriginalCitation() = runBlocking {
+        val question = "How does the Luma projector produce a beam, and what limits wet storage?"
+        val first = Evidence("luma", "luma:0", "Luma projector — Beam", "fixture://luma",
+            "The Luma projector produces a beam through its emitter.", -1.0)
+        val second = Evidence("luma", "luma:1", "Luma projector — Storage", "fixture://luma",
+            "Wet storage limits remain unknown. Only dry storage was evaluated; wet storage safety is not established.", -0.5)
+        var packed: PackedPrompt? = null
+        val inference = FakeInferenceGateway(listOf("Invented universal wet-storage rule [S7]."))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(first, second) }, inference,
+            onEvidencePacked = { packed = it }).research(question, contextTokenBudget = 8192).toList()
+        val sources = checkNotNull(packed).sources
+        assertEquals(2, sources.size)
+        val answer = events.filterIsInstance<ResearchEvent.Token>().joinToString("") { it.text }
+        val quoted = answer.lineSequence().filter { it.startsWith("> ") }.toList()
+        assertEquals(sources.map { PreciseReferenceAnswer.quote(it) }, quoted)
+        assertEquals(sources.map { it.evidence }, events.filterIsInstance<ResearchEvent.Sources>().single().evidence)
+        assertEquals(0, inference.generateCalls)
+        val metrics = (events.last() as ResearchEvent.Complete).metrics
+        assertEquals(setOf("S1", "S2"), metrics.citedSourceIds)
+        assertEquals(0, metrics.generatedTokenCount)
+        assertFalse(metrics.hasUnmappedCitation)
+        assertFalse(answer.contains("S7"))
+    }
+
+    @Test fun unknownPrivateRecordsFinishWithoutSearchingOrGenerating() = runBlocking {
+        val inference = FakeInferenceGateway(listOf("An invented private diagnosis [S1]."))
+        val retriever = Retriever { _, _, _ -> error("No supplied private record: must not search") }
+        for (question in listOf("What diagnosis did an unnamed private person receive last week?",
+            "What is the unnamed person's account balance?")) {
+            val events = ResearchOrchestrator(retriever, inference).research(question).toList()
+            assertTrue(events.last() is ResearchEvent.Complete)
+            assertTrue(events.none { it is ResearchEvent.Searching || it is ResearchEvent.Planning || it is ResearchEvent.Sources })
+            val answer = events.filterIsInstance<ResearchEvent.Token>().single().text
+            assertTrue(answer.contains("private records"))
+            assertTrue(answer.contains("permission to use"))
+            val metrics = (events.last() as ResearchEvent.Complete).metrics
+            assertEquals(0L, metrics.retrievalMillis)
+            assertEquals(0, metrics.generatedTokenCount)
+            assertTrue(metrics.citedSourceIds.isEmpty())
+            assertFalse(metrics.hasUnmappedCitation)
+        }
+        assertEquals(0, inference.generateCalls)
     }
 
     private val evidence = Evidence("doc", "doc:0000", "Title", "Source", "Grounded fact", 1.0)
@@ -237,23 +309,27 @@ class ResearchOrchestratorTest {
         assertTrue(events[0] is ResearchEvent.Searching)
         assertTrue(events.filterIsInstance<ResearchEvent.Searching>().isNotEmpty())
         assertTrue(events[events.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
-        assertEquals("## Model explanation—not verified against saved sources\n\nAnswer and",
+        assertEquals("## Model explanation—not verified against saved sources\n\nAnswer and" +
+            "\n\n## Saved excerpts\n\n> Grounded fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._",
             events.filterIsInstance<ResearchEvent.Token>().last().text)
         assertTrue(events.filterIsInstance<ResearchEvent.Token>().drop(1).all { it.replace })
         val metrics = (events.last() as ResearchEvent.Complete).metrics
         assertEquals(3, metrics.generatedTokenCount)
-        assertEquals(emptySet<String>(), metrics.citedSourceIds)
+        assertEquals(setOf("S1"), metrics.citedSourceIds)
         assertTrue(metrics.hasUnmappedCitation)
         assertTrue(metrics.timeToFirstTokenMillis != null)
     }
 
-    @Test fun answerWithoutMarkersReportsNoCitedSources() = runBlocking {
+    @Test fun answerWithoutMarkersCitesOnlyTheSeparateCopiedExcerpt() = runBlocking {
         val events = ResearchOrchestrator(
             Retriever { _, _, _ -> listOf(evidence) },
             FakeInferenceGateway(listOf("uncited answer")),
         ).research("Explain").toList()
         val metrics = (events.last() as ResearchEvent.Complete).metrics
-        assertTrue(metrics.citedSourceIds.isEmpty())
+        assertEquals(setOf("S1"), metrics.citedSourceIds)
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertFalse(answer.contains("uncited answer [S1]"))
+        assertTrue(answer.contains("> Grounded fact … [S1]"))
         assertFalse(metrics.hasUnmappedCitation)
     }
 

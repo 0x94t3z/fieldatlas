@@ -21,7 +21,7 @@ class FtsQuery private constructor(
             } else {
                 normalized
             }
-            val terms = termPattern.findAll(withoutContractions(capped))
+            val terms = termPattern.findAll(withoutContractions(QuestionSubject.text(capped)))
                 .map { it.value.lowercase(Locale.ROOT) }
                 .filter { it.codePointCount(0, it.length) >= 2 }
                 .filterNot(STOP_WORDS::contains)
@@ -116,7 +116,9 @@ class FtsQuery private constructor(
             // instructions about the answer, not its subject: in "summarize what saved sources
             // say about rapamycin; separate findings from uncertainty" they outranked rapamycin
             "summarize", "summarise", "summary", "separate", "distinguish", "say", "says", "said",
-            "saved", "source", "sources", "reported", "findings", "remaining", "uncertainty",
+            // Source nouns remain searchable; QuestionSubject removes only recognized
+            // source-scope/reporting directives, never these nouns throughout the topic.
+            "saved", "reported", "findings", "remaining", "uncertainty",
             "details", "detail", "need", "needs", "trying", "deciding", "conclusion", "conclusions",
             "you", "your", "we", "i", "so", "there", "their", "they", "also", "some", "other",
         )

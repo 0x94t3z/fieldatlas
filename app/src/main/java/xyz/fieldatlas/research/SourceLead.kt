@@ -44,7 +44,7 @@ object SourceLead {
         for (source in sources) {
             val item = source.evidence
             if (!isFirstChunk(item) || !EvidenceRelevance.isRequestedOverview(item, question)) continue
-            val text = leadText(EvidenceRelevance.passageText(item.text)) ?: continue
+            val text = leadText(EvidenceRelevance.passageText(source.excerpt)) ?: continue
             // The overview check alone falls back to title overlap for text it cannot parse
             // as English, so the first sentence must itself name every subject term.
             val opening = sentences(text).first()

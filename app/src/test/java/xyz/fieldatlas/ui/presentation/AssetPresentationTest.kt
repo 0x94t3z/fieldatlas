@@ -9,6 +9,44 @@ import xyz.fieldatlas.assets.PackDiscovery
 import xyz.fieldatlas.assets.PackType
 
 class AssetPresentationTest {
+    @Test fun expansionNamesKeepEachPartDistinctWithoutInventingSubjects() {
+        assertEquals("Encyclopedia expansion · 1.1", encyclopediaExpansionLabel("wikipedia-en-broad-s00000-0001"))
+        assertEquals("Encyclopedia expansion · 14.3", encyclopediaExpansionLabel("wikipedia-en-broad-s00013-0003"))
+        assertNull(encyclopediaExpansionLabel("wikipedia-en-broad-s00013-0000"))
+        assertNull(encyclopediaExpansionLabel("custom-wikipedia-en-broad-s00013-0003"))
+        assertNull(encyclopediaExpansionLabel("wikipedia-en-vital"))
+    }
+
+    @Test fun expansionDescriptionDoesNotReplacePackProvidedCoverage() {
+        val expansion = asset("wikipedia-en-broad-s00013-0003", PackType.KNOWLEDGE, null)
+        org.junit.Assert.assertTrue(expansion.collectionDescription()!!.contains("mixed subjects"))
+        assertEquals("Specific original coverage", expansion.copy(discovery = PackDiscovery(
+            "Specific original coverage", emptyList(), CoverageLevel.DEMO)).collectionDescription())
+        assertNull(expansion.copy(type = PackType.MODEL).collectionDescription())
+        assertNull(asset("project-notes", PackType.KNOWLEDGE, null).collectionDescription())
+    }
+
+    @Test fun selectionSummaryOnlyShowsDisabledCollectionsWithoutRepeatingStorage() {
+        val on = asset("one", PackType.KNOWLEDGE, null).copy(installedBytes = 1_000_000_000, enabled = true)
+        val off = on.copy(id = "two", installedBytes = 2_000_000_000, enabled = false)
+        assertEquals("1 of 2 collections enabled",
+            knowledgeSelectionSummary(listOf(on, off, model())))
+        assertNull(knowledgeSelectionSummary(listOf(model())))
+        assertNull(knowledgeSelectionSummary(emptyList()))
+        assertNull(knowledgeSelectionSummary(listOf(on, off.copy(enabled = true))))
+        assertEquals("0 of 2 collections enabled", knowledgeSelectionSummary(listOf(on.copy(enabled = false), off)))
+    }
+
+    @Test fun consolidatedBundleIsOneCollectionWithItsOwnSizeAndSelection() {
+        val bundle = asset("wikipedia-encyclopedia", PackType.KNOWLEDGE, null)
+            .copy(installedBytes = 24_345_968_640L, enabled = true)
+        assertEquals("Encyclopedia", bundle.toAssetCardModel().title)
+        assertEquals(KnowledgeCategory.Encyclopedia, knowledgeCategory(bundle.id))
+        assertEquals("24.35 GB", bundle.toAssetCardModel().size)
+        assertNull(knowledgeSelectionSummary(listOf(bundle, model())))
+        assertEquals("0 of 1 collections enabled",
+            knowledgeSelectionSummary(listOf(bundle.copy(enabled = false))))
+    }
     @Test fun missingPacksNameTheNextUsefulAction() {
         assertEquals(SetupNextAction.ChooseModel, deriveSetupNextAction(emptyList(), false))
         assertEquals(SetupNextAction.OpenResearch, deriveSetupNextAction(listOf(model()), false))

@@ -55,7 +55,7 @@ fun BenchmarkScreen(
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                         Text("Working locally…", style = MaterialTheme.typography.titleSmall)
                         LinearProgressIndicator(Modifier.fillMaxWidth().height(4.dp))
-                        if (state.currentAnswer.isNotBlank()) Text(state.currentAnswer, style = MaterialTheme.typography.bodyMedium)
+                        if (state.currentAnswer.isNotBlank()) Text(benchmarkAnswerPreview(state.currentAnswer), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
                 state.error?.let { error -> item {
@@ -106,3 +106,7 @@ private fun resultStateLabel(state: BenchmarkResultState): String = when (state)
     BenchmarkResultState.COMPLETE -> "Complete"; BenchmarkResultState.CANCELLED -> "Cancelled"
     BenchmarkResultState.FAILED -> "Failed"; BenchmarkResultState.INSUFFICIENT -> "Insufficient evidence"
 }
+
+/** This panel is plain Text, not a Markdown/citation renderer. Decode only at the display
+ * boundary; recorded answers must retain protected native footnotes and source syntax. */
+internal fun benchmarkAnswerPreview(answer: String): String = xyz.fieldatlas.text.MarkdownLiteral.decode(answer)

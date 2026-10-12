@@ -86,7 +86,8 @@ class BenchmarkViewModelTest {
 
         viewModel.runNext()
 
-        assertEquals("## Model explanation—not verified against saved sources\n\nVisible answer", viewModel.state.value.run.results.single().answer)
+        assertEquals("## Model explanation—not verified against saved sources\n\nVisible answer" +
+            "\n\n## Saved excerpts\n\n> Prompt q1 Fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._", viewModel.state.value.run.results.single().answer)
     }
 
     private fun question(id: String) = BenchmarkQuestion(

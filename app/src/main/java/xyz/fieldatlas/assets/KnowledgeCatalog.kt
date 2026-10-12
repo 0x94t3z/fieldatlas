@@ -19,6 +19,7 @@ data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCat
                     "Pack description or license is missing"
                 }
                 require(pack.bytes in 1..StorageBudget.MAX_TOTAL_BYTES) { "Invalid pack size" }
+                require(pack.installedBytes == null || pack.installedBytes in 1..StorageBudget.MAX_TOTAL_BYTES) { "Invalid installed pack size" }
                 require(pack.sha256.matches(Regex("[0-9a-f]{64}"))) { "Invalid pack checksum" }
                 // Use exactly the transfer boundary's rules: don't save a catalog whose
                 // default links the downloader will later reject (fragments/invalid ports).
@@ -43,4 +44,6 @@ data class KnowledgeCatalogEntry(
     val recommended: Boolean = false,
     /** Library grouping, e.g. "Encyclopedia" or "Places"; older catalogs omit it. */
     val category: String = "",
+    /** Required for compressed schema-2 packs; archive bytes are not extraction bytes. */
+    val installedBytes: Long? = null,
 )

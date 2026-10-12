@@ -9,6 +9,17 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class KnowledgePackDownloadTest {
+    @Test fun expandedSizeIsReservedBeforeAnyNetworkTransfer() = kotlinx.coroutines.runBlocking {
+        val root = temp.newFolder("compressed-preflight")
+        val pack = essentials.copy(installedBytes = StorageBudget.MAX_TOTAL_BYTES)
+        val partial = paused(root, pack)
+        val downloader = KnowledgePackDownload(root, AssetRegistry(root), AssetImporter(root))
+        org.junit.Assert.assertThrows(IllegalStateException::class.java) {
+            kotlinx.coroutines.runBlocking { downloader.install(pack) { error("Must not download") } }
+        }
+        assertEquals(400L, partial.length())
+        assertFalse(File(root, "pack-staging").exists())
+    }
     @get:Rule val temp = TemporaryFolder()
 
     private val essentials = KnowledgeCatalogEntry("osm-essentials", "2026.10.05", "Essentials",

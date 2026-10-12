@@ -10,7 +10,36 @@ import java.io.File
 class InvalidKnowledgeDatabaseException(message: String, cause: Throwable? = null) :
     IllegalArgumentException(message, cause)
 
-class KnowledgeDatabase private constructor(private val database: SQLiteConnection) : Closeable {
+class KnowledgeDatabase private constructor(private val database: SQLiteConnection, private val file: File) : Closeable {
+    private val matchCounts = CappedMatchCountCache()
+    private var nativeSearch: LeviathanSession? = null
+    private var nativeChecked = false
+
+    /** Old packs and unavailable/failed native engines retain the existing SQL path. */
+    internal suspend fun leviathanCandidates(query: String, limit: Int): List<Evidence>? {
+        val session = synchronized(database) {
+            if (!nativeChecked) {
+                nativeChecked = true
+                if (LeviathanNative.available) {
+                    nativeSearch = try {
+                        val compatible = database.prepare("SELECT format,engine FROM fieldatlas_search").use { row ->
+                            row.step() && row.getInt(0) == 1 && row.getText(1) == "leviathan-0.2.0" && !row.step()
+                        }
+                        if (compatible) LeviathanSession(file) else null
+                    } catch (_: Exception) { null }
+                }
+            }
+            nativeSearch
+        } ?: return null
+        return try { session.search(query, limit) }
+        catch (cancelled: kotlin.coroutines.cancellation.CancellationException) { throw cancelled }
+        catch (error: Exception) {
+            // Fail back to this same pack's legacy posting index, never another corpus.
+            synchronized(database) { nativeSearch?.close(); nativeSearch = null }
+            null
+        }
+    }
+
     internal fun search(matchExpression: String, limit: Int): List<Evidence> = synchronized(database) {
         database.prepare(SEARCH_SQL).use { statement ->
             statement.bindText(1, matchExpression)
@@ -467,16 +496,25 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     }
 
     internal fun countCapped(matchExpression: String, cap: Int): Int = synchronized(database) {
-        database.prepare(
-            "SELECT count(*) FROM (SELECT 1 FROM chunks_fts WHERE chunks_fts MATCH ? LIMIT ?)",
-        ).use { statement ->
-            statement.bindText(1, matchExpression)
-            statement.bindInt(2, cap)
-            if (statement.step()) statement.getInt(0) else 0
+        // FtsRetriever is short-lived, but installed pack handles are immutable and cached.
+        // Reuse exact frequency probes across retrievers without changing SQL or ranking.
+        matchCounts.getOrLoad(matchExpression, cap) {
+            database.prepare(
+                "SELECT count(*) FROM (SELECT 1 FROM chunks_fts WHERE chunks_fts MATCH ? LIMIT ?)",
+            ).use { statement ->
+                statement.bindText(1, matchExpression)
+                statement.bindInt(2, cap)
+                if (statement.step()) statement.getInt(0) else 0
+            }
         }
     }
 
-    override fun close() = database.close()
+    override fun close() = synchronized(database) {
+        matchCounts.clear()
+        nativeSearch?.close()
+        nativeSearch = null
+        database.close()
+    }
 
     private fun validate() {
         val version = database.prepare("PRAGMA user_version").use { statement ->
@@ -613,7 +651,7 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
                 throw InvalidKnowledgeDatabaseException("Unable to open knowledge database", error)
             }
             return try {
-                KnowledgeDatabase(sqlite).also { it.validate() }
+                KnowledgeDatabase(sqlite, file).also { it.validate() }
             } catch (error: InvalidKnowledgeDatabaseException) {
                 sqlite.close()
                 throw error

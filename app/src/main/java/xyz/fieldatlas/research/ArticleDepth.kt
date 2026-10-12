@@ -37,6 +37,35 @@ object ArticleDepth {
      */
     fun isEncyclopedia(item: Evidence): Boolean =
         item.documentId.startsWith("swp-") || item.documentId.startsWith("enw-") || item.documentId.startsWith("wp-")
+
+    /**
+     * An explanation can name its useful reference in a condition rather than its first noun
+     * phrase: "why can an enclosure fail even when its sealing membrane ...". Read the rest of
+     * an already-found article when its complete multiword title occurs in the question. This
+     * is not permission to expand an arbitrary keyword hit such as "Water" or "Pressure".
+     * No additional broad search is needed, and the ordinary subject cap still applies.
+     */
+    fun supportingSubjects(question: String, evidence: List<Evidence>, subjects: List<Evidence>): List<Evidence> {
+        if (!SubjectLookup.explains(question)) return emptyList()
+        val remaining = (SubjectLookup.MAX_SUBJECTS - subjects.size).coerceIn(0, 2)
+        if (remaining == 0) return emptyList()
+        fun words(text: String) = tokenPattern.findAll(text.lowercase()).map { it.value }.toList()
+        val existing = subjects.map { words(it.title.substringBefore(" — ")) }.toSet()
+        return evidence.asSequence().filter(::isEncyclopedia)
+            .filter { " — " in it.title }
+            .groupBy { words(it.title.substringBefore(" — ")) }
+            .filter { (title, _) ->
+                title.size in 2..8 && title !in existing &&
+                    FtsQuery.from(title.joinToString(" "))?.terms.orEmpty().size >= 2 &&
+                    QuestionSubject.containsMultiwordTitle(question, title.joinToString(" "))
+            }
+            .entries.sortedWith(compareByDescending<Map.Entry<List<String>, List<Evidence>>> { it.key.size }
+                .thenBy { it.key.joinToString(" ") })
+            .take(remaining)
+            .map { (_, rows) ->
+                rows.minWith(compareBy<Evidence> { !opensLead(it) }.thenBy { it.chunkId }.thenBy { it.source })
+            }
+    }
     /** Share of the depth budget the question's main subject reads; the others split the rest. */
     private const val PRIMARY_SHARE = 60
     /** A lead chunk cut to fit keeps at least this much, or nothing: a shorter cut says only what the subject is. */
@@ -47,7 +76,7 @@ object ArticleDepth {
         Regex("(?i)\\bwhy\\b|\\bcaus|\\bled to\\b|\\bhappen") to
             Regex("(?i)\\b(?:causes?|reasons?|background|origins?|mechanisms?)\\b"),
         Regex("(?i)\\bhow (?:does|do|is|are|can)\\b|\\bwork") to
-            Regex("(?i)\\b(?:operation|principles?|mechanisms?|function(?:ing)?|theory|design|physics|process)\\b"),
+            Regex("(?i)\\b(?:operation|principles?|mechanisms?|function(?:ing)?|theory|design|physics|process|features|structure|characteristics)\\b"),
         // "What is the difference between a hurricane and a typhoon" is answered where the terms are defined.
         Regex("(?i)\\bdiffer|\\bcompar|\\bversus\\b|\\bvs\\b|\\bwhich\\b|\\bbetter\\b") to
             Regex("(?i)\\b(?:comparison|types?|classification|differences?|definitions?|terminology|naming|nomenclature)\\b"),
@@ -81,6 +110,10 @@ object ArticleDepth {
         Regex("(?i)\\bphases?\\b") to Regex("(?i)\\b(?:phases?)\\b"),
     )
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
+    // Some older source chunks flatten the bibliography into "Details". Keep
+    // source metadata in storage, but do not promote a citation list as an answer.
+    private val bibliographyMarker = Regex("(?i)\\bdoi\\s*:\\s*10\\.|\\bPMID\\s+\\d|\\bPMC\\s+\\d|\\bS2CID\\s+\\d|\\{\\{cite journal|CS1 maint:")
+    private fun isBibliography(item: Evidence): Boolean = bibliographyMarker.findAll(item.text).take(3).count() >= 3
     private val questionWords = setOf("how", "why", "what", "does", "do", "did", "is", "are", "was", "were", "can",
         "the", "difference", "between", "and", "when", "should", "use", "each", "my", "for", "of", "in", "on", "whats",
         "actual", "real", "which", "better", "i", "you", "we", "them", "it")
@@ -153,6 +186,45 @@ object ArticleDepth {
         return joined(picked)
     }
 
+    /** Prompt-sized complete units, retaining each full original Evidence for the
+     * viewer/audit. Keyword candidates are not "already read": only the subjects
+     * themselves have guaranteed prompt priority. Do not discard a whole original
+     * chunk merely because its relevant complete paragraph fits but the chunk does not. */
+    fun pickForPrompt(question: String, subjects: List<Evidence>, articles: Map<String, List<Evidence>>, chars: Int): List<Evidence> {
+        if (chars <= 0) return emptyList()
+        val titles = subjects.filter(::isEncyclopedia).map { it.title.substringBefore(" — ") }.distinct()
+        if (titles.isEmpty()) return emptyList()
+        val conditional = ConditionalReferenceFocus.from(question, subjects)
+        val held = subjects.map { Triple(it.documentId, it.chunkId, it.source) }.toSet()
+        val queues = titles.map { title ->
+            val scorer = Scorer(question, title)
+            ArrayDeque(articles[title].orEmpty().filter { isEncyclopedia(it) && !isBibliography(it) &&
+                it.title.startsWith("$title — ") && Triple(it.documentId, it.chunkId, it.source) !in held }
+                .sortedWith(compareByDescending<Evidence> { scorer.promptHasRequestedTerm(it) }
+                    .thenByDescending { scorer.score(it) }.thenBy { it.chunkId }))
+        }
+        val picked = mutableListOf<Evidence>()
+        val units = mutableSetOf<String>()
+        var left = chars
+        while (queues.any { it.isNotEmpty() }) {
+            for (queue in queues) {
+                val item = queue.removeFirstOrNull() ?: continue
+                val unit = PromptBuilder.excerptForKnowledge(question, item)
+                if (unit.isBlank() || unit in units) continue
+                if (conditional != null && !conditional.matches(item, unit)) continue
+                // The narrow conditional route quotes the original unit; it never sends it to
+                // the model. Do not drop its first bounded, qualified passage merely because it
+                // exceeds a soft prefill-time target. Focus caps it at 2,400 characters, and
+                // PromptBuilder still enforces the hard context limit without cutting it.
+                if (unit.length > left && (conditional == null || picked.isNotEmpty())) continue
+                picked += item
+                units += unit
+                left -= unit.length
+            }
+        }
+        return picked
+    }
+
     /** Whether [title] is written as a name in [question]: with its capitals, or capitalised past its first word. */
     private fun isName(question: String, title: String): Boolean =
         question.contains(title) || title.split(' ').drop(1).any { it.first().isUpperCase() }
@@ -196,6 +268,14 @@ object ArticleDepth {
             }
             return heading + 2 * terms.count { t -> headTokens.any { stemMatches(it, t) } } + terms.count { t -> body.any { stemMatches(it, t) } }
         }
+
+        // A generic "Structure" heading must not beat a selected paragraph that
+        // actually mentions the requested process/object. Score the prompt unit,
+        // not just matching words in a different, omitted part of its full chunk.
+        fun promptHasRequestedTerm(item: Evidence): Boolean =
+            EvidenceRelevance.termHits(PromptBuilder.excerptForKnowledge(questionText, item), terms) > 0
+
+        private val questionText = question
     }
 
     /**
@@ -208,9 +288,10 @@ object ArticleDepth {
     internal fun ranked(question: String, article: String, passages: List<Evidence>, chars: Int = Int.MAX_VALUE): List<Evidence> {
         val scorer = Scorer(question, article)
         // A page's lead is its first document ("enw-68316-0000"); its chunks stay in order.
-        val lead = passages.filter { it.documentId.endsWith("-0000") }
+        val usable = passages.filterNot(::isBibliography)
+        val lead = usable.filter { it.documentId.endsWith("-0000") }
             .sortedWith(compareBy<Evidence> { !it.documentId.startsWith("enw-") }.thenBy { it.chunkId })
-        val sections = passages.filterNot { it.documentId.endsWith("-0000") }.groupBy { it.documentId }.values
+        val sections = usable.filterNot { it.documentId.endsWith("-0000") }.groupBy { it.documentId }.values
             .map { chunks -> chunks.sortedBy { it.chunkId } to chunks.maxOf { scorer.score(it) } }
             .sortedWith(compareByDescending<Pair<List<Evidence>, Int>> { it.second }.thenBy { it.first.first().chunkId })
         val scored = sections.filter { it.second > 0 }.flatMap { it.first }

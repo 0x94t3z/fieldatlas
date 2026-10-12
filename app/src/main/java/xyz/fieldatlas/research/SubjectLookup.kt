@@ -8,6 +8,12 @@ package xyz.fieldatlas.research
  * evidence a reference holds, so it is looked up by that title and kept.
  */
 object SubjectLookup {
+    private fun discoveryQuestion(question: String): String {
+        val text = QuestionText.normalised(QuestionSubject.text(question))
+        // The role is what is requested, not the entity to look up. Keep this
+        // grammatical rewrite scoped so titles containing "Role" remain intact.
+        return text.replace(Regex("(?i)^what (?:role|function) (?:do|does) (.+?) (?:play|serve|have)\\b"), "How does $1 work")
+    }
     const val SECTION = "overview"
     private const val MAX_PHRASES = 8
     /** A comparison names up to this many subjects: "a hurricane, a typhoon and a cyclone". */
@@ -21,10 +27,10 @@ object SubjectLookup {
     private val framing = setOf(
         "how", "does", "do", "did", "is", "are", "was", "were", "why", "what", "which", "who", "when", "where", "the", "a",
         "an", "of", "to", "in", "on", "for", "and", "or", "with", "from", "by", "between", "difference", "differences",
-        "different", "differ", "compare", "compared", "comparison", "versus", "vs", "explain", "describe", "tell", "me", "about",
+        "different", "differ", "distinguish", "distinguishes", "distinguishing", "compare", "compared", "comparison", "versus", "vs", "explain", "describe", "tell", "me", "about",
         "work", "works", "working", "happen", "happens", "mean", "means", "cause", "causes", "caused", "make", "makes", "use",
         "uses", "used", "my", "your", "our", "their", "its", "it", "this", "that", "these", "those", "can", "could", "should",
-        "would", "will", "i", "we", "you", "they", "there", "so", "than", "into", "really", "actually", "exactly", "kind", "type",
+        "would", "will", "may", "might", "must", "shall", "i", "we", "you", "they", "there", "so", "than", "into", "really", "actually", "exactly", "kind", "type",
         "types", "main", "between", "each", "when", "if", "without", "have", "has", "get", "gets", "turn", "turns",
         "keep", "keeps", "kept", "help", "helps", "protect", "protects", "need", "needs", "know",
         // An aspect asked about is not the subject: "the advantages and drawbacks of electric cars".
@@ -93,13 +99,14 @@ object SubjectLookup {
         "falls", "rise", "rose", "rises", "go", "goes", "went", "happen", "happened", "happens", "spread", "spreads", "affect",
         "affects", "affected", "lead", "leads", "led", "end", "ends", "ended", "begin", "began", "begins", "start", "started",
         "starts", "lasted", "last", "become", "became", "matter", "matters", "exist", "exists", "survive", "survived",
-        "survives", "decline", "declined", "fail", "failed", "failing", "differ", "differs", "cause", "causes", "caused",
+        "survives", "decline", "declined", "fail", "failed", "failing", "leak", "leaks", "leaked", "differ", "differs", "cause", "causes", "caused",
         "pop", "pops", "popped", "hurt", "hurts", "work", "works", "worked", "form", "forms", "formed", "float", "floats",
         "fly", "flies", "sink", "sinks", "melt", "melts", "freeze", "freezes", "boil", "boils", "burn", "burns", "glow",
         "glows", "shine", "shines", "spin", "spins", "rotate", "rotates", "orbit", "orbits", "grow", "grows", "die", "dies",
         "sleep", "sleeps", "taste", "tastes", "smell", "smells", "look", "looks", "feel", "feels", "appear", "appears",
         "move", "moves", "flow", "flows", "rain", "rains", "snow", "snows", "cry", "cries", "sting", "stings", "itch",
         "itches", "bleed", "bleeds", "heal", "heals", "elect", "elects", "elected",
+        "obtain", "obtains", "acquire", "acquires", "absorb", "absorbs", "transport", "transports", "supply", "supplies",
         "salty", "red", "orange", "blue", "green", "yellow", "white", "black", "hot", "cold", "warm", "cool", "wet", "dry",
     )
     // Too general to be what a lookup is about on their own: "the tallest animal in the world" is a
@@ -115,7 +122,7 @@ object SubjectLookup {
     private val copulas = setOf("is", "are", "was", "were")
     private val determiners = setOf("the", "a", "an", "my", "your", "our", "their", "its", "this", "that", "these", "those")
     private val clauseStarts = setOf("does", "do", "did", "is", "are", "was", "were", "can", "could", "would", "should",
-        "will", "why", "how", "what", "which", "who", "when", "where", "but")
+        "will", "may", "might", "must", "shall", "why", "how", "what", "which", "who", "when", "where", "but")
     // The kind of thing a title's qualifier names: "Georgia (country)", "Mercury (planet)".
     private val qualifierWords = setOf("country", "state", "city", "town", "province", "region", "island", "river", "lake",
         "mountain", "planet", "star", "moon", "language", "film", "movie", "band", "song", "album", "book", "novel", "play",
@@ -135,7 +142,8 @@ object SubjectLookup {
     /** A noun phrase of the question, with the word just before it ("does" for the subject of a clause). */
     private class Run(val words: List<String>, val before: String?)
 
-    private fun runs(question: String, lookup: Boolean, joinAnd: Boolean = false): List<Run> {
+    private fun runs(originalQuestion: String, lookup: Boolean, joinAnd: Boolean = false): List<Run> {
+        val question = QuestionSubject.text(originalQuestion)
         val matches = word.findAll(question).toList()
         val words = matches.map { it.value.trim('\'', '’', '-') }
         // Whether only spaces separate word [index] from the next.
@@ -176,7 +184,7 @@ object SubjectLookup {
             val isNamed = m.range.first > 0 && w.first().isUpperCase()
             val measure = bare in measures && next?.lowercase() == "of"
             val breaks = bare in framing || bare in emphasis && !isNamed || lookup && bare in lookupFraming && !isNamed ||
-                numeric && !keepsNumber || w.length < 2 && !keepsNumber || measure
+                numeric && !keepsNumber || w.length < 2 && !keepsNumber && !(w.singleOrNull()?.isLetter() == true && nextNames) || measure
             if (breaks) {
                 if (run.isNotEmpty()) { runs += Run(run, before); run = ArrayList() }
             } else {
@@ -207,7 +215,7 @@ object SubjectLookup {
      * places the first and is never tried.
      */
     fun candidates(question: String, subjects: Int = 1, lookup: Boolean = false): List<Candidate> {
-        val asked = QuestionText.normalised(question)
+        val asked = discoveryQuestion(question)
         // A choice's subjects follow its first option: "is the high-speed train or a flight the better option".
         val choice = if (!lookup && subjects > 1) choice(asked) else null
         val all = runs(choice?.let { asked.substring(it.start) } ?: asked, lookup, joinAnd = !lookup && subjects == 1)
@@ -231,8 +239,15 @@ object SubjectLookup {
             // what the subject is, and neither the colour's article nor "Sky blue" is the subject.
             val phrase = if (run.words.firstOrNull()?.firstOrNull()?.isUpperCase() == true)
                 run.words.takeWhile { it.first().isUpperCase() || it.lowercase() !in predicates } else run.words
-            val r = if (run.before in copulas && phrase.size > 1 && phrase.last().first().isLowerCase() && phrase.last().lowercase() in predicates)
-                phrase.dropLast(1) else phrase
+            // After an auxiliary, a known predicate ends the leading subject. Do not spend
+            // the bounded phrase slots on its object ("batteries store energy" -> "energy").
+            // A predicate-looking first word can still modify a noun ("warm fronts").
+            val predicateAt = if (!lookup && run.before in clauseStarts)
+                phrase.indices.drop(1).firstOrNull { phrase[it].first().isLowerCase() && phrase[it].lowercase() in predicates }
+            else null
+            // Nominal routes such as "water boil" -> "boiling point" still need
+            // their predicate in the candidate loop below.
+            val r = if (predicateAt != null && phrase[predicateAt].lowercase() !in nominals) phrase.take(predicateAt) else phrase
             val maxWords = if (lookup || r.any { it.lowercase() in connectors }) 6 else 3
             for (n in minOf(maxWords, r.size) downTo 1) for (start in 0..r.size - n) {
                 val words = if (n == 1) listOf(possessor(r[start])) else r.subList(start, start + n)
@@ -309,19 +324,33 @@ object SubjectLookup {
             return mentionsWord(lower) || parts.size > 1 && parts.any(::mentionsWord) || parts.size == 1 && '-' in lower && mentionsWord(parts[0])
         }
         val modifier = candidate.modifier ?: return candidate.rest.any(::mentions)
+        if (modifier.first().isUpperCase() && narrows(modifier, candidate.text)) {
+            // Dropping the beginning of a proper name can select another entity:
+            // "Formula One championships" is not "ONE Championship". Named
+            // qualifiers are exact words, not FTS stems; if the retained phrase
+            // also opens with a name, keep the connecting name words together.
+            val words = word.findAll((listOf(article.title, article.text) + headings).joinToString(" "))
+                .map { possessor(it.value).lowercase() }.toList()
+            val first = word.find(candidate.text)?.value ?: return false
+            val required = listOf(modifier, first).map { possessor(it).lowercase() }
+            return if (first.first().isUpperCase()) words.windowed(2).any { it == required }
+                else required.first() in words
+        }
         return !narrows(modifier, candidate.text) || mentions(modifier)
     }
 
     /**
      * Whether the word before a phrase narrows which article it names. "hot" narrows "wallet"; "next"
-     * says when the halving is, not which Bitcoin; and a capitalised word before a capitalised name
-     * is part of a longer name ("Classic Maya civilization", "Western Roman Empire"), while before
-     * a common noun it is the name itself ("Maya civilization" is not any civilization).
+     * says when the halving is, not which Bitcoin. A known period adjective can
+     * frame a broader named subject ("Classic Maya civilization"); arbitrary
+     * capitalized name words cannot be silently discarded.
      */
     private fun narrows(modifier: String, phrase: String): Boolean = when {
-        modifier.first().isUpperCase() -> !(phrase.first().isUpperCase() && ' ' in phrase)
+        modifier.first().isUpperCase() -> !(modifier.lowercase() in periodModifiers && phrase.first().isUpperCase() && ' ' in phrase)
         else -> modifier.lowercase() !in loose
     }
+
+    private val periodModifiers = setOf("early", "late", "modern", "classic", "classical")
 
     private fun singular(w: String): String? = when {
         w.length > 4 && w.endsWith("ies") -> w.dropLast(3) + "y"
@@ -336,12 +365,13 @@ object SubjectLookup {
      * acronym is matched as written: "GP" is not "GPS".
      */
     fun aliasOf(name: String, found: List<Evidence>): String? {
-        val lower = name.lowercase()
+        fun plain(value: String) = value.lowercase().replace('-', ' ').replace(Regex("\\s+"), " ").trim()
+        val lower = plain(name)
         val names = if (name.length < 3 || name.all { !it.isLowerCase() }) setOf(lower)
         else setOfNotNull(lower, lower + "s", lower + "es", singular(lower))
         return found.firstOrNull { item ->
             item.title.endsWith(" — Overview") && item.text.lineSequence().any { line ->
-                line.startsWith("Also known as:") && line.removePrefix("Also known as:").split(';').any { it.trim().lowercase() in names }
+                line.startsWith("Also known as:") && line.removePrefix("Also known as:").split(';').any { plain(it) in names }
             }
         }?.title?.removeSuffix(" — Overview")
     }
@@ -389,6 +419,7 @@ object SubjectLookup {
      */
     fun overviewOf(phrase: String, found: List<Evidence>, question: String? = null): Evidence? {
         fun plain(value: String) = value.replace(Regex("['’]s\\b"), "").replace("'", "").replace("’", "")
+            .replace('-', ' ').replace(Regex("\\s+"), " ").trim()
         val overviews = found.filter { it.title.endsWith(" — Overview") }
         overviews.firstOrNull { plain(it.title.removeSuffix(" — Overview")).equals(plain(phrase), ignoreCase = true) }?.let { return it }
         if (question == null) return null
@@ -452,7 +483,7 @@ object SubjectLookup {
 
     /** The title words to pair with the subject in a title query, when [question] asks how it ended; null otherwise. */
     fun relatedWords(question: String): List<String>? =
-        RELATED_WORDS.takeIf { asksEnd.containsMatchIn(QuestionText.normalised(question)) }
+        RELATED_WORDS.takeIf { asksEnd.containsMatchIn(discoveryQuestion(question)) }
 
     /**
      * The names to query for an article on [subject]'s end: the subject, then the capitalised words
@@ -502,14 +533,14 @@ object SubjectLookup {
 
     // An explanation, comparison or history question is opened by what the saved article says of
     // its subject; a personal how-to ("how do I…") is not answered by a definition.
-    private val explainsForm = Regex("(?i)^\\s*(?:how (?:does|do|is|are|can|did) (?!i\\b|we\\b|you\\b)|why (?:does|do|is|are|did) |what (?:causes|caused|led to|is|are|was|were) |" +
+    private val explainsForm = Regex("(?i)^\\s*(?:how (?:does|do|is|are|can|did) (?!i\\b|we\\b|you\\b)|why (?:does|do|is|are|did|was|were|can|could|would|should|will|may|might|must|has|have) |what (?:causes|caused|led to|distinguishes|is|are|was|were) |" +
         "explain |describe |compare |how (?:is|are|does|do) .+ (?:differ|different)|" +
         // "What happened to the Aral Sea", "what's the deal with gas fees": a history or account of the subject.
         "what(?:ever)? happened (?:to|in|with) |what(?:['’]s| is) the (?:story|deal) with )|" +
         "\\bwhat(?:['’]s| is| are) (?:the )?(?:actual |real |main |key |big )?differences? between\\b")
 
     /** An explanation or comparison by its wording alone; see [leads] for a choice between options. */
-    fun explains(question: String): Boolean = explainsForm.containsMatchIn(QuestionText.normalised(question))
+    fun explains(question: String): Boolean = explainsForm.containsMatchIn(discoveryQuestion(question))
 
     // "A or B, which is better": two options and a judgement asked between them. The second option
     // must be a thing, not an auxiliary or pronoun ("pay in euros or in my home currency" is not a choice).
@@ -530,7 +561,7 @@ object SubjectLookup {
      * "like a", which compares the option with an example rather than naming it.
      */
     internal fun choice(question: String): Choice? {
-        val asked = QuestionText.normalised(question)
+        val asked = discoveryQuestion(question)
         if (!choiceAsk.containsMatchIn(asked)) return null
         val matches = word.findAll(asked).toList()
         fun bare(index: Int) = possessor(matches[index].value.trim('\'', '’', '-')).lowercase()
@@ -574,11 +605,11 @@ object SubjectLookup {
 
     /** A factual lookup, which reads the articles it names; an explanation [leads] with its one subject. */
     fun looksUp(question: String): Boolean {
-        val asked = QuestionText.normalised(question)
+        val asked = discoveryQuestion(question)
         return factOf.containsMatchIn(asked) || !leads(asked) && looksUpForms.containsMatchIn(asked)
     }
 
-    private val comparisonWords = Regex("(?i)\\b(?:difference|differences|differ|different|compare|compared|comparison|versus|vs\\.?)\\b")
+    private val comparisonWords = Regex("(?i)\\b(?:difference|differences|differ|different|distinguish|distinguishes|distinguishing|compare|compared|comparison|versus|vs\\.?)\\b")
     // Between a comparison's subjects: "a hurricane, a typhoon and a cyclone", "hostels compare with guesthouses".
     private val chainWords = setOf("and", "or", "vs", "versus", "from", "with", "than", "to", "a", "an", "the", "differ", "differs",
         "different", "compared", "compare")
@@ -591,7 +622,7 @@ object SubjectLookup {
      */
     fun subjectsWanted(question: String, lookup: Boolean = false): Int {
         if (lookup) return MAX_SUBJECTS
-        val asked = QuestionText.normalised(question)
+        val asked = discoveryQuestion(question)
         val chosen = choice(asked)
         if (chosen == null && !comparisonWords.containsMatchIn(asked)) return 1
         val text = chosen?.let { asked.substring(it.start) } ?: asked
@@ -632,7 +663,7 @@ object SubjectLookup {
      */
     fun lead(question: String, subjects: List<Evidence>, sources: List<PromptSource>, depth: List<Evidence> = emptyList()): SourceLead.Lead? {
         if (!leads(question)) return null
-        val asked = QuestionText.normalised(question)
+        val asked = discoveryQuestion(question)
         val explained = subjects.size == 1 && asksWhyOrHow.containsMatchIn(asked)
         val quotes = subjects.mapNotNull { subject ->
             val section = if (explained) ArticleDepth.answering(asked, subject.title.substringBefore(" — "), depth) else null
@@ -667,7 +698,7 @@ object SubjectLookup {
     private fun quote(item: Evidence, sources: List<PromptSource>): Pair<String, String>? {
         val source = sources.firstOrNull { it.evidence.documentId == item.documentId && it.evidence.chunkId == item.chunkId } ?: return null
         // A standard's first passage opens with its name and status lines; its summary follows.
-        val text = source.evidence.text.let { t ->
+        val text = source.excerpt.let { t ->
             if (Regex("^(?:EIP|ERC)-\\d+:").containsMatchIn(t)) t.split(Regex("\\n\\s*\\n")).drop(1).joinToString("\n\n") else t
         }
         return SourceLead.leadText(EvidenceRelevance.passageText(text))?.let { source.citationId to it }

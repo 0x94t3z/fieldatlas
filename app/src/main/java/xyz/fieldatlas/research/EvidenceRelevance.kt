@@ -2,6 +2,38 @@ package xyz.fieldatlas.research
 
 /** Conservative post-retrieval gate: irrelevant passages are worse than an honest model-only answer. */
 object EvidenceRelevance {
+    /** Narrow lexical boundary for a saved-source mechanism about a multiword topic.
+     * Shared consequence words ("warm", "metal") do not establish that topic. A
+     * separately computed strong concept match can bridge alternate terminology.
+     * Single-word, comparison, lookup and multi-clause questions keep their normal path. */
+    internal fun missingNamedMechanism(question: String, evidence: List<Evidence>): Boolean {
+        val asked = QuestionSubject.text(question)
+        if (PromptBuilder.allowsModelExplanation(question) || SubjectLookup.subjectsWanted(question) != 1 ||
+            !Regex("(?i)^\\s*(?:how|why)\\s+(?:does|do|is|are|can)\\b").containsMatchIn(asked) ||
+            Regex("(?i)[;]|\\band\\s+(?:how|why|what|when|where)\\b").containsMatchIn(asked)) return false
+        val main = SubjectLookup.candidates(question).firstOrNull { it.run == 0 }?.text ?: return false
+        val terms = FtsQuery.from(main)?.terms.orEmpty()
+        if (terms.size !in 2..4) return false
+        return evidence.none { item ->
+            isStrongConceptMatch(item) || tokens(item.title + " " + passageText(item.text)).let { body ->
+                terms.all { body.matches(it) }
+            }
+        }
+    }
+
+    /** A lone explicit model/standard identifier must occur in a saved-source lookup.
+     * Generic attribute overlap must not replace it. Multiple subjects/identifiers retain
+     * the normal partial-answer path; this is a lexical guard, not semantic verification. */
+    internal fun missingRequestedIdentifier(question: String, evidence: List<Evidence>): Boolean {
+        if (PromptBuilder.allowsModelExplanation(question) || SubjectLookup.subjectsWanted(question) != 1) return false
+        val identifiers = Regex("(?<![\\p{L}\\p{N}])([\\p{L}][\\p{L}\\p{N}]*[-_]\\d+)(?![\\p{L}\\p{N}])")
+            .findAll(QuestionSubject.text(question)).map { it.value.lowercase() }.distinct().toList()
+        if (identifiers.size != 1) return false
+        val parts = identifiers.single().split('-', '_')
+        val identifier = Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(parts[0])}[-_\\s]*${Regex.escape(parts[1])}(?![\\p{L}\\p{N}])")
+        return evidence.none { identifier.containsMatchIn(it.title + "\n" + passageText(it.text)) }
+    }
+
     /** Short causal questions use the original terms as a strict lexical boundary.
      * Avoid a second generative search turn when that boundary found no evidence;
      * an explicitly unverified model-only answer is preferable to query drift. */
@@ -18,12 +50,15 @@ object EvidenceRelevance {
 
     internal fun comparisonTerms(question: String?): List<String> {
         if (question == null) return emptyList()
+        val asked = QuestionText.normalised(QuestionSubject.text(question))
         // Only unambiguous single-word subjects. Multiword names and trailing clauses
         // retain the normal gate rather than turning a modifier into a subject.
         val comparison = Regex("(?i)^\\s*compare\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s+(?:and|with|versus|vs\\.?)\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$)")
-            .find(question) ?: Regex(
+            .find(asked) ?: Regex(
                 "(?i)^\\s*how\\s+(?:does|do|is|are)\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s+(?:differ|different)\\s+from\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$|,\\s+and\\s+(?:when|how|why)\\b)",
-            ).find(question) ?: return emptyList()
+            ).find(asked) ?: Regex(
+                "(?i)^\\s*what\\s+distinguishes\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s+from\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+)\\s*(?=[.!?]|$)",
+            ).find(asked) ?: return emptyList()
         return FtsQuery.from(comparison.groupValues[1] + " " + comparison.groupValues[2])?.terms.orEmpty()
     }
     // Indexing vocabulary helps discovery, but is not a claim made by a passage.
@@ -50,6 +85,16 @@ object EvidenceRelevance {
             terms.filterNot(lookupWrappers::contains).count { body.matches(it) }
         }
     }
+
+    /** Bounded-merge priority for already eligible evidence, not an answer-support verdict.
+     * A title or indexing header alone cannot outrank a passage covering the question.
+     * Existing concept matches keep their ability to bridge different wording. */
+    internal fun coversQuestionForMerge(item: Evidence, questionTerms: List<String>): Boolean {
+        val terms = questionTerms.filterNot { it in lookupWrappers || it in genericTerms || it in contractionFragments }
+        if (terms.size < 2) return false
+        return isStrongConceptMatch(item) || isSupportedConceptMatch(item, terms) ||
+            termHits(topicalText(item.text), terms) == terms.size
+    }
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
     private val metadataLine = Regex("^\\s*(?:PMID \\d+|(?:Year|Journal|Authors?|DOI|PMCID|Published|Publication types?|Keywords|MeSH):)")
     private val conceptPattern = Regex("^concept match ([0-9.]+)$")
@@ -65,6 +110,35 @@ object EvidenceRelevance {
         questionTerms: List<String>,
         expandedTerms: List<String> = emptyList(),
         question: String? = null,
+    ): List<Evidence> {
+        val ordinary = keepOrdinary(evidence, questionTerms, expandedTerms, question)
+        if (question == null || MultipartEvidence.clauses(question).isEmpty()) return ordinary
+        val partial = clauseGroups(evidence, question).flatten()
+        val eligible = partial.map { Triple(it.documentId, it.chunkId, it.source) }.toSet()
+        // A full-question bag of words must not bypass a dependent clause's entity
+        // scope, particularly on source-only file/section queries. Preserve ordinary
+        // ranking only for candidates that passed at least one scoped clause.
+        return (ordinary.filter { Triple(it.documentId, it.chunkId, it.source) in eligible } + partial)
+            .distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+    }
+
+    /** Explicitly non-recursive: a clause uses exactly the pre-existing single-question gate. */
+    internal fun clauseGroups(evidence: List<Evidence>, question: String): List<List<Evidence>> =
+        MultipartEvidence.groups(evidence, question) { rows, clause ->
+            keepOrdinary(rows, FtsQuery.from(clause)?.terms.orEmpty(), emptyList(), clause)
+        }
+
+    /** A complete reference parent, including a narrowing modifier, not an FTS prefix.
+     * This only binds a later clause to a topic; the clause's passage gate still applies. */
+    internal fun hasQuestionTopic(item: Evidence, question: String): Boolean =
+        " — " in item.title && !isTravelListing(item) && titleSubjectIsQuestionSubject(item, question,
+            FtsQuery.from(question)?.terms.orEmpty().filterNot { it == "between" }, strictModifiers = true)
+
+    internal fun mentionsNamedTopic(item: Evidence, topic: String): Boolean =
+        FtsQuery.from(topic)?.terms.orEmpty().size >= 2 && containsPhrase(topicalText(item.text), topic)
+
+    private fun keepOrdinary(
+        evidence: List<Evidence>, questionTerms: List<String>, expandedTerms: List<String>, question: String?,
     ): List<Evidence> {
         if (questionTerms.isEmpty()) return evidence
         // Page furniture and another language's phrases say nothing, whatever words they share.
@@ -99,20 +173,27 @@ object EvidenceRelevance {
         // Request boilerplate is not evidence of the requested subject. In source-only
         // mode, planner vocabulary must not substitute for that subject either.
         val sourceOnly = question != null && !PromptBuilder.allowsModelExplanation(question)
+        // Recognized source directives are already removed by QuestionSubject/FtsQuery.
+        // Do not erase source/document/file nouns here: they can be the asked subject.
         val relevanceTerms = if (sourceOnly) questionTerms.filterNot {
-            it in setOf("according", "saved", "local", "provided", "attached", "source", "sources",
-                "document", "documents", "file", "files", "notes", "summarize", "summarise",
-                "today", "currently", "current", "now")
+            it in setOf("today", "currently", "current", "now")
         } else questionTerms
         val namedArticles = namedArticleSubjects(evidence, question)
-        val generalExplanation = question != null && !isAttributeQuestion(question) && PromptBuilder.allowsModelExplanation(question) &&
-            Regex("(?i)^\\s*(?:explain|describe|why|how|can|compare|what\\s+(?:is|are|makes)|tell\\s+me\\s+about)\\b").containsMatchIn(question)
+        val asked = question?.let { QuestionText.normalised(QuestionSubject.text(it)) }
+        val explanationAsked = asked != null && !isAttributeQuestion(asked) &&
+            Regex("(?i)^\\s*(?:explain|describe|why|how|can|compare|what\\s+(?:is|are|makes)|tell\\s+me\\s+about)\\b").containsMatchIn(asked)
+        val generalExplanation = explanationAsked && !sourceOnly
         val causalExplanation = subjects.isEmpty() && question != null && PromptBuilder.allowsModelExplanation(question) &&
             Regex("(?i)^\\s*(?:explain\\s+)?(?:why|how)\\b").containsMatchIn(question)
         val overviewAnchors = evidence.filter {
             isRequestedOverview(it, question) && hasOverviewStatement(it, overview)
         }
         return rankByPassage(evidence.filter { item ->
+            // Source-only changes answer policy, not the topic an encyclopedia overview is
+            // about. Keep ordinary files, findings and non-overview reference sections on
+            // their existing source-specific path; no English definition is required there.
+            val explanationRequired = generalExplanation || (sourceOnly && explanationAsked &&
+                ArticleDepth.isEncyclopedia(item) && item.title.endsWith(" — Overview"))
             (if (overview.isNotEmpty()) hasOverviewStatement(item, overview) ||
                 overviewAnchors.any { anchor -> isAdjacentOverview(item, anchor) }
              else if (subjects.isEmpty()) (if (isStructuredPlace(item)) isPlaceRelevant(item, relevanceTerms)
@@ -127,10 +208,11 @@ object EvidenceRelevance {
                     (questionTerms.size !in 2..3 || isStrongConceptMatch(item) ||
                         questionTerms.all { tokens(topicalText(item.text)).matches(it) }))) &&
                 (!generalExplanation || !isTravelListing(item)) &&
-                (!generalExplanation || overview.isNotEmpty() || isStrongConceptMatch(item) ||
-                    isSupportedConceptMatch(item, relevanceTerms) || explanationTopicMatches(item, relevanceTerms, question)) &&
+                (!explanationRequired || overview.isNotEmpty() || isStrongConceptMatch(item) ||
+                    isSupportedConceptMatch(item, relevanceTerms) || explanationTopicMatches(item, relevanceTerms, asked)) &&
                 destinationMatches(item, question) && categoryMatches(item, question) && placeAsked(item, question) &&
                 dietaryMatches(item, question) &&
+                (question == null || !StudyApplicability.asks(question) || StudyApplicability.supports(item)) &&
                 // The definition of the asked subject stays even when the question also names
                 // another article: "Explain BLS signatures and why Ethereum validators aggregate them".
                 (namedArticles.isEmpty() || isTravelListing(item) ||
@@ -155,6 +237,7 @@ object EvidenceRelevance {
      * Prefer a named topic in the title, or a compact explanatory statement in the body.
      * Specific source/study questions retain the normal relevance path. */
     private fun explanationTopicMatches(item: Evidence, terms: List<String>, question: String?): Boolean {
+        if (compactGuidanceMatches(item, terms, question)) return true
         val topicTerms = terms.filterNot { it in setOf("both", "same", "need", "needs", "affect", "different", "differ", "useful") }
         if (topicTerms.isEmpty()) return false
         val title = tokens(item.title)
@@ -169,11 +252,31 @@ object EvidenceRelevance {
                 explanation.containsMatchIn(sentence) &&
                     topicTerms.count { tokens(sentence).matches(it) } >= required
             } || hasOverviewStatement(item, listOf(item.title.substringBefore(" — "))).let { overview ->
-                // This fallback requires an explicitly named sectioned reference topic, and a title
-                // of one question word must be the question's subject, not the last word of it.
-                overview && " — " in item.title && titleHits > 0 &&
-                    (titleHits >= 2 || question == null || titleSubjectIsQuestionSubject(item, question, topicTerms))
+                // Defining an article's own subject does not establish the requested topic.
+                // The complete parent name must occur in the question, not one interior
+                // title word or a search-prefix collision. Stronger passage routes above
+                // still allow explanations from differently titled articles.
+                overview && " — " in item.title &&
+                    question != null && titleSubjectIsQuestionSubject(item, question, topicTerms)
             }
+    }
+
+    /** Practical guidance often explains benefits in a short list, not a single causal
+     * sentence. Require the complete multiword title in the question's vocabulary and
+     * substantial body coverage; never relax the gate for an incidental title word. */
+    private fun compactGuidanceMatches(item: Evidence, terms: List<String>, question: String?): Boolean {
+        if (question == null || !Regex("(?i)^\\s*how\\s+(?:can|could|should)\\b")
+                .containsMatchIn(QuestionSubject.text(question))) return false
+        val titleTerms = FtsQuery.from(item.title)?.terms.orEmpty()
+        val requested = tokens(QuestionSubject.text(question))
+        if (titleTerms.size !in 2..6 || !titleTerms.all { requested.matches(it) }) return false
+        val bodyText = topicalText(item.text)
+        if (bodyText.length !in 100..1400 || !bodyText.contains(Regex("(?m)^\\s*[-*•]\\s+"))) return false
+        val contentTerms = terms.filterNot { it in setOf("help", "helps", "maintain", "improve", "improves") }
+        if (contentTerms.size < 3) return false
+        val body = tokens(bodyText)
+        return titleTerms.all { body.matches(it) } &&
+            contentTerms.count { body.matches(it) } >= (contentTerms.size * 2 + 2) / 3
     }
 
     /**
@@ -185,15 +288,31 @@ object EvidenceRelevance {
      * before the title's word ends its own phrase instead: "two ways agriculture changed societies"
      * asks about agriculture, not about a "ways agriculture".
      */
-    private fun titleSubjectIsQuestionSubject(item: Evidence, question: String, topicTerms: List<String>): Boolean {
-        val head = tokenPattern.findAll(item.title.substringBefore(" — ")).map { it.value.lowercase() }.firstOrNull() ?: return false
+    private fun titleSubjectIsQuestionSubject(item: Evidence, question: String, topicTerms: List<String>,
+        strictModifiers: Boolean = false): Boolean {
+        val parent = tokenPattern.findAll(item.title.substringBefore(" — ")).map { it.value.lowercase() }.toList()
+        if (parent.isEmpty()) return false
         val words = tokenPattern.findAll(question).map { it.value.lowercase() }.toList()
-        val modifiers = words.indices.filter { index -> index > 0 && setOf(words[index]).matches(head) }
+        // Only ordinary noun inflection, not FTS's intentionally broad discovery prefixes.
+        // In particular, solar != Solaris and health != personal health application.
+        fun plural(word: String): String = when {
+            word.length > 1 && word.endsWith("y") && word[word.lastIndex - 1] !in "aeiou" -> word.dropLast(1) + "ies"
+            takesEs(word) -> word + "es"
+            else -> word + "s"
+        }
+        val starts = words.windowed(parent.size).mapIndexedNotNull { index, phrase ->
+            index.takeIf { phrase.zip(parent).all { (a, b) -> a == b || plural(a) == b || a == plural(b) } }
+        }
+        if (starts.isEmpty()) return false
+        val modifiers = starts.filter { it > 0 }
             .map { index -> words[index - 1] }
             .filter { before -> topicTerms.any { term -> term.equals(before, ignoreCase = true) } && !isPluralNoun(before) }
         if (modifiers.isEmpty()) return true
         val body = tokens(topicalText(item.text))
-        return modifiers.any { modifier -> body.matches(modifier) }
+        return modifiers.any { modifier ->
+            if (strictModifiers) body.any { word -> word == modifier || plural(word) == modifier || word == plural(modifier) }
+            else body.matches(modifier)
+        }
     }
 
     /** "ways" and "reasons", but not "glass", "bus" or "basis": a word spelled as a plural. */

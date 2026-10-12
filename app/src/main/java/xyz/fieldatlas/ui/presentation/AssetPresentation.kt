@@ -40,7 +40,8 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         "osm-essentials" -> "Essentials"
         "crypto-ethereum" -> "Cryptography & Ethereum"
         "wikipedia-en-vital" -> "Encyclopedia in depth"
-        else -> title
+        "wikipedia-encyclopedia" -> "Encyclopedia"
+        else -> encyclopediaExpansionLabel(id)?.takeIf { type == PackType.KNOWLEDGE } ?: title
     },
     kind = when (type) {
         PackType.MODEL -> "Answer model"
@@ -54,6 +55,32 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
     coverageSummary = null,
     manifestSha256 = manifestSha256,
 )
+
+private val encyclopediaExpansionId = Regex("wikipedia-en-broad-s([0-9]{5})-([0-9]{4})")
+
+/** Display-only identity: never rename the signed pack or imply subject-specific coverage. */
+internal fun encyclopediaExpansionLabel(id: String): String? {
+    val match = encyclopediaExpansionId.matchEntire(id) ?: return null
+    val part = match.groupValues[2].toInt()
+    if (part == 0) return null
+    return "Encyclopedia expansion · ${match.groupValues[1].toInt() + 1}.$part"
+}
+
+internal fun InstalledAsset.collectionDescription(): String? =
+    discovery?.coverageSummary?.takeIf(String::isNotBlank) ?: if (
+        type == PackType.KNOWLEDGE && encyclopediaExpansionLabel(id) != null
+    ) {
+        "Additional English-language Wikipedia articles across mixed subjects. " +
+            "This is one part of the encyclopedia expansion, not an English course or a subject-specific collection. " +
+            "Only switched-on collections are searched."
+    } else null
+
+internal fun knowledgeSelectionSummary(packs: List<InstalledAsset>): String? {
+    val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
+    val enabled = knowledge.filter { it.enabled }
+    if (enabled.size == knowledge.size) return null
+    return "${enabled.size} of ${knowledge.size} collections enabled"
+}
 
 internal fun formatAssetBytes(bytes: Long): String {
     val formatter = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }

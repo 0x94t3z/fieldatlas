@@ -29,6 +29,14 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> = search(query, limit, emptyList(), onProgress)
 
+    override suspend fun searchQuestion(
+        query: String,
+        question: String,
+        limit: Int,
+        placesOnly: Boolean,
+        onProgress: suspend (SearchProgress) -> Unit,
+    ): List<Evidence> = searchFocused(query, limit, emptyList(), TechnicalRuleFocus.from(question), onProgress)
+
     /**
      * [destinations] are the places the question names that this pack holds listings for (see
      * [DestinationScope]); a place-listing pack is then searched within their titles first.
@@ -38,13 +46,22 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         limit: Int,
         destinations: List<String>,
         onProgress: suspend (SearchProgress) -> Unit,
+    ): List<Evidence> = searchFocused(query, limit, destinations, TechnicalRuleFocus.from(query), onProgress)
+
+    /** [focus] belongs to the original question, not any planner-expanded search string. */
+    internal suspend fun searchFocused(
+        query: String,
+        limit: Int,
+        destinations: List<String>,
+        focus: TechnicalRuleFocus?,
+        onProgress: suspend (SearchProgress) -> Unit,
     ): List<Evidence> {
         require(limit in 1..50) { "limit must be between 1 and 50" }
         val sanitized = FtsQuery.from(query) ?: return emptyList()
         // Terms that occur nowhere in the pack can never match any conjunction; keeping them
         // (models invent plausible compound words) would make every conjunction empty.
         val alive = sanitized.terms.filter { term -> frequencyOf(term) > 0 }
-        if (alive.isEmpty()) return emptyList()
+        if (alive.isEmpty() && focus == null) return emptyList()
         onProgress(SearchProgress(0.3))
 
         // A pack of place listings ("Cape Town — Swimming") is searched within the destinations
@@ -71,7 +88,14 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         }
 
         val pool = candidates(alive, limit, null) { fraction -> onProgress(SearchProgress(0.3 + fraction * 0.5)) }
-        return rankPool(pool, limit, query, sanitized, alive, placeListing)
+        val ruleFocus = focus.takeUnless { placeListing }
+        // This pass is independent of the ordinary pool's fullness. Prefix/stem queries
+        // and title leads can otherwise spend every slot before an exact rule is read.
+        ruleFocus?.let { wanted ->
+            database.search(wanted.matchExpression, minOf(limit, FOCUSED_CANDIDATE_CAP))
+                .filter(wanted::matches).forEach { row -> pool[row.documentId + ":" + row.chunkId] = row }
+        }
+        return rankPool(pool, limit, query, sanitized, alive, placeListing, ruleFocus)
             .map { row -> row.copy(matchedBy = keywordAttribution(row, alive)) }
             .also { onProgress(SearchProgress(1.0)) }
     }
@@ -85,12 +109,15 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         val alive = sanitized.terms.filter { frequencyOf(it) > 0 }
         val pool = LinkedHashMap<String, Evidence>()
         candidates.forEach { row -> pool.putIfAbsent(row.documentId + ":" + row.chunkId, row) }
-        return rankPool(pool, limit, query, sanitized, alive, database.isPlaceListing())
+        val placeListing = database.isPlaceListing()
+        return rankPool(pool, limit, query, sanitized, alive, placeListing,
+            TechnicalRuleFocus.from(query).takeUnless { placeListing })
     }
 
     private fun rankPool(
         pool: LinkedHashMap<String, Evidence>, limit: Int, query: String,
         sanitized: FtsQuery, alive: List<String>, placeListing: Boolean,
+        focus: TechnicalRuleFocus? = null,
     ): List<Evidence> {
         // Title boost: an article whose TITLE contains query terms ("World War I" for a WWI
         // question, "Taiwan" for a Taiwan question) is the single most valuable chunk this pack
@@ -129,13 +156,23 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             titleBoosts[key] = index
         }
         val floor = pool.filterKeys { key -> key !in titleBoosts }.values.minOfOrNull { row -> row.score } ?: 0.0
+        // "Which attribute does NamedOwner use?" needs their relationship, not
+        // only a definition of Attribute. Reserve at most two slots for concise
+        // original passages covering both; this is ranking, not semantic verification.
+        val relationBoosts = if (placeListing) emptyMap() else relationshipCandidates(query, pool.values.toList())
+            .mapIndexed { index, row -> (row.documentId + ":" + row.chunkId) to index }.toMap()
         val ranked = pool
             .map { (key, row) ->
                 val boost = titleBoosts[key]
-                if (boost == null) row else row.copy(score = floor - (titleRows.size - boost))
+                val relation = relationBoosts[key]
+                when {
+                    relation != null -> row.copy(score = floor - titleRows.size - relationBoosts.size + relation)
+                    boost != null -> row.copy(score = floor - (titleRows.size - boost))
+                    else -> row
+                }
             }
             .sortedBy { row -> row.score }
-        return pick(ranked, limit, query, sanitized)
+        return pick(ranked, limit, query, sanitized, focus)
     }
 
     /**
@@ -149,6 +186,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         scope: String?,
         onProgress: suspend (Double) -> Unit,
     ): LinkedHashMap<String, Evidence> {
+        if (terms.isEmpty()) return LinkedHashMap()
         fun scoped(expression: String) = if (scope == null) expression else "($scope) AND ($expression)"
         val rareFirst = terms.sortedWith(compareBy({ frequencyOf(it) }, { -it.length }))
         val core = rareFirst.take(CORE_TERMS)
@@ -222,11 +260,15 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
     }
 
     /** The strongest [ranked] rows, at most [MAX_CHUNKS_PER_DOCUMENT] per document. */
-    private fun pick(ranked: List<Evidence>, limit: Int, query: String, sanitized: FtsQuery): List<Evidence> {
+    private fun pick(
+        ranked: List<Evidence>, limit: Int, query: String, sanitized: FtsQuery,
+        focus: TechnicalRuleFocus? = null,
+    ): List<Evidence> {
         val picked = ArrayList<Evidence>()
         val chunksPerDocument = HashMap<String, Int>()
-        for (row in EvidenceRelevance.rankByPassage(ranked,
-            EvidenceRelevance.comparisonTerms(query).ifEmpty { sanitized.terms })) {
+        val passages = EvidenceRelevance.rankByPassage(ranked,
+            EvidenceRelevance.comparisonTerms(query).ifEmpty { sanitized.terms })
+        for (row in focus?.prioritize(passages) ?: passages) {
             if (picked.size >= limit) break
             val used = chunksPerDocument[row.documentId] ?: 0
             if (used >= MAX_CHUNKS_PER_DOCUMENT) continue
@@ -293,6 +335,18 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
     }
 
     internal companion object {
+        internal fun relationshipCandidates(query: String, candidates: List<Evidence>): List<Evidence> {
+            val terms = QuestionSubject.relationTerms(query)
+            if (terms.isEmpty()) return emptyList()
+            val owner = QuestionSubject.relationOwner(query) ?: return emptyList()
+            val statedUse = Regex("(?i)\\b" + Regex.escape(owner) + "\\s+uses?\\b")
+            return candidates.filter { row ->
+                val passage = EvidenceRelevance.passageText(row.text)
+                passage.length <= 700 && statedUse.containsMatchIn(passage) &&
+                    EvidenceRelevance.termHits(passage, terms) == terms.size
+            }.sortedBy { it.score }.take(2)
+        }
+
         /** For explicit two-subject comparisons, don't nominate a short History or
          * Types section instead of the subject's introduction. Other searches retain
          * their existing ranking. This is coverage selection, not claim verification. */
@@ -300,6 +354,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             if (term in subjects && title.equals("$term — Overview", ignoreCase = true)) 0 else 1
 
         const val FREQUENCY_PROBE_CAP = 100_000
+        private const val FOCUSED_CANDIDATE_CAP = 8
         const val CORE_TERMS = 5
         const val MAX_CHUNKS_PER_DOCUMENT = 2
         /** Fewer scoped rows than this, and the whole pack is searched instead. */

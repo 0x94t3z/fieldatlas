@@ -8,7 +8,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
@@ -23,7 +25,9 @@ import xyz.fieldatlas.assets.PackDiscovery
  * how common the query terms happen to be in that pack), so a strong match in an encyclopaedia
  * can look weaker than a weak match in a topical library. The merge therefore ranks by
  * RELATIVE strength: every score is shifted by its pack's best (strongest) match, and the
- * merged list sorts those shifts ascending. The globally best evidence each pack can offer
+ * merged list sorts those shifts ascending within original-question coverage priority. An
+ * eligible passage covering the whole question must survive partial matches from earlier
+ * packs when the library outgrows the result budget. The best evidence each pack can offer
  * leads together, and a pack's lower-ranked matches only overtake when they are barely worse
  * than their own top hit. The first entry's raw score still backs the answer screen's
  * evidence-strength signal.
@@ -45,10 +49,16 @@ class MultiKnowledgeRetriever(
     private val packDiscoveries: () -> List<PackDiscovery?> = { emptyList() },
     private val embed: suspend (String) -> FloatArray? = { null },
     private val embedForPack: suspend (PackEmbedding, String) -> FloatArray? = { _, text -> embed(text) },
-) : Retriever {
+) : Retriever, java.io.Closeable {
     private val opened = ConcurrentHashMap<String, KnowledgeDatabase>()
     /** Packs are searched in parallel; the query encoder is one model and runs one call at a time. */
     private val embedLock = Mutex()
+
+    /** Owner must stop outstanding research before releasing its cached stores. */
+    override fun close() {
+        opened.values.forEach { it.close() }
+        opened.clear()
+    }
 
     override fun hasEligiblePacks(query: String): Boolean {
         return shouldSearchPack(query) && databaseFiles().isNotEmpty()
@@ -89,12 +99,15 @@ class MultiKnowledgeRetriever(
         // The places the question may name, found once; each place pack confirms the ones it holds
         // and is searched within them (see DestinationScope). The expanded query keeps the question.
         val destinationCandidates = DestinationScope.candidates(question)
+        val technicalFocus = TechnicalRuleFocus.from(question)
         val vectorMatches = AtomicInteger(0)
         val fractions = DoubleArray(indices.size)
         val progressLock = Mutex()
         var reported = 0.0
-        // Each pack is its own SQLite file, so packs are searched concurrently; progress stays
-        // monotonic because only an increase over the last reported fraction is forwarded.
+        // Bound simultaneous database scans as optional modules grow. Each permit covers the
+        // full pack operation, including suspending vector work, and is released on failure or
+        // cancellation. Progress stays monotonic regardless of completion order.
+        val packPermits = Semaphore(MAX_PARALLEL_PACKS)
         suspend fun report(slot: Int, fraction: Double) = progressLock.withLock {
             fractions[slot] = maxOf(fractions[slot], fraction.coerceIn(0.0, 1.0))
             val overall = fractions.sum() / total
@@ -103,33 +116,45 @@ class MultiKnowledgeRetriever(
         val runs = coroutineScope {
             indices.mapIndexed { slot, index ->
                 async {
-                    val file = allFiles[index]
-                    val discovery = discoveries.getOrNull(index)
-                    runCatching {
-                        val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                        // A pack of whole articles by section is read only through article(), for the
-                        // subject of an explanation: its million passages would crowd every other
-                        // pack's matches and slow each search.
-                        if (database.isArticleSections()) {
+                    packPermits.withPermit {
+                        val file = allFiles[index]
+                        val discovery = discoveries.getOrNull(index)
+                        runCatching {
+                            val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
+                            val candidates = if (!placesOnly && !database.isPlaceListing() && technicalFocus == null)
+                                database.leviathanCandidates(FtsQuery.from(query)!!.terms.joinToString(" "), limit)
+                            else null
+                            // A pack of whole articles by section is read only through article(), for the
+                            // subject of an explanation: its million passages would crowd every other
+                            // pack's matches and slow each search.
+                            if (candidates == null && database.isArticleSections()) {
+                                report(slot, 1.0)
+                                return@runCatching emptyList()
+                            }
+                            val destinations = if (database.isPlaceListing()) {
+                                DestinationScope.resolve(destinationCandidates, database::holdsDestination)
+                            } else emptyList()
+                            val ranking = FtsRetriever(database)
+                            val keyword = if (candidates != null) {
+                                ranking.rankVerifiedCandidates(query, candidates, limit).map { row ->
+                                    row.copy(score = 0.0, matchedBy = if (candidates.any { it.chunkId == row.chunkId })
+                                        "Leviathan candidate; full saved passage; app ranking; not BM25 confidence"
+                                    else "App title anchor; full saved passage; not a Leviathan hit")
+                                }
+                            } else ranking.searchFocused(query, limit, destinations, technicalFocus) { inner -> report(slot, inner.fraction) }
+                            val embedding = embeddings.getOrNull(index)
+                                ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
+                            val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
+                            vectorMatches.addAndGet(hits)
                             report(slot, 1.0)
-                            return@runCatching emptyList()
+                            run
+                        }.getOrElse { error ->
+                            if (error is OutOfMemoryError) throw error
+                            if (error is CancellationException) throw error
+                            opened.remove(file.absolutePath)?.close()
+                            report(slot, 1.0)
+                            emptyList()
                         }
-                        val destinations = if (database.isPlaceListing()) {
-                            DestinationScope.resolve(destinationCandidates, database::holdsDestination)
-                        } else emptyList()
-                        val keyword = FtsRetriever(database).search(query, limit, destinations) { inner -> report(slot, inner.fraction) }
-                        val embedding = embeddings.getOrNull(index)
-                            ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
-                        val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
-                        vectorMatches.addAndGet(hits)
-                        report(slot, 1.0)
-                        run
-                    }.getOrElse { error ->
-                        if (error is OutOfMemoryError) throw error
-                        if (error is CancellationException) throw error
-                        opened.remove(file.absolutePath)?.close()
-                        report(slot, 1.0)
-                        emptyList()
                     }
                 }
             }.awaitAll()
@@ -340,10 +365,56 @@ class MultiKnowledgeRetriever(
             val questionTerms = FtsQuery.from(question)?.terms.orEmpty()
             val expandedTerms = FtsQuery.from(query)?.terms.orEmpty()
                 .filterNot(questionTerms::contains)
+            // A first-clause topic in one pack may anchor an explicit same-topic
+            // passage in another. Establish this bounded context before per-pack
+            // merging without changing any pack's existing internal ordering.
+            val clauseEligible = if (MultipartEvidence.clauses(question).isNotEmpty())
+                EvidenceRelevance.keep(runs.flatten(), questionTerms, expandedTerms, question)
+                    .map { Triple(it.documentId, it.chunkId, it.source) }.toSet() else null
             val eligible = runs.map { run ->
-                EvidenceRelevance.keep(run, questionTerms, expandedTerms, question)
+                if (clauseEligible == null) EvidenceRelevance.keep(run, questionTerms, expandedTerms, question)
+                else run.filter { Triple(it.documentId, it.chunkId, it.source) in clauseEligible }
             }
-            return mergeEvidence(eligible, limit)
+            val focus = TechnicalRuleFocus.from(question)
+            if (focus != null) {
+                // Reserve the exact-condition tier before ANY pack or row cutoff. Merely
+                // sorting each run would still lose its second rule to another pack's
+                // overview when the number of packs exceeds the candidate budget.
+                val focused = mergeEvidence(eligible.map { it.filter(focus::matches) }, limit)
+                if (focused.size >= limit) return focused
+                val remaining = mergeCoveredEvidence(eligible.map { it.filterNot(focus::matches) },
+                    question, questionTerms, limit - focused.size)
+                return focused + remaining
+            }
+            if (MultipartEvidence.clauses(question).isNotEmpty()) {
+                val anchors = MultipartEvidence.anchors(EvidenceRelevance.clauseGroups(eligible.flatten(), question)).take(limit)
+                if (anchors.size == limit) return anchors
+                val identities = anchors.map { Triple(it.documentId, it.chunkId, it.source) }.toSet()
+                return anchors + mergeCoveredEvidence(eligible.map { run ->
+                    run.filterNot { Triple(it.documentId, it.chunkId, it.source) in identities }
+                }, question, questionTerms, limit - anchors.size)
+            }
+            return mergeCoveredEvidence(eligible, question, questionTerms, limit)
+        }
+
+        private fun mergeCoveredEvidence(
+            eligible: List<List<Evidence>>, question: String, questionTerms: List<String>, limit: Int,
+        ): List<Evidence> {
+            // Preserve place semantics and two-subject diversity. For ordinary questions,
+            // promote only passages covering every original content term (or an accepted
+            // concept match); partial lexical overlaps keep their existing ordering. This
+            // is retrieval priority, never a claim that the passage answers the question.
+            if (VenueLookup.isPlaceLookup(question) || EvidenceRelevance.comparisonTerms(question).isNotEmpty()) {
+                return mergeEvidence(eligible, limit)
+            }
+            val priority = eligible.flatten().associateWith { row ->
+                EvidenceRelevance.coversQuestionForMerge(row, questionTerms)
+            }
+            val prioritized = eligible.map { run -> run.sortedByDescending { priority.getValue(it) } }
+                .sortedByDescending { run -> run.firstOrNull()?.let { priority.getValue(it) } ?: false }
+            // Apply priority before bounded selection AND after the relative-score merge:
+            // ResearchOrchestrator subsequently takes a smaller final source budget.
+            return mergeEvidence(prioritized, limit).sortedByDescending { priority.getValue(it) }
         }
 
         /**
@@ -425,6 +496,7 @@ class MultiKnowledgeRetriever(
         }
 
         private const val GUARANTEED_PER_PACK = 3
+        internal const val MAX_PARALLEL_PACKS = 2
     }
 
     override suspend fun headed(phrase: String, words: List<String>, limit: Int, sections: List<String>): List<Evidence> = withContext(ioDispatcher) {

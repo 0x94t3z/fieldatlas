@@ -6,6 +6,133 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ArticleDepthTest {
+    @Test fun flattenedBibliographyDoesNotBecomeAnswerDepth() {
+        val lead = passage("swp-42-0000:0000", "Chloroplast — Overview", "Chloroplasts conduct photosynthesis.")
+        val body = passage("swp-42-0001:0000", "Chloroplast — Details", "Thylakoids contain chlorophyll pigments that capture light. doi:10.123/example")
+        val references = passage("swp-42-0001:0002", "Chloroplast — Details",
+            "Role of chloroplast retention. doi:10.123/one. PMID 12345. {{cite journal}}: CS1 maint: multiple names. doi:10.123/two.")
+        val question = "What role do chloroplasts play in photosynthesis?"
+        val articles = mapOf("Chloroplast" to listOf(lead, references, body))
+        val ranked = ArticleDepth.ranked(question, "Chloroplast", articles.getValue("Chloroplast"))
+        assertTrue(body in ranked)
+        assertFalse(references in ranked)
+        val prompt = ArticleDepth.pickForPrompt(question, listOf(lead), articles, 3600)
+        assertTrue(body in prompt)
+        assertFalse(references in prompt)
+    }
+    @Test fun anArticleNamedInAConditionCanSupplyDetailWithoutPromotingGenericKeywordHits() {
+        val membrane = passage("wp-420-0000:0000", "Sealing membrane — Overview", "A sealing membrane is a component.")
+        val pressure = passage("wp-421-0000:0000", "Pressure — Overview", "Pressure is force over area.")
+        val other = passage("wp-422-0000:0000", "Industrial enclosure — Overview", "Enclosures may use sealing membranes.")
+        val guide = passage("wvs-420-0000:0000", membrane.title, "A similarly named travel guide.")
+        val question = "Why can an enclosure leak even when its sealing membrane has a high pressure-resistance rating?"
+        assertEquals(listOf(membrane), ArticleDepth.supportingSubjects(question,
+            listOf(pressure, other, guide, membrane), emptyList()))
+        assertEquals(listOf(membrane), ArticleDepth.supportingSubjects("According to the saved sources, $question",
+            listOf(pressure, membrane), emptyList()))
+        assertTrue(ArticleDepth.supportingSubjects(question, listOf(membrane), listOf(membrane)).isEmpty())
+        assertTrue(ArticleDepth.supportingSubjects("Where can I buy sealing membrane?", listOf(membrane), emptyList()).isEmpty())
+    }
+
+    @Test fun supplementaryArticlesMatchWholeOrderedWordsAndRespectTheSubjectBudget() {
+        val titles = listOf("Alpha system", "Beta system", "Gamma system", "Systematic alpha")
+        val rows = titles.mapIndexed { index, title -> passage("wp-${500 + index}-0000:0000", "$title — Overview", title) }
+        val question = "Why can alpha systems fail with beta system and gamma system?"
+        assertEquals(setOf("Beta system — Overview", "Gamma system — Overview"),
+            ArticleDepth.supportingSubjects(question, rows, emptyList()).map { it.title }.toSet())
+        val existing = rows.take(2)
+        assertEquals(listOf(rows[2]), ArticleDepth.supportingSubjects(question, rows.reversed(), existing))
+        assertTrue(ArticleDepth.supportingSubjects(question, rows, rows.take(3)).isEmpty())
+        val duplicate = rows[1].copy(chunkId = "wp-501-0000:0002", text = "Later same article.")
+        assertEquals(listOf(rows[1]), ArticleDepth.supportingSubjects("Why can beta-system fail?",
+            listOf(duplicate, rows[1]), emptyList()))
+    }
+
+    @Test fun aLaterOverviewDetailBeatsTheOpeningDefinitionAndKeepsTheQualification() {
+        val question = "Why can an enclosure leak even when its sealing membrane has a high pressure-resistance rating?"
+        val overview = passage("wp-600-0000:0000", "Sealing membrane — Overview",
+            "A sealing membrane is used in industrial components. It resists penetration under laboratory conditions.")
+        val unrelated = passage("wp-600-0000:0001", overview.title,
+            "The first materials were developed by a manufacturing company during the previous century.")
+        val detail = passage("wp-600-0000:0002", overview.title,
+            "An enclosure can leak through a joint. A membrane pressure-resistance rating tests only the material, not the complete enclosure. " +
+                "However, this comparison does not establish the performance of every enclosure design.")
+        val selected = ArticleDepth.pickForPrompt(question, listOf(overview),
+            mapOf("Sealing membrane" to listOf(overview, unrelated, detail)), detail.text.length)
+        assertEquals(listOf(detail), selected)
+        val packed = PromptBuilder.buildKnowledge(question, listOf(unrelated, overview), listOf(overview), selected, 2048, 5.0)
+        val source = packed.sources.single { it.evidence.chunkId == detail.chunkId }
+        assertEquals(detail, source.evidence)
+        assertEquals(detail.text, source.excerpt)
+        assertEquals(listOf(detail), packed.sources.map { it.evidence })
+    }
+
+    @Test fun detailSelectionDoesNotInventAPassageWhenTheNamedArticleIsMissing() {
+        val question = "Why can an enclosure leak even when its sealing membrane has a high pressure-resistance rating?"
+        val unrelated = passage("wp-700-0000:0000", "Pressure — Overview", "Pressure is force over area.")
+        assertTrue(ArticleDepth.supportingSubjects(question, listOf(unrelated), emptyList()).isEmpty())
+        val overview = passage("wp-701-0000:0000", "Sealing membrane — Overview", "A sealing membrane is a component.")
+        assertTrue(ArticleDepth.pickForPrompt(question, listOf(overview),
+            mapOf("Sealing membrane" to listOf(overview)), 1000).isEmpty())
+        assertTrue(ArticleDepth.pickForPrompt(question, listOf(overview),
+            mapOf("Sealing membrane" to listOf(unrelated)), 1000).isEmpty())
+    }
+
+    @Test fun aConditionalQuoteKeepsItsFullQualificationBeyondTheSoftReadingBudget() {
+        val question = "Why can an enclosure leak even when its sealing membrane has a high pressure-resistance rating?"
+        val overview = passage("wp-710-0000:0000", "Sealing membrane — Overview", "A sealing membrane is a material.")
+        val body = "An enclosure can leak through a joint. The pressure-resistance rating tests only the material, not the complete enclosure." +
+            " The material remains subject to the stated conditions.".repeat(18)
+        assertTrue(body.length in 1001..1200)
+        val detail = overview.copy(chunkId = "wp-710-0000:0002", text = body)
+        val irrelevant = overview.copy(chunkId = "wp-710-0000:0001", text = "The history of the component is documented elsewhere.")
+        val selected = ArticleDepth.pickForPrompt(question, listOf(overview),
+            mapOf("Sealing membrane" to listOf(overview, irrelevant, detail)), ArticleDepth.budget(10.0))
+        assertEquals(listOf(detail), selected)
+        val packed = PromptBuilder.buildKnowledge(question, listOf(overview), listOf(overview), selected, 2048, 1.0)
+        assertEquals(body, packed.sources.single().excerpt)
+        assertEquals(detail, packed.sources.single().evidence)
+        val tooSmall = PromptBuilder.buildKnowledge(question, listOf(overview), listOf(overview), selected, 128, 1.0)
+        assertTrue("A hard context limit must omit the complete unit, never clip its qualification", tooSmall.sources.isEmpty())
+        assertTrue(PreciseReferenceAnswer.conditionalAnswer(question, tooSmall, listOf(overview))!!.contains("do not establish"))
+        assertTrue("Ordinary explanations retain their existing soft budget", ArticleDepth.pickForPrompt(
+            "How does a sealing membrane limit pressure?", listOf(overview),
+            mapOf("Sealing membrane" to listOf(overview, detail)), 1000).isEmpty())
+    }
+
+    @Test fun aGeneralSupplyPhraseDoesNotDisplaceTheOperatingMechanism() {
+        val overview = passage("swp-201-0000:0000", "Well — Overview", "A well is a water supply system.")
+        val benefits = passage("enw-201-0000:0001", "Well — Overview", "The well supplies water. Its water supply is fairly resistant to disasters.")
+        val mechanism = passage("enw-201-0001:0000", "Well — Features", "Water drains by gravity through the underground channel.")
+        val picked = ArticleDepth.pickForPrompt("How does a well supply water?", listOf(overview),
+            mapOf("Well" to listOf(benefits, mechanism)), 100)
+        assertEquals(mechanism, picked.first())
+    }
+    @Test fun requestedProcessInTheSelectedTextOutranksAGenericStructureHeading() {
+        val overview = passage("swp-200-0000:0000", "Plant — Overview", "A plant is a living organism.")
+        val structure = passage("enw-200-0001:0000", "Plant — Internal structure", "A plant consists of cells.")
+        val nutrients = passage("enw-200-0000:0001", "Plant — Overview", "A plant absorbs nutrients through its roots.")
+        val picked = ArticleDepth.pickForPrompt("How does a plant obtain nutrients?", listOf(overview),
+            mapOf("Plant" to listOf(structure, nutrients)), 100)
+        assertEquals(nutrients, picked.first())
+    }
+    @Test fun promptDepthKeepsTheCompleteMechanismUnitAndOriginalViewerText() {
+        val intro = "A heat pump moves heat between locations."
+        val history = "Historical inventors used different designs. ".repeat(14).trim()
+        val mechanism = "A heat pump transfers heat through a refrigerant cycle."
+        val caveat = "However, performance depends on operating conditions."
+        val overview = passage("swp-100-0000:0000", "Heat pump — Overview", intro)
+        val full = passage("enw-100-0004:0000", "Heat pump — Operating principle", "$history\n$mechanism\n$caveat")
+        val picked = ArticleDepth.pickForPrompt("How does a heat pump transfer heat?", listOf(overview),
+            mapOf("Heat pump" to listOf(overview, full)), 350)
+        assertEquals(listOf(full), picked)
+        val packed = PromptBuilder.buildKnowledge("How does a heat pump transfer heat?",
+            listOf(overview, full), listOf(overview), picked, 2048, 15.0)
+        assertEquals(full, packed.sources[1].evidence)
+        assertTrue(packed.sources[1].excerpt.contains(mechanism))
+        assertTrue(packed.sources[1].excerpt.contains(caveat))
+        assertFalse(packed.sources[1].excerpt.contains(history))
+    }
     private fun passage(id: String, title: String, text: String, source: String = "https://en.wikipedia.org/w/index.php?oldid=1") =
         Evidence(id.substringBefore(':'), id, title, source, text, 0.0)
 

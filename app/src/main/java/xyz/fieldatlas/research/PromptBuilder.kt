@@ -1,5 +1,7 @@
 package xyz.fieldatlas.research
 
+import java.text.Normalizer
+
 object PromptBuilder {
     private const val CHARS_PER_TOKEN = 4
     private const val EVIDENCE_PERCENT = 65
@@ -9,8 +11,7 @@ object PromptBuilder {
     private const val POLICY = """/no_think
 You are an offline research assistant. Use only the numbered evidence below. Do not use external knowledge. Give a concise answer, compare relevant claims, preserve conflicts and uncertainty, and cite factual claims with the exact source number, such as [S1] or [S2], at the end of each claim. Never output the placeholder [S#] and never cite a number absent from the evidence. Where evidence gives explicit numbers or direct comparisons, prefer them over relative statements. Apply every condition and exception before a decision; an exception or hold decides over the general rule. Keep numbers and negative statements exactly as written; write a converted time beside the original, as in 21:30 (9:30 PM). If the evidence does not contain the answer, say that in one sentence and stop."""
     private const val MIXED_POLICY = """/no_think
-Act as a careful offline research assistant. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Base the explanation on the relevant excerpts, without citations; add your own knowledge only for basic, widely known facts, and leave out any detail you are not sure of: a shorter correct answer is better than a longer one with a mistake. Never contradict yourself. An excerpt about another country, city or product applies only if it clearly fits the question; never carry over its phone numbers, laws, prices or rules. Preserve relevant conflicts and limitations; never force unrelated findings into an explanation just because they mention the same country or word. A museum description or one narrow study is not a general overview of its topic. Do not guess current or private facts. If the saved excerpts cover only part of the question, state that limitation briefly; do not imply they support the whole explanation.
-If an excerpt directly helps answer the question, optionally append "From saved sources" followed by useful exact quotations, one per line: "quotation" [S1]. Use only the matching source number. Keep qualifications and conflicts. Do not cite paraphrases, titles, or index keywords. Ignore unrelated studies. Do not repeat these instructions."""
+Act as a careful offline research assistant. Answer only what was asked, in one short paragraph under 70 words unless more detail is requested. Base the explanation on the relevant excerpts, without citations. Use only information those excerpts establish; do not add background facts, examples or history from memory. Do not write headings, quotations or lists unless the question requests them. Do not add advantages, resilience claims, extra applications or advice unless asked. A shorter supported answer is better than filling gaps. Keep each statement's scope and qualifications: "fairly resistant" does not mean unaffected and "almost insensitive" does not mean independent. Preserve conditions, negations and conflicts. Ignore unrelated excerpts. If the excerpts support only part of the question, answer that part and briefly identify the unsupported part. Missing information is not a negative finding. If none helps, say so briefly instead of substituting an unrelated explanation. Do not repeat the question or instructions."""
     private const val VENUE_POLICY = """
 For local places, name only places in the evidence. A dietary match must be stated in the evidence, not guessed from cuisine. If asked for the best places but the evidence has no comparative ranking, present them as unranked listings, not verified best choices. Say what date the listing or source shows; do not claim current opening hours, reviews, availability, or a 'best' ranking unless the evidence supports it."""
     private const val MODEL_ONLY_POLICY = """/no_think
@@ -48,7 +49,8 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
         return build(question, kept + extra, minOf(MAX_CONTEXT_TOKENS, contextTokenBudget + room), whole = extra.map { it.chunkId }.toSet())
     }
 
-    fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int, whole: Set<String> = emptySet()): PackedPrompt {
+    fun build(question: String, evidence: List<Evidence>, contextTokenBudget: Int, whole: Set<String> = emptySet(),
+        wholeEvidence: Set<Triple<String, String, String>> = emptySet()): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         require(contextTokenBudget in MIN_CONTEXT_TOKENS..MAX_CONTEXT_TOKENS) {
             "contextTokenBudget must be between $MIN_CONTEXT_TOKENS and $MAX_CONTEXT_TOKENS"
@@ -61,7 +63,6 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             .let { if (scholarly) minOf(it, 3_000L) else it }
         var remaining = evidenceBudget.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         val sources = mutableListOf<PromptSource>()
-        val blocks = mutableListOf<String>()
         evidence.forEachIndexed { _, item ->
             if (remaining <= 0 || sources.size >= sourceLimit) return@forEachIndexed
             val citationId = "S${sources.size + 1}"
@@ -72,29 +73,121 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             // paragraphs. Preserve them whole instead of selecting by word overlap.
             // The shared evidence budget below still applies; never truncate to fit.
             // Depth passages were already chosen and sized for this question; they go in whole.
-            val text = if (item.chunkId in whole || EvidenceRelevance.isRequestedOverview(item, question) && passage.length <= 2_400) {
+            val text = if (item.chunkId in whole || Triple(item.documentId, item.chunkId, item.source) in wholeEvidence ||
+                EvidenceRelevance.isRequestedOverview(item, question) && passage.length <= 2_400) {
                 passage
-            } else relevantExcerpt(question, passage)
+            } else excerptForKnowledge(question, item)
             if (text.isBlank()) return@forEachIndexed
             val block = prefix + text
             // Never split a sentence or separate a claim from its adjacent qualification
             // to meet a quota. Omit an oversized unit rather than distort its meaning.
             if (block.length > remaining) return@forEachIndexed
-            blocks += block
             sources += PromptSource(citationId, item, excerpt = text)
             remaining -= block.length
         }
         // The text up to here is the same for every prompt of this kind, so the engine reads it once.
+        return render(question, sources, evidence.size)
+    }
+
+    /**
+     * Knowledge evidence shares the learned reading budget used by files. Keep at least
+     * the first three whole units (a comparison can name three subjects), then add units
+     * only while their actual estimated framing + excerpt cost fits. This is a soft latency
+     * target, not a reason to cut a qualification or claim complete document coverage.
+     * Unknown speed preserves existing packing. Originals remain in the source viewer.
+     */
+    fun forReadingSpeed(question: String, packed: PackedPrompt, tokensPerSecond: Double?, minimumWholeSources: Int = 3): PackedPrompt {
+        require(minimumWholeSources > 0)
+        if (tokensPerSecond == null || !tokensPerSecond.isFinite() || tokensPerSecond <= 0) return packed
+        val budget = PrefillSpeed.evidenceTokens(tokensPerSecond)
+        val selected = mutableListOf<PromptSource>()
+        var used = 0
+        for (source in packed.sources) {
+            val cost = TokenEstimate.of(sourceBlock(source))
+            if (selected.size < minimumWholeSources || used.toLong() + cost <= budget) {
+                selected += source.copy(citationId = "S${selected.size + 1}")
+                used += cost
+            }
+        }
+        return if (selected.size == packed.sources.size) packed else render(question, selected, packed.sources.size)
+    }
+
+    /** Requested subjects and their already-selected explanatory depth take priority
+     * over incidental keyword hits. Otherwise a slow reading budget can silently keep
+     * an overview, an application and history while dropping the mechanism itself.
+     * All selected depth units remain whole; original viewer identities are unchanged.
+     * File, guide and model-only paths do not use this selection. */
+    fun buildKnowledge(question: String, evidence: List<Evidence>, subjects: List<Evidence>, depth: List<Evidence>,
+        contextTokenBudget: Int, tokensPerSecond: Double?): PackedPrompt {
+        TechnicalRuleFocus.from(question)?.let { focus ->
+            // A precise rule is read verbatim, not paraphrased by the model. Do not
+            // spend its budget on generic summaries or clip its condition/exception.
+            // Competing matching originals retain their order and polarity. The hard
+            // context bound still applies; an omitted rule produces an honest gap.
+            val rules = (evidence + depth).filter(focus::matches)
+                .distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+            return build(question, rules, contextTokenBudget,
+                wholeEvidence = rules.map { Triple(it.documentId, it.chunkId, it.source) }.toSet())
+        }
+        ConditionalReferenceFocus.from(question, subjects)?.let { focus ->
+            // A named reference's explanation of an apparent contradiction is shown
+            // as a connected original unit. Related overviews must not spend its
+            // slots first, and separate fragments must not be stitched into a cause.
+            val details = (depth + evidence + subjects).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                .filter { focus.matches(it, excerptForKnowledge(question, it)) }
+            return build(question, details, contextTokenBudget)
+        }
+        if (subjects.isEmpty() || depth.isEmpty()) {
+            return build(question, evidence, contextTokenBudget).let {
+                if (depth.isEmpty()) it else withDepth(question, it, depth, contextTokenBudget)
+            }.let { forQuestionParts(question, it, tokensPerSecond, 0, 3) }
+        }
+        val ordered = (subjects + depth + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+        // One-subject explanations need their overview and best explanatory unit,
+        // not an obligatory third unrelated passage. Comparisons retain every
+        // requested subject before depth. Generic packing keeps its three-unit floor.
+        val subjectCount = subjects.map { it.documentId }.distinct().size
+        val protected = (if (subjectCount == 1) 2 else subjectCount).coerceAtMost(3)
+        return forQuestionParts(question,
+            build(question, ordered, contextTokenBudget), tokensPerSecond, protected, protected)
+    }
+
+    /** Reserve reading opportunities for explicit clauses before redundant hits consume
+     * the soft latency budget. Only already-packed excerpts compete; this cannot recover
+     * evidence omitted by the hard context bound or certify that a clause is answered.
+     * Keep the existing subject/depth prefix, then at most three distinct clause anchors. */
+    private fun forQuestionParts(question: String, packed: PackedPrompt, tokensPerSecond: Double?,
+        prefix: Int, minimum: Int): PackedPrompt {
+        if (tokensPerSecond == null || !tokensPerSecond.isFinite() || tokensPerSecond <= 0) return packed
+        val anchors = QuestionParts.anchors(QuestionParts.terms(question), packed.sources) { it.excerpt }
+        if (anchors.isEmpty()) return forReadingSpeed(question, packed, tokensPerSecond, minimum)
+        fun identity(source: PromptSource) = with(source.evidence) { Triple(documentId, chunkId, this.source) }
+        val protected = (packed.sources.take(prefix) + anchors).distinctBy(::identity)
+        val ordered = (protected + packed.sources).distinctBy(::identity)
+            .mapIndexed { index, source -> source.copy(citationId = "S${index + 1}") }
+        // Preserve the original omission disclosure when rendering a new order.
+        val retrieved = packed.sources.size + if (packed.prompt.contains("Some retrieved passages could not fit;")) 1 else 0
+        return forReadingSpeed(question, render(question, ordered, retrieved), tokensPerSecond,
+            maxOf(minimum, protected.size))
+    }
+
+    internal fun excerptForKnowledge(question: String, item: Evidence): String =
+        relevantExcerpt(question, EvidenceRelevance.passageText(item.text))
+
+    private fun sourceBlock(source: PromptSource): String =
+        "[${source.citationId}]\nTitle: ${compactMetadata(source.evidence.title)}\nSource: ${compactMetadata(source.evidence.source)}\nExcerpt: ${source.excerpt}"
+
+    private fun render(question: String, sources: List<PromptSource>, retrievedCount: Int): PackedPrompt {
         var fixed = 0
         val prompt = buildString {
             append(if (allowsModelExplanation(question)) MIXED_POLICY else POLICY)
             append(OFFLINE_PERSON)
             append("\nEvidence contains selected excerpts, not complete documents. Do not infer that omitted information is absent from the full source.")
             fixed = length
-            if (sources.size < evidence.size) append(" Some retrieved passages could not fit; do not claim this is a complete synthesis of all retrieved evidence.")
+            if (sources.size < retrievedCount) append(" Some retrieved passages could not fit; do not claim this is a complete synthesis of all retrieved evidence.")
             if (VENUE_QUESTION.containsMatchIn(question)) append(VENUE_POLICY)
             append("\n\nEVIDENCE:\n")
-            append(blocks.joinToString("\n\n"))
+            append(sources.joinToString("\n\n", transform = ::sourceBlock))
             append("\n\nQUESTION:\n")
             append(question.trim())
             append("\n\nANSWER:")
@@ -161,9 +254,14 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
     }
 
     internal fun allowsModelExplanation(question: String): Boolean =
-        !asksForPlaces(question) && !SOURCE_ONLY_REQUEST.containsMatchIn(question)
+        !asksForPlaces(question) && !requiresSavedSources(question)
 
-    internal fun requiresSavedSources(question: String): Boolean = SOURCE_ONLY_REQUEST.containsMatchIn(question)
+    internal fun requiresSavedSources(question: String): Boolean {
+        // Match discovery's Unicode normalization without changing the displayed/prompted
+        // question. Removing a source directive must never loosen its answer policy.
+        val normalized = Normalizer.normalize(question, Normalizer.Form.NFKC)
+        return SOURCE_ONLY_REQUEST.containsMatchIn(normalized) || QuestionSubject.hasSourceDirective(normalized)
+    }
 
     /**
      * A question about places, answered only from listings. An explanation or comparison of a kind
@@ -200,33 +298,55 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
         // matching sentence meaningful. Prefer a complete bounded paragraph when
         // the source supplies paragraph boundaries; retain adjacent caveats too.
         val terms = FtsQuery.from(question)?.terms.orEmpty()
-        fun hits(value: String): Int = EvidenceRelevance.termHits(value, terms)
-        val paragraphs = text.split(Regex("\\n\\s*\\n")).filter(String::isNotBlank)
+        val mechanism = Regex("(?i)\\b(?:because|due to|through|by|allows?|enables?|converts?|produces?|consists? of)\\b")
+        val asksMechanism = Regex("(?i)\\b(?:how\\s+(?:does|do|can|is|are)|why)\\b").containsMatchIn(QuestionSubject.text(question))
+        fun hits(value: String): Int = 4 * EvidenceRelevance.termHits(value, terms) +
+            if (asksMechanism) mechanism.findAll(value).take(2).count() else 0
+        // Encyclopedia exports separate paragraphs with a single newline. A newline
+        // between complete prose sentences is also a boundary; ordinary wrapped lines
+        // and lists remain intact. The selected unit is still copied verbatim.
+        // Keep offsets, not rejoined fragments: whitespace can be meaningful in
+        // code, tables and conditions. A selected span remains a literal substring.
+        fun spans(separator: Regex): List<IntRange> = buildList {
+            var from = 0
+            for (boundary in separator.findAll(text)) {
+                if (text.substring(from, boundary.range.first).isNotBlank()) add(from until boundary.range.first)
+                from = boundary.range.last + 1
+            }
+            if (text.substring(from).isNotBlank()) add(from until text.length)
+        }
+        val paragraphSpans = spans(Regex("\\n\\s*\\n|(?<=[.!?])\\n(?=[\\p{Lu}])"))
+        val paragraphs = paragraphSpans.map { text.substring(it) }
         val paragraphAnchor = paragraphs.indices.maxByOrNull { hits(paragraphs[it]) } ?: return ""
-        if (paragraphs[paragraphAnchor].length <= 1_200) {
+        val clauseAnchors = QuestionParts.anchors(QuestionParts.terms(question), paragraphs.indices.toList()) { paragraphs[it] }
+        val span = (clauseAnchors + paragraphAnchor).sorted()
+        // A bounded contiguous span keeps intervening context. Never stitch distant
+        // matching paragraphs together and imply an explanation the source did not give.
+        val multiSpan = clauseAnchors.size >= 2 &&
+            paragraphSpans[span.last()].last + 1 - paragraphSpans[span.first()].first <= 2_400
+        if (multiSpan || paragraphs[paragraphAnchor].length <= 1_200) {
             val continuation = Regex("(?i)^\\s*(however|but|nevertheless|nonetheless|although|in contrast|this|these|those|it|they|such)\\b")
-            var start = paragraphAnchor
-            var end = paragraphAnchor
+            var start = if (multiSpan) span.first() else paragraphAnchor
+            var end = if (multiSpan) span.last() else paragraphAnchor
             // Anaphoric paragraphs depend on the preceding paragraph. A following
             // limitation can qualify the selected claim across a blank line.
             while (start > 0 && continuation.containsMatchIn(paragraphs[start])) start--
             while (end < paragraphs.lastIndex && continuation.containsMatchIn(paragraphs[end + 1])) end++
-            val excerpt = paragraphs.subList(start, end + 1).joinToString("\n\n")
+            val excerpt = text.substring(paragraphSpans[start].first, paragraphSpans[end].last + 1)
             // Keep the connected unit whole. The caller may omit it if it cannot
             // fit, rather than silently removing the qualification to save space.
             return (if (start > 0) "… " else "") + excerpt +
                 (if (end < paragraphs.lastIndex) " …" else "")
         }
-        val sentences = text.replace(Regex("[\\r\\n]+"), " ")
-            .split(Regex("(?<=[.!?。！？])\\s+"))
-            .filter(String::isNotBlank)
+        val sentenceSpans = spans(Regex("(?<=[.!?。！？])\\s+"))
+        val sentences = sentenceSpans.map { text.substring(it) }
         if (sentences.isEmpty()) return ""
         val anchor = sentences.indices.maxByOrNull { hits(sentences[it]) } ?: 0
         // The anchor and immediate context are an indivisible unit. The target length
         // is soft: keeping a qualification matters more than hitting a character cap.
         val start = (anchor - 1).coerceAtLeast(0)
         val end = (anchor + 1).coerceAtMost(sentences.lastIndex)
-        val excerpt = sentences.subList(start, end + 1).joinToString(" ")
+        val excerpt = text.substring(sentenceSpans[start].first, sentenceSpans[end].last + 1)
         return (if (start > 0) "… " else "") + excerpt +
             (if (end < sentences.lastIndex) " …" else "")
     }

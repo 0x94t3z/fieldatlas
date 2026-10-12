@@ -25,6 +25,11 @@ jobs:
           packages: platform-tools
       - name: Install pinned Android toolchain
         run: ./scripts/install_toolchain.sh
+      - name: Install pinned native-search toolchain
+        run: |
+          rustup toolchain install 1.90.0 --profile minimal --component rust-docs --target aarch64-linux-android
+          rustc --version
+          cargo --version
       - name: Apply pinned llama.cpp runtime patch
         run: |
           cd third_party/llama.cpp

@@ -31,6 +31,7 @@ internal fun licenceLabel(path: String): String {
     val name = path.substringAfterLast('/')
     return when (name) {
         "LICENSE.txt" -> "Apache License 2.0 (Field Atlas)"
+        "NATIVE_SEARCH_NOTICES.md" -> "Leviathan and native search"
         "source-serif-4-OFL.txt" -> "Source Serif 4 font"
         "source-sans-3-OFL.txt" -> "Source Sans 3 font"
         "manrope-OFL.txt" -> "Manrope font"

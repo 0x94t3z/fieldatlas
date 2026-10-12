@@ -7,11 +7,25 @@ import android.content.pm.PackageManager
 import android.content.pm.ApplicationInfo
 import android.os.Build
 import android.os.Debug
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import xyz.fieldatlas.assets.InstalledAsset
+import xyz.fieldatlas.assets.StorageFootprint
 import xyz.fieldatlas.research.ResearchCompletion
 import xyz.fieldatlas.research.ResearchMetrics
 
 object AndroidDiagnosticsCollector {
+    /** Only export requests traverse app storage; keep normal proof/UI snapshots inexpensive. */
+    suspend fun withStorageMeasurement(
+        context: Context,
+        snapshot: DiagnosticsSnapshot,
+    ): DiagnosticsSnapshot = withContext(Dispatchers.IO) {
+        snapshot.copy(storageMeasurement = StorageDiagnostics.measure(
+            registeredAssetPayloadBytes = snapshot.totalInstalledBytes,
+            readLogicalBytes = StorageFootprint.forApp(context)::bytes,
+        ))
+    }
+
     fun collect(
         context: Context,
         assets: List<InstalledAsset>,

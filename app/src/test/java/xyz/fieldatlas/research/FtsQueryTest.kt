@@ -7,6 +7,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FtsQueryTest {
+    @Test fun sourceScopeIsNotSearchVocabularyAndOriginalInputIsRetained() {
+        val plain = "which hash function does Ethereum use?"
+        val scoped = "According to the saved sources, " + plain
+        assertEquals(FtsQuery.from(plain)!!.terms, FtsQuery.from(scoped)!!.terms)
+        assertEquals(scoped, FtsQuery.from(scoped)!!.normalizedInput)
+        assertEquals(listOf("according", "sources", "information"), FtsQuery.from("According sources of information")!!.terms)
+    }
+
     @Test fun `auxiliary verbs do not become prefix queries`() {
         assertEquals(listOf("hemispheres", "opposite", "seasons"),
             FtsQuery.from("Why do hemispheres have opposite seasons?")!!.terms)

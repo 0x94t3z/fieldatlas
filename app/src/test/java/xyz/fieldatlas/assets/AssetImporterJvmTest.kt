@@ -9,6 +9,10 @@ import java.util.zip.CRC32
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -20,6 +24,124 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveEntry
 import org.apache.commons.compress.archivers.zip.ZipArchiveOutputStream
 
 class AssetImporterJvmTest {
+    @Test fun seekableCompressedImportDoesNotCopyArchiveAndPreservesSource() = runBlocking {
+        val root = temporaryFolder.newFolder("seekable-files")
+        val source = temporaryFolder.newFile("external-compressed.fapack")
+        val payload = ByteArray(2 * 1024 * 1024) { 11 }
+        source.writeBytes(pack(payload, schemaVersion = 2, storedPayload = false))
+        val hash = Sha256.digest(source.readBytes())
+        val registry = AssetRegistry(root)
+        val footprint = StorageFootprint {
+            assertFalse(File(root, "pack-staging").walkTopDown().any { it.name == "incoming.fapack" })
+            listOf(root)
+        }
+        val installed = java.nio.file.Files.newByteChannel(source.toPath()).use {
+            AssetImporter(root, registry, footprint).importSeekable(it, source.length(), Long.MAX_VALUE)
+        }
+        assertTrue(File(installed.rootPath, "docs/content.txt").readBytes().contentEquals(payload))
+        assertEquals(hash, Sha256.digest(source.readBytes()))
+        assertEquals(listOf(installed), registry.list())
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun seekableImportCountsExternalArchiveAgainstGlobalLimit() = runBlocking {
+        val root = temporaryFolder.newFolder("seekable-budget")
+        val source = temporaryFolder.newFile("external-budget.fapack")
+        val payload = ByteArray(4096) { 5 }
+        source.writeBytes(pack(payload, schemaVersion = 2, storedPayload = false))
+        java.io.RandomAccessFile(File(root, "existing"), "rw").use {
+            it.setLength(StorageBudget.MAX_TOTAL_BYTES - payload.size - StorageBudget.METADATA_RESERVE_BYTES - source.length() + 1)
+        }
+        val registry = AssetRegistry(root)
+        val error = assertThrows(AssetImportException::class.java) {
+            runBlocking {
+                java.nio.file.Files.newByteChannel(source.toPath()).use {
+                    AssetImporter(root, registry).importSeekable(it, source.length(), Long.MAX_VALUE)
+                }
+            }
+        }
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        assertTrue(source.exists())
+        assertTrue(registry.list().isEmpty())
+    }
+
+    @Test fun invalidSeekableArchiveLeavesSourceAndPriorPackIntact() = runBlocking {
+        val root = temporaryFolder.newFolder("seekable-invalid")
+        val registry = AssetRegistry(root)
+        val importer = AssetImporter(root, registry)
+        val prior = importer.import(ByteArrayInputStream(pack("prior".encodeToByteArray())), Long.MAX_VALUE)
+        val source = temporaryFolder.newFile("external-invalid.fapack")
+        source.writeBytes(pack("invalid".encodeToByteArray(), version = "2", schemaVersion = 2,
+            storedPayload = false, declaredHash = "0".repeat(64)))
+        val hash = Sha256.digest(source.readBytes())
+        assertThrows(AssetImportException::class.java) {
+            runBlocking { java.nio.file.Files.newByteChannel(source.toPath()).use {
+                importer.importSeekable(it, source.length(), Long.MAX_VALUE)
+            } }
+        }
+        assertEquals(listOf(prior), registry.list())
+        assertEquals(hash, Sha256.digest(source.readBytes()))
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun streamCancellationIsNotWrappedAsImportFailure() = runBlocking {
+        val root = temporaryFolder.newFolder("cancelled-source")
+        val registry = AssetRegistry(root)
+        val input = object : java.io.InputStream() {
+            override fun read(): Int = throw CancellationException("source cancelled")
+            override fun read(b: ByteArray, off: Int, len: Int): Int = read()
+        }
+        assertThrows(CancellationException::class.java) {
+            runBlocking { AssetImporter(root, registry).import(input, Long.MAX_VALUE) }
+        }
+        assertTrue(registry.list().isEmpty())
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun cancelledCopyStopsBeforeReadingTheWholeArchive() = runBlocking {
+        val root = temporaryFolder.newFolder("cancelled-copy")
+        val registry = AssetRegistry(root)
+        var reads = 0
+        val child = launch {
+            val job = currentCoroutineContext()[Job]!!
+            val input = object : ByteArrayInputStream(pack(ByteArray(3 * 1024 * 1024))) {
+                override fun read(b: ByteArray, off: Int, len: Int): Int {
+                    reads++
+                    return super.read(b, off, len).also { job.cancel() }
+                }
+            }
+            AssetImporter(root, registry).import(input, Long.MAX_VALUE)
+        }
+        child.join()
+        assertTrue(child.isCancelled)
+        assertEquals(1, reads)
+        assertTrue(registry.list().isEmpty())
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    @Test fun cancellationAfterExtractionDoesNotPublishAndKeepsDownloadForRetry() = runBlocking {
+        val root = temporaryFolder.newFolder("cancelled-extraction")
+        val registry = AssetRegistry(root)
+        val archive = File(root, "download.fapack").apply { writeBytes(pack("verified".encodeToByteArray())) }
+        val originalHash = Sha256.digest(archive.readBytes())
+        var observedExtraction = false
+        val child = launch {
+            val job = currentCoroutineContext()[Job]!!
+            val footprint = StorageFootprint {
+                if (hasExtractedPayload(root)) { observedExtraction = true; job.cancel() }
+                listOf(root)
+            }
+            AssetImporter(root, registry, footprint).importArchive(archive, "demo", "1", PackType.KNOWLEDGE)
+        }
+        child.join()
+        assertTrue(observedExtraction)
+        assertTrue(child.isCancelled)
+        assertTrue(registry.list().isEmpty())
+        assertFalse(File(root, "packs/demo/1").exists())
+        assertEquals(originalHash, Sha256.digest(archive.readBytes()))
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
     @Test fun unregisteredCacheCountsAgainstArchiveStagingBudget() = runBlocking {
         val root = temporaryFolder.newFolder("quota-staging")
         val bytes = pack("payload".encodeToByteArray())
@@ -52,6 +174,79 @@ class AssetImporterJvmTest {
     }
 
     @get:Rule val temporaryFolder = TemporaryFolder()
+
+    @Test fun localImportRejectsStorageGrowthAfterExtractionAndPreservesPriorPack() = runBlocking {
+        rejectStorageGrowthAfterExtraction(downloadedArchive = false)
+    }
+
+    @Test fun downloadedImportRejectsStorageGrowthAndKeepsArchiveForRetry() = runBlocking {
+        rejectStorageGrowthAfterExtraction(downloadedArchive = true)
+    }
+
+    @Test fun finalCheckCountsExtractedPayloadOnceAndReservesMetadata() = runBlocking {
+        val root = temporaryFolder.newFolder("final-exact-budget")
+        val registry = AssetRegistry(root)
+        val externalCache = temporaryFolder.newFile("other-app-owned-cache")
+        var checkedAfterExtraction = false
+        val footprint = StorageFootprint {
+            if (hasExtractedPayload(root)) {
+                checkedAfterExtraction = true
+                val stagedBytes = StorageFootprint { listOf(root) }.bytes()
+                java.io.RandomAccessFile(externalCache, "rw").use {
+                    it.setLength(StorageBudget.MAX_TOTAL_BYTES - stagedBytes - StorageBudget.METADATA_RESERVE_BYTES)
+                }
+            }
+            listOf(root, externalCache)
+        }
+        val payload = "complete verified payload".encodeToByteArray()
+        val installed = AssetImporter(root, registry, footprint)
+            .import(ByteArrayInputStream(pack(payload)), Long.MAX_VALUE)
+
+        assertTrue("The footprint must be checked after all payloads are extracted", checkedAfterExtraction)
+        assertEquals(listOf(installed), registry.list())
+        assertTrue(File(installed.rootPath, "docs/content.txt").readBytes().contentEquals(payload))
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+    }
+
+    private suspend fun rejectStorageGrowthAfterExtraction(downloadedArchive: Boolean) {
+        val root = temporaryFolder.newFolder("final-growth-$downloadedArchive")
+        val registry = AssetRegistry(root)
+        val oldPayload = "owner's existing source".encodeToByteArray()
+        val prior = AssetImporter(root, registry)
+            .import(ByteArrayInputStream(pack(oldPayload)), Long.MAX_VALUE)
+        val lateCache = File(root, "concurrently-created-cache")
+        var checkedAfterExtraction = false
+        val footprint = StorageFootprint {
+            if (hasExtractedPayload(root)) {
+                checkedAfterExtraction = true
+                java.io.RandomAccessFile(lateCache, "rw").use {
+                    it.setLength(StorageBudget.MAX_TOTAL_BYTES - StorageBudget.METADATA_RESERVE_BYTES)
+                }
+            }
+            listOf(root)
+        }
+        val incoming = pack("new verified source".encodeToByteArray(), version = "2")
+        val archive = if (downloadedArchive) File(root, "downloaded.fapack").apply { writeBytes(incoming) } else null
+        val importer = AssetImporter(root, registry, footprint)
+        val error = assertThrows(AssetImportException::class.java) {
+            runBlocking {
+                if (archive != null) importer.importArchive(archive, "demo", "2", PackType.KNOWLEDGE)
+                else importer.import(ByteArrayInputStream(incoming), Long.MAX_VALUE)
+            }
+        }
+
+        assertTrue("The final footprint must include growth after extraction", checkedAfterExtraction)
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        assertEquals(listOf(prior), registry.list())
+        assertTrue(File(prior.rootPath, "docs/content.txt").readBytes().contentEquals(oldPayload))
+        assertFalse(File(root, "packs/demo/2").exists())
+        assertTrue("Unrelated cache data must not be removed", lateCache.isFile)
+        assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
+        archive?.let { assertTrue("Verified download must remain available for retry", it.readBytes().contentEquals(incoming)) }
+    }
+
+    private fun hasExtractedPayload(root: File): Boolean = File(root, "pack-staging").walkTopDown()
+        .any { it.isFile && it.name == "content.txt" && it.parentFile.name == "docs" }
 
     @Test fun inspectionReadsManifestWithoutInstallingAnything() = runBlocking {
         val root = temporaryFolder.newFolder("inspect")
@@ -185,6 +380,59 @@ class AssetImporterJvmTest {
         "STORED",
     )
 
+    @Test fun schemaTwoImportsCompressedPayloadWithExactIdentity() = runBlocking {
+        val root = temporaryFolder.newFolder("compressed-v2")
+        val payload = ByteArray(2 * 1024 * 1024) { 7 }
+        val installed = AssetImporter(root).import(ByteArrayInputStream(pack(payload, schemaVersion = 2, storedPayload = false)), Long.MAX_VALUE)
+        assertEquals(payload.size.toLong(), installed.installedBytes)
+        assertTrue(File(installed.rootPath, "docs/content.txt").readBytes().contentEquals(payload))
+    }
+
+    @Test fun compressedPayloadStillRequiresMatchingHash() = rejectsPack(
+        pack("payload".encodeToByteArray(), schemaVersion = 2, storedPayload = false, declaredHash = "0".repeat(64)), "SHA-256",
+    )
+
+    @Test fun compressedPayloadAdmissionUsesExpandedSize() = runBlocking {
+        val root = temporaryFolder.newFolder("compressed-budget")
+        val payload = ByteArray(2 * 1024 * 1024)
+        val bytes = pack(payload, schemaVersion = 2, storedPayload = false)
+        assertTrue(bytes.size < payload.size / 100)
+        val existing = File(root, "existing-data")
+        java.io.RandomAccessFile(existing, "rw").use {
+            it.setLength(StorageBudget.MAX_TOTAL_BYTES - bytes.size - StorageBudget.METADATA_RESERVE_BYTES - payload.size + 1)
+        }
+        val registry = AssetRegistry(root)
+        val error = assertThrows(AssetImportException::class.java) {
+            runBlocking { AssetImporter(root, registry).import(ByteArrayInputStream(bytes), Long.MAX_VALUE) }
+        }
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        assertTrue(registry.list().isEmpty())
+        assertFalse(File(root, "packs/demo/1").exists())
+        assertTrue(existing.exists())
+    }
+
+    @Test fun compressedDownloadsRequireAccurateCatalogInstalledSize() = runBlocking {
+        val root = temporaryFolder.newFolder("compressed-catalog")
+        val archive = File(root, "download.fapack").apply {
+            writeBytes(pack("payload".encodeToByteArray(), schemaVersion = 2, storedPayload = false))
+        }
+        val registry = AssetRegistry(root)
+        val importer = AssetImporter(root, registry)
+        for (declared in listOf(null, 1L, 8L)) {
+            assertThrows(AssetImportException::class.java) {
+                runBlocking { importer.importArchive(archive, "demo", "1", PackType.KNOWLEDGE, declared) }
+            }
+            assertTrue(archive.exists())
+            assertTrue(registry.list().isEmpty())
+        }
+        assertEquals(7L, importer.importArchive(archive, "demo", "1", PackType.KNOWLEDGE, 7L).installedBytes)
+    }
+
+    @Test fun truncatedCompressedPackPreservesPriorVersion() {
+        val complete = pack(ByteArray(32768) { 7 }, version = "2", schemaVersion = 2, storedPayload = false)
+        rejectsPackPreservingPrior(complete.copyOf(complete.size / 2))
+    }
+
     @Test fun interruptedPayloadDoesNotPublishPartialData() {
         val complete = pack(ByteArray(32_768) { 7 }, version = "2")
         rejectsPackPreservingPrior(complete.copyOf(complete.size / 2))
@@ -234,9 +482,10 @@ class AssetImporterJvmTest {
         manifestFirst: Boolean = true,
         storedPayload: Boolean = true,
         path: String = "docs/content.txt",
+        schemaVersion: Int = 1,
     ): ByteArray {
         val manifest = """
-            {"schemaVersion":1,"id":"demo","version":"$version","type":"KNOWLEDGE","title":"Demo","license":"CC0-1.0","sourceUrls":["https://example.invalid"],"discovery":{"coverageSummary":"Demo notes","exampleQuestions":["What is in the demo?"],"coverageLevel":"demo"},"artifacts":[{"path":"$path","bytes":${payload.size},"sha256":"$declaredHash"}]}
+            {"schemaVersion":$schemaVersion,"id":"demo","version":"$version","type":"KNOWLEDGE","title":"Demo","license":"CC0-1.0","sourceUrls":["https://example.invalid"],"discovery":{"coverageSummary":"Demo notes","exampleQuestions":["What is in the demo?"],"coverageLevel":"demo"},"artifacts":[{"path":"$path","bytes":${payload.size},"sha256":"$declaredHash"}]}
         """.trimIndent().encodeToByteArray()
         return ByteArrayOutputStream().use { bytes ->
             ZipOutputStream(bytes).use { zip ->

@@ -99,10 +99,11 @@ class SourceLeadTest {
     }
 
     @Test fun orchestratorShowsLeadBeforeGenerationAndKeepsItInTheFinalAnswer() = runBlocking {
-        val source = overview("Friction", friction)
-        val inference = FakeInferenceGateway(listOf("Friction converts motion into heat."))
-        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(source) }, inference)
-            .research("What is friction?").toList()
+        // A saved place-guide comparison retains its lead + model route; ordinary
+        // encyclopedia explanations are now completed from original passages.
+        val inference = FakeInferenceGateway(listOf("The day pass covers every line."))
+        val events = ResearchOrchestrator(guideComparisonRetriever(), inference)
+            .research(guideComparisonQuestion).toList()
         val leadIndex = events.indexOfFirst { it is ResearchEvent.Lead }
         val firstToken = events.indexOfFirst { it is ResearchEvent.Token }
         assertTrue(leadIndex >= 0 && leadIndex < firstToken)
@@ -111,7 +112,8 @@ class SourceLeadTest {
         assertTrue(answer.replace)
         assertTrue(answer.text.startsWith(lead))
         assertTrue(answer.text.contains("not verified against saved sources"))
-        assertTrue(answer.text.contains("Friction converts motion into heat."))
+        assertTrue(answer.text.contains("The day pass covers every line."))
+        assertTrue((events.last() as ResearchEvent.Complete).metrics.generatedTokenCount > 0)
         val metrics = (events.last() as ResearchEvent.Complete).metrics
         assertEquals(setOf("S1"), metrics.citedSourceIds)
         assertFalse(metrics.hasUnmappedCitation)
@@ -122,13 +124,26 @@ class SourceLeadTest {
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
                 flow { throw IllegalStateException("native decode failed") }
         }
-        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(overview("Friction", friction)) }, failing)
-            .research("What is friction?").toList()
+        val events = ResearchOrchestrator(guideComparisonRetriever(), failing)
+            .research(guideComparisonQuestion).toList()
         assertTrue(events.none { it is ResearchEvent.Failed })
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         assertTrue(answer.startsWith("## ${SourceLead.HEADING}"))
         assertTrue(answer.contains("could not be completed"))
         assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+    }
+
+    private val guideComparisonQuestion = "What is the difference between a single metro ticket and a day pass in Avelton?"
+
+    private fun guideComparisonRetriever(): Retriever {
+        val transit = Evidence("wvs-avelton", "wvs-avelton:0", "Avelton — Get around > By metro",
+            "https://en.wikivoyage.org/w/index.php?oldid=1",
+            "A single metro ticket costs 2 euros and is valid for 90 minutes. A day pass costs 8 euros and covers every line.", 0.0)
+        return object : Retriever {
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit) = emptyList<Evidence>()
+            override suspend fun titled(phrase: String, sections: List<String>, limit: Int) =
+                if (phrase == "Avelton" && "Get around" in sections) listOf(transit) else emptyList()
+        }
     }
 
     @Test fun withoutLeadAFailedGenerationStillFails() = runBlocking {

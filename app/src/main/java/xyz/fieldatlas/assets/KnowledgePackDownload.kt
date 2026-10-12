@@ -50,8 +50,9 @@ class KnowledgePackDownload internal constructor(
                 return@withContext installed
             }
             val remaining = pack.bytes - partial.length().coerceAtMost(pack.bytes)
-            // STORED-only archives: reserving archive size for extraction is conservative.
-            val peakGrowth = Math.addExact(Math.addExact(remaining, pack.bytes), StorageBudget.METADATA_RESERVE_BYTES)
+            // Legacy STORED packs can reserve archive size. Compressed packs explicitly
+            // declare expanded bytes, which the importer verifies against the manifest.
+            val peakGrowth = Math.addExact(Math.addExact(remaining, pack.installedBytes ?: pack.bytes), StorageBudget.METADATA_RESERVE_BYTES)
             check(StorageBudget.evaluate(footprint.bytes(), peakGrowth, Long.MAX_VALUE) == BudgetDecision.Allowed) {
                 "Collection would exceed the app storage budget"
             }
@@ -62,7 +63,7 @@ class KnowledgePackDownload internal constructor(
             // A killed process can leave an extracted pack without a registry entry.
             val orphan = File(storageRoot, "packs/${pack.id}/${pack.version}")
             if (orphan.exists()) check(orphan.deleteRecursively()) { "Could not clear interrupted collection install" }
-            val installed = importer.importArchive(partial, pack.id, pack.version, PackType.KNOWLEDGE)
+            val installed = importer.importArchive(partial, pack.id, pack.version, PackType.KNOWLEDGE, pack.installedBytes)
             partial.delete() // Only remove the verified archive once installation is registered.
             installed
         }

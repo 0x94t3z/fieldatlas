@@ -32,7 +32,7 @@ object PackManifestParser {
         val root = Json.parseToJsonElement(bytes.decodeToString()).jsonObject
         requireFields(root, requiredRootFields, allowedRootFields, "manifest")
         val schemaVersion = root.requiredInt("schemaVersion")
-        require(schemaVersion == 1) { "Unsupported schemaVersion: $schemaVersion" }
+        require(schemaVersion in 1..2) { "Unsupported schemaVersion: $schemaVersion" }
         val id = root.requiredText("id")
         val version = root.requiredText("version")
         require(identifierPattern.matches(id) && id != "." && id != "..") { "Unsafe id" }
@@ -43,6 +43,7 @@ object PackManifestParser {
             throw InvalidPackManifestException("Unknown pack type", error)
         }
         val title = root.requiredText("title")
+        require(schemaVersion == 1 || type == PackType.KNOWLEDGE) { "Schema 2 is only supported for knowledge packs" }
         val license = root.requiredText("license")
         val sourceUrls = root.requiredArray("sourceUrls").mapIndexed { index, element ->
             element.text("sourceUrls[$index]")

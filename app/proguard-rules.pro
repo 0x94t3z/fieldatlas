@@ -33,3 +33,4 @@
 -dontwarn com.gemalto.jp2.JP2Encoder
 -keep class com.tom_roush.pdfbox.** { *; }
 -keep class com.tom_roush.fontbox.** { *; }
+-keep class xyz.fieldatlas.research.LeviathanNative { *; }
