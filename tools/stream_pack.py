@@ -79,12 +79,14 @@ def _parse_row(raw: bytes, line_number: int) -> Document:
     )
 
 
-def _index_documents(path: Path, index_path: Path) -> None:
+def _index_documents(path: Path, index_path: Path, on_batch=None) -> None:
     """Validate globally unique ids without an O(document-count) Python set/list.
 
     BLOB ordering matches packtool's UTF-8 sort exactly. This scratch database is
     never distributed and cannot change the final content database/ZIP bytes.
     """
+    if on_batch is not None:
+        on_batch()
     with closing(sqlite3.connect(index_path)) as index:
         index.execute("PRAGMA journal_mode=OFF")
         index.execute("PRAGMA synchronous=OFF")
@@ -99,6 +101,8 @@ def _index_documents(path: Path, index_path: Path) -> None:
                 if not raw:
                     break
                 line_number += 1
+                if on_batch is not None and line_number > 1 and (line_number - 1) % _BATCH == 0:
+                    on_batch()
                 if len(raw) > MAX_SOURCE_RECORD_BYTES:
                     raise DocumentError(f"line {line_number}: document record exceeds 32 MB")
                 if not raw.strip():

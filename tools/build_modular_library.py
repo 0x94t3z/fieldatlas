@@ -28,6 +28,13 @@ from packtool.schema import DocumentError
 
 MAX_INSTALLED_LIBRARY_BYTES = 35_000_000_000
 MAX_MODULE_ARCHIVE_BYTES = 1_500_000_000
+BUILD_FREE_RESERVE_BYTES = 1_000_000_000
+
+
+def require_build_space(directory: Path, incoming_bytes: int) -> None:
+    """Conservative build admission, not a measurement of Android install peaks."""
+    if shutil.disk_usage(directory).free < incoming_bytes + BUILD_FREE_RESERVE_BYTES:
+        raise ValueError("Insufficient build disk space; keep 1 GB free and use a larger build volume")
 
 
 def verified_archive(path: Path) -> dict:
@@ -72,6 +79,9 @@ def build_library(input_path: Path, output_dir: Path, expected_sha256: str,
     if input_hash != expected_sha256:
         raise ValueError("Input snapshot checksum mismatch")
     output_dir.parent.mkdir(parents=True, exist_ok=True)
+    # The corpus is retained. Offsets, IDs and temporary SQLite pages need their
+    # own space; don't begin a large build on a nearly full source volume.
+    require_build_space(output_dir.parent, input_size * 2)
     # Atomic final directory: a failed module cannot leave a library advertised as complete.
     working = Path(tempfile.mkdtemp(prefix=f".{output_dir.name}.", dir=output_dir.parent))
     try:
@@ -130,6 +140,9 @@ def build_library(input_path: Path, output_dir: Path, expected_sha256: str,
                             articles += 1
                         last_article = article
                         pending = next(offsets, None)
+                # Space for FTS/database construction and the uncompressed archive
+                # simultaneously: conservative admission, not measured peak storage.
+                require_build_space(working, spool.stat().st_size * 6)
                 built = build_pack_streaming(spool, working / module_id, module_id, version,
                     f"{title} · {len(modules) + 1}", license_id, source_urls,
                     fts_tokenizer="porter unicode61")
@@ -171,7 +184,7 @@ def build_library(input_path: Path, output_dir: Path, expected_sha256: str,
             title=title, license=license_id, sourceUrls=source_urls,
             installedBytes=total_installed, archiveBytes=sum(m["archiveBytes"] for m in modules),
             meetsTwentyDecimalGBTarget=total_installed >= 20_000_000_000,
-            runtimeStorageLimitBytes=50_000_000_000,
+            runtimeStorageLimitBytes=50_000_000_000, buildFreeReserveBytes=BUILD_FREE_RESERVE_BYTES,
             remainingGates=["Host and verify every download", "Measure app/model/staging/update footprint",
                             "Evaluate retrieval and citations on Android"], modules=modules)
         (working / "library-build.json").write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

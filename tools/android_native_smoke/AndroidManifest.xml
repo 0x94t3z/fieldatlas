@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="xyz.fieldatlas.testnative">
+    <uses-sdk android:minSdkVersion="33" android:targetSdkVersion="36" />
+    <application android:label="Field Atlas native verification" android:hasCode="true" />
+    <instrumentation android:name="xyz.fieldatlas.testnative.NativeSmokeInstrumentation"
+        android:targetPackage="xyz.fieldatlas" android:label="Native search verification" />
+</manifest>

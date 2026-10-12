@@ -30,9 +30,9 @@ def blocks(answer):
 
 
 def packed_passages(run):
-    if not run.get("calls"):
+    if not run.get("calls") and not run.get("packedPrompt"):
         return []
-    prompt = run["calls"][-1]["request"]["messages"][-1]["content"]
+    prompt = run.get("packedPrompt") or run["calls"][-1]["request"]["messages"][-1]["content"]
     if "\n\nEVIDENCE:\n" not in prompt:
         return []
     body = prompt.split("\n\nEVIDENCE:\n", 1)[1].split("\n\nQUESTION:\n", 1)[0]

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
@@ -21,6 +22,12 @@ CITATION = re.compile(r"\[S[1-9][0-9]*\]")
 
 class BenchmarkError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class _Answer:
+    text: str
+    device_state: str | None = None
 
 
 def _normalized(value: str) -> str:
@@ -61,7 +68,7 @@ def _validate_benchmark(benchmark: object) -> list[dict[str, object]]:
     return questions
 
 
-def _validate_results(results: object, expected_ids: set[str]) -> dict[str, str]:
+def _validate_results(results: object, expected_ids: set[str]) -> dict[str, _Answer]:
     if not isinstance(results, dict) or results.get("schemaVersion") != 1 or not isinstance(results.get("results"), list):
         raise BenchmarkError("invalid results root")
     root_fields = set(results)
@@ -70,7 +77,7 @@ def _validate_results(results: object, expected_ids: set[str]) -> dict[str, str]
     if not simple_export and not device_export:
         raise BenchmarkError("invalid results root")
     rows = results["results"]
-    parsed: dict[str, str] = {}
+    parsed: dict[str, _Answer] = {}
     for index, row in enumerate(rows):
         if not isinstance(row, dict):
             raise BenchmarkError(f"invalid result fields at index {index}")
@@ -79,15 +86,15 @@ def _validate_results(results: object, expected_ids: set[str]) -> dict[str, str]
         is_device_row = DEVICE_RESULT_REQUIRED_FIELDS <= fields
         if not is_simple_row and not is_device_row:
             raise BenchmarkError(f"invalid result fields at index {index}")
-        if is_device_row and row["state"] != "COMPLETE":
-            raise BenchmarkError(f"device result is not complete at index {index}")
+        if is_device_row and row["state"] not in ("COMPLETE", "INSUFFICIENT"):
+            raise BenchmarkError(f"device result is not a completed answer or evidence gap at index {index}")
         identifier = row["questionId"]
         answer = row["answer"]
         if not isinstance(identifier, str) or not isinstance(answer, str):
             raise BenchmarkError(f"invalid result at index {index}")
         if identifier in parsed:
             raise BenchmarkError(f"duplicate result: {identifier}")
-        parsed[identifier] = answer
+        parsed[identifier] = _Answer(answer, row["state"] if is_device_row else None)
     if set(parsed) != expected_ids:
         raise BenchmarkError(
             f"result ids mismatch; missing={sorted(expected_ids - set(parsed))}, "
@@ -115,11 +122,18 @@ def _score(question: dict[str, object], answer: str) -> dict[str, object]:
     }
 
 
-def _summary(questions: list[dict[str, object]], answers: dict[str, str]) -> dict[str, object]:
+def _summary(questions: list[dict[str, object]], answers: dict[str, _Answer]) -> dict[str, object]:
     rows = []
     categories: dict[str, list[float]] = defaultdict(list)
     for question in questions:
-        detail = _score(question, answers[question["id"]])
+        answer = answers[question["id"]]
+        detail = _score(question, answer.text)
+        if answer.device_state is not None:
+            detail["device_state"] = answer.device_state
+        # An honest terminal evidence gap is scoreable, unlike a crash/cancelled
+        # run. It cannot earn answerable-question credit by echoing rubric terms.
+        if answer.device_state == "INSUFFICIENT" and question["answerable"]:
+            detail["score"] = 0.0
         score = detail["score"]
         categories[question["category"]].append(score)
         rows.append({"questionId": question["id"], "category": question["category"], **detail})

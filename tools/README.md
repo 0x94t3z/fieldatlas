@@ -27,11 +27,73 @@ staging, indexes, app files and caches. Verify hosted artifacts, Android import
 peaks, citation access and useful retrieval before offering a configuration.
 Article-section inputs remain article-section collections, not ordinary-search
 coverage. Synthetic size tests are not knowledge modules.
+Build admission reserves 1 GB of free host space and conservatively checks index
+and module workspace before construction. These estimates are not measured peak
+storage or a guarantee for arbitrary corpora; use a sufficiently large build volume.
 Keep all supplied sections of an article in one module: the builder groups
 `enw-PAGEID-SECTION` records and requires the original `0000` lead. It rejects
 mixed article-section/ordinary corpora to prevent runtime misclassification.
 This preserves the input's article boundaries, not completeness of the source
 encyclopedia: any upstream passage selection still needs its own evaluation.
+
+For limited local workspace, `build_library_batch.py` adds a resumable Mac/Linux
+mode. Use the same pinned JSONL input and attribution arguments, with a new
+`--out` directory. By default it commits at most one verified module per run;
+repeat the identical command with `--resume` to continue. `--max-modules N`
+allows a bounded larger batch. Changing the source checksum, module size, other
+build identity or builder code is rejected on resume. Completed modules are
+never overwritten. Only an explicitly marked pending stage may be cleaned.
+
+Each module contains its verified `.fapack`, manifest, checksum sidecar and build
+receipt. The checkpoint pins the source, build configuration and offset index;
+`batch-progress.json` reports actual retained payload bytes and remains
+`releaseReady: false`. A completed module survives an interruption before the
+progress report is written. Initial indexing/planning must finish before module
+resume is available; an interrupted initialization needs a separately audited
+fresh workspace. A workspace lock prevents concurrent writers.
+
+The incremental mode checks free-space headroom at every indexing batch and
+before module construction, reserving 1 GB. This avoids demanding another full
+corpus-sized allocation merely to index offsets. It **still retains the original
+input, offset index and completed archives**, and does not upload, offload or
+delete those files automatically. It is not proof that an entire 20 GB library
+fits a particular disk; archive retention, useful source coverage and actual
+peak usage must be measured. Keep the existing atomic builder for all-at-once
+output rather than adding `--resume` to its commands.
+
+`prepare_wikipedia_shard.py` converts the newer, dated English CirrusSearch
+`.json.bz2` shards offline. Supply the complete compressed file's size and
+SHA-256, its official snapshot URL, and a new output directory:
+
+```sh
+python3 tools/prepare_wikipedia_shard.py /path/to/shard.json.bz2 \
+  --input-bytes VERIFIED_BYTES --input-sha256 VERIFIED_SHA256 \
+  --source-url OFFICIAL_DATED_SHARD_URL --out build/new-wikipedia-corpus \
+  --exclude-spool /path/to/existing-vital-article-spool.jsonl
+```
+
+For subsequent shards, also pass `--exclude-documents` for earlier converted
+English Wikipedia corpora. Exclusion inputs are pinned and never modified.
+Both exclusion options accept plain JSONL or `.jsonl.gz`: compressed snapshots
+are streamed directly, with record and expanded-byte limits, rather than copied
+into another expanded temporary file. The report pins the actual compressed
+bytes and records their format. Retain and verify a complete snapshot before
+considering removal of any generated original; this converter deletes neither.
+The converter uses a disk-backed page index, rejects malformed/duplicate records
+and wrong wiki or index/data identities, and enforces record, expanded-input,
+output-byte and free-space limits. It commits only a complete verified corpus;
+it does not silently stop after an arbitrary byte budget.
+
+`documents.jsonl` retains the complete exported plain text once per article,
+with page IDs, exact revision URLs and CC-BY-SA-4.0 attribution. New shards lack
+the old `opening_text` field and section offsets: the converter does not invent
+headings, strip qualifiers, or index auxiliary/wikitext copies. The existing
+ordinary keyword/title/article paths can read these `wp-…-0000` documents.
+`SOURCE.json` records the recipe, source/exclusion/output hashes and limitations;
+an observed checksum is not an independently authenticated publisher checksum.
+Pass the resulting pinned JSONL to a library builder above. Corpus conversion
+alone establishes neither useful Android retrieval nor answer accuracy. The
+report stays `releaseReady: false`; nothing is published or added to the catalog.
 
 `benchmark_retrieval.py` compares the actual app SQL, compact candidate previews
 and an explicitly supplied upstream Leviathan CLI over identical saved records:
@@ -75,6 +137,13 @@ model `.fapack` local imports are. Model and archive bytes cannot inflate the
 reported selected knowledge payload. This is a planning check, not evidence of
 Android runtime peaks, complete footprint measurements, useful coverage or
 release readiness. Keep owner-specific plans and measurement reports private.
+
+`verify_download_source.py` checks a pinned HTTPS artifact by streaming an
+interrupted connection and a fresh range-resume (or full restart), then verifying
+the complete size and SHA-256 without saving the payload. It rejects HTTP
+redirects and writes only a new private report in `build/`. This is host transport
+evidence, not Android download/import/process-death or publisher-authenticity
+acceptance; no source provider is endorsed or changed in the app.
 
 Everything the app installs (`.fapack` files) is regenerated from source by the
 scripts in this directory. Packs themselves are not committed — only these tools

@@ -62,7 +62,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--serial', required=True)
     parser.add_argument('--manifest', type=Path, required=True)
-    parser.add_argument('--android-leviathan', type=Path, required=True)
+    parser.add_argument('--android-leviathan', type=Path)
+    parser.add_argument('--native-source', type=Path, help='Converted one-content DB; compare persistent JNI against original SQL')
     parser.add_argument('--model', type=Path, default=ROOT / 'build/model-cache/Qwen_Qwen3.5-2B-Q4_K_M.verified.gguf')
     parser.add_argument('--debug-apk', type=Path, default=ROOT / 'app/build/outputs/apk/debug/app-debug.apk')
     parser.add_argument('--question', action='append', required=True)
@@ -77,10 +78,13 @@ def main():
     data = json.loads(args.manifest.read_text())
     source, index = Path(data['source']['path']), Path(data['index']['path'])
     validate_manifest(args.manifest, [source])
-    validate_arm_binary(args.android_leviathan)
+    if args.native_source is None:
+        if args.android_leviathan is None: parser.error('Provide --android-leviathan or --native-source')
+        validate_arm_binary(args.android_leviathan)
     classes = ROOT / 'app/build/tmp/kotlin-classes/debugUnitTest'
     files = class_files(classes)
-    apk, model, binary = args.debug_apk.resolve(strict=True), args.model.resolve(strict=True), args.android_leviathan.resolve(strict=True)
+    apk, model = args.debug_apk.resolve(strict=True), args.model.resolve(strict=True)
+    binary = args.android_leviathan.resolve(strict=True) if args.android_leviathan else None
     d8 = args.sdk / 'build-tools/36.0.0/d8'
     android_jar = args.sdk / 'platforms/android-36/android.jar'
     work.mkdir(parents=True)
@@ -103,6 +107,8 @@ def main():
                     while block := src.read(1024 * 1024): dst.write(block)
     if not (native / 'libai-chat.so').is_file() or not (native / 'libsqliteJni.so').is_file():
         raise ValueError('APK lacks the ARM inference/SQLite libraries')
+    if args.native_source and not (native / 'libfieldatlas_leviathan.so').is_file():
+        raise ValueError('APK lacks the native search library')
     adb = ['adb', '-s', args.serial]
     def shell(*words, timeout=120):
         return subprocess.check_output(adb + ['shell', shlex.join(words)], text=True, timeout=timeout).strip()
@@ -115,7 +121,9 @@ def main():
     payload = secrets.token_hex(8)
     dex_name = 'pilot.' + payload + '.dex.jar'
     config_name, report_name = 'config.' + payload + '.json', 'report.' + payload + '.json'
-    transfers = {'source': source, 'index': index, 'model': model, 'binary': binary}
+    transfers = {'source': source, 'model': model}
+    if args.native_source: transfers['nativeSource'] = args.native_source.resolve(strict=True)
+    else: transfers.update(index=index, binary=binary)
     pins = {}
     for name, path in {**transfers, 'app.apk': apk, dex_name: dex}.items():
         target = remote + '/' + name
@@ -131,11 +139,12 @@ def main():
     for path in sorted(native.iterdir()):
         if shell('sha256sum', remote + '/native/' + path.name).split()[0] != identity(path)['sha256']:
             raise ValueError('Native library identity mismatch')
-    shell('chmod', '700', remote + '/binary')
-    assert shell(remote + '/binary', '--version') == data['binaryVersion']
-    config = dict(files=pins, nativeDir=remote + '/native', output=remote + '/' + report_name, questions=args.question,
+    if not args.native_source:
+        shell('chmod', '700', remote + '/binary')
+        assert shell(remote + '/binary', '--version') == data['binaryVersion']
+    config = dict(files=pins, binaryVersion=data['binaryVersion'], nativeDir=remote + '/native', output=remote + '/' + report_name, questions=args.question,
                   provenance=dict(appKotlinSha256=app_digest(), debugApk=identity(apk), pilotDex=identity(dex),
-                      sourceManifest=identity(args.manifest), androidBinary=identity(binary),
+                      sourceManifest=identity(args.manifest), androidBinary=identity(binary) if binary else None,
                       diagnosticToolSha256={str(p.relative_to(ROOT)): identity(p)['sha256'] for p in [
                           Path(__file__).resolve(), ROOT / 'app/src/test/java/xyz/fieldatlas/desktop/AndroidResearchPilot.kt',
                           ROOT / 'app/src/test/java/xyz/fieldatlas/desktop/DesktopLeviathanRetriever.kt']}))

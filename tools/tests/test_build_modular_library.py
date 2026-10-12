@@ -7,6 +7,7 @@ import tempfile
 import unittest
 import zipfile
 from unittest.mock import patch
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from build_modular_library import build_library, verified_archive
@@ -15,6 +16,25 @@ from packtool.schema import DocumentError
 
 
 class ModularLibraryTest(unittest.TestCase):
+    def test_low_build_space_rejects_before_indexing_and_preserves_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch("build_modular_library.shutil.disk_usage", return_value=SimpleNamespace(free=0)), \
+                    patch("build_modular_library._index_documents") as index:
+                with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
+                    self.build(root)
+                index.assert_not_called()
+            self.assertEqual(["source.jsonl"], sorted(p.name for p in root.iterdir()))
+
+    def test_later_space_failure_removes_only_owned_incomplete_build(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch("build_modular_library.require_build_space", side_effect=[None, ValueError("Insufficient build disk space")]):
+                with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
+                    self.build(root)
+            self.assertEqual(["source.jsonl"], sorted(p.name for p in root.iterdir()))
+            self.assertTrue(root.joinpath("source.jsonl").read_bytes())
+
     def test_command_line_runs_without_a_preconfigured_python_path(self):
         with tempfile.TemporaryDirectory() as directory:
             tool = Path(__file__).resolve().parents[1] / "build_modular_library.py"
