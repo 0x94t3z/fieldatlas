@@ -136,8 +136,8 @@ fun ResearchScreen(
     var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
     // Research starters use saved reference articles; selecting one only fills the draft.
     val exampleQuestions = listOf(
-        ExampleQuestion("Biology", "What role do chloroplasts play in photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Clay),
-        ExampleQuestion("Compare", "How do earthquake P waves differ from S waves?", FieldAtlasIcons.Compare, TileTone.Sage),
+        ExampleQuestion("Biology", "What role do chloroplasts play in photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Sage),
+        ExampleQuestion("Compare", "How do earthquake P waves differ from S waves?", FieldAtlasIcons.Compare, TileTone.Clay),
         ExampleQuestion("Technology", "How does a heat pump work?", FieldAtlasIcons.Technology, TileTone.Gold),
         ExampleQuestion("History", "What was the Berlin Wall?", FieldAtlasIcons.Landmark, TileTone.Paper),
     )
