@@ -134,15 +134,12 @@ fun ResearchScreen(
     var questionFocused by remember { mutableStateOf(false) }
     val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
     var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
-    // The first-run examples are what a traveller tries first, each on a path whose first answer
-    // appears at once, offline: the best vegan places in the city the phone is in, an explanation
-    // that opens with its encyclopedia article, an emergency answered from its official guide,
-    // and a phrase quoted from a phrasebook.
+    // Research starters use saved reference articles; selecting one only fills the draft.
     val exampleQuestions = listOf(
-        ExampleQuestion("Find a pharmacy near me", FieldAtlasIcons.Place, TileTone.Clay),
-        ExampleQuestion("Why did the Berlin Wall fall?", FieldAtlasIcons.Knowledge, TileTone.Sage),
-        ExampleQuestion("Someone is choking. What do I do?", FieldAtlasIcons.Heart, TileTone.Gold),
-        ExampleQuestion("How do I say thank you in Japanese?", FieldAtlasIcons.Globe, TileTone.Paper),
+        ExampleQuestion("Biology", "What role do chloroplasts play in photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Clay),
+        ExampleQuestion("Compare", "How do earthquake P waves differ from S waves?", FieldAtlasIcons.Compare, TileTone.Sage),
+        ExampleQuestion("Technology", "How does a heat pump work?", FieldAtlasIcons.Technology, TileTone.Gold),
+        ExampleQuestion("History", "What was the Berlin Wall?", FieldAtlasIcons.Landmark, TileTone.Paper),
     )
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
@@ -456,9 +453,9 @@ fun ResearchScreen(
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    exampleQuestions.chunked(2).forEachIndexed { rowIndex, row ->
+                    exampleQuestions.chunked(2).forEach { row ->
                         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            row.forEachIndexed { columnIndex, example ->
+                            row.forEach { example ->
                                 Surface(
                                     modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 148.dp)
                                         .semantics { contentDescription = "Use example: ${example.question}" },
@@ -473,7 +470,7 @@ fun ResearchScreen(
                                             Icon(FieldAtlasIcons.OpenExternal, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                         }
                                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                            Text(listOf("Nearby", "Explore", "Safety guide", "Languages")[rowIndex * 2 + columnIndex],
+                                            Text(example.label,
                                                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                                             Text(example.question, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
@@ -670,7 +667,7 @@ private fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
     return estimatePrefill(startedAt, samples, now)
 }
 
-private data class ExampleQuestion(val question: String, val icon: ImageVector, val tone: TileTone)
+private data class ExampleQuestion(val label: String, val question: String, val icon: ImageVector, val tone: TileTone)
 
 @Composable
 private fun ResearchSteps(steps: List<ResearchStep>) {

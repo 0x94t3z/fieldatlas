@@ -121,15 +121,15 @@ class ModernUiTest {
         val hint = compose.onNodeWithText("Tap to try").fetchSemanticsNode().boundsInRoot
         assertEquals(heading.center.y, hint.center.y, 1f)
         assertTrue(heading.right <= hint.left)
-        val first = compose.onNodeWithContentDescription("Use example: Find a pharmacy near me")
+        val first = compose.onNodeWithContentDescription("Use example: What role do chloroplasts play in photosynthesis?")
         first.performScrollTo()
         val a = first.fetchSemanticsNode().boundsInRoot
-        val b = compose.onNodeWithContentDescription("Use example: Why did the Berlin Wall fall?").fetchSemanticsNode().boundsInRoot
+        val b = compose.onNodeWithContentDescription("Use example: How do earthquake P waves differ from S waves?").fetchSemanticsNode().boundsInRoot
         assertEquals(a.top, b.top, 1f)
         assertTrue(a.right <= b.left)
         capture("suggestions-shared-hint-light")
         first.performClick()
-        compose.runOnIdle { assertEquals("Find a pharmacy near me", draft); assertEquals(0, submitted) }
+        compose.runOnIdle { assertEquals("What role do chloroplasts play in photosynthesis?", draft); assertEquals(0, submitted) }
     }
 
     @Test fun sharedSuggestionHintFitsNarrowDarkLayoutAtDoubleTextSize() {
@@ -152,8 +152,8 @@ class ModernUiTest {
         assertTrue(heading.right <= hint.left)
         assertEquals(heading.center.y, hint.center.y, 1f)
         capture("suggestions-shared-hint-dark-double-text")
-        compose.onNodeWithContentDescription("Use example: Why did the Berlin Wall fall?").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals("Why did the Berlin Wall fall?", draft); assertEquals(0, submitted) }
+        compose.onNodeWithContentDescription("Use example: How do earthquake P waves differ from S waves?").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals("How do earthquake P waves differ from S waves?", draft); assertEquals(0, submitted) }
     }
 
     @Test fun filenameRemainsOneLineAndKeepsItsOriginalAccessibleText() {

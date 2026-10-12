@@ -10,6 +10,9 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 
 object FieldAtlasIcons {
+    val Compare by prototypeIcon("Compare", "M2 6c2-2 4-2 6 0s4 2 6 0 4-2 8 0M2 12c2-2 4-2 6 0s4 2 6 0 4-2 8 0M2 18c2-2 4-2 6 0s4 2 6 0 4-2 8 0", false, 24f, PathFillType.NonZero)
+    val Technology by prototypeIcon("Technology", "M9 17h6v-1c0-2 2-3 2-5a5 5 0 0 0-10 0c0 2 2 3 2 5v1ZM9 20h6M10 23h4M12 1v1M2.5 3.5l1 1M21.5 3.5l-1 1", false, 24f, PathFillType.NonZero)
+    val Landmark by prototypeIcon("Landmark", "M3 9l9-6 9 6H3ZM5 10v8m5-8v8m4-8v8m5-8v8M3 18h18M2 21h20", false, 24f, PathFillType.NonZero)
     val Edit by prototypeIcon("Edit", "M4 16l-1 5 5-1L20 8l-4-4L4 16ZM13 7l4 4M16 4l2-2 4 4-2 2", false, 24f, PathFillType.NonZero)
     val ZoomIn by prototypeIcon("ZoomIn", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0ZM15 15l6 6M7 10h6M10 7v6", false, 24f, PathFillType.NonZero)
     val ZoomOut by prototypeIcon("ZoomOut", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0ZM15 15l6 6M7 10h6", false, 24f, PathFillType.NonZero)
