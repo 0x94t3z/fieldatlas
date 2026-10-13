@@ -124,6 +124,10 @@ class NearbyVenueTest {
             VenueLookup.inCity("it's pouring with rain. any museum or gallery within walking distance of me?", "Stockholm"))
         assertEquals("museums in Lyon?", VenueLookup.inCity("museums near me?", "Lyon"))
         assertFalse(VenueLookup.isNearMe(VenueLookup.inCity("any museum within walking distance of me?", "Stockholm")))
+        // The city-wide answer says that the asked-for distance was not found, not silently widened.
+        val note = VenueLookup.cityWideNote("any museum within walking distance of me?", "Stockholm")
+        assertTrue(note, "within walking distance" in note && "Stockholm as a whole" in note)
+        assertTrue(VenueLookup.cityWideNote("museums near me?", "Lyon").contains("near you"))
     }
 
     @Test fun tripWordsAndTimesAreNotReportedAsMissingFromListings() {

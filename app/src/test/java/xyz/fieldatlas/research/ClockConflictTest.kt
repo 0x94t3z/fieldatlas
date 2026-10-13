@@ -26,6 +26,18 @@ class ClockConflictTest {
             listOf(second, source("S3", "flyer.txt", "The community meeting starts at 19.00 in the hall."))))
     }
 
+    @Test fun pricesAndDecimalsAreNotClockTimes() {
+        val question = "How much is admission to the city museum?"
+        val a = source("S1", "museum-a.txt", "City museum admission is €12.50 for adults and free for children.")
+        val b = source("S2", "museum-b.txt", "The city museum admission fee is 15.00 EUR for adults.")
+        assertNull(ClockConflict.note(question, "Admission to the city museum is €12.50 for adults [S1].", listOf(a, b)))
+        assertNull(ClockConflict.note(question, "Admission is 12.50 [S1].", listOf(a, source("S2", "c.txt", "City museum admission costs 15.00 per adult."))))
+        // A dotted time beside time words still counts.
+        val hours = source("S2", "hours.txt", "The city museum opens at 10.00 and admission is €12.50.")
+        assertNotNull(ClockConflict.note("When does the city museum open?", "The city museum opens at 09:00 [S1].",
+            listOf(source("S1", "a.txt", "The city museum opens at 09:00 daily."), hours)))
+    }
+
     @Test fun quantitiesAndComparisonsAreNotTreatedAsDisagreements() {
         val ipv4 = source("S1", "IPv4", "IPv4 uses a 32-bit address space.")
         val ipv6 = source("S2", "IPv6", "IPv6 addresses are 128 bits long.")

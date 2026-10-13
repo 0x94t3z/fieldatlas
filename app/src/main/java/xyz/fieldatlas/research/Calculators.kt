@@ -998,20 +998,42 @@ object Calculators {
      * once multiplied the two capacities. Usable capacity is the bank's times the efficiency the
      * question states (losses in conversion and heat), divided by the phone's.
      */
+    private val bankWords = Regex("(?i)\\b(?:power ?bank|battery (?:pack|bank)|portable (?:charger|battery)|charger|pack|bank)\\b")
+    private val phoneWords = Regex("(?i)\\b(?:phone|handset|mobile|tablet|device|watch|earbuds|headphones|camera|laptop)\\b")
+    /** Which battery a capacity belongs to: the nearest battery word, since the bank is not always the bigger one. */
+    private fun batteryRole(q: String, range: IntRange): String? {
+        fun distance(m: MatchResult) = minOf(kotlin.math.abs(m.range.first - range.last), kotlin.math.abs(range.first - m.range.last))
+        val bank = bankWords.findAll(q).minOfOrNull(::distance)
+        val phone = phoneWords.findAll(q).minOfOrNull(::distance)
+        return when {
+            bank != null && (phone == null || bank < phone) && bank <= 45 -> "bank"
+            phone != null && (bank == null || phone < bank) && phone <= 45 -> "phone"
+            else -> null
+        }
+    }
+
     private fun charges(q: String): Pair<Result, Set<String>>? {
         if (!Regex("(?i)\\bhow many\\b[^.?!]{0,30}\\b(?:charges?|recharges?|times)\\b|\\bhow many times can i (?:re)?charge\\b").containsMatchIn(q)) return null
+        // Stated voltages or watt-hours need an energy calculation, which this shortcut does not do.
+        if (Regex("(?i)$NUM\\s*(?:v|volts?|wh|watt[- ]?hours?)\\b").containsMatchIn(q)) return null
         val capacities = Regex("(?i)$NUM\\s*mah\\b").findAll(q).toList()
         if (capacities.size != 2) return null
-        val (bank, phone) = capacities.map { num(it.groupValues[1]) }.let { (a, b) -> maxOf(a, b) to minOf(a, b) }
-        if (phone <= 0) return null
+        val roles = capacities.map { batteryRole(q, it.range) }
+        val (bank, phone) = when {
+            roles[0] == "bank" && roles[1] != "bank" || roles[1] == "phone" && roles[0] != "phone" -> capacities[0] to capacities[1]
+            roles[1] == "bank" && roles[0] != "bank" || roles[0] == "phone" && roles[1] != "phone" -> capacities[1] to capacities[0]
+            else -> return null
+        }.let { (a, b) -> num(a.groupValues[1]) to num(b.groupValues[1]) }
+        if (phone <= 0 || bank <= 0) return null
         val pct = Regex("(?i)$NUM\\s*%").find(q)
         val efficiency = pct?.let { num(it.groupValues[1]) / 100 }?.takeIf { it in 0.3..1.0 } ?: return null
         val result = bank * efficiency / phone
         val whole = kotlin.math.floor(result + 1e-9).toInt()
         val text = "${fmt(bank, 0)} mAh × ${fmt(efficiency * 100, 0)}% = ${fmt(bank * efficiency, 0)} mAh usable; " +
             "${fmt(bank * efficiency, 0)} ÷ ${fmt(phone, 0)} mAh = **${fmt(result, 2)}**, so **" +
-            (if (whole == 1) "one full charge" else "$whole full charges") + "**" +
-            (if (result - whole >= 0.05) " and about ${fmt((result - whole) * 100, 0)}% of another." else ".")
+            (when (whole) { 0 -> "less than one full charge"; 1 -> "one full charge"; else -> "$whole full charges" }) + "**" +
+            (if (result - whole < 0.05) "." else if (whole == 0) ": about ${fmt(result * 100, 0)}% of the battery." else " and about ${fmt((result - whole) * 100, 0)}% of another.") +
+            " This assumes both batteries use the same voltage."
         val used = capacities.map { it.range } + listOf(pct!!.range)
         return Result(text, true, "${fmt(result, 2)} charges.", used = used) to
             emptySet()

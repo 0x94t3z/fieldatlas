@@ -350,8 +350,10 @@ class ResearchOrchestrator(
                 // the city the mapped places around the phone are filed under.
                 if (point != null && result?.sources.isNullOrEmpty() && VenueLookup.asksGuideKind(question)) {
                     VenueLookup.cityOf(retriever.nearby(point, WHERE_RADII_KM.last(), NEARBY_CANDIDATES))?.let { city ->
-                        // This run hands over to the city question, which takes the run itself.
+                        // This run hands over to the city question, which takes the run itself. The
+                        // reader asked about their surroundings, so the answer says it is city-wide.
                         activeRun.set(false)
+                        emit(ResearchEvent.Token(VenueLookup.cityWideNote(question, city)))
                         emitAll(research(VenueLookup.inCity(question, city), resultLimit, contextTokenBudget, maxOutputTokens))
                         return@flow
                     }

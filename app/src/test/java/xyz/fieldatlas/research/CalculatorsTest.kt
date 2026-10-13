@@ -118,6 +118,20 @@ class CalculatorsTest {
         assertFalse(solve("How many charges will a 20000 mAh bank give a 4000 mAh phone?")?.text.orEmpty().contains("full charges"))
     }
 
+    @Test fun powerBankRolesComeFromTheWordsNotTheSize() {
+        // A small bank and a big phone: 2,000 × 0.8 ÷ 5,000 = 0.32, once mis-read as two charges.
+        val small = solve("My power bank is 2,000 mAh and my phone battery is 5,000 mAh at 80% efficiency. How many full charges do I get?")!!
+        assertTrue(small.text, "**0.32**" in small.text && "less than one full charge" in small.text && "same voltage" in small.text)
+        // Phone named first, bank second.
+        assertTrue(text("My phone has a 4,000 mAh battery. How many times can I charge it from a 10,000 mAh power bank at 80% efficiency?").contains("**2 full charges**"))
+        // No words say which is which, or the voltages differ: no shortcut, research continues.
+        for (q in listOf("How many charges do I get from 10,000 mAh into 4,000 mAh at 80% efficiency?",
+            "How many charges will a 20,000 mAh 3.7 V power bank give a 4,000 mAh phone at 80% efficiency?")) {
+            val r = solve(q)
+            assertFalse(q, r?.complete == true || r?.text.orEmpty().contains("full charge"))
+        }
+    }
+
     @Test fun numbersInsideALargerQuestionOnlyLeadTheAnswer() {
         // Each asks for more than the arithmetic; the numbers lead and research answers the rest.
         listOf(

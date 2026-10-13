@@ -53,8 +53,14 @@ internal fun MoreInfoBlock(title: String, body: String, icon: ImageVector? = nul
 @Composable
 internal fun DeviceInfoSheet(proof: ProofModel, packs: List<xyz.fieldatlas.assets.InstalledAsset>, onTechnical: () -> Unit, onDismiss: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    // Read once per opening: free space changes as packs download.
+    // Read once per opening: free space changes as packs download. The app's own share counts
+    // everything it holds (APK, partial downloads, staging, attachments, caches), not only packs.
     val space = remember { runCatching { android.os.StatFs(context.filesDir.absolutePath).let { it.totalBytes to it.availableBytes } }.getOrNull() }
+    val appBytes by produceState<Long?>(null) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { xyz.fieldatlas.assets.StorageFootprint.forApp(context).bytes() }.getOrNull()
+        }
+    }
     FieldAtlasInfoSheet("App & device", onDismiss) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(FieldAtlasIcons.Offline, size = 44.dp, iconSize = 24.dp)
@@ -63,7 +69,7 @@ internal fun DeviceInfoSheet(proof: ProofModel, packs: List<xyz.fieldatlas.asset
                 MoreNote("Open-source research on this phone. No account.")
             }
         }
-        space?.let { (total, free) -> StorageSummary(packs.sumOf { it.installedBytes }, free, total) }
+        space?.let { (total, free) -> StorageSummary(appBytes ?: packs.sumOf { it.installedBytes }, packs.sumOf { it.installedBytes }, free, total, measured = appBytes != null) }
         val (phone, _) = phoneFacts(proof.device)
         if (phone.isNotEmpty()) FactGroup("Phone", phone)
         Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(FieldAtlasButtonShape)
@@ -76,14 +82,15 @@ internal fun DeviceInfoSheet(proof: ProofModel, packs: List<xyz.fieldatlas.asset
 
 /** How much of the phone Field Atlas holds, against what is left free. */
 @Composable
-private fun StorageSummary(appBytes: Long, freeBytes: Long, totalBytes: Long) {
+private fun StorageSummary(appBytes: Long, packBytes: Long, freeBytes: Long, totalBytes: Long, measured: Boolean) {
     val colors = MaterialTheme.colorScheme
+    fun fmt(bytes: Long) = xyz.fieldatlas.ui.presentation.formatAssetBytes(bytes)
     val other = (totalBytes - freeBytes - appBytes).coerceAtLeast(0)
+    val appLabel = if (measured) "Field Atlas ${fmt(appBytes)}" else "Installed models and collections ${fmt(appBytes)}"
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Storage", style = MaterialTheme.typography.titleSmall)
         Row(Modifier.fillMaxWidth().height(8.dp).clip(FieldAtlasButtonShape).background(colors.surfaceContainerHighest)
-            .semantics { contentDescription = "Field Atlas uses ${xyz.fieldatlas.ui.presentation.formatAssetBytes(appBytes)}, " +
-                "${xyz.fieldatlas.ui.presentation.formatAssetBytes(freeBytes)} free of ${xyz.fieldatlas.ui.presentation.formatAssetBytes(totalBytes)}" }) {
+            .semantics { contentDescription = "$appLabel, ${fmt(freeBytes)} free of ${fmt(totalBytes)}" }) {
             if (totalBytes > 0) {
                 if (appBytes > 0) Box(Modifier.fillMaxHeight().weight(appBytes.toFloat()).background(colors.primary))
                 if (other > 0) Box(Modifier.fillMaxHeight().weight(other.toFloat()).background(colors.outlineVariant))
@@ -91,10 +98,12 @@ private fun StorageSummary(appBytes: Long, freeBytes: Long, totalBytes: Long) {
             }
         }
         androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            LegendItem(colors.primary, "Field Atlas ${xyz.fieldatlas.ui.presentation.formatAssetBytes(appBytes)}")
-            LegendItem(colors.outlineVariant, "Other apps")
-            LegendItem(colors.surfaceContainerHighest, "Free ${xyz.fieldatlas.ui.presentation.formatAssetBytes(freeBytes)}")
+            LegendItem(colors.primary, appLabel)
+            LegendItem(colors.outlineVariant, "Everything else on the phone")
+            LegendItem(colors.surfaceContainerHighest, "Free ${fmt(freeBytes)}")
         }
+        if (measured && appBytes > packBytes) MoreNote("Installed models and collections: ${fmt(packBytes)}. " +
+            "The rest is the app itself, unfinished downloads, attachments and caches.")
     }
 }
 

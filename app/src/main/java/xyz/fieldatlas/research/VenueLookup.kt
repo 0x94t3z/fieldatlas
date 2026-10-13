@@ -799,6 +799,13 @@ object VenueLookup {
         question.replace(nearMePhrase, " ").replace(Regex("\\s+(?:of|to)\\s+(?=[?.!,]|$)"), " ")
             .replace(Regex("\\s+([?.!,])"), "$1").trim().trimEnd('?', '.', '!') + " in $city?"
 
+    /** Said before a city-wide answer stands in for a near-me one, so the dropped distance is not hidden. */
+    fun cityWideNote(question: String, city: String): String {
+        val asked = if (Regex("(?i)walk").containsMatchIn(question)) "within walking distance" else "near you"
+        return "_None of the saved map places $asked matches this, so here is what the travel guide lists for " +
+            "$city as a whole. Check distances before you set off._\n\n"
+    }
+
     internal fun cityOf(places: List<NearbyPlace>): String? = places.sortedBy { it.distanceKm }.take(15)
         .mapNotNull { field(it.evidence.text, "Destination")?.substringBefore('/')?.takeIf(String::isNotBlank) }
         .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key

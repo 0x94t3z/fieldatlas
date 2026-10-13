@@ -11,11 +11,25 @@ import xyz.fieldatlas.text.MarkdownLiteral
  */
 internal object ClockConflict {
     // "[.:]", not "[:.]": Android's ICU engine reads the latter as a POSIX class and fails.
-    private val clock = Regex("(?<![\\d.:])([01]?\\d|2[0-3])[.:]([0-5]\\d)(?![\\d.:])")
+    private val clock = Regex("(?<![\\d.:])([01]?\\d|2[0-3])([.:])([0-5]\\d)(?![\\d.:])")
     private val sentenceEnd = Regex("(?<=[.!?])\\s+|\\n+")
+    // "€12.50", "12.50 EUR" and "12.50%" are amounts, whatever separator they use.
+    private val amountBefore = Regex("(?i)(?:[€$£¥₹₽¢]|\\b(?:eur|usd|gbp|chf|sek|nok|dkk|pln|czk|huf|jpy|cny|inr|aud|cad|nzd|zar|price|fee|cost|costs|from|only)\\s*)$")
+    private val amountAfter = Regex("(?i)^\\s*(?:[€$£¥₹₽¢%]|(?:eur|usd|gbp|chf|sek|nok|dkk|pln|czk|huf|jpy|cny|inr|aud|cad|nzd|zar|kr|zł|kč|ft|euros?|dollars?|pounds?|francs?|cents?|per\\b|each\\b|km\\b|kg\\b|m\\b|mm\\b|cm\\b|%))")
+    // "18.00" is a clock time only beside time words; "18:00" always is.
+    private val dotTimeContext = Regex("(?i)(?:\\b(?:at|from|until|till|to|by|between|and|before|after|around|about|opens?|closes?|closing|opening|starts?|ends?|departs?|arrives?|leaves?|doors|o'?clock)\\s*$)|(?:^\\s*(?:h\\b|hrs?\\b|uhr\\b|am\\b|pm\\b|a\\.m\\.|p\\.m\\.|o'?clock|–|-|to\\b|until\\b|till\\b))")
+
+    private fun isAmount(text: String, m: MatchResult): Boolean =
+        amountBefore.containsMatchIn(text.substring(0, m.range.first).takeLast(12)) ||
+            amountAfter.containsMatchIn(text.substring(m.range.last + 1).take(12))
 
     private fun times(text: String): Set<String> = clock.findAll(text)
-        .map { "%02d:%s".format(it.groupValues[1].toInt(), it.groupValues[2]) }.toSet()
+        .filterNot { isAmount(text, it) }
+        .filter { m ->
+            m.groupValues[2] == ":" || dotTimeContext.containsMatchIn(text.substring(0, m.range.first).takeLast(12)) ||
+                dotTimeContext.containsMatchIn(text.substring(m.range.last + 1).take(10))
+        }
+        .map { "%02d:%s".format(it.groupValues[1].toInt(), it.groupValues[3]) }.toSet()
 
     fun note(question: String, answer: String, sources: List<PromptSource>): String? {
         if (EvidenceRelevance.conceptualComparisonSubjects(question).isNotEmpty()) return null
