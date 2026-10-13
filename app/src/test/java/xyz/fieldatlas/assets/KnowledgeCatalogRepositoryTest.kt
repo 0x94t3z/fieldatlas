@@ -30,6 +30,16 @@ class KnowledgeCatalogRepositoryTest {
         assertEquals(listOf(old.first(), combined), catalogWithActiveDownload(repo.state.value.packs, old.first()))
     }
 
+    @Test fun aNumberedEditionSupersedesAPreview() = runBlocking {
+        val base = bundle.packs.single()
+        val preview = base.copy(id = "encyclopedia", version = "2026.10.12-native-compressed-preview")
+        val release = base.copy(id = "encyclopedia", version = "2026.11.01", sha256 = "b".repeat(64))
+        val repo = KnowledgeCatalogRepository(KnowledgeCatalog(1, listOf(preview)), cache, { bytes(release) })
+        repo.refresh()
+        assertNull(repo.state.value.error)
+        assertEquals(listOf("2026.11.01"), repo.state.value.packs.filter { it.id == "encyclopedia" }.map { it.version })
+    }
+
     @Test fun replacementCycleDoesNotDestroyCachedChoices() = runBlocking {
         val base = bundle.packs.single()
         val repo = KnowledgeCatalogRepository(bundle, cache, {

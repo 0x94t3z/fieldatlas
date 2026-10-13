@@ -67,6 +67,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
     val state: StateFlow<SetupUiState> = mutableState.asStateFlow()
     init {
         viewModelScope.launch {
+            runCatching { container.recoverInterruptedInstalls() }
             runCatching { container.retireBundledReferenceIfPresent() }
                 .onFailure { error ->
                     container.errorBus.report("Saved packs", error)

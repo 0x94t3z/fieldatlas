@@ -362,7 +362,7 @@ class AppContainer(context: Context) {
         includeQuestion = includeQuestion,
     )
 
-    private val retriever: Retriever = MultiKnowledgeRetriever(
+    private val retriever: MultiKnowledgeRetriever = MultiKnowledgeRetriever(
         databaseFiles = { knowledgeSources().map { source -> source.first } },
         packEmbeddings = { knowledgeSources().map { source -> source.second } },
         packDiscoveries = { knowledgeSources().map { source -> source.third } },
@@ -401,8 +401,36 @@ class AppContainer(context: Context) {
         }
         // The note explains why a model is not in use; it is stale once a model is removed.
         if (asset.type == PackType.MODEL) mutableModelNotice.value = null
-        registry.remove(asset.id, asset.version)
+        // An open database keeps its deleted file's space until it is closed; a 24 GB pack would stay
+        // counted against the phone. The delete itself can take seconds, so it runs off the main thread.
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            retriever.release(File(asset.rootPath))
+            registry.remove(asset.id, asset.version)
+        }
         refreshPacks()
+    }
+
+    /**
+     * A process killed while installing leaves its staging folder, or an extracted pack the registry
+     * never recorded. Nothing else removes them, and they count against the storage budget, which can
+     * block the Encyclopedia for good. Runs only when no install holds the lock. A model left behind is
+     * kept: its download checks it and uses it instead of fetching gigabytes again.
+     */
+    suspend fun recoverInterruptedInstalls() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        if (!provisioningMutex.tryLock()) return@withContext
+        try {
+            File(appContext.filesDir, "pack-staging").listFiles()?.forEach { it.deleteRecursively() }
+            val registered = registry.list().map { File(it.rootPath).canonicalPath }.toSet()
+            File(appContext.filesDir, "packs").listFiles()?.forEach { id ->
+                id.listFiles()?.forEach { version ->
+                    if (version.isDirectory && version.canonicalPath !in registered && version.walkTopDown().none { it.extension == "gguf" })
+                        version.deleteRecursively()
+                }
+                if (id.isDirectory && id.listFiles()?.isEmpty() == true) id.delete()
+            }
+        } finally {
+            provisioningMutex.unlock()
+        }
     }
     val deviceLocation = xyz.fieldatlas.location.DeviceLocation(context.applicationContext)
     /** First-aid and safety guides bundled in the APK; read on first use. */

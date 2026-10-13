@@ -49,6 +49,10 @@ class KnowledgePackDownload internal constructor(
                 partial.delete() // A process may have died after registration but before cleanup.
                 return@withContext installed
             }
+            // A killed process can leave an extracted pack without a registry entry; it counts against the
+            // budget below, so it is cleared before the check, not after the download.
+            val orphan = File(storageRoot, "packs/${pack.id}/${pack.version}")
+            if (orphan.exists()) check(orphan.deleteRecursively()) { "Could not clear interrupted collection install" }
             // Legacy STORED packs can reserve archive size. Compressed packs explicitly
             // declare expanded bytes, which the importer verifies against the manifest.
             val peakGrowth = pack.downloadGrowthBytes(partial.length())
@@ -59,9 +63,6 @@ class KnowledgePackDownload internal constructor(
                 "Not enough free space to download and install this collection"
             }
             downloader.download(downloadUrl, pack.bytes, pack.sha256, partial, onProgress)
-            // A killed process can leave an extracted pack without a registry entry.
-            val orphan = File(storageRoot, "packs/${pack.id}/${pack.version}")
-            if (orphan.exists()) check(orphan.deleteRecursively()) { "Could not clear interrupted collection install" }
             val installed = importer.importArchive(partial, pack.id, pack.version, PackType.KNOWLEDGE, pack.installedBytes)
             partial.delete() // Only remove the verified archive once installation is registered.
             installed

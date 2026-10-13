@@ -54,6 +54,12 @@ class MultiKnowledgeRetriever(
     /** Packs are searched in parallel; the query encoder is one model and runs one call at a time. */
     private val embedLock = Mutex()
 
+    /** Closes the stores opened from files under [root], so a deleted pack's space is freed at once. */
+    fun release(root: File) {
+        val prefix = root.absolutePath.trimEnd('/') + "/"
+        opened.keys.filter { it.startsWith(prefix) || it == root.absolutePath }.forEach { opened.remove(it)?.close() }
+    }
+
     /** Owner must stop outstanding research before releasing its cached stores. */
     override fun close() {
         opened.values.forEach { it.close() }
@@ -121,7 +127,10 @@ class MultiKnowledgeRetriever(
                         val discovery = discoveries.getOrNull(index)
                         runCatching {
                             val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
-                            val candidates = if (!placesOnly && !database.isPlaceListing() && technicalFocus == null)
+                            // Native search drops its own stopwords ("time", "last", "into"); a query left with
+                            // none lists arbitrary records, so it takes the keyword path instead.
+                            val nativeTerms = FtsQuery.from(query)!!.terms.filter { it.lowercase() !in LEVIATHAN_STOPWORDS }
+                            val candidates = if (!placesOnly && !database.isPlaceListing() && technicalFocus == null && nativeTerms.isNotEmpty())
                                 database.leviathanCandidates(FtsQuery.from(query)!!.terms.joinToString(" "), limit)
                             else null
                             // A pack of whole articles by section is read only through article(), for the
@@ -524,3 +533,9 @@ class MultiKnowledgeRetriever(
         }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }.sortedBy { it.title.length }.take(limit)
     }
 }
+
+/** Leviathan's own stopwords (third_party/leviathan/src/text.rs), which its query parser removes. */
+internal val LEVIATHAN_STOPWORDS = setOf("a", "an", "and", "are", "as", "at", "be", "been", "but", "by", "did", "do", "does", "for",
+    "from", "had", "has", "have", "how", "i", "if", "in", "into", "is", "it", "its", "last", "me", "my", "of", "on", "or", "our", "so",
+    "that", "the", "their", "then", "there", "this", "time", "to", "was", "we", "were", "what", "when", "where", "which", "who",
+    "why", "will", "with", "you")
