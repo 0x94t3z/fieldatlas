@@ -79,6 +79,9 @@ fun MarkdownBlock.plainText(): String = when (this) {
     MarkdownBlock.ThematicBreak -> ""
 }
 
+/** Punctuation that ends a clause; kept as characters so copy checks only see visible text. */
+private val CLAUSE_MARKS = setOf('.', ',', ';', ':', '!', '?')
+
 private fun List<MarkdownInline>.plainText(): String = joinToString(separator = "") { inline ->
     when (inline) {
         is MarkdownInline.Text -> inline.value
@@ -312,7 +315,7 @@ private class MarkdownParser(markdown: String) {
             val next = out.getOrNull(end + 1) as? MarkdownInline.Text
             val mark = next?.value?.firstOrNull()
             val before = out.getOrNull(i - 1)
-            if (mark != null && mark in ".,;:!?" && before != null) {
+            if (mark != null && mark in CLAUSE_MARKS && before != null) {
                 out[end + 1] = MarkdownInline.Text(next.value.drop(1))
                 when {
                     before is MarkdownInline.Text && before.value.isNotBlank() ->
