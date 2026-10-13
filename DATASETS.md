@@ -16,6 +16,13 @@ The field test and held-out measurements in [docs/evaluation.md](docs/evaluation
 | Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05 | 77,678,612 | `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/6be16bab707c3ee9f6cc2b7b5694182492a43516/crypto-ethereum/2026.10.05) |
 | Biology & longevity (`world-knowledge-biology`) | 2026.10.13 | 8,183,535 | `06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376` | OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026; Human Ageing Genomic Resources, 13 October 2026; six PubMed Central reviews | CC BY 4.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13) |
 
+**Where to download.** Every collection is hosted on Hugging Face, in
+[Field Atlas Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) and
+[Field Atlas Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia); the app
+downloads from the pinned revisions in the table and checks each file before installing it. The
+knowledge releases on GitHub are kept, unchanged, only for Field Atlas 1.3.0 and older, whose
+built-in catalogs download from them. Use Hugging Face for anything new.
+
 ## Encyclopedia (October 12)
 
 One download replaces the separate Encyclopedia and Encyclopedia in depth collections of earlier
@@ -142,8 +149,9 @@ dropped. Transport and practical sections keep their listings as one line each; 
 Drink, Sleep and Buy listings stay in the places pack. 31,672 guides, 291,092 section passages.
 The `.fapack` (`wikivoyage-guides`, version `2026.09.01`) is 419,107,865 bytes, SHA-256
 `1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83`.
-It replaces the 2025.12.29 guides pack under the same id and is published as release
-`knowledge-wikivoyage-guides-2026.09.01` with its `SOURCE.json` and `SHA256SUMS`. Field Atlas 1.4.0 offers
+It replaces the 2025.12.29 guides pack under the same id. It is hosted on
+[Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/main/wikivoyage-guides/2026.09.01); the
+earlier GitHub release `knowledge-wikivoyage-guides-2026.09.01`, with its `SOURCE.json` and `SHA256SUMS`, is kept for older app versions. Field Atlas 1.4.0 offers
 this version; installing it switches the 2025.12.29 pack off.
 
 Both CirrusSearch packs were rebuilt a second time from their spools and were byte-identical.
@@ -158,7 +166,7 @@ Encyclopedia release stays.
 
 `tools/packs/build_wikivoyage_places_pack.py` uses the same pinned English Wikivoyage dump and extracts six listing types: See, Do, Eat, Drink, Sleep, and Buy. Each place keeps its destination, category, address or directions, description, available hours and price, coordinates when supplied, listing check date when supplied, page revision date, and source permalink. The resulting `.fapack` uses FTS5 keyword search—**no embedding or vector build is required**. The app has a fast, source-only path for simple restaurant, café, museum, hotel, bar, and shop lookups; complex questions still use the normal research path.
 
-The [Travel places download](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-travel-2026.09.1) contains 401,826 listings and 405,849 searchable chunks in a 351,581,170-byte `.fapack` (SHA-256 `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac`). Setup and Library offer it as Travel places. Pack verification passed, and earlier offline Infinix checks returned cited café listings for Chiang Mai and museum listings for Berlin. These checks do not establish broad answer quality. The [build command](tools/README.md#typical-flows) and source dump hash above make it reproducible. Listings cannot establish current opening, quality, or a present-day “best” ranking. The collection includes restaurant listings, so the overlapping Eat-only pack is unnecessary for most users.
+The [Travel places download](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/main/wikivoyage-places/2026.09.1) contains 401,826 listings and 405,849 searchable chunks in a 351,581,170-byte `.fapack` (SHA-256 `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac`). Setup and Library offer it as Travel places. Pack verification passed, and earlier offline Infinix checks returned cited café listings for Chiang Mai and museum listings for Berlin. These checks do not establish broad answer quality. The [build command](tools/README.md#typical-flows) and source dump hash above make it reproducible. Listings cannot establish current opening, quality, or a present-day “best” ranking. The collection includes restaurant listings, so the overlapping Eat-only pack is unnecessary for most users.
 
 ## Vegan places from OpenStreetMap (keyword-only builder)
 
@@ -225,7 +233,7 @@ Mainz, 54 from Amsterdam to Almere, 38 from Copenhagen to Malmö and 22 from Tij
 Diego; the count of places, and of places without a destination, is unchanged. The `.fapack`
 is 40,068,046 bytes, SHA-256
 `4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd`, version `2026.10.05`.
-It is published as release `knowledge-vegan-places-2026.10.05` with its `OVERPASS-LOCK.json` and `SHA256SUMS`; the raw cache is the one published with `2026.10.02`. Field Atlas 1.4.0 offers this version.
+It is hosted on Hugging Face; the GitHub release `knowledge-vegan-places-2026.10.05`, with its `OVERPASS-LOCK.json` and `SHA256SUMS`, is kept for older app versions, and the raw cache is the one published with `2026.10.02`. Field Atlas 1.4.0 offers this version.
 
 An earlier build of the same day fetched settlements with `out tags;`, which omits node
 coordinates, so every place fell back to its address city and Tokyo had no listings. The
@@ -284,8 +292,8 @@ listed (2,981,023): a place mapped twice is merged when both copies have the sam
 centre, and in two such pairs only one copy's address names a city of its own (Ernakulam,
 beside Kochi; Novo Hamburgo), so the copies now carry different destinations. The `.fapack` is 1,781,015,519 bytes,
 SHA-256 `a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9`, version
-`2026.10.05`. It is published as release `knowledge-essentials-2026.10.05` with its
-`OVERPASS-LOCK.json` and `SHA256SUMS` (the raw cache is the `2026.10.02` one), and Field Atlas 1.4.0
+`2026.10.05`. It is hosted on Hugging Face; the GitHub release `knowledge-essentials-2026.10.05`, with its
+`OVERPASS-LOCK.json` and `SHA256SUMS` (the raw cache is the `2026.10.02` one), is kept for older app versions, and Field Atlas 1.4.0
 offers this version.
 
 The first full build failed: the coverage summary listed every type label, which exceeded the
@@ -317,8 +325,9 @@ adds the vectors. The `.fapack` (`crypto-ethereum`, version `2026.10.05`) is 77,
 SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its licence field is
 `CC0-1.0 AND CC-BY-SA-4.0 AND LicenseRef-US-Government-Work AND MIT`. The build writes
 `ATTRIBUTION.txt` (the Wikipedia revision list and change notice) and `sources.lock.json` beside
-the pack. It is published as release `knowledge-crypto-ethereum-2026.10.05` with both files and
-`SHA256SUMS`, and Field Atlas 1.4.0 offers it as Cryptography & Ethereum.
+the pack. The pack and both files are hosted on
+[Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/main/crypto-ethereum/2026.10.05); the GitHub release
+`knowledge-crypto-ethereum-2026.10.05` is kept for older app versions. Field Atlas 1.4.0 offers it as Cryptography & Ethereum.
 
 ## Biology & longevity (October 13)
 

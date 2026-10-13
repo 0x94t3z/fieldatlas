@@ -45,6 +45,11 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 A collection installed in a newer version takes over from the older one, which stays installed
 and switched off until you delete it in Library.
 
+Collections download from Hugging Face, from [Field Atlas Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge)
+and [Field Atlas Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia). To set up a phone without a
+connection, save a `.fapack` from there on another device and import it in setup. The knowledge
+files on GitHub releases are kept only for Field Atlas 1.3.0 and older.
+
 
 Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download was checked on a Redmi 13C for this release (1.40 GB in about 11 minutes); the pack import remains the way to set up a phone that cannot download.
 
