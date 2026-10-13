@@ -110,6 +110,29 @@ class NearbyVenueTest {
         assertEquals(listOf(sushi), result.sources)
     }
 
+    @Test fun walkingWordsAskAboutThePhonesPosition() {
+        assertTrue(VenueLookup.isNearMe("need sunscreen and some painkillers, is there a pharmacy or drugstore I can walk to from here?"))
+        assertTrue(VenueLookup.isNearMe("it's pouring with rain. any museum or gallery within walking distance of me?"))
+        // Walking distance of a named place is that place, not the phone's position.
+        assertFalse(VenueLookup.isNearMe("any good museums within walking distance of the Louvre in Paris?"))
+    }
+
+    @Test fun sightsNearMeAreAskedOfTheCityThePhoneIsIn() {
+        assertTrue(VenueLookup.asksGuideKind("any museum or gallery within walking distance of me?"))
+        assertFalse(VenueLookup.asksGuideKind("is there a pharmacy I can walk to from here?"))
+        assertEquals("it's pouring with rain. any museum or gallery in Stockholm?",
+            VenueLookup.inCity("it's pouring with rain. any museum or gallery within walking distance of me?", "Stockholm"))
+        assertEquals("museums in Lyon?", VenueLookup.inCity("museums near me?", "Lyon"))
+        assertFalse(VenueLookup.isNearMe(VenueLookup.inCity("any museum within walking distance of me?", "Stockholm")))
+    }
+
+    @Test fun tripWordsAndTimesAreNotReportedAsMissingFromListings() {
+        // "It's 11pm and I'm starving": no listing is found by a time, so none is reported missing.
+        val late = VenueLookup.nearbyAnswer("It's 11pm and I'm starving. Anywhere still serving food near where I am?",
+            listOf(NearbyPlace(corner, 0.35), NearbyPlace(nearFully, 0.8)), 15.0)
+        assertFalse(late.answer, late.answer.contains("None of these saved listings mentions"))
+    }
+
     @Test fun wordsNoListingCarriesDoNotEmptyTheArea() {
         // "hungry, any good local places that aren't too expensive?": no listing says "hungry" or
         // "expensive", so the places nearby that fit the rest are listed and the gap is stated.

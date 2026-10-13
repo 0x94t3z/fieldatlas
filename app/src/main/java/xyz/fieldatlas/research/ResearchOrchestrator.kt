@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import xyz.fieldatlas.inference.InferenceGateway
 
@@ -344,6 +345,16 @@ class ResearchOrchestrator(
                     // "Pharmacy open now near me" at night: six closed pharmacies close by are not
                     // an answer while the wider circle may hold one that is open.
                     if (result.sources.size >= NEARBY_ENOUGH && result.openNow != 0) break
+                }
+                // Museums and sights are travel-guide listings without map positions: answer them from
+                // the city the mapped places around the phone are filed under.
+                if (point != null && result?.sources.isNullOrEmpty() && VenueLookup.asksGuideKind(question)) {
+                    VenueLookup.cityOf(retriever.nearby(point, WHERE_RADII_KM.last(), NEARBY_CANDIDATES))?.let { city ->
+                        // This run hands over to the city question, which takes the run itself.
+                        activeRun.set(false)
+                        emitAll(research(VenueLookup.inCity(question, city), resultLimit, contextTokenBudget, maxOutputTokens))
+                        return@flow
+                    }
                 }
                 _searchProgress.value = 1.0
                 val retrievedAt = monotonicMillis()

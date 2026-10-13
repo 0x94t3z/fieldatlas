@@ -142,7 +142,11 @@ object VenueLookup {
         "budget", "pricey", "local", "locals", "authentic", "typical", "traditional", "famous", "popular", "decent",
         "tasty", "delicious", "quick", "must", "see", "go", "worthwhile", "recommended", "top", "favourite", "favorite",
         "looking", "want", "like", "need", "get", "kids", "kid", "children", "child", "family", "friends", "people",
-        "tourists", "tourist", "touristy", "trap", "traps", "rain", "rainy", "raining", "weather",
+        "tourists", "tourist", "touristy", "trap", "traps", "rain", "rainy", "raining", "pouring", "storm", "stormy", "wet", "weather",
+        // Who is travelling and for how long: "travelling with a 4 and a 7 year old … apart from the
+        // beach", "which nights are they on". The gap note once listed "travelling", "old", "apart".
+        "travelling", "traveling", "travel", "old", "year", "years", "apart", "besides", "except", "other", "else",
+        "going", "nights", "late", "early", "hour", "hours", "weeks", "month", "months", "fun", "do", "doing",
     )
 
     /**
@@ -399,7 +403,8 @@ object VenueLookup {
         if (request.essential != null) return emptyList()
         val ignored = if (destinationRequired) word.findAll(destination.orEmpty().lowercase()).map { it.value }.toSet() else nearbyWords
         return FtsQuery.from(question)?.terms.orEmpty().filterNot { term ->
-            term in genericWords || term in ignored || term == request.diet
+            // "11pm", "4": a time or a number is not a word a listing is found by.
+            term in genericWords || term in ignored || term == request.diet || term.any(Char::isDigit)
         }
     }
 
@@ -558,9 +563,16 @@ object VenueLookup {
 
     // Ways people point at where they are standing: by distance ("nearest", "close to me"), by
     // place ("around here", "where I am") or by their phone's position ("my location").
+    /**
+     * The phone's position in walking words: "a pharmacy I can walk to from here", "any museum within
+     * walking distance of me". Walking distance of somewhere named ("of the Louvre") is that place.
+     */
+    private const val WALKABLE = "(?:walk(?:ing)?|get) (?:to )?from here|from here|" +
+        "(?:within )?walking distance(?! (?:of|from) (?!me\\b|here\\b|us\\b))(?: (?:of|from) (?:me|here|us))?"
+
     private val nearMePhrase = Regex(
         "(?i)\\b(nearest|closest|nearby|(?:near|close to|around) (?:me|here)|where i am|" +
-            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city))\\b",
+            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city)|$WALKABLE)\\b",
     )
     private val foodWords = Regex("(?i)\\b(food|eat|eating|meals?|dinner|lunch|breakfast)\\b")
     private val nearbyWords = setOf(
@@ -571,7 +583,7 @@ object VenueLookup {
 
     private val selfPhrase = Regex(
         "(?i)\\b((?:near|close to|around) (?:me|here)|where i am|" +
-            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city))\\b",
+            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city)|$WALKABLE)\\b",
     )
     private val namedPlace = Regex("(?i)\\b(?:in|at|around|near)\\s+(?!me\\b|here\\b|my\\b|the city i)\\p{L}")
 
@@ -774,6 +786,19 @@ object VenueLookup {
     }
 
     /** The city the map files the nearest places under: where this phone is. */
+    /**
+     * Museums, sights and things to do are travel-guide listings, which carry no map index: a
+     * "museum within walking distance of me" finds nothing by position even in Stockholm. Those
+     * kinds are answered from the city the phone is in instead ([inCity]).
+     */
+    fun asksGuideKind(question: String): Boolean =
+        KINDS.any { kind -> kind.categories.any { it == "See" || it == "Do" } && kind.words.containsMatchIn(question) }
+
+    /** The question with its "near me" words replaced by the city the phone is in. */
+    fun inCity(question: String, city: String): String =
+        question.replace(nearMePhrase, " ").replace(Regex("\\s+(?:of|to)\\s+(?=[?.!,]|$)"), " ")
+            .replace(Regex("\\s+([?.!,])"), "$1").trim().trimEnd('?', '.', '!') + " in $city?"
+
     internal fun cityOf(places: List<NearbyPlace>): String? = places.sortedBy { it.distanceKm }.take(15)
         .mapNotNull { field(it.evidence.text, "Destination")?.substringBefore('/')?.takeIf(String::isNotBlank) }
         .groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
