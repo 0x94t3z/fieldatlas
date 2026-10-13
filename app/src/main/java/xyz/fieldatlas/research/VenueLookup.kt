@@ -699,7 +699,11 @@ object VenueLookup {
                 city != null -> append("You're in or near **").append(escapeMarkdown(city)).append("**, where the map files the places nearest you.")
                 else -> append("No saved map collection has places near you, so I can't name the town.")
             }
-            append("\n\nYour position: ").append(coordinates(point)).append(", from this phone's GPS, which works without a connection.")
+            append("\n\nYour position: ").append(coordinates(point)).append(when (point.fromGps) {
+                true -> ", from this phone's GPS, which works without a connection."
+                false -> ", from the phone's location service (GPS had no fix, so Android used Wi-Fi or mobile networks)."
+                null -> ", from this phone's location."
+            })
             if (landmarks.isNotEmpty()) {
                 append("\n\nNearest mapped places:\n\n")
                 landmarks.forEachIndexed { index, place ->

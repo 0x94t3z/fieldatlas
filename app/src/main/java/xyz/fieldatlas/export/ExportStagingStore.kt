@@ -25,6 +25,12 @@ class ExportStagingStore(private val directory: File) {
         return true
     }
 
+    /** A cancelled save: the staged copy (which can hold the latest question) is not kept. */
+    fun discard(name: String) {
+        pendingFile(name).delete()
+        File(directory, "${pendingFile(name).name}.tmp").delete()
+    }
+
     private fun pendingFile(name: String): File {
         require(name.matches(Regex("[a-z0-9-]+"))) { "Invalid export name" }
         return File(directory, "$name.pending")

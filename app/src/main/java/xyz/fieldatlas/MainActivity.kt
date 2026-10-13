@@ -176,14 +176,14 @@ class MainActivity : ComponentActivity() {
             ) { uri ->
                 if (uri != null) transferExport(
                     scope, exportStore, DIAGNOSTICS_EXPORT, uri, "Diagnostics exported",
-                )
+                ) else exportStore.discard(DIAGNOSTICS_EXPORT)
             }
             val benchmarkExporter = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.CreateDocument("application/json"),
             ) { uri ->
                 if (uri != null) transferExport(
                     scope, exportStore, BENCHMARK_EXPORT, uri, "Benchmark evidence exported",
-                )
+                ) else exportStore.discard(BENCHMARK_EXPORT)
             }
 
             if (showBenchmark) {

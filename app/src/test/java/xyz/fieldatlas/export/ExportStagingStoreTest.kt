@@ -49,4 +49,13 @@ class ExportStagingStoreTest {
             directory.deleteRecursively()
         }
     }
+
+    @Test fun aCancelledSaveLeavesNoCopy() {
+        val dir = kotlin.io.path.createTempDirectory("export").toFile()
+        val store = ExportStagingStore(dir)
+        store.stage("diagnostics", "latest question".toByteArray())
+        store.discard("diagnostics")
+        org.junit.Assert.assertTrue(dir.listFiles().orEmpty().isEmpty())
+        dir.deleteRecursively()
+    }
 }

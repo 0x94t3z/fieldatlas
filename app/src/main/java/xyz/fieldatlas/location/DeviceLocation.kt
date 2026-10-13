@@ -22,7 +22,7 @@ import xyz.fieldatlas.research.GeoPoint
 
 /**
  * The phone's position for "near me" questions, from Android's own LocationManager. GPS works
- * without a network or Google Play Services; nothing here sends the position anywhere.
+ * without a network or Google Play Services and is asked first; the app sends the position nowhere.
  *
  * A fresh fix is preferred. A recent last-known fix is used if no fix arrives in time, but an
  * old one is not: a traveller's position from yesterday would answer for the wrong city.
@@ -50,15 +50,21 @@ class DeviceLocation(private val context: Context) {
             add(LocationManager.PASSIVE_PROVIDER)
         }.filter { runCatching { manager.isProviderEnabled(it) }.getOrDefault(false) }
 
+        // A position the phone already has is read, not requested: nothing is sent anywhere.
         val recent = providers.mapNotNull { provider ->
             runCatching { manager.getLastKnownLocation(provider) }.getOrNull()
         }.maxByOrNull { it.elapsedRealtimeNanos }
         if (recent != null && ageMillis(recent) <= FRESH_MILLIS) return recent.toPoint()
 
-        // Every active provider is asked at once and the first fix wins: offline, the fused
-        // provider may wait on GPS anyway, and a cold GPS indoors can take most of a minute.
-        val active = providers.filter { it != LocationManager.PASSIVE_PROVIDER }
-        val fresh = if (active.isEmpty()) null else withTimeoutOrNull(FIX_TIMEOUT_MILLIS) {
+        // GPS first, alone: it works offline and sends nothing. The network-assisted providers (on many
+        // phones they look up Wi-Fi and cell towers with an online service) are asked only when GPS has no
+        // fix in time, indoors for instance, and the answer then says the position did not come from GPS.
+        if (LocationManager.GPS_PROVIDER in providers) {
+            withTimeoutOrNull(GPS_FIRST_MILLIS) { requestFix(manager, LocationManager.GPS_PROVIDER) }?.let { return it.toPoint() }
+            recent?.takeIf { ageMillis(it) <= USABLE_MILLIS }?.let { return it.toPoint() }
+        }
+        val active = providers.filter { it != LocationManager.PASSIVE_PROVIDER && it != LocationManager.GPS_PROVIDER }
+        val fresh = if (active.isEmpty()) null else withTimeoutOrNull(FIX_TIMEOUT_MILLIS - GPS_FIRST_MILLIS) {
             callbackFlow {
                 val requests = active.map { provider -> launch { send(requestFix(manager, provider)) } }
                 // Once every provider has answered, even with no fix, there is nothing left to wait for.
@@ -91,11 +97,14 @@ class DeviceLocation(private val context: Context) {
     private fun ageMillis(location: Location) =
         (SystemClock.elapsedRealtimeNanos() - location.elapsedRealtimeNanos) / 1_000_000L
 
-    private fun Location.toPoint(): GeoPoint? = runCatching { GeoPoint(latitude, longitude, ageMillis(this) / 60_000L) }.getOrNull()
+    private fun Location.toPoint(): GeoPoint? =
+        runCatching { GeoPoint(latitude, longitude, ageMillis(this) / 60_000L, fromGps = provider == LocationManager.GPS_PROVIDER) }.getOrNull()
 
     private companion object {
         const val FRESH_MILLIS = 10 * 60 * 1000L
         const val USABLE_MILLIS = 2 * 60 * 60 * 1000L
         const val FIX_TIMEOUT_MILLIS = 45_000L
+        // Long enough for a warm GPS fix outdoors; a cold start indoors falls back to the other providers.
+        const val GPS_FIRST_MILLIS = 25_000L
     }
 }

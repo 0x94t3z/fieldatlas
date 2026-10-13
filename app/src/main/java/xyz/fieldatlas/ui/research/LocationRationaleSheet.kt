@@ -52,7 +52,8 @@ fun LocationRationaleSheet(onAllow: () -> Unit, onNameCity: () -> Unit) {
                 Text("Field Atlas reads your position from the phone's GPS to list the closest saved places.",
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Reason(FieldAtlasIcons.Offline, "Works offline. GPS needs no connection or Google services.")
+            Reason(FieldAtlasIcons.Offline, "Works offline: GPS needs no connection or Google services. If GPS has no fix, " +
+                "Android may use Wi-Fi or mobile networks instead, which can involve its location service.")
             Reason(FieldAtlasIcons.Lock, "Your location never leaves this phone. History keeps the answer, which names the nearby places.")
             Reason(FieldAtlasIcons.Info, "Asked only for \"near me\" questions. Change it any time in Android settings.")
             Button(onClick = onAllow, shape = FieldAtlasButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {

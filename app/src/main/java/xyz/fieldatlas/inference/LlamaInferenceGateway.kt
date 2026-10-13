@@ -113,7 +113,8 @@ class LlamaInferenceGateway internal constructor(
                 engine.setSampler(if (seed >= 0) seed else -1, repeatPenalty)
                 val generated = StringBuilder()
                 try {
-                    engine.sendUserPrompt(prompt, maxTokens, prompt.take(savedPrefixChars.coerceIn(0, prompt.length))).collect { token ->
+                    val safe = withoutControlTokens(prompt)
+                    engine.sendUserPrompt(safe, maxTokens, safe.take(savedPrefixChars.coerceIn(0, safe.length))).collect { token ->
                         emit(token)
                         generated.append(token)
                         if (generated.length >= MIN_LOOP_CHARS * 2 && hasDuplicatedTail(generated)) {
@@ -162,7 +163,7 @@ class LlamaInferenceGateway internal constructor(
     }
 
     override suspend fun embed(text: String): FloatArray? = withContext(Dispatchers.Default) {
-        runCatching { engine.embed(text) }.getOrNull()
+        runCatching { engine.embed(withoutControlTokens(text)) }.getOrNull()
     }
 
     /** True when the text ends with two consecutive identical copies of a >= MIN_LOOP_CHARS block. */
@@ -196,3 +197,13 @@ class LlamaInferenceGateway internal constructor(
         const val DEFAULT_RESET_PROMPT = "You are a careful offline assistant."
     }
 }
+
+/**
+ * The native side reads the chat template's control tokens in the prompt text ("<|im_end|>",
+ * "<|im_start|>system", "<think>"), so text from an attached file, a saved passage or the question
+ * could end the user's turn and write instructions of its own. The app's own prompts contain none;
+ * any that arrive are given a look-alike first character of the same length, so cached prompt offsets
+ * still line up and the text is read as text.
+ */
+internal fun withoutControlTokens(prompt: String): String =
+    prompt.replace(Regex("<(?=\\|[^\\s<>|]{1,40}\\|>)|<(?=/?think>)"), "\u2039")

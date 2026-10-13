@@ -6,8 +6,12 @@ import kotlin.math.min
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/** [ageMinutes] is how old the phone's fix was when it was read; 0 for a fresh fix or a given point. */
-data class GeoPoint(val lat: Double, val lon: Double, val ageMinutes: Long = 0) {
+/**
+ * [ageMinutes] is how old the phone's fix was when it was read; 0 for a fresh fix or a given point.
+ * [fromGps] says whether the satellite receiver gave it (true), a network-assisted provider (false), or
+ * nobody knows (null), so an answer can say where the position came from.
+ */
+data class GeoPoint(val lat: Double, val lon: Double, val ageMinutes: Long = 0, val fromGps: Boolean? = null) {
     init {
         require(lat in -90.0..90.0 && lon in -180.0..180.0) { "coordinates out of range" }
     }

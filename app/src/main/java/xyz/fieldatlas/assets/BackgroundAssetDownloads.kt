@@ -52,6 +52,10 @@ class BackgroundAssetDownloads(
         if (mutableState.value.active) return
         scope.launch(Dispatchers.IO) { runCatching { container.discardStaleKnowledgeDownloads() } }
         val kind = preferences.getString(PENDING_KIND, null) ?: return
+        // The user agreed to this download once, on the connection they had then. Opening the app later on
+        // mobile data or roaming must not start gigabytes again: there it waits for "Resume download".
+        val connectivity = context.getSystemService(android.net.ConnectivityManager::class.java)
+        if (connectivity == null || connectivity.activeNetwork == null || connectivity.isActiveNetworkMetered) return
         when (kind) {
             AssetDownloadKind.MODEL.name -> {
                 // Versions before the optional larger model saved no id; theirs was the recommended one.
