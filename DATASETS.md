@@ -4,7 +4,7 @@
 
 Field Atlas 1.4.0 lists these collections in setup and Library (`app/src/main/assets/knowledge/catalog.json`).
 Each is an optional `.fapack` download, checked against the size and SHA-256 below before it is installed.
-The field test and held-out measurements in [docs/evaluation.md](docs/evaluation.md) ran with exactly these files.
+The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-build-on-fresh-questions-october-13)) ran with exactly these files, except the rerun of set 4 on the 7 October build, which used that build's own collections; earlier sections of the evaluation used the collections of their time.
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
@@ -76,7 +76,7 @@ Wikipedia defines a subject but rarely explains its causes or mechanisms.
 
 **Build of 6 October 2026.** 49,822 articles, 469,919 section passages, from a spool of
 1,333,975,068 bytes (SHA-256 `505c820cd21824d38aac9ab05d6b083e1e269ace739cffdd8bd4e2ea94fe1386`). The `.fapack` (`wikipedia-en-vital`, version
-`2026.10.06`) is 1,389,700,139 bytes, SHA-256 `7f824902de3769c26519d050dab4a3f0c0dd90fe62c3eb54316818f0e2655271`. Nine of the 49,831 titles were disambiguation pages or had no lead and were left out. Graded blind side by side with the same build without it, reading these sections raised the fork's 31 lookup questions from 45% to 55% of the reference and our 56 development questions from 57% to 59%, so the collection is offered as recommended and the app reads it by default when installed; it is released as [knowledge-wikipedia-en-vital-2026.10.06](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-wikipedia-en-vital-2026.10.06).
+`2026.10.06`) is 1,389,700,139 bytes, SHA-256 `7f824902de3769c26519d050dab4a3f0c0dd90fe62c3eb54316818f0e2655271`. Nine of the 49,831 titles were disambiguation pages or had no lead and were left out. Graded blind side by side with the same build without it, reading these sections raised the fork's 31 lookup questions from 45% to 55% of the reference and our 56 development questions from 57% to 59%, so the collection was offered as recommended in earlier 1.4.0 builds; it is now part of the Encyclopedia. It is released as [knowledge-wikipedia-en-vital-2026.10.06](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-wikipedia-en-vital-2026.10.06).
 
 ## Emergency guides (bundled)
 
@@ -159,8 +159,7 @@ They were published on 2 October as releases `knowledge-simplewiki-2025.12.29` a
 `knowledge-wikivoyage-guides-2025.12.29`, each carrying the `.fapack`, `SOURCE.json`, the
 spool and its `.meta.json` (Wikimedia keeps CirrusSearch dumps for only a few weeks), and
 `SHA256SUMS`. The flat guides release was superseded by the guides-by-section collection
-(`knowledge-wikivoyage-guides-2026.09.01`) and removed from GitHub after 1.4.0 was published; the
-Encyclopedia release stays.
+(`knowledge-wikivoyage-guides-2026.09.01`); it stays on GitHub because Field Atlas 1.3.0 downloads from it.
 
 ## Broader travel places (keyword-only builder)
 
@@ -224,7 +223,7 @@ Singapore 102, Chiang Mai 85. The `.fapack` is 40,088,517 bytes, SHA-256
 two builds from the same cache were byte-identical. The cache is 88 MB of raw Overpass JSON.
 Data timestamps run from `2026-10-02T00:35:39Z` (vegan queries, `overpass-api.de`) to
 `2026-10-02T03:39:03Z` (`place=town`, fetched from the `maps.mail.ru` Overpass mirror after
-the main server refused further connections). It was published as release `knowledge-vegan-places-2026.10.02` (superseded by `knowledge-vegan-places-2026.10.05`, which carries the same cache, and removed from GitHub after 1.4.0 was published), carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
+the main server refused further connections). It was published as release `knowledge-vegan-places-2026.10.02` (superseded by `knowledge-vegan-places-2026.10.05`, which carries the same cache; kept on GitHub because Field Atlas 1.3.0 downloads from it), carrying the `.fapack`, `OVERPASS-LOCK.json`, the raw-response cache (`osm-vegan-overpass-cache-2026.10.02.tar.gz`, 18.5 MB) and `SHA256SUMS`, and the in-app download catalog lists it.
 
 **Rebuild, 5 October 2026.** Same Overpass cache, with the address-city rule above: a
 restaurant whose address says Malmö was filed under Copenhagen, 28 km away in another country.
@@ -282,8 +281,8 @@ about 2 GB of memory on an Apple Silicon Mac). All 31 Overpass responses came fr
 `2026-10-02T16:29:06Z`; the raw cache is 1.0 GB, or 180 MB compressed. It was published on 3 October as release
 `knowledge-essentials-2026.10.02`, carrying the `.fapack`, `OVERPASS-LOCK.json`, the cache
 (`osm-essentials-overpass-cache-2026.10.02.tar.gz`) and `SHA256SUMS`; superseded by
-`knowledge-essentials-2026.10.05`, which carries the same cache, and removed from GitHub after
-1.4.0 was published.
+`knowledge-essentials-2026.10.05`, which carries the same cache; kept on GitHub because Field
+Atlas 1.3.0 downloads from it.
 
 **Rebuild, 5 October 2026.** Same cache, with the vegan-places address-city rule. 12,823
 places changed destination, among them 306 from Quezon City to Manila, 247 from El Alto to La
@@ -332,8 +331,8 @@ the pack. The pack and both files are hosted on
 ## Biology & longevity (October 13)
 
 A focused biology and health collection, replacing the fork's 1.2.0 pack in the download list.
-It holds 9,260 passages from 6,738 documents and uses the same keyword and native search as the
-other collections; it has no vectors.
+It holds 9,260 passages from 6,738 documents and uses the same keyword and native (Leviathan)
+search as the Encyclopedia; it has no vectors.
 
 - **OpenStax Biology 2e** (CC BY 4.0), read at a pinned revision. Each textbook section is kept
   with its own headings; figures, captions, exercises, equations and inline footnotes are left out.

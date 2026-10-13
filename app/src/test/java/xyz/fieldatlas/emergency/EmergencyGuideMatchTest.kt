@@ -345,6 +345,118 @@ class EmergencyGuideMatchTest {
         assertEquals("anaphylaxis", match("He was stung by a bee and his throat is swelling"))
     }
 
+    @Test fun numbFingersWithAnAcuteEmergencyOpenThatEmergency() {
+        // A cold sweat is a heart attack sign, not cold weather; "skin" is not skiing; ice on a sprain is not the cold.
+        assertEquals("heart-attack", match("My dad has chest pain and a cold sweat and his fingers are numb, what should I do?"))
+        assertEquals("stroke", match("My mum's face is drooping, her skin is pale and her fingers are numb, what do I do?"))
+        assertEquals("fractures-sprains", match("I sprained my wrist and put ice on it, now my fingers are numb, what should I do?"))
+        // In real cold, the acute injury still leads; frostbite can follow it.
+        assertEquals("head-injury", match("I slipped on the ice and hit my head and now my fingers are numb, what should I do?"))
+        assertEquals("fractures-sprains", match("I fell skiing and my arm looks broken and my fingers are numb, what do I do?"))
+        // Frostbite named outright still leads.
+        assertEquals("frostbite", match("I think I have frostbite after skiing, my fingers are numb and waxy, what do I do?"))
+    }
+
+    @Test fun fallingThroughIceIsAWaterRescueFirst() {
+        val q = "Someone just fell through the ice on a frozen lake and is clinging to the edge. How do we get them out safely, and what do we do once they're out?"
+        assertEquals("drowning", match(q))
+        // The warming steps always come with the rescue.
+        for (it in listOf(q, "my son fell through the ice on the pond, we pulled him out, he's shivering and confused, what do I do",
+            "he fell through the ice but he's out now and shivering, help")) {
+            assertTrue(it, EmergencyGuideMatch.pack(it, book.guides).map { g -> g.id }.containsAll(listOf("drowning", "hypothermia")))
+        }
+    }
+
+    @Test fun shiveringAndConfusionWithAFeverIsNotHypothermia() {
+        listOf("my mom has a high fever and she's shivering and confused, what should I do",
+            "my grandma has a fever of 39, she is shivering and confused",
+            "she has the flu, shivering and confused, what should I do",
+            "he took too many pills and is shivering and confused",
+            "he has malaria symptoms, shivering and confused, help",
+        ).forEach { assertNotEquals(it, "hypothermia", match(it)) }
+    }
+
+    @Test fun venomousMarineAndOtherStingsAreNotBurns() {
+        listOf("portuguese man of war sting burns what do I do", "man-o-war sting burns help",
+            "I got a lionfish sting and it burns, what do I do?", "stonefish sting burns, help",
+            "sea anemone sting burns what do I do", "weever fish sting burns", "catfish sting burns",
+            "caterpillar sting burns", "horsefly bite burns", "leech bite burns", "centipede bite burns what do I do",
+            "fire coral burned my leg while snorkeling, what do I do",
+        ).forEach { assertNotEquals(it, "burns", match(it)) }
+        // A real heat burn while handling fish is still a burn.
+        assertEquals("burns", match("I burned my hand on the stove while cooking catfish, what should I do?"))
+    }
+
+    @Test fun clearFrostbiteSignsKeepFrostbiteWithAnotherInjury() {
+        assertEquals("frostbite", match("my toes are white, hard and numb after snowshoeing and I twisted my ankle"))
+        assertEquals("frostbite", match("my fingers are white hard and numb and I sprained my wrist skiing"))
+        assertTrue(EmergencyGuideMatch.pack("my fingers are white and numb in the cold and I cut my finger, it's bleeding", book.guides)
+            .any { it.id == "frostbite" } || match("my fingers are white and numb in the cold and I cut my finger, it's bleeding") == "frostbite")
+    }
+
+    @Test fun moreColdInjuriesFindFrostbite() {
+        assertEquals("frostbite", match("we lost power in the ice storm and my toes are white and numb, what do I do"))
+        assertEquals("frostbite", match("I left an ice pack on my knee too long and now the skin is white, hard and numb"))
+    }
+
+    @Test fun anAllergicPersonWhoseThroatClosesIsAnaphylaxis() {
+        assertEquals("anaphylaxis", match("she's allergic to bees, got stung and now she's choking and can't breathe"))
+        assertEquals("anaphylaxis", match("my kid is allergic to peanuts, his face is swollen and he's choking"))
+    }
+
+    @Test fun aFreezingTemperatureIsTheColdFrostbiteNeeds() {
+        assertEquals("frostbite", match("My toes are numb, white and waxy after a night camping out at 5°F, what should I do?"))
+        assertEquals("frostbite", match("My fingers are numb and white after hours outside at −15 °C, what should I do?"))
+        assertEquals("frostbite", match("My fingers are numb and white after sleeping in a tent at 10 degrees F, what do I do?"))
+        assertTrue(EmergencyGuideMatch.freezingTemperature("it was -5 C last night"))
+        assertFalse(EmergencyGuideMatch.freezingTemperature("it was 40°F last night"))
+        assertFalse(EmergencyGuideMatch.freezingTemperature("it is 25°C and sunny"))
+    }
+
+    @Test fun burnsThatStingOrAreSmallAreStillBurns() {
+        assertEquals("burns", match("I burned my finger on a candle and it really stings, what should I do?"))
+        assertEquals("burns", match("I burned my hand a bit on the barbecue grill, what should I do?"))
+        assertEquals("burns", match("My toddler grabbed my hair straightener and burned her palm, it's blistering and stinging"))
+        assertEquals("burns", match("My son touched the motorbike exhaust and burned his leg, it stings badly, what do I do?"))
+        // A sting that burns is still a sting.
+        assertNotEquals("burns", match("Got stung by a jellyfish and it burns like crazy, what do I do?"))
+    }
+
+    @Test fun aStingWithBreathingOrSwellingSignsIsAnaphylaxis() {
+        assertEquals("anaphylaxis", match("My son got stung by a wasp and now he is wheezing and his lips are swollen, what do I do?"))
+        assertEquals("anaphylaxis", match("My friend was stung by a bee and is having trouble breathing, what should I do?"))
+        assertEquals("anaphylaxis", match("Got stung by a bee, my face and tongue are swollen and I feel dizzy"))
+        assertEquals("anaphylaxis", match("I got stung by a bee and now I can't breathe"))
+        // A plain sting stays the sting guide.
+        assertEquals("insect-stings", match("I got stung by a wasp on my hand and it's red, what do I do?"))
+    }
+
+    @Test fun aMarineOrPlantStingThatBurnedTheSkinIsNotABurn() {
+        listOf(
+            "I got stung by a jellyfish and it burned my leg, what do I do?",
+            "Stung by a jellyfish, it burned my skin badly, help",
+            "Jellyfish sting burnt my arm, what should I do?",
+            "Brushed against nettles and it burned my legs, what do I do?",
+            "I touched a stinging nettle and it burned my hand, what do I do?",
+            "I got a sting on my foot at the beach and it burns, what do I do?",
+            "The bite on my leg burns and is swollen, what do I do?",
+        ).forEach { assertNotEquals(it, "burns", match(it)) }
+    }
+
+    @Test fun chokingOnFoodStaysChokingWhateverTheAllergy() {
+        assertEquals("choking", match("My son has a peanut allergy and is choking on a grape, he can't breathe, what do I do?"))
+        assertEquals("choking", match("My son with a bee sting allergy is choking on food and can't breathe"))
+    }
+
+    @Test fun skatingAndIceFishingAreTheColdForFrostbite() {
+        assertEquals("frostbite", match("My fingers are white and numb after ice skating, what do I do?"))
+        assertEquals("frostbite", match("My fingers are white and numb after ice skating on the outdoor rink, what do I do?"))
+        assertEquals("frostbite", match("My fingers are white and numb after playing ice hockey on the pond, what do I do?"))
+        assertEquals("frostbite", match("My fingers are white and numb after ice fishing on the frozen lake all day, what do I do?"))
+        assertEquals("frostbite", match("My fingers are white and numb after ice fishing on the frozen pond, what do I do?"))
+        assertEquals("frostbite", match("My fingers are numb and white after my hands were in cold water while ice fishing"))
+    }
+
     @Test fun aPlacesTapWaterIsTravelAdviceNotWaterTreatment() {
         assertNull(match("Is it safe to drink tap water in Mexico City?"))
         assertNull(match("Can I drink the tap water in Lisbon?"))

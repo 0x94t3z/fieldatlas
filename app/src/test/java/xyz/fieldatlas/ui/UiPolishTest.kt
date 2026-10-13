@@ -27,6 +27,10 @@ class UiPolishTest {
         assertEquals("Sat–Sun, holidays 13:00–23:00", readableHours("Sa-Su,PH 13:00-23:00"))
         assertEquals("Sun closed", readableHours("Su off"))
         assertEquals("Open 24 hours", readableHours("24/7"))
+        // Guide text is not OpenStreetMap syntax: "We" is not Wednesday, "off" is not closed.
+        assertEquals("Mo-Fr 17:00–19:00 happy hour, 50% off drinks", readableHours("Mo-Fr 17:00-19:00 happy hour, 50% off drinks"))
+        assertEquals("We open at 9", readableHours("We open at 9"))
+        assertEquals("Mon–Fri 09:00–12:00, 13:00–18:00", readableHours("Mo-Fr 09:00-12:00,13:00-18:00"))
         // An unfamiliar rule is still shown, not dropped.
         assertEquals("sunrise–sunset", readableHours("sunrise–sunset"))
     }
@@ -47,6 +51,12 @@ class UiPolishTest {
         val adjacent = (parseAnswerMarkdown("Fire **112**[S1].").single() as MarkdownBlock.Paragraph).content
         assertEquals(listOf(MarkdownInline.Text("Fire "), MarkdownInline.Strong(listOf(MarkdownInline.Text("112"))),
             MarkdownInline.Text("."), MarkdownInline.Citation(1)), adjacent)
+    }
+
+    @Test fun aFullStopAfterTwoCitationsStaysAfterThem() {
+        val inlines = (parseAnswerMarkdown("Water boils at 100 °C [S1], [S2].").single() as MarkdownBlock.Paragraph).content
+        assertEquals(listOf(MarkdownInline.Text("Water boils at 100 °C,"), MarkdownInline.Citation(1), MarkdownInline.Text(" "),
+            MarkdownInline.Citation(2), MarkdownInline.Text(".")), inlines)
     }
 
     @Test fun sourceLabelsAndVersionsReadCleanly() {

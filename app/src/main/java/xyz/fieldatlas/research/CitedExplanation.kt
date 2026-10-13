@@ -8,13 +8,64 @@ internal object CitedExplanation {
 
     const val PARTIAL = "_The selected sources don't cover every part of this question; the answer gives only what they state._"
 
+    // "The provided evidence", "these sources": the excerpts given to the model. "Plant sources do
+    // not contain B12" is a finding about the world, not a remark about the excerpts.
     private val gapStatement = Regex("(?i)INSUFFICIENT_EVIDENCE|" +
-        "\\b(?:evidence|excerpts?|sources?|passages?|context)\\b[^.!?]{0,60}?\\b(?:does|do|did)\\s*(?:not|n't)\\s+" +
-        "(?:contain|include|provide|mention|specify|state|say|give|address|cover|discuss|offer)\\b|" +
-        "\\bcannot be (?:determined|found|answered|inferred|identified)\\s+(?:from|based on|using|with)\\b|" +
+        "(?:\\b(?:(?:the|these|this|those|both|all|provided|selected|given|saved|available|cited|retrieved|supplied|relevant|" +
+        "above|current|research|search|offline|local|reference|attached|listed|my|your|two|three|four|\\d+)\\s+){1,4}|^\\s*(?:(?:unfortunately|however|sadly|also|but|and|still|again)\\b,?\\s+)?)" +
+        // The excerpts are the subject of the "do not": "the sources do not mention X", not "according
+        // to the sources, the ticket does not include X" or "in this context, vaccines do not contain".
+        "(?:evidence|excerpts?|sources?|passages?|context|text)\\s+(?:\\[S[0-9]+](?:\\s*(?:through|to|and|,)\\s*\\[S[0-9]+])*\\s+)?" +
+        // …or of a shared predicate: "the provided sources list hospitals but do not mention pharmacies".
+        "(?:[\\p{L}]+\\s+|[^.!?,;]{0,80}?\\b(?:but|and|yet)\\s+|" +
+        // …or described first: "the provided excerpt on flight cabin pressure does not contain…".
+        "(?:on|about|regarding|concerning|for|from|of|in)\\s+[^.!?,;]{0,60}?\\s+)?(?:does|do|did)\\s*(?:not|n't)\\s+" +
+        "(?:contain|include|provide|mention|specify|state|say|give|address|cover|discuss|offer)\\b" +
+        // "The two sources do not give the same time" reports a disagreement, which is an answer.
+        "(?!\\s+(?:the same|identical|consistent|matching|a consistent)\\b)|" +
+        "\\bcannot be (?:determined|found|answered|inferred|identified)\\s+(?:from|based on|using|with)\\s+" +
+        "(?:(?:only|the|these|this|those|provided|selected|given|available|cited|saved|retrieved)\\s+){0,4}" +
+        "(?:evidence|excerpts?|sources?|passages?|context|information|text|data)\\b|" +
         "\\b(?:there is|there's)\\s+no\\s+(?:information|mention|data|details?)\\b[^.!?]{0,60}\\b(?:evidence|excerpts?|sources?|passages?)\\b|" +
-        "\\bnone of (?:the|these)\\s+(?:sources|excerpts|passages)\\b")
+        "\\bnone of (?:the|these)\\s+(?:sources|excerpts|passages)\\b|\\bno answer can be (?:derived|determined|given|found)\\b")
     private val leadingCitations = Regex("^((?:\\[S[0-9]+]\\s*[,;]?\\s*)+)")
+    // After a gap, a clause break needs its comma and a turn word: "whether the pass has reopened yet"
+    // is one clause, and the "and" in "hours, prices, and transport" lists what is missing.
+    private val turn = Regex("(?i)[,;]\\s*(?:but|however|although|though|yet|while|whereas)\\b,?\\s*")
+    // Before a gap, the cited clause ends at a comma, semicolon or dash, or at "and"/"but".
+    private val beforeGap = Regex("(?i)(?:\\s*[,;—–]\\s*(?:(?:and|but|yet)\\s+)?|\\s+(?:and|but|yet)\\s+|\\s+-\\s+)$")
+    private val concessionWord = Regex("(?i)^\\s*(?:although|while|whilst|though|even though)\\s+")
+    // "Although the excerpts do not state X, the museum opens at 10:00 [S1]": the main clause after the comma.
+    private val leadingConcession = Regex("(?i)^\\s*(?:although|while|whilst|though|even though)\\b[^,]*,\\s*")
+    // "See [S1]" points at a source; it says nothing.
+    private val pointerWords = setOf("see", "refer", "to", "check", "consult", "according", "also", "please", "but", "and", "the",
+        "for", "details", "more", "information", "in", "it", "at", "that", "they", "them", "can", "could", "be", "found", "you",
+        "are", "is", "listed", "there", "here", "may", "might", "help", "look", "find", "shown", "given", "its", "this", "those",
+        "these", "mentioned", "available", "provided", "source", "sources", "excerpt", "excerpts")
+    private val citation = Regex("\\[S[0-9]+]")
+
+    /** The sentence without its gap clause: null when it states no gap, "" when the gap is all it
+     * says. "The evidence does not give a Sunday time, but the museum opens daily at 10:00 [S1]"
+     * keeps its cited second half. */
+    private fun withoutGapClause(sentence: String): String? {
+        val gap = gapStatement.find(sentence) ?: return null
+        fun answers(part: String) = citation.containsMatchIn(part) && gapStatement.find(part) == null &&
+            citation.replace(part, " ").lowercase().split(Regex("[^\\p{L}]+")).count { it.length > 1 && it !in pointerWords } >= 2
+        fun sentenceOf(part: String) = part.trim().trimEnd('.', ',', ';').replaceFirstChar { it.uppercaseChar() } + "."
+        leadingConcession.find(sentence)?.takeIf { gap.range.first < it.range.last }?.let { lead ->
+            val rest = sentence.substring(lead.range.last + 1)
+            // "While the excerpts do not mention Sunday, Monday or Tuesday hours, the museum…": where
+            // the concession ends is not certain, so nothing half a sentence long is shown.
+            val unclear = rest.substringBefore("[S").contains(',')
+            return if (!unclear && answers(rest)) sentenceOf(rest) else ""
+        }
+        // The cited clauses on either side of the gap: "The hostel has a rooftop bar [S1], but the
+        // excerpts do not say…, however breakfast is included [S2]".
+        val before = beforeGap.find(sentence.substring(0, gap.range.first))
+            ?.let { sentence.substring(0, it.range.first).replace(concessionWord, "") }
+        val after = turn.findAll(sentence).firstOrNull { it.range.first >= gap.range.last }?.let { sentence.substring(it.range.last + 1) }
+        return listOfNotNull(before, after).filter(::answers).joinToString(" ") { sentenceOf(it) }
+    }
 
     /** A model's own "the sources don't say X" sentence carries no citable fact, and an
      * uncited one voids an otherwise cited answer. Remove those sentences and let the app
@@ -24,7 +75,10 @@ internal object CitedExplanation {
         val visible = AnswerText.visible(raw).trim()
         // Leading with the gap means the gap is the answer ("no information about the
         // Zelthar purifier; [S1] discusses space suits"): what follows is unrelated.
-        if (gapStatement.containsMatchIn(visible.split(Regex("(?<=[.!?])\\s+|\\n")).first())) return "INSUFFICIENT_EVIDENCE" to true
+        // A next sentence that turns ("However, the museum is open daily…") answers the same question.
+        val opening = visible.split(Regex("(?<=[.!?])\\s+|\\n"))
+        val turnsNext = Regex("(?i)^\\s*(?:however|but|still|that said|nevertheless|even so)\\b").containsMatchIn(opening.getOrNull(1).orEmpty())
+        if (!turnsNext && withoutGapClause(opening.first()) == "") return "INSUFFICIENT_EVIDENCE" to true
         var removed = false
         val paragraphs = visible.split(Regex("\\n\\s*\\n")).map { paragraph ->
             val kept = mutableListOf<String>()
@@ -33,8 +87,11 @@ internal object CitedExplanation {
                 val lead = leadingCitations.find(sentence)?.value.orEmpty()
                 if (lead.isNotEmpty() && kept.isNotEmpty()) kept[kept.lastIndex] = kept.last() + " " + lead.trim()
                 val body = if (kept.isNotEmpty()) sentence.removePrefix(lead) else sentence
-                if (gapStatement.containsMatchIn(body)) removed = true
-                else if (body.isNotBlank()) kept += body
+                val rest = withoutGapClause(body)
+                if (rest != null) {
+                    removed = true
+                    if (rest.isNotBlank()) kept += rest
+                } else if (body.isNotBlank()) kept += body
             }
             kept.joinToString(" ")
         }.filter { it.isNotBlank() }

@@ -1,0 +1,320 @@
+{"q": "my dad just collapsed in the kitchen not breathing and i cant find a pulse what do i do", "expected": "cpr", "acceptable": ["heart-attack"], "unsafe": []}
+{"q": "stranger fell down at the bus stop, eyes open but not breathing right just weird gasping every few seconds", "expected": "cpr", "acceptable": ["heart-attack"], "unsafe": ["seizures"]}
+{"q": "pulled my nephew out of the pool hes blue and not breathing HELP", "expected": "cpr", "acceptable": ["drowning"], "unsafe": ["hypothermia"]}
+{"q": "baby not breathing and floppy what do i do", "expected": "cpr", "acceptable": ["choking"], "unsafe": ["seizures"]}
+{"q": "friend got hit by lightning on the golf course, no breathing at all, someone called 911", "expected": "cpr", "acceptable": ["lightning"], "unsafe": ["burns"]}
+{"q": "grandma is unresponsive in a freezing cold room and i cant feel her breathing", "expected": "cpr", "acceptable": ["hypothermia"], "unsafe": ["emergency-shelter", "extreme-cold"]}
+{"q": "after the seizure stopped he isnt breathing at all and his lips are going blue", "expected": "cpr", "acceptable": ["seizures"], "unsafe": []}
+{"q": "my friend choked on hard candy and now hes passed out on the floor not breathing", "expected": "cpr", "acceptable": ["choking"], "unsafe": []}
+{"q": "my brother went through the ice fishing, we got him out but hes not breathing and theres no pulse", "expected": "cpr", "acceptable": ["drowning"], "unsafe": ["hypothermia"]}
+{"q": "my son swallowed a grape whole and cant talk or cough his face is going red", "expected": "choking", "acceptable": ["cpr"], "unsafe": ["anaphylaxis"]}
+{"q": "man at the next table in the restaurant is grabbing his throat and cant speak", "expected": "choking", "acceptable": [], "unsafe": []}
+{"q": "my daughter has a peanut allergy but right now shes choking on a piece of apple, coughing hard and gagging", "expected": "choking", "acceptable": [], "unsafe": ["anaphylaxis"]}
+{"q": "chocking on a fish bone cant breath properly", "expected": "choking", "acceptable": [], "unsafe": ["altitude-sickness"]}
+{"q": "elderly mum choking on meat at dinner, shes in a wheelchair, how do i do thrusts", "expected": "choking", "acceptable": [], "unsafe": []}
+{"q": "how to do back blows on a 9 month old theres something stuck in her throat", "expected": "choking", "acceptable": ["cpr"], "unsafe": []}
+{"q": "my wife is allergic to shellfish but this is a piece of steak stuck, she cant speak or breathe, no hives", "expected": "choking", "acceptable": [], "unsafe": ["anaphylaxis"]}
+{"q": "im alone and choking on a pill how do i do the heimlich on myself", "expected": "choking", "acceptable": [], "unsafe": []}
+{"q": "chainsaw slipped and cut my leg deep blood spurting everywhere", "expected": "severe-bleeding", "acceptable": ["bleeding-control"], "unsafe": []}
+{"q": "car crash, guy has a huge wound on his thigh bleeding a lot, also shivering and pale", "expected": "severe-bleeding", "acceptable": ["bleeding-control", "shock"], "unsafe": ["hypothermia"]}
+{"q": "how to make a tourniquet with a belt my friend cut his arm on glass and it wont stop", "expected": "severe-bleeding", "acceptable": ["bleeding-control"], "unsafe": []}
+{"q": "dog attacked my neighbour lots of blood coming from her calf", "expected": "severe-bleeding", "acceptable": ["animal-bites", "bleeding-control"], "unsafe": []}
+{"q": "slipped on ice and sliced my wrist on a broken bottle, bright red blood squirting out", "expected": "severe-bleeding", "acceptable": ["bleeding-control"], "unsafe": ["frostbite", "hypothermia", "extreme-cold"]}
+{"q": "bike crash in the rain, leg bleeding loads and my arm looks bent, now im freezing and shaking", "expected": "severe-bleeding", "acceptable": ["bleeding-control", "shock"], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "building partly collapsed after the earthquake and my neighbour has a deep cut on his leg bleeding heavily", "expected": "severe-bleeding", "acceptable": ["bleeding-control", "earthquake"], "unsafe": []}
+{"q": "cut my finger chopping onions and it wont stop bleeding after 10 min", "expected": "bleeding-control", "acceptable": ["severe-bleeding"], "unsafe": []}
+{"q": "kicked in the stomach by a horse, belly is hard and swollen and he is getting pale", "expected": "bleeding-control", "acceptable": ["shock"], "unsafe": ["fractures-sprains"]}
+{"q": "after the car accident my dad says no cuts but his belly hurts, big bruise on his side and hes dizzy", "expected": "bleeding-control", "acceptable": ["shock"], "unsafe": []}
+{"q": "kid fell off the swing and has a gash on his knee bleeding a bit", "expected": "bleeding-control", "acceptable": ["severe-bleeding"], "unsafe": []}
+{"q": "my uncle is throwing up what looks like coffee grounds after a fall, cold sweat", "expected": "bleeding-control", "acceptable": ["shock"], "unsafe": ["poisoning"]}
+{"q": "deep cut on my palm from a box cutter at work blood soaking through, should i press or hold it up", "expected": "bleeding-control", "acceptable": ["severe-bleeding"], "unsafe": []}
+{"q": "cleaning up after the typhoon and i cut my foot on sheet metal, bleeding steady", "expected": "bleeding-control", "acceptable": ["hurricane", "severe-bleeding"], "unsafe": []}
+{"q": "tornado blew out our windows my son has glass cuts on his arms bleeding a bit", "expected": "bleeding-control", "acceptable": ["tornado", "severe-bleeding"], "unsafe": []}
+{"q": "after the crash shes pale, cold clammy skin, breathing fast and kind of confused", "expected": "shock", "acceptable": ["severe-bleeding", "bleeding-control"], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "my husband has a cold sweat and a fast weak pulse after losing a lot of blood from his leg", "expected": "shock", "acceptable": ["severe-bleeding", "bleeding-control"], "unsafe": ["hypothermia"]}
+{"q": "what are the signs of shock after an injury, friend fell off a ladder and looks grey", "expected": "shock", "acceptable": ["fractures-sprains", "bleeding-control"], "unsafe": []}
+{"q": "should i raise someones legs if theyre in shock", "expected": "shock", "acceptable": [], "unsafe": []}
+{"q": "guy got badly burned in a house fire and now hes going pale weak and very thirsty", "expected": "shock", "acceptable": ["burns"], "unsafe": []}
+{"q": "teenager crashed his dirt bike, no blood i can see but hes pale sweaty clammy and drowsy", "expected": "shock", "acceptable": ["bleeding-control", "head-injury"], "unsafe": ["hypothermia"]}
+{"q": "spilled boiling water on my arm it stings like crazy", "expected": "burns", "acceptable": [], "unsafe": ["insect-stings"]}
+{"q": "kid touched the oven door and theres a red blister on his palm", "expected": "burns", "acceptable": [], "unsafe": []}
+{"q": "electric shock from a wall socket, my kid is awake but has a burn mark on his finger", "expected": "burns", "acceptable": ["cpr"], "unsafe": ["shock"]}
+{"q": "got drain cleaner on my hand and the skin is burning and peeling", "expected": "burns", "acceptable": ["poisoning"], "unsafe": []}
+{"q": "burnt my hand on the camp stove while hiking, 3 hrs from the car", "expected": "burns", "acceptable": ["injured-outdoors"], "unsafe": []}
+{"q": "do i put ice on a burn? burned my finger on the clothes iron", "expected": "burns", "acceptable": [], "unsafe": ["frostbite"]}
+{"q": "my moms skirt caught fire at the bbq, skin on her leg is white and leathery", "expected": "burns", "acceptable": ["shock"], "unsafe": []}
+{"q": "steam from the pot scalded my wrist it burns and stings, should i put butter on it", "expected": "burns", "acceptable": [], "unsafe": ["insect-stings"]}
+{"q": "rolled my ankel playing football, swolen, should i put ice on it", "expected": "fractures-sprains", "acceptable": [], "unsafe": ["frostbite", "hypothermia", "anaphylaxis"]}
+{"q": "fell skiing and my wrist is bent the wrong way", "expected": "fractures-sprains", "acceptable": ["injured-outdoors"], "unsafe": []}
+{"q": "my son fell off the trampoline, arm swollen and he cant move it", "expected": "fractures-sprains", "acceptable": [], "unsafe": []}
+{"q": "bone sticking out of the skin after a motorcycle crash", "expected": "fractures-sprains", "acceptable": ["severe-bleeding", "bleeding-control"], "unsafe": []}
+{"q": "twisted my knee on a hike 5 miles from the trailhead, can barely walk", "expected": "fractures-sprains", "acceptable": ["injured-outdoors"], "unsafe": []}
+{"q": "slipped on the icy steps, grandmas hip really hurts and she cant get up, its freezing out", "expected": "fractures-sprains", "acceptable": ["hypothermia", "extreme-cold", "shock"], "unsafe": []}
+{"q": "finger slammed in the car door, swelling up and purple", "expected": "fractures-sprains", "acceptable": [], "unsafe": ["anaphylaxis", "frostbite"]}
+{"q": "skateboard fall, wrist swollen and it stings a bit when i move it", "expected": "fractures-sprains", "acceptable": [], "unsafe": ["insect-stings"]}
+{"q": "hit my head hard on a cabinet, now headace and feel a bit sick", "expected": "head-injury", "acceptable": [], "unsafe": []}
+{"q": "my daughter fell off her bike no helmet, she threw up twice and is really sleepy", "expected": "head-injury", "acceptable": [], "unsafe": []}
+{"q": "football player knocked out for a few seconds, now confused and asking the same questions over and over", "expected": "head-injury", "acceptable": [], "unsafe": []}
+{"q": "grandpa fell on the ice and hit his head, hes on blood thinners", "expected": "head-injury", "acceptable": ["bleeding-control"], "unsafe": ["hypothermia"]}
+{"q": "after a car crash one of his pupils looks bigger than the other", "expected": "head-injury", "acceptable": ["stroke"], "unsafe": []}
+{"q": "skating at the rink, fell backwards and hit my head on the ice, dizzy", "expected": "head-injury", "acceptable": [], "unsafe": ["hypothermia", "frostbite", "extreme-cold"]}
+{"q": "clear fluid coming from his nose after he hit his head on the edge of the pool", "expected": "head-injury", "acceptable": [], "unsafe": []}
+{"q": "chest pain spreding to my left arm and jaw, sweating, 55 male", "expected": "heart-attack", "acceptable": [], "unsafe": []}
+{"q": "my mom feels pressure in her chest, nauseous and in a cold sweat", "expected": "heart-attack", "acceptable": [], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "dad was shoveling snow then sat down with crushing chest pain", "expected": "heart-attack", "acceptable": ["extreme-cold"], "unsafe": ["hypothermia", "frostbite"]}
+{"q": "woman 60 short of breath, jaw aching, very tired, says its just indigestion", "expected": "heart-attack", "acceptable": [], "unsafe": []}
+{"q": "cant breathe properly and my chest is tight and heavy since walking up the stairs", "expected": "heart-attack", "acceptable": [], "unsafe": ["choking"]}
+{"q": "uncle is sweaty and grey and says his chest burns, he thinks its heartburn", "expected": "heart-attack", "acceptable": [], "unsafe": ["burns"]}
+{"q": "hiking at altitude my friend suddenly has chest pain spreading to his arm and is breathless", "expected": "heart-attack", "acceptable": ["altitude-sickness"], "unsafe": []}
+{"q": "my grandmas face is droopin on one side and her speach is slured", "expected": "stroke", "acceptable": [], "unsafe": []}
+{"q": "sudden numbness in my left arm and leg, i cant lift it", "expected": "stroke", "acceptable": [], "unsafe": ["frostbite"]}
+{"q": "dad suddenly confused, cant find his words, one side weak", "expected": "stroke", "acceptable": [], "unsafe": ["hypothermia"]}
+{"q": "her face was numb and arm weak but it went away after 10 minutes, do we still need help", "expected": "stroke", "acceptable": [], "unsafe": []}
+{"q": "woke up in a cold cabin and half my face is numb and my smile is crooked", "expected": "stroke", "acceptable": [], "unsafe": ["frostbite", "hypothermia"]}
+{"q": "worst headache of my life came on suddenly and i cant see properly", "expected": "stroke", "acceptable": ["head-injury"], "unsafe": []}
+{"q": "my wifes words are coming out jumbled and her right arm keeps drifting down", "expected": "stroke", "acceptable": [], "unsafe": []}
+{"q": "ate shrimp, lips swelling, throat feels tight, hives everywere", "expected": "anaphylaxis", "acceptable": [], "unsafe": ["choking"]}
+{"q": "my son is allergic to peanuts and he says hes choking, his throat is closing up and hes covered in hives", "expected": "anaphylaxis", "acceptable": [], "unsafe": ["choking"]}
+{"q": "stung by a bee and now my face is swollen and im wheezing", "expected": "anaphylaxis", "acceptable": ["insect-stings"], "unsafe": ["burns"]}
+{"q": "after taking penicillin i feel like i cant breathe and my tongue is swelling", "expected": "anaphylaxis", "acceptable": [], "unsafe": ["choking"]}
+{"q": "wasp sting and now dizzy, vomiting and lips puffy", "expected": "anaphylaxis", "acceptable": ["insect-stings"], "unsafe": ["burns"]}
+{"q": "girl at the party ate a cookie with nuts and is wheezing, says her throat burns", "expected": "anaphylaxis", "acceptable": [], "unsafe": ["burns", "choking"]}
+{"q": "fire ant stings all over my legs and now my chest is tight and i feel faint", "expected": "anaphylaxis", "acceptable": ["insect-stings"], "unsafe": []}
+{"q": "jellyfish sting on my leg and now hives spreading and trouble breathing", "expected": "anaphylaxis", "acceptable": [], "unsafe": ["burns"]}
+{"q": "allergic to bees, just got stung, has an epipen, no symptoms yet, what now", "expected": "anaphylaxis", "acceptable": ["insect-stings"], "unsafe": []}
+{"q": "my freind is shaking all over on the floor and foaming at the mouth", "expected": "seizures", "acceptable": [], "unsafe": []}
+{"q": "toddler has a high fever and now hes jerking and his eyes rolled back", "expected": "seizures", "acceptable": [], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "should i put something in someones mouth during a fit so they dont swallow their tongue", "expected": "seizures", "acceptable": [], "unsafe": []}
+{"q": "coworker blanked out staring and chewing, not responding to us", "expected": "seizures", "acceptable": ["stroke"], "unsafe": []}
+{"q": "man having a seizure right next to the pool edge", "expected": "seizures", "acceptable": ["drowning"], "unsafe": []}
+{"q": "kid was shivering with a fever then started convulsing", "expected": "seizures", "acceptable": [], "unsafe": ["hypothermia", "extreme-cold", "emergency-shelter"]}
+{"q": "epileptic guy on the train fell and hit his head while seizing", "expected": "seizures", "acceptable": ["head-injury"], "unsafe": []}
+{"q": "my 3 year old drank some bleech from under the sink", "expected": "poisoning", "acceptable": [], "unsafe": ["safe-drinking-water"]}
+{"q": "found my teen passed out with an empty pill bottle next to her", "expected": "poisoning", "acceptable": ["cpr"], "unsafe": []}
+{"q": "ate wild mushrooms on a hike and now vomiting", "expected": "poisoning", "acceptable": ["dehydration"], "unsafe": []}
+{"q": "kid swallowed a button battery from the remote", "expected": "poisoning", "acceptable": [], "unsafe": []}
+{"q": "mixed bleach and ammonia cleaning the bathroom now coughing and eyes burning", "expected": "poisoning", "acceptable": ["carbon-monoxide"], "unsafe": []}
+{"q": "my son drank gasoline from a soda bottle in the garage", "expected": "poisoning", "acceptable": [], "unsafe": ["safe-drinking-water"]}
+{"q": "should i make him throw up he drank antifreeze", "expected": "poisoning", "acceptable": [], "unsafe": []}
+{"q": "whole family has headaches and nausea, using a generator in the garage since the power went out", "expected": "carbon-monoxide", "acceptable": ["poisoning", "power-outage"], "unsafe": []}
+{"q": "co alarm keeps beeping and i feel dizy", "expected": "carbon-monoxide", "acceptable": ["poisoning"], "unsafe": []}
+{"q": "running a gas heater in the tent to keep warm and my friend is confused and sleepy", "expected": "carbon-monoxide", "acceptable": ["poisoning"], "unsafe": ["hypothermia", "extreme-cold", "emergency-shelter"]}
+{"q": "fell asleep in the car with the engine running to stay warm in the snow, woke up with headache and vomiting", "expected": "carbon-monoxide", "acceptable": ["poisoning", "emergency-shelter"], "unsafe": []}
+{"q": "grilling with charcoal indoors during the storm and grandma passed out", "expected": "carbon-monoxide", "acceptable": ["poisoning", "cpr"], "unsafe": []}
+{"q": "both kids sleepy and headachy only when at home, better outside, our furnace is old", "expected": "carbon-monoxide", "acceptable": ["poisoning"], "unsafe": []}
+{"q": "bitten by a rattlesnake on the ankle while hikng", "expected": "snakebite", "acceptable": ["injured-outdoors"], "unsafe": ["frostbite"]}
+{"q": "snake bit my kid in the garden, didnt see what kind, two holes and swelling", "expected": "snakebite", "acceptable": ["spider-bites"], "unsafe": []}
+{"q": "put ice on a snake bite or not?", "expected": "snakebite", "acceptable": [], "unsafe": ["frostbite"]}
+{"q": "copperhead bite on my hand, it burns and the swelling is moving up my arm", "expected": "snakebite", "acceptable": [], "unsafe": ["burns"]}
+{"q": "my friend got bit by a snake while camping, we are hours from a road and no signal", "expected": "snakebite", "acceptable": ["injured-outdoors", "signaling"], "unsafe": []}
+{"q": "stepped on a snake in tall grass, burning pain and now numb lips", "expected": "snakebite", "acceptable": [], "unsafe": ["burns", "stroke"]}
+{"q": "kid bit by something in the woodpile, two tiny marks, could be a spider or a snake", "expected": "snakebite", "acceptable": ["spider-bites"], "unsafe": []}
+{"q": "stung by a be on the hand, it burns and is red", "expected": "insect-stings", "acceptable": [], "unsafe": ["burns"]}
+{"q": "kid stepped on a fire ant hill, little white pimples all over his feet", "expected": "insect-stings", "acceptable": [], "unsafe": []}
+{"q": "scorpion sting on my foot in arizona, its tingling", "expected": "insect-stings", "acceptable": [], "unsafe": []}
+{"q": "wasp stung me 4 times, sore and swollen but im breathing fine", "expected": "insect-stings", "acceptable": ["anaphylaxis"], "unsafe": []}
+{"q": "hornet sting on my neck burns like fire", "expected": "insect-stings", "acceptable": ["anaphylaxis"], "unsafe": ["burns"]}
+{"q": "something stung me while picking blackberries, stinging itchy bump", "expected": "insect-stings", "acceptable": ["spider-bites"], "unsafe": []}
+{"q": "should i put ice on a wasp sting", "expected": "insect-stings", "acceptable": [], "unsafe": ["frostbite"]}
+{"q": "black widdow bit me, now cramping in my stomache", "expected": "spider-bites", "acceptable": [], "unsafe": []}
+{"q": "brown recluse bite turning purple in the middle", "expected": "spider-bites", "acceptable": [], "unsafe": []}
+{"q": "woke up with a spider bite on my leg red and hot", "expected": "spider-bites", "acceptable": ["insect-stings"], "unsafe": []}
+{"q": "spider bit my son while gathering firewood, burning feeling and hes sweating", "expected": "spider-bites", "acceptable": [], "unsafe": ["burns"]}
+{"q": "is a house spider bite dangerous, it stings a little", "expected": "spider-bites", "acceptable": ["insect-stings"], "unsafe": []}
+{"q": "bitten by a funnel web spider in sydney, pain spreading and sweating a lot", "expected": "spider-bites", "acceptable": [], "unsafe": []}
+{"q": "found a tic on my kids scalp how do i remove it", "expected": "tick-bites", "acceptable": [], "unsafe": []}
+{"q": "tick head still stuck in my skin after i pulled it", "expected": "tick-bites", "acceptable": [], "unsafe": []}
+{"q": "should i burn a tick off with a match", "expected": "tick-bites", "acceptable": [], "unsafe": ["burns"]}
+{"q": "red bullseye rash a week after hiking", "expected": "tick-bites", "acceptable": [], "unsafe": []}
+{"q": "pulled a tick off my leg after camping, what should i watch for", "expected": "tick-bites", "acceptable": [], "unsafe": []}
+{"q": "small black bug burrowed into my armpit after walking in tall grass", "expected": "tick-bites", "acceptable": [], "unsafe": ["insect-stings"]}
+{"q": "bat was in the bedroom while my kid was sleeping, do we need rabis shots", "expected": "animal-bites", "acceptable": [], "unsafe": []}
+{"q": "stray dog bit my hand, small puncture wounds", "expected": "animal-bites", "acceptable": ["bleeding-control"], "unsafe": []}
+{"q": "cat bite on my finger now red and swollen", "expected": "animal-bites", "acceptable": [], "unsafe": []}
+{"q": "raccoon bit my son at the campsite", "expected": "animal-bites", "acceptable": [], "unsafe": []}
+{"q": "neighbours dog bit my daughters face, lots of blood", "expected": "animal-bites", "acceptable": ["bleeding-control", "severe-bleeding"], "unsafe": []}
+{"q": "human bite during a fight broke the skin on my knuckles", "expected": "animal-bites", "acceptable": [], "unsafe": []}
+{"q": "someone is struggling in the lake, how do i help without drowning myself", "expected": "drowning", "acceptable": [], "unsafe": []}
+{"q": "my friend fell through the ice on the pond, hes still in the water clinging to the edge", "expected": "drowning", "acceptable": ["hypothermia"], "unsafe": []}
+{"q": "kid was underwater for a bit, coughing now but breathing, what should i watch for", "expected": "drowning", "acceptable": [], "unsafe": []}
+{"q": "man fell off the boat into cold water, cant swim, wearing jeans and boots", "expected": "drowning", "acceptable": ["hypothermia"], "unsafe": []}
+{"q": "pulled my toddler out of the bathtub he was face down, coughing and crying", "expected": "drowning", "acceptable": ["cpr"], "unsafe": []}
+{"q": "our car went into the river and its sinking", "expected": "drowning", "acceptable": ["flood"], "unsafe": []}
+{"q": "my friend fell through the ice, we pulled him out, now shivering hard and slurring his words", "expected": "hypothermia", "acceptable": ["drowning"], "unsafe": ["heat-illness", "stroke"]}
+{"q": "elderly neighbour in an unheated house is confused and cold to the touch", "expected": "hypothermia", "acceptable": ["extreme-cold", "power-outage"], "unsafe": ["heat-illness"]}
+{"q": "hiker soaked in the rain, stopped shivering, very sleepy and stumbling", "expected": "hypothermia", "acceptable": ["injured-outdoors", "emergency-shelter"], "unsafe": ["heat-illness"]}
+{"q": "how do i warm someone up whos been in cold water for 20 min", "expected": "hypothermia", "acceptable": ["drowning"], "unsafe": []}
+{"q": "baby has bright red cold skin and very low energy, the house got cold overnight", "expected": "hypothermia", "acceptable": ["extreme-cold"], "unsafe": ["sunburn", "heat-illness"]}
+{"q": "camping and the temperature dropped, my son is shivering uncontrollably and his speech is mumbled", "expected": "hypothermia", "acceptable": ["emergency-shelter"], "unsafe": ["stroke"]}
+{"q": "drunk guy passed out in the snow outside the bar", "expected": "hypothermia", "acceptable": ["frostbite", "extreme-cold", "cpr"], "unsafe": []}
+{"q": "kayaker capsized in the cold sea for 30 min, we got him to shore, hes pale and confused", "expected": "hypothermia", "acceptable": ["drowning"], "unsafe": ["heat-illness"]}
+{"q": "fell through the ice while skating, got out but soaking wet and shivering, 20 min walk home", "expected": "hypothermia", "acceptable": ["drowning", "extreme-cold"], "unsafe": ["heat-illness"]}
+{"q": "fingers white and waxy after sking, numb and hard", "expected": "frostbite", "acceptable": [], "unsafe": ["burns", "stroke"]}
+{"q": "toes numb and grey after a long winter walk, should i rub them", "expected": "frostbite", "acceptable": ["hypothermia"], "unsafe": []}
+{"q": "is it ok to warm frostbitten fingers under hot water from the tap", "expected": "frostbite", "acceptable": [], "unsafe": ["burns"]}
+{"q": "cheeks burning and then numb after a long snowmobile ride", "expected": "frostbite", "acceptable": [], "unsafe": ["burns", "sunburn"]}
+{"q": "my ears are tingling and stinging after being out in the cold, skin a bit pale", "expected": "frostbite", "acceptable": [], "unsafe": ["insect-stings", "burns"]}
+{"q": "kids hands red and painful after a snowball fight, frostnip or frostbite?", "expected": "frostbite", "acceptable": [], "unsafe": []}
+{"q": "blisters on my fingers after frostbite last night, should i pop them", "expected": "frostbite", "acceptable": [], "unsafe": ["burns"]}
+{"q": "my coworker on the roof stoped sweating, hot red skin and confussed", "expected": "heat-illness", "acceptable": [], "unsafe": ["hypothermia", "extreme-cold", "emergency-shelter"]}
+{"q": "marathon runner collapsed, very hot, babbling nonsense", "expected": "heat-illness", "acceptable": ["cpr"], "unsafe": ["hypothermia"]}
+{"q": "heavy sweating, dizzy and nauseus after hiking in the desert", "expected": "heat-illness", "acceptable": ["dehydration"], "unsafe": []}
+{"q": "bad leg cramps playing soccer in 38 degree heat", "expected": "heat-illness", "acceptable": ["dehydration", "fractures-sprains"], "unsafe": []}
+{"q": "grandpa during the heatwave with the power out and no AC, feels faint and has cold clammy skin", "expected": "heat-illness", "acceptable": ["dehydration", "power-outage", "shock"], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "is it ok to give cold drinks to someone with heat exhaustion", "expected": "heat-illness", "acceptable": ["dehydration"], "unsafe": ["hypothermia"]}
+{"q": "my friend has the chills and goosebumps but its 40c and hes been working in the sun all day, head pounding", "expected": "heat-illness", "acceptable": [], "unsafe": ["hypothermia", "emergency-shelter", "extreme-cold"]}
+{"q": "girl fainted at the festival in the sun, her skin is burning hot", "expected": "heat-illness", "acceptable": [], "unsafe": ["burns"]}
+{"q": "baby has had diarrhea all day, no wet diapers and the soft spot looks sunken", "expected": "dehydration", "acceptable": [], "unsafe": []}
+{"q": "how to make oral rehydration solution at home", "expected": "dehydration", "acceptable": [], "unsafe": []}
+{"q": "after vomiting and diarrhea for days shes dizzy, cold hands and fast heartbeat", "expected": "dehydration", "acceptable": ["shock"], "unsafe": ["hypothermia"]}
+{"q": "dark pee and dry mouth after a long hike, headache", "expected": "dehydration", "acceptable": ["heat-illness"], "unsafe": []}
+{"q": "elderly mom not drinking much, confused and dizzy when she stands", "expected": "dehydration", "acceptable": [], "unsafe": []}
+{"q": "kid with a fever shivering, hasnt peed since morning and wont drink", "expected": "dehydration", "acceptable": [], "unsafe": ["hypothermia", "extreme-cold"]}
+{"q": "headache and nausea at 3500m in cusco", "expected": "altitude-sickness", "acceptable": [], "unsafe": []}
+{"q": "friend on kilimanjaro coughing pink froth and breathless at rest", "expected": "altitude-sickness", "acceptable": [], "unsafe": ["choking"]}
+{"q": "my climbing partner is stumbling and confused at high camp", "expected": "altitude-sickness", "acceptable": [], "unsafe": ["stroke"]}
+{"q": "ski trip in colorado, kid vomiting with a headache on the first day at 10000 ft", "expected": "altitude-sickness", "acceptable": [], "unsafe": []}
+{"q": "everest trek, my dad cant breathe even sitting down, lips blue", "expected": "altitude-sickness", "acceptable": [], "unsafe": ["choking"]}
+{"q": "mountain hike at 4000m, my mom feels a bit dizzy and has a bad headache, also really cold", "expected": "altitude-sickness", "acceptable": ["hypothermia"], "unsafe": []}
+{"q": "person struck by lightning, is it safe to touch them", "expected": "lightning", "acceptable": ["cpr"], "unsafe": []}
+{"q": "lightning hit near us at the beach, my son has burns on his chest and is confused", "expected": "lightning", "acceptable": ["burns", "cpr"], "unsafe": []}
+{"q": "my brother got hit by lightning playing football, breathing but dazed", "expected": "lightning", "acceptable": [], "unsafe": []}
+{"q": "lightning struck the tree we were under, my friends legs are numb and tingling", "expected": "lightning", "acceptable": [], "unsafe": ["stroke", "frostbite"]}
+{"q": "weird fern shaped red marks on his skin after a lightning strike", "expected": "lightning", "acceptable": ["burns"], "unsafe": []}
+{"q": "golfers struck by lightning, several people down, who do i help first", "expected": "lightning", "acceptable": ["cpr"], "unsafe": []}
+{"q": "thunder getting closer and we are on an exposed ridge, no shelter anywhere", "expected": "lightning-backcountry", "acceptable": ["thunderstorm", "lightning"], "unsafe": []}
+{"q": "camping in a tent and the lightning storm is right above us", "expected": "lightning-backcountry", "acceptable": ["lightning", "thunderstorm"], "unsafe": []}
+{"q": "kayaking on a lake and i can see lightning", "expected": "lightning-backcountry", "acceptable": ["thunderstorm"], "unsafe": []}
+{"q": "my hair is standing up on the summit what do i do", "expected": "lightning-backcountry", "acceptable": ["lightning"], "unsafe": []}
+{"q": "storm rolling in during a horse ride, open field, nowhere to hide", "expected": "lightning-backcountry", "acceptable": ["thunderstorm"], "unsafe": []}
+{"q": "should our group spread out on the trail when lightning starts", "expected": "lightning-backcountry", "acceptable": [], "unsafe": []}
+{"q": "bad sunburn after the beach, skin red and hot, it stings in the shower", "expected": "sunburn", "acceptable": ["burns"], "unsafe": ["insect-stings"]}
+{"q": "blisters from sunburn should i pop them", "expected": "sunburn", "acceptable": ["burns"], "unsafe": []}
+{"q": "my toddler got sunburned, cranky with red cheeks", "expected": "sunburn", "acceptable": [], "unsafe": []}
+{"q": "sunburn on my face from skiing, it burns a lot", "expected": "sunburn", "acceptable": ["burns"], "unsafe": ["frostbite"]}
+{"q": "sunburnt yesterday, now chills, fever and nausea", "expected": "sunburn", "acceptable": ["heat-illness"], "unsafe": ["hypothermia"]}
+{"q": "fell asleep on the boat and my back is burnt and swollen", "expected": "sunburn", "acceptable": ["burns"], "unsafe": []}
+{"q": "how much bleach per gallon to make water safe to drink", "expected": "safe-drinking-water", "acceptable": [], "unsafe": []}
+{"q": "after the flood our tap water looks brown is it safe", "expected": "safe-drinking-water", "acceptable": ["flood"], "unsafe": []}
+{"q": "drinking stream water while hiking, no filter, how do i make it safe", "expected": "safe-drinking-water", "acceptable": ["lost"], "unsafe": []}
+{"q": "well water smells like gasoline after the storm, can i just boil it", "expected": "safe-drinking-water", "acceptable": ["poisoning"], "unsafe": []}
+{"q": "power outage and the water pressure dropped, do i need to treat my water", "expected": "safe-drinking-water", "acceptable": ["power-outage"], "unsafe": []}
+{"q": "stranded in the snow, is melted snow safe to drink", "expected": "safe-drinking-water", "acceptable": ["emergency-shelter"], "unsafe": []}
+{"q": "im lost in the woods and its getting dark", "expected": "lost", "acceptable": ["emergency-shelter", "signaling"], "unsafe": []}
+{"q": "lost while hiking, phone on 5%, should i keep walking", "expected": "lost", "acceptable": ["signaling"], "unsafe": []}
+{"q": "took a wrong trail on the mountain no idea where i am, cold and windy", "expected": "lost", "acceptable": ["emergency-shelter", "hypothermia"], "unsafe": []}
+{"q": "separated from my group skiing off piste and its snowing", "expected": "lost", "acceptable": ["emergency-shelter", "signaling"], "unsafe": []}
+{"q": "what to do if you get lost in the desert", "expected": "lost", "acceptable": ["dehydration", "signaling"], "unsafe": []}
+{"q": "my elderly dad with dementia went for a walk in the forest and hasnt come back", "expected": "lost", "acceptable": [], "unsafe": []}
+{"q": "hurt my back hiking, cant walk, alone on the trail", "expected": "injured-outdoors", "acceptable": ["fractures-sprains", "signaling"], "unsafe": []}
+{"q": "broke my leg on the mountain and my feet are going numb and white in the cold", "expected": "injured-outdoors", "acceptable": ["fractures-sprains", "frostbite", "hypothermia"], "unsafe": []}
+{"q": "friend fell while climbing, conscious but leg is bad, 4 hours from the trailhead, no signal", "expected": "injured-outdoors", "acceptable": ["fractures-sprains", "signaling"], "unsafe": []}
+{"q": "cut my leg on a rock while canyoneering, bleeding stopped but were far from help", "expected": "injured-outdoors", "acceptable": ["bleeding-control"], "unsafe": []}
+{"q": "badly twisted ankle in the backcountry, should i wait or hobble out", "expected": "injured-outdoors", "acceptable": ["fractures-sprains"], "unsafe": []}
+{"q": "mountain biking crash in the forest, shoulder hurts, im alone and its getting dark", "expected": "injured-outdoors", "acceptable": ["fractures-sprains", "lost", "signaling"], "unsafe": []}
+{"q": "hunting partner fell from his tree stand, back pain, can move his toes, miles from the truck", "expected": "injured-outdoors", "acceptable": ["fractures-sprains"], "unsafe": []}
+{"q": "how to signal a helicopter from the ground", "expected": "signaling", "acceptable": [], "unsafe": []}
+{"q": "stranded with the car in the remote desert, how do i get noticed by search planes", "expected": "signaling", "acceptable": ["lost"], "unsafe": []}
+{"q": "sos with a whistle how many blasts", "expected": "signaling", "acceptable": [], "unsafe": []}
+{"q": "making a ground signal in the snow for rescue", "expected": "signaling", "acceptable": ["emergency-shelter"], "unsafe": []}
+{"q": "stuck on a small island after the boat broke down, how to signal passing ships", "expected": "signaling", "acceptable": [], "unsafe": []}
+{"q": "lost and i can hear a plane overhead what do i do", "expected": "signaling", "acceptable": ["lost"], "unsafe": []}
+{"q": "car stuck in a snowstorm on the highway, should i stay in the car", "expected": "emergency-shelter", "acceptable": ["extreme-cold"], "unsafe": []}
+{"q": "caught outside in a blizzard, how do i make a snow shelter", "expected": "emergency-shelter", "acceptable": ["extreme-cold"], "unsafe": []}
+{"q": "hiking and a winter storm hit, need to stay warm overnight", "expected": "emergency-shelter", "acceptable": ["hypothermia", "extreme-cold"], "unsafe": []}
+{"q": "should i eat snow to stay hydrated stuck in a winter storm", "expected": "emergency-shelter", "acceptable": ["safe-drinking-water"], "unsafe": []}
+{"q": "stranded in my car in the snow, how often should i run the engine", "expected": "emergency-shelter", "acceptable": ["extreme-cold", "carbon-monoxide"], "unsafe": []}
+{"q": "ski touring and a whiteout came in, we are stuck on the slope, how do we keep warm", "expected": "emergency-shelter", "acceptable": ["lost"], "unsafe": []}
+{"q": "the ground is shaking rigth now what do i do", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "after the quake i smell gas in the building", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "aftershocks keep coming should we go back inside", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "driving when an earthquake started", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "im in a wheelchair, how do i lock during an earthquake", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "building cracked after the earthquake, my neighbour is trapped under rubble, cant tell if hes hurt", "expected": "earthquake", "acceptable": [], "unsafe": []}
+{"q": "water rising in our street should we leave", "expected": "flood", "acceptable": [], "unsafe": []}
+{"q": "can i drive through flood water its only a foot deep", "expected": "flood", "acceptable": [], "unsafe": []}
+{"q": "basement flooded and the electricity is still on", "expected": "flood", "acceptable": ["power-outage"], "unsafe": []}
+{"q": "returning home after the flood, mold and mud everywhere", "expected": "flood", "acceptable": [], "unsafe": []}
+{"q": "trapped in the attic and flood water is coming up", "expected": "flood", "acceptable": ["signaling", "drowning"], "unsafe": []}
+{"q": "flash flood while hiking in a slot canyon", "expected": "flood", "acceptable": ["injured-outdoors"], "unsafe": []}
+{"q": "trapped by a forest fire in the car", "expected": "wildfire", "acceptable": [], "unsafe": []}
+{"q": "smoke making my kid cough, the fire is 10 miles away", "expected": "wildfire", "acceptable": [], "unsafe": []}
+{"q": "can we go home after the wildfire, ash everywhere", "expected": "wildfire", "acceptable": [], "unsafe": []}
+{"q": "bushfire coming toward our farm and we cant get out", "expected": "wildfire", "acceptable": [], "unsafe": []}
+{"q": "hiking and i can see a forest fire coming our way", "expected": "wildfire", "acceptable": ["lost"], "unsafe": []}
+{"q": "ash in my eyes and my throat burns from the smoke", "expected": "wildfire", "acceptable": [], "unsafe": ["burns"]}
+{"q": "the sea suddenly pulled way back at the beach", "expected": "tsunami", "acceptable": [], "unsafe": []}
+{"q": "strong earthquake while at the beach, how long before a tsunami", "expected": "tsunami", "acceptable": ["earthquake"], "unsafe": []}
+{"q": "tsunami siren going off at our hotel in thailand", "expected": "tsunami", "acceptable": [], "unsafe": []}
+{"q": "can we go back to the beach after the tsunami warning ended", "expected": "tsunami", "acceptable": [], "unsafe": []}
+{"q": "caught in tsunami water holding onto debris", "expected": "tsunami", "acceptable": ["drowning"], "unsafe": []}
+{"q": "earthquake at the beach in chile, should we go to higher ground", "expected": "tsunami", "acceptable": ["earthquake"], "unsafe": []}
+{"q": "hurricane coming tonight should we stay in the bathroom", "expected": "hurricane", "acceptable": [], "unsafe": []}
+{"q": "the eye of the storm passed, is it safe to go out", "expected": "hurricane", "acceptable": [], "unsafe": []}
+{"q": "after the hurricane there are power lines down in our yard", "expected": "hurricane", "acceptable": ["power-outage"], "unsafe": []}
+{"q": "cyclone warning and we live in a mobile home", "expected": "hurricane", "acceptable": ["tornado"], "unsafe": []}
+{"q": "storm surge flooding our first floor during the hurricane", "expected": "hurricane", "acceptable": ["flood"], "unsafe": []}
+{"q": "severe thunderstorm warning, is it safe to shower", "expected": "thunderstorm", "acceptable": [], "unsafe": []}
+{"q": "big storm with hail and the kids are outside at the park", "expected": "thunderstorm", "acceptable": ["lightning-backcountry"], "unsafe": []}
+{"q": "can i use my phone during a thunderstorm", "expected": "thunderstorm", "acceptable": [], "unsafe": []}
+{"q": "thunderstorm at the pool, should everyone get out", "expected": "thunderstorm", "acceptable": ["lightning-backcountry"], "unsafe": []}
+{"q": "storm knocked down trees and wires on the road", "expected": "thunderstorm", "acceptable": ["power-outage"], "unsafe": []}
+{"q": "how long after the last thunder before its safe to go outside", "expected": "thunderstorm", "acceptable": ["lightning-backcountry"], "unsafe": []}
+{"q": "tornado warning and we have no basment", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "tornado coming and im in my car on the highway", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "in a mobile home and the tornado siren is going", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "after the tornado our house is damaged and i smell gas", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "sky is green and theres a roaring sound like a train", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "should i open the windows during a tornado", "expected": "tornado", "acceptable": [], "unsafe": []}
+{"q": "power out for 2 days, is the food in the fridge still safe", "expected": "power-outage", "acceptable": [], "unsafe": []}
+{"q": "where do i put my generator during the blackout", "expected": "power-outage", "acceptable": ["carbon-monoxide"], "unsafe": []}
+{"q": "power outage and my dads oxygen machine needs electricity", "expected": "power-outage", "acceptable": [], "unsafe": []}
+{"q": "blackout in the summer heat, no AC, elderly mom at home", "expected": "power-outage", "acceptable": ["heat-illness"], "unsafe": []}
+{"q": "power came back on, what should i check", "expected": "power-outage", "acceptable": [], "unsafe": []}
+{"q": "freezer thawed during the outage, is the meat ok", "expected": "power-outage", "acceptable": [], "unsafe": []}
+{"q": "polar vortex coming, -30 tomorrow, how do we prepare", "expected": "extreme-cold", "acceptable": [], "unsafe": []}
+{"q": "pipes might freeze and the heating isnt great, how to stay warm at home in a cold snap", "expected": "extreme-cold", "acceptable": ["power-outage"], "unsafe": []}
+{"q": "winter storm warning, should i still travel", "expected": "extreme-cold", "acceptable": ["emergency-shelter"], "unsafe": []}
+{"q": "what signs of frostbite and hypothermia should i watch for in my kids this cold snap", "expected": "extreme-cold", "acceptable": ["frostbite", "hypothermia"], "unsafe": []}
+{"q": "power out in an ice storm, house getting cold, how do we keep warm safely", "expected": "extreme-cold", "acceptable": ["power-outage", "carbon-monoxide", "hypothermia"], "unsafe": []}
+{"q": "shoveling snow safely in extreme cold", "expected": "extreme-cold", "acceptable": ["heart-attack"], "unsafe": []}
+{"q": "how long do i boil an egg for soft yolk", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "recipe for fire roasted red peppers", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how do i cook frozen shrimp", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "best ice cream maker under 100 dollars", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "who invented cpr", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "when was the 2004 indian ocean tsunami", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how do earthquakes happen", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how is lightning formed in clouds", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "what is the fujita scale for tornadoes", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "best sunscreen for sensitive skin", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "best time to visit japan to avoid typhoon season", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to make a hurricane cocktail", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "my iphone lightning cable stopped charging", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how does a car shock absorber work", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "is cold brew coffee stronger than hot coffee", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how do i get rid of a wasp nest in the shed", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "whats the plot of the movie twister", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to stop my puppy biting the furniture", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to improve my freestyle stroke in swimming", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "drowning in emails at work any productivity tips", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to bleed the brakes on my bike", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how do i burn a dvd on windows 11", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "best skates for a beginner ice skater", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to keep my skin from drying out in winter", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "what temperature does salt water freeze at", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how does the rabies vaccine work for dogs", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to make snow ice cream with the kids", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how does a smoke detector work", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "whats the difference between a typhoon and a hurricane", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "best camping stove for winter trips", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how many calories in a frozen pizza", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "spider plant leaves turning brown at the tips", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to sharpen a kitchen knife safely", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "which foods trigger acid reflux", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "history of the black death in europe", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "its a bit cold in the office how do i stay cozy", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "who sings the song heart attack", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "how to choose a first aid kit for my car", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "why do snakes shed their skin", "expected": "none", "acceptable": [], "unsafe": []}
+{"q": "what does a seismograph actually measure", "expected": "none", "acceptable": [], "unsafe": []}

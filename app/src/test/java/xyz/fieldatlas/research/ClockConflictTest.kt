@@ -26,12 +26,50 @@ class ClockConflictTest {
             listOf(second, source("S3", "flyer.txt", "The community meeting starts at 19.00 in the hall."))))
     }
 
+    @Test fun theSameTimeInTwelveHourFormIsNotAConflict() {
+        val question = "When does the last ferry to Koh Tao leave?"
+        val a = source("S1", "a.txt", "The last ferry to Koh Tao leaves at 21:30.")
+        assertNull(ClockConflict.note(question, "The last ferry to Koh Tao leaves at 21:30 [S1].",
+            listOf(a, source("S2", "b.txt", "The last ferry to Koh Tao departs at 9:30 pm."))))
+        assertNotNull(ClockConflict.note(question, "The last ferry to Koh Tao leaves at 21:30 [S1].",
+            listOf(a, source("S2", "c.txt", "The last ferry to Koh Tao departs at 8:30 pm."))))
+    }
+
+    @Test fun anOpeningAndAClosingTimeAreNotAConflict() {
+        val question = "What time does the Vasa Museum open?"
+        val a = source("S1", "a.txt", "The Vasa Museum opens at 10:00.")
+        assertNull(ClockConflict.note(question, "The Vasa Museum opens at 10:00 [S1].",
+            listOf(a, source("S2", "b.txt", "The Vasa Museum closes at 17:00 on weekdays."))))
+        assertNotNull(ClockConflict.note(question, "The Vasa Museum opens at 10:00 [S1].",
+            listOf(a, source("S2", "c.txt", "The Vasa Museum opens at 09:00 in summer."))))
+    }
+
+    @Test fun aTimeThatEndsASentenceIsStillATime() {
+        assertNotNull(ClockConflict.note("When does the last ferry depart?", "The last ferry departs at 21:00 [S1].",
+            listOf(source("S1", "a.txt", "The last ferry departs at 21:00 daily"), source("S2", "b.txt", "The last ferry departs at 22:00."))))
+    }
+
+    @Test fun aFerryFromAnotherPortIsStillADeparture() {
+        assertNotNull(ClockConflict.note("When does the last ferry to Koh Tao leave?", "The last ferry to Koh Tao leaves at 21:30 [S1].",
+            listOf(source("S1", "a.txt", "The last ferry to Koh Tao leaves at 21:30."),
+                source("S2", "b.txt", "The last ferry from Koh Samui to Koh Tao is at 20:00."))))
+    }
+
     @Test fun pricesAndDecimalsAreNotClockTimes() {
         val question = "How much is admission to the city museum?"
         val a = source("S1", "museum-a.txt", "City museum admission is €12.50 for adults and free for children.")
         val b = source("S2", "museum-b.txt", "The city museum admission fee is 15.00 EUR for adults.")
         assertNull(ClockConflict.note(question, "Admission to the city museum is €12.50 for adults [S1].", listOf(a, b)))
         assertNull(ClockConflict.note(question, "Admission is 12.50 [S1].", listOf(a, source("S2", "c.txt", "City museum admission costs 15.00 per adult."))))
+        // Ranges and lists of prices are not times either.
+        assertNull(ClockConflict.note(question, "Admission is €12.50 [S1].",
+            listOf(a, source("S2", "d.txt", "City museum admission is €12.50 and 15.00 for groups."))))
+        assertNull(ClockConflict.note(question, "Admission is €12.50 [S1].",
+            listOf(a, source("S2", "e.txt", "City museum admission ranges 12.50–15.00 EUR."))))
+        // A colon time is a time whatever word comes before it.
+        assertNotNull(ClockConflict.note("When does the city museum open?", "The city museum opens at 09:00 [S1].",
+            listOf(source("S1", "a.txt", "The city museum opens at 09:00 daily."),
+                source("S2", "f.txt", "The city museum is open from 10:00 on weekdays."))))
         // A dotted time beside time words still counts.
         val hours = source("S2", "hours.txt", "The city museum opens at 10.00 and admission is €12.50.")
         assertNotNull(ClockConflict.note("When does the city museum open?", "The city museum opens at 09:00 [S1].",

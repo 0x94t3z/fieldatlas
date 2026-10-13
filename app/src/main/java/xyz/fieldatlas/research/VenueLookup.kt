@@ -567,12 +567,15 @@ object VenueLookup {
      * The phone's position in walking words: "a pharmacy I can walk to from here", "any museum within
      * walking distance of me". Walking distance of somewhere named ("of the Louvre") is that place.
      */
-    private const val WALKABLE = "(?:walk(?:ing)?|get) (?:to )?from here|from here|" +
+    private const val WALKABLE = "(?:walk(?:ing)?|get) (?:to )?from here|" +
         "(?:within )?walking distance(?! (?:of|from) (?!me\\b|here\\b|us\\b))(?: (?:of|from) (?:me|here|us))?"
+    // A bare "from here" is the phone's position only when no other place is named:
+    // "a day trip from here" to Kyoto, or "the train from here to Kyoto", is about Kyoto.
+    private const val FROM_HERE = "from here(?! to\\b(?! (?:visit|see|eat|walk|go|get|do|try|explore|stay|drink|shop)\\b))"
 
     private val nearMePhrase = Regex(
         "(?i)\\b(nearest|closest|nearby|(?:near|close to|around) (?:me|here)|where i am|" +
-            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city)|$WALKABLE)\\b",
+            "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city)|$WALKABLE|$FROM_HERE)\\b",
     )
     private val foodWords = Regex("(?i)\\b(food|eat|eating|meals?|dinner|lunch|breakfast)\\b")
     private val nearbyWords = setOf(
@@ -586,11 +589,24 @@ object VenueLookup {
             "(?:the )?city i(?:'m| am) (?:currently )?in|my (?:current )?(?:location|city)|$WALKABLE)\\b",
     )
     private val namedPlace = Regex("(?i)\\b(?:in|at|around|near)\\s+(?!me\\b|here\\b|my\\b|the city i)\\p{L}")
+    // A time after "at" or "in" is not a place: "open at night", "in the evening", "in under ten minutes".
+    private val timeNotPlace = Regex("(?i)\\b(?:in|at|around)\\s+(?:night|midnight|noon|dawn|dusk|sunset|sunrise|lunch\\w*|breakfast\\w*|" +
+        "dinner\\w*|brunch|supper|happy hour|christmas|easter|new year\\w*|summer|winter|spring|autumn|fall|holidays?|tonight|today|" +
+        "tomorrow|case|walking (?:range|distance)|the (?:(?:early|late) )?(?:morning|afternoon|evening|night|moment|weekend|rain|snow|" +
+        "heat|cold|summer|winter|holidays?)|under|less than|about|around|over|a few|an? (?:hour|minute|few|bit|while|moment)|one|two|" +
+        "three|four|five|ten|twenty|thirty|this (?:time|hour)|time|weekends?)\\b(?![\\p{L}-])")
+    private val fromHere = Regex("(?i)\\b$FROM_HERE\\b")
+    // A capitalised name after "to", "near" or "towards" is a place: "nearest pharmacy to the Eiffel
+    // Tower", "restaurants within walking distance near the Colosseum", "from here towards Shibuya".
+    private val namedLandmark = Regex("\\b(?:to|towards|near|nearby|close to|by)\\s+(?:the\\s+)?\\p{Lu}\\p{L}+|" +
+        // Two capitalised words after "in" or "at" are a name: "at Sunset Boulevard", not "at sunset".
+        "\\b(?:in|at)\\s+\\p{Lu}\\p{L}+\\s+\\p{Lu}\\p{L}+")
 
     /** A place question answered from the phone's own location rather than a named city.
      * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
-    fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) &&
-        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question)) &&
+    fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) && !namedLandmark.containsMatchIn(question) &&
+        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question) ||
+            fromHere.containsMatchIn(question) && !namedPlace.containsMatchIn(question.replace(timeNotPlace, " "))) &&
         (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question) || essential(question) != null) &&
         !complexWords.containsMatchIn(question)
 

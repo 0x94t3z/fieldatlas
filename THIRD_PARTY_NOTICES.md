@@ -2,7 +2,7 @@
 
 This list names the significant source and runtime components. It does not replace the licence texts and notices distributed by their copyright holders.
 
-The app shows this list and the full licence texts it ships (Apache-2.0, llama.cpp's MIT licence, Bouncy Castle, LLVM, the Source Serif 4 font licence and the OCR components' licences) under **More → Licences**.
+The app shows this list and the full licence texts it ships (Apache-2.0, llama.cpp's MIT licence, Bouncy Castle, LLVM, the Source Serif 4 and Manrope font licences, the OCR components' licences and the Rust runtime notices of the native search) under **More → Licences**.
 
 | Component | Pinned version | License | Upstream license |
 | --- | --- | --- | --- |

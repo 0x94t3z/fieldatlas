@@ -348,13 +348,16 @@ class ResearchOrchestrator(
                 }
                 // Museums and sights are travel-guide listings without map positions: answer them from
                 // the city the mapped places around the phone are filed under.
-                if (point != null && result?.sources.isNullOrEmpty() && VenueLookup.asksGuideKind(question)) {
+                // The city's answer can need the model, and near-me questions may start before it has
+                // loaded, so without a ready model the phone's own "nothing nearby" answer stands.
+                if (point != null && result?.sources.isNullOrEmpty() && VenueLookup.asksGuideKind(question) &&
+                    inference.state.value == xyz.fieldatlas.inference.InferenceState.Ready) {
                     VenueLookup.cityOf(retriever.nearby(point, WHERE_RADII_KM.last(), NEARBY_CANDIDATES))?.let { city ->
                         // This run hands over to the city question, which takes the run itself. The
                         // reader asked about their surroundings, so the answer says it is city-wide.
                         activeRun.set(false)
-                        emit(ResearchEvent.Token(VenueLookup.cityWideNote(question, city)))
-                        emitAll(research(VenueLookup.inCity(question, city), resultLimit, contextTokenBudget, maxOutputTokens))
+                        emitAll(leading(VenueLookup.cityWideNote(question, city),
+                            research(VenueLookup.inCity(question, city), resultLimit, contextTokenBudget, maxOutputTokens)))
                         return@flow
                     }
                 }
@@ -838,6 +841,8 @@ class ResearchOrchestrator(
             // remain in Sources, not automatically prepended/appended to the answer.
             // Explicit quotations and the earlier exact-rule/calculation routes keep
             // their literal behavior. Never expose an unvalidated streaming draft.
+            // The reply a rejected cited draft would have had, kept in case no route below answers.
+            var unconfirmed: String? = null
             if (packed.sources.isNotEmpty() && phraseAsk == null && !CitedExplanation.explicitlyRequestsQuotes(question)) {
                 val explanation = PromptBuilder.explain(question, packed)
                 onEvidencePacked(explanation)
@@ -922,6 +927,7 @@ class ResearchOrchestrator(
                 )))
                 return@flow
                 }
+                unconfirmed = finished
                 emit(ResearchEvent.Token("", replace = true))
             }
             if (attachments.isEmpty()) PartialComparison.answer(question, packed)?.let { partial ->
@@ -1025,6 +1031,21 @@ class ResearchOrchestrator(
                     )))
                     return@flow
                 }
+            }
+            // After a rejected draft, only a mixed answer may be generated again: its model part is
+            // labelled unverified. A strictly cited answer (places, for one) would repeat the
+            // rejected claim with citations that look checked, so it stops with the gap instead.
+            unconfirmed?.takeIf { !packed.mixedAnswer }?.let { reply ->
+                emit(ResearchEvent.Token(reply, replace = true))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = null,
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
             }
             if (leadText != null) {
                 emit(ResearchEvent.Lead(leadText))

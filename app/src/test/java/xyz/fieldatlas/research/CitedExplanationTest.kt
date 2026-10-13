@@ -56,6 +56,112 @@ class CitedExplanationTest {
         assertEquals(finding to false, CitedExplanation.withoutGapStatements(finding))
     }
 
+    @Test fun aRejectedPlaceDraftIsNotGeneratedAgainWithoutReview() = runBlocking {
+        val question = "Which hostels in Hanoi have a rooftop pool?"
+        assertFalse(PromptBuilder.allowsModelExplanation(question))
+        val listing = Evidence("wv-hanoi", "wv-hanoi:0", "Hanoi — Sleep", "https://en.wikivoyage.org/w/index.php?oldid=1",
+            "Hostels in Hanoi: Hanoi Backpackers Hostel in the Old Quarter has dorm beds, a rooftop bar and a pool table.", 0.0)
+        val model = FakeInferenceGateway(listOf("Hanoi Backpackers Hostel has a rooftop pool [S1]."), reviewVerdict = "UNSUPPORTED")
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(listing) }, model).research(question).toList()
+        val shown = StringBuilder()
+        for (e in events) when (e) {
+            is ResearchEvent.Lead -> { shown.clear(); shown.append(e.text) }
+            is ResearchEvent.Token -> { if (e.replace) shown.clear(); shown.append(e.text) }
+            else -> Unit
+        }
+        val answer = shown.toString().trim()
+        // The rejected claim is not shown, with or without its citation.
+        assertFalse(answer, "rooftop pool" in answer)
+        assertTrue(answer, answer == CitedExplanation.GAP || answer == CitedExplanation.UNAVAILABLE)
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
+    @Test fun sourcesInTheWorldAreNotTheExcerpts() {
+        // "Plant sources" are foods, not the excerpts: a cited finding, kept whole.
+        val b12 = "Plant sources do not contain reliable vitamin B12 [S1]. Vegans need fortified foods or a supplement [S2]."
+        assertEquals(b12 to false, CitedExplanation.withoutGapStatements(b12))
+        val water = "Natural water sources do not contain enough iodine, so add 5 drops [S1]."
+        assertEquals(water to false, CitedExplanation.withoutGapStatements(water))
+        // A gap clause followed by a cited fact keeps the fact.
+        assertEquals("The museum is open daily 10:00-18:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "The evidence does not state a Sunday closing time, but the museum is open daily 10:00-18:00 [S1]."))
+    }
+
+    @Test fun aGapClauseIsSplitOnlyAtARealClauseBreak() {
+        // "yet" and "but" inside the gap clause are not a new clause; a bare citation is not an answer.
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements("The excerpts do not say whether the pass has reopened yet [S1]."))
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements("The sources do not mention any fees but the entry ticket [S1]."))
+        // A sentence-initial "Sources do not…" is still the model talking about its excerpts.
+        assertEquals("The museum opens at 10:00 [S1]." to true, CitedExplanation.withoutGapStatements("The museum opens at 10:00 [S1]. Sources do not mention Sunday hours."))
+        // A cited clause before the gap is kept.
+        assertEquals("The hostel has a rooftop bar [S1]." to true, CitedExplanation.withoutGapStatements(
+            "The hostel has a rooftop bar [S1], but the excerpts do not say whether it has a pool."))
+    }
+
+    @Test fun gapSentencesInOtherWordsAreStillGaps() {
+        for (gap in listOf("Unfortunately, sources don't mention Sunday hours.", "The two excerpts do not say whether it opens on public holidays.",
+            "Both sources do not mention Sunday hours.", "However, excerpts do not specify the Sunday hours.",
+            "The above excerpts do not mention Sunday hours.", "The supplied sources do not mention Sunday hours.")) {
+            assertEquals(gap, "The museum opens daily at 10:00 [S1]." to true,
+                CitedExplanation.withoutGapStatements("The museum opens daily at 10:00 [S1].\n\n$gap"))
+        }
+    }
+
+    @Test fun aPointerToACitationIsNotAnAnswer() {
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements("The provided sources do not specify the Sunday hours, but see [S1]."))
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements("The provided sources do not specify the Sunday hours, but refer to [S1]."))
+    }
+
+    @Test fun citedClausesAroundAGapAreKept() {
+        assertEquals("The museum opens daily at 10:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "Although the excerpts do not state the Sunday hours, the museum opens daily at 10:00 [S1]."))
+        assertEquals("The museum is open every day from 10:00 to 18:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "While the sources do not mention Sunday specifically, the museum is open every day from 10:00 to 18:00 [S1]."))
+        assertEquals("The museum opens daily at 10:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "The museum opens daily at 10:00 [S1]; the excerpts do not mention a Sunday closing time."))
+        assertEquals("The museum opens daily at 10:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "The museum opens daily at 10:00 [S1], and the sources do not mention Sunday."))
+        assertEquals("The hostel has a rooftop bar [S1]. Breakfast is included [S2]." to true, CitedExplanation.withoutGapStatements(
+            "The hostel has a rooftop bar [S1], but the excerpts do not say whether it has a pool, however breakfast is included [S2]."))
+    }
+
+    @Test fun citedFactsThatMentionTheSourcesAreKept() {
+        for (fact in listOf("According to the sources, the ticket does not include the audio guide [S1].",
+            "The sources say the hostel is central, but rooms do not include breakfast [S1].",
+            "The provided evidence shows that modern vaccines do not contain mercury [S1].",
+            "The excerpts note that the 24-hour pass does not cover the airport train [S2].",
+            "In this context, modern vaccines do not contain thimerosal [S1].",
+            "In the context of travel insurance, most basic policies do not cover scuba diving [S1].",
+            "A tree's age cannot be determined from its height alone [S1].",
+            "The two sources do not give the same opening time: [S1] says 09:00, while [S2] says 10:00.")) {
+            assertEquals(fact, fact to false, CitedExplanation.withoutGapStatements(fact))
+        }
+    }
+
+    @Test fun aGapNextToACitedFactKeepsTheFactAndNothingGarbled() {
+        for (draft in listOf("The museum opens at 10:00 [S1] but the sources do not say when it closes.",
+            "The museum opens at 10:00 [S1] and the sources do not say when it closes.",
+            "The museum opens at 10:00 [S1] — the sources do not say when it closes.",
+            "Although the museum opens at 10:00 [S1], the excerpts do not say when it closes.",
+            "While the museum opens at 10:00 [S1], the sources do not mention Sunday hours.")) {
+            assertEquals(draft, "The museum opens at 10:00 [S1]." to true, CitedExplanation.withoutGapStatements(draft))
+        }
+        // The next sentence turning with "However" is related, so it is kept.
+        assertEquals("However, the museum is open daily from 10:00 to 18:00 [S1]." to true, CitedExplanation.withoutGapStatements(
+            "The sources do not mention Sunday hours specifically. However, the museum is open daily from 10:00 to 18:00 [S1]."))
+        // When a clean split is not certain, nothing half-sentenced is shown.
+        for (draft in listOf("The excerpts do not give opening hours, prices, and transport details, but the museum is in the Old Town [S1].",
+            "While the excerpts do not mention Sunday, Monday or Tuesday hours, the museum opens daily at 10:00 [S1].")) {
+            val (kept, _) = CitedExplanation.withoutGapStatements(draft)
+            assertTrue(kept, kept == "INSUFFICIENT_EVIDENCE" || kept.startsWith("The museum"))
+        }
+        // Pointers to a source are not answers.
+        for (pointer in listOf("they can be found in [S1].", "you can check [S1].", "they are listed in [S1].")) {
+            assertEquals(pointer, "INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements(
+                "The provided sources do not specify the Sunday hours, but $pointer"))
+        }
+    }
+
     @Test fun aPartlyAnsweredQuestionKeepsItsCitedPartWithTheGapStated() = runBlocking {
         val fact = Evidence("luma", "luma:0", "Luma projector", "fixture://luma",
             "The Luma projector produces a beam through its emitter.", 0.0)

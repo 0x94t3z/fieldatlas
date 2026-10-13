@@ -113,6 +113,29 @@ class NearbyVenueTest {
     @Test fun walkingWordsAskAboutThePhonesPosition() {
         assertTrue(VenueLookup.isNearMe("need sunscreen and some painkillers, is there a pharmacy or drugstore I can walk to from here?"))
         assertTrue(VenueLookup.isNearMe("it's pouring with rain. any museum or gallery within walking distance of me?"))
+        // A trip "from here" to a named city is about that city.
+        assertFalse(VenueLookup.isNearMe("Best ramen restaurants in Kyoto? It's a day trip from here."))
+        assertFalse(VenueLookup.isNearMe("We're taking the train from here to Kyoto tomorrow, any good restaurants there?"))
+        assertTrue(VenueLookup.isNearMe("Any good restaurants a short ride from here?"))
+        // A time is not a place: "at night", "in the evening", "in under ten minutes".
+        assertTrue(VenueLookup.isNearMe("Any pharmacy still open at night a short ride from here?"))
+        assertTrue(VenueLookup.isNearMe("Is there a supermarket I can drive to from here in under ten minutes?"))
+        assertTrue(VenueLookup.isNearMe("any restaurant open in the evening not far from here?"))
+        assertFalse(VenueLookup.isNearMe("best ramen restaurants in kyoto? it's a day trip from here"))
+        for (q in listOf("any beaches I can reach from here at sunset", "any beaches from here at sunrise", "any restaurants from here at lunchtime",
+            "any restaurants from here at lunch", "any museums from here to visit in the rain", "any beaches from here in summer",
+            "is there a pharmacy from here open in the early morning", "is there a cafe from here open at breakfast time",
+            "any bars from here at happy hour", "a pharmacy open from here at Christmas")) assertTrue(q, VenueLookup.isNearMe(q))
+        // A landmark or city named after "to", "near" or "nearby" is that place.
+        for (q in listOf("nearest pharmacy to the Eiffel Tower", "closest beach to Lisbon", "nearest hospital to Shinjuku station",
+            "nearest hostel to Machu Picchu", "nearest ATM to Khao San Road", "best cafe nearby the Colosseum",
+            "restaurants within walking distance near the Colosseum", "museums within walking distance close to the Duomo",
+            "Is there a good restaurant an hour from here in Springfield?", "any hotels a short drive from here in Winterthur?",
+            "any cheap hostels two hours from here in Summerland?", "any bars a few minutes from here at Sunset Boulevard?",
+            "a good restaurant from here in A Coruña", "any restaurants from here on the way to Osaka", "restaurants from here towards Shibuya",
+        )) assertFalse(q, VenueLookup.isNearMe(q))
+        for (q in listOf("restaurants from here to eat at tonight", "nearest ATM from here in case I need cash", "dinner from here in walking range"))
+            assertTrue(q, VenueLookup.isNearMe(q))
         // Walking distance of a named place is that place, not the phone's position.
         assertFalse(VenueLookup.isNearMe("any good museums within walking distance of the Louvre in Paris?"))
     }

@@ -81,7 +81,7 @@ class MoreMenuUiTest {
         compose.onNodeWithText("Start answers faster").assertDoesNotExist()
         compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithText("Start answers faster").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Model loaded").assertIsDisplayed().assertIsOn()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsDisplayed().assertIsOn()
         compose.onNodeWithText("Licence").assertDoesNotExist()
         compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithText("Start answers faster").assertDoesNotExist()
@@ -94,7 +94,7 @@ class MoreMenuUiTest {
         compose.onNodeWithText("Qwen3.5 2B").performClick()
         val model = compose.onNodeWithText("Qwen3.5 2B", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val label = compose.onNodeWithText("Start answers faster", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
-        val toggle = compose.onNodeWithContentDescription("Model loaded").fetchSemanticsNode().boundsInRoot
+        val toggle = compose.onNodeWithContentDescription("Start answers faster").fetchSemanticsNode().boundsInRoot
         assertEquals("Rows share a text column", model.left, label.left, 2f)
         assertTrue("The switch sits after its label", toggle.left > label.right)
         assertTrue("The setting is below the model row", label.top > model.bottom)
@@ -104,7 +104,7 @@ class MoreMenuUiTest {
     @Test fun expandedModelLargeTextKeepsBothControlsReachable() {
         render(dark = true, scale = 2f)
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start answers faster").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Qwen3.5 2B").performScrollTo().assertIsDisplayed()
     }
 
@@ -112,7 +112,7 @@ class MoreMenuUiTest {
         var released = 0; var prepared = 0
         render(onPrepare = { prepared++ }, onRelease = { released++ })
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").performClick()
+        compose.onNodeWithContentDescription("Start answers faster").performClick()
         compose.runOnIdle { assertEquals(1, released); assertEquals(0, prepared) }
     }
 
@@ -120,21 +120,21 @@ class MoreMenuUiTest {
         var prepared = 0
         render(inference = InferenceState.Idle, onPrepare = { prepared++ })
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsOff().performClick()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOff().performClick()
         compose.runOnIdle { assertEquals(1, prepared) }
     }
 
     @Test fun modelSwitchIsDisabledDuringResearch() {
         render(inference = InferenceState.Generating)
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsOn().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOn().assertIsNotEnabled()
         compose.onNodeWithText("Qwen3.5 2B").assertIsDisplayed()
     }
 
     @Test fun modelSwitchIsDisabledDuringPreparation() {
         render(inference = InferenceState.Loading)
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsOff().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOff().assertIsNotEnabled()
     }
 
     @Test fun longTechnicalDetailsKeepPinnedCloseAndAboutBackNavigation() {

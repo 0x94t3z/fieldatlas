@@ -6,7 +6,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.coroutines.flow.MutableStateFlow
 import xyz.fieldatlas.inference.FakeInferenceGateway
+import xyz.fieldatlas.inference.InferenceGateway
+import xyz.fieldatlas.inference.InferenceState
 import java.time.LocalDateTime
 
 class OpenNowLookupTest {
@@ -122,5 +125,45 @@ class OpenNowLookupTest {
         ResearchOrchestrator(retriever, FakeInferenceGateway(listOf("must not run")), location = { GeoPoint(52.5, 13.4) })
             .research("nearest pharmacy").toList()
         assertEquals(listOf(2.0), radii)
+    }
+
+    @Test fun sightsNearMeFallBackToTheCityAndSaySo() = runBlocking {
+        val museum = place("7", "Pergamonmuseum", "See", "museum", "Tu-Su 10:00-18:00")
+        val searched = mutableListOf<String>()
+        val retriever = object : Retriever {
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence> {
+                searched += query
+                return listOf(museum)
+            }
+            // No museum has a map position; the mapped places around the phone are filed under Berlin.
+            override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>): List<NearbyPlace> =
+                if (categories.isEmpty()) listOf(NearbyPlace(weekdays, 0.2), NearbyPlace(allNight, 0.4)) else emptyList()
+        }
+        fun shown(events: List<ResearchEvent>) = StringBuilder().apply {
+            for (e in events) when (e) {
+                is ResearchEvent.Lead -> { clear(); append(e.text) }
+                is ResearchEvent.Token -> { if (e.replace) clear(); append(e.text) }
+                else -> Unit
+            }
+        }.toString()
+        val question = "any museum within walking distance of me?"
+        val ready = ResearchOrchestrator(retriever, FakeInferenceGateway(listOf("must not run")), location = { GeoPoint(52.5, 13.4) })
+            .research(question).toList()
+        val answer = shown(ready)
+        assertTrue(answer, answer.startsWith(VenueLookup.cityWideNote(question, "Berlin")))
+        assertTrue(answer, "Berlin as a whole" in answer && "within walking distance" in answer)
+        assertTrue(searched.any { "Berlin" in it })
+        assertFalse(ready.any { it is ResearchEvent.Failed })
+
+        // Without a loaded model the city's answer could fail, so the phone's own answer stands.
+        searched.clear()
+        val idle = object : InferenceGateway by FakeInferenceGateway() {
+            override val state = MutableStateFlow<InferenceState>(InferenceState.Idle)
+        }
+        val events = ResearchOrchestrator(retriever, idle, location = { GeoPoint(52.5, 13.4) }).research(question).toList()
+        assertTrue(searched.isEmpty())
+        assertFalse(events.any { it is ResearchEvent.Failed })
+        assertFalse(shown(events), "as a whole" in shown(events))
+        assertTrue(events.last() is ResearchEvent.Complete)
     }
 }

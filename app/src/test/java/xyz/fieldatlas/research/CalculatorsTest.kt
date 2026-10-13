@@ -118,14 +118,73 @@ class CalculatorsTest {
         assertFalse(solve("How many charges will a 20000 mAh bank give a 4000 mAh phone?")?.text.orEmpty().contains("full charges"))
     }
 
+    @Test fun powerBankPhrasingsPeopleUse() {
+        assertTrue(text("How many times can a 20,000 mAh power bank charge my iPhone 15 (3,349 mAh) at 80% efficiency?").contains("**4.78**"))
+        assertTrue(text("How many times can a 10,000 mAh power bank charge my smartphone with a 4,000 mAh battery at 80% efficiency?").contains("**2.00**") ||
+            text("How many times can a 10,000 mAh power bank charge my smartphone with a 4,000 mAh battery at 80% efficiency?").contains("**2**"))
+        assertTrue(text("How many full charges from a 26,800 mAh battery for my 4,000 mAh phone at 85% efficiency?").contains("**5.70**") ||
+            text("How many full charges from a 26,800 mAh battery for my 4,000 mAh phone at 85% efficiency?").contains("**5.7**"))
+        assertTrue(text("How many times can I charge a 3,000 mAh Galaxy from a 10,000 mAh Anker at 80% efficiency?").contains("**2.67**"))
+        // The efficiency is the percentage bound to "efficient"; the phone's charge and its drain are not.
+        assertTrue(text("I have a 10,000 mAh power bank and a 4,000 mAh phone. The phone is at 40% and the bank is 80% efficient. How many full charges?").contains("**2 full charges**"))
+        assertTrue(text("My phone lost 40% in an hour. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?").contains("**2 full charges**"))
+        assertTrue(text("How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone with a 35% efficiency loss?").contains("**1.63**"))
+        assertTrue(text("My phone is at 20%. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?").contains("**2 full charges**"))
+    }
+
+    @Test fun aDeviceWordBesideTheBankIsNotThePhone() {
+        assertTrue(text("How many times can my 10000 mAh phone charger charge my 3000 mAh phone at 80% efficiency?").contains("**2.67**"))
+        assertTrue(text("How many times can my 20000 mAh laptop power bank charge my 4000 mAh phone at 85% efficiency?").contains("**4.25**"))
+        assertTrue(text("How many times can my 10000 mAh mobile battery charge my 3000 mAh iPhone at 80% efficiency?").contains("**2.67**"))
+        assertTrue(text("How many times can a 20000 mAh phone power bank give a 5000 mAh Galaxy at 80% efficiency?").contains("**3.20**") ||
+            text("How many times can a 20000 mAh phone power bank give a 5000 mAh Galaxy at 80% efficiency?").contains("**3.2**"))
+        // Other ways of writing the efficiency.
+        assertTrue(text("How many times can my 10000 mAh power bank charge my 3000 mAh phone? Efficiency: 80%").contains("**2.67**"))
+        assertTrue(text("How many times can my 10000 mAh power bank charge my 3000 mAh phone with an efficiency rating of 85%?").contains("**2.83**"))
+        assertTrue(text("How many times can my 10000 mAh power bank charge my 3000 mAh phone assuming 85%-efficient charging?").contains("**2.83**"))
+        // A phone's own drain is not a charging loss, and a top-up from 20% is not a full charge.
+        assertFalse(solve("How many times can my 20000 mAh power bank charge my 4000 mAh phone? My phone loses 30% overnight.")?.complete == true)
+        assertFalse(solve("How many times can my 20000 mAh power bank charge my 4000 mAh phone from 20% to 100% at 80% efficiency?")
+            ?.text.orEmpty().contains("**2 full charges**"))
+    }
+
+    @Test fun aChargeAnswerIsNeverConfidentlyWrong() {
+        // One battery named by a nearby word is not enough to swap them: the usual case is stated instead.
+        val q = "How many times can a 10,000 mAh battery charge my phone at 80% efficiency if the battery in it is only 4,000 mAh?"
+        assertTrue(text(q), text(q).contains("**2 full charges**") && text(q).contains("is the power bank"))
+        // A loss that is not a charging loss is not the efficiency.
+        for (it in listOf("How many full charges does a 10,000 mAh power bank give a 4,000 mAh phone? It's been in storage, about 10% loss from self-discharge.",
+            "How many full charges does a 10,000 mAh power bank give a 4,000 mAh phone? My phone battery has a 20% loss in capacity.",
+            "How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone with a 75% efficiency loss?",
+            // Conditions this shortcut does not model: research continues.
+            "My 20,000 mAh power bank is only 50% charged. How many times can it charge my 4,000 mAh phone at 80% efficiency?",
+            "How many full charges from two 10,000 mAh power banks for a 4,000 mAh phone at 80% efficiency?",
+            "How many times can I charge my 4000 mAh phone from 20 to 80% with a 10000 mAh bank at 85% efficiency?",
+            "How many times can I top up my 4000 mAh phone with a 10000 mAh bank at 85% efficiency?",
+            "How many times can a 10000 mAh bank charge my 4000 mAh phone at 85% efficiency using wireless charging, which loses another 30%?",
+            "How many times can a 10000 mAh bank charge my 4000 mAh phone? The power bank is 90% efficient and the cable loses 10% to heat.",
+            "How many times can a 10000 mAh bank charge my 4000 mAh phone? Efficiency is 60% to 70%.",
+            // Thousands written with a dot or a space.
+            "How many full charges does a 10000 mAh power bank give a 4.500 mAh phone at 85% efficiency?",
+            "How many times can a 20.000 mAh power bank charge my 4500 mAh phone at 80% efficiency?",
+            "How many times can a 20000 mAh power bank charge my 4 500 mAh phone at 80% efficiency?",
+        )) assertFalse(it, solve(it)?.text.orEmpty().contains("full charge"))
+    }
+
     @Test fun powerBankRolesComeFromTheWordsNotTheSize() {
         // A small bank and a big phone: 2,000 × 0.8 ÷ 5,000 = 0.32, once mis-read as two charges.
         val small = solve("My power bank is 2,000 mAh and my phone battery is 5,000 mAh at 80% efficiency. How many full charges do I get?")!!
         assertTrue(small.text, "**0.32**" in small.text && "less than one full charge" in small.text && "same voltage" in small.text)
         // Phone named first, bank second.
         assertTrue(text("My phone has a 4,000 mAh battery. How many times can I charge it from a 10,000 mAh power bank at 80% efficiency?").contains("**2 full charges**"))
-        // No words say which is which, or the voltages differ: no shortcut, research continues.
-        for (q in listOf("How many charges do I get from 10,000 mAh into 4,000 mAh at 80% efficiency?",
+        // No efficiency stated, or the voltages differ: no shortcut, research continues.
+        // A loss is the complement of the efficiency: 35% lost is 65% efficient, 10,000 × 0.65 ÷ 4,500 = 1.44.
+        assertTrue(text("My power bank is 10,000 mAh and my phone battery is 4,500 mAh. About 35% is lost to heat and conversion. How many full charges will I get?")
+            .contains("**1.44**"))
+        assertTrue(text("How many charges does a 26,800 mAh battery pack give a 3,200 mAh phone if it has 30% conversion loss?").contains("**5.86**"))
+        // No word says which is which: the usual case, said out loud.
+        assertTrue(text("How many charges do I get from 10,000 mAh into 4,000 mAh at 80% efficiency?").contains("the larger one, 10,000 mAh, is the power bank"))
+        for (q in listOf("My phone is at 50% now. I have a 10,000 mAh power bank and a 4,500 mAh phone. How many full charges can I get?",
             "How many charges will a 20,000 mAh 3.7 V power bank give a 4,000 mAh phone at 80% efficiency?")) {
             val r = solve(q)
             assertFalse(q, r?.complete == true || r?.text.orEmpty().contains("full charge"))

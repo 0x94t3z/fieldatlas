@@ -103,9 +103,12 @@ fun MoreScreen(
             { onExportDiagnostics(includeQuestion) }, { sheet = null })
         "readiness" -> FieldAtlasInfoSheet("Offline readiness", { sheet = null }) {
             val collections = packs.count { it.type == PackType.KNOWLEDGE && it.enabled }
-            ReadinessVerdict(ready = model != null)
+            // An installed model that stopped with an error (loading, answering or unloading) is not ready.
+            val modelFailed = model != null && inferenceState is InferenceState.Failed
+            ReadinessVerdict(ready = model != null && !modelFailed, modelFailed = modelFailed)
             Column {
-                ReadinessCheck("Answer model", model?.title?.substringBefore(" — ") ?: "Missing", model != null)
+                ReadinessCheck("Answer model", if (modelFailed) "Stopped with an error"
+                    else model?.title?.substringBefore(" — ") ?: "Missing", model != null && !modelFailed)
                 MoreDivider()
                 ReadinessCheck("Collections", if (collections == 0) "None yet" else "$collections in research", collections > 0)
                 MoreDivider()
@@ -139,7 +142,8 @@ private fun FastStartRow(loaded: Boolean, enabled: Boolean, loading: Boolean, mo
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             FieldAtlasSwitch(checked = loaded, enabled = enabled, compact = true, onCheckedChange = onLoadedChange,
-                modifier = Modifier.semantics { contentDescription = "Model loaded" })
+                // Named as the row reads, so "tap Start answers faster" finds it.
+                modifier = Modifier.semantics { contentDescription = "Start answers faster" })
         }
         failure?.let {
             Text(it, Modifier.padding(start = 50.dp, end = 14.dp, bottom = 12.dp),
@@ -178,7 +182,7 @@ private fun MoreGroup(title: String, content: @Composable ColumnScope.() -> Unit
 
 /** The sheet's answer first: can the phone research offline right now? */
 @Composable
-private fun ReadinessVerdict(ready: Boolean) {
+private fun ReadinessVerdict(ready: Boolean, modelFailed: Boolean = false) {
     val colors = MaterialTheme.colorScheme
     Surface(color = if (ready) colors.primaryContainer else colors.surfaceVariant, shape = FieldAtlasButtonShape) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -189,7 +193,11 @@ private fun ReadinessVerdict(ready: Boolean) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(if (ready) "Ready to work offline" else "Not ready yet", style = MaterialTheme.typography.titleSmall,
                     color = if (ready) colors.onPrimaryContainer else colors.onSurface)
-                Text(if (ready) "Questions, sources and voice all run on this phone." else "Add an answer model to write answers.",
+                Text(when {
+                    ready -> "Questions, sources and voice all run on this phone."
+                    modelFailed -> "The answer model stopped with an error. Load it again under Answer model."
+                    else -> "Add an answer model to write answers."
+                },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (ready) colors.onPrimaryContainer else colors.onSurfaceVariant)
             }

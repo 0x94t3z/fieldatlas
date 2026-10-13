@@ -138,7 +138,10 @@ fun AnswerScreen(
                                     if (withheld) "No answer from your sources"
                                     else if (isInputNotice) "Research notice · no model generation"
                                     else if (calculated) "Calculated on this phone"
-                                    else if (noModelReply) "Answered from saved data"
+                                    // Only a reply that cites a saved source answered from saved data; "I couldn't
+                                    // get this phone's location" and "your sources don't mention X" did not.
+                                    else if (noModelReply && readyCitationCount(state.answer, state.sources.size) > 0) "Answered from saved data"
+                                    else if (noModelReply) "App reply · no model generation"
                                     else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
                                     else "Model-generated · sources not cited",
                                     if (withheld || isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,

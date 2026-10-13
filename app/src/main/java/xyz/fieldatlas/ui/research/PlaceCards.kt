@@ -59,9 +59,16 @@ private val dayNames = mapOf("Mo" to "Mon", "Tu" to "Tue", "We" to "Wed", "Th" t
  * "Mo-Fr 09:00-19:00; Sa 09:00-14:00" becomes "Mon–Fri 09:00–19:00 · Sat 09:00–14:00".
  * Only day names, ranges and separators change; an unfamiliar rule is still shown in full.
  */
+private const val OSM_DAYS = "(?:Mo|Tu|We|Th|Fr|Sa|Su|PH)(?:\\s*[-,]\\s*(?:Mo|Tu|We|Th|Fr|Sa|Su|PH))*"
+private const val OSM_TIMES = "(?:\\d{1,2}:\\d{2}\\s*-\\s*\\d{1,2}:\\d{2}\\+?(?:\\s*,\\s*\\d{1,2}:\\d{2}\\s*-\\s*\\d{1,2}:\\d{2}\\+?)*|off|closed)"
+// Only a rule in OpenStreetMap's syntax is rewritten. Guide text ("We open at 9", "50% off
+// drinks") is shown as written: its "We" is not Wednesday and its "off" is not closed.
+private val osmRule = Regex("^(?:$OSM_DAYS\\s*)?$OSM_TIMES(?:\\s*,\\s*$OSM_DAYS\\s*$OSM_TIMES)*$")
+
 internal fun readableHours(raw: String): String {
     if (raw.trim() == "24/7") return "Open 24 hours"
     return raw.trim().split(Regex("\\s*;\\s*")).filter(String::isNotBlank).joinToString(" · ") { rule ->
+        if (!osmRule.matches(rule)) return@joinToString rule.replace(Regex("(?<=\\d{2}:\\d{2})-(?=\\d{2}:\\d{2})"), "–")
         rule.replace(Regex("\\bMo-Su\\b"), "Daily")
             .replace(Regex("\\b(Mo|Tu|We|Th|Fr|Sa|Su)\\b")) { dayNames.getValue(it.value) }
             .replace(Regex("\\bPH\\b"), "holidays")

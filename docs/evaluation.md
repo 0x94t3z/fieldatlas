@@ -6,7 +6,9 @@ Between 7 and 13 October the answer path changed (one consolidated Encyclopedia 
 native engine, cited explanations reviewed before they are shown, a new biology collection), so the
 release build was measured again, on new questions, three times. Each set was written by a writer
 that read no repository file and avoided every earlier question, sealed by its SHA-256 before the
-run, answered by a frozen build, given web-researched frontier-model references, and graded blind
+run (set 4 `6057cad0e1732c36f960b96f4ca93733632d577cc55fb19c83bbb969096607a9`, set 5
+`b2f2c383778f9022635b8a726e71d334b6891e6ff1857e2f44bc6bc923ac42b4`, set 6
+`10646ea742d03f705a45ac095dc276c71bdc231af5114b5e8bc47f11c82a6b92`, the published question files), answered by a frozen build, given web-researched frontier-model references, and graded blind
 in two independent rounds (each answer on its own, as in the field test below; the share of the
 reference is the sum of Field Atlas's scores over the reference's).
 
@@ -22,6 +24,7 @@ searched as on the phone; the 7 October measurement used keyword search only.
 | Set 5 ([questions](fieldtest/heldout5.jsonl)) | After the answer-path fix | 34% (33% and 34%) | 0.83 |
 | **Set 6** ([questions](fieldtest/heldout6.jsonl)) | **The 1.4.0 release build** | **34% (33% and 34%)** | **1.02** |
 | Set 6 without the five phone-position questions | The optional Qwen3.5 4B on the release build | 35% (the 2B: 32% on the same 55) | 0.50 |
+
 **Set 4: the candidate withheld 25 of 60 answers.** Where saved passages matched, the model wrote a
 cited draft and then reviewed whether the passages supported it; on an unconfirmed draft the app
 showed "I couldn't produce a properly cited explanation" and skipped every route that answered
@@ -29,8 +32,11 @@ before. The 2B's review rejected 32 of the 44 drafts it saw, among them correct 
 were wrong (two drafts on removing a tick gave unsafe advice). The fix keeps the review and never
 shows a rejected draft, but lets the question continue to a travel guide's section, a phrasebook
 line, the saved excerpts, or a source lead with a model explanation labelled as unverified. To see
-what changed, set 4 was also answered by the 7 October build: graded blind together, that build
-reached 32%, the fixed path 39%, with 1.56 and 0.93 errors per answer (development data: four
+what changed, set 4 was also answered by the 7 October build, with its own collections and keyword
+search: graded blind together (against the reference grades of the candidate's two rounds), that
+build reached 32%, the fixed path 39%, with 1.56 and 0.93 errors per answer
+([7 October build](fieldtest/results-1.4.0/heldout4-7oct-build.jsonl),
+[fixed path](fieldtest/results-1.4.0/heldout4-fixed-path.jsonl)) (development data: four
 emergency matcher fixes and a power-bank calculator were made with these questions in view).
 
 **Set 5 found place bugs.** "Is there a pharmacy I can walk to from here?" and "any museum within
@@ -350,7 +356,7 @@ and **useful compared with internet search plus a frontier model** answering the
 | **Total** | **15 pass, 7 partial, 2 fail** | **15 of 23 = 65%** |
 
 Answers about attached files and emergency questions are outside this suite; they were checked on
-desktop and on a Redmi 13C and are reported in the [1.3.0 release notes](releases/current.md#verification).
+desktop and on a Redmi 13C and are reported in the [1.3.0 release notes](releases/field-atlas-1.3.0.md#verification).
 
 What keeps answers below the bar, most impact first:
 

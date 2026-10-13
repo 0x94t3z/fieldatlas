@@ -58,24 +58,28 @@ You need an Android 13 or later phone with an arm64 processor.
 5. Turn on airplane mode and ask a question in **Research**.
 
 Finish the downloads before you go offline. A phone without a connection can import a `.fapack`
-file saved from [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) on
-another device. The [install guide](docs/installation.md) covers updates and older versions.
+file copied from another device: collections from Hugging Face
+([Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge),
+[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)), and the model as a
+`.fapack` built as [MODELS.md](MODELS.md) describes. The [install guide](docs/installation.md) covers updates and older versions.
 
 ## How good is it?
 
 The bounty asks for an offline tool that is more than half as good as a web search plus a
 frontier AI model. We tested Field Atlas 1.4.0 on 60 new questions that were written after the app
 was finished, by an AI model that had never seen the app's code, so the questions could not be
-tailored to what the app already handles well. Other AI models then scored each answer blind,
-next to an answer researched on the web.
+tailored to what the app already handles well. Other AI models then scored each answer blind, on
+its own, and scored an answer researched on the web the same way. The result is Field Atlas's total
+as a share of the web answer's.
 
 - **34%** of the web-and-AI answers with the default model. **Not there yet.**
-- **35%** with the optional larger model (Qwen3.5 4B), offered on phones with 8 GB of memory. It
-  makes about half as many factual errors.
-- **Strongest:** places near you, vegan restaurants in your city, quick facts, emergency guides,
-  phrases and calculations.
-- **Weakest:** comparisons, cryptography and reasoning, where the small model has to explain
-  things itself.
+- **35%** with the optional larger model (Qwen3.5 4B), offered on phones with 8 GB of memory, on
+  the 55 questions that need no phone position (the default model scores 32% on those). It makes
+  about half as many factual errors.
+- **Strongest:** vegan restaurants in the city you are in (73%, 2 questions) and quick facts (57%,
+  8 questions).
+- **Weakest:** cryptography (18%), comparisons (23%), emergencies (26%) and reasoning with numbers
+  (27%).
 
 The graders and the reference answers come from AI models of one family, so treat these numbers as
 our own measurement, not an independent score. Every question, answer and grade is published in
@@ -84,8 +88,8 @@ our own measurement, not an independent score. Every question, answer and grade 
 
 ## Good to know
 
-- Answers that use the model take **2 to 4 minutes** on a 6 GB phone. Answers built from saved
-  data take seconds.
+- Answers that use the model take **under a minute to about 4 minutes** on a 6 GB phone. Answers
+  built from saved data take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not yet tested
@@ -108,7 +112,7 @@ All collections are optional and download inside the app from Hugging Face
 | Biology & longevity | 8 MB | A biology textbook, health topics, ageing gene data, six research reviews |
 
 Sources, checksums and licences for each one are in [DATASETS.md](DATASETS.md#collections-the-app-offers).
-The model and every collection together take about 32 GB.
+The default model and every collection together take about 28.4 GB (31.5 GB with both models).
 
 ## Watch it work
 

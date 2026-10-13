@@ -43,7 +43,10 @@ object EmergencyGuideMatch {
             "swallowed detergent", "swallowed antifreeze"),
         "anaphylaxis" to listOf("throat is swelling", "throat swelling", "swollen throat", "tongue is swelling", "lips are swelling"),
         "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head"),
+        // Falling through ice: the water rescue first (from safe ground), then warming the person.
+        "drowning" to listOf("fell through the ice", "fallen through the ice", "falls through the ice", "through the ice"),
         "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water",
+            "icy water", "through the ice",
             "body temperature", "shivering", "uncontrollable shivering"),
         "altitude-sickness" to listOf("mountain sickness", "high altitude"),
         "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite", "dog bit", "bit by a dog", "cat bit", "bit by a cat", "monkey bit", "bit by a monkey",
@@ -82,8 +85,12 @@ object EmergencyGuideMatch {
             "nause\\w*|vomit\\w*|feel(?:s|ing)? sick|faint\\w*|confus\\w*|drowsy|sleepy|unconscious|collapsed|passed out|fumes|" +
             "poison\\w*|indoors|inside|in (?:the|a|my|our) (?:tent|cabin|garage|caravan|camper|room|basement|car))\\b"),
         // Numb white fingers are frostbite only in the cold; elsewhere they can be many things.
-        "frostbite" to Regex("(?i)\\b(frost\\w*|cold|freez\\w*|snow\\w*|ski\\w*|ice|icy|winter|blizzard|below zero|minus|" +
-            "mountains?|hut|glacier|subzero|sub-zero)\\b|(?<![\\w-])-\\d+\\s*°?\\s*[cf]\\b"),
+        // Everyday "cold" and "ice" do not count: a cold sweat is a heart attack sign, and ice put
+        // on a sprain is not weather. "Skin" is not skiing. A freezing temperature counts too
+        // ([freezingTemperature]).
+        "frostbite" to Regex("(?i)\\b(frost\\w*|cold(?! sweats?\\b| water\\b| drinks?\\b| compress\\w*| packs?\\b| sores?\\b| medicine\\b)|" +
+            "freez\\w*|froze\\w*|snow\\w*|ski(?:s|ing|ed|er|ers)?|icy|on (?:the )?ice|through the ice|ice ?(?:storms?|packs?|bags?|cubes?)|cold water for|ice (?:climb\\w*|fish\\w*|axe|field|sheet|skat\\w*|rinks?|hockey)|skating rink|outdoor rink|sled\\w*|sledg\\w*|toboggan\\w*|winter|blizzard|" +
+            "below zero|minus|mountains?|hut|glacier|subzero|sub-zero)\\b"),
         "altitude-sickness" to Regex("(?i)\\b(altitude|elevation|mountains?|mount|mt|summit|peak|trek(?:king|ked)?|climb(?:s|ed|ing)?|hiked up|high up|" +
             "above sea level|cusco|la paz|lhasa|tibet|quito|bogot[aá]|leh|ladakh|everest|kilimanjaro|himalaya\\w*|andes|" +
             "\\d[\\d,]*\\s*(?:m|meters?|metres?|ft|feet)\\b|ams|hape|hace)\\b"),
@@ -240,10 +247,50 @@ object EmergencyGuideMatch {
      * guide (cool the burn under running water) would send the person to rinse a jellyfish sting
      * with fresh water, which can fire the stingers still on the skin.
      */
-    private val stingOrBite = Regex("(?i)\\b(stung|stings?|stinging|jelly ?fish|man o['’ ]? ?war|bluebottle|sea urchin|nettles?|" +
-        "bitten|bites?|bit)\\b")
-    private val heatBurn = Regex("(?i)\\b(fire|flames?|hot|boiling|scald\\w*|steam|stove|oven|oil|grease|iron|kettle|coffee|tea|" +
-        "chemical|acid|electric\\w*|sunburn\\w*|sun|campfire|burned (?:by|on|with)|burnt (?:by|on|with))\\b")
+    // A sting or bite named as the cause. "It stings" and "a bit" describe a burn's pain and size.
+    private val stingOrBite = Regex("(?i)\\b(stung|bitten|bit (?:me|him|her|them|us|my|his|their|our)|" +
+        "(?:a|the|my|his|her|their|this|that) (?:sting|bite)|(?:bee|wasp|hornet|insect|scorpion|ant|spider|mosquito|bug|caterpillar|" +
+        "horse ?fly|fly|leech|centipede|millipede|tick|flea|midge|sand ?fly|catfish|weever(?: fish)?) (?:stings?|bites?))\\b")
+    // A jellyfish or nettle "burned my leg" is still a sting: rinsing it as a burn can make it worse.
+    private val marineOrPlantSting = Regex("(?i)\\b(jelly ?fish|(?:portuguese )?man[- ]?o(?:f|['’])?[- ]?war|bluebottle|sea urchins?|stingray|" +
+        "lionfish|stonefish|scorpionfish|weever|(?:sea )?anemones?|(?:fire )?coral|(?:stinging )?nettles?)\\b")
+    private val heatBurn = Regex("(?i)\\b(fire(?! coral| ants?\\b)|fireworks?|flames?|hot|boiling|scald\\w*|steam|stove|oven|oil|grease|iron|kettle|coffee|tea|" +
+        "chemical|acid|electric\\w*|sunburn\\w*|sun|campfire|candles?|exhaust|grill|barbecue|bbq|straightener|curling iron|lighter|" +
+        "matches|radiator|pan|pot|hob|heater|toaster|wax|burned (?:by|on|with)|burnt (?:by|on|with))\\b")
+    // "Burned my hand" names a burn whatever else the sentence says.
+    private val namedBurn = Regex("(?i)\\b(?:burned|burnt|scalded)\\s+(?:(?:my|his|her|their|our|your|the|a)\\s+)?(?:\\w+\\s+)?" +
+        "(?:hands?|fingers?|thumbs?|arms?|legs?|palms?|foot|feet|face|skin|wrists?|mouth|tongue|lips?|back|neck|chest|knees?|toes?)\\b|\\bscald\\w*")
+
+    // Frostbite named, or its own signs (white, hard, waxy skin), rather than numbness, which other emergencies share.
+    private val frostbiteNamed = Regex("(?i)\\b(frost ?bit\\w*|frost ?nip|frozen (?:fingers?|toes?|feet|hands?|nose|ears?)|waxy|white|hard|blister\\w*)\\b")
+    // Acute emergencies that numb fingers can come with; their guide leads and frostbite follows.
+    private val outranksNumbness = setOf("cpr", "choking", "severe-bleeding", "shock", "head-injury", "heart-attack", "stroke",
+        "anaphylaxis", "seizures", "fractures-sprains", "hypothermia")
+
+    // Something stuck in the airway: the choking guide, even for a person with an allergy.
+    private val chokingOnSomething = Regex("(?i)\\b(chok\\w* on|heimlich|stuck in (?:\\w+ )?(?:throat|windpipe|airway)|" +
+        "\\w+ (?:is |got )?stuck\\b(?! (?:in|on|at) (?:the |a )?(?:snow|mud|sand|car|traffic|elevator|lift|tent|house|cabin|storm))|no hives)")
+    // Hypothermia is the acute danger only when its own signs are there, not just cold water or a frozen lake.
+    private val hypothermiaSigns = Regex("(?i)\\b(hypotherm\\w*|shiver\\w*|confus\\w*|drows\\w*|slurred|body temperature|stumbl\\w*|unresponsive)\\b")
+    // "Can't breathe" with a tight chest on the stairs or high on a trek is not something stuck in
+    // the throat: abdominal thrusts are wrong there. Choking stays when anything points to the airway.
+    private val airwayObject = Regex("(?i)\\b(chok\\w*|heimlich|stuck|swallow\\w*|food|eat\\w*|ate|meal|throat|airway|windpipe|" +
+        "cough\\w*|gag\\w*|piece|candy|sweet|grape|nut|toy|coin|bone|button|marble)\\b")
+    private val otherBreathingCause = Regex("(?i)\\b(chest|heart|altitude|elevation|trek\\w*|everest|summit|mountain|asthma\\w*|inhaler|" +
+        "smoke|fumes|panic\\w*|stairs)\\b")
+    // An allergic trigger with airway or swelling signs is anaphylaxis, not a mild sting or choking.
+    private val allergyTrigger = Regex("(?i)\\b(stung|stings?|bee|bees|wasps?|hornets?|insect|peanuts?|nuts?|shellfish|allerg\\w*)\\b")
+    private val allergySign = Regex("(?i)\\b(wheez\\w*|(?:trouble|difficulty|problems?|struggling) (?:to )?breath\\w*|hard to breathe|" +
+        "can'?t breathe|cannot breathe|short(?:ness)? of breath|hives|throat (?:is |feels )?(?:tight|closing)|chest (?:is |feels )?tight|feel\\w* faint|" +
+        "(?:lips?|tongue|face|throat|mouth|eyes?) (?:is |are |has |have |got |getting )?(?:swollen|swelling|puff\\w*)|" +
+        "swollen (?:lips?|tongue|face|throat|mouth))")
+
+    /** A stated temperature at or below freezing: "5°F", "−15 °C", "10 degrees F". */
+    internal fun freezingTemperature(question: String): Boolean =
+        Regex("(?i)(?<![\\w.])([-−–]?\\d+(?:\\.\\d+)?)\\s*(?:°|º|degrees?)?\\s*(f|c|fahrenheit|celsius)\\b").findAll(question).any { m ->
+            val value = m.groupValues[1].replace('−', '-').replace('–', '-').toDoubleOrNull() ?: return@any false
+            if (m.groupValues[2].lowercase().startsWith("f")) value <= 32 else value <= 0
+        } || Regex("(?i)\\bminus \\d").containsMatchIn(question)
 
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
@@ -292,7 +339,10 @@ object EmergencyGuideMatch {
             // generated treatment. The answer must disclose that this is a general guide.
             if (guide.id == "safe-drinking-water" && tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question))
                 return@map Triple(guide, 0, false)
-            if (guide.id == "burns" && stingOrBite.containsMatchIn(question) && !heatBurn.containsMatchIn(question))
+            if (guide.id == "burns" && !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
+                    stingOrBite.containsMatchIn(question) && !namedBurn.containsMatchIn(question)))
+                return@map Triple(guide, 0, false)
+            if (guide.id == "choking" && !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question))
                 return@map Triple(guide, 0, false)
             if (guide.id == "poisoning" && batteryIngestion.containsMatchIn(question)) {
                 score += 4
@@ -301,7 +351,7 @@ object EmergencyGuideMatch {
             // One everyday word is not enough on its own: "fever" is a tick-bite keyword, "throat" a
             // choking one, but "my baby has a fever" and "my throat hurts" are neither.
             // A guide's required context (a height for altitude sickness) is itself specific.
-            val context = requiredContext[guide.id]?.containsMatchIn(question)
+            val context = requiredContext[guide.id]?.let { it.containsMatchIn(question) || guide.id == "frostbite" && freezingTemperature(question) }
             val enough = specific || score >= 2 || context == true
             Triple(guide, if (!enough || context == false) 0 else score, specific)
         }
@@ -323,9 +373,16 @@ object EmergencyGuideMatch {
             scored.none { (guide, score, _) -> guide.id != "heat-illness" && score > 0 }
         // A ridge or a tent in the question: the backcountry lightning guide, when it scores at all.
         val outdoors = backcountry.containsMatchIn(question)
+        val numbOnly = !frostbiteNamed.containsMatchIn(question) &&
+            scored.any { (guide, score, specific) -> guide.id in outranksNumbness && score > 0 &&
+                if (guide.id == "hypothermia") hypothermiaSigns.containsMatchIn(question) else specific }
+        val allergic = allergyTrigger.containsMatchIn(question) && allergySign.containsMatchIn(question) &&
+            !chokingOnSomething.containsMatchIn(question)
         val ranked = scored.map { (guide, score, _) ->
             guide to when {
                 guide.id == revive -> maxOf(score, 1)
+                allergic && guide.id == "anaphylaxis" -> top + 1
+                numbOnly && guide.id == "frostbite" && score > 0 -> 1
                 heatOnly && guide.id == "heat-illness" -> maxOf(score, 1) + HEAT_BONUS
                 outdoors && guide.id == "lightning-backcountry" && score > 0 -> score + LIGHTNING_BONUS
                 else -> score
@@ -364,6 +421,8 @@ object EmergencyGuideMatch {
         if (best.plainText().length < SHORT_GUIDE_CHARS || sections(best).size == 1) {
             ranked.firstOrNull { (guide, _) -> guide.id != best.id && guide.category == best.category }?.let { out += it.first }
         }
+        if (best.id == "drowning" && throughIce.containsMatchIn(question))
+            guides.firstOrNull { it.id == "hypothermia" }?.takeIf { out.none { o -> o.id == it.id } }?.let { out += it }
         if (outdoorContext.containsMatchIn(question)) {
             val extra = when (best.id) {
                 in injuryGuides -> "injured-outdoors"
@@ -374,6 +433,8 @@ object EmergencyGuideMatch {
         }
         return out
     }
+
+    private val throughIce = Regex("(?i)\\bthrough (?:the )?ice\\b")
 
     /** The guides to pack for the answer, primary first; empty when no guide matches. */
     fun pack(question: String, guides: List<EmergencyGuide>): List<EmergencyGuide> {

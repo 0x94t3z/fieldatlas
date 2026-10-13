@@ -30,15 +30,17 @@ on the phone, with no account and nothing sent anywhere.
 
 ## How good is it?
 
-We tested it on 60 new questions written after this version was finished, and compared each
-answer with one from a web search plus a frontier AI model. Graders scored every answer blind.
+We tested it on 60 new questions written after this version was finished. Graders scored every
+answer blind, on its own, and scored an answer from a web search plus a frontier AI model the same
+way; the result is Field Atlas's total as a share of that answer's.
 
 - With the default model, Field Atlas scores **34%** of the web-and-AI answers. The bounty asks
-  for more than 50%, so it is **not there yet**. The optional 4B model scores 35%.
-- It is strongest where it answers from saved data: places near you, vegan restaurants in your
-  city, quick facts, emergency guides, phrases and calculations.
-- It is weakest where the small model has to explain things itself: comparisons, cryptography and
-  multi-step reasoning.
+  for more than 50%, so it is **not there yet**. The optional 4B model scores 35% on the 55
+  questions that need no phone position, where the default model scores 32%.
+- It is strongest on vegan restaurants in the city you are in (73%, 2 questions) and quick facts
+  (57%, 8 questions).
+- It is weakest on cryptography (18%), comparisons (23%), emergencies (26%) and reasoning with
+  numbers (27%).
 
 Every question, answer and grade is published in
 [results-1.4.0](../fieldtest/results-1.4.0/). The [evaluation](../evaluation.md#140-release-build-on-fresh-questions-october-13)
@@ -46,14 +48,14 @@ explains the method.
 
 ## Good to know
 
-- **Answers that use the model take 2 to 4 minutes** on a 6 GB phone. Answers built from saved
-  data (places, guides, phrases, calculations) take seconds.
+- **Answers that use the model take under a minute to about 4 minutes** on a 6 GB phone. Answers
+  built from saved data (places, guides, phrases, calculations) take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   The emergency guides are information, not training, and many were written for the United States.
 - **Map data and opening hours can be out of date.**
-- **Storage.** The model and every collection take about 32 GB. Installing the Encyclopedia needs
-  room for the download and the installed copy at the same time, about 43 GB at the peak, which
-  fits the 50 GB budget.
+- **Storage.** The default model and every collection take about 28.4 GB (31.5 GB with both
+  models). Installing the Encyclopedia needs room for the download and the installed copy at the
+  same time: about 39 GB at the peak (42 GB with both models), which fits the 50 GB budget.
 - **Tested phones.** Redmi 13C (6 GB, Android 13) and Infinix X6840 (4 GB, Android 16). Not yet
   tested on a Pixel, on GrapheneOS or on an 8 GB phone.
 

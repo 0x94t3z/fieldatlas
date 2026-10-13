@@ -54,11 +54,11 @@ class ModernUiTest {
             MoreScreen(proof, state.value, { prepares++ }, { releases++ }, {}, {}, packs = listOf(model))
         } }
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsOn().performClick()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOn().performClick()
         compose.runOnIdle { assertEquals(1, releases); assertEquals(0, prepares); state.value = InferenceState.Loading }
-        compose.onNodeWithContentDescription("Model loaded").assertIsOff().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOff().assertIsNotEnabled()
         compose.runOnIdle { state.value = InferenceState.Generating }
-        compose.onNodeWithContentDescription("Model loaded").assertIsOn().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsOn().assertIsNotEnabled()
     }
 
     @Test fun readinessReportsRealPacksAndBundledVoiceWithoutExtraActions() {
@@ -84,7 +84,7 @@ class ModernUiTest {
             }
         } }
         compose.onNodeWithText("Qwen3.5 2B").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Start answers faster").assertIsDisplayed()
         compose.onNodeWithText("Qwen3.5 2B").performScrollTo().assertIsDisplayed()
         // A lazy list composes only what is near the screen: scroll the list itself to the row.
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Offline readiness"))

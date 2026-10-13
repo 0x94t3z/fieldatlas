@@ -321,7 +321,9 @@ private class MarkdownParser(markdown: String) {
                     before is MarkdownInline.Text && before.value.isNotBlank() ->
                         out[i - 1] = MarkdownInline.Text(before.value.trimEnd() + mark)
                     // "fire **112** [S1]." : the space after the bold number takes the mark.
-                    before is MarkdownInline.Text && i >= 2 -> out[i - 1] = MarkdownInline.Text(mark.toString())
+                    // Not the gap between two citations: "[S1], [S2]." keeps its full stop after them.
+                    before is MarkdownInline.Text && i >= 2 && out[i - 2] !is MarkdownInline.Citation ->
+                        out[i - 1] = MarkdownInline.Text(mark.toString())
                     before !is MarkdownInline.Text -> { out.add(i, MarkdownInline.Text(mark.toString())); end++; i++ }
                     else -> out[end + 1] = next
                 }

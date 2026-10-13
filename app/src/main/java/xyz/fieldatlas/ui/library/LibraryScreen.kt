@@ -322,7 +322,7 @@ fun LibraryScreen(
                     }
                 }
             }
-            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("Everything offered is already on this phone.") }
+            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
             }
             if (knowledgeDownloadError != null) {
                 item {

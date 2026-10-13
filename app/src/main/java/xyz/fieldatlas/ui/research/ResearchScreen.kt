@@ -405,8 +405,13 @@ fun ResearchScreen(
                                 if (state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
                                     state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE) {
                                     "No answer from your sources"
+                                } else if (state.answer == xyz.fieldatlas.research.QuestionRequirements.response(
+                                        state.question, state.attachments.isNotEmpty())) {
+                                    "Research notice · no model generation"
                                 } else if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
-                                    "Answered from saved data"
+                                    // Nothing cited and no model: a calculation, or the app's own "I couldn't…" reply.
+                                    if (state.answer.contains("_Calculated on this phone._")) "Calculated on this phone"
+                                    else "App reply · no model generation"
                                 } else if (citedSourceCount == 0) {
                                     "Model-generated · no sources cited"
                                 } else {
