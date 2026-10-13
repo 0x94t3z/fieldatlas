@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Build one-content knowledge DB with upstream Leviathan and legacy search indexes.
 
-Only plain text packs are supported for now. Reject vectors, maps and other auxiliary
-tables rather than silently losing them. Input files are immutable; output is new.
+Text packs and their explicitly validated source-provenance tables are supported.
+Reject vectors, maps and unknown auxiliary tables rather than silently losing them.
+Input files are immutable; output is new.
 The two posting indexes share original text in records.doc (no second text corpus).
 This creates content.sqlite, not an independently installable .fapack archive.
 """
@@ -14,6 +15,40 @@ import sqlite3
 import tempfile
 
 
+PROVENANCE = {
+    'source_provenance': ('document_id', 'metadata_json'),
+    'dataset_provenance': ('metadata_json',),
+}
+
+
+def provenance_rows(database, tables):
+    """Copy data, never source DDL/triggers, from the two documented metadata tables."""
+    result = {}
+    for table, columns in PROVENANCE.items():
+        if table not in tables:
+            continue
+        info = database.execute(f'PRAGMA table_info({table})').fetchall()
+        if tuple(row[1] for row in info) != columns or any(row[2].upper() != 'TEXT' for row in info):
+            raise ValueError('Unsupported provenance table layout')
+        rows = database.execute(f'SELECT {",".join(columns)} FROM {table}').fetchall()
+        for row in rows:
+            if any(not isinstance(value, str) or not value or len(value.encode()) > 1_048_576 for value in row):
+                raise ValueError('Invalid provenance value')
+            try:
+                metadata = json.loads(row[-1])
+            except ValueError as error:
+                raise ValueError('Invalid provenance JSON') from error
+            if not isinstance(metadata, dict):
+                raise ValueError('Provenance metadata must be an object')
+        if table == 'source_provenance':
+            ids = [row[0] for row in rows]
+            expected = {row[0] for row in database.execute('SELECT DISTINCT document_id FROM chunks_fts')}
+            if len(ids) != len(set(ids)) or set(ids) != expected:
+                raise ValueError('Provenance must cover each source document exactly once')
+        result[table] = rows
+    return result
+
+
 def build(source: Path, index: Path, output: Path):
     source, index = source.resolve(strict=True), index.resolve(strict=True)
     output = output.resolve()
@@ -23,8 +58,9 @@ def build(source: Path, index: Path, output: Path):
         original.execute('BEGIN')
         tables = {r[0] for r in original.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         allowed = {'chunks_fts', 'chunks_fts_data', 'chunks_fts_idx', 'chunks_fts_content', 'chunks_fts_docsize', 'chunks_fts_config'}
-        if tables - allowed or original.execute('PRAGMA user_version').fetchone()[0] != 1:
-            raise ValueError('Only plain schema-1 text packs are supported; no auxiliary data is discarded')
+        if tables - allowed - PROVENANCE.keys() or original.execute('PRAGMA user_version').fetchone()[0] != 1:
+            raise ValueError('Only schema-1 text packs with known provenance are supported; no auxiliary data is discarded')
+        provenance = provenance_rows(original, tables)
         schema = original.execute("SELECT sql FROM sqlite_master WHERE name='chunks_fts'").fetchone()[0]
         if 'tokenize' in schema.lower() and "tokenize='porter unicode61'" not in schema:
             raise ValueError('Unsupported source tokenizer')
@@ -41,6 +77,13 @@ def build(source: Path, index: Path, output: Path):
                 if not upstream.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='record_fts'").fetchone():
                     raise ValueError('Missing upstream posting index')
                 upstream.backup(db)
+                for table, rows in provenance.items():
+                    if table == 'source_provenance':
+                        db.execute('CREATE TABLE source_provenance(document_id TEXT PRIMARY KEY, metadata_json TEXT NOT NULL)')
+                        db.executemany('INSERT INTO source_provenance VALUES (?,?)', rows)
+                    else:
+                        db.execute('CREATE TABLE dataset_provenance(metadata_json TEXT NOT NULL)')
+                        db.executemany('INSERT INTO dataset_provenance VALUES (?)', rows)
                 records = db.execute('SELECT rowid,id,doc FROM records ORDER BY rowid')
                 seen = 0
                 for _, identity, raw in records:

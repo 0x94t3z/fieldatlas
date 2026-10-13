@@ -28,6 +28,36 @@ def pack(path, payload=b"Full cited passage.", **changes):
 
 
 class StoragePlanTests(unittest.TestCase):
+    def test_compressed_pack_reserves_expanded_payload_not_archive_twice(self):
+        op = operation(packSchemaVersion=2, archiveBytes=10_643_533_492, installedBytes=24_346_003_429)
+        result = simulate(2_000_000_000, LIMIT, 1_000_000_000, [op])
+        self.assertEqual(36_990_585_497, result["plannedPeakBytes"])
+        self.assertTrue(result["totalLimitAndFreeSpacePlanPass"])
+        self.assertTrue(result["selectedKnowledgeMeetsTwentyDecimalGB"])
+        self.assertFalse(simulate(16_000_000_000, LIMIT, 1, [op])["totalLimitAndFreeSpacePlanPass"])
+
+    def test_schema_two_deflated_payload_is_fully_verified(self):
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / "compressed.fapack"
+            payload = b"A cited passage. " * 10000
+            manifest = dict(schemaVersion=2, id="topic", version="1", type="KNOWLEDGE",
+                            license="CC0-1.0", artifacts=[dict(path="content.sqlite", bytes=len(payload),
+                                sha256=hashlib.sha256(payload).hexdigest())])
+            for schema in (2, 1):
+                manifest["schemaVersion"] = schema
+                with zipfile.ZipFile(archive, "w") as zip:
+                    zip.writestr("manifest.json", json.dumps(manifest))
+                    zip.writestr("content.sqlite", payload, compress_type=zipfile.ZIP_DEFLATED)
+                pin = hashlib.sha256(archive.read_bytes()).hexdigest()
+                if schema == 1:
+                    with self.assertRaisesRegex(ValueError, "compression"):
+                        measure_archive(archive, pin)
+                else:
+                    measured = measure_archive(archive, pin)
+                    self.assertEqual(len(payload), measured["installedBytes"])
+                    self.assertEqual(2, measured["packSchemaVersion"])
+                    self.assertTrue(measured["archiveAndEveryPayloadVerified"])
+
     def test_counts_download_and_extraction_together(self):
         result = simulate(100, LIMIT, 1, [operation()])
         self.assertEqual(100 + 1000 + 800 + METADATA_RESERVE, result["operations"][0]["peakBytes"])

@@ -51,19 +51,22 @@ def measure_archive(path: Path, expected_sha256: str) -> dict:
         names = [entry.filename for entry in entries]
         if len(set(names)) != len(names):
             raise ValueError("Duplicate archive entry")
-        for entry in entries:
-            name = PurePosixPath(entry.filename)
-            if (entry.is_dir() or entry.compress_type != zipfile.ZIP_STORED or entry.flag_bits & 1
-                    or stat.S_ISLNK(entry.external_attr >> 16) or name.is_absolute()
-                    or ".." in name.parts or "\\" in entry.filename
-                    or str(name) != entry.filename):
-                raise ValueError("Archive requires regular, safe, unencrypted STORED entries")
+        if entries[0].compress_type != zipfile.ZIP_STORED:
+            raise ValueError("Manifest must be STORED")
         manifest = json.loads(archive.read("manifest.json"))
-        if (not isinstance(manifest, dict) or type(manifest.get("schemaVersion")) is not int or manifest.get("schemaVersion") != 1
+        if (not isinstance(manifest, dict) or type(manifest.get("schemaVersion")) is not int or manifest.get("schemaVersion") not in (1, 2)
                 or manifest.get("type") not in ("MODEL", "KNOWLEDGE", "AUDIO")
                 or any(not isinstance(manifest.get(key), str) or not manifest[key].strip()
                        for key in ("id", "version", "license"))):
             raise ValueError("Unsupported manifest identity")
+        methods = (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED) if manifest["schemaVersion"] == 2 else (zipfile.ZIP_STORED,)
+        for entry in entries:
+            name = PurePosixPath(entry.filename)
+            if (entry.is_dir() or entry.compress_type not in methods or entry.flag_bits & 1
+                    or stat.S_ISLNK(entry.external_attr >> 16) or name.is_absolute()
+                    or ".." in name.parts or "\\" in entry.filename
+                    or str(name) != entry.filename):
+                raise ValueError("Archive requires safe entries using the schema's supported compression")
         artifacts = manifest.get("artifacts")
         if not isinstance(artifacts, list) or not artifacts or any(not isinstance(a, dict) for a in artifacts):
             raise ValueError("Missing manifest artifacts")
@@ -73,6 +76,8 @@ def measure_archive(path: Path, expected_sha256: str) -> dict:
         installed = 0
         for artifact in artifacts:
             size = integer(artifact["bytes"], "artifact bytes", 1)
+            if size > LIMIT or archive.getinfo(artifact["path"]).file_size != size:
+                raise ValueError("Payload checksum/size mismatch")
             if not isinstance(artifact["sha256"], str) or not PIN.fullmatch(artifact["sha256"]):
                 raise ValueError("Invalid artifact checksum")
             with archive.open(artifact["path"]) as stream:
@@ -84,7 +89,7 @@ def measure_archive(path: Path, expected_sha256: str) -> dict:
     with path.open("rb") as stream:
         if digest(stream) != (archive_bytes, archive_hash):
             raise ValueError("Archive changed during verification")
-    return dict(id=manifest["id"], version=manifest["version"], type=manifest["type"],
+    return dict(id=manifest["id"], version=manifest["version"], type=manifest["type"], packSchemaVersion=manifest["schemaVersion"],
                 archiveBytes=archive_bytes, installedBytes=installed, sha256=archive_hash,
                 archiveAndEveryPayloadVerified=True)
 
@@ -106,7 +111,10 @@ def simulate(current_bytes: int, free_bytes: int, growth_reserve_bytes: int,
         topics.add(operation["id"])
         archive = integer(operation["archiveBytes"], "archiveBytes", 1)
         installed = integer(operation["installedBytes"], "installedBytes", 1)
-        if installed > archive:
+        schema = operation.get("packSchemaVersion", 1)
+        if type(schema) is not int or schema not in (1, 2):
+            raise ValueError("Unsupported pack schema")
+        if schema == 1 and installed > archive:
             raise ValueError("STORED payload bytes cannot exceed archive bytes")
         partial = integer(operation.get("partialBytes", 0), "partialBytes")
         mode = operation.get("mode")
@@ -123,7 +131,8 @@ def simulate(current_bytes: int, free_bytes: int, growth_reserve_bytes: int,
         # after registration succeeds. Local SAF imports spool a full ZIP first.
         extra = archive - partial + installed + METADATA_RESERVE
         step_peak = current + extra
-        conservative_admission = current + (archive - partial) + archive + METADATA_RESERVE
+        reserved_extraction = installed if schema == 2 else archive
+        conservative_admission = current + (archive - partial) + reserved_extraction + METADATA_RESERVE
         if mode == "local-import":
             conservative_admission = step_peak
         peak = max(peak, step_peak, conservative_admission)
@@ -154,6 +163,7 @@ def simulate(current_bytes: int, free_bytes: int, growth_reserve_bytes: int,
         limits=["currentBytes/freeBytes are supplied measurements, not measured by this tool",
                 "currentBytes must already include old/disabled editions, staged partials, APK/native libraries and all app data",
                 "Sequential operations only; concurrent provisioning needs a separate peak measurement",
+                "Local import assumes streaming/spooling; seekable local imports may need less additional disk space",
                 "Old editions are retained; no deletion credit or deduplication is assumed",
                 "Growth and metadata reserves are planning allowances, not permanent OS quotas",
                 "Verified bytes do not establish coverage, publisher authenticity or Android import success"])

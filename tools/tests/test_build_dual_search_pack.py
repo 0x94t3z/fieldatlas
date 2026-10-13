@@ -48,3 +48,34 @@ class DualSearchPackTest(unittest.TestCase):
             db.execute("INSERT INTO chunks_fts VALUES('c2','d2','Other','Local','Another passage.')")
         with self.assertRaises(ValueError): build(self.source,self.index,self.output)
         self.assertFalse(self.output.exists())
+
+    def test_rights_and_source_provenance_survive_unchanged(self):
+        source = '{"license":"CC-BY-4.0","title":"Source’s original title"}'
+        dataset = '{"source_revision":"abc","review":"candidate"}'
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE source_provenance(document_id TEXT PRIMARY KEY, metadata_json TEXT NOT NULL)')
+            db.execute('INSERT INTO source_provenance VALUES (?,?)', ('d1', source))
+            db.execute('CREATE TABLE dataset_provenance(metadata_json TEXT NOT NULL)')
+            db.execute('INSERT INTO dataset_provenance VALUES (?)', (dataset,))
+        build(self.source, self.index, self.output)
+        with sqlite3.connect(self.output) as db:
+            self.assertEqual(db.execute('SELECT * FROM source_provenance').fetchall(), [('d1', source)])
+            self.assertEqual(db.execute('SELECT * FROM dataset_provenance').fetchall(), [(dataset,)])
+
+    def test_incomplete_provenance_is_rejected(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE source_provenance(document_id TEXT, metadata_json TEXT)')
+            db.execute('INSERT INTO source_provenance VALUES (?,?)', ('missing-source', '{}'))
+        with self.assertRaises(ValueError): build(self.source, self.index, self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_unexpected_provenance_layout_is_rejected(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE dataset_provenance(metadata_json TEXT, extra TEXT)')
+        with self.assertRaises(ValueError): build(self.source, self.index, self.output)
+
+    def test_malformed_provenance_is_rejected(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE dataset_provenance(metadata_json TEXT)')
+            db.execute("INSERT INTO dataset_provenance VALUES ('not json')")
+        with self.assertRaises(ValueError): build(self.source, self.index, self.output)
