@@ -104,6 +104,15 @@ class KnowledgeCatalogTest {
         assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/e320ff8a3fe4dbcaa68c725c54aaffe93793f35c/osm-essentials/2026.10.05/osm-essentials-2026.10.05.fapack", pack.url)
     }
 
+    @Test fun hostedDownloadsArePinnedToARevision() {
+        // A branch name such as "main" could later serve different bytes; the checksum would then
+        // reject every download instead of the catalog keeping a working copy.
+        val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
+        catalog.packs.filter { "huggingface.co" in it.url }.forEach { pack ->
+            assertTrue(pack.url, Regex("/resolve/[0-9a-f]{40}/").containsMatchIn(pack.url))
+        }
+    }
+
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val encyclopedia = catalog.packs.single { it.category == "Encyclopedia" }
