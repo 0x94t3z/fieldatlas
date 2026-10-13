@@ -51,16 +51,22 @@ object Calculators {
     private val commaDecimal = Regex("(?<![\\d.,])\\d+,\\d{1,2}(?![\\d,])")
     private val dotThousands = Regex("(?<![\\d.,])[1-9]\\d{0,2}(?:\\.\\d{3})+(?![\\d.,])")
     // Counts written as words are quantities as much as digits: "two beers at 120 lira each".
-    private val quantityWord = Regex("(?i)\\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|both|couple|dozen|pair|twice|double|triple)\\b")
+    private val quantityWord = Regex("(?i)\\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|both|couple|dozen|pair|twice|double|triple|" +
+        "half|quarter|quarters|third|thirds)\\b")
+    // A range has no single answer ("tip 15-20%", "5-6 hours"); temperatures convert both ends instead.
+    private val numberRange = Regex("(?<![\\d.,:/])\\d+(?:\\.\\d+)?\\s*(?:%\\s*)?(?:-|–|—|to)\\s*\\d+(?:\\.\\d+)?(?![\\d:/])(?!\\s*(?:°|degrees?|[cf]\\b|celsius|fahrenheit))")
     // A year, or a number inside a code ("BA117", "gate B12", "T2"), counts nothing.
     // A word with a capital in it ("iPhone 15", "Route 66", "Terminal 2"), or a word that numbers things
     // ("bus number 22", "gate 12", "platform 3", "room 210", "seat 14"), makes the number an identifier.
     private val namedBefore = Regex("(?<![.!?]\\s|^)\\b\\p{L}*\\p{Lu}\\p{L}*\\s$|(?i)\\b(?:number|no\\.?|#|gate|platform|terminal|" +
         "route|line|bus|tram|train|flight|room|seat|row|car|coach|track|pier|exit|level|floor|zone|stand|bay|counter|door)\\s*$")
+    // Letters glued after a number are usually its unit ("80m", "10.5km", "3.5l"), which makes it a quantity;
+    // a capital ("gate 12B") or an ordinal ("3rd") does not.
     private fun countsNothing(q: String, d: MatchResult): Boolean =
         Regex("^(?:19|20)\\d{2}$").matches(d.value) ||
             namedBefore.containsMatchIn(q.substring(maxOf(0, d.range.first - 20), d.range.first)) ||
-            d.range.first > 0 && q[d.range.first - 1].isLetter() || d.range.last + 1 < q.length && q[d.range.last + 1].isLetter()
+            d.range.first > 0 && q[d.range.first - 1].isLetter() ||
+            Regex("^(?:\\p{Lu}(?!\\p{L})|st\\b|nd\\b|rd\\b|th\\b)").containsMatchIn(q.substring(d.range.last + 1))
 
     // Anything beyond the arithmetic ("is it dangerous", "should I") is left to research. "How long should it
     // take" asks for the time, not for advice.
@@ -104,6 +110,7 @@ object Calculators {
         // A quantity no calculation read ("two beers at 120 lira each", "split between the four of us") means
         // the sum shown would be the wrong one: nothing is shown and research answers instead.
         if (stray) return null
+        if (numberRange.containsMatchIn(question) && families.none { it.second === TEMPERATURE }) return null
         // Words the calculation does not account for mean something else is asked too: "the best time
         // to hike the 43 km Inca Trail", "my baby has a fever of 39°C". Then the numbers lead and
         // research answers the question; only a question that is all arithmetic is answered here.
@@ -1341,8 +1348,8 @@ object Calculators {
         if (!Regex("(?i)\\bhow (?:many|much|long)\\b|\\bdaylight\\b|\\bduration\\b|\\btime between\\b").containsMatchIn(q)) return null
         // "What time is it in Tokyo when…" converts a time; it does not measure one.
         if (Regex("(?i)\\bwhat time\\b|\\btime (?:is it|there)\\b").containsMatchIn(q)) return null
-        // "Leaves Paris at 10:00, lands in New York at 12:30": two clocks, and the gap needs their zones.
-        if (travels.containsMatchIn(q) && namesPlace(q)) return null
+        // "Leaves Paris at 10:00, lands in New York at 12:30", "lands at 15:35 local": two clocks, and the gap needs their zones.
+        if (travels.containsMatchIn(q) && (namesPlace(q) || Regex("(?i)\\blocal\\b|\\btheir time\\b|\\bdestination time\\b").containsMatchIn(q))) return null
         val found = clockTime.findAll(q).toList()
         val times = found.mapNotNull { t ->
             if (t.groupValues[3].isNotEmpty()) {
