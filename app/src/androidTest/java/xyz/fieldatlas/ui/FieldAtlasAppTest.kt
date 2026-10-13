@@ -193,7 +193,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("Exact passage text.").assertExists()
         compose.onNodeWithText("Full source").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
-        compose.onNodeWithText("CC0-1.0", substring = true).performScrollTo().assertExists()
+        compose.onNodeWithText("CC0 1.0", substring = true).performScrollTo().assertExists()
         compose.onNodeWithText("Technical identifiers").performScrollTo().performClick()
         compose.onNodeWithText("doc").performScrollTo().assertExists()
         compose.onNodeWithText("doc:0000").assertExists()
@@ -268,7 +268,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("2.5 KB · v1", substring = true).assertExists()
         compose.onNodeWithContentDescription("More options for Knowledge pack").performClick()
         compose.onNodeWithText("About this collection").performClick()
-        compose.onNodeWithText("CC0-1.0").assertExists()
+        compose.onNodeWithText("CC0 1.0").assertExists()
         compose.onNodeWithText("${"b".repeat(12)}… verified at install").assertExists()
     }
 

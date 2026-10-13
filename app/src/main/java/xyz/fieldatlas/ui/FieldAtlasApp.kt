@@ -262,7 +262,7 @@ fun FieldAtlasApp(
                             packLicense = when {
                                 source.documentId.startsWith("attachment:") -> null
                                 source.documentId.startsWith("emergency:") -> sourceLicense(source.documentId)
-                                else -> enabledKnowledge.singleOrNull()?.license
+                                else -> enabledKnowledge.singleOrNull()?.license?.let { xyz.fieldatlas.ui.presentation.displayLicence(it) }
                             },
                             onBack = closeDetail,
                             onPrevious = if (detail.index > 0) ({ navigation.openSource(detail.index - 1); Unit }) else null,

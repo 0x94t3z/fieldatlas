@@ -87,6 +87,19 @@ class AssetPresentationTest {
         assertEquals(KnowledgeCategory.Science, knowledgeCategory("world-knowledge-biology", "Unknown shelf"))
     }
 
+    @Test fun licencesReadAsNamesNotSpdxIdentifiers() {
+        assertEquals("CC BY 4.0, CC BY 3.0, US government work",
+            displayLicence("CC-BY-4.0 AND CC-BY-3.0 AND LicenseRef-US-Government-Work"))
+        assertEquals("CC0 1.0, CC BY-SA 4.0, US government work, MIT",
+            displayLicence("CC0-1.0 AND CC-BY-SA-4.0 AND LicenseRef-US-Government-Work AND MIT"))
+        assertEquals("ODbL 1.0", displayLicence("ODbL-1.0"))
+        assertEquals("Apache 2.0", displayLicence("Apache-2.0"))
+        assertEquals("Field notes", displayLicence("LicenseRef-Field-notes"))
+        // Installed packs from other builders keep free-text licences as written.
+        assertEquals("public-data; see pack sources", displayLicence("public-data; see pack sources"))
+        assertEquals("MIT OR Apache-2.0", displayLicence("MIT OR Apache-2.0"))
+    }
+
     private fun model() = asset("model", PackType.MODEL, null)
 
     private fun knowledge(level: CoverageLevel) = asset(

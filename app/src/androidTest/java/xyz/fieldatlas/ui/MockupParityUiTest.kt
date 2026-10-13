@@ -229,7 +229,7 @@ class MockupParityUiTest {
         compose.onNodeWithText("Delete model from phone").assertIsDisplayed()
         capture("model-actions-approved")
         compose.onNodeWithContentDescription("Model details").performClick()
-        compose.onNodeWithText("Apache-2.0").assertExists()
+        compose.onNodeWithText("Apache 2.0").assertExists()
         compose.onNodeWithContentDescription("Close").performClick()
         compose.onNodeWithContentDescription("More options for Qwen3.5 2B").performClick()
         compose.onNodeWithText("Delete model from phone").performClick()

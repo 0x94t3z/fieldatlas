@@ -99,7 +99,7 @@ internal fun PackAboutSheet(
             }
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 FieldAtlasFactRow("Version", xyz.fieldatlas.ui.presentation.displayVersion(asset.version))
-                FieldAtlasFactRow("Licence", asset.license)
+                FieldAtlasFactRow("Licence", xyz.fieldatlas.ui.presentation.displayLicence(asset.license))
                 FieldAtlasFactRow("Checksum", asset.manifestSha256.take(12) + "… verified at install")
                 if (asset.type == PackType.KNOWLEDGE) FieldAtlasFactRow("Search", if (asset.enabled)
                     "On · works offline" else "Off · saved on this phone")

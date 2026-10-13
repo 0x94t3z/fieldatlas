@@ -87,6 +87,26 @@ internal fun knowledgeSelectionSummary(packs: List<InstalledAsset>): String? {
 internal fun displayVersion(version: String): String =
     Regex("^\\d+(?:\\.\\d+){1,3}").find(version.trim())?.value ?: version.trim()
 
+/** A pack's SPDX licence expression as people read it: "CC-BY-4.0 AND LicenseRef-US-Government-Work"
+ * is shown as "CC BY 4.0, US government work". Expressions that are not plain AND lists stay whole. */
+internal fun displayLicence(spdx: String): String {
+    val parts = spdx.trim().split(" AND ")
+    if (parts.any { it.isBlank() || it.contains(' ') }) return spdx.trim()
+    return parts.joinToString(", ") { id ->
+        KNOWN_LICENCES[id] ?: Regex("^CC-(BY(?:-SA|-NC|-ND)*)-(\\d\\.\\d)$").matchEntire(id)?.let {
+            "CC ${it.groupValues[1]} ${it.groupValues[2]}"
+        } ?: id.removePrefix("LicenseRef-").replace('-', ' ')
+    }
+}
+
+private val KNOWN_LICENCES = mapOf(
+    "CC0-1.0" to "CC0 1.0",
+    "ODbL-1.0" to "ODbL 1.0",
+    "Apache-2.0" to "Apache 2.0",
+    "MIT" to "MIT",
+    "LicenseRef-US-Government-Work" to "US government work",
+)
+
 internal fun formatAssetBytes(bytes: Long): String {
     val formatter = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }
     return when {

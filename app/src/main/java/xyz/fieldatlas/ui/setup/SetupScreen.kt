@@ -189,7 +189,7 @@ fun SetupScreen(
                                     packs.any { it.type == PackType.KNOWLEDGE && it.id == pack.id && it.version == pack.version },
                                     knowledgeDownloadKey == "${pack.id}:${pack.version}", busy || !online, knowledgeDownloadedBytes,
                                     resumableKnowledgeBytes(pack),
-                                    "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
+                                    "${pack.description}\n\nVersion ${pack.version} · ${xyz.fieldatlas.ui.presentation.displayLicence(pack.license)}",
                                     { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
                                     blockedReason = blockedReason, inGroup = true, tone = visual?.tone,
                                     freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),

@@ -465,7 +465,7 @@ internal fun ModelDownloadCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(offer.name, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${formatAssetBytes(offer.bytes)} · ${offer.license}",
+                    "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
