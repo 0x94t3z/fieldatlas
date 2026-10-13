@@ -51,7 +51,7 @@ import kotlinx.serialization.decodeFromString
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val registry = AssetRegistry(appContext.filesDir)
-    private val importer = AssetImporter(appContext)
+    private val importer = AssetImporter(appContext, registry)
     val attachmentStore = xyz.fieldatlas.attachments.AttachmentStore(File(appContext.cacheDir, "research-attachments"))
     init {
         // Camera captures are deleted once staged; anything left is from a run that ended early.

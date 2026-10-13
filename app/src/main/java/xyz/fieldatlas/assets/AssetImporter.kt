@@ -46,6 +46,10 @@ class AssetImporter private constructor(
 
     constructor(context: Context) : this(context.filesDir, AssetRegistry(context.filesDir), context, StorageFootprint.forApp(context))
 
+    /** Shares the app's registry: two instances on one file hold separate locks, so an import and
+     * another registry write could interleave and one could overwrite the other's entry. */
+    constructor(context: Context, registry: AssetRegistry) : this(context.filesDir, registry, context, StorageFootprint.forApp(context))
+
     private val importMutex = Mutex()
 
     /** Read only the bounded first entry for presentation; the real import still validates every artifact. */
