@@ -14,6 +14,33 @@ class KnowledgeCatalogRepositoryTest {
     private val bundle get() = KnowledgeCatalog.parse(catalog("original"))
     private val cache get() = File(temp.root, "catalog.json")
 
+    @Test fun consolidatedBundleSuppressesOldCachedAndRefreshedListings() = runBlocking {
+        val base = bundle.packs.single()
+        val combined = base.copy(id = "combined", replaces = listOf("old-a", "old-b"))
+        val old = listOf(base.copy(id = "old-a"), base.copy(id = "old-b"))
+        cache.writeBytes(bytes(*old.toTypedArray()))
+        val repo = KnowledgeCatalogRepository(KnowledgeCatalog(1, listOf(combined)), cache, { bytes(*old.toTypedArray()) })
+        assertEquals(listOf(combined), repo.state.value.packs)
+        repo.refresh()
+        assertNull(repo.state.value.error)
+        assertEquals(listOf(combined), repo.state.value.packs)
+        assertEquals(listOf(combined), KnowledgeCatalogRepository(KnowledgeCatalog(1, listOf(combined)), cache,
+            { error("must not fetch") }).state.value.packs)
+        // An already accepted transfer keeps its progress and cancel control.
+        assertEquals(listOf(old.first(), combined), catalogWithActiveDownload(repo.state.value.packs, old.first()))
+    }
+
+    @Test fun replacementCycleDoesNotDestroyCachedChoices() = runBlocking {
+        val base = bundle.packs.single()
+        val repo = KnowledgeCatalogRepository(bundle, cache, {
+            bytes(base.copy(id = "a", replaces = listOf("b")), base.copy(id = "b", replaces = listOf("a")))
+        })
+        repo.refresh()
+        assertNotNull(repo.state.value.error)
+        assertEquals(bundle.packs, repo.state.value.packs)
+        assertFalse(cache.exists())
+    }
+
     @Test fun constructionNeverFetchesAndCorruptCacheUsesBundle() {
         cache.writeText("broken")
         var calls = 0
@@ -171,6 +198,23 @@ class KnowledgeCatalogRepositoryTest {
         assertEquals(listOf(original), repo.state.value.packs)
     }
 
+    @Test fun bundledHostMigrationSurvivesOldCacheRefreshAndRestart() = runBlocking {
+        val old = bundle.packs.single()
+        val migrated = old.copy(url = "https://huggingface.co/datasets/owner/packs/resolve/" +
+            "1".repeat(40) + "/original.fapack")
+        cache.writeBytes(bytes(old))
+        val bundled = KnowledgeCatalog(1, listOf(migrated))
+        val repo = KnowledgeCatalogRepository(bundled, cache, { bytes(old) })
+        assertEquals(listOf(migrated), repo.state.value.packs)
+        repo.refresh()
+        assertNull(repo.state.value.error)
+        assertEquals(listOf(migrated), repo.state.value.packs)
+        assertEquals(listOf(migrated), KnowledgeCatalogRepository(bundled, cache,
+            { error("must stay offline") }).state.value.packs)
+        // An already-started old-host transfer keeps its accepted identity and controls.
+        assertEquals(listOf(old), catalogWithActiveDownload(repo.state.value.packs, old))
+    }
+
     @Test fun conflictingCachedPinFallsBackToBundle() {
         cache.writeBytes(bytes(bundle.packs.single().copy(sha256 = "b".repeat(64))))
         val repo = KnowledgeCatalogRepository(bundle, cache, { error("offline") })
@@ -216,7 +260,7 @@ class KnowledgeCatalogRepositoryTest {
 
     @Test fun apkCatalogSurvivesOlderSixTopicCacheAndRefreshOffline() = runBlocking {
         val bundled = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
-        val old = bundled.packs.filterNot { it.id in setOf("wikipedia-en-vital", "crypto-ethereum") }
+        val old = bundled.packs.filterNot { it.id == "crypto-ethereum" }
             .map { pack ->
                 when (pack.id) {
                     "osm-essentials", "osm-vegan-places", "wikivoyage-guides" ->

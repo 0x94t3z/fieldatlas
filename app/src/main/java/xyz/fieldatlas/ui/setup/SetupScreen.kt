@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.setup
 
+import xyz.fieldatlas.assets.downloadFreeBytes
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -188,6 +190,7 @@ fun SetupScreen(
                                     "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
                                     { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
                                     blockedReason = blockedReason, inGroup = true,
+                                    freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),
                                     downloadUrl = knowledgeDownloadUrl(pack))
                             }
                         }

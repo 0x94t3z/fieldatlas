@@ -115,11 +115,18 @@ class KnowledgeCatalogRepository(
                 if (pinned == null) entries[key] = pack
             }
             val groups = entries.values.groupBy { it.id }
-            val result = entries.values.filter { pack ->
+            val editions = entries.values.filter { pack ->
                 groups.getValue(pack.id).none { other ->
                     compareNumericEditions(other.version, pack.version)?.let { it > 0 } == true
                 }
             }
+            val replacedIds = editions.flatMap { it.replaces }.toSet()
+            // A chain or cycle would hide its own replacement; reject it instead of
+            // silently losing all download choices. Installed assets are independent.
+            require(editions.none { it.id in replacedIds && it.replaces.isNotEmpty() }) {
+                "Ambiguous collection replacement chain"
+            }
+            val result = editions.filterNot { it.id in replacedIds }
             require(result.size in 1..500) { "Invalid merged catalog entry count" }
             return result
         }

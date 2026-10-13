@@ -15,6 +15,10 @@ data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCat
             catalog.packs.forEach { pack ->
                 require(pack.id.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}"))) { "Invalid pack id" }
                 require(pack.version.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}"))) { "Invalid pack version" }
+                require(pack.replaces.size <= 50 && pack.replaces.distinct().size == pack.replaces.size &&
+                    pack.replaces.all { it != pack.id && it.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}")) }) {
+                    "Invalid superseded collection ids"
+                }
                 require(pack.title.isNotBlank() && pack.description.isNotBlank() && pack.license.isNotBlank()) {
                     "Pack description or license is missing"
                 }
@@ -46,4 +50,14 @@ data class KnowledgeCatalogEntry(
     val category: String = "",
     /** Required for compressed schema-2 packs; archive bytes are not extraction bytes. */
     val installedBytes: Long? = null,
+    /** Superseded download listings only. Never deletes or disables installed data. */
+    val replaces: List<String> = emptyList(),
 )
+
+/** Additional disk space for a staged download plus extraction, matching admission. */
+fun KnowledgeCatalogEntry.downloadGrowthBytes(savedBytes: Long = 0): Long =
+    Math.addExact(Math.addExact(bytes - savedBytes.coerceIn(0, bytes), installedBytes ?: bytes),
+        StorageBudget.METADATA_RESERVE_BYTES)
+
+fun KnowledgeCatalogEntry.downloadFreeBytes(savedBytes: Long = 0): Long =
+    Math.addExact(downloadGrowthBytes(savedBytes), 512_000_000L)

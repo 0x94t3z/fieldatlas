@@ -20,6 +20,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+import xyz.fieldatlas.assets.PackAttribution
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -47,6 +56,14 @@ internal fun PackAboutSheet(
     onDismiss: () -> Unit,
     onAskExample: ((String) -> Unit)?,
 ) {
+    val attribution by produceState<String?>(null, asset.rootPath, asset.manifestSha256) {
+        value = withContext(Dispatchers.IO) {
+            try { PackAttribution.read(File(asset.rootPath)) }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) { "The saved licence notices could not be read. Your collection is unchanged." }
+        }
+    }
+    var showAttribution by remember(asset.rootPath, asset.manifestSha256) { mutableStateOf(false) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -87,6 +104,17 @@ internal fun PackAboutSheet(
                     "Enabled · works offline" else "Off · saved on this phone")
             }
             val examples = asset.discovery?.exampleQuestions.orEmpty()
+            attribution?.let { notice ->
+                androidx.compose.material3.TextButton(onClick = { showAttribution = !showAttribution }) {
+                    Text(if (showAttribution) "Hide source credits" else "Source credits and licences")
+                }
+                if (showAttribution) {
+                    androidx.compose.foundation.text.selection.SelectionContainer {
+                        Text(notice, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             if (examples.isNotEmpty() && onAskExample != null) {
                 Text("Try asking", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

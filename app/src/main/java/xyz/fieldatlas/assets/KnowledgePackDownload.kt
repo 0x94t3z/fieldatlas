@@ -49,10 +49,9 @@ class KnowledgePackDownload internal constructor(
                 partial.delete() // A process may have died after registration but before cleanup.
                 return@withContext installed
             }
-            val remaining = pack.bytes - partial.length().coerceAtMost(pack.bytes)
             // Legacy STORED packs can reserve archive size. Compressed packs explicitly
             // declare expanded bytes, which the importer verifies against the manifest.
-            val peakGrowth = Math.addExact(Math.addExact(remaining, pack.installedBytes ?: pack.bytes), StorageBudget.METADATA_RESERVE_BYTES)
+            val peakGrowth = pack.downloadGrowthBytes(partial.length())
             check(StorageBudget.evaluate(footprint.bytes(), peakGrowth, Long.MAX_VALUE) == BudgetDecision.Allowed) {
                 "Collection would exceed the app storage budget"
             }

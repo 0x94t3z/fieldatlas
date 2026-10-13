@@ -1,5 +1,7 @@
 package xyz.fieldatlas.ui.library
 
+import xyz.fieldatlas.assets.downloadFreeBytes
+
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
 import androidx.compose.foundation.layout.Arrangement
@@ -426,7 +428,7 @@ internal fun KnowledgeDownloadCard(
                     "${formatAssetBytes(resumableBytes)} is saved. About ${formatAssetBytes(pack.bytes - resumableBytes.coerceIn(0, pack.bytes))} remains if the server supports resume; otherwise the full download may be needed. "
                     else "Uses ${formatAssetBytes(pack.bytes)} of internet data. ") +
                     "Installation needs about " +
-                    "${sizeGb(pack.bytes * 2 + 512_000_000L)} GB free while installing. " +
+                    "${sizeGb(pack.downloadFreeBytes(resumableBytes))} GB free while installing. " +
                     "Afterward, the collection works offline.\n\n" +
                     xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl))
             },
