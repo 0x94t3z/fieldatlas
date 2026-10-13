@@ -12,6 +12,10 @@ from tools.packs.combine_knowledge_pack import combine
 from packtool.build_pack import build_pack, _digest
 
 
+# Fixture packs are kilobytes; the 50 GB default would make these tests depend on the runner's disk.
+FIXTURE_SPACE = 1_000_000
+
+
 class CombinedKnowledgeTest(unittest.TestCase):
     def make(self, root, name, doc='one', text='Original qualification remains.'):
         source = root / (name + '.jsonl')
@@ -21,6 +25,13 @@ class CombinedKnowledgeTest(unittest.TestCase):
         size, digest = _digest(result.pack)
         return dict(kind='archive', path=str(result.pack), bytes=size, sha256=digest)
 
+    def test_too_little_working_space_fails_before_reading_inputs(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            with self.assertRaisesRegex(ValueError, 'working space'):
+                combine(self.config([self.make(root, 'a')]), root / 'out', working_space=10 ** 18)
+            self.assertFalse((root / 'out').exists())
+
     def config(self, inputs):
         return dict(id='combined', version='1', title='One theme', inputs=inputs)
 
@@ -28,7 +39,7 @@ class CombinedKnowledgeTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             inputs = [self.make(root, 'a'), self.make(root, 'b', 'two', 'A separate source, with a caveat.')]
-            report = combine(self.config(inputs), root / 'out')
+            report = combine(self.config(inputs), root / 'out', working_space=FIXTURE_SPACE)
             self.assertEqual(2, report['counts']['outputChunks'])
             self.assertTrue(report['exactSourceChunkAuditPassed'])
             self.assertFalse(report['phoneMigrationAccepted'])
@@ -42,7 +53,7 @@ class CombinedKnowledgeTest(unittest.TestCase):
     def test_exact_duplicate_chunks_are_not_added_twice(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            report = combine(self.config([self.make(root, 'a'), self.make(root, 'b')]), root / 'out')
+            report = combine(self.config([self.make(root, 'a'), self.make(root, 'b')]), root / 'out', working_space=FIXTURE_SPACE)
             self.assertEqual(dict(inputChunks=2, outputChunks=1, exactDuplicateChunks=1), report['counts'])
 
     def test_conflicting_chunk_ids_fail_without_losing_inputs(self):
@@ -50,7 +61,7 @@ class CombinedKnowledgeTest(unittest.TestCase):
             root = Path(folder)
             inputs = [self.make(root, 'a'), self.make(root, 'b', text='Conflicting content.')]
             with self.assertRaisesRegex(ValueError, 'Conflicting chunk'):
-                combine(self.config(inputs), root / 'out')
+                combine(self.config(inputs), root / 'out', working_space=FIXTURE_SPACE)
             self.assertFalse((root / 'out').exists())
             self.assertTrue(all(Path(item['path']).is_file() for item in inputs))
 
@@ -59,17 +70,17 @@ class CombinedKnowledgeTest(unittest.TestCase):
             root = Path(folder)
             item = self.make(root, 'a')
             with self.assertRaisesRegex(ValueError, 'checksum'):
-                combine(self.config([item | {'sha256': '0' * 64}]), root / 'out')
+                combine(self.config([item | {'sha256': '0' * 64}]), root / 'out', working_space=FIXTURE_SPACE)
             (root / 'out').mkdir()
             with self.assertRaisesRegex(ValueError, 'already exists'):
-                combine(self.config([item]), root / 'out')
+                combine(self.config([item]), root / 'out', working_space=FIXTURE_SPACE)
 
     def test_repeated_pack_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             item = self.make(root, 'a')
             with self.assertRaisesRegex(ValueError, 'Repeated source'):
-                combine(self.config([item, item]), root / 'out')
+                combine(self.config([item, item]), root / 'out', working_space=FIXTURE_SPACE)
 
     def test_gzip_archive_and_direct_database_inputs(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -85,5 +96,5 @@ class CombinedKnowledgeTest(unittest.TestCase):
             manifest = root / 'b/manifest.json'
             direct = dict(kind='database', path=str(database), bytes=_digest(database)[0], sha256=_digest(database)[1],
                 manifest=dict(path=str(manifest), bytes=_digest(manifest)[0], sha256=_digest(manifest)[1]))
-            report = combine(self.config([compressed_input, direct]), root / 'out')
+            report = combine(self.config([compressed_input, direct]), root / 'out', working_space=FIXTURE_SPACE)
             self.assertEqual(2, report['counts']['outputChunks'])

@@ -45,7 +45,11 @@ def copy_bounded(source, target, size):
             raise ValueError('Input exceeds declared size')
 
 
-def combine(config, output):
+# An encyclopedia consolidation stages tens of gigabytes; fixture-sized tests pass a smaller figure.
+HOST_WORKING_SPACE = 50_000_000_000
+
+
+def combine(config, output, working_space=HOST_WORKING_SPACE):
     output = Path(output)
     if output.exists() or output.is_symlink():
         raise ValueError('Output already exists')
@@ -55,8 +59,8 @@ def combine(config, output):
     if not config['title'].strip() or not 1 <= len(config['inputs']) <= 500:
         raise ValueError('Title and bounded inputs required')
     output.parent.mkdir(parents=True, exist_ok=True)
-    if shutil.disk_usage(output.parent).free < 50_000_000_000:
-        raise ValueError('Keep 50 GB host working space for consolidation')
+    if shutil.disk_usage(output.parent).free < working_space:
+        raise ValueError(f'Keep {working_space / 1e9:g} GB host working space for consolidation')
     origins, urls, licenses = [], set(), set()
     expected = hashlib.sha256()
     counts = {'inputChunks': 0, 'outputChunks': 0, 'exactDuplicateChunks': 0}
