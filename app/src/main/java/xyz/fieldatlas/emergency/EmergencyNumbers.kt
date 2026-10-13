@@ -50,14 +50,19 @@ object EmergencyNumbers {
     data class Answer(val text: String, val evidence: Evidence)
 
     private val asks = Regex(
-        "(?i)\\b(?:emergency|police|ambulance|fire(?: brigade| department| service)?|rescue)\\s+" +
+        // "Who do I call", "what do you dial", "which number", "the number for an ambulance".
+        "(?i)\\b(?:who|what|which)\\s+(?:number\\s+)?(?:do|does|should|can|would|must)\\s+(?:i|we|you|one|people)\\s+(?:call|dial|ring|phone)\\b|" +
+            "\\b(?:which|what(?:'s| is)?(?: the)?) (?:emergency |police |ambulance )?number\\b|" +
+            "\\bnumbers? (?:for|of|to call for) (?:an? |the )?(?:police|ambulance|fire|rescue|coast ?guard|emergenc)|" +
+            "\\b(?:version|equivalent) of (?:911|999|112|000)\\b|\\b(?:911|999|112|000|111) or (?:911|999|112|000|111)\\b|" +
+            "\\b(?:emergency|police|ambulance|fire(?: brigade| department| service)?|rescue)\\s+" +
             "(?:phone |telephone |contact )?(?:numbers?|lines?|hotlines?)\\b|" +
             "\\bnumbers? (?:to|should i|do i|i should|i need to) (?:call|dial|know|ring)\\b|" +
             "\\bwhat (?:number|do i|should i) (?:do i |should i )?(?:call|dial|ring)\\b|" +
             "\\bnumbers? (?:for|of) (?:the )?(?:police|ambulance|fire|rescue|emergenc)",
     )
     // "What number should I call to book a taxi in Thailand?" is not an emergency.
-    private val emergency = Regex("(?i)\\b(emergenc\\w*|police|ambulance|fire|rescue|sos|911|112|999|000)\\b")
+    private val emergency = Regex("(?i)\\b(emergenc\\w*|police|ambulance|fire|rescue|coast ?guard|sos|911|112|999|000|111|accident|hurt|injured|sick)\\b")
     private val europe = Regex("(?i)\\b(?:european union|the eu|eu countries|eu member states|(?:in|across|around|throughout) europe)\\b")
     // Everyday names the table writes differently ("United States of America", "Eswatini").
     private val aliases = mapOf(
@@ -81,11 +86,17 @@ object EmergencyNumbers {
         "wisconsin", "wyoming", "washington state", "washington dc", "washington, d.c.")
     private val australianStates = listOf("new south wales", "queensland", "tasmania", "western australia", "south australia",
         "northern territory", "australian capital territory")
-    private val usMarker = Regex("(?i)\\b(usa|u\\.s\\.|united states|america|american|us state|atlanta|savannah|augusta, georgia)\\b")
 
     fun answer(question: String, book: NumberBook): Answer? {
         if (!asks.containsMatchIn(question) || !emergency.containsMatchIn(question)) return null
-        val code = country(question, book)
+        val codes = countries(question, book)
+        if (codes.size > 1) {
+            val rows = codes.map { book.countries.getValue(it) }
+            return Answer(withFooter(rows.joinToString("\n\n") { describe(it) }, book), Evidence("emergency:numbers-${codes.joinToString("-")}",
+                "emergency:numbers-${codes.joinToString("-")}:0", "${book.source.title} — ${rows.joinToString(", ") { it.name }}",
+                book.source.url, rows.joinToString("\n\n") { sourceText(it) }, 1.0))
+        }
+        val code = codes.singleOrNull()
         if (code == null) {
             if (!europe.containsMatchIn(question)) return null
             val text = "**112** is the standard emergency number across the European Union [S1]. " +
@@ -100,14 +111,68 @@ object EmergencyNumbers {
             "${book.source.title} — ${row.name}", book.source.url, sourceText(row), 1.0))
     }
 
-    private fun country(question: String, book: NumberBook): String? {
-        val text = " " + question.lowercase(Locale.ROOT).replace('’', '\'') + " "
-        fun mentions(name: String) = Regex("(?<![\\p{L}])${Regex.escape(name)}(?![\\p{L}])").containsMatchIn(text)
-        if (usStates.any(::mentions) || (mentions("georgia") && usMarker.containsMatchIn(question))) return "US".takeIf { it in book.countries }
-        if (australianStates.any(::mentions)) return "AU".takeIf { it in book.countries }
-        // The longest name wins: "South Africa" over "Africa", "Dominican Republic" over "Dominica".
-        val named = book.countries.entries.map { (code, row) -> row.name.lowercase(Locale.ROOT) to code } + aliases.toList()
-        return named.filter { (name, code) -> code in book.countries && mentions(name) }.maxByOrNull { it.first.length }?.second
+    // What a place name is to the person asking, read from the words before it: where they are ("in",
+    // "travelling to", "visiting"), where they are from ("from", "live in", "I'm American"), or somebody's
+    // name ("my friend Chad").
+    private enum class Role { HERE, HOME, NAME, OPEN }
+    // Where they are from, or leaving: "leaving Spain tomorrow for Croatia" will be in Croatia.
+    private val homeBefore = Regex("(?i)\\b(?:from|live in|living in|lives in|home is|home in|back home in|citizen of|resident of|" +
+        "native of|born in|grew up in|passport (?:is )?(?:from)?|leaving|left|departing|flying out of|out of)\\s+(?:the\\s+)?$")
+    // A name doing what people do: "Kenya passed out", "Jordan fell off a scooter", "Georgia and I are in Peru".
+    private val personAfter = Regex("(?i)^\\s*(?:'s\\s+)?(?:passed out|fainted|fell|is (?:hurt|sick|ill|injured|unconscious|not|bleeding|choking|having)|" +
+        "was (?:hit|hurt|stung|bitten|in)|has (?:a|been)|needs|got|collapsed|broke|cut|can'?t|won'?t|isn'?t|and i\\b|and me\\b|here\\b|" +
+        "just|says|said|told|feels?|seems)")
+    private val hereBefore = Regex("(?i)\\b(?:in|to|at|into|visiting|visit|across|around|inside|throughout|within|through|" +
+        "travell?ing(?: in| to| through| around)?|going to|heading to|holiday in|vacation in|trip to|staying in|landed in|arrived in|" +
+        "currently in|now in|here in|calling from inside)\\s+(?:the\\s+)?$")
+    private val personBefore = Regex("(?i)\\b(?:my|our|his|her|their|a)\\s+(?:\\w+\\s+)?(?:friend|brother|sister|son|daughter|mum|mom|dad|" +
+        "father|mother|husband|wife|partner|boyfriend|girlfriend|uncle|aunt|cousin|colleague|boss|kid|child|baby|neighbou?r|guide|driver|" +
+        "roommate|flatmate|mate|buddy|guy|man|woman|boy|girl)\\s+$|\\b(?:named|called|mr\\.?|mrs\\.?|ms\\.?|dr\\.?)\\s+$")
+    private val joinedBefore = Regex("(?i)^\\s*(?:,|or|and|&|/|then|and then|,\\s*(?:or|and|then))\\s*$")
+    private val nationalities = mapOf("american" to "US", "australian" to "AU", "british" to "GB", "canadian" to "CA",
+        "new zealander" to "NZ", "kiwi" to "NZ", "irish" to "IE", "german" to "DE", "french" to "FR", "dutch" to "NL", "indian" to "IN",
+        "chinese" to "CN", "japanese" to "JP", "korean" to "KR", "brazilian" to "BR", "mexican" to "MX", "south african" to "ZA")
+    // Places in the US whose name is also a country's: "Atlanta, Georgia" is the state.
+    private val usPlace = Regex("(?i)\\b(usa|u\\.s\\.a?\\.?|united states|us state|atlanta|savannah|augusta)\\b")
+
+    /** The countries asked about: where the person is, or the countries named plainly; never only their home. */
+    private fun countries(question: String, book: NumberBook): List<String> {
+        val text = question.lowercase(Locale.ROOT).replace('’', '\'')
+        val names = book.countries.entries.map { (code, row) -> row.name.lowercase(Locale.ROOT) to code } + aliases.toList() +
+            usStates.map { it to "US" } + australianStates.map { it to "AU" }
+        // Every mention, the longest first where names overlap: "South Africa" over "Africa", "Papua New Guinea" over "Guinea".
+        val found = (names.filter { it.second in book.countries } + nationalities.toList().map { it.first to it.second })
+            .flatMap { (name, code) -> Regex("(?<![\\p{L}])${Regex.escape(name)}(?![\\p{L}])").findAll(text).map { Triple(it.range, code, name) } }
+            .sortedByDescending { it.first.last - it.first.first }
+        val picked = mutableListOf<Triple<IntRange, String, String>>()
+        for (m in found) if (picked.none { it.first.first <= m.first.last && m.first.first <= it.first.last }) picked += m
+        picked.sortBy { it.first.first }
+        val mentions = mutableListOf<Pair<String, Role>>()
+        var previous: Pair<IntRange, Role>? = null
+        for ((range, code0, name) in picked) {
+            val lead = text.substring(maxOf(0, range.first - 40), range.first).split('.', '?', '!', ';').last()
+            val between = previous?.let { text.substring(it.first.last + 1, range.first) }
+            val role = when {
+                name in nationalities -> Role.HOME
+                personBefore.containsMatchIn(lead) || personAfter.containsMatchIn(text.substring(range.last + 1)) -> Role.NAME
+                homeBefore.containsMatchIn(lead) -> Role.HOME
+                hereBefore.containsMatchIn(lead) -> Role.HERE
+                // "in Sweden or Norway": a name joined to the one before takes its role.
+                between != null && joinedBefore.matches(between) -> previous!!.second
+                else -> Role.OPEN
+            }
+            // Georgia the country unless the question places it in the US; "Athens, Georgia" could be either.
+            val usHere = usPlace.findAll(text).any { u -> picked.none { it.first.first <= u.range.last && u.range.first <= it.first.last && it.second != "US" } }
+            val georgianPlace = Regex("(?i)\\b(tbilisi|batumi|kutaisi|svaneti|kazbegi|mestia)\\b").containsMatchIn(text)
+            val cityBefore = name == "georgia" && Regex("\\b\\p{Lu}[\\p{L}.]+,\\s*$").containsMatchIn(question.substring(0, range.first))
+            if (name == "georgia" && !usHere && !georgianPlace && cityBefore) { previous = range to role; continue }
+            val code = if (name == "georgia" && usHere) "US" else code0
+            if (code in book.countries) mentions += code to role
+            previous = range to role
+        }
+        val here = mentions.filter { it.second == Role.HERE }.map { it.first }.distinct()
+        val open = mentions.filter { it.second == Role.OPEN }.map { it.first }.distinct()
+        return (here.ifEmpty { open }).take(3)
     }
 
     private fun describe(row: CountryNumbers): String = buildString {
@@ -142,7 +207,8 @@ object EmergencyNumbers {
     /** One plain line for a first-aid answer that also asks for the number: the guide keeps citation [S1]. */
     fun line(question: String, book: NumberBook): String? {
         if (!asks.containsMatchIn(question) && !Regex("(?i)\\b(number|call|dial)\\b").containsMatchIn(question)) return null
-        val row = country(question, book)?.let(book.countries::get) ?: return null
+        // One line names one country: two places asked about are left to the full answer.
+        val row = countries(question, book).singleOrNull()?.let(book.countries::get) ?: return null
         val listed = listOf("police", "ambulance", "fire").mapNotNull { kind -> row.listed[kind]?.takeIf { v -> v.any(Char::isDigit) }?.let { "$kind **$it**" } }
         if (listed.isEmpty()) return null
         return "Emergency numbers saved for **${row.name}**: ${listed.joinToString(", ")}."

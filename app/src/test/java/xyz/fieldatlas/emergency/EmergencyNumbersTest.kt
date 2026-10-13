@@ -59,6 +59,30 @@ class EmergencyNumbersTest {
         assertTrue(text("What is the emergency number in the DRC?")!!.contains("police **112**, fire **118**"))
     }
 
+    @Test fun theCountryIsWhereThePersonIsNotWhereTheyAreFrom() {
+        assertTrue(text("I'm from Australia, travelling in Japan. What's the emergency number?")!!.contains("**Japan**"))
+        assertTrue(text("I'm from New Zealand and I'm in Spain. What's the emergency number?")!!.contains("**Spain**"))
+        assertTrue(text("I'm from Texas, travelling in Thailand. What's the emergency number?")!!.contains("**Thailand**"))
+        assertTrue(text("I live in New York but I'm in Italy now. What is the emergency number?")!!.contains("**Italy**"))
+        assertTrue(text("We're from Queensland, on holiday in Bali, Indonesia. What's the emergency number?")!!.contains("**Indonesia**"))
+        assertTrue(text("I'm American, travelling to Georgia. What's the emergency number?")!!.contains("**Georgia**"))
+        // Only a home country named: where the person is is not known, so no number is given.
+        assertNull(text("I'm from Australia. What's the emergency number?"))
+    }
+
+    @Test fun twoCountriesAskedAboutGetBoth() {
+        val both = text("What's the emergency number in Sweden or Norway?")!!
+        assertTrue(both, "**Sweden**" in both && "**Norway**" in both)
+        val pair = text("What are the police numbers in France and Spain?")!!
+        assertTrue(pair, "**France**" in pair && "**Spain**" in pair)
+    }
+
+    @Test fun aPersonsNameIsNotACountry() {
+        assertNull(text("My friend Chad is hurt badly. What is the ambulance number?"))
+        assertNull(text("My brother Jordan was in a crash, what's the emergency number?"))
+        assertTrue(text("What is the emergency number in Chad?")!!.contains("**Chad**"))
+    }
+
     @Test fun theFooterCreditsTheArticleAndItsLicence() {
         val t = text("Which numbers do I call in an emergency in Thailand?")!!
         assertTrue(t, "From the Wikipedia article \"List of emergency telephone numbers\" by Wikipedia contributors (revision 1377218654" in t && "CC BY-SA 4.0" in t)
