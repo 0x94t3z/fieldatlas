@@ -8,6 +8,15 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Biotech
+import androidx.compose.material.icons.outlined.Eco
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.FileOpen
+import androidx.compose.material.icons.outlined.Key
+import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.Support
 
 object FieldAtlasIcons {
     val Compare by prototypeIcon("Compare", "M2 6c2-2 4-2 6 0s4 2 6 0 4-2 8 0M2 12c2-2 4-2 6 0s4 2 6 0 4-2 8 0M2 18c2-2 4-2 6 0s4 2 6 0 4-2 8 0", false, 24f, PathFillType.NonZero)
@@ -28,22 +37,12 @@ object FieldAtlasIcons {
     val Performance by prototypeIcon("Performance", "M4 3v18h17M8 17v-5m4 5V7m4 10v-7m4 7V5", false, 24f, PathFillType.NonZero)
     val Diagnostics by prototypeIcon("Diagnostics", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
     val Benchmark by prototypeIcon("Benchmark", "M4 3v18h17M8 17v-5m4 5V7m4 10v-7m4 7V5", false, 24f, PathFillType.NonZero)
-    val Import by prototypeIcon("Import", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
     val AttachFile by prototypeIcon("AttachFile", "M8 14l7 -7a3 3 0 0 1 4 4l-9 9a5 5 0 0 1-7-7l9-9", false, 24f, PathFillType.NonZero)
     val Camera by prototypeIcon("Camera", "M8 6l2-3h4l2 3h4a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4Z M16 13a4 4 0 1 1-8 0a4 4 0 1 1 8 0Z", false, 24f, PathFillType.NonZero)
     val Photo by prototypeIcon("Photo", "M6 3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3Z M10 8a2 2 0 1 1-4 0a2 2 0 1 1 4 0Z M3 17l5 -5 4 4 4 -7 5 8", false, 24f, PathFillType.NonZero)
     val Check by prototypeIcon("Check", "M4 12l5 5L20 6", false, 24f, PathFillType.NonZero)
     val Citation by prototypeIcon("Citation", "M10 5v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Zm11 0v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Z", true, 24f, PathFillType.NonZero)
-    // A phone with a check: answers come from this device. Neutral, not a borrowed browser mascot.
-    val Offline by prototypeIcon("Offline", "M8 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2Z M9 11l2 2 4-4 M11 18h2", false, 24f, PathFillType.NonZero)
-    val Support by prototypeIcon("Support", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M16 12a4 4 0 1 1-8 0a4 4 0 1 1 8 0Z M5.6 5.6l3.6 3.6m5.6 5.6 3.6 3.6m0-12.8-3.6 3.6m-5.6 5.6-3.6 3.6", false, 24f, PathFillType.NonZero)
-    // Subject icons for knowledge collections.
-    val Encyclopedia by prototypeIcon("Encyclopedia", "M4 4h11a3 3 0 0 1 3 3v14H7a3 3 0 0 1-3-3V4Z M4 18a3 3 0 0 1 3-3h11 M9 4v6l2-1.5 2 1.5V4", false, 24f, PathFillType.NonZero)
-    val Leaf by prototypeIcon("Leaf", "M5 19C5 10 11 5 20 4c0 9-5 15-14 15H5Z M5 19l8-8", false, 24f, PathFillType.NonZero)
-    val Storefront by prototypeIcon("Storefront", "M3 9l2-5h14l2 5M4 9v11h16V9M3 9h18M10 20v-5h4v5", false, 24f, PathFillType.NonZero)
-    val Compass by prototypeIcon("Compass", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M15.5 8.5l-2 5-5 2 2-5 5-2Z", false, 24f, PathFillType.NonZero)
-    val Key by prototypeIcon("Key", "M13 8a5 5 0 1 1-10 0a5 5 0 1 1 10 0Z M11.5 11.5 21 21 M16.5 16.5l2.5-2.5 M18.5 18.5l2-2", false, 24f, PathFillType.NonZero)
-    val Dna by prototypeIcon("Dna", "M6 2c0 5 12 5 12 10S6 17 6 22M18 2c0 5-12 5-12 10s12 5 12 10M8 5h8M8 19h8", false, 24f, PathFillType.NonZero)
+    val Offline by prototypeIcon("Offline", "M18 2h11v1h1v8h-7v2h5v2H18v3h3v2h-2v-1h-2v4h-2v3h2v2h-5v-4h-2v2h1v2H6v-4h2v-2H6v-2H4v-2H2v-6h2v3h2v2h2v-2h2v-2h2v-2h3V8h2V3h1V2Zm2 3v2h2V5h-2Z", true, 32f, PathFillType.EvenOdd)
     val Model by prototypeIcon("Model", "M8 5H16a3 3 0 0 1 3 3V16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4M9 9h6v6H9z", false, 24f, PathFillType.NonZero)
     val Archive by prototypeIcon("Archive", "M3 3h18v5H3V3Zm2 7h14v11H5V10Zm4 4h6", false, 24f, PathFillType.NonZero)
     val Knowledge by prototypeIcon("Knowledge", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
@@ -74,6 +73,17 @@ object FieldAtlasIcons {
     val Storage by prototypeIcon("Storage", "M5 4H19a2 2 0 0 1 2 2V8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z M5 14H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V16a2 2 0 0 1 2-2Z M17 7h.01M17 17h.01", false, 24f, PathFillType.NonZero)
     val Heart by prototypeIcon("Heart", "M12 21S1 14 2 7c1-5 7-5 10-1 3-4 9-4 10 1 1 7-10 14-10 14Z", false, 24f, PathFillType.NonZero)
     val Globe by prototypeIcon("Globe", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M16 12a4 9 0 1 1-8 0a4 9 0 1 1 8 0Z M3 12h18", false, 24f, PathFillType.NonZero)
+
+    // Collection subjects and utility actions come from Material Icons (already a dependency),
+    // not hand-drawn paths.
+    val Encyclopedia: ImageVector get() = Icons.Outlined.Public
+    val Leaf: ImageVector get() = Icons.Outlined.Eco
+    val Storefront: ImageVector get() = Icons.Outlined.Storefront
+    val Compass: ImageVector get() = Icons.Outlined.Explore
+    val Key: ImageVector get() = Icons.Outlined.Key
+    val Microscope: ImageVector get() = Icons.Outlined.Biotech
+    val Support: ImageVector get() = Icons.Outlined.Support
+    val Import: ImageVector get() = Icons.Outlined.FileOpen
 
     private fun prototypeIcon(name: String, data: String, filled: Boolean, viewport: Float, rule: PathFillType) = lazy {
         ImageVector.Builder(name, 24.dp, 24.dp, viewport, viewport).addPath(

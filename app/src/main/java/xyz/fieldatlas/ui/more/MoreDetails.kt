@@ -1,6 +1,8 @@
 package xyz.fieldatlas.ui.more
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
@@ -49,41 +51,86 @@ internal fun MoreInfoBlock(title: String, body: String, icon: ImageVector? = nul
 }
 
 @Composable
-internal fun DeviceInfoSheet(proof: ProofModel, onAbout: () -> Unit, onDismiss: () -> Unit) {
-    var technical by rememberSaveable { mutableStateOf(false) }
+internal fun DeviceInfoSheet(proof: ProofModel, packs: List<xyz.fieldatlas.assets.InstalledAsset>, onTechnical: () -> Unit, onDismiss: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Read once per opening: free space changes as packs download.
+    val space = remember { runCatching { android.os.StatFs(context.filesDir.absolutePath).let { it.totalBytes to it.availableBytes } }.getOrNull() }
     FieldAtlasInfoSheet("App & device", onDismiss) {
-        MoreInfoBlock("Field Atlas ${xyz.fieldatlas.BuildConfig.VERSION_NAME}", "Details reported by this phone.")
-        val (phone, internals) = phoneFacts(proof.device)
-        if (phone.isNotEmpty()) FactGroup("Phone", phone)
-        // A lone "No run recorded" status says nothing worth a section.
-        if (proof.latestRun.any { it.state != ProofState.Missing }) FactGroup("Latest research", proof.latestRun)
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(FieldAtlasButtonShape)
-            .semantics { stateDescription = if (technical) "Expanded" else "Collapsed" }
-            .clickable(role = Role.Button) { technical = !technical }, verticalAlignment = Alignment.CenterVertically) {
-            Text("Technical details", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            FieldAtlasExpandIcon(technical)
-        }
-        if (technical) {
-            MoreNote("Manifest checks and verified pack metadata. These are observations, not a guarantee of answer quality.")
-            if (internals.isNotEmpty()) FactGroup("Memory and processor", internals)
-            proof.offline.forEach { fact ->
-                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(fact.label, style = MaterialTheme.typography.labelMedium)
-                    SelectionContainer { Text(fact.value, style = MaterialTheme.typography.bodySmall) }
-                    val state = when (fact.state) {
-                        ProofState.Pass -> "Pass"; ProofState.Warning -> "Warning"
-                        ProofState.Info -> "Info"; ProofState.Missing -> "Not measured"
-                    }
-                    val origin = when (fact.origin) {
-                        ProofOrigin.ManifestAudit -> "Manifest audit"; ProofOrigin.OsReport -> "Android report"
-                        ProofOrigin.MeasuredQuery -> "Measured query"
-                    }
-                    MoreNote("$state · $origin")
-                }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            FieldAtlasIconTile(FieldAtlasIcons.Offline, size = 44.dp, iconSize = 24.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Field Atlas ${xyz.fieldatlas.BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleSmall)
+                MoreNote("Open-source research on this phone. No account.")
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f))
-        MoreAction("About Field Atlas", onAbout)
+        space?.let { (total, free) -> StorageSummary(packs.sumOf { it.installedBytes }, free, total) }
+        val (phone, _) = phoneFacts(proof.device)
+        if (phone.isNotEmpty()) FactGroup("Phone", phone)
+        Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(FieldAtlasButtonShape)
+            .clickable(role = Role.Button, onClick = onTechnical), verticalAlignment = Alignment.CenterVertically) {
+            Text("Technical details", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+            Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** How much of the phone Field Atlas holds, against what is left free. */
+@Composable
+private fun StorageSummary(appBytes: Long, freeBytes: Long, totalBytes: Long) {
+    val colors = MaterialTheme.colorScheme
+    val other = (totalBytes - freeBytes - appBytes).coerceAtLeast(0)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Storage", style = MaterialTheme.typography.titleSmall)
+        Row(Modifier.fillMaxWidth().height(8.dp).clip(FieldAtlasButtonShape).background(colors.surfaceContainerHighest)
+            .semantics { contentDescription = "Field Atlas uses ${xyz.fieldatlas.ui.presentation.formatAssetBytes(appBytes)}, " +
+                "${xyz.fieldatlas.ui.presentation.formatAssetBytes(freeBytes)} free of ${xyz.fieldatlas.ui.presentation.formatAssetBytes(totalBytes)}" }) {
+            if (totalBytes > 0) {
+                if (appBytes > 0) Box(Modifier.fillMaxHeight().weight(appBytes.toFloat()).background(colors.primary))
+                if (other > 0) Box(Modifier.fillMaxHeight().weight(other.toFloat()).background(colors.outlineVariant))
+                if (freeBytes > 0) Box(Modifier.fillMaxHeight().weight(freeBytes.toFloat()))
+            }
+        }
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            LegendItem(colors.primary, "Field Atlas ${xyz.fieldatlas.ui.presentation.formatAssetBytes(appBytes)}")
+            LegendItem(colors.outlineVariant, "Other apps")
+            LegendItem(colors.surfaceContainerHighest, "Free ${xyz.fieldatlas.ui.presentation.formatAssetBytes(freeBytes)}")
+        }
+    }
+}
+
+@Composable
+private fun LegendItem(color: androidx.compose.ui.graphics.Color, label: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(9.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(3.dp)).background(color)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(3.dp)))
+        MoreNote(label)
+    }
+}
+
+/** Measurements and manifest checks for support, one level below App & device. */
+@Composable
+internal fun TechnicalDetailsSheet(proof: ProofModel, onBack: () -> Unit, onDismiss: () -> Unit) {
+    FieldAtlasInfoSheet("Technical details", onDismiss, closeDescription = "Close App & device",
+        onBack = onBack, backDescription = "Back to app and device") {
+        MoreNote("Manifest checks and verified pack metadata. These are observations, not a guarantee of answer quality.")
+        val (_, internals) = phoneFacts(proof.device)
+        if (internals.isNotEmpty()) FactGroup("Memory and processor", internals)
+        if (proof.latestRun.any { it.state != ProofState.Missing }) FactGroup("Latest research", proof.latestRun)
+        proof.offline.forEach { fact ->
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(fact.label, style = MaterialTheme.typography.labelMedium)
+                SelectionContainer { Text(fact.value, style = MaterialTheme.typography.bodySmall) }
+                val state = when (fact.state) {
+                    ProofState.Pass -> "Pass"; ProofState.Warning -> "Warning"
+                    ProofState.Info -> "Info"; ProofState.Missing -> "Not measured"
+                }
+                val origin = when (fact.origin) {
+                    ProofOrigin.ManifestAudit -> "Manifest audit"; ProofOrigin.OsReport -> "Android report"
+                    ProofOrigin.MeasuredQuery -> "Measured query"
+                }
+                MoreNote("$state · $origin")
+            }
+        }
     }
 }
 
@@ -95,7 +142,7 @@ internal fun phoneFacts(device: List<ProofFact>): Pair<List<ProofFact>, List<Pro
             "Physical memory" -> fact.copy(label = "Memory")
             // API 33 is Android 13; later levels follow one-to-one so far.
             "Android API" -> fact.value.toIntOrNull()?.takeIf { it >= 33 }
-                ?.let { fact.copy(label = "Android", value = "Android ${it - 20} (API $it)") } ?: fact
+                ?.let { fact.copy(label = "Android", value = "${it - 20}") } ?: fact
             else -> null
         }
     }

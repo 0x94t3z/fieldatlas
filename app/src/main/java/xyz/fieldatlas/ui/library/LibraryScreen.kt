@@ -130,13 +130,15 @@ fun LibraryScreen(
     val speech = packs.filter { it.type == PackType.AUDIO }
     // Installed packs carry no category of their own; the catalog's label wins when it lists the pack.
     val declared = availableKnowledge.associate { it.id to it.category }
-    val knowledgeGroups = knowledge
+    val recommended = availableKnowledge.filter { it.recommended }.map { it.id }.toSet()
+    val installedOrder = xyz.fieldatlas.ui.presentation.knowledgeOrder<InstalledAsset>(
+        { knowledgeCategory(it.id, declared[it.id].orEmpty()) }, { it.id in recommended }, { it.toAssetCardModel().title })
+    val knowledgeGroups = knowledge.sortedWith(installedOrder)
         .groupBy { knowledgeCategory(it.id, declared[it.id].orEmpty()) }
         .toSortedMap(compareBy { it.ordinal })
     val available = availableKnowledge
         .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
-        .sortedWith(compareBy<KnowledgeCatalogEntry> { knowledgeCategory(it.id, it.category).ordinal }
-            .thenByDescending { it.recommended }.thenBy { it.title })
+        .sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()
@@ -287,7 +289,7 @@ fun LibraryScreen(
                     itemVerticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = onOpenDownloadSources, shape = FieldAtlasButtonShape,
                         modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(0.dp)) {
-                        Icon(FieldAtlasIcons.Globe, null, Modifier.size(18.dp))
+                        Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
                         Text("Download sources", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelMedium)
                     }
                     TextButton(onClick = onRefreshCatalog, enabled = !catalogRefreshing, shape = FieldAtlasButtonShape,
@@ -415,7 +417,7 @@ internal fun KnowledgeDownloadCard(
                 onClick = { confirmDownload = true },
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = FieldAtlasIcons.Import,
+                leadingIcon = FieldAtlasIcons.Download,
             )
         }
     }
@@ -509,7 +511,7 @@ internal fun ModelDownloadCard(
                 modifier = Modifier.fillMaxWidth().semantics {
                     contentDescription = "${if (resumableBytes > 0) "Resume" else "Download"} ${offer.name}"
                 },
-                leadingIcon = FieldAtlasIcons.Import,
+                leadingIcon = FieldAtlasIcons.Download,
             )
         }
     }
@@ -545,15 +547,15 @@ private fun SectionLabel(text: String) {
     FieldAtlasSectionLabel(text, Modifier.padding(top = 6.dp))
 }
 
-/** How a pack is drawn: its subject decides the icon and a palette tint. */
+/** How a pack is drawn: its subject decides the icon; every knowledge tile shares one background. */
 internal data class PackVisual(val icon: ImageVector, val tone: TileTone)
 
 /** The same icon a collection gets once installed, chosen from its catalog category. */
 internal fun categoryVisual(category: KnowledgeCategory): PackVisual = when (category) {
-    KnowledgeCategory.Places -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
+    KnowledgeCategory.Places -> PackVisual(FieldAtlasIcons.Place, TileTone.Sage)
     KnowledgeCategory.Travel -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
     KnowledgeCategory.Science -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
-    else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
+    else -> PackVisual(FieldAtlasIcons.Document, TileTone.Sage)
 }
 
 /** A collection's own subject, so each one is recognisable at a glance in Library and Discover. */
@@ -561,12 +563,12 @@ internal fun subjectVisual(packId: String): PackVisual? {
     val id = packId.lowercase()
     return when {
         "vegan" in id -> PackVisual(FieldAtlasIcons.Leaf, TileTone.Sage)
-        "essentials" in id -> PackVisual(FieldAtlasIcons.Storefront, TileTone.Gold)
+        "essentials" in id -> PackVisual(FieldAtlasIcons.Storefront, TileTone.Sage)
         "guides" in id -> PackVisual(FieldAtlasIcons.Compass, TileTone.Sage)
-        listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
+        listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Sage)
         listOf("encyclopedia", "wikipedia").any { it in id } -> PackVisual(FieldAtlasIcons.Encyclopedia, TileTone.Sage)
-        listOf("crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Key, TileTone.Paper)
-        listOf("biology", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Dna, TileTone.Sage)
+        listOf("crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Key, TileTone.Sage)
+        listOf("biology", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Microscope, TileTone.Sage)
         "science" in id -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
         else -> null
     }
@@ -575,7 +577,7 @@ internal fun subjectVisual(packId: String): PackVisual? {
 internal fun packVisual(asset: InstalledAsset): PackVisual = when {
     asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
     asset.type == PackType.AUDIO -> PackVisual(FieldAtlasIcons.Mic, TileTone.Paper)
-    else -> subjectVisual(asset.id) ?: PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
+    else -> subjectVisual(asset.id) ?: PackVisual(FieldAtlasIcons.Document, TileTone.Sage)
 }
 
 @Composable

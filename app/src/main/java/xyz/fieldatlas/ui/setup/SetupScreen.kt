@@ -103,7 +103,7 @@ fun SetupScreen(
                         contentPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp)) {
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            Icon(FieldAtlasIcons.Document, null, Modifier.size(20.dp))
+                            Icon(FieldAtlasIcons.Import, null, Modifier.size(20.dp))
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text("Import .fapack", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(650)))
                                 Text("Model or knowledge pack", style = MaterialTheme.typography.labelSmall,
@@ -177,19 +177,21 @@ fun SetupScreen(
                         modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                         Column {
-                            group.sortedWith(compareByDescending<KnowledgeCatalogEntry> { it.recommended }.thenBy { it.title })
+                            group.sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ category }, { it.recommended }, { it.title }))
                                 .forEachIndexed { index, pack ->
                                 if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                                // The same subject icon and tint the collection gets in Library.
+                                val visual = xyz.fieldatlas.ui.library.subjectVisual(pack.id)
                                 if (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) {
-                                    SetupImportCard(importingPack.title, importingName, "Importing knowledge")
-                                } else SetupDownloadRow(pack.title, catalogIcon(pack.id), pack.bytes,
+                                    SetupImportCard(importingPack.title, importingName, "Importing knowledge", visual?.icon ?: FieldAtlasIcons.Document)
+                                } else SetupDownloadRow(pack.title, visual?.icon ?: FieldAtlasIcons.Document, pack.bytes,
                                     packs.any { it.type == PackType.KNOWLEDGE && it.id == pack.id && it.version == pack.version },
                                     knowledgeDownloadKey == "${pack.id}:${pack.version}", busy || !online, knowledgeDownloadedBytes,
                                     resumableKnowledgeBytes(pack),
                                     "${pack.description}\n\nVersion ${pack.version} · ${pack.license}",
                                     { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
-                                    blockedReason = blockedReason, inGroup = true,
+                                    blockedReason = blockedReason, inGroup = true, tone = visual?.tone,
                                     freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),
                                     downloadUrl = knowledgeDownloadUrl(pack))
                             }
@@ -276,7 +278,7 @@ private fun SetupDownloadRow(
     title: String, icon: ImageVector, bytes: Long, installed: Boolean,
     downloading: Boolean, busy: Boolean, downloadedBytes: Long, resumableBytes: Long, details: String,
     onDownload: () -> Unit, onCancel: () -> Unit,
-    subtitle: String? = null, blockedReason: String? = null, inGroup: Boolean = false,
+    subtitle: String? = null, blockedReason: String? = null, inGroup: Boolean = false, tone: TileTone? = null,
     freeBytesNeeded: Long = bytes * 2 + 512_000_000L,
     downloadUrl: String,
     downloadError: String? = null,
@@ -320,7 +322,7 @@ private fun SetupDownloadRow(
     SetupRowSurface(inGroup) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(icon, size = 36.dp, tone = if (icon == FieldAtlasIcons.Place) TileTone.Gold else TileTone.Sage)
+            FieldAtlasIconTile(icon, size = 36.dp, tone = tone ?: TileTone.Sage)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(title, style = if (inGroup) MaterialTheme.typography.titleSmall
                     else MaterialTheme.typography.titleMedium)
@@ -383,12 +385,6 @@ private fun SetupRowSurface(inGroup: Boolean, content: @Composable ColumnScope.(
     if (inGroup) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp, content = content)
-}
-
-private fun catalogIcon(id: String): ImageVector = when {
-    listOf("voyage", "place", "osm", "travel").any { it in id } -> FieldAtlasIcons.Place
-    listOf("biology", "science", "longevity").any { it in id } -> FieldAtlasIcons.Knowledge
-    else -> FieldAtlasIcons.Document
 }
 
 private fun downloadSize(bytes: Long): String = if (bytes >= 1_000_000_000L)

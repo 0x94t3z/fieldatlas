@@ -13,6 +13,12 @@ import xyz.fieldatlas.ui.more.phoneFacts
 import xyz.fieldatlas.ui.presentation.displayVersion
 import xyz.fieldatlas.ui.research.answerCardPreview
 import xyz.fieldatlas.ui.research.readableHours
+import xyz.fieldatlas.assets.InstalledAsset
+import xyz.fieldatlas.assets.KnowledgeCatalog
+import xyz.fieldatlas.assets.PackType
+import xyz.fieldatlas.ui.presentation.knowledgeCategory
+import xyz.fieldatlas.ui.presentation.knowledgeOrder
+import xyz.fieldatlas.ui.presentation.toAssetCardModel
 
 class UiPolishTest {
     @Test fun mapHoursReadAsPlainWords() {
@@ -57,12 +63,26 @@ class UiPolishTest {
             fact("ABIs", "arm64-v8a"), fact("Physical memory", "6.01 GB"), fact("PSS", "1.77 GB"),
             fact("RSS", "Not measured", ProofState.Missing)))
         assertEquals(listOf("Device", "Android", "Memory"), everyday.map { it.label })
-        assertEquals("Android 13 (API 33)", everyday[1].value)
+        assertEquals("13", everyday[1].value)
         assertEquals(listOf("ABIs", "PSS"), internals.map { it.label })
     }
 
     @Test fun aListAnswerPreviewNamesWhatFollows() {
         val preview = answerCardPreview("Nearest saved places to your current location:\n\n- **Apotek Sehat**, 27 km north-east [S1]")
         assertEquals("Nearest saved places to your current location: Apotek Sehat, 27 km north-east", preview)
+    }
+
+    @Test fun setupAndLibraryListCollectionsInTheSameOrder() {
+        val catalog = KnowledgeCatalog.parse(java.io.File("src/main/assets/knowledge/catalog.json").readText()).packs
+        val setup = catalog.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
+            .map { it.id }
+        val recommended = catalog.filter { it.recommended }.map { it.id }.toSet()
+        val declared = catalog.associate { it.id to it.category }
+        val installed = catalog.reversed().map { InstalledAsset(it.id, it.version, PackType.KNOWLEDGE, it.title, it.license, 1, "a", "/x") }
+        val library = installed.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, declared[it.id].orEmpty()) },
+            { it.id in recommended }, { it.toAssetCardModel().title })).map { it.id }
+        assertEquals(setup, library)
+        assertEquals(listOf("wikipedia-encyclopedia", "wikivoyage-places", "osm-vegan-places", "osm-essentials",
+            "wikivoyage-guides", "world-knowledge-biology", "crypto-ethereum"), setup)
     }
 }

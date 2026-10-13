@@ -53,7 +53,7 @@ class ModernUiTest {
         compose.setContent { FieldAtlasTheme {
             MoreScreen(proof, state.value, { prepares++ }, { releases++ }, {}, {}, packs = listOf(model))
         } }
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").assertIsOn().performClick()
         compose.runOnIdle { assertEquals(1, releases); assertEquals(0, prepares); state.value = InferenceState.Loading }
         compose.onNodeWithContentDescription("Model loaded").assertIsOff().assertIsNotEnabled()
@@ -66,9 +66,10 @@ class ModernUiTest {
             MoreScreen(proof, InferenceState.Idle, {}, {}, {}, {}, packs = listOf(model, knowledge))
         } }
         compose.onNodeWithText("Offline readiness").performClick()
-        compose.onNodeWithText("1 saved").assertIsDisplayed()
-        compose.onNodeWithText("Included").assertIsDisplayed()
-        compose.onNodeWithText("Downloads need internet. Your saved files stay available offline.").assertIsDisplayed()
+        compose.onNodeWithText("Ready to work offline").assertIsDisplayed()
+        compose.onNodeWithText("1 in research").assertIsDisplayed()
+        compose.onNodeWithText("Built in").assertIsDisplayed()
+        compose.onNodeWithText("Only downloads need internet.").assertIsDisplayed()
         compose.onNodeWithText("Cancel").assertDoesNotExist()
         capture("readiness-light")
         compose.onNodeWithContentDescription("Close Offline readiness").performClick()
@@ -82,11 +83,13 @@ class ModernUiTest {
                 }
             }
         } }
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").assertIsDisplayed()
-        compose.onNodeWithText("Details").assertIsDisplayed()
-        compose.onNodeWithText("Offline readiness").performScrollTo().performClick()
-        compose.onNodeWithText("Downloads need internet. Your saved files stay available offline.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Qwen3.5 2B").performScrollTo().assertIsDisplayed()
+        // A lazy list composes only what is near the screen: scroll the list itself to the row.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Offline readiness"))
+        compose.onNodeWithText("Offline readiness").performClick()
+        compose.onNodeWithText("Only downloads need internet.").performScrollTo().assertIsDisplayed()
         capture("readiness-dark-double-text")
     }
 

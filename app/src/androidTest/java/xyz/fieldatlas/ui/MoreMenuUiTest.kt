@@ -55,7 +55,8 @@ class MoreMenuUiTest {
         listOf("Offline readiness" to "Offline readiness", "App & device" to "App & device",
             "Support report" to "Support report", "Privacy & offline use" to "Privacy & offline use",
             "Licences" to "Licences").forEach { (menu, title) ->
-            compose.onNodeWithText(menu).performScrollTo().performClick()
+            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(menu))
+            compose.onNodeWithText(menu).performClick()
             compose.onNodeWithContentDescription("Close $title").assertIsDisplayed()
             capture("after-${title.replace(" ", "-").replace("&", "and")}")
             compose.onNodeWithContentDescription("Close $title").performClick()
@@ -74,41 +75,43 @@ class MoreMenuUiTest {
         compose.runOnIdle { assertEquals(1, sources); assertEquals(1, benchmark); assertEquals(1, library) }
     }
 
-    @Test fun modelDetailsKeepShortIdentityAndLibraryManagement() {
+    @Test fun modelRowShowsAndHidesTheFastStartSetting() {
         var library = 0
         render(onLibrary = { library++ })
-        compose.onNodeWithText("Answer model").performClick()
-        compose.onNodeWithContentDescription("Model loaded").assertIsOn()
-        compose.onNodeWithText("Details").performClick()
-        compose.onNodeWithText("Qwen3.5 2B").assertIsDisplayed()
-        compose.onNodeWithText("1.4 GB · version 1").assertExists()
-        capture("after-model-details")
-        compose.onNodeWithText("Model details and options").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(1, library) }
+        compose.onNodeWithText("Start answers faster").assertDoesNotExist()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
+        compose.onNodeWithText("Start answers faster").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Model loaded").assertIsDisplayed().assertIsOn()
+        compose.onNodeWithText("Licence").assertDoesNotExist()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
+        compose.onNodeWithText("Start answers faster").assertDoesNotExist()
+        // Showing the setting never leaves More.
+        compose.runOnIdle { assertEquals(0, library) }
     }
 
-    @Test fun expandedModelKeepsDetailsAtTheTrailingEdge() {
+    @Test fun fastStartSwitchSitsAtTheEdgeBelowTheModelRow() {
         render()
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
+        val model = compose.onNodeWithText("Qwen3.5 2B", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val label = compose.onNodeWithText("Start answers faster", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         val toggle = compose.onNodeWithContentDescription("Model loaded").fetchSemanticsNode().boundsInRoot
-        val details = compose.onNodeWithText("Details").fetchSemanticsNode().boundsInRoot
-        assertTrue("Details must not crowd the memory switch", details.left > toggle.right)
-        assertEquals("Controls share a baseline", toggle.center.y, details.center.y, 2f)
-        capture("after-model-expanded-alignment")
+        assertEquals("Rows share a text column", model.left, label.left, 2f)
+        assertTrue("The switch sits after its label", toggle.left > label.right)
+        assertTrue("The setting is below the model row", label.top > model.bottom)
+        capture("after-model-rows")
     }
 
     @Test fun expandedModelLargeTextKeepsBothControlsReachable() {
         render(dark = true, scale = 2f)
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Details").performScrollTo().assertIsDisplayed().performClick()
-        compose.onNodeWithContentDescription("Close Answer model").assertIsDisplayed()
+        compose.onNodeWithText("Qwen3.5 2B").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun modelSwitchReleasesOnlyWhenLoaded() {
         var released = 0; var prepared = 0
         render(onPrepare = { prepared++ }, onRelease = { released++ })
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").performClick()
         compose.runOnIdle { assertEquals(1, released); assertEquals(0, prepared) }
     }
@@ -116,21 +119,21 @@ class MoreMenuUiTest {
     @Test fun modelSwitchPreparesWhenNotLoaded() {
         var prepared = 0
         render(inference = InferenceState.Idle, onPrepare = { prepared++ })
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").assertIsOff().performClick()
         compose.runOnIdle { assertEquals(1, prepared) }
     }
 
     @Test fun modelSwitchIsDisabledDuringResearch() {
         render(inference = InferenceState.Generating)
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").assertIsOn().assertIsNotEnabled()
-        compose.onNodeWithText("Details").assertIsDisplayed()
+        compose.onNodeWithText("Qwen3.5 2B").assertIsDisplayed()
     }
 
     @Test fun modelSwitchIsDisabledDuringPreparation() {
         render(inference = InferenceState.Loading)
-        compose.onNodeWithText("Answer model").performClick()
+        compose.onNodeWithText("Qwen3.5 2B").performClick()
         compose.onNodeWithContentDescription("Model loaded").assertIsOff().assertIsNotEnabled()
     }
 
@@ -143,8 +146,8 @@ class MoreMenuUiTest {
         compose.onNodeWithText("Verified pack 25").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Close App & device").assertIsDisplayed()
         capture("after-device-scrolled")
-        compose.onNodeWithText("About Field Atlas").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Back to app and device").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Storage").assertIsDisplayed()
         compose.onNodeWithContentDescription("Close App & device").assertIsDisplayed()
     }
 
@@ -177,7 +180,8 @@ class MoreMenuUiTest {
 
     @Test fun everyBundledLicenceOpensAndKeepsBackAndCloseVisibleAfterScrolling() {
         render()
-        compose.onNodeWithText("Licences").performScrollTo().performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Licences"))
+        compose.onNodeWithText("Licences").performClick()
         val assets = InstrumentationRegistry.getInstrumentation().targetContext.assets
         val paths = assets.list("licenses").orEmpty().filter { it.endsWith(".txt") && it != "NOTICE.txt" }.sorted().map { "licenses/$it" } +
             assets.list("ocr/licenses").orEmpty().sorted().map { "ocr/licenses/$it" }
