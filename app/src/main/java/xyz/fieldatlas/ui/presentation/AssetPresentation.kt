@@ -34,7 +34,8 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         "world-knowledge-biology" -> "Biology & longevity"
         "wikivoyage-places" -> "Travel places"
         // Short names, as in the download catalog; the source is in About this collection.
-        "simplewiki" -> "Encyclopedia"
+        // The earlier, smaller encyclopedia; "Encyclopedia" is the one that replaced it.
+        "simplewiki" -> "Simple English encyclopedia"
         "wikivoyage-guides" -> "Travel guides"
         "osm-vegan-places" -> "Vegan places"
         "osm-essentials" -> "Essentials"
@@ -89,6 +90,17 @@ internal fun displayVersion(version: String): String =
 
 /** A pack's SPDX licence expression as people read it: "CC-BY-4.0 AND LicenseRef-US-Government-Work"
  * is shown as "CC BY 4.0, US government work". Expressions that are not plain AND lists stay whole. */
+/** The licence of a saved passage, from the site it was taken from; null when the site does not settle it. */
+internal fun licenceOfSource(source: String): String? {
+    val host = runCatching { java.net.URI(source).host?.lowercase() }.getOrNull() ?: return null
+    return when {
+        host == "wikipedia.org" || host.endsWith(".wikipedia.org") -> "CC BY-SA 4.0"
+        host == "wikivoyage.org" || host.endsWith(".wikivoyage.org") -> "CC BY-SA 4.0"
+        host == "openstreetmap.org" || host.endsWith(".openstreetmap.org") -> "ODbL 1.0"
+        else -> null
+    }
+}
+
 internal fun displayLicence(spdx: String): String {
     val parts = spdx.trim().split(" AND ")
     if (parts.any { it.isBlank() || it.contains(' ') }) return spdx.trim()

@@ -70,7 +70,9 @@ class AssetPresentationTest {
     }
 
     @Test fun collectionsShowTheirShortCatalogNames() {
-        assertEquals("Encyclopedia", asset("simplewiki", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+        // The earlier encyclopedia is named apart from the Encyclopedia that replaced it.
+        assertEquals("Simple English encyclopedia", asset("simplewiki", PackType.KNOWLEDGE, null).toAssetCardModel().title)
+        assertEquals("Encyclopedia", asset("wikipedia-encyclopedia", PackType.KNOWLEDGE, null).toAssetCardModel().title)
         assertEquals("Vegan places", asset("osm-vegan-places", PackType.KNOWLEDGE, null).toAssetCardModel().title)
         assertEquals("Travel guides", asset("wikivoyage-guides", PackType.KNOWLEDGE, null).toAssetCardModel().title)
         assertEquals("Project-notes", asset("project-notes", PackType.KNOWLEDGE, null).toAssetCardModel().title)

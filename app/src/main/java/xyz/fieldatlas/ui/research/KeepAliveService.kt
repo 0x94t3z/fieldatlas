@@ -49,7 +49,22 @@ class KeepAliveService : Service() {
             .setOngoing(true)
             .build()
         startForeground(NOTIFICATION_ID, notification)
-        return START_STICKY
+        // Restarted empty after the process died, it would pin a notification for work that is gone.
+        return START_NOT_STICKY
+    }
+
+    // Swiped away from Recents: the activity and its run are gone, so is the reason to stay.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        clearHolds()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+    }
+
+    // Android 15 limits dataSync services to six hours a day and expects them to stop at once.
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        clearHolds()
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     companion object {
@@ -57,6 +72,24 @@ class KeepAliveService : Service() {
         private const val NOTIFICATION_ID = 1001
         const val ACTION_STOP = "xyz.fieldatlas.action.STOP_KEEPALIVE"
         private const val EXTRA_TEXT = "xyz.fieldatlas.extra.KEEPALIVE_TEXT"
+
+        // Each piece of work that needs the process holds the service by name and releases it when it
+        // ends, so the service stops when nothing needs it, whatever the screen shows.
+        private val holds = linkedMapOf<String, String?>()
+
+        @Synchronized fun hold(context: Context, key: String, text: String? = null) {
+            holds[key] = text
+            start(context.applicationContext, text)
+        }
+
+        @Synchronized fun release(context: Context, key: String) {
+            // Nothing held under this name: another piece of work may still need the service.
+            if (!holds.containsKey(key)) return
+            holds.remove(key)
+            if (holds.isEmpty()) stop(context.applicationContext) else start(context.applicationContext, holds.values.last())
+        }
+
+        @Synchronized private fun clearHolds() = holds.clear()
 
         fun start(context: Context, text: String? = null) {
             ContextCompat.startForegroundService(

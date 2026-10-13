@@ -108,7 +108,8 @@ fun HistoryScreen(
             )
         }
         // Search earns its space once History is longer than a screen.
-        if (records.size >= SEARCH_THRESHOLD) item(key = "search") {
+        // Kept while a search is typed, or deleting matches could hide every answer with no way to clear it.
+        if (records.size >= SEARCH_THRESHOLD || query.isNotEmpty()) item(key = "search") {
             HistorySearchField(query, onQueryChange = { query = it })
         }
         if (records.isNotEmpty() && shown.isEmpty()) item(key = "no-match") {

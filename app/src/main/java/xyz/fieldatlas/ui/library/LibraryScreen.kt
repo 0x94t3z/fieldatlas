@@ -225,6 +225,7 @@ fun LibraryScreen(
                     onDelete = { onDeletePack(asset) },
                     asset = asset,
                     onModelOptions = { discovering = true },
+                    onlyModel = models.size == 1,
                 )
             }
             }
@@ -509,7 +510,8 @@ internal fun ModelDownloadCard(
                 onClick = { confirmDownload = true },
                 enabled = !busy,
                 modifier = Modifier.fillMaxWidth().semantics {
-                    contentDescription = "${if (resumableBytes > 0) "Resume" else "Download"} ${offer.name}"
+                    // The spoken name starts with the visible label, so "tap Download model" finds it.
+                    contentDescription = "${if (resumableBytes > 0) "Resume download" else "Download model"}, ${offer.name}"
                 },
                 leadingIcon = FieldAtlasIcons.Download,
             )
@@ -656,6 +658,8 @@ private fun AssetCard(
     asset: InstalledAsset? = null,
     onAskExample: ((String) -> Unit)? = null,
     onModelOptions: (() -> Unit)? = null,
+    /** The phone's only answer model: deleting it returns the app to setup. */
+    onlyModel: Boolean = false,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var showAbout by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
@@ -736,13 +740,16 @@ private fun AssetCard(
         onDetails = { showModelActions = false; showAbout = true },
         onOptions = onModelOptions?.let { { showModelActions = false; it() } },
         onDelete = { showModelActions = false; confirmDelete = true },
+        // Deleting the model while it answers would end the answer with an internal error.
+        deleteEnabled = activateEnabled,
         onDismiss = { showModelActions = false },
     )
     if (confirmDelete) {
         FieldAtlasDeleteDialog(
             title = "Delete ${model.title}?",
             message = "Frees ${model.size}. Answers in History keep the passages saved with them. " +
-                "You can download or import it again later.",
+                "You can download or import it again later." +
+                if (onlyModel) " It is the only answer model, so Field Atlas returns to setup until you add one." else "",
             onKeep = { confirmDelete = false },
             onDelete = { confirmDelete = false; onDelete?.invoke() },
         )

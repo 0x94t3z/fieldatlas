@@ -23,6 +23,7 @@ internal fun ModelActionsSheet(
     title: String, detail: String, selected: Boolean, notice: String?, useEnabled: Boolean,
     onUse: (() -> Unit)?, onDetails: () -> Unit, onOptions: (() -> Unit)?,
     onDelete: () -> Unit, onDismiss: () -> Unit,
+    deleteEnabled: Boolean = true,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, shape = FieldAtlasLayout.SheetShape,
         containerColor = MaterialTheme.colorScheme.surface,
@@ -49,7 +50,7 @@ internal fun ModelActionsSheet(
                     onDismiss(); onUse()
                 }, enabled = useEnabled, color = MaterialTheme.colorScheme.primary)
                 onOptions?.let { ModelAction("Review model options", it) }
-                ModelAction("Delete model from phone", onDelete, color = MaterialTheme.colorScheme.error)
+                ModelAction("Delete model from phone", onDelete, enabled = deleteEnabled, color = MaterialTheme.colorScheme.error)
             }
         }
     }

@@ -20,6 +20,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import java.io.File
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -52,6 +54,18 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A run in flight outranks background process trimming: the service pins priority. Watched for
+        // the activity's whole life, not only while it is on screen, so a run that ends in the background
+        // still lets the service go.
+        lifecycleScope.launch {
+            researchViewModel.uiState
+                .map { it.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) }
+                .distinctUntilChanged()
+                .collect { running ->
+                    if (running) KeepAliveService.hold(this@MainActivity, "research")
+                    else KeepAliveService.release(this@MainActivity, "research")
+                }
+        }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (benchmarkVisible.value) {
@@ -72,18 +86,13 @@ class MainActivity : ComponentActivity() {
             // A system picker also puts the app in the background with the model loaded, and some
             // phones (Xiaomi's memory service) kill it within seconds, losing the chosen file.
             var pickerOpen by remember { mutableStateOf(false) }
-            LaunchedEffect(researchState.phase, pickerOpen) {
-                when {
-                    researchState.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) ->
-                        KeepAliveService.start(this@MainActivity)
-                    pickerOpen -> KeepAliveService.start(this@MainActivity, "Waiting for your file…")
-                    else -> KeepAliveService.stop(this@MainActivity)
-                }
+            LaunchedEffect(pickerOpen) {
+                if (!pickerOpen) KeepAliveService.release(this@MainActivity, "picker")
             }
             // Start the service before the picker takes over, not on the next composition frame.
             fun openPicker(launch: () -> Unit) {
                 pickerOpen = true
-                KeepAliveService.start(this@MainActivity, "Waiting for your file…")
+                KeepAliveService.hold(this@MainActivity, "picker", "Waiting for your file…")
                 launch()
             }
             val voiceState by researchViewModel.voiceState.collectAsStateWithLifecycle()
@@ -119,8 +128,11 @@ class MainActivity : ComponentActivity() {
                 } catch (error: Exception) { attachmentNotice = xyz.fieldatlas.attachments.attachmentError(error) }
             }
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
-            val proof = remember(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
-                container.proof(researchState.metrics, researchState.completion)
+            // Reading memory use (smaps) is slow with a large model mapped: it is refreshed off the main
+            // thread when something it reports changes, not during drawing.
+            var proof by remember { mutableStateOf(container.proof(null, null)) }
+            LaunchedEffect(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
+                proof = withContext(Dispatchers.IO) { container.proof(researchState.metrics, researchState.completion) }
             }
             val packPicker = androidx.activity.compose.rememberLauncherForActivityResult(
                 ActivityResultContracts.OpenDocument(),
@@ -197,7 +209,8 @@ class MainActivity : ComponentActivity() {
                                 benchmarkExporter.launch("fieldatlas-benchmark-${safeTimestamp(run.startedAt)}.json")
                             }
                         },
-                        onBack = { benchmarkVisible.value = false },
+                        // Leaving the check stops it; otherwise the model keeps answering a question nobody sees.
+                        onBack = { benchmarkViewModel.stop(); benchmarkVisible.value = false },
                     )
                 }
                 return@setContent
@@ -210,6 +223,7 @@ class MainActivity : ComponentActivity() {
                 answersWithoutModel = container::answersWithoutModel,
                 sourceLicense = container::emergencyLicense,
                 packs = setupState.packs,
+                packsLoaded = setupState.packsLoaded,
                 importing = setupState.importing,
                 importingName = setupState.importingName,
                 importingPack = setupState.importingPack,

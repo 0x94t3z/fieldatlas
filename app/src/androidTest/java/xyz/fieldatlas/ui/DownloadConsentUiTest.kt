@@ -53,7 +53,7 @@ class DownloadConsentUiTest {
                 onDownloadModel = { calls++ }, modelDownloadUrl = { "https://mirror.test/model.gguf?private-query=hidden" })
         } }
         compose.onNodeWithText("Discover").performScrollTo().performClick()
-        compose.onNodeWithContentDescription("Download Qwen3.5 2B").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Download model, Qwen3.5 2B").performScrollTo().performClick()
         confirm { calls }
     }
 

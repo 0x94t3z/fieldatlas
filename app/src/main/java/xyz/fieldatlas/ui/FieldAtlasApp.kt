@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -76,6 +77,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasColors
 @Composable
 fun FieldAtlasApp(
     packs: List<InstalledAsset>,
+    /** False until the saved packs are read: a set-up phone must not flash the setup screen. */
+    packsLoaded: Boolean = true,
     /** The licence of a bundled (non-pack) source, by document id. */
     sourceLicense: (String) -> String? = { null },
     importing: Boolean,
@@ -143,9 +146,33 @@ fun FieldAtlasApp(
         xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null
     },
 ) {
+    if (!packsLoaded) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+        return
+    }
     val ready = packs.any { it.type == PackType.MODEL }
     val enabledKnowledge = packs.filter { it.type == PackType.KNOWLEDGE && it.enabled }
     val darkTheme = isSystemInDarkTheme()
+    // Asking from History or a collection's examples starts a new question. Files attached to the current
+    // one would be removed with it, so that is confirmed first; a running answer is kept in History.
+    var pendingQuestion by remember { mutableStateOf<String?>(null) }
+    fun startQuestion(question: String) {
+        onAskAnotherQuestion()
+        onQuestionChange(question)
+        navigation.select(PrimaryDestination.Research)
+    }
+    fun askAnew(question: String) {
+        if (researchState.attachments.isNotEmpty()) pendingQuestion = question else startQuestion(question)
+    }
+    pendingQuestion?.let { question ->
+        xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
+            title = "Start a new question?",
+            message = "The files attached to your current question will be removed. Its answer, if any, stays in History.",
+            onKeep = { pendingQuestion = null },
+            onDelete = { pendingQuestion = null; startQuestion(question) },
+            deleteLabel = "Start new question",
+        )
+    }
     // Loading state belongs to the live inference gateway. Do not restore a stale "started"
     // flag after process death, when the new gateway is Idle again.
     var autoPreparationStarted by remember { mutableStateOf(false) }
@@ -222,7 +249,10 @@ fun FieldAtlasApp(
         val detail = navigation.detail
         if (detail != null) {
             when (detail) {
-                DetailDestination.Answer -> AnswerScreen(
+                // After the process was restarted only the question survives: there is no answer to show.
+                DetailDestination.Answer -> if (researchState.answer.isBlank() && !researchState.isRunning) {
+                    LaunchedEffect(Unit) { navigation.back() }
+                } else AnswerScreen(
                     state = researchState,
                     onBack = closeDetail,
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
@@ -256,13 +286,14 @@ fun FieldAtlasApp(
                             sourceCount = researchState.sources.size,
                             isCited = "S${detail.index + 1}" in xyz.fieldatlas.research.AnswerText.citationAudit(
                                 researchState.answer, researchState.sources.size).citedSourceIds,
-                            // With several active packs the evidence does not carry its pack ID;
-                            // omitting this field is safer than crediting the wrong license. Bundled
-                            // emergency guides and numbers carry their own.
+                            // The evidence does not carry its pack ID, and the packs switched on now need not be
+                            // the ones that answered. The licence is read from where the text came from; anything
+                            // else is omitted, which is safer than crediting the wrong licence. Bundled emergency
+                            // guides and numbers carry their own.
                             packLicense = when {
                                 source.documentId.startsWith("attachment:") -> null
                                 source.documentId.startsWith("emergency:") -> sourceLicense(source.documentId)
-                                else -> enabledKnowledge.singleOrNull()?.license?.let { xyz.fieldatlas.ui.presentation.displayLicence(it) }
+                                else -> xyz.fieldatlas.ui.presentation.licenceOfSource(source.source)
                             },
                             onBack = closeDetail,
                             onPrevious = if (detail.index > 0) ({ navigation.openSource(detail.index - 1); Unit }) else null,
@@ -380,17 +411,10 @@ fun FieldAtlasApp(
                         modelNotice = modelNotice,
                         modelDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.model(it)) },
                         knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },
-                        onAskExample = { question ->
-                            onAskAnotherQuestion()
-                            onQuestionChange(question)
-                            navigation.select(PrimaryDestination.Research)
-                        },
+                        onAskExample = { question -> askAnew(question) },
                     )
-                    PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question ->
-                        onAskAnotherQuestion()
-                        onQuestionChange(question)
-                        navigation.select(PrimaryDestination.Research)
-                    }, onDelete = onDeleteHistory)
+                    PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question -> askAnew(question) },
+                        onDelete = onDeleteHistory)
                     PrimaryDestination.More -> MoreScreen(
                         packs = packs,
                         onOpenLibrary = { navigation.select(PrimaryDestination.Library) },
@@ -424,8 +448,9 @@ private fun PrimaryNavigationItem(
     )
     Column(
         modifier.heightIn(min = 56.dp)
-            .selectable(selected = selected, role = Role.Tab,
-                interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+            // The default indication shows keyboard focus; the tab is named once, here, and the label
+            // below is hidden from screen readers so it is not read twice.
+            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
             .semantics { contentDescription = itemLabel }
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -440,7 +465,7 @@ private fun PrimaryNavigationItem(
                 tint = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Text(
-            itemLabel, modifier = Modifier.padding(top = 4.dp),
+            itemLabel, modifier = Modifier.padding(top = 4.dp).clearAndSetSemantics {},
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp, lineHeight = 16.sp),
             maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,

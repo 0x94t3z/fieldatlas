@@ -193,7 +193,13 @@ class AppContainer(context: Context) {
     }
 
     suspend fun importPack(uri: Uri): InstalledAsset = provisioningMutex.withLock {
-        importer.import(uri).also { refreshPacks() }
+        // Extracting a large pack takes minutes; in the background the process could be killed half-way.
+        xyz.fieldatlas.ui.research.KeepAliveService.hold(appContext, "import", "Installing a collection…")
+        try {
+            importer.import(uri).also { refreshPacks() }
+        } finally {
+            xyz.fieldatlas.ui.research.KeepAliveService.release(appContext, "import")
+        }
     }
     suspend fun inspectImportPack(uri: Uri) = importer.inspect(uri)
 
@@ -446,6 +452,13 @@ class AppContainer(context: Context) {
             else emergencyGuides.firstOrNull { it.id == id }?.source?.license
     }
     /** Emergency telephone numbers by country, bundled in the APK; read on first use. */
+    /** Reads the bundled guides and numbers off the main thread, before the first question needs them. */
+    suspend fun preloadBundledData() = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        emergencyGuides.size
+        emergencyNumbers
+        Unit
+    }
+
     private val emergencyNumbers: xyz.fieldatlas.emergency.NumberBook? by lazy {
         runCatching {
             appContext.assets.open("emergency/numbers.json").bufferedReader().use { xyz.fieldatlas.emergency.EmergencyNumbers.book(it.readText()) }

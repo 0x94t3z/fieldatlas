@@ -26,6 +26,11 @@ internal fun researchProgressHeading(phase: ResearchPhase, answer: String, hasSo
 internal fun readyCitationCount(answer: String, sourceCount: Int): Int =
     buildAnswerPresentation(answer, sourceCount).availableCitations.size
 
+/** Cited sources counted as the answer screen lists them: passages of one document are one source. */
+internal fun citedSourceDocuments(answer: String, sources: List<xyz.fieldatlas.research.Evidence>): Int =
+    buildAnswerPresentation(answer, sources.size).availableCitations.mapNotNull { sources.getOrNull(it - 1) }
+        .distinctBy { Triple(it.documentId, it.title, it.source) }.size
+
 internal fun formatResearchElapsed(totalMillis: Long): String {
     val seconds = totalMillis.coerceAtLeast(0) / 1_000
     if (seconds < 60) return "${seconds}s"

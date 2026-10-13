@@ -387,5 +387,5 @@ private fun SetupRowSurface(inGroup: Boolean, content: @Composable ColumnScope.(
     else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp, content = content)
 }
 
-private fun downloadSize(bytes: Long): String = if (bytes >= 1_000_000_000L)
-    String.format(Locale.ROOT, "%.2f GB", bytes / 1_000_000_000.0) else "${bytes / 1_000_000} MB"
+// One size format across the app, so a download reads the same in setup and in Library.
+private fun downloadSize(bytes: Long): String = xyz.fieldatlas.ui.presentation.formatAssetBytes(bytes)

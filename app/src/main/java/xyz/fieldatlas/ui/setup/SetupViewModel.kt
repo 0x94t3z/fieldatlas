@@ -17,6 +17,8 @@ import xyz.fieldatlas.ui.AppContainer
 
 data class SetupUiState(
     val packs: List<InstalledAsset> = emptyList(),
+    /** The saved packs have been read once; before that, an empty list means "not read yet", not "none". */
+    val packsLoaded: Boolean = false,
     val importing: Boolean = false,
     val importingName: String? = null,
     val importingPack: xyz.fieldatlas.assets.PackImportInfo? = null,
@@ -68,6 +70,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
     init {
         viewModelScope.launch {
             runCatching { container.recoverInterruptedInstalls() }
+            runCatching { container.preloadBundledData() }
             runCatching { container.retireBundledReferenceIfPresent() }
                 .onFailure { error ->
                     container.errorBus.report("Saved packs", error)
@@ -75,7 +78,7 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                         error = "Couldn't load saved files. Close and reopen the app, then try again.")
                 }
             container.refreshPacks()
-            container.packs.collect { packs -> mutableState.value = mutableState.value.copy(packs = packs) }
+            container.packs.collect { packs -> mutableState.value = mutableState.value.copy(packs = packs, packsLoaded = true) }
         }
         viewModelScope.launch {
             container.backgroundDownloads.state.collect { download ->

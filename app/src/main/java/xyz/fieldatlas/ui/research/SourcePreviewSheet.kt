@@ -112,6 +112,8 @@ internal fun SourcePreviewSheet(
     onDismiss: () -> Unit,
     onOpenFull: ((Int) -> Unit)?,
     onNext: (Int) -> Unit,
+    /** The answer was written by the app from this text (a guide, a number, a listing), not by the model. */
+    appWritten: Boolean = false,
 ) {
     val evidence = sources.getOrNull(index) ?: return
     val place = placeSheetContent(evidence.text)
@@ -205,7 +207,9 @@ internal fun SourcePreviewSheet(
                                 Text("Call this place", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
                             }
                         }
-                        Text("For offline directions, install Organic Maps or OsmAnd from F-Droid. Check hours and listing details before you go.",
+                        // Never "install this app": at the moment of need the phone is often offline.
+                        Text("Opens in a maps app on this phone, if one is installed; with its maps downloaded, directions work offline. " +
+                            "Check hours and listing details before you go.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
@@ -213,7 +217,8 @@ internal fun SourcePreviewSheet(
                             Text(evidence.text.trim(), Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
                                 maxLines = 9, overflow = TextOverflow.Ellipsis)
                         }
-                        Text("Original saved text. The model's wording is not verified against it.",
+                        Text(if (appWritten) "Original saved text. The answer quotes it or is worked out from it on this phone."
+                            else "Original saved text. The model's wording is not verified against it.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

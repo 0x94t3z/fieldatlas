@@ -309,6 +309,8 @@ class ResearchViewModel(
 
     /** Clears the finished answer so the screen returns to a fresh-asking state. */
     fun startNewQuestion() {
+        // A run in flight is kept in History as Cancel keeps it, not thrown away.
+        if (mutableUiState.value.isRunning) cancelResearch()
         attachmentSession.clear()
         researchJob?.cancel()
         researchJob = null

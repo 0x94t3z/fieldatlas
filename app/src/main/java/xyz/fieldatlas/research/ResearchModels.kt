@@ -34,6 +34,8 @@ data class ResearchMetrics(
     val promptTokens: Int? = null,
     /** Time the model spent reading the prompt, from the request to its first token. */
     val promptMillis: Long? = null,
+    /** A word problem worked out from the question's own numbers, each step re-checked on the phone; no collection applies. */
+    val workedFromQuestion: Boolean = false,
 )
 
 data class PromptSource(

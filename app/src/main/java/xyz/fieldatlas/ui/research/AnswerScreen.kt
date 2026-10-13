@@ -75,6 +75,7 @@ fun AnswerScreen(
     val withheld = state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
         state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE
     val calculated = noModelReply && state.answer.contains("_Calculated on this phone._")
+    val workedFromQuestion = state.metrics?.workedFromQuestion == true
     val suggestTravel = travelCollectionAvailable && Regex(
         "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
     ).containsMatchIn(state.question)
@@ -129,7 +130,9 @@ fun AnswerScreen(
                             val cited = citedSourceGroups.size
                             if (cited > 0) {
                                 FieldAtlasStatusPill(
-                                    if (cited == 1) "1 cited local source" else "$cited cited local sources",
+                                    // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
+                                    (if (noModelReply) "From saved data · " else "") +
+                                        if (cited == 1) "1 cited local source" else "$cited cited local sources",
                                     StatusTone.Positive,
                                     icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Citation,
                                 )
@@ -138,20 +141,21 @@ fun AnswerScreen(
                                     if (withheld) "No answer from your sources"
                                     else if (isInputNotice) "Research notice · no model generation"
                                     else if (calculated) "Calculated on this phone"
-                                    // Only a reply that cites a saved source answered from saved data; "I couldn't
-                                    // get this phone's location" and "your sources don't mention X" did not.
-                                    else if (noModelReply && readyCitationCount(state.answer, state.sources.size) > 0) "Answered from saved data"
+                                    // Nothing cited and no model: the app's own "I couldn't…" or "your sources don't mention X".
                                     else if (noModelReply) "App reply · no model generation"
+                                    // A word problem: worked from the question's own numbers, each step re-checked here.
+                                    else if (workedFromQuestion) "Worked out by the model · steps checked on this phone"
                                     else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
                                     else "Model-generated · sources not cited",
-                                    if (withheld || isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,
+                                    if (withheld || isInputNotice || noModelReply || workedFromQuestion) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
                             state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
                         }
                     }
                 }
-                if (state.sources.isEmpty() && !isInputNotice && !noModelReply && !withheld) {
+                // No collection can support a sum worked from the question's own numbers, so none is suggested.
+                if (state.sources.isEmpty() && !isInputNotice && !noModelReply && !withheld && !workedFromQuestion) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(if (suggestTravel) {
@@ -328,6 +332,7 @@ fun AnswerScreen(
                     onDismiss = { previewIndex = null },
                     onOpenFull = { previewIndex = null; onCitation(it) },
                     onNext = { previewIndex = it },
+                    appWritten = noModelReply,
                 )
             }
             // Pinned like the design, so the next question is always one tap away.

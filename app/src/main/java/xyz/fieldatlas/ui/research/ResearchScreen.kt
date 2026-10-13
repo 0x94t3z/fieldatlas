@@ -259,7 +259,7 @@ fun ResearchScreen(
                                 shape = FieldAtlasButtonShape,
                                 onClick = { attachmentMenuOpen = true },
                                 enabled = state.canAddAttachment,
-                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add attachment" },
+                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Add a file" },
                                 contentPadding = PaddingValues(horizontal = 8.dp),
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant),
                             ) {
@@ -357,7 +357,8 @@ fun ResearchScreen(
                 )
             }
         }
-        if (!hasReadyAnswer) {
+        // Editing a ready question can ask it again unchanged (after switching on a collection).
+        if (!hasReadyAnswer || editReadyQuestion) {
             item {
                 ResearchAction(
                     state = state,
@@ -371,7 +372,7 @@ fun ResearchScreen(
         }
         if (hasReadyAnswer) {
             item {
-                val citedSourceCount = readyCitationCount(state.answer, state.sources.size)
+                val citedSourceCount = citedSourceDocuments(state.answer, state.sources)
                 FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                     BoxWithConstraints(Modifier.fillMaxWidth()) {
                     val stackTiming = maxWidth < 280.dp || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
@@ -412,6 +413,8 @@ fun ResearchScreen(
                                     // Nothing cited and no model: a calculation, or the app's own "I couldn't…" reply.
                                     if (state.answer.contains("_Calculated on this phone._")) "Calculated on this phone"
                                     else "App reply · no model generation"
+                                } else if (citedSourceCount == 0 && state.metrics?.workedFromQuestion == true) {
+                                    "Worked out by the model · steps checked on this phone"
                                 } else if (citedSourceCount == 0) {
                                     "Model-generated · no sources cited"
                                 } else {
@@ -610,7 +613,9 @@ private fun ResearchAction(
     }
     // Missing inputs, emergency guides and near-me lookups are answered without the language
     // model, so they must not wait for it to load (or fail to load on a low-memory phone).
-    if (answersWithoutModel(state.question, state.attachments.isNotEmpty())) {
+    // Once per question, not on every redraw.
+    val withoutModel = remember(state.question, state.attachments.isNotEmpty()) { answersWithoutModel(state.question, state.attachments.isNotEmpty()) }
+    if (withoutModel) {
         FieldAtlasPrimaryButton(
             text = "Start research",
             onClick = onSubmit,

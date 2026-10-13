@@ -100,7 +100,7 @@ class ModernUiTest {
                 onQuestionChange = {}, onSubmit = {}, onStop = {}, onPrepareModel = {}, onOpenAnswer = {},
                 onFilesClick = { picked++ })
         } }
-        compose.onNodeWithContentDescription("Add attachment").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Add a file").performScrollTo().performClick()
         compose.onNodeWithText("Take a photo").assertIsDisplayed()
         compose.onNodeWithText("Choose an image").assertIsDisplayed()
         compose.onNodeWithText("Choose a file").assertIsDisplayed()

@@ -189,9 +189,11 @@ class ResearchOrchestrator(
                 val read = if (inference.reusedPromptTokens > 0) packed.prompt.substring(packed.savedPrefixChars) else packed.prompt
                 prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(read), first - startedAt)
             }
-            val checked = AnswerChecks.checkArithmetic(AnswerText.visible(output.toString()), question)
+            // The same offline rule as every other model answer: no "check online" a phone without signal cannot follow.
+            val checked = AnswerChecks.removeOnlineAdvice(AnswerChecks.checkArithmetic(AnswerText.visible(output.toString()), question), question)
             emit(ResearchEvent.Token(prefix + AnswerText.mixed(checked, emptyList()), replace = true))
             emit(ResearchEvent.Complete(ResearchMetrics(
+                workedFromQuestion = true,
                 retrievalMillis = 0,
                 timeToFirstTokenMillis = elapsed(startedAt, firstTokenAt ?: monotonicMillis()),
                 totalMillis = elapsed(startedAt, monotonicMillis()),

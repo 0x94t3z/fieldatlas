@@ -59,6 +59,21 @@ class UiPolishTest {
             MarkdownInline.Citation(2), MarkdownInline.Text(".")), inlines)
     }
 
+    @Test fun aSourcesLicenceComesFromWhereItWasTaken() {
+        assertEquals("CC BY-SA 4.0", xyz.fieldatlas.ui.presentation.licenceOfSource("https://en.wikipedia.org/w/index.php?oldid=1"))
+        assertEquals("CC BY-SA 4.0", xyz.fieldatlas.ui.presentation.licenceOfSource("https://en.wikivoyage.org/wiki/Lyon"))
+        assertEquals("ODbL 1.0", xyz.fieldatlas.ui.presentation.licenceOfSource("https://www.openstreetmap.org/node/1"))
+        // A site that does not settle it gets no licence rather than a guessed one.
+        assertEquals(null, xyz.fieldatlas.ui.presentation.licenceOfSource("https://example.org/paper"))
+        assertEquals(null, xyz.fieldatlas.ui.presentation.licenceOfSource("Saved travel"))
+    }
+
+    @Test fun bothScreensCountCitedSourcesByDocument() {
+        val a = xyz.fieldatlas.research.Evidence("doc", "doc:0", "Article", "https://en.wikipedia.org/a", "One.", 0.0)
+        val b = a.copy(chunkId = "doc:1", text = "Two.")
+        assertEquals(1, xyz.fieldatlas.ui.research.citedSourceDocuments("One [S1]. Two [S2].", listOf(a, b)))
+    }
+
     @Test fun sourceLabelsAndVersionsReadCleanly() {
         assertEquals("Japanese phrasebook · Basics", shortSourceTitle("Japanese phrasebook — Phrase list > Basics"))
         assertEquals("ui-check-kettle-manual.txt", shortSourceTitle("ui-check-kettle-manual.txt"))
