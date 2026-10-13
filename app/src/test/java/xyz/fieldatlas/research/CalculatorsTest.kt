@@ -108,6 +108,16 @@ class CalculatorsTest {
         ).forEach { assertNull(it, solve(it)) }
     }
 
+    @Test fun powerBankChargesUseTheStatedEfficiency() {
+        // 10,000 × 0.65 = 6,500 usable; ÷ 4,500 = 1.44. The model once multiplied the two capacities.
+        val r = solve("My power bank is 10,000 mAh and my phone battery is 4,500 mAh. If charging is only about 65% efficient, how many full phone charges do I get from it?")!!
+        assertTrue(r.text, "**1.44**" in r.text && "**one full charge**" in r.text)
+        assertTrue(r.complete)
+        assertTrue(text("How many charges will a 20000 mAh bank give a 4000 mAh phone at 70% efficiency?").contains("**3 full charges**"))
+        // Without an efficiency, the energy alone leads and research continues.
+        assertFalse(solve("How many charges will a 20000 mAh bank give a 4000 mAh phone?")?.text.orEmpty().contains("full charges"))
+    }
+
     @Test fun numbersInsideALargerQuestionOnlyLeadTheAnswer() {
         // Each asks for more than the arithmetic; the numbers lead and research answers the rest.
         listOf(

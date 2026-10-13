@@ -105,7 +105,9 @@ class TravelSectionsTest {
         val events = ResearchOrchestrator(retriever, model)
             .research("How much drinking water do I need for a 6-hour hike near Avelton?").toList()
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
-        assertEquals(CitedExplanation.UNAVAILABLE, answer)
+        // The guide is quoted as written and the model's unverified working sits under it, labelled.
+        assertTrue(answer, answer.contains("> Carry plenty of drinking water on every hike in the heat.") &&
+            answer.contains("## Model explanation—not verified against saved sources") && answer.contains("About 3 litres for 6 hours."))
     }
 
     @Test fun aComparisonKeepsTheModelUnderTheGuideQuote() = runBlocking {

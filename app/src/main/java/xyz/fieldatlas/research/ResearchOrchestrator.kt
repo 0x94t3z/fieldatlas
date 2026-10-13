@@ -877,6 +877,14 @@ class ResearchOrchestrator(
                 }
                 val missing = EvidenceRelevance.missingComparisonSubjects(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })
                 val answered = finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP
+                // A draft the review could not confirm is never shown. The question still gets the
+                // routes below: a travel guide's own section, a phrasebook line, a source lead, or a
+                // model explanation labelled as unverified. Withholding every unconfirmed draft left
+                // 25 of 60 fresh questions with no answer at all (13 October 2026).
+                // A source-only request ("using only saved sources") still stops here: the routes
+                // below can add model knowledge, which that request rules out.
+                if (answered || attachments.isNotEmpty() || CitedExplanation.explicitlyRequestsQuotes(question) ||
+                    PromptBuilder.requiresSavedSources(question)) {
                 val explanationWithGap = when {
                     !answered -> finished
                     missing.isNotEmpty() -> finished + "\n\n_The selected excerpts do not cover ${missing.joinToString(", ")}; this is not a complete comparison._"
@@ -900,6 +908,8 @@ class ResearchOrchestrator(
                     promptMillis = first?.let { it - generationStart },
                 )))
                 return@flow
+                }
+                emit(ResearchEvent.Token("", replace = true))
             }
             if (attachments.isEmpty()) PartialComparison.answer(question, packed)?.let { partial ->
                 emit(ResearchEvent.Token(partial))

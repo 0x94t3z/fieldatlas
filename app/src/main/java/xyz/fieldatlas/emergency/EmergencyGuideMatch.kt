@@ -53,7 +53,13 @@ object EmergencyGuideMatch {
         // "Stung" is not "sting": "my friend was stung by a bee" named only "bee", too weak alone.
         // One plain word, so a swelling throat after a sting still outranks it (anaphylaxis).
         "insect-stings" to listOf("stung"),
-        "tick-bites" to listOf("remove a tick", "removing a tick", "tick bit", "bitten by a tick", "bit by a tick"),
+        "tick-bites" to listOf("remove a tick", "removing a tick", "tick bit", "bitten by a tick", "bit by a tick",
+            // How people find one: "found a tick stuck in my kid's leg".
+            "found a tick", "tick stuck", "tick is stuck", "tick embedded", "tick is embedded", "tick attached",
+            "remove the tick", "pull the tick", "pull a tick", "get the tick out", "tick's head", "tick head"),
+        // The signs, not the word: "two of my fingers are white, hard and numb" after skiing.
+        "frostbite" to listOf("frostnip", "white and numb", "hard and numb", "white hard and numb", "numb and white",
+            "fingers are white", "toes are white", "fingers are numb", "toes are numb", "numb fingers", "numb toes", "waxy skin"),
         "carbon-monoxide" to listOf("gas heater", "space heater", "kerosene heater", "paraffin heater", "generator", "charcoal",
             "camp stove", "gas stove", "co alarm", "co detector", "carbon monoxide alarm", "carbon monoxide detector"),
         // An explicit rehydration request or diarrheal symptoms must not become an invented
@@ -75,6 +81,9 @@ object EmergencyGuideMatch {
         "carbon-monoxide" to Regex("(?i)\\b(carbon monoxide|co poisoning|co (?:alarm|detector)|carbon monoxide (?:alarm|detector)|headaches?|dizz\\w*|" +
             "nause\\w*|vomit\\w*|feel(?:s|ing)? sick|faint\\w*|confus\\w*|drowsy|sleepy|unconscious|collapsed|passed out|fumes|" +
             "poison\\w*|indoors|inside|in (?:the|a|my|our) (?:tent|cabin|garage|caravan|camper|room|basement|car))\\b"),
+        // Numb white fingers are frostbite only in the cold; elsewhere they can be many things.
+        "frostbite" to Regex("(?i)\\b(frost\\w*|cold|freez\\w*|snow\\w*|ski\\w*|ice|icy|winter|blizzard|below zero|minus|" +
+            "mountains?|hut|glacier|subzero|sub-zero)\\b|(?<![\\w-])-\\d+\\s*°?\\s*[cf]\\b"),
         "altitude-sickness" to Regex("(?i)\\b(altitude|elevation|mountains?|mount|mt|summit|peak|trek(?:king|ked)?|climb(?:s|ed|ing)?|hiked up|high up|" +
             "above sea level|cusco|la paz|lhasa|tibet|quito|bogot[aá]|leh|ladakh|everest|kilimanjaro|himalaya\\w*|andes|" +
             "\\d[\\d,]*\\s*(?:m|meters?|metres?|ft|feet)\\b|ams|hape|hace)\\b"),
@@ -118,7 +127,9 @@ object EmergencyGuideMatch {
      */
     private val personalSituation = Regex(
         "(?i)\\b(what (should|do|can|must) (i|we) do|what to do now|" +
-            "how (do|should|can) (i|we) (do|perform|give|start|treat|stop|help|survive|get|find|keep)|" +
+            "how (do|should|can) (i|we) (do|perform|give|start|treat|stop|help|survive|get|find|keep|warm|cool|remove|clean|care for)|" +
+            // Their own body: "two of my fingers are white, hard and numb".
+            "my (fingers?|toes?|hands?|feet|foot|legs?|arms?|skin|face|ears?|nose|eyes?|knees?|ankles?|wrists?|lips?)|" +
             // A bystander describing a stranger, in the present: "a man has collapsed and is not breathing".
             "(a|an|the|this) (man|woman|person|child|kid|boy|girl|baby|hiker|driver|player|swimmer|runner) (has|is|was|just)|" +
             "(has|have|just) collapsed|(is|isn't|is not|are not|aren't) (not )?(breathing|responding|conscious)|" +
@@ -200,8 +211,11 @@ object EmergencyGuideMatch {
         "(?i)^\\s*(?:what (?:causes|caused|is|are|was|were)\\b(?! the (?:\\w+ ){0,2}(?:ways?|things?) to\\b)|" +
             "why (?:do|does|did|is|are|was|were)\\b|" +
             "how (?:do|does|did|is|are) (?!i\\b|we\\b|you\\b|my\\b|our\\b|someone\\b|somebody\\b)[\\p{L}' -]{2,40}? " +
-            "(?:form|forms|formed|work|works|happen|happens|occur|occurs|start|starts|spread|spreads|develop|develops|differ|differs|get made|made)\\b)",
+            "(?:form|forms|formed|work|works|happen|happens|occur|occurs|start|starts|spread|spreads|develop|develops|differ|differs|get made|made|" +
+            "make|makes|keep|keeps|stop|stops|kill|kills|remove|removes)\\b)",
     )
+
+    private val safetyWords = Regex("(?i)\\b(?:safe|safely|safety|safest)\\b")
 
     fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? = rank(question, guides).firstOrNull()?.first
 
@@ -221,6 +235,16 @@ object EmergencyGuideMatch {
         "stream|river|lake|pond|creek|well|rain\\w*|flood\\w*|storm|hurricane|earthquake|emergency|outage|contaminat\\w*|" +
         "dirty|cloudy|murky|brown|smells?|sick|ill|diarrh\\w*|vomit\\w*|advisory|notice)\\b")
 
+    /**
+     * "Stung by a jellyfish… it burns like crazy": the sting's burning pain, not a burn. The burns
+     * guide (cool the burn under running water) would send the person to rinse a jellyfish sting
+     * with fresh water, which can fire the stingers still on the skin.
+     */
+    private val stingOrBite = Regex("(?i)\\b(stung|stings?|stinging|jelly ?fish|man o['’ ]? ?war|bluebottle|sea urchin|nettles?|" +
+        "bitten|bites?|bit)\\b")
+    private val heatBurn = Regex("(?i)\\b(fire|flames?|hot|boiling|scald\\w*|steam|stove|oven|oil|grease|iron|kettle|coffee|tea|" +
+        "chemical|acid|electric\\w*|sunburn\\w*|sun|campfire|burned (?:by|on|with)|burnt (?:by|on|with))\\b")
+
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
     /**
@@ -238,8 +262,12 @@ object EmergencyGuideMatch {
         if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return emptyList()
         val dangerous = danger.containsMatchIn(question)
         // A single explanation question about a thing, with no one in it and nothing dangerous happening.
-        if (explanation.containsMatchIn(question) && !dangerous && !personalSituation.containsMatchIn(question) &&
-            !someoneInvolved.containsMatchIn(question) && question.trim().trimEnd('?', '.', '!').none { it == '?' }) return emptyList()
+        // "How does a squeeze filter make river water safe? Does it stop viruses?" asks how a thing
+        // works: "safe" there describes the water, and a follow-up question about the same thing
+        // does not turn it into a request for first aid.
+        val dangerBeyondSafety = danger.containsMatchIn(question.replace(safetyWords, " "))
+        if (explanation.containsMatchIn(question) && !dangerBeyondSafety && !personalSituation.containsMatchIn(question) &&
+            !someoneInvolved.containsMatchIn(question)) return emptyList()
         val heat = heatCollapse.containsMatchIn(question) && someoneFainted.containsMatchIn(question)
         val scored = guides.map { guide ->
             val terms = (guide.keywords + guide.title + synonyms[guide.id].orEmpty())
@@ -263,6 +291,8 @@ object EmergencyGuideMatch {
             // An explicit ingestion needs the saved poison-contact guidance, not a
             // generated treatment. The answer must disclose that this is a general guide.
             if (guide.id == "safe-drinking-water" && tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question))
+                return@map Triple(guide, 0, false)
+            if (guide.id == "burns" && stingOrBite.containsMatchIn(question) && !heatBurn.containsMatchIn(question))
                 return@map Triple(guide, 0, false)
             if (guide.id == "poisoning" && batteryIngestion.containsMatchIn(question)) {
                 score += 4

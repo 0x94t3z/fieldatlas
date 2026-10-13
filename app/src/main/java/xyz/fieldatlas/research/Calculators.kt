@@ -59,7 +59,7 @@ object Calculators {
             fuel(question)?.let { it to FUEL }, fuelRange(question)?.let { it to FUEL + RANGE }, tripFuel(question)?.let { it to FUEL + TRIP }) +
             (chained?.let { listOf(it) } ?: timed) + listOfNotNull(
             (currency(question) ?: exchange(question))?.let { it to MONEY + EXCHANGE }, water(question)?.let { it to WATER },
-            battery(question)?.let { it to BATTERY },
+            (charges(question)?.let { it to CHARGES } ?: battery(question)?.let { it to BATTERY }),
             temperature(question)?.let { it to TEMPERATURE }, clock(question, today)?.let { it to CLOCK }, arrival(question)?.let { it to ARRIVAL },
             recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }) + plainTimes + listOfNotNull(
             perUnit(question)?.let { it to PER_UNIT }, provisions(question)?.let { it to PROVISIONS },
@@ -157,6 +157,9 @@ object Calculators {
         "everyone", "each", "every", "friends", "team", "party")
     private val BATTERY = setOf("power", "bank", "powerbank", "battery", "carry", "mah", "volts", "wh", "watt", "hours", "watt-hours",
         "plane", "flight", "fly", "flying", "airline", "carry-on", "cabin", "luggage", "bag", "it", "allowed")
+    /** How many charges a bank gives a phone: only when both capacities and the efficiency were read. */
+    private val CHARGES = BATTERY + setOf("i", "phone", "full", "charge", "charges", "charging", "recharge", "recharges", "times",
+        "efficient", "efficiency")
     private val TEMPERATURE = setOf("outside", "outdoors", "today", "weather", "temperature", "degrees", "celsius", "fahrenheit",
         "centigrade")
     private val CLOCK = setOf("time", "when", "now", "am", "pm", "there", "here", "o'clock", "difference")
@@ -990,7 +993,31 @@ object Calculators {
             (if (flying) setOf("allowed", "ok", "okay", "legal", "can i bring", "can i take", "can i carry", "can i pack") else emptySet())
     }
 
-    /* ---------- temperature ---------- */
+    /**
+     * "A 10,000 mAh power bank, a 4,500 mAh phone, 65% efficient: how many full charges?" The model
+     * once multiplied the two capacities. Usable capacity is the bank's times the efficiency the
+     * question states (losses in conversion and heat), divided by the phone's.
+     */
+    private fun charges(q: String): Pair<Result, Set<String>>? {
+        if (!Regex("(?i)\\bhow many\\b[^.?!]{0,30}\\b(?:charges?|recharges?|times)\\b|\\bhow many times can i (?:re)?charge\\b").containsMatchIn(q)) return null
+        val capacities = Regex("(?i)$NUM\\s*mah\\b").findAll(q).toList()
+        if (capacities.size != 2) return null
+        val (bank, phone) = capacities.map { num(it.groupValues[1]) }.let { (a, b) -> maxOf(a, b) to minOf(a, b) }
+        if (phone <= 0) return null
+        val pct = Regex("(?i)$NUM\\s*%").find(q)
+        val efficiency = pct?.let { num(it.groupValues[1]) / 100 }?.takeIf { it in 0.3..1.0 } ?: return null
+        val result = bank * efficiency / phone
+        val whole = kotlin.math.floor(result + 1e-9).toInt()
+        val text = "${fmt(bank, 0)} mAh × ${fmt(efficiency * 100, 0)}% = ${fmt(bank * efficiency, 0)} mAh usable; " +
+            "${fmt(bank * efficiency, 0)} ÷ ${fmt(phone, 0)} mAh = **${fmt(result, 2)}**, so **" +
+            (if (whole == 1) "one full charge" else "$whole full charges") + "**" +
+            (if (result - whole >= 0.05) " and about ${fmt((result - whole) * 100, 0)}% of another." else ".")
+        val used = capacities.map { it.range } + listOf(pct!!.range)
+        return Result(text, true, "${fmt(result, 2)} charges.", used = used) to
+            emptySet()
+    }
+
+    /* ---------- temperature ---------- */    /* ---------- temperature ---------- */
     private val temp = Regex("(?i)(-?$NUM)\\s*(?:°|degrees?)?\\s*(f|fahrenheit|c|celsius|centigrade)\\b")
     private fun temperature(q: String): Pair<Result, Set<String>>? {
         val m = temp.find(q) ?: return null

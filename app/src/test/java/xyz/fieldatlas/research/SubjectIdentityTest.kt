@@ -104,7 +104,10 @@ class SubjectIdentityTest {
             assertTrue(events.last() is ResearchEvent.Complete)
             assertEquals(listOf(correct), checkNotNull(packed).sources.map { it.evidence })
             assertEquals(2, inference.generateCalls)
-            assertEquals(CitedExplanation.UNAVAILABLE, events.filterIsInstance<ResearchEvent.Token>().last().text)
+            val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+            // A source-only request stops at the gap; a plain one falls back to the labelled original excerpt.
+            if (q == plain) assertTrue(answer, answer.contains("Formula One is a motorsport championship.") && answer.contains("not a generated explanation"))
+            else assertEquals(CitedExplanation.UNAVAILABLE, answer)
             assertFalse(events.filterIsInstance<ResearchEvent.Token>().joinToString { it.text }.contains("martial arts"))
         }
     }

@@ -60,6 +60,29 @@ class EmergencyGuideMatchTest {
         assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
     }
 
+    @Test fun aStingThatBurnsIsNotABurn() {
+        // The burns guide says to cool the burn under running water; fresh water can fire a
+        // jellyfish's remaining stingers. No bundled guide covers marine stings, so research answers.
+        assertNotEquals("burns", match("Got stung by a jellyfish while swimming. Long red welts on my leg and it burns like crazy. Vinegar or fresh water?"))
+        assertNotEquals("burns", match("stepped on a sea urchin and it burns, what do I do"))
+        assertEquals("burns", match("my friend burned his hand on the stove what to do"))
+        assertEquals("burns", match("I spilled boiling water and it burns, what should I do?"))
+    }
+
+    @Test fun everydayDescriptionsOfTicksAndFrostbiteFindTheirGuides() {
+        assertEquals("tick-bites", match("found a tick stuck in my kid's leg after a hike. how do i remove it properly and what signs should i watch for?"))
+        assertEquals("tick-bites", match("there's a tick embedded in my arm, what should I do"))
+        assertEquals("frostbite", match("After a long day skiing, two of my fingers are white, hard and numb. How should I warm them up?"))
+        assertEquals("frostbite", match("my toes are numb and white after the snow hike, what do I do"))
+        // Numb fingers away from the cold are not frostbite.
+        assertNotEquals("frostbite", match("my fingers are numb when I type, what should I do"))
+    }
+
+    @Test fun howAThingWorksIsAnExplanationEvenWhenItMentionsSafety() {
+        assertNull(match("How does a squeeze water filter like a Sawyer make river water safe to drink? Does it stop viruses?"))
+        assertEquals("safe-drinking-water", match("how do I make stream water safe to drink on a hike?"))
+    }
+
     @Test fun ordinaryQuestionsWithTopicWordsAreLeftToResearch() {
         for (question in listOf(
             "history of the 2004 Indian Ocean tsunami",

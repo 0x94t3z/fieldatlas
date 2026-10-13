@@ -131,15 +131,17 @@ class ResearchOrchestratorTest {
             onEvidencePacked = { packed = it }).research(question, contextTokenBudget = 8192).toList()
         val sources = checkNotNull(packed).sources
         assertEquals(2, sources.size)
-        val answer = events.filterIsInstance<ResearchEvent.Token>().joinToString("") { it.text }
-        assertEquals(CitedExplanation.UNAVAILABLE, answer)
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        // The invented rule is never shown; the original excerpts are, labelled as excerpts.
+        assertFalse(answer.contains("universal wet-storage rule"))
+        assertTrue(answer, answer.contains("wet storage safety is not established") && answer.contains("not a generated explanation"))
         assertEquals(sources.map { it.evidence }, events.filterIsInstance<ResearchEvent.Sources>().single().evidence)
         assertEquals(2, inference.generateCalls) // initial draft and one bounded repair
         val metrics = (events.last() as ResearchEvent.Complete).metrics
-        assertTrue(metrics.citedSourceIds.isEmpty())
-        assertEquals(2, metrics.generatedTokenCount)
-        assertTrue(metrics.hasUnmappedCitation)
-        assertFalse(answer.contains("S7"))
+        // Only the copied excerpts are cited; the invented [S7] appears nowhere.
+        assertEquals(setOf("S1", "S2"), metrics.citedSourceIds)
+        assertFalse(metrics.hasUnmappedCitation)
+        assertTrue(events.filterIsInstance<ResearchEvent.Token>().none { "S7" in it.text })
     }
 
     @Test fun unknownPrivateRecordsFinishWithoutSearchingOrGenerating() = runBlocking {
@@ -306,12 +308,14 @@ class ResearchOrchestratorTest {
         assertTrue(events[0] is ResearchEvent.Searching)
         assertTrue(events.filterIsInstance<ResearchEvent.Searching>().isNotEmpty())
         assertTrue(events[events.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
-        assertEquals(CitedExplanation.UNAVAILABLE,
-            events.filterIsInstance<ResearchEvent.Token>().last().text)
-        assertTrue(events.filterIsInstance<ResearchEvent.Token>().drop(1).all { it.replace })
+        // Both drafts cite a source that does not exist; neither is shown. The answer falls back to a
+        // model explanation labelled as unverified, beside the saved excerpt.
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertTrue(answer, answer.startsWith("## Model explanation—not verified against saved sources") && "[S9]" !in answer)
+        // The invalid drafts were never streamed: no token ever carried the invented [S9].
+        assertTrue(events.filterIsInstance<ResearchEvent.Token>().none { "[S9]" in it.text })
         val metrics = (events.last() as ResearchEvent.Complete).metrics
-        assertEquals(6, metrics.generatedTokenCount) // both invalid drafts remain hidden
-        assertTrue(metrics.citedSourceIds.isEmpty())
+        // The metric still records that the model's raw text held an invalid citation, hidden from the answer.
         assertTrue(metrics.hasUnmappedCitation)
         assertTrue(metrics.timeToFirstTokenMillis != null)
     }
@@ -322,10 +326,9 @@ class ResearchOrchestratorTest {
             FakeInferenceGateway(listOf("uncited answer")),
         ).research("Explain").toList()
         val metrics = (events.last() as ResearchEvent.Complete).metrics
-        assertTrue(metrics.citedSourceIds.isEmpty())
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         assertFalse(answer.contains("uncited answer [S1]"))
-        assertEquals(CitedExplanation.UNAVAILABLE, answer)
+        assertTrue(answer, answer.startsWith("## Model explanation—not verified against saved sources"))
         assertFalse(metrics.hasUnmappedCitation)
     }
 

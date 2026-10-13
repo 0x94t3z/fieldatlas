@@ -76,7 +76,10 @@ class CitedExplanationTest {
             val model = FakeInferenceGateway(listOf("The Luma projector is unsafe after wet storage [S1]."), verdict)
             val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(fact) }, model)
                 .research("How does the Luma projector produce a beam?").toList()
-            assertEquals(CitedExplanation.UNAVAILABLE, events.filterIsInstance<ResearchEvent.Token>().last().text)
+            // The rejected draft never appears; the question falls back to the original excerpts,
+            // labelled as not a generated explanation.
+            val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+            assertTrue(answer, answer.contains("Wet storage safety is unknown.") && answer.contains("not a generated explanation"))
             assertEquals(2, model.reviewPrompts.size)
             assertTrue(model.reviewPrompts.all { it.contains(fact.text) })
             assertFalse(events.filterIsInstance<ResearchEvent.Token>().any { it.text.contains("unsafe after wet") })
