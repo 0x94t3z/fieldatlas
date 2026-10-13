@@ -67,9 +67,10 @@ class KnowledgeCatalogTest {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "world-knowledge-biology" }
         assertEquals("world-knowledge-biology", pack.id)
-        assertEquals("1.2.0", pack.version)
-        assertEquals(1_567_877_980L, pack.bytes)
-        assertEquals("0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01", pack.sha256)
+        assertEquals("2026.10.13", pack.version)
+        assertEquals(8_183_535L, pack.bytes)
+        assertEquals(27_291_455L, pack.installedBytes)
+        assertEquals("06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376", pack.sha256)
         assertTrue(pack.recommended)
     }
 

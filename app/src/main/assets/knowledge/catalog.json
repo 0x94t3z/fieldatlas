@@ -77,13 +77,14 @@
     },
     {
       "id": "world-knowledge-biology",
-      "version": "1.2.0",
+      "version": "2026.10.13",
       "title": "Biology & longevity",
-      "description": "Biology and longevity passages with local vector search. Not a general encyclopedia or travel guide.",
-      "license": "public-data; see pack sources",
-      "bytes": 1567877980,
-      "sha256": "0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01",
-      "url": "https://media.githubusercontent.com/media/vbuterin/fieldatlas/vector-search/releases/packs/world-knowledge-biology-1.2.0.fapack",
+      "description": "9,260 passages from the OpenStax Biology 2e textbook, MedlinePlus health topics, ageing gene records and six open-access ageing reviews · October 2026. Not medical advice.",
+      "license": "CC-BY-4.0 AND CC-BY-3.0 AND LicenseRef-US-Government-Work",
+      "bytes": 8183535,
+      "installedBytes": 27291455,
+      "sha256": "06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13/world-knowledge-biology-2026.10.13.fapack",
       "recommended": true,
       "category": "Science"
     }

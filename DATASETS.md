@@ -15,7 +15,7 @@ The field test and held-out measurements in [docs/evaluation.md](docs/evaluation
 | Vegan places (`osm-vegan-places`) | 2026.10.05 | 40,068,046 | `4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [knowledge-vegan-places-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-vegan-places-2026.10.05) |
 | Essentials (`osm-essentials`) | 2026.10.05 | 1,781,015,519 | `a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [knowledge-essentials-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-essentials-2026.10.05) |
 | Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05 | 77,678,612 | `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [knowledge-crypto-ethereum-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-crypto-ethereum-2026.10.05) |
-| Biology & longevity (`world-knowledge-biology`) | 1.2.0 | 1,567,877,980 | `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01` | vbuterin/fieldatlas, branch `vector-search` | see the pack's sources | [fork release file](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs) |
+| Biology & longevity (`world-knowledge-biology`) | 2026.10.13 | 8,183,535 | `06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376` | OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026; Human Ageing Genomic Resources, 13 October 2026; six PubMed Central reviews | CC BY 4.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13) |
 
 ## English Wikipedia vital articles by section (October 6)
 
@@ -297,11 +297,44 @@ SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its 
 the pack. It is published as release `knowledge-crypto-ethereum-2026.10.05` with both files and
 `SHA256SUMS`, and Field Atlas 1.4.0 offers it as Cryptography & Ethereum.
 
-## Biology vector pack (optional)
+## Biology & longevity (October 13)
 
-The [fork's biology vector pack](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs) is a separate 1.2.0 `.fapack` with local int8 passage embeddings and a local query encoder. It covers biology and longevity sources, not general travel or all of Wikipedia. Its published SHA-256 is `0cc4cfddc2eb6660707e3388e5e2a6f687c334cd1bb74c4f0621d4becb091d01`. Version 1.2.0 lists it as an optional download in setup and Library; it checks the full archive hash, then verifies every artifact during import. The public v1.1.10 app still needs a separately obtained compatible pack. It is not bundled into the APK. The exact corpus scope and source attributions remain in that pack's manifest and passages. The downloadable list is defined in `app/src/main/assets/knowledge/catalog.json`; adding a future hosted collection requires its URL, exact size and checksum in that file on the main branch; **Refresh collections** then lists it without a new app build. Eat-only and Wikipedia mini are not offered as in-app downloads.
+A focused biology and health collection, replacing the fork's 1.2.0 pack in the download list.
+It holds 9,260 passages from 6,738 documents and uses the same keyword and native search as the
+other collections; it has no vectors.
 
-The pack's manifest declares its licence as `public-data` and its sources as `ncbi.nlm.nih.gov`, `fightaging.org` and `genomics.senescence.info`; its coverage summary reads "PubMed abstracts (longevity, biodefense, indoor air), Fight Aging archive, longevity databases." It holds 708,813 passages from 229,656 documents: 543,819 from PubMed abstracts (NCBI), 158,478 from the Fight Aging! archive, 6,478 from the fork's own biology notes and 38 from r/longevity. Every passage has a vector from the same BAAI bge-small-en-v1.5 encoder (MIT) the phone uses for questions. Field Atlas did not build this pack and has not re-checked the licences of its sources; it is downloaded from the fork as published.
+- **OpenStax Biology 2e** (CC BY 4.0), read at a pinned revision. Each textbook section is kept
+  with its own headings; figures, captions, exercises, equations and inline footnotes are left out.
+  The text is not paraphrased.
+- **MedlinePlus health topic summaries** (US government work, public domain in the United States),
+  from the 10 October 2026 bulk file. Summaries only, not linked articles or images.
+- **Human Ageing Genomic Resources** (CC BY 3.0): GenAge human and model-organism genes,
+  LongevityMap and CellAge, retrieved 13 October 2026. Each record keeps its original fields as
+  labelled lines. A gene listed there is not evidence that changing it extends human life; that
+  caution is stored as metadata, not presented as source text.
+- **Six open-access ageing reviews from PubMed Central**, each CC BY 4.0 (PMC11647017,
+  PMC10702235, PMC10090449, PMC10824251, PMC11830604, PMC12322153). PubMed showed no linked
+  correction or retraction when they were selected. Figures and tables are excluded, and in-text
+  pointers to them are removed while the citations beside them are kept.
+
+The `.fapack` (`world-knowledge-biology`, version `2026.10.13`, schema 2) is 8,183,535 bytes and
+installs to 27,291,455 bytes; SHA-256 `06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376`;
+licence field `CC-BY-4.0 AND CC-BY-3.0 AND LicenseRef-US-Government-Work`. `ATTRIBUTION.txt`, inside
+the pack and beside it on Hugging Face, carries the OpenStax contributor credits and licence, the
+MedlinePlus and HAGR terms and each article's permissions. Collection details in Library show it
+offline. Nothing in this collection is clinical guidance.
+
+On 30 held-out biology questions, run through the app's answer pipeline with the 2B model and
+graded blind by two reviewers, this collection had about twice as many correct answers as the
+1.2.0 pack it replaces, with no answers flagged as harmful. One answer overstated what caloric
+restriction is shown to do in humans, and questions about whether animal results prove an effect
+in people remained unanswered; see [docs/evaluation.md](docs/evaluation.md) for how answers are measured.
+
+Phones that already have 1.2.0 keep it; Library offers 2026.10.13 as the newer edition and never
+replaces an installed collection by itself. The 1.2.0 pack was built by the
+[vbuterin/fieldatlas fork](https://github.com/vbuterin/fieldatlas/tree/vector-search/releases/packs)
+from PubMed abstracts, the Fight Aging! archive and longevity databases; Field Atlas did not
+re-check the licences of those sources.
 
 ## Adding future collections
 
