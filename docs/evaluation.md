@@ -551,7 +551,7 @@ heat-transfer claims still fail review. It is **not** a validated default replac
 and was not installed on the phone. Its [model card](https://huggingface.co/LiquidAI/LFM2.5-1.2B-Instruct)
 recommends retrieval tasks but cautions against knowledge-intensive use.
 
-For semantic diagnostics, `scripts/run_desktop_research.py --vector-fixture FILE`
+For semantic diagnostics, `scripts/research/run_desktop_research.py --vector-fixture FILE`
 accepts frozen query vectors, embedding metadata and a database SHA-256. The actual
 Kotlin vector search/fusion/filtering still runs; source selection is not supplied
 by the fixture. Encoder queries are replayed, not recomputed by this desktop adapter.
@@ -603,7 +603,7 @@ does not validate device inference, vector retrieval, or all languages.
 
 #### Claim-support development suite
 
-`tools/claim_support_cases.json` contains eight project-authored, fictional CC0
+`tools/data/claim_support_cases.json` contains eight project-authored, fictional CC0
 cases: direct support, partial support, negation, conflicting sources, wrong-source
 citations, stale evidence, absent evidence, and partially unsupported compound
 claims. Each includes review criteria and labelled claim/citation probes. Labels
@@ -612,7 +612,7 @@ An in-range citation can still be irrelevant, contradicted, or insufficient.
 
 ```sh
 python3 -m unittest discover -s scripts/tests -p 'test_claim_support.py'
-python3 scripts/run_claim_support.py --output-dir build/claim-support/new-run
+python3 scripts/research/run_claim_support.py --output-dir build/claim-support/new-run
 ```
 
 Use a new output directory for each run; existing directories are never overwritten.
@@ -790,16 +790,16 @@ No new app release or phone installation follows from this experiment.
 
 ### Experimental claim-support checker
 
-`scripts/check_claim_support.py` tests a separate local inference call for one
+`scripts/research/check_claim_support.py` tests a separate local inference call for one
 claim and its cited passages. It does not generate an answer, split an answer
 into claims, rewrite claims, or run inside the Android app. Expected labels and
 review criteria never enter inference requests. Default fixtures combine the
-13 probes in `tools/claim_support_cases.json` with 13 additional probes in
-`tools/claim_checker_cases.json` (scope, conditions, uncertainty, contradictions,
+13 probes in `tools/data/claim_support_cases.json` with 13 additional probes in
+`tools/data/claim_checker_cases.json` (scope, conditions, uncertainty, contradictions,
 conflicting reports and source-embedded instructions).
 
 ```sh
-python3 scripts/check_claim_support.py \
+python3 scripts/research/check_claim_support.py \
   --output-dir build/claim-checker/new-run
 ```
 
@@ -868,7 +868,7 @@ publication or installation was needed for this test-only work.
 After consulting [Qwen's model card](https://huggingface.co/Qwen/Qwen3.5-2B#best-practices)
 and the [Sufficient Context study](https://arxiv.org/abs/2411.06037), two known failures
 (database/spreadsheet and algorithm/program) were frozen before generation. This is
-diagnosis, not an unseen accuracy benchmark. `scripts/run_inference_controls.py`
+diagnosis, not an unseen accuracy benchmark. `scripts/research/run_inference_controls.py`
 replays exact final requests, retaining complete raw responses, input/model/server
 hashes, token budgets and seeds. It never promotes a model or assigns an accuracy score.
 
@@ -919,7 +919,7 @@ hashes. No competitor data or remotely generated answer was used.
 ### Coverage follow-up and release gate (October 1)
 
 Coverage work uses the seven existing general-reference queries plus all four
-`tools/answer_review_questions.json` queries. These are used development cases,
+`tools/data/answer_review_questions.json` queries. These are used development cases,
 not an unseen benchmark. The 0.3.0 candidate adds two articles without refreshing
 the original 24 revisions. An initial coverage-only run and a separate title-selection
 run isolate data changes from retrieval changes; reports are recorded in DATASETS.md.
@@ -956,14 +956,14 @@ compiled but was not run on a device. Local evaluation servers were stopped.
 
 ### Fresh complete-answer check (October 1)
 
-`tools/answer_review_questions.json` froze four new development questions before
+`tools/data/answer_review_questions.json` froze four new development questions before
 generation: ecosystem roles, algorithms versus programs, atomic structure/mass,
 and p-value limits. They were not selected or changed after seeing outputs.
 They are now used development cases, not an untouched holdout. The unchanged 2B
 app pipeline generated their answers against the same paragraph reference pilot:
 `build/answer-review/fresh-2b/report.json`.
 
-`scripts/prepare_answer_review.py` prepares a review sheet from completed reports.
+`scripts/research/prepare_answer_review.py` prepares a review sheet from completed reports.
 It preserves every non-whitespace character in answer blocks with exact offsets,
 keeps adjacent bullets together, and automatically excludes only the two known
 app display headings from factual review. **It is not an atomic-claim extractor.**
@@ -1008,10 +1008,10 @@ script tests pass, including lossless block coverage and origin binding; this
 does not constitute an answer-quality pass. All owned inference processes exited.
 Phone installation/performance testing remains deferred.
 
-Use `scripts/run_desktop_research.py` to run the current app's Kotlin orchestrator,
+Use `scripts/research/run_desktop_research.py` to run the current app's Kotlin orchestrator,
 multi-pack keyword retrieval, prompt builder, venue routing, and answer attribution
-on the host JVM. This is not the older Python pipeline replica in `tools/e2e_test.py`
-or `tools/e2e_battery.py`; those legacy scripts do not represent the current app.
+on the host JVM. This is not the older Python pipeline replica in `tools/evaluation/e2e_test.py`
+or `tools/evaluation/e2e_battery.py`; those legacy scripts do not represent the current app.
 
 Build the pinned local inference server once (CMake and a C++ toolchain required):
 
@@ -1020,7 +1020,7 @@ cmake -S third_party/llama.cpp -B build/desktop-llama \
   -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF \
   -DLLAMA_BUILD_SERVER=ON -DLLAMA_CURL=OFF -DCMAKE_BUILD_TYPE=Release
 cmake --build build/desktop-llama --target llama-server -j 4
-python3 scripts/run_desktop_research.py \
+python3 scripts/research/run_desktop_research.py \
   --question 'Compare mitosis and meiosis. Explain how their different outcomes support growth and sexual reproduction.' \
   --question 'Tell me the best vegan restaurants in Berlin'
 ```
@@ -1132,7 +1132,7 @@ for a release comparison because its provider can change between rows. The runne
 model, provider endpoint, temperature, timestamps, and prompt-set path beside the answers.
 
 ```sh
-python3 scripts/run_online_baseline.py \
+python3 scripts/research/run_online_baseline.py \
   --benchmark benchmarks/questions.json \
   --model 'NAMED_PROVIDER/MODEL:free' \
   --output build/evidence/baseline.json \

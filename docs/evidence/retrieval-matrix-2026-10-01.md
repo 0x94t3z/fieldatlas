@@ -2,7 +2,7 @@
 
 ## Scope and limits
 
-Fixed questions and review criteria: `tools/retrieval_regression_matrix.json`, written
+Fixed questions and review criteria: `tools/data/retrieval_regression_matrix.json`, written
 before this run. Current Qwen3.5 2B model with the saved Biology/longevity and Travel
 databases. Raw generations, passages, configuration and hashes remain in ignored
 `build/retrieval-matrix-oct1/report.json`. All 16 cases completed. This is developer

@@ -19,8 +19,8 @@ The field test and held-out measurements in [docs/evaluation.md](docs/evaluation
 
 ## English Wikipedia vital articles by section (October 6)
 
-`tools/build_wikipedia_sections_pack.py` builds the Encyclopedia in depth collection: English Wikipedia's
-vital articles (the 49,831 titles of `tools/wiki_vital_titles.json`, the Level 5 list), one
+`tools/packs/build_wikipedia_sections_pack.py` builds the Encyclopedia in depth collection: English Wikipedia's
+vital articles (the 49,831 titles of `tools/data/wiki_vital_titles.json`, the Level 5 list), one
 passage per section, each linked to the exact revision read. It exists because Simple English
 Wikipedia defines a subject but rarely explains its causes or mechanisms.
 
@@ -50,12 +50,12 @@ Wikipedia defines a subject but rarely explains its causes or mechanisms.
 
 ## Emergency guides (bundled)
 
-Bundled in the APK as `app/src/main/assets/emergency/guides.json`, so Research can answer emergency questions with no download, model or network. Built by `tools/build_emergency_data.py` from the pinned list in `tools/emergency_sources.json`:
+Bundled in the APK as `app/src/main/assets/emergency/guides.json`, so Research can answer emergency questions with no download, model or network. Built by `tools/packs/build_emergency_data.py` from the pinned list in `tools/data/emergency_sources.json`:
 
 ```sh
-python3 -m pip install -r tools/general_reference_requirements.txt   # BeautifulSoup for HTML selection
-python3 tools/build_emergency_data.py fetch     # one polite request per source, raw bytes cached with SHA-256
-python3 tools/build_emergency_data.py build     # offline; re-checks every cached hash, byte-identical output
+python3 -m pip install -r tools/packs/requirements.txt   # BeautifulSoup for HTML selection
+python3 tools/packs/build_emergency_data.py fetch     # one polite request per source, raw bytes cached with SHA-256
+python3 tools/packs/build_emergency_data.py build     # offline; re-checks every cached hash, byte-identical output
 python3 -m unittest tools/tests/test_emergency_data.py
 ```
 
@@ -65,7 +65,7 @@ python3 -m unittest tools/tests/test_emergency_data.py
 
 ## Encyclopedia and travel guides from Wikimedia dumps (keyword-only builder)
 
-`tools/build_wikipedia_pack.py` builds keyword-searchable packs from Wikimedia CirrusSearch
+`tools/packs/build_wikipedia_pack.py` builds keyword-searchable packs from Wikimedia CirrusSearch
 "content" dumps, which carry each page's plain text, lead section, redirects, incoming-link
 count and revision id. The same tool builds the Simple English encyclopedia and the
 Wikivoyage travel guides.
@@ -108,7 +108,7 @@ existing Travel places pack (one listing per venue) with each destination's pros
 
 **Wikivoyage travel guides by section, local build, 5 October 2026.** The CirrusSearch build
 above flattens each guide and keeps only its opening, so a question about cash in Japan or
-crossing the road in Hanoi had nothing to find. `tools/build_wikivoyage_guides_pack.py` reads the
+crossing the road in Hanoi had nothing to find. `tools/packs/build_wikivoyage_guides_pack.py` reads the
 same pinned pages-articles dump as the places packs
 (`enwikivoyage-20260901-pages-articles.xml.bz2`, SHA-256
 `c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`) and writes one passage per
@@ -133,13 +133,13 @@ Encyclopedia release stays.
 
 ## Broader travel places (keyword-only builder)
 
-`tools/build_wikivoyage_places_pack.py` uses the same pinned English Wikivoyage dump and extracts six listing types: See, Do, Eat, Drink, Sleep, and Buy. Each place keeps its destination, category, address or directions, description, available hours and price, coordinates when supplied, listing check date when supplied, page revision date, and source permalink. The resulting `.fapack` uses FTS5 keyword search—**no embedding or vector build is required**. The app has a fast, source-only path for simple restaurant, café, museum, hotel, bar, and shop lookups; complex questions still use the normal research path.
+`tools/packs/build_wikivoyage_places_pack.py` uses the same pinned English Wikivoyage dump and extracts six listing types: See, Do, Eat, Drink, Sleep, and Buy. Each place keeps its destination, category, address or directions, description, available hours and price, coordinates when supplied, listing check date when supplied, page revision date, and source permalink. The resulting `.fapack` uses FTS5 keyword search—**no embedding or vector build is required**. The app has a fast, source-only path for simple restaurant, café, museum, hotel, bar, and shop lookups; complex questions still use the normal research path.
 
 The [Travel places download](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-travel-2026.09.1) contains 401,826 listings and 405,849 searchable chunks in a 351,581,170-byte `.fapack` (SHA-256 `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac`). Setup and Library offer it as Travel places. Pack verification passed, and earlier offline Infinix checks returned cited café listings for Chiang Mai and museum listings for Berlin. These checks do not establish broad answer quality. The [build command](tools/README.md#typical-flows) and source dump hash above make it reproducible. Listings cannot establish current opening, quality, or a present-day “best” ranking. The collection includes restaurant listings, so the overlapping Eat-only pack is unnecessary for most users.
 
 ## Vegan places from OpenStreetMap (keyword-only builder)
 
-`tools/build_osm_vegan_pack.py` builds one searchable listing per OpenStreetMap place tagged
+`tools/packs/build_osm_vegan_pack.py` builds one searchable listing per OpenStreetMap place tagged
 `diet:vegan=only` (fully vegan), `diet:vegan=yes` (vegan options), `diet:vegan=limited`, or
 `cuisine=vegan`. It exists because Wikivoyage covers few vegan venues (four Berlin listings,
 one in Tokyo), while OpenStreetMap records about 2,000 vegan-tagged places in the Berlin area alone.
@@ -216,7 +216,7 @@ mapped place lies within 15 km of the test location.
 
 ## Essentials from OpenStreetMap (keyword-only builder)
 
-`tools/build_osm_essentials_pack.py` builds one listing per OpenStreetMap place a traveller
+`tools/packs/build_osm_essentials_pack.py` builds one listing per OpenStreetMap place a traveller
 without a connection most often needs: pharmacies, hospitals and clinics; police, embassies and
 consulates; ATMs and currency exchange; train, bus and ferry stations; toilets and drinking
 water; supermarkets and hostels. It reuses the vegan-places pipeline above: the same exact-tag
@@ -271,7 +271,7 @@ a test checks the limit with every kind present.
 
 ## Cryptography & Ethereum (vector builder, October 5)
 
-`tools/build_crypto_pack.py` builds a focused collection from primary sources, each pinned when
+`tools/packs/build_crypto_pack.py` builds a focused collection from primary sources, each pinned when
 fetched and checked against the lock on every build:
 
 - Ethereum Improvement Proposals and ERCs at `ethereum/EIPs`
@@ -284,12 +284,12 @@ fetched and checked against the lock on every build:
   `889a389f9f95d2aba52aedf233217f370772dd3d` (CC0).
 - NIST FIPS 203, 204 and 205, SP 800-208 and IR 8547 (initial public draft), as published PDFs
   with recorded SHA-256; works of the US federal government, public domain in the United States.
-- 123 English Wikipedia articles from `tools/crypto_reference_topics.json` at pinned revisions
+- 123 English Wikipedia articles from `tools/data/crypto_reference_topics.json` at pinned revisions
   (CC BY-SA 4.0), through the general reference builder.
 
 18,204 documents and 22,805 passages (7,088 EIP, 8,596 ERC, 976 specification, 92 NIST and
-1,452 Wikipedia documents). `tools/embed_pack.py` encodes every passage with the same BAAI
-bge-small-en-v1.5 encoder the phone uses for questions (MIT), and `tools/build_vector_pack.py`
+1,452 Wikipedia documents). `tools/packs/embed_pack.py` encodes every passage with the same BAAI
+bge-small-en-v1.5 encoder the phone uses for questions (MIT), and `tools/packs/build_vector_pack.py`
 adds the vectors. The `.fapack` (`crypto-ethereum`, version `2026.10.05`) is 77,678,612 bytes,
 SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its licence field is
 `CC0-1.0 AND CC-BY-SA-4.0 AND LicenseRef-US-Government-Work AND MIT`. The build writes
@@ -335,7 +335,7 @@ biology pack. This is a development artifact, not a published catalog update.
   the [BGE encoder](https://huggingface.co/BAAI/bge-small-en-v1.5) is MIT-licensed.
 
 The frozen probe, vectors, original database identity and query vectors are retained
-under `build/reasoning-diagnosis/`. `tools/build_vector_pack.py` packaged the index
+under `build/reasoning-diagnosis/`. `tools/packs/build_vector_pack.py` packaged the index
 and ran its quantization self-match guard. A separate run used the actual Kotlin
 vector search, fusion, relevance filtering and prompt packing. The buoyancy
 passage became the leading result, but generated explanations still contained
@@ -350,11 +350,11 @@ The 26 earlier pinned source records are retained unchanged. This preview is not
 a complete encyclopedia or a claim that generated answers meet the bounty bar.
 
 ```sh
-python3 tools/build_general_reference.py fetch \
-  --topics tools/everyday_reference_topics.json \
+python3 tools/packs/build_general_reference.py fetch \
+  --topics tools/data/everyday_reference_topics.json \
   --cache build/everyday-reference/practical-snapshot
-python3 tools/build_general_reference.py build \
-  --topics tools/everyday_reference_topics.json \
+python3 tools/packs/build_general_reference.py build \
+  --topics tools/data/everyday_reference_topics.json \
   --cache build/everyday-reference/practical-snapshot \
   --output build/everyday-reference/final-preview \
   --version 0.2.0 --preserve-paragraphs \
@@ -371,7 +371,7 @@ There are no embeddings. Attribution, source revisions, original topic selection
 and extraction counts accompany the build. The manifest carries license and
 revision URLs for the imported pack.
 
-`tools/everyday_reference_checks.json` contains eight frozen development questions.
+`tools/data/everyday_reference_checks.json` contains eight frozen development questions.
 Paired baseline/preview tests retain original retrieved passages and generated
 answers; source coverage and answer correctness are reviewed separately. See the
 [architecture review](docs/evidence/candidate-architecture-review-2026-10-01.md).
@@ -379,15 +379,15 @@ This pack is not automatically recommended or published in the download catalog.
 
 ### General Reference pilot (development only)
 
-`tools/build_general_reference.py` builds a separate, independently selected
+`tools/packs/build_general_reference.py` builds a separate, independently selected
 24-article English Wikipedia pilot across six subject areas. It does not use
 another submission's corpus. This is a bounded pipeline experiment, **not** a
 general encyclopedia, published collection, or answer-quality certification.
 
 ```sh
-python3 -m pip install -r tools/general_reference_requirements.txt
-python3 tools/build_general_reference.py fetch
-python3 tools/build_general_reference.py build
+python3 -m pip install -r tools/packs/requirements.txt
+python3 tools/packs/build_general_reference.py fetch
+python3 tools/packs/build_general_reference.py build
 python3 -m unittest discover -s tools/tests -p 'test_general_reference.py'
 ```
 
@@ -413,7 +413,7 @@ existing bounded pack chunker. Consequently this is **not** full mathematical,
 table or procedure preservation. The corpus has no embeddings. Packaging tests
 do not validate Android retrieval or generated answers.
 
-`tools/general_reference_checks.json` freezes four development questions and
+`tools/data/general_reference_checks.json` freezes four development questions and
 manual review criteria before the pilot's first inference comparison. Compare
 model-only against the same model with the pilot, using the existing desktop
 runner; do not substitute these known cases for the unchanged bounty benchmark
@@ -466,7 +466,7 @@ validation of the new pilot, which remains uninstalled and unpublished.
 
 #### Expanded coverage candidate (October 1)
 
-`tools/general_reference_expanded_topics.json` adds Spreadsheet and P-value to the
+`tools/data/general_reference_expanded_topics.json` adds Spreadsheet and P-value to the
 24-article development pilot. `fetch --seed-cache` copies and validates the original
 pinned snapshots into a new cache, then fetches only additions. The original topic
 list and cache are unchanged. Builds remain offline and include revision attribution.
@@ -652,7 +652,7 @@ the unit exceeds the target. It cannot guarantee cross-section or semantic
 completeness. The legacy default and Biology/Travel builds are unchanged.
 
 ```sh
-python3 tools/build_general_reference.py build --preserve-paragraphs \
+python3 tools/packs/build_general_reference.py build --preserve-paragraphs \
   --version 0.2.0 --output build/general-reference/paragraph-pilot
 ```
 
@@ -689,13 +689,13 @@ The build is deterministic and preserves document IDs, titles, provenance, licen
 
 ### Wikivoyage places to eat (optional build)
 
-`tools/build_wikivoyage_eat_pack.py` converts the pinned [1 September 2026 English Wikivoyage pages dump](https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2) into one local document per `Eat` listing. Each document retains its destination, venue name, description, listing update date when present, page revision date, and a permalink to that revision. The text license is [CC BY-SA 4.0](https://en.wikivoyage.org/wiki/Wikivoyage:Copyleft). The dump SHA-256 is `c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`.
+`tools/packs/build_wikivoyage_eat_pack.py` converts the pinned [1 September 2026 English Wikivoyage pages dump](https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2) into one local document per `Eat` listing. Each document retains its destination, venue name, description, listing update date when present, page revision date, and a permalink to that revision. The text license is [CC BY-SA 4.0](https://en.wikivoyage.org/wiki/Wikivoyage:Copyleft). The dump SHA-256 is `c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`.
 
 The verified local build contains 79,566 listings in a 55,047,040-byte `.fapack` (SHA-256 `adf90e6b4dfbf1da0e538862400130071c49dc56cf5d81ea005e0f5a7a141e73`). This pack is an optional build artifact, not bundled with the APK or published as a release asset. Listings can be incomplete or stale; a dated mention of a vegan option does not establish current opening, menu, or quality. The exact build command is in [tools/README.md](tools/README.md).
 
 ### Wikipedia mini (keyword-only builder)
 
-`tools/wiki_mini_build.py` selects a bounded set of articles from a Wikipedia dump and creates a general-background `.fapack` with FTS5 search. It does not require generating embeddings. See the [tool instructions](tools/README.md#typical-flows). It is a builder, not a bundled or published pack; its actual size, content, phone performance, and answer quality must be checked on the resulting artifact before making coverage claims. The source text is CC BY-SA 4.0, with attribution retained per document.
+`tools/packs/wiki_mini_build.py` selects a bounded set of articles from a Wikipedia dump and creates a general-background `.fapack` with FTS5 search. It does not require generating embeddings. See the [tool instructions](tools/README.md#typical-flows). It is a builder, not a bundled or published pack; its actual size, content, phone performance, and answer quality must be checked on the resulting artifact before making coverage claims. The source text is CC BY-SA 4.0, with attribution retained per document.
 
 ### Starter evidence pack
 

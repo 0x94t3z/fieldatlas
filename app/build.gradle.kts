@@ -20,10 +20,10 @@ val buildLeviathanNative by tasks.registering(Exec::class) {
     inputs.dir(rootProject.file("native/leviathan"))
     inputs.dir(rootProject.file("third_party/leviathan/src"))
     inputs.file(rootProject.file("third_party/leviathan/Cargo.toml"))
-    inputs.file(rootProject.file("tools/build_leviathan_native.py"))
+    inputs.file(rootProject.file("tools/android/build_leviathan_native.py"))
     outputs.dir(generatedLeviathanJni)
     outputs.dir(generatedLeviathanAssets)
-    commandLine("python3", rootProject.file("tools/build_leviathan_native.py").absolutePath,
+    commandLine("python3", rootProject.file("tools/android/build_leviathan_native.py").absolutePath,
         "--ndk", android.ndkDirectory.absolutePath,
         "--output", generatedLeviathanJni.get().asFile.absolutePath,
         "--assets", generatedLeviathanAssets.get().asFile.absolutePath)

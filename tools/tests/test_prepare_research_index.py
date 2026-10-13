@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('prepare_research_index', Path(__file__).resolve().parents[1] / 'prepare_research_index.py')
+spec = importlib.util.spec_from_file_location('prepare_research_index', Path(__file__).resolve().parents[1] / 'evaluation/prepare_research_index.py')
 tool = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tool)
 

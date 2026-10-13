@@ -5,7 +5,7 @@ import sqlite3
 import tempfile
 import unittest
 
-SCRIPT = Path(__file__).resolve().parents[1] / "run_claim_support.py"
+SCRIPT = Path(__file__).resolve().parents[1] / "research/run_claim_support.py"
 spec = importlib.util.spec_from_file_location("claim_support", SCRIPT)
 suite = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(suite)

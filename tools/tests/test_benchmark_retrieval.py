@@ -10,13 +10,13 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from benchmark_retrieval import compact_cards, run, score
+from tools.evaluation.benchmark_retrieval import compact_cards, run, score
 
 
 class RetrievalExperimentTest(unittest.TestCase):
     def test_command_line_runs_outside_the_repository(self):
         with tempfile.TemporaryDirectory() as directory:
-            tool = Path(__file__).resolve().parents[1] / "benchmark_retrieval.py"
+            tool = Path(__file__).resolve().parents[1] / "evaluation/benchmark_retrieval.py"
             result = subprocess.run([sys.executable, str(tool), "--help"], cwd=directory,
                                     capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
@@ -46,7 +46,7 @@ class RetrievalExperimentTest(unittest.TestCase):
                 database.execute("INSERT INTO chunks_fts VALUES ('included:0000', 'included', 'Title', 'https://example.org', 'Original passage')")
                 database.commit()
             cases.write_text(json.dumps([dict(id="sample", query="Title", goldChunkIds=["excluded:0000"])]))
-            with patch("benchmark_retrieval.subprocess.run", return_value=SimpleNamespace(stdout="test engine version")) as command:
+            with patch("tools.evaluation.benchmark_retrieval.subprocess.run", return_value=SimpleNamespace(stdout="test engine version")) as command:
                 with self.assertRaisesRegex(ValueError, "outside the frozen subset"):
                     run(source, cases, root / "experiment", root / "unused-engine", records=1)
             self.assertEqual(1, command.call_count)  # version only; no misleading index/results

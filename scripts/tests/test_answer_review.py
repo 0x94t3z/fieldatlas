@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import unittest
 
-spec = importlib.util.spec_from_file_location("answer_review", Path(__file__).resolve().parents[1] / "prepare_answer_review.py")
+spec = importlib.util.spec_from_file_location("answer_review", Path(__file__).resolve().parents[1] / "research/prepare_answer_review.py")
 reviewer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(reviewer)
 

@@ -8,7 +8,7 @@ import unittest
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from plan_library_storage import (DEVICE_HEADROOM, LIMIT, METADATA_RESERVE,
+from tools.maintenance.plan_library_storage import (DEVICE_HEADROOM, LIMIT, METADATA_RESERVE,
                                   measure_archive, plan, simulate)
 
 
@@ -211,7 +211,7 @@ class StoragePlanTests(unittest.TestCase):
                 growthReserveBytes=1, operations=[dict(archive="test.fapack", sha256=pin, mode="download")])))
             result = plan(config)
             self.assertTrue(result["totalLimitAndFreeSpacePlanPass"])
-            tool = Path(__file__).resolve().parents[1] / "plan_library_storage.py"
+            tool = Path(__file__).resolve().parents[1] / "maintenance/plan_library_storage.py"
             process = subprocess.run([sys.executable, str(tool), str(config)], cwd=root,
                                      capture_output=True, text=True)
             self.assertEqual(0, process.returncode, process.stderr)
@@ -227,7 +227,7 @@ class StoragePlanTests(unittest.TestCase):
             config = root / "plan.json"
             config.write_text(json.dumps(dict(currentBytes=LIMIT, freeBytes=LIMIT,
                 growthReserveBytes=1, operations=[dict(archive="test.fapack", sha256=pin, mode="download")])))
-            tool = Path(__file__).resolve().parents[1] / "plan_library_storage.py"
+            tool = Path(__file__).resolve().parents[1] / "maintenance/plan_library_storage.py"
             process = subprocess.run([sys.executable, str(tool), str(config)], capture_output=True, text=True)
             self.assertEqual(1, process.returncode)
             self.assertFalse(json.loads(process.stdout)["totalLimitAndFreeSpacePlanPass"])

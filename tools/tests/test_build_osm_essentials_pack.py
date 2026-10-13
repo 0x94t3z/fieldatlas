@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import build_osm_essentials_pack as ess  # noqa: E402
+from tools.packs import build_osm_essentials_pack as ess  # noqa: E402
 from test_build_osm_vegan_pack import PLACES, write_cache  # noqa: E402
 
 ESSENTIALS = {

@@ -12,7 +12,7 @@ import zipfile
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import prepare_wikipedia_shard as tool
+from tools.packs import prepare_wikipedia_shard as tool
 
 URL = "https://dumps.wikimedia.org/other/cirrus_search_index/20261004/index_name%3Denwiki_content/enwiki_content-20261004-00000.json.bz2"
 
@@ -199,8 +199,8 @@ class WikipediaShardTest(unittest.TestCase):
             self.assertEqual(["source.bz2"], sorted(p.name for p in root.iterdir()))
 
     def test_converter_changed_during_conversion_discards_own_stage(self):
-        with patch.object(tool, "builder_identity", side_effect=[{"prepare_wikipedia_shard.py": "one"},
-                                                                  {"prepare_wikipedia_shard.py": "two"}]):
+        with patch.object(tool, "builder_identity", side_effect=[{"packs/prepare_wikipedia_shard.py": "one"},
+                                                                  {"packs/prepare_wikipedia_shard.py": "two"}]):
             self.failure(self.pairs([self.article()]), "builder changed")
 
     def test_existing_output_and_symlink_are_never_replaced(self):
@@ -250,7 +250,7 @@ class WikipediaShardTest(unittest.TestCase):
             self.assertIn("--exclude-documents", result.stdout)
 
     def test_new_format_corpus_builds_a_real_queryable_pack(self):
-        from build_library_batch import build_batch
+        from tools.packs.build_library_batch import build_batch
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             report = self.convert(root)

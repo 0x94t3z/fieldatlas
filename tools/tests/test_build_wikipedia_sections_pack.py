@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import build_wikipedia_sections_pack as tool  # noqa: E402
+from tools.packs import build_wikipedia_sections_pack as tool  # noqa: E402
 
 
 class FormulaTest(unittest.TestCase):

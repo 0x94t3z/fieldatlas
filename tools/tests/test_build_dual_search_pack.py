@@ -3,7 +3,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from tools.build_dual_search_pack import build
+from tools.packs.build_dual_search_pack import build
 
 
 class DualSearchPackTest(unittest.TestCase):

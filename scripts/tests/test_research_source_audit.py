@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 
-spec = importlib.util.spec_from_file_location("source_audit", Path(__file__).resolve().parents[1] / "audit_research_sources.py")
+spec = importlib.util.spec_from_file_location("source_audit", Path(__file__).resolve().parents[1] / "research/audit_research_sources.py")
 audit = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(audit)
 

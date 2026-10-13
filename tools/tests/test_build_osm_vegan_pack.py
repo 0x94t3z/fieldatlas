@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import build_osm_vegan_pack as osm  # noqa: E402
+from tools.packs import build_osm_vegan_pack as osm  # noqa: E402
 
 DATE = "2026-09-28T00:00:00Z"
 

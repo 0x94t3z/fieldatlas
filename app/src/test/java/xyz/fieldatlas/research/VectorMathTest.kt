@@ -7,7 +7,7 @@ import org.junit.Test
 
 /**
  * Vector search arithmetic for int8-quantized knowledge-pack embeddings. The golden values
- * mirror tools/build_vector_pack.py: blob = little-endian float32 scale + int8 components,
+ * mirror tools/packs/build_vector_pack.py: blob = little-endian float32 scale + int8 components,
  * vectors L2-normalized before quantization.
  */
 class VectorMathTest {

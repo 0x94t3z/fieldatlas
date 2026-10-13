@@ -6,7 +6,7 @@ import tempfile
 import unittest
 import zipfile
 
-from tools.build_health_reference import build, load_topics, SummaryText
+from tools.packs.build_health_reference import build, load_topics, SummaryText
 
 class HealthReferenceTest(unittest.TestCase):
     def test_tables_preserve_cells_and_publisher_typo_preserves_attribution(self):

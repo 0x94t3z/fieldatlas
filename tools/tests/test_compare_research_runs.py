@@ -3,7 +3,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-spec = importlib.util.spec_from_file_location('compare_research_runs', Path(__file__).resolve().parents[1] / 'compare_research_runs.py')
+spec = importlib.util.spec_from_file_location('compare_research_runs', Path(__file__).resolve().parents[1] / 'evaluation/compare_research_runs.py')
 tool = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tool)
 

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
  * First-aid and safety guides bundled in the APK (assets/emergency), so Research can answer an
  * emergency question from the first launch with no download, no model and no network. Guide text
  * is selected from official public-health and safety pages and shown exactly as published; see
- * tools/build_emergency_data.py for sources, pinned revisions and checksums.
+ * tools/packs/build_emergency_data.py for sources, pinned revisions and checksums.
  */
 @Serializable
 data class GuideSource(

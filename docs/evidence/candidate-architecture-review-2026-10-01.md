@@ -37,7 +37,7 @@ we do not treat every README claim as a current verified result.
 
 ## Implemented independently
 
-- Created `tools/everyday_reference_topics.json`: a bounded, independent selection
+- Created `tools/data/everyday_reference_topics.json`: a bounded, independent selection
   across physical science, Earth/space, biology, evidence/statistics, computing and
   history/society. Original Wikipedia revisions are fetched directly from Wikimedia.
 - Extended our existing builder with a separately validated pack ID/title. The

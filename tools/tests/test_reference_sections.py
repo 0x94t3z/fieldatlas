@@ -1,6 +1,6 @@
 import unittest
 
-from tools.reference_sections import sections, source_record
+from tools.packs.reference_sections import sections, source_record
 
 
 class ReferenceSectionsTest(unittest.TestCase):

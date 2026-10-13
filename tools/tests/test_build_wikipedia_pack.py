@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import build_wikipedia_pack as wp  # noqa: E402
+from tools.packs import build_wikipedia_pack as wp  # noqa: E402
 
 LEAD = "Albedo is the fraction of sunlight that is diffusely reflected by a body, measured from zero to one."
 BODY = " ".join(["Terrestrial albedo varies with surface cover and season across the planet."] * 12)

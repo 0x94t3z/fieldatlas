@@ -8,7 +8,7 @@ import unittest
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from combine_knowledge_pack import combine
+from tools.packs.combine_knowledge_pack import combine
 from packtool.build_pack import build_pack, _digest
 
 

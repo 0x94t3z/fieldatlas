@@ -28,7 +28,7 @@ The current Field Atlas setup uses `Qwen_Qwen3.5-2B-Q4_K_M.gguf`, published by b
 Build the verified pack on a computer from the repository root:
 
 ```sh
-python3 tools/build_model_packs.py \
+python3 tools/packs/build_model_packs.py \
   --pack qwen3.5-2b-q4-k-m \
   --out-dir build/packs/model \
   --cache-dir build/model-cache
@@ -67,7 +67,7 @@ To import it instead, build the pack on a computer. The model file is over 2 GiB
 is a ZIP64 archive; the app reads it like any other pack.
 
 ```sh
-python3 tools/build_model_packs.py \
+python3 tools/packs/build_model_packs.py \
   --pack qwen3.5-4b-q4-k-m \
   --out-dir build/packs/model \
   --cache-dir build/model-cache
@@ -92,7 +92,7 @@ and runtime profile used by the deterministic pack builder:
   weights with a locally adjusted, equal-length chat-template setting that suppresses
   thinking. The registry records the resulting artifact hash.
 
-Build any pinned model pack with `tools/build_model_packs.py`. These definitions document
+Build any pinned model pack with `tools/packs/build_model_packs.py`. These definitions document
 compatible candidates; they are not claims that every candidate has passed the complete
 physical-device benchmark.
 
@@ -101,7 +101,7 @@ physical-device benchmark.
 The APK bundles Vosk's `vosk-model-small-en-us-0.15` English speech model for optional
 offline dictation. Its archive source, SHA-256, and Apache-2.0 license are recorded in
 `app/src/main/assets/vosk-model-en-us-015/PROVENANCE.txt`. Larger Vosk models can be
-packaged as AUDIO fapacks by `tools/build_model_packs.py`.
+packaged as AUDIO fapacks by `tools/packs/build_model_packs.py`.
 
 Vector-capable knowledge packs include their own query encoder GGUF and declare its model,
 dimension, hash, source URL, and similarity threshold in the pack manifest. The current

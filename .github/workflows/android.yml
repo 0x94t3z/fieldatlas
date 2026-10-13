@@ -37,7 +37,7 @@ jobs:
       - name: Test deterministic tooling
         run: |
           python3 -m venv "$RUNNER_TEMP/reference-tests"
-          "$RUNNER_TEMP/reference-tests/bin/python" -m pip install -r tools/general_reference_requirements.txt
+          "$RUNNER_TEMP/reference-tests/bin/python" -m pip install -r tools/packs/requirements.txt
           python3 -m unittest scripts.tests.test_android_sdk -v
           python3 -m unittest discover -s scripts/tests -v
           python3 -m unittest discover -s packtool/tests -v

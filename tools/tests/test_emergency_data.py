@@ -9,14 +9,14 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import build_emergency_data as ed
+from tools.packs import build_emergency_data as ed
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "build/emergency"
 CACHE = OUT / "cache"
 GUIDES = OUT / "guides.json"
 NUMBERS = OUT / "numbers.json"
-SOURCES = ROOT / "tools/emergency_sources.json"
+SOURCES = ROOT / "tools/data/emergency_sources.json"
 
 PAGE = """<html><body><nav><a>Home</a> Skip to main content</nav>
 <main>

@@ -6,7 +6,7 @@ import unittest
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCRIPTS))
-spec = importlib.util.spec_from_file_location("claim_checker", SCRIPTS / "check_claim_support.py")
+spec = importlib.util.spec_from_file_location("claim_checker", SCRIPTS / "research/check_claim_support.py")
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 
@@ -60,7 +60,7 @@ class ClaimCheckerTests(unittest.TestCase):
         self.assertIn("NOT VALIDATED", summary["productionDecision"])
 
     def test_additional_fixtures_load_without_duplicate_ids(self):
-        cases = checker.load_cases(checker.ROOT / "tools/claim_checker_cases.json")
+        cases = checker.load_cases(checker.ROOT / "tools/data/claim_checker_cases.json")
         self.assertEqual(6, len(cases))
 
 

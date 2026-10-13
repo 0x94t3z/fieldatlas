@@ -7,7 +7,7 @@ import io
 import json
 import sqlite3
 
-SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "run_desktop_research.py"
+SCRIPT = pathlib.Path(__file__).resolve().parents[1] / "research/run_desktop_research.py"
 spec = importlib.util.spec_from_file_location("desktop_research", SCRIPT)
 desktop = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(desktop)

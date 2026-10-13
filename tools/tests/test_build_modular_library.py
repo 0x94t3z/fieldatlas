@@ -10,8 +10,8 @@ from unittest.mock import patch
 from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build_modular_library import build_library, verified_archive
-from stream_pack import _index_documents
+from tools.packs.build_modular_library import build_library, verified_archive
+from tools.packs.stream_pack import _index_documents
 from packtool.schema import DocumentError
 
 
@@ -19,8 +19,8 @@ class ModularLibraryTest(unittest.TestCase):
     def test_low_build_space_rejects_before_indexing_and_preserves_input(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with patch("build_modular_library.shutil.disk_usage", return_value=SimpleNamespace(free=0)), \
-                    patch("build_modular_library._index_documents") as index:
+            with patch("tools.packs.build_modular_library.shutil.disk_usage", return_value=SimpleNamespace(free=0)), \
+                    patch("tools.packs.build_modular_library._index_documents") as index:
                 with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
                     self.build(root)
                 index.assert_not_called()
@@ -29,7 +29,7 @@ class ModularLibraryTest(unittest.TestCase):
     def test_later_space_failure_removes_only_owned_incomplete_build(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with patch("build_modular_library.require_build_space", side_effect=[None, ValueError("Insufficient build disk space")]):
+            with patch("tools.packs.build_modular_library.require_build_space", side_effect=[None, ValueError("Insufficient build disk space")]):
                 with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
                     self.build(root)
             self.assertEqual(["source.jsonl"], sorted(p.name for p in root.iterdir()))
@@ -37,7 +37,7 @@ class ModularLibraryTest(unittest.TestCase):
 
     def test_command_line_runs_without_a_preconfigured_python_path(self):
         with tempfile.TemporaryDirectory() as directory:
-            tool = Path(__file__).resolve().parents[1] / "build_modular_library.py"
+            tool = Path(__file__).resolve().parents[1] / "packs/build_modular_library.py"
             result = subprocess.run([sys.executable, str(tool), "--help"], cwd=directory,
                                     capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
@@ -136,8 +136,8 @@ class ModularLibraryTest(unittest.TestCase):
                 _index_documents(path, index_path)
                 path.write_bytes(b"x" * 1001)
 
-            with patch("build_modular_library._index_documents", side_effect=change_after_indexing), \
-                    patch("build_modular_library.MAX_SOURCE_RECORD_BYTES", 1000):
+            with patch("tools.packs.build_modular_library._index_documents", side_effect=change_after_indexing), \
+                    patch("tools.packs.build_modular_library.MAX_SOURCE_RECORD_BYTES", 1000):
                 with self.assertRaisesRegex(DocumentError, "document record exceeds"):
                     self.build(root, rows=[dict(document_id="doc-1", title="Topic",
                         source="https://example.org/1", license="CC0-1.0", text="One original passage.")])

@@ -9,8 +9,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import build_library_batch as batch
-from build_modular_library import build_library
+from tools.packs import build_library_batch as batch
+from tools.packs.build_modular_library import build_library
 from packtool.schema import DocumentError
 
 
@@ -53,7 +53,7 @@ class LibraryBatchTest(unittest.TestCase):
             first = batch.build_batch(**args)
             archive = root / "batch" / first["modules"][0]["archive"]
             original = archive.read_bytes()
-            with patch("build_library_batch.build_pack_streaming", side_effect=RuntimeError("interrupted")):
+            with patch("tools.packs.build_library_batch.build_pack_streaming", side_effect=RuntimeError("interrupted")):
                 with self.assertRaisesRegex(RuntimeError, "interrupted"):
                     batch.build_batch(**args, resume=True)
             self.assertEqual(original, archive.read_bytes())
@@ -69,7 +69,7 @@ class LibraryBatchTest(unittest.TestCase):
                 if path.name == "batch-progress.json":
                     raise OSError("report interrupted")
                 write(path, value)
-            with patch("build_library_batch._atomic_json", side_effect=fail_progress):
+            with patch("tools.packs.build_library_batch._atomic_json", side_effect=fail_progress):
                 with self.assertRaisesRegex(OSError, "report interrupted"):
                     batch.build_batch(**args)
             committed = root / "batch/modules/general-reference-0001"
@@ -101,7 +101,7 @@ class LibraryBatchTest(unittest.TestCase):
             batch.build_batch(**args)
             with self.assertRaisesRegex(ValueError, "Resume identity changed"):
                 batch.build_batch(**(args | {"module_text_bytes": 500}), resume=True)
-            with patch("build_library_batch._builder_identity", return_value={"changed": "0" * 64}):
+            with patch("tools.packs.build_library_batch._builder_identity", return_value={"changed": "0" * 64}):
                 with self.assertRaisesRegex(ValueError, "Resume identity changed"):
                     batch.build_batch(**args, resume=True)
             args["input_path"].write_text("changed")
@@ -133,7 +133,7 @@ class LibraryBatchTest(unittest.TestCase):
             root = Path(directory)
             args = self.prepare(root)
             first = batch.build_batch(**args)
-            with patch("build_library_batch.require_build_space", side_effect=ValueError("Insufficient build disk space")):
+            with patch("tools.packs.build_library_batch.require_build_space", side_effect=ValueError("Insufficient build disk space")):
                 with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
                     batch.build_batch(**args, resume=True)
             self.assertTrue((root / "batch" / first["modules"][0]["archive"]).exists())
@@ -143,7 +143,7 @@ class LibraryBatchTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             args = self.prepare(root)
-            with patch("stream_pack._BATCH", 1), patch("build_library_batch.require_build_space", side_effect=[None, None, ValueError("Insufficient build disk space")]):
+            with patch("tools.packs.stream_pack._BATCH", 1), patch("tools.packs.build_library_batch.require_build_space", side_effect=[None, None, ValueError("Insufficient build disk space")]):
                 with self.assertRaisesRegex(ValueError, "Insufficient build disk space"):
                     batch.build_batch(**args)
             self.assertEqual(["source.jsonl"], sorted(path.name for path in root.iterdir()))
@@ -201,7 +201,7 @@ class LibraryBatchTest(unittest.TestCase):
                     batch.build_batch(**args, resume=True)
 
     def test_cli_help_is_available_without_python_path_configuration(self):
-        tool = Path(__file__).resolve().parents[1] / "build_library_batch.py"
+        tool = Path(__file__).resolve().parents[1] / "packs/build_library_batch.py"
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run([sys.executable, str(tool), "--help"], cwd=directory, capture_output=True, text=True)
             self.assertEqual(0, result.returncode, result.stderr)
@@ -216,7 +216,7 @@ class LibraryBatchTest(unittest.TestCase):
                 result = build(*positional, **keywords)
                 args["input_path"].write_text("Changed source")
                 return result
-            with patch("build_library_batch.build_pack_streaming", side_effect=change_source):
+            with patch("tools.packs.build_library_batch.build_pack_streaming", side_effect=change_source):
                 with self.assertRaisesRegex(ValueError, "Source or builder changed"):
                     batch.build_batch(**args)
             self.assertEqual([], list((root / "batch/modules").iterdir()))
@@ -238,7 +238,7 @@ class LibraryBatchTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             args = self.prepare(root)
-            with patch("build_library_batch._stage_cleanup", side_effect=[None, OSError("cleanup interrupted")]):
+            with patch("tools.packs.build_library_batch._stage_cleanup", side_effect=[None, OSError("cleanup interrupted")]):
                 with self.assertRaisesRegex(OSError, "cleanup interrupted"):
                     batch.build_batch(**args)
             self.assertTrue((root / "batch/modules/general-reference-0001/module-build.json").exists())

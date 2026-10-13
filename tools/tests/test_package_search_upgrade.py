@@ -4,7 +4,7 @@ import sqlite3
 import tempfile
 import unittest
 import zipfile
-from tools.package_search_upgrade import package, digest
+from tools.packs.package_search_upgrade import package, digest
 
 
 class SearchUpgradePackagingTest(unittest.TestCase):

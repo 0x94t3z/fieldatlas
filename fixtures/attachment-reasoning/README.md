@@ -12,7 +12,7 @@ own attachment pipeline on desktop:
 python3 - <<'EOF'
 import json, subprocess
 questions = json.load(open("fixtures/attachment-reasoning/questions.json"))
-args = ["python3", "scripts/run_desktop_research.py", "--model-only",
+args = ["python3", "scripts/research/run_desktop_research.py", "--model-only",
         "--attachments", "fixtures/attachment-reasoning/questions.json",
         "--output", "build/desktop-evaluation/attachment-reasoning/report.json"]
 for question in questions:

@@ -21,7 +21,7 @@ pack's legacy posting index. Maps and specialized technical routes remain on
 their existing paths. Returned cards select IDs; original full records supply
 evidence. Native rank is never presented as the old BM25 confidence.
 
-`tools/build_dual_search_pack.py` creates a transitional single-content database:
+`tools/packs/build_dual_search_pack.py` creates a transitional single-content database:
 one original record copy and two posting indexes. It rejects unsupported
 auxiliary tables rather than dropping vectors/maps. It does not create or publish
 an installable `.fapack`; packaging, checksum updates and measured storage remain
@@ -29,7 +29,7 @@ separate release steps. Do not modify an installed pack in place.
 
 Large-pack provisioning
 
-`tools/package_search_upgrade.py --compressed` produces a schema-2 knowledge
+`tools/packs/package_search_upgrade.py --compressed` produces a schema-2 knowledge
 pack with a STORED first manifest and STORED/DEFLATED artifacts. Schema 1 remains
 STORED-only; schema 2 is rejected for model/audio packs. Expanded artifact byte
 counts and SHA-256 checks are unchanged. Download catalogs must specify

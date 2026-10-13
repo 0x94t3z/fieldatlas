@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-spec = importlib.util.spec_from_file_location('android_research_pilot', Path(__file__).resolve().parents[1] / 'run_android_research_pilot.py')
+spec = importlib.util.spec_from_file_location('android_research_pilot', Path(__file__).resolve().parents[1] / 'android/run_android_research_pilot.py')
 tool = importlib.util.module_from_spec(spec); spec.loader.exec_module(tool)
 
 

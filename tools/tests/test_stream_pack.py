@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from stream_pack import _index_documents, _rows_in_order, build_pack_streaming
+from tools.packs.stream_pack import _index_documents, _rows_in_order, build_pack_streaming
 from packtool.build_pack import build_pack
 from packtool.schema import DocumentError
 
@@ -72,7 +72,7 @@ class DiskBackedPackBuilderTest(unittest.TestCase):
     def test_oversized_record_is_rejected_before_unbounded_allocation(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            with patch("stream_pack.MAX_SOURCE_RECORD_BYTES", 10):
+            with patch("tools.packs.stream_pack.MAX_SOURCE_RECORD_BYTES", 10):
                 with self.assertRaisesRegex(DocumentError, "document record exceeds"):
                     _index_documents(self.spool(root, self.rows()), root / "offsets.sqlite")
 

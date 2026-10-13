@@ -9,8 +9,8 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from build_wikivoyage_eat_pack import dump_documents  # noqa: E402
-from stream_pack import build_pack_streaming  # noqa: E402
+from tools.packs.build_wikivoyage_eat_pack import dump_documents  # noqa: E402
+from tools.packs.stream_pack import build_pack_streaming  # noqa: E402
 
 
 class WikivoyageEatPackTest(unittest.TestCase):

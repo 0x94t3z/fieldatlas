@@ -23,7 +23,7 @@ A set's share is the sum of `field_atlas_score` over the sum of `reference_score
 | [`heldout2.jsonl`](heldout2.jsonl) | The 48 questions of 6 October, now development data ([questions](../heldout2.jsonl)) |
 | [`questions.jsonl`](questions.jsonl) | Our 61 development questions ([questions](../questions.jsonl)) |
 | [`heldout.jsonl`](heldout.jsonl) | The 42 earlier held-out questions, now development data ([questions](../heldout.jsonl)) |
-| [`vitalik.jsonl`](vitalik.jsonl) | The 31 questions of the vbuterin fork's end-to-end tests ([`e2e_cases.json`](../../../tools/e2e_cases.json), [`e2e_battery_cases.json`](../../../tools/e2e_battery_cases.json)) |
+| [`vitalik.jsonl`](vitalik.jsonl) | The 31 questions of the vbuterin fork's end-to-end tests ([`e2e_cases.json`](../../../tools/data/e2e_cases.json), [`e2e_battery_cases.json`](../../../tools/data/e2e_battery_cases.json)) |
 
 References and graders are frontier AI models of one family, so these are development measures,
 not an independent score. A grader scores the same text differently from run to run, by about

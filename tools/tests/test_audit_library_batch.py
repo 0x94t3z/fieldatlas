@@ -12,9 +12,9 @@ from unittest.mock import patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import audit_library_batch as audit
-import build_library_batch as builder
-import prepare_wikipedia_shard as converter
+from tools.packs import audit_library_batch as audit
+from tools.packs import build_library_batch as builder
+from tools.packs import prepare_wikipedia_shard as converter
 
 
 class LibraryAuditTests(unittest.TestCase):

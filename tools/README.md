@@ -1,4 +1,37 @@
-# fapack toolkit
+# Developer tools
+
+Run commands from the repository root. Source code is grouped by purpose;
+generated packs, caches, reports and recordings belong in ignored `build/` paths.
+
+| Folder | Contents |
+| --- | --- |
+| [packs/](packs/) | Pack builders, corpus conversion, extraction, embeddings and shared pack utilities |
+| [android/](android/) | Native retrieval builds, instrumentation and device research checks |
+| [evaluation/](evaluation/) | Retrieval benchmarks, search-index experiments and answer comparisons |
+| [maintenance/](maintenance/) | Storage planning, artifact retention and download verification |
+| [data/](data/) | Versioned source lists, topic definitions and evaluation cases |
+| [tests/](tests/) | Regression tests for these tools |
+
+App build and release entry points are in [scripts/](../scripts/README.md).
+Research-model evaluation commands are in [scripts/research/](../scripts/research/).
+
+```sh
+python3 -m pip install -r tools/packs/requirements.txt
+python3 -m unittest discover -s tools/tests -v
+python3 tools/packs/build_dual_search_pack.py --help
+python3 tools/maintenance/plan_library_storage.py --help
+```
+
+The old flat `tools/<name>.py` paths have moved into the folders above. CLI
+arguments are unchanged except for the legacy `evaluation/e2e_battery.py` helper,
+which now requires explicit `--database` and `--output` paths instead of using
+machine-specific files. It requires `requests` and a local llama-server; its
+results are not a substitute for Android runtime tests. Python imports use qualified names, for example
+`from tools.packs.build_dual_search_pack import build`.
+
+Resumable builders pin their own source identity. Do not resume a pre-move build
+with changed tooling: use its original Git revision or start a new output directory.
+Existing packs and inputs are not modified by this reorganization.
 
 ## Modular libraries and retrieval experiments
 
@@ -9,7 +42,7 @@ to overwrite existing outputs. The shared streaming builder uses a disk-backed
 document index instead of retaining every identifier in RAM.
 
 ```sh
-python3 tools/build_modular_library.py corpus.jsonl \
+python3 tools/packs/build_modular_library.py corpus.jsonl \
   --input-sha256 ACTUAL_64_CHARACTER_SHA256 \
   --out build/new-library --id general-reference --version 1.0.0 \
   --title "General reference" --license CC-BY-SA-4.0 \
@@ -66,7 +99,7 @@ output rather than adding `--resume` to its commands.
 SHA-256, its official snapshot URL, and a new output directory:
 
 ```sh
-python3 tools/prepare_wikipedia_shard.py /path/to/shard.json.bz2 \
+python3 tools/packs/prepare_wikipedia_shard.py /path/to/shard.json.bz2 \
   --input-bytes VERIFIED_BYTES --input-sha256 VERIFIED_SHA256 \
   --source-url OFFICIAL_DATED_SHARD_URL --out build/new-wikipedia-corpus \
   --exclude-spool /path/to/existing-vital-article-spool.jsonl
@@ -99,7 +132,7 @@ report stays `releaseReady: false`; nothing is published or added to the catalog
 and an explicitly supplied upstream Leviathan CLI over identical saved records:
 
 ```sh
-python3 tools/benchmark_retrieval.py --database content.sqlite \
+python3 tools/evaluation/benchmark_retrieval.py --database content.sqlite \
   --cases fixed-cases.json --work-dir build/new-retrieval-experiment \
   --leviathan /path/to/verified/leviathan --records 5000 --repetitions 5
 ```
@@ -118,7 +151,7 @@ declared payload, then calculates sequential download/import and retained-versio
 storage peaks without extraction, installation or networking:
 
 ```sh
-python3 tools/plan_library_storage.py /path/to/storage-plan.json
+python3 tools/maintenance/plan_library_storage.py /path/to/storage-plan.json
 ```
 
 The JSON input has `currentBytes`, `freeBytes`, a positive `growthReserveBytes`,
@@ -149,8 +182,10 @@ Everything the app installs (`.fapack` files) is regenerated from source by the
 scripts in this directory. Packs themselves are not committed — only these tools
 and the pinned model/registry metadata are.
 
-All scripts are stdlib-only (numpy speeds `build_vector_pack.py` up when present)
-and deterministic: the same inputs always produce byte-identical packs.
+Most tools use the Python standard library. Reference builders also require the
+pinned dependencies in `packs/requirements.txt`; vector tooling can use NumPy.
+Reproducible builds require identical pinned inputs, configuration and builder
+versions. Network-backed fetch commands are separate from offline pack assembly.
 
 | tool | input | output |
 | --- | --- | --- |
@@ -174,21 +209,21 @@ Paths follow the working-tree convention: `REPO` = the fieldatlas repository (ho
 
 ```bash
 # model + audio packs (downloads are sha256-pinned; --url ID=file://... to go offline):
-python3 tools/build_model_packs.py --pack all
+python3 tools/packs/build_model_packs.py --pack all
 
 # wikipedia mini from scratch (clones the Wikimedia dump, runs WikiExtractor, selects
 # vital + filler articles under a pinned text budget):
-python3 tools/wiki_mini_build.py --fetch-vital
+python3 tools/packs/wiki_mini_build.py --fetch-vital
 
 # offline travel coverage from an extracted Wikivoyage corpus. This uses the same verified
 # knowledge-pack format; restaurant/POI claims remain limited to the dump's publication date:
-python3 tools/content2fapack.py wikivoyage --out ../fapacks --keep-jsonl
+python3 tools/packs/content2fapack.py wikivoyage --out ../fapacks --keep-jsonl
 
 # For city-specific restaurant lookups, build one document per Wikivoyage Eat listing.
 # Download the source on a computer, then transfer the resulting .fapack to the phone.
 curl -L https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   -o enwikivoyage-20260901-pages-articles.xml.bz2
-python3 tools/build_wikivoyage_eat_pack.py \
+python3 tools/packs/build_wikivoyage_eat_pack.py \
   --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
   --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773
@@ -196,47 +231,47 @@ python3 tools/build_wikivoyage_eat_pack.py \
 # For wider travel coverage, build the keyword-only general places pack from the same
 # verified dump. No embedding run or vector encoder is needed. The full artifact has
 # not yet been measured on a physical device.
-python3 tools/build_wikivoyage_places_pack.py \
+python3 tools/packs/build_wikivoyage_places_pack.py \
   --dump enwikivoyage-20260901-pages-articles.xml.bz2 --out ../fapacks --version 2026.09.1 \
   --source-url https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2 \
   --expected-sha256 c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773
 
 # Vegan places from OpenStreetMap. fetch needs network and archives every raw response with
 # its SHA-256 in lock.json; build is offline and byte-reproducible from that cache.
-python3 tools/build_osm_vegan_pack.py fetch --cache-dir build/osm-vegan/cache
-python3 tools/build_osm_vegan_pack.py build --cache-dir build/osm-vegan/cache \
+python3 tools/packs/build_osm_vegan_pack.py fetch --cache-dir build/osm-vegan/cache
+python3 tools/packs/build_osm_vegan_pack.py build --cache-dir build/osm-vegan/cache \
   --out build/osm-vegan/pack --version 2026.10.02
 # Essentials reuse the vegan cache's city and town lists for destinations.
-python3 tools/build_osm_essentials_pack.py fetch --cache-dir build/osm-essentials/cache
-python3 tools/build_osm_essentials_pack.py build --cache-dir build/osm-essentials/cache \
+python3 tools/packs/build_osm_essentials_pack.py fetch --cache-dir build/osm-essentials/cache
+python3 tools/packs/build_osm_essentials_pack.py build --cache-dir build/osm-essentials/cache \
   --settlements-cache build/osm-vegan/cache --out build/osm-essentials/pack --version 2026.10.02
 
 # Encyclopedia and the older flat travel guides from Wikimedia CirrusSearch dumps: spool streams
 # the dump once (network), build is offline and byte-reproducible from the spool. Wikimedia keeps
 # these dumps for a few weeks; the knowledge releases carry the spools.
-python3 tools/build_wikipedia_pack.py spool \
+python3 tools/packs/build_wikipedia_pack.py spool \
   --source https://dumps.wikimedia.org/other/cirrussearch/20251229/simplewiki-20251229-cirrussearch-content.json.gz \
   --out build/wikipedia/simplewiki.spool.jsonl.gz
-python3 tools/build_wikipedia_pack.py build --spool build/wikipedia/simplewiki.spool.jsonl.gz \
+python3 tools/packs/build_wikipedia_pack.py build --spool build/wikipedia/simplewiki.spool.jsonl.gz \
   --out build/wikipedia/pack --version 2025.12.29
 
 # Travel guides by section ("Japan — Buy > Cash") from the pinned pages-articles dump above.
-python3 tools/build_wikivoyage_guides_pack.py --dump enwikivoyage-20260901-pages-articles.xml.bz2 \
+python3 tools/packs/build_wikivoyage_guides_pack.py --dump enwikivoyage-20260901-pages-articles.xml.bz2 \
   --out build/wikivoyage-guides-sections --version 2026.09.01
 
 # Cryptography & Ethereum: fetch pins every source (EIP/ERC/spec commits, NIST PDFs, Wikipedia
 # revisions) in a lock; build checks the lock, then embed_pack.py and build_vector_pack.py add vectors.
-python3 tools/build_crypto_pack.py fetch
-python3 tools/build_crypto_pack.py build --version 2026.10.05
+python3 tools/packs/build_crypto_pack.py fetch
+python3 tools/packs/build_crypto_pack.py build --version 2026.10.05
 
 # English Wikipedia's vital articles by section, read through the MediaWiki API at most 3 requests
 # a second; fetch resumes after an interruption, build is offline and byte-reproducible.
-python3 tools/build_wikipedia_sections_pack.py fetch --spool build/wikipedia-en/vital.spool.jsonl --workers 4
-python3 tools/build_wikipedia_sections_pack.py build --spool build/wikipedia-en/vital.spool.jsonl \
+python3 tools/packs/build_wikipedia_sections_pack.py fetch --spool build/wikipedia-en/vital.spool.jsonl --workers 4
+python3 tools/packs/build_wikipedia_sections_pack.py build --spool build/wikipedia-en/vital.spool.jsonl \
   --out build/wikipedia-en/full --version 2026.10.06
 
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
-python3 tools/build_vector_pack.py \
+python3 tools/packs/build_vector_pack.py \
     --base-fapack ../fapacks/world-knowledge-biology/world-knowledge-biology-1.1.0.fapack \
     --vectors bio_bge_full.tsv --encoder bge-small-q8.gguf \
     --encoder-url https://huggingface.co/QuantFactory/bge-small-en-v1.5-GGUF \

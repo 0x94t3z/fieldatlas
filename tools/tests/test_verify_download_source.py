@@ -2,7 +2,7 @@ import hashlib
 import io
 import unittest
 
-from verify_download_source import verify, validate_url
+from tools.maintenance.verify_download_source import verify, validate_url
 
 
 class Response(io.BytesIO):

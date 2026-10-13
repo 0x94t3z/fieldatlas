@@ -4,7 +4,7 @@ package xyz.fieldatlas.research
  * Cosine search over int8-quantized embedding vectors, in pure Kotlin so the arithmetic is
  * JVM-testable without SQLite.
  *
- * Vector storage format (written by tools/build_vector_pack.py): a little-endian float32
+ * Vector storage format (written by tools/packs/build_vector_pack.py): a little-endian float32
  * symmetric scale followed by `dim` two's-complement bytes; value[i] = scale * byte[i].
  * Both stored and query vectors are L2-normalized before quantization, so the dot product of
  * the two dequantized vectors is the cosine similarity directly (no norm division needed).
