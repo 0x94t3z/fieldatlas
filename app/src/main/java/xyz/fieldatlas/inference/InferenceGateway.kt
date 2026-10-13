@@ -22,6 +22,14 @@ interface InferenceGateway {
      */
     fun generate(prompt: String, maxTokens: Int, systemPrompt: String? = null, seed: Int = -1, savedPrefixChars: Int = 0): Flow<String>
 
+    /** Evidence paraphrases must be allowed to repeat exact technical terms and quantities. */
+    fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int = 0): Flow<String> =
+        generate(prompt, maxTokens, savedPrefixChars = savedPrefixChars)
+
+    /** Separate support-review turn. Production uses the same local engine;
+     * test gateways can supply independent review outcomes. */
+    fun reviewEvidence(prompt: String): Flow<String> = generate(prompt, maxTokens = 32)
+
     /** Prompt tokens the last generation restored instead of reading; 0 when it read them all. */
     val reusedPromptTokens: Int get() = 0
 

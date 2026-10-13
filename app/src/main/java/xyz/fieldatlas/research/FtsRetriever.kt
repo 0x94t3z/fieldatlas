@@ -240,7 +240,10 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
         ).associateWith { candidate -> candidate.title.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).toHashSet() }
         val comparisonSubjects = EvidenceRelevance.comparisonTerms(query)
         return alive.take(TITLE_TERM_SCAN).mapNotNull { term ->
-            candidateIndex.entries.filter { (_, tokens) -> term in tokens }
+            candidateIndex.entries.filter { (_, tokens) ->
+                term in tokens || term + "s" in tokens ||
+                    (term.endsWith("s") && term.dropLast(1) in tokens)
+            }
                 .minWithOrNull(compareBy(
                     { (candidate, _) -> comparisonTitlePriority(candidate.title, term, comparisonSubjects) },
                     // Shortest title first, except that an article's overview counts as its bare
@@ -270,6 +273,7 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
             EvidenceRelevance.comparisonTerms(query).ifEmpty { sanitized.terms })
         for (row in focus?.prioritize(passages) ?: passages) {
             if (picked.size >= limit) break
+            if (PassageContent.isEmptyWebPage(row, query) || PassageContent.isContentsOnly(row, query)) continue
             val used = chunksPerDocument[row.documentId] ?: 0
             if (used >= MAX_CHUNKS_PER_DOCUMENT) continue
             chunksPerDocument[row.documentId] = used + 1

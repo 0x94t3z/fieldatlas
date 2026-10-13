@@ -90,7 +90,14 @@ class LlamaInferenceGateway internal constructor(
 
     override val reusedPromptTokens: Int get() = engine.reusedPromptTokens()
 
-    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+        generateWithSampling(prompt, maxTokens, systemPrompt, seed, savedPrefixChars, 1.10f)
+
+    override fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
+        generateWithSampling(prompt, maxTokens, null, -1, savedPrefixChars, 1.0f)
+
+    private fun generateWithSampling(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int,
+        savedPrefixChars: Int, repeatPenalty: Float): Flow<String> = flow {
         require(prompt.isNotBlank()) { "prompt must not be blank" }
         require(maxTokens > 0) { "maxTokens must be positive" }
         lifecycleMutex.withLock {
@@ -103,7 +110,7 @@ class LlamaInferenceGateway internal constructor(
                 // benchmark runs. A caller-supplied systemPrompt (e.g. the search-planner persona
                 // for the keyword turn) replaces the research persona for this turn only.
                 engine.resetConversation(systemPrompt ?: loadedSystemPrompt ?: DEFAULT_RESET_PROMPT)
-                if (seed >= 0) engine.setSamplerSeed(seed) else engine.setSamplerSeed(-1)
+                engine.setSampler(if (seed >= 0) seed else -1, repeatPenalty)
                 val generated = StringBuilder()
                 try {
                     engine.sendUserPrompt(prompt, maxTokens, prompt.take(savedPrefixChars.coerceIn(0, prompt.length))).collect { token ->

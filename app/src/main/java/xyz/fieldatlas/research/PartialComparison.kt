@@ -9,9 +9,12 @@ internal object PartialComparison {
         val actual = packed.sources.map { it.evidence.copy(text = it.excerpt) }
         val missing = EvidenceRelevance.missingComparisonSubjects(question, actual)
         if (missing.isEmpty()) return null
-        val subjects = EvidenceRelevance.comparisonTerms(question).filterNot { it in missing }
+        val subjects = EvidenceRelevance.comparisonTopics(question).filterNot { it in missing }
         val useful = packed.sources.filter { source ->
-            subjects.any { EvidenceRelevance.termHits(source.excerpt, listOf(it)) > 0 }
+            subjects.any { subject ->
+                val terms = FtsQuery.from(subject)?.terms.orEmpty()
+                terms.isNotEmpty() && EvidenceRelevance.termHits(source.excerpt, terms) == terms.size
+            }
         }.take(2)
         if (useful.isEmpty()) return null
         val quotes = useful.joinToString("\n\n", transform = PreciseReferenceAnswer::quote)

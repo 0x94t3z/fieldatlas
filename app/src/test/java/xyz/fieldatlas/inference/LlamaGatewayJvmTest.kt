@@ -14,6 +14,16 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class LlamaGatewayJvmTest {
+    @Test fun evidenceSamplingDoesNotLeakIntoReviewOrOrdinaryTurns() = runBlocking {
+        val engine = FakeEngine()
+        val gateway = LlamaInferenceGateway(engine)
+        gateway.load("/m.gguf", "sys")
+        gateway.explainEvidence("evidence", 16).toList()
+        gateway.reviewEvidence("review").toList()
+        gateway.generate("ordinary", 16).toList()
+        gateway.explainEvidence("second evidence", 16).toList()
+        assertEquals(listOf(1.0f, 1.10f, 1.10f, 1.0f), engine.penalties)
+    }
     @Test fun verbatimEchoLoopEndsTheTurnEarly() = runBlocking {
         val sentence = "The source S3 does not contain the requested information about the topic.\n"
         val engine = FakeEngine(tokens = List(80) { sentence })
@@ -110,6 +120,7 @@ class LlamaGatewayJvmTest {
     ) : InferenceEngine {
         override val state = MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Initialized)
         val calls = mutableListOf<String>()
+        val penalties = mutableListOf<Float>()
         var cleanUpCalls = 0
         var loadThread = -1L
         var resetThread = -1L
@@ -144,6 +155,11 @@ class LlamaGatewayJvmTest {
 
         override fun setSamplerSeed(seed: Int) {
             calls += "seed:$seed"
+        }
+
+        override fun setSampler(seed: Int, repeatPenalty: Float) {
+            penalties += repeatPenalty
+            setSamplerSeed(seed)
         }
 
         override suspend fun bench(pp: Int, tg: Int, pl: Int, nr: Int) = "unused"

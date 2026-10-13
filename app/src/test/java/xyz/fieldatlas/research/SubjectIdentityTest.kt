@@ -103,7 +103,8 @@ class SubjectIdentityTest {
                 onEvidencePacked = { packed = it }).research(q).toList()
             assertTrue(events.last() is ResearchEvent.Complete)
             assertEquals(listOf(correct), checkNotNull(packed).sources.map { it.evidence })
-            assertEquals(0, inference.generateCalls)
+            assertEquals(2, inference.generateCalls)
+            assertEquals(CitedExplanation.UNAVAILABLE, events.filterIsInstance<ResearchEvent.Token>().last().text)
             assertFalse(events.filterIsInstance<ResearchEvent.Token>().joinToString { it.text }.contains("martial arts"))
         }
     }

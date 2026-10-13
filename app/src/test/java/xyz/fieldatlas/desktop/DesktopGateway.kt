@@ -55,7 +55,13 @@ internal class DesktopGateway(
     val calls = mutableListOf<JsonObject>()
     override suspend fun load(modelPath: String, systemPrompt: String) = Unit
     override suspend fun unload() = Unit
-    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+    override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+        request(prompt, maxTokens, systemPrompt, seed, 1.10)
+
+    override fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
+        request(prompt, maxTokens, null, -1, 1.0)
+
+    private fun request(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, repeatPenalty: Double): Flow<String> = flow {
         val request = buildJsonObject {
             put("messages", buildJsonArray {
                 add(buildJsonObject { put("role", "system"); put("content", systemPrompt ?: system) })
@@ -65,7 +71,7 @@ internal class DesktopGateway(
             put("seed", if (seed >= 0) seed else defaultSeed)
             put("temperature", temperature)
             put("top_k", 40); put("top_p", 0.95); put("min_p", 0.05)
-            put("repeat_penalty", 1.10); put("repeat_last_n", 128)
+            put("repeat_penalty", repeatPenalty); put("repeat_last_n", 128)
             put("stream", false)
             put("cache_prompt", false)
             put("chat_template_kwargs", buildJsonObject { put("enable_thinking", false) })

@@ -103,7 +103,7 @@ class SourceLeadTest {
         // encyclopedia explanations are now completed from original passages.
         val inference = FakeInferenceGateway(listOf("The day pass covers every line."))
         val events = ResearchOrchestrator(guideComparisonRetriever(), inference)
-            .research(guideComparisonQuestion).toList()
+            .research(guideComparisonQuestion + " Quote the source.").toList()
         val leadIndex = events.indexOfFirst { it is ResearchEvent.Lead }
         val firstToken = events.indexOfFirst { it is ResearchEvent.Token }
         assertTrue(leadIndex >= 0 && leadIndex < firstToken)
@@ -125,7 +125,7 @@ class SourceLeadTest {
                 flow { throw IllegalStateException("native decode failed") }
         }
         val events = ResearchOrchestrator(guideComparisonRetriever(), failing)
-            .research(guideComparisonQuestion).toList()
+            .research(guideComparisonQuestion + " Quote the source.").toList()
         assertTrue(events.none { it is ResearchEvent.Failed })
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         assertTrue(answer.startsWith("## ${SourceLead.HEADING}"))

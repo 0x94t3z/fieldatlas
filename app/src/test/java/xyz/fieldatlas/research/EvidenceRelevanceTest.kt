@@ -6,6 +6,37 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class EvidenceRelevanceTest {
+    @Test fun sourceOnlyComparisonKeepsBothDefinitionsNotIncidentalTreatmentMentions() {
+        val q = "Using only saved sources, what is the difference between a vaccine and an antibiotic?"
+        val a = Evidence("a", "a:1", "Vaccines", "fixture://a", "Vaccines are preparations that train an immune response.", 0.0)
+        val b = a.copy(documentId = "b", chunkId = "b:1", title = "Antibiotics", text = "Antibiotics are medicines that fight bacteria.")
+        val c = a.copy(documentId = "c", title = "Other topic", text = "The experiment mentions a vaccine and an antibiotic.")
+        assertEquals(listOf(a, b), EvidenceRelevance.keep(listOf(a, b, c), FtsQuery.from(q)!!.terms, question = q))
+    }
+
+    @Test fun multiwordConceptComparisonDoesNotAcceptGeneNameCollisions() {
+        val q = "Using only saved sources, explain how programmed cell death differs from cellular senescence."
+        assertEquals(listOf("programmed cell death", "cellular senescence"), EvidenceRelevance.conceptualComparisonSubjects(q))
+        val record = Evidence("gene", "gene:0", "CellAge: PDCD10", "fixture://gene",
+            "Dataset: CellAge\nGene name: programmed cell death 10\nType of senescence: Replicative\nEffect: Induces", 0.0)
+        assertTrue(EvidenceRelevance.keep(listOf(record), FtsQuery.from(q)!!.terms, question = q).isEmpty())
+        for (qualified in listOf("Compare cell death and senescence in this experiment.",
+            "Compare my vaccine and this antibiotic.", "How does a gene differ from a protein in yeast?"))
+            assertTrue(EvidenceRelevance.conceptualComparisonSubjects(qualified).isEmpty())
+    }
+
+    @Test fun explicitNamedRecordScopeRejectsAnUnrelatedPaper() {
+        val question = "Using only saved sources, does an association in AtlasMap prove a treatment increases lifespan?"
+        val paper = Evidence("paper", "p:0", "Treatment results", "Local fixture",
+            "A treatment increases lifespan in the animal sample. The association does not prove a mechanism.", -1.0)
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(paper),
+            FtsQuery.from(question)!!.terms, question = question))
+        val relevant = paper.copy(documentId = "record", text =
+            "An association in AtlasMap does not prove that a treatment increases lifespan.")
+        assertEquals(listOf(relevant), EvidenceRelevance.keep(listOf(paper, relevant),
+            FtsQuery.from(question)!!.terms, question = question))
+    }
+
     @Test fun strongSemanticMatchIsNotUndoneByTheLaterKeywordExplanationGate() {
         val question = "Why do boats float?"
         val source = Evidence("reference", "c", "Boat — Buoyancy", "Local",

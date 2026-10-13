@@ -202,6 +202,15 @@ object EmergencyGuideMatch {
 
     fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? = rank(question, guides).firstOrNull()?.first
 
+    // Quoting a reference about safety is different from asking for immediate help.
+    // A personal situation always takes priority, including mixed research/help requests.
+    private val sourceResearch = Regex(
+        "(?i)\\b(?:what (?:do|does|did) (?:the |my |our )?(?:saved |offline )?" +
+            "(?:[\\p{L}-]+ ){0,4}(?:guides?|sources?|references?|articles?|papers?) say|" +
+            "(?:summarize|summarise|compare|review) (?:the |my |our )?(?:saved |offline )?" +
+            "(?:[\\p{L}-]+ ){0,4}(?:guides?|sources?|references?|articles?|papers?))\\b",
+    )
+
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
     /**
@@ -212,6 +221,8 @@ object EmergencyGuideMatch {
         val text = " " + normalize(question) + " "
         val words = text.trim().split(' ').filter(String::isNotBlank)
         if (words.isEmpty()) return emptyList()
+        if (sourceResearch.containsMatchIn(question) && !personalSituation.containsMatchIn(question) &&
+            !someoneInvolved.containsMatchIn(question)) return emptyList()
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
         if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return emptyList()
@@ -284,7 +295,8 @@ object EmergencyGuideMatch {
             compareByDescending<Pair<EmergencyGuide, Int>> { it.first.id == revive }.thenByDescending { it.second }.thenByDescending { if (it.first.urgent) 1 else 0 },
         )
         // "He fell off the ladder and isn't responding" asks for nothing, but the sign is the emergency.
-        return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question)) order else emptyList()
+        return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) ||
+            personalSituation.containsMatchIn(question)) order else emptyList()
     }
 
     /** A guide this short, or with one section, leaves the model little to work from. */

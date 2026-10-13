@@ -10,6 +10,51 @@ import xyz.fieldatlas.ui.markdown.trailingCitations
 import xyz.fieldatlas.ui.research.answerWithSources
 
 class GroundedKnowledgeAnswerTest {
+    @Test fun evidenceInferenceParaphrasesKeepProseAndItsLimits() {
+        val original = "The assay increased survival in mice. Human lifespan was not measured."
+        for (verb in listOf("establish", "confirm", "guarantee", "imply")) {
+            val question = "Using only saved sources, does longer lifespan in mice $verb that the same treatment extends human lifespan?"
+            val answer = GroundedKnowledgeAnswer.answer(question, packed(original))!!
+            assertEquals(question, listOf(original), quotes(answer, 1).map(::body))
+            assertEquals(setOf("S1"), AnswerText.citationAudit(answer, 1).citedSourceIds)
+            assertTrue(answer.contains("may not fully answer"))
+        }
+    }
+
+    @Test fun proofQuestionWithOnlyProseDoesNotGenerateACausalVerdict() {
+        val original = "The experiment measured protein abundance in an animal sample. It did not measure human lifespan."
+        val answer = GroundedKnowledgeAnswer.answer(
+            "Does an association in a database prove a treatment increases human lifespan?", packed(original))!!
+        assertEquals(listOf(original), quotes(answer, 1).map(::body))
+        assertTrue(answer.contains("may not fully answer"))
+    }
+
+    @Test fun structuredAssociationDoesNotBecomeACausalConclusion() {
+        val record = "Dataset: Fictional growth assay\nsymbol: VX\nchange: 16\ndirection: Increase\nassociation: Negative"
+        val answer = GroundedKnowledgeAnswer.answer(
+            "Does VX prove that changing it causes longer growth?", packed(record))!!
+        assertEquals(listOf(record + " …"), quotes(answer, 1).map(::body))
+        assertTrue(answer.contains("not a generated explanation"))
+        assertFalse(answer.contains("does not extend"))
+    }
+
+    @Test fun structuredFieldLookupKeepsExistingRoute() {
+        val record = "Dataset: Assay\nsymbol: VX\nwhy: upstream\nchange: 16"
+        assertNull(GroundedKnowledgeAnswer.answer("What does the why field say for VX?", packed(record)))
+    }
+
+    @Test fun causalParaphraseWithoutProofKeywordAlsoKeepsOriginals() {
+        val record = "Dataset: Fictional assay\nsymbol: TX\nspecies: worm\nchange: 16\neffect: Increase"
+        val answer = GroundedKnowledgeAnswer.answer("Would changing TX extend human life?", packed(record))!!
+        assertEquals(listOf(record + " …"), quotes(answer, 1).map(::body))
+        assertTrue(answer.contains("may not fully answer"))
+    }
+
+    @Test fun proseMentioningDatasetDoesNotTriggerStructuredInference() {
+        assertNull(GroundedKnowledgeAnswer.answer("Does this mention panels?", packed(
+            "Dataset: workshop notes\nThe study describes several panels.\nThey had different sizes.\nNo causal claim.")))
+    }
+
     private fun packed(vararg texts: String) = PackedPrompt("unused", texts.mapIndexed { index, text ->
         PromptSource("S${index + 1}", Evidence("record-$index", "record-$index:0", "Fictional record $index",
             "Local fixture $index", text, 0.0))

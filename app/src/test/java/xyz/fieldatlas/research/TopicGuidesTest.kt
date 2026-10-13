@@ -42,7 +42,7 @@ class TopicGuidesTest {
             }
         }
         val model = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("must not be generated"))
-        val events = ResearchOrchestrator(retriever, model).research("I lost my passport while travelling in Spain. What should I do?").toList()
+        val events = ResearchOrchestrator(retriever, model).research("I lost my passport while travelling in Spain. What should I do? Quote the source.").toList()
         assertTrue(asked.toString(), "passport" in asked)
         val sources = events.filterIsInstance<ResearchEvent.Sources>().last().evidence.map { it.title }
         assertEquals("Passport — If you lose it while travelling", sources.first())

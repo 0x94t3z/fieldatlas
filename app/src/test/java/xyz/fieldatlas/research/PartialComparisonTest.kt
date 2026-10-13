@@ -40,12 +40,13 @@ class PartialComparisonTest {
     }
 
     @Test fun partialKnowledgeComparisonDoesNotGenerateUnsupportedOtherSide() = runBlocking {
-        val inference = FakeInferenceGateway(listOf("Invented comparison"))
+        val inference = FakeInferenceGateway(listOf("A battery holds chemical energy, but some cannot be recharged [S1]."))
         val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(battery) }, inference).research(question).toList()
-        assertEquals(0, inference.generateCalls)
+        assertEquals(1, inference.generateCalls)
         assertTrue(events.last() is ResearchEvent.Complete)
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
-        assertTrue(MarkdownLiteral.decode(answer).contains("Some batteries cannot be recharged."))
-        assertTrue(answer.contains("do not support a complete comparison"))
+        assertTrue(answer.contains("some cannot be recharged [S1]"))
+        assertTrue(answer.contains("do not cover capacitor"))
+        assertTrue(inference.prompts.last().first.contains("Do not invent the missing side"))
     }
 }

@@ -12,6 +12,8 @@ class StudyApplicabilityTest {
     @Test fun applicabilityIsNotAnOrdinaryAnimalOrHumanStudyQuestion() {
         assertTrue(StudyApplicability.asks(q))
         assertTrue(StudyApplicability.asks("Do results in rats apply to humans?"))
+        assertTrue(StudyApplicability.asks("Does longer lifespan in mice establish that the same treatment extends human lifespan?"))
+        assertTrue(StudyApplicability.asks("Can a treatment in rats confirm longevity benefits in people?"))
         assertFalse(StudyApplicability.asks("What did this study find about lifespan in mice?"))
         assertFalse(StudyApplicability.asks("Compare mouse and human anatomy."))
     }
@@ -19,6 +21,25 @@ class StudyApplicabilityTest {
         assertFalse(StudyApplicability.supports(row("Studies involve mice and humans. Treatment extends lifespan.")))
         assertFalse(StudyApplicability.supports(row("The trial studies humans. Animal findings may not transfer.")))
         assertFalse(StudyApplicability.supports(row("No meaningful conclusion.\nMeSH: Animals; Humans; translation")))
+        assertFalse(StudyApplicability.supports(row("Neurons differ in size between mice and humans.")))
+        assertFalse(StudyApplicability.supports(row("To assess whether these findings were translatable, we repeated the treatment in mouse and human fibroblasts.")))
+    }
+    @Test fun transferDiscoveryIsBoundedAndRequiresAnExplicitRelationship() = runBlocking {
+        val good = row("Getting certain results in animals may not mean that you get those same results in humans.")
+        val noise = row("Studies involve mice and humans. Treatment extends lifespan.").copy(chunkId = "noise")
+        val calls = mutableListOf<String>()
+        val retriever = Retriever { query, limit, _ ->
+            calls += query
+            assertTrue(limit <= 24)
+            listOf(noise, good)
+        }
+        assertEquals(listOf(good), StudyApplicability.recover(q, listOf(noise), retriever, 30))
+        assertEquals(1, calls.size)
+        assertEquals(listOf(good), StudyApplicability.recover(q, listOf(good), retriever, 30))
+        assertEquals(listOf(noise), StudyApplicability.recover("Describe mouse anatomy", listOf(noise), retriever, 30))
+        assertEquals(1, calls.size)
+        val packed = PromptBuilder.build(q, listOf(good.copy(text = "An unrelated introduction.\n\n".repeat(30) + good.text)), 2048)
+        assertTrue(packed.sources.single().excerpt.contains(good.text))
     }
     @Test fun directLimitationSurvivesAndUnrelatedDiseaseEvidenceDoesNot() {
         val good = row("Getting certain results in animals may not mean that you get those same results in humans.")

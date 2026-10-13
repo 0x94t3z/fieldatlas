@@ -36,7 +36,7 @@ class SpecializedReferenceRenderingTest {
         val source = Evidence("b", "b:0", "Battery — Overview", "Local battery record", body, -1.0)
         val inference = FakeInferenceGateway(listOf("Unsupported comparison."))
         val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(source) }, inference)
-            .research("Compare a battery with a capacitor.").toList()
+            .research("Compare a battery with a capacitor. Quote the source.").toList()
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         val published = events.filterIsInstance<ResearchEvent.Sources>().last().evidence
         assertEquals(0, inference.generateCalls)
@@ -55,7 +55,7 @@ class SpecializedReferenceRenderingTest {
         }
         val inference = FakeInferenceGateway(listOf("Unsupported explanation."))
         val events = ResearchOrchestrator(retriever, inference)
-            .research("According to the saved sources, how does a heat pump work?").toList()
+            .research("According to the saved sources, how does a heat pump work? Quote the source.").toList()
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         val published = events.filterIsInstance<ResearchEvent.Sources>().last().evidence
         assertEquals(0, inference.generateCalls)

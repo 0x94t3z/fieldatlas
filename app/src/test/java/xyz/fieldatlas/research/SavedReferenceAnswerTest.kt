@@ -45,7 +45,7 @@ class SavedReferenceAnswerTest {
         }
         val inference = FakeInferenceGateway(listOf("Unsupported model addition."))
         val events = ResearchOrchestrator(retriever, inference)
-            .research("According to the saved sources, how does a heat pump work?").toList()
+            .research("According to the saved sources, how does a heat pump work? Quote the source.").toList()
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
         assertTrue(answer.contains("Selected passages"))
         assertFalse(answer.contains("Unsupported model addition"))

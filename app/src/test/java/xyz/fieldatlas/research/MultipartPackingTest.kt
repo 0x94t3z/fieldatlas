@@ -94,7 +94,7 @@ class MultipartPackingTest {
         val items = (1..3).map { overview.copy(documentId = "beam$it", chunkId = "beam$it:0") } + contextualLimit
         for (q in listOf(question, "According to the saved sources, $question")) {
             var observed: PackedPrompt? = null
-            val inference = FakeInferenceGateway(listOf("Diagnostic fixture answer."))
+            val inference = FakeInferenceGateway(listOf("The emitter produces the beam; wet-storage limits are unknown [S1]."))
             val events = ResearchOrchestrator(Retriever { _, _, _ -> items },
                 inference, prefillSpeed = InMemoryPrefillSpeed(1.0),
                 onEvidencePacked = { observed = it }).research(q, contextTokenBudget = 8192).toList()
@@ -102,10 +102,10 @@ class MultipartPackingTest {
             assertNotNull(observed)
             assertTrue(q + observed!!.sources.map { it.evidence.chunkId }, observed!!.sources.any { it.evidence == contextualLimit })
             assertTrue(observed!!.sources.any { it.evidence.documentId.startsWith("beam") })
-            assertEquals(PromptBuilder.allowsModelExplanation(q), observed!!.mixedAnswer)
+            assertFalse(observed!!.mixedAnswer)
             assertTrue(observed!!.prompt.contains(q))
-            assertEquals(0, inference.generateCalls)
-            assertTrue(events.filterIsInstance<ResearchEvent.Token>().last().text.contains("Original excerpts, not a generated explanation"))
+            assertEquals(1, inference.generateCalls)
+            assertTrue(events.filterIsInstance<ResearchEvent.Token>().last().text.contains("wet-storage limits are unknown [S1]"))
         }
     }
 }

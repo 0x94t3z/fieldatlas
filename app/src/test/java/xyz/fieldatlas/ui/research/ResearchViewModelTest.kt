@@ -56,8 +56,7 @@ class ResearchViewModelTest {
         viewModel.updateQuestion("Explain")
         viewModel.submit()
         val state = viewModel.uiState.value
-        assertEquals("## Model explanation—not verified against saved sources\n\nGrounded answer" +
-            "\n\n## Saved excerpts\n\n> Fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._", state.answer)
+        assertEquals("Grounded answer [S1]", state.answer)
         assertEquals("doc:0000", state.sources.single().chunkId)
         assertEquals(ResearchPhase.Complete, state.phase)
     }
@@ -114,8 +113,7 @@ class ResearchViewModelTest {
         viewModel.updateQuestion("Explain")
         viewModel.submit()
         val state = viewModel.uiState.value
-        assertEquals("## Model explanation—not verified against saved sources\n\nAnswer" +
-            "\n\n## Saved excerpts\n\n> Fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._", state.answer)
+        assertEquals("Answer [S1]", state.answer)
         assertEquals(ResearchPhase.Complete, state.phase)
     }
 
@@ -141,7 +139,7 @@ class ResearchViewModelTest {
         assertTrue(cancelled)
         assertEquals(ResearchPhase.Idle, viewModel.uiState.value.phase)
         assertEquals(ResearchCompletion.Cancelled, viewModel.uiState.value.completion)
-        assertEquals("## Model explanation—not verified against saved sources\n\nfirst", viewModel.uiState.value.answer)
+        assertEquals("", viewModel.uiState.value.answer)
         assertEquals("doc:0000", viewModel.uiState.value.sources.single().chunkId)
     }
 
@@ -201,8 +199,7 @@ class ResearchViewModelTest {
         viewModel.submit()
         val saved = store.records.value.single()
         assertEquals("Explain", saved.question)
-        assertEquals("## Model explanation—not verified against saved sources\n\nGrounded answer" +
-            "\n\n## Saved excerpts\n\n> Fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._", saved.answer)
+        assertEquals("Grounded answer [S1]", saved.answer)
         assertEquals(listOf("Title"), saved.sources)
         // Survives a fresh store reading the same file.
         val reopened = xyz.fieldatlas.research.AnswerHistoryStore(java.io.File(temporaryDir, "answers.json"))

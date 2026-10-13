@@ -108,16 +108,16 @@ class SubjectLookupTest {
                 return listOf(hurricane, tornado).filter { it.title.startsWith(phrase, ignoreCase = true) }
             }
         }
-        val model = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Tornadoes are smaller [S2]."))
+        val model = xyz.fieldatlas.inference.FakeInferenceGateway(listOf("Hurricanes form over warm oceans [S1]; tornadoes are rotating columns touching the ground [S2]."))
         var observed: PackedPrompt? = null
         val events = ResearchOrchestrator(retriever, model, onEvidencePacked = { observed = it })
             .research("How is a hurricane different from a tornado?").toList()
         assertEquals(listOf(hurricane, tornado), observed!!.sources.map { it.evidence })
         val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
-        assertTrue(answer, "> A hurricane is a large rotating storm that forms over warm ocean water. [S1]" in answer)
-        assertTrue(answer, "> A tornado is a violently rotating column of air that touches the ground. [S2]" in answer)
+        assertTrue(answer, "Hurricanes form over warm oceans [S1]" in answer)
+        assertTrue(answer, "tornadoes are rotating columns touching the ground [S2]" in answer)
         assertFalse(answer.contains("Tornadoes are smaller"))
-        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+        assertEquals(1, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
     @Test fun aWordOfTheSubjectIsNotTheSubject() {
@@ -159,15 +159,15 @@ class SubjectLookupTest {
                 if ("abstract" in sections && phrase == "stealth address") listOf(abstract) else emptyList()
         }
         var observed: PackedPrompt? = null
-        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("They hide the recipient [S1].")),
+        val events = ResearchOrchestrator(retriever, xyz.fieldatlas.inference.FakeInferenceGateway(listOf("ERC-5564 standardizes how stealth addresses are created [S1].")),
             onEvidencePacked = { observed = it })
             .research("What is a stealth address in Ethereum?").toList()
         assertEquals(listOf(abstract), observed!!.sources.map { it.evidence })
         val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
-        assertTrue(answer, abstract.text in answer)
+        assertEquals("ERC-5564 standardizes how stealth addresses are created [S1].", answer)
         assertTrue(answer.contains("[S1]"))
         assertFalse(answer.contains("They hide the recipient"))
-        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+        assertEquals(1, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
     @Test fun aSectionHeadedWithTheSubjectIsTheLastResort() = runBlocking {
@@ -187,9 +187,8 @@ class SubjectLookupTest {
             .research("How does a hardware wallet keep my private key safe?").toList()
         assertEquals(listOf(section), observed!!.sources.map { it.evidence })
         val answer = MarkdownLiteral.decode(events.filterIsInstance<ResearchEvent.Token>().last().text)
-        assertTrue(answer, section.text in answer)
-        assertFalse(answer.contains("It signs inside the device"))
-        assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+        assertEquals("It signs inside the device [S1].", answer)
+        assertEquals(1, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
         assertEquals(null, SubjectLookup.sectionOf("wallet", listOf(section)))
     }
 

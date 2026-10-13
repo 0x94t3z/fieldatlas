@@ -24,7 +24,7 @@ class SavedPrefixTest {
         assertTrue(events.last() is ResearchEvent.Complete)
     }
 
-    @Test fun guardedKnowledgeRetainsItsPackedPrefixWithoutAnAnswerGenerationTurn() = runBlocking {
+    @Test fun rejectedKnowledgeDraftRetainsItsPackedPrefixForOneRepair() = runBlocking {
         val article = Evidence("wp-tide", "wp-tide:0000", "Tide — Overview", "https://simple.wikipedia.org/w/index.php?oldid=1",
             "A tide is the regular rise and fall of the sea, caused mainly by the Moon.", 0.0)
         val model = FakeInferenceGateway(listOf("Unsupported extra explanation."))
@@ -35,9 +35,9 @@ class SavedPrefixTest {
         val prompt = selected.prompt
         val fixed = selected.savedPrefixChars
         val opening = prompt.take(fixed)
-        assertTrue(opening, fixed > 0 && opening.endsWith("absent from the full source."))
-        assertEquals(PromptBuilder.build("What is a tide?", listOf(article), 2048).prompt.take(fixed), opening)
-        assertEquals(0, model.generateCalls)
+        assertTrue(opening, fixed > 0 && opening.contains("own words"))
+        assertEquals(selected.savedPrefixChars, model.prompts.last().second)
+        assertEquals(2, model.generateCalls)
         assertFalse(events.filterIsInstance<ResearchEvent.Token>().any { it.text.contains("Unsupported extra") })
     }
 }

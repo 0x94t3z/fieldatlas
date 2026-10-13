@@ -56,18 +56,17 @@ class ConditionalReferenceAnswerTest {
     }
 
     @Test fun ordinaryExplanationPreservesPackedPolicyAndFinishesFromOriginals() = runBlocking {
-        val inference = FakeInferenceGateway(listOf("Ordinary explanation."))
+        val inference = FakeInferenceGateway(listOf("The shell resists pressure through its structure [S1]."))
         var packed: PackedPrompt? = null
         val events = ResearchOrchestrator(retriever(true), inference, articleDepth = true,
             onEvidencePacked = { packed = it })
             .research("How does a composite shell resist pressure?").toList()
         assertTrue(events.last() is ResearchEvent.Complete)
-        assertEquals(0, inference.generateCalls)
-        assertTrue(checkNotNull(packed).mixedAnswer)
+        assertEquals(1, inference.generateCalls)
+        assertFalse(checkNotNull(packed).mixedAnswer)
         assertTrue(packed!!.sources.isNotEmpty())
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
-        assertTrue(answer.contains("Original excerpts, not a generated explanation"))
-        assertFalse(answer.contains("Ordinary explanation."))
-        assertEquals(packed!!.sources.map { it.citationId }.toSet(), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
+        assertEquals("The shell resists pressure through its structure [S1].", answer)
+        assertEquals(setOf("S1"), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
     }
 }

@@ -58,13 +58,14 @@ class BenchmarkViewModelTest {
         val result = viewModel.state.value.run.results.single()
         assertTrue(cancelled.get())
         assertEquals(BenchmarkResultState.CANCELLED, result.state)
-        assertEquals("## Model explanation—not verified against saved sources\n\npartial", result.answer)
+        assertEquals("", result.answer)
         assertEquals(listOf("doc:0000"), result.evidenceChunkIds)
         assertEquals("q2", viewModel.state.value.nextQuestion?.id)
     }
 
     @Test fun exportedBenchmarkAnswerOmitsModelThinkingMarkers() {
         val gateway = object : InferenceGateway {
+            override fun reviewEvidence(prompt: String): Flow<String> = flow { emit("SUPPORTED") }
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
@@ -86,8 +87,7 @@ class BenchmarkViewModelTest {
 
         viewModel.runNext()
 
-        assertEquals("## Model explanation—not verified against saved sources\n\nVisible answer" +
-            "\n\n## Saved excerpts\n\n> Prompt q1 Fact … [S1]\n\n_These citations identify the copied excerpts, not verification of the model explanation above._", viewModel.state.value.run.results.single().answer)
+        assertEquals("Visible answer [S1]", viewModel.state.value.run.results.single().answer)
     }
 
     private fun question(id: String) = BenchmarkQuestion(

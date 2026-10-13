@@ -82,7 +82,7 @@ class KnowledgeReadingBudgetTest {
             override suspend fun unload() = Unit
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) = flow {
                 generationCalls++
-                emit("Answer [S1]")
+                emit(if (prompt.endsWith("VERDICT:")) "SUPPORTED" else "Answer [S1]")
             }
         }
         val events = ResearchOrchestrator(Retriever { _, _, _ -> items.take(8) }, gateway,
@@ -94,6 +94,6 @@ class KnowledgeReadingBudgetTest {
         assertEquals(sources, checkNotNull(packed).sources.map { it.evidence })
         assertTrue(packed!!.prompt.contains("could not fit"))
         assertFalse(packed!!.mixedAnswer)
-        assertEquals(0, generationCalls)
+        assertEquals(2, generationCalls) // answer generation plus support review
     }
 }

@@ -74,13 +74,19 @@ object AnswerText {
         RegexOption.IGNORE_CASE,
     )
     private val sourceNumber = Regex("S([+-]?\\p{Nd}+)", RegexOption.IGNORE_CASE)
+    // Explicit source lists only. Ordinary numeric lists such as [1, 2] are data.
+    private val bracketedReferences = Regex(
+        "\\[\\s*S[+-]?\\p{Nd}+(?:\\s*[,;]\\s*S?[+-]?\\p{Nd}+)+\\s*]", RegexOption.IGNORE_CASE)
 
     // A source ID written as prose ("the parameters from S1") after a referring word.
     private val bareReference = Regex("(?<=\\b(?:from|in|see|per|by|to|source)\\s)S(\\p{Nd}{1,2})\\b(?![-.]\\p{Nd})")
 
     // Only explicit S-number references qualify; ordinary parentheses remain prose.
     // Normalize before attribution checks, never instead of them.
-    private fun normalizeReferences(text: String): String = parenthesizedReferences.replace(text) { group ->
+    private fun normalizeReferences(text: String): String = parenthesizedReferences.replace(
+        bracketedReferences.replace(text) { group ->
+            Regex("[+-]?\\p{Nd}+").findAll(group.value).joinToString("") { "[S${it.value}]" }
+        }) { group ->
         sourceNumber.findAll(group.value).joinToString("") { "[S${it.groupValues[1]}]" }
     }.replace(bareReference) { "[S${it.groupValues[1]}]" }
 

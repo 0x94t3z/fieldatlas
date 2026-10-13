@@ -58,6 +58,8 @@ class ProposalLookupTest {
         assertEquals("EIP-7702: Set Code for EOAs — Abstract", sources.first().title)
         val shown = events.filterIsInstance<ResearchEvent.Token>().joinToString("") { it.text } +
             events.filterIsInstance<ResearchEvent.Lead>().joinToString("") { it.text }
-        assertTrue(shown, "Add a new transaction type that permanently sets the code for an EOA." in shown)
+        assertTrue(shown, "It lets an EOA run contract code [S1]." in shown)
+        assertTrue(inference.prompts.last().first.contains(abstract.text))
+        assertTrue(events.none { it is ResearchEvent.Lead })
     }
 }

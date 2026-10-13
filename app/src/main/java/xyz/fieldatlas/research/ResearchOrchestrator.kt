@@ -273,6 +273,28 @@ class ResearchOrchestrator(
                 )))
                 return@flow
             }
+            if (attachments.isEmpty() && phraseAsk == null) {
+                StructuredFieldLookup.ask(question)?.let { ask ->
+                    emit(ResearchEvent.Searching(question))
+                    val result = StructuredFieldLookup.answer(ask,
+                        retriever.titled(ask.dataset, listOf(ask.record), limit = 20))
+                    if (result != null) {
+                        _searchProgress.value = 1.0
+                        val retrievedAt = monotonicMillis()
+                        emit(ResearchEvent.Sources(result.evidence))
+                        emit(ResearchEvent.Token(result.answer))
+                        emit(ResearchEvent.Complete(ResearchMetrics(
+                            retrievalMillis = elapsed(startedAt, retrievedAt),
+                            timeToFirstTokenMillis = elapsed(startedAt, retrievedAt),
+                            totalMillis = elapsed(startedAt, monotonicMillis()),
+                            generatedTokenCount = 0,
+                            citedSourceIds = result.evidence.indices.map { "S${it + 1}" }.toSet(),
+                            hasUnmappedCitation = false,
+                        )))
+                        return@flow
+                    }
+                }
+            }
             // "Where am I?" is answered from the phone's position and the map collections around it.
             if (attachments.isEmpty() && phraseAsk == null && VenueLookup.isWhereAmI(question)) {
                 emit(ResearchEvent.Searching(question))
@@ -356,6 +378,11 @@ class ResearchOrchestrator(
                 question = question,
             ).let { technicalFocus?.prioritize(it) ?: it }.take(resultLimit) else emptyList()
             if (!includeLibrary) _searchProgress.value = 1.0
+
+            if (includeLibrary && attachments.isEmpty() && !placesOnly && technicalFocus == null &&
+                retriever.hasEligiblePacks(question)) {
+                evidence = StudyApplicability.recover(question, evidence, retriever, candidateLimit).take(resultLimit)
+            }
 
             // One bounded discovery pass for each explicit missing clause. Each search
             // retains the full question's scope; only already eligible passages enter.
@@ -653,6 +680,26 @@ class ResearchOrchestrator(
                     retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
                 }
             }
+            if (includeLibrary && attachments.isEmpty() && phraseAsk == null && travelPlace == null && !placesOnly) {
+                EvidenceRelevance.definitionSubject(question)?.let { topic ->
+                    if ((evidence + subjects + depth).none {
+                            it.title.substringBefore(" — ").equals(topic, ignoreCase = true) && EvidenceRelevance.directlyDefines(it, topic)
+                        }) {
+                        // Ordinary document-diversity caps can omit the definition
+                        // after an abstract and a methods passage from the same paper.
+                        val definitions = retriever.titled(topic, listOf(topic), limit = 24)
+                            .filter { EvidenceRelevance.directlyDefines(it, topic) }
+                        evidence = (definitions + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    }
+                }
+                for (topic in EvidenceRelevance.conceptualComparisonSubjects(question)) {
+                    if ((evidence + subjects + depth).none { EvidenceRelevance.hasOverviewStatement(it, listOf(topic)) }) {
+                        val definitions = retriever.titled(topic, listOf(topic), limit = 12)
+                            .filter { EvidenceRelevance.hasOverviewStatement(it, listOf(topic)) }
+                        evidence = (definitions + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    }
+                }
+            }
             val retrievalFinishedAt = monotonicMillis()
             (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
@@ -767,6 +814,76 @@ class ResearchOrchestrator(
                 }
             } else {
                 emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
+            }
+            // Explanations are generated from selected evidence. Original passages
+            // remain in Sources, not automatically prepended/appended to the answer.
+            // Explicit quotations and the earlier exact-rule/calculation routes keep
+            // their literal behavior. Never expose an unvalidated streaming draft.
+            if (packed.sources.isNotEmpty() && phraseAsk == null && !CitedExplanation.explicitlyRequestsQuotes(question)) {
+                val explanation = PromptBuilder.explain(question, packed)
+                onEvidencePacked(explanation)
+                emit(ResearchEvent.Token(""))
+                val draft = StringBuilder()
+                var tokens = 0
+                var first: Long? = null
+                val generationStart = monotonicMillis()
+                inference.explainEvidence(explanation.prompt, CitedExplanation.outputBudget(question, outputBudget),
+                    savedPrefixChars = explanation.savedPrefixChars).collect { token ->
+                    if (first == null) first = monotonicMillis()
+                    tokens++
+                    draft.append(token)
+                }
+                first?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
+                    TokenEstimate.of(explanation.prompt), at - generationStart) }
+                val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
+                val cleaned = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)
+                var finished = CitedExplanation.finish(cleaned, packed.sources.size)
+                if (CitedExplanation.hasScopeRisk(finished, packed) ||
+                    CitedExplanation.hasWrongComparisonCitation(finished, question, packed)) finished = CitedExplanation.UNAVAILABLE
+                if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
+                    val review = StringBuilder()
+                    inference.reviewEvidence(CitedExplanation.reviewPrompt(finished, packed)).collect { review.append(it) }
+                    // Model review reduces risk but is not independent fact checking.
+                    // Fail closed on an ambiguous, truncated or negative verdict.
+                    if (!CitedExplanation.reviewPassed(review.toString())) finished = CitedExplanation.UNAVAILABLE
+                }
+                if (finished == CitedExplanation.UNAVAILABLE) {
+                    // One bounded repair attempt; never reveal the rejected draft.
+                    val retry = StringBuilder()
+                    val repairShape = if (packed.sources.size > 1 && EvidenceRelevance.conceptualComparisonSubjects(question).size == 2)
+                        "Give one short explanatory sentence for each supported subject. Cite each sentence using the source that actually supports that subject."
+                        else "Give just one short explanatory sentence."
+                    val retryPrompt = explanation.prompt.substringBeforeLast("\n\nANSWER:") +
+                        CitedExplanation.repairInstruction(cleaned, question, packed, repairShape)
+                    inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect { tokens++; retry.append(it) }
+                    val repaired = CitedExplanation.finish(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                        AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence), packed.sources.size)
+                    if (repaired == CitedExplanation.GAP) finished = repaired
+                    else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
+                        !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
+                        val review = StringBuilder()
+                        inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
+                        if (CitedExplanation.reviewPassed(review.toString())) finished = repaired
+                    }
+                }
+                val missing = EvidenceRelevance.missingComparisonSubjects(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })
+                val explanationWithGap = if (missing.isEmpty() || finished == CitedExplanation.UNAVAILABLE || finished == CitedExplanation.GAP) finished
+                    else finished + "\n\n_The selected excerpts do not cover ${missing.joinToString(", ")}; this is not a complete comparison._"
+                val coverage = selection?.let { AttachmentEvidence.coverageSummary(it, packed.sources.map { s -> s.evidence }, attachments) }
+                val answer = if (coverage == null) explanationWithGap else explanationWithGap + "\n\n_" + coverage + "_"
+                val audit = AnswerText.citationAudit(answer, packed.sources.size)
+                emit(ResearchEvent.Token(answer, replace = true))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = first?.let { elapsed(startedAt, it) },
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = tokens,
+                    citedSourceIds = audit.citedSourceIds,
+                    hasUnmappedCitation = AnswerText.citationAudit(draft.toString(), packed.sources.size).hasUnmappedCitation,
+                    promptMillis = first?.let { it - generationStart },
+                )))
+                return@flow
             }
             if (attachments.isEmpty()) PartialComparison.answer(question, packed)?.let { partial ->
                 emit(ResearchEvent.Token(partial))

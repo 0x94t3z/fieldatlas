@@ -40,11 +40,13 @@ class DesktopGatewayTest {
         try {
             val gateway = DesktopGateway("http://127.0.0.1:${server.localPort}", "research system")
             assertEquals(listOf("raw claim [S9]"), gateway.generate("question", 42, "planner system", 17).toList())
-            gateway.generate("second question", 30).toList()
+            gateway.explainEvidence("second question", 30).toList()
             assertEquals(2, bodies[1].getValue("messages").jsonArray.size)
             assertEquals("research system", bodies[1].getValue("messages").jsonArray[0].jsonObject.getValue("content").jsonPrimitive.content)
             assertEquals(17, bodies[0].getValue("seed").jsonPrimitive.int)
             assertEquals(42, bodies[0].getValue("max_tokens").jsonPrimitive.int)
+            assertEquals(1.10, bodies[0].getValue("repeat_penalty").jsonPrimitive.double, 0.0)
+            assertEquals(1.0, bodies[1].getValue("repeat_penalty").jsonPrimitive.double, 0.0)
             assertEquals("raw claim [S9]", gateway.calls[0].getValue("rawAnswer").jsonPrimitive.content)
         } finally { server.close(); worker.join(1000) }
     }

@@ -36,6 +36,10 @@ The current patch also removes native prompt/token text logging, so private atta
   with `reusedPromptTokens()`.
 * **InferenceEngineImpl.kt** — JNI externals and Kotlin plumbing for the above.
 
+Evidence paraphrases use `setSampler(seed, 1.0f)` so technical terms and quantities
+can repeat without a sampling penalty. Each ordinary or review turn explicitly
+restores `1.10f`; the gateway's independent echo-loop guard stays enabled.
+
 ## Regenerating after local edits
 
 ```bash

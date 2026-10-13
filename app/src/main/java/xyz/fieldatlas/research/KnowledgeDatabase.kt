@@ -122,10 +122,23 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
                     )
                 }
                 val order = candidates.withIndex().associate { (index, candidate) -> candidate.title to index }
-                rows.sortedBy { row -> order[row.title] ?: Int.MAX_VALUE }
+                rows.sortedBy { row -> order[row.title] ?: Int.MAX_VALUE }.map { lead ->
+                    // A separately chunked credit line is not an article introduction.
+                    // Read only a bounded title-index window; never scan the document table.
+                    if (!creditOnly(lead.text)) lead else {
+                        val match = "{title}: \"" + lead.title.replace("\"", "\"\"") + "\""
+                        titled(match, 6).firstOrNull { next ->
+                            next.documentId == lead.documentId && next.title == lead.title &&
+                                !creditOnly(next.text)
+                        } ?: lead
+                    }
+                }
             }
         }
     }
+
+    private fun creditOnly(text: String): Boolean =
+        Regex("(?i)^Source: [^\\r\\n]{1,300}$").matches(text.trim())
 
     /**
      * Cosine top-k over the optional chunk_vectors table (int8-quantized embeddings).

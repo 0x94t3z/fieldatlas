@@ -14,6 +14,19 @@ import xyz.fieldatlas.research.*
 
 /** Small real indexes and an optional pinned original-derived fixture; not model/phone accuracy. */
 class ReferenceTopicRetrievalTest {
+    @Test fun titleNominationSkipsCreditOnlyLeadWithoutCrossingDocuments() = runBlocking {
+        val credit = Evidence("reference", "reference:0", "Vaccines", "fixture://reference",
+            "Source: Reference publisher.", 0.0)
+        val body = credit.copy(chunkId = "reference:1", text = "Vaccines are preparations that train an immune response.")
+        val file = fixture(listOf(credit, body))
+        KnowledgeDatabase.open(file).use { db ->
+            val titles = db.titleCandidateTitles("{title}: vaccines")
+            assertEquals(listOf(body.chunkId), db.titleLeadChunks(titles).map { it.chunkId })
+        }
+        val found = search(listOf(file), "What is a vaccine?", 1)
+        assertEquals(listOf(body.chunkId), found.map { it.chunkId })
+    }
+
     @get:Rule val temp = TemporaryFolder()
     private val question = "Compare solar electricity and battery storage for evening demand."
     private val wrong = Evidence("wp-vehicle", "wp-vehicle:0", "Solaris vehicle — Overview", "fixture://vehicle",

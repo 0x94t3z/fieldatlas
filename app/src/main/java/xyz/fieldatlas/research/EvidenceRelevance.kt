@@ -44,9 +44,13 @@ object EvidenceRelevance {
 
     /** Lexical gap disclosure only. Presence is not proof of adequate coverage. */
     fun missingComparisonSubjects(question: String, evidence: List<Evidence>): List<String> =
-        comparisonTerms(question).filter { subject ->
-            evidence.none { tokens(topicalText(it.text)).matches(subject) }
+        comparisonTopics(question).filter { subject ->
+            val terms = FtsQuery.from(subject)?.terms.orEmpty()
+            evidence.none { item -> terms.isNotEmpty() && terms.all { tokens(topicalText(item.text)).matches(it) } }
         }
+
+    internal fun comparisonTopics(question: String): List<String> =
+        conceptualComparisonSubjects(question).ifEmpty { comparisonTerms(question) }
 
     internal fun comparisonTerms(question: String?): List<String> {
         if (question == null) return emptyList()
@@ -140,15 +144,20 @@ object EvidenceRelevance {
     private fun keepOrdinary(
         evidence: List<Evidence>, questionTerms: List<String>, expandedTerms: List<String>, question: String?,
     ): List<Evidence> {
-        if (questionTerms.isEmpty()) return evidence
+        if (questionTerms.isEmpty()) return evidence.filterNot { PassageContent.isEmptyWebPage(it, question) || PassageContent.isNumberedHeadingOnly(it, question) }
         // Page furniture and another language's phrases say nothing, whatever words they share.
-        val readable = evidence.filterNot { item ->
-            isForeignPhrasebook(item, question) ||
+        val scopedName = question?.let(::namedRecordScope)
+        val readable = evidence.filter { item ->
+            scopedName == null || containsPhrase(item.title + " " + topicalText(item.text), scopedName)
+        }.filterNot { item ->
+            PassageContent.isEmptyWebPage(item, question) || PassageContent.isNumberedHeadingOnly(item, question) ||
+                (question != null && PassageContent.isContentsOnly(item, question)) || isForeignPhrasebook(item, question) ||
                 (question != null && PromptBuilder.allowsModelExplanation(question) && isNavigationBoilerplate(item))
         }
         val kept = gate(readable, questionTerms, expandedTerms, question)
         val overview = overviewSubjects(question)
-        if (kept.isNotEmpty() || overview.isEmpty() || comparisonTerms(question).isNotEmpty()) return kept
+        if (kept.isNotEmpty() || overview.isEmpty() || comparisonTerms(question).isNotEmpty() ||
+            conceptualComparisonSubjects(question).isNotEmpty()) return kept
         // "What is danksharding?" asks for a definition, but when no saved passage defines the
         // subject, the passages whose text names it ("EIP-4844 (Proto-Danksharding) introduced
         // blobs") and shares another of the question's words ("Ethereum") still say more than a
@@ -160,6 +169,18 @@ object EvidenceRelevance {
             !isTravelListing(item) && overview.any { containsPhrase(passage, it) } &&
                 (otherTerms.isEmpty() || tokens(item.title + " " + passage).let { body -> otherTerms.any { body.matches(it) } })
         }, questionTerms)
+    }
+
+    /** Explicit record membership is not a bag-of-words topic. Limit this to a
+     * single named collection, not generic "an association in a population". */
+    private fun namedRecordScope(question: String): String? {
+        val match = Regex("(?i)\\b(?:association|record|entry|field|variant)\\s+in\\s+([\\p{L}][\\p{L}\\p{N}_-]*)\\b")
+            .find(QuestionSubject.text(question)) ?: return null
+        val name = match.groupValues[1]
+        if (name.lowercase() in setOf("a", "an", "the", "this", "that", "my", "our", "your", "any", "each", "human", "humans")) return null
+        // Internal capitals distinguish a dataset identifier from an ordinary noun.
+        // Other name forms keep the normal route rather than guessing their scope.
+        return name.takeIf { it.drop(1).any(Char::isUpperCase) }
     }
 
     private fun gate(
@@ -238,6 +259,19 @@ object EvidenceRelevance {
      * Specific source/study questions retain the normal relevance path. */
     private fun explanationTopicMatches(item: Evidence, terms: List<String>, question: String?): Boolean {
         if (compactGuidanceMatches(item, terms, question)) return true
+        // "How do X help ...?" can be explained across adjacent sentences:
+        // one defines X, the next describes its function. A single-sentence
+        // overlap rule loses that connected explanation. Require both the named
+        // subject's definition and substantial question overlap in one paragraph.
+        val helperSubject = question?.let { Regex("(?i)^how\\s+(?:does|do)\\s+(?:the\\s+)?([\\p{L}\\p{N}-]+(?:\\s+[\\p{L}\\p{N}-]+){0,3})\\s+help\\b")
+            .find(QuestionSubject.text(it))?.groupValues?.get(1) }
+        if (helperSubject != null) {
+            val core = terms.filterNot { it in setOf("help", "helps", "make", "makes") }
+            if (core.size >= 2 && topicalText(item.text).split(Regex("\\n\\s*\\n")).any { paragraph ->
+                    paragraph.length <= 1_200 && hasOverviewStatement(item.copy(text = paragraph), listOf(helperSubject)) &&
+                        core.count { tokens(paragraph).matches(it) } >= (core.size * 2 + 2) / 3
+                }) return true
+        }
         val topicTerms = terms.filterNot { it in setOf("both", "same", "need", "needs", "affect", "different", "differ", "useful") }
         if (topicTerms.isEmpty()) return false
         val title = tokens(item.title)
@@ -416,10 +450,36 @@ object EvidenceRelevance {
     /** Article sections a reference names "<section> of <place>" ("History of Japan"). */
     private const val SECTION_NOUNS = "history|geography|culture|economy|politics|government|religion|cuisine|literature|music|architecture"
 
+    /** Complete, unqualified concept comparisons only. A request tied to a study,
+     * file, place, condition, or time must retain its original scoped research path. */
+    internal fun conceptualComparisonSubjects(raw: String?): List<String> {
+        if (raw == null) return emptyList()
+        val asked = QuestionText.normalised(QuestionSubject.text(raw)).trim()
+        val noun = "([\\p{L}\\p{N}-]+(?:\\s+[\\p{L}\\p{N}-]+){0,4}?)"
+        val first = "(?:(?:a|an|the)\\s+)?$noun"
+        val patterns = listOf(
+            "(?:explain\\s+)?how\\s+(?:does|do|is|are)\\s+$first\\s+(?:differ|differs|different)\\s+from\\s+$first",
+            "(?:explain\\s+)?how\\s+$first\\s+differs?\\s+from\\s+$first",
+            "what\\s+(?:is|are)\\s+the\\s+differences?\\s+between\\s+$first\\s+and\\s+$first",
+            "compare\\s+$first\\s+(?:and|with|versus)\\s+$first",
+        )
+        val match = patterns.firstNotNullOfOrNull { Regex("(?i)^$it[.!?]?$" ).matchEntire(asked) }
+            ?: return emptyList()
+        val subjects = listOf(match.groupValues[1], match.groupValues[2])
+        val qualifiers = setOf("in", "for", "of", "at", "on", "under", "according", "during", "my", "our", "this", "that", "these", "those", "and", "or")
+        return subjects.takeIf { pair -> pair.all { subject ->
+            subject.split(Regex("\\s+")).size <= 4 &&
+                subject.split(Regex("\\s+")).none { it.length == 1 } &&
+                subject.lowercase().split(Regex("\\s+")).none { it in qualifiers }
+        } }.orEmpty()
+    }
+
     internal fun overviewSubjects(raw: String?): List<String> {
         // "whats X" and "im" route like their spelled-out forms.
         val question = raw?.let(QuestionText::normalised)
-        if (question == null || !PromptBuilder.allowsModelExplanation(question) || isAttributeQuestion(question)) return emptyList()
+        if (question == null) return emptyList()
+        conceptualComparisonSubjects(question).takeIf { it.size == 2 }?.let { return it }
+        if (!PromptBuilder.allowsModelExplanation(question) || isAttributeQuestion(question)) return emptyList()
         comparisonTerms(question).takeIf { it.size == 2 }?.let { return it }
         val definition = Regex("(?i)^\\s*(?:please\\s+)?(?:what is|what are|what was|what were|explain|describe|tell me about|tell me|teach me about|" +
             "what do you know about|give me an overview of|an overview of|overview of|summari[sz]e)\\s+([\\p{L}\\p{N} '-]+?)(?=\\s+and\\s+(?:how|why|distinguish|compare|contrast|describe|explain|what|whether)\\b|[.!?]|$)")
@@ -439,6 +499,8 @@ object EvidenceRelevance {
     }
 
     internal fun hasOverviewStatement(item: Evidence, subjects: List<String>): Boolean {
+        // A gene named after a process is not a definition of that process.
+        if (item.text.trimStart().startsWith("Dataset: ")) return false
         fun wordPattern(word: String): String {
             val base = word.lowercase()
             val forms = mutableSetOf(base, base + "s", base + "es")
@@ -459,6 +521,10 @@ object EvidenceRelevance {
         // appearing as an experimental setting, title, index tag, or trailing keyword.
         val statement = Regex("(?i)^(?:(?:a|an|the)\\s+)?(?:$subject)(?:\\s+(?:and|or)\\s+(?:$subject))?(?:\\s*\\([^)]{1,40}\\),?|,\\s*[^,\\n]{1,80},)?\\s+(?:is|are|refers? to|means?|consists? of|involves?|produces?|generates?|preserves?|reduces?|differs?|supports?|stores?|uses?|converts?|causes?|requires?|enables?|prevents?|spans?|begins?|began|includes?|was|were)\\b")
         val passage = topicalText(item.text)
+        val explanatory = Regex("(?i)^(?:$subject)\\s+(?:stems? from|describes?|works? by)\\b")
+        val qualifiedProcess = Regex("(?i)^(?:$subject)\\s+(?:in|within|during)\\s+[^.!?\\n]{1,80}?\\s+(?:requires?|involves?|produces?|converts?)\\b")
+        val relativeDefinition = Regex("(?i)\\bis\\s+(?:$subject)\\s*(?:\\([^)]{0,40}\\))?,?\\s+which\\s+is\\b")
+        val namingDefinition = Regex("(?i)^we call (?:this|that) (?:phenomenon|process|effect) (?:$subject)[.!?]?$" )
         if (passage.split(Regex("(?<=[.!?])\\s+|[\\r\\n]+"))
             .any { line ->
                 // A domain qualifier does not make the following definition incidental.
@@ -466,7 +532,8 @@ object EvidenceRelevance {
                 val sentence = line.trim().replace('’', '\'')
                     .replace(Regex("(?i)^abstract:\\s*"), "")
                     .replace(Regex("(?i)^in\\s+[^,.!?\\r\\n]{1,60},\\s*"), "")
-                statement.containsMatchIn(sentence)
+                statement.containsMatchIn(sentence) || explanatory.containsMatchIn(sentence) || qualifiedProcess.containsMatchIn(sentence) ||
+                    relativeDefinition.containsMatchIn(sentence) || namingDefinition.matches(sentence)
             }) return true
         // Do not apply English sentence grammar to text we cannot confidently classify
         // as English. Keep the ordinary lexical gate for that evidence instead.
@@ -477,6 +544,20 @@ object EvidenceRelevance {
             return isRelevant(item, subjects.flatMap { FtsQuery.from(it)?.terms.orEmpty() }, emptyList())
         }
         return false
+    }
+
+    /** Only a standalone definition request, not a mechanism, intervention, or
+     * multi-part question. Definitions should not be drowned out by subtype details. */
+    internal fun definitionSubject(question: String): String? =
+        Regex("(?i)^what\\s+(?:is|are)\\s+(?:(?:a|an|the)\\s+)?([\\p{L}\\p{N}-]+(?:\\s+[\\p{L}\\p{N}-]+){0,3})[?.!]?$")
+            .matchEntire(QuestionSubject.text(question).trim())?.groupValues?.get(1)
+
+    internal fun directlyDefines(item: Evidence, subject: String): Boolean {
+        if (item.text.trimStart().startsWith("Dataset: ")) return false
+        val name = Regex.escape(subject)
+        val definition = Regex("(?i)^(?:(?:a|an|the)\\s+)?$name(?:\\s*\\([^)]{1,60}\\))?\\s+(?:is|are|refers? to)\\s+(?:a|an|the)\\s+")
+        return topicalText(item.text).split(Regex("(?<=[.!?])\\s+|[\\r\\n]+"))
+            .any { definition.containsMatchIn(it.trim()) }
     }
 
     private fun categoryMatches(item: Evidence, question: String?): Boolean {

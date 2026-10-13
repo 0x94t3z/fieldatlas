@@ -9,6 +9,22 @@ class EmergencyGuideMatchTest {
     private val book = EmergencyData.guides(File("src/main/assets/emergency/guides.json").readText())
     private fun match(question: String) = EmergencyGuideMatch.match(question, book.guides)?.id
 
+    @Test fun explicitReferenceResearchDoesNotBecomeImmediateEmergencyAdvice() {
+        listOf(
+            "What do the saved Japan travel guides say about earthquake safety?",
+            "What does the saved reference say about tsunami safety?",
+            "Compare the travel guides on earthquake safety.",
+        ).forEach { assertNull(it, match(it)) }
+    }
+
+    @Test fun immediateHelpStillOverridesReferenceResearch() {
+        listOf(
+            "What do the saved guides say about earthquakes? I am trapped right now.",
+            "What do the saved guides say about earthquakes? Help me.",
+            "Earthquake safety",
+        ).forEach { assertEquals(it, "earthquake", match(it)) }
+    }
+
     @Test fun emergencyQuestionsOpenTheRightGuide() {
         val cases = mapOf(
             "someone collapsed and is not breathing" to "cpr",
