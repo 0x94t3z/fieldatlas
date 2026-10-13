@@ -9,143 +9,151 @@
 <p align="center">
   <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
-  <a href="#for-developers-and-data-builders">Docs</a> ·
+  <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-174D3B?style=flat-square" alt="License: Apache 2.0"></a>
   <a href="#get-started"><img src="https://img.shields.io/badge/Android-13%2B-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white" alt="Android 13 or newer"></a>
-  <a href="#tech-stack"><img src="https://img.shields.io/badge/Kotlin-native-7F52FF?style=flat-square&amp;logo=kotlin&amp;logoColor=white" alt="Kotlin: native"></a>
-  <a href="#tech-stack"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-4285F4?style=flat-square" alt="UI: Jetpack Compose"></a>
-  <a href="#tech-stack"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
-  <a href="#tech-stack"><img src="https://img.shields.io/badge/search-SQLite-417E87?style=flat-square&amp;logo=sqlite&amp;logoColor=white" alt="Search: SQLite"></a>
-  <a href="#tech-stack"><img src="https://img.shields.io/badge/tools-Python-3776AB?style=flat-square&amp;logo=python&amp;logoColor=white" alt="Tools: Python"></a>
+  <a href="#for-developers"><img src="https://img.shields.io/badge/Kotlin-native-7F52FF?style=flat-square&amp;logo=kotlin&amp;logoColor=white" alt="Kotlin: native"></a>
+  <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
 <p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0">v1.4.0 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
-Field Atlas runs a language model on the phone. You can also add local knowledge collections; when one contains a relevant passage, the answer can show a numbered citation that opens that passage. There is no account, search API, remote inference, or Google Play Services requirement. User-started downloads and catalog refresh require internet access; research uses installed files.
+Field Atlas answers questions on your Android phone without an internet connection. You download
+an answer model and the collections you want while you are online. After that, everything runs on
+the phone. There is no account, search API, remote inference or Google Play Services requirement.
+The app only goes online when you start a download or refresh the list of collections.
 
-## At a glance
+## What it can do
 
-| | What it means |
-| --- | --- |
-| **Works offline** | Questions, local search, and answer generation stay on the device. Download or transfer the files you need *before* going offline. |
-| **Model first** | Download the default model or import a compatible `.fapack`. General questions can receive an unverified model explanation without a knowledge collection. |
-| **Collections are optional** | Download the Encyclopedia, Travel guides, Vegan places, Cryptography & Ethereum or another collection during setup or from Library, or import a compatible knowledge `.fapack`. Collections add searchable passages on their own topics. |
-| **Android** | ARM64 phone, Android 13 (API 33) or newer. Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not yet tested on a Pixel, on GrapheneOS or on any 8 GB phone. |
-
-## Watch it work
-
-Watch the **52-second Field Atlas v1.2.0 film**: an animated walkthrough of the Berlin vegan lookup, a place sheet, voice input, a cited answer and the Library. It is built from screen mockups that match the app, not recorded on a phone. The MP4 is available with the release downloads.
-
-[![Watch the Field Atlas v1.2.0 demo](docs/branding/field-atlas-v1.2.0-demo.png)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4)
-
-[Watch or download the v1.2.0 demo (MP4, 57 MB)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4).
-
-On a real phone: an [unedited 35-second recording of v1.2.0](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4) on a 4 GB Infinix X6840 with airplane mode on. “Best vegan restaurants in Berlin” returns six cited fully vegan places in 10 seconds, and a tap opens the saved listing. [Recording details](docs/evidence/physical/infinix-x6840-android16/README.md#v120-offline-berlin-run-3-october-2026).
+- **Look things up offline** in Wikipedia (English and Simple English), Wikivoyage travel guides,
+  and collections on biology and cryptography.
+- **Find places near you**, like a pharmacy, an ATM, a toilet or the best vegan restaurants in the
+  city you are in, from OpenStreetMap and Wikivoyage.
+- **Search 8.39 million passages on the phone.** The Encyclopedia and Biology collections are
+  searched by [Leviathan](https://github.com/elstongun/leviathan), a search engine built into the
+  app.
+- **Show its sources.** When a collection covers your question, the answer cites the passages it
+  used, and you can open each one.
+- **Help in an emergency.** 42 first-aid and safety guides and the emergency numbers of 242
+  countries are built in and work without any download.
+- **Do travel maths**, like fuel cost, currency at a given rate, time zones and water for a group.
+- **Show phrases** from Wikivoyage phrasebooks, in the local script with pronunciation.
 
 ## Get started
 
-> **Latest release:** [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0). Answers can be inaccurate, and collection coverage is limited. Read the [release notes and known limitations](docs/releases/current.md).
+You need an Android 13 or later phone with an arm64 processor.
 
-On an Android 13+ ARM64 phone:
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk)
+   (about 73 MB). You can check it against its
+   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk.sha256).
+2. Open the file and follow Android's prompts to install it.
+3. In setup, download the answer model (1.4 GB).
+4. Add any collections you want. You can add more later in **Library**.
+5. Turn on airplane mode and ask a question in **Research**.
 
-1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk.sha256) is available to verify the APK.
-2. Open the APK on your phone and follow Android’s installation prompts.
-3. In setup, **download the default model** while online, or **import a saved model `.fapack`**. Wait for verification and installation to finish. A raw `.gguf` or checksum file is not an importable model pack.
-4. Optionally download collections such as **Encyclopedia**, **Travel guides**, **Vegan places**, **Essentials**, **Travel places**, **Cryptography & Ethereum** or **Biology & longevity**, or import a saved knowledge `.fapack`. You can add more later in **Library**.
-5. Open **Research**, ask a question, and tap **Start research**. If the answer includes numbered citations, open them to inspect the saved passages.
+Finish the downloads before you go offline. A phone without a connection can import a `.fapack`
+file saved from [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) on
+another device. The [install guide](docs/installation.md) covers updates and older versions.
 
-**Install → download or import a model → optionally add knowledge → research offline.**
+## How good is it?
 
-The APK is about 100 MB; the model and collections require additional downloads and storage. Finish setup before going offline. Model/Biology download recovery has not been independently verified for this release; compatible saved-pack imports remain an alternative.
+The bounty asks for an offline tool that is more than half as good as a web search plus a
+frontier AI model. We tested Field Atlas 1.4.0 on 60 new questions that were written after the app
+was finished, by an AI model that had never seen the app's code, so the questions could not be
+tailored to what the app already handles well. Other AI models then scored each answer blind,
+next to an answer researched on the web.
 
-**Updating a test build?** The public APK cannot update a build signed with the local-test key. Preserve local data before considering a reinstall—uninstalling removes app-private data. See the [installation notes](docs/releases/current.md#installation). For the older v1.1.10 release, use its [version-specific setup guide](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/docs/installation.md).
+- **34%** of the web-and-AI answers with the default model. **Not there yet.**
+- **35%** with the optional larger model (Qwen3.5 4B), offered on phones with 8 GB of memory. It
+  makes about half as many factual errors.
+- **Strongest:** places near you, vegan restaurants in your city, quick facts, emergency guides,
+  phrases and calculations.
+- **Weakest:** comparisons, cryptography and reasoning, where the small model has to explain
+  things itself.
 
-## Models, collections, and citations
+The graders and the reference answers come from AI models of one family, so treat these numbers as
+our own measurement, not an independent score. Every question, answer and grade is published in
+[docs/fieldtest/results-1.4.0](docs/fieldtest/results-1.4.0/), and the
+[evaluation](docs/evaluation.md#140-release-build-on-fresh-questions-october-13) explains the method.
 
-| File | Required? | What it does | What it cannot prove |
-| --- | --- | --- | --- |
-| Model `.fapack` | Yes | Generates answers on the phone. | An uncited model answer is not evidence that a claim is true. |
-| Knowledge `.fapack` | No | Supplies local passages the app can search and cite. | A citation only supports what its passage actually says. |
-| Audio pack | No | Supports optional offline speech input in compatible builds. | It does not add factual knowledge. |
+## Good to know
 
-Every collection, with its size, checksum, source, snapshot date and licence, is listed in [DATASETS.md](DATASETS.md#collections-the-app-offers). The app downloads them from Hugging Face ([Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge), [Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)); you can also save a `.fapack` from there and import it. The [Travel places collection](DATASETS.md#broader-travel-places-keyword-only-builder) contains dated Wikivoyage listings for restaurants, hotels, sights, shops, and other places; Vegan places and Essentials are OpenStreetMap places, searched by distance from the phone. None of them can check today's opening hours, menus, quality, or whether a place still exists. Travel guides are Wikivoyage's guides by section, with its phrasebooks. Biology & longevity is a biology textbook, health topic summaries, ageing gene records and six ageing reviews, not every subject and not medical advice. The Encyclopedia is English and Simple English Wikipedia in one collection (8.39 million passages; 10.64 GB to download, 24.35 GB installed), from snapshots of December 2025 and October 2026, not live information. The 42 emergency guides and the emergency-number table ship inside the app.
+- Answers that use the model take **2 to 4 minutes** on a 6 GB phone. Answers built from saved
+  data take seconds.
+- **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
+- Map listings, opening hours and menus can be out of date.
+- Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not yet tested
+  on a Pixel, on GrapheneOS or on an 8 GB phone.
 
-General questions may receive an **unverified model explanation** when local evidence is missing. Unsupported source-only requests return an evidence-gap message. A citation is a way to inspect a passage, not proof that an answer is correct; check the passage's wording, context, and date.
+## Collections
 
-## Version status
+All collections are optional and download inside the app from Hugging Face
+([Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge),
+[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)).
 
-The bounty's bar is an offline tool "more than 50% as good as internet search plus a frontier AI
-model". Field Atlas 1.4.0 was measured against that bar on 60 questions written after the release
-build was frozen, by a writer who did not read the repository, each answer graded blind twice against
-a frontier model's web-researched answer ([how](docs/evaluation.md#140-release-build-on-fresh-questions-october-13)):
-**34% of the reference with the default Qwen3.5 2B**, with 1.02 factual errors per answer. The optional Qwen3.5 4B, offered only to phones with 8 GB of memory, reaches 35% on the 55 questions without a phone position, with about half the factual errors.
-Two earlier fresh sets found and fixed a candidate that withheld answers its own review could not
-confirm (21%) and near-me place bugs; they are reported as development data. References and
-graders are frontier models of one family, so these are development measures, not an independent
-score. Every answer and grade is in [docs/fieldtest/results-1.4.0/](docs/fieldtest/results-1.4.0/).
+| Collection | Download | What's inside |
+| --- | ---: | --- |
+| Encyclopedia | 10.64 GB (24.35 GB installed) | English and Simple English Wikipedia, 8.39 million passages |
+| Travel guides | 419 MB | Wikivoyage guides by section, with phrasebooks |
+| Travel places | 352 MB | Wikivoyage listings: sights, food, hotels, shops |
+| Vegan places | 40 MB | OpenStreetMap places tagged vegan or with vegan options |
+| Essentials | 1.78 GB | Pharmacies, hospitals, ATMs, toilets, water, stations and more from OpenStreetMap |
+| Cryptography & Ethereum | 78 MB | Ethereum proposals and specifications, NIST post-quantum standards |
+| Biology & longevity | 8 MB | A biology textbook, health topics, ageing gene data, six research reviews |
 
-Where the app answers without the model it is strong: places near the phone, Vitalik's "best
-vegan restaurants in the city I'm in", casual lookups, emergency guides and numbers, phrasebook
-lines and calculations. Where the 2B model writes the explanation itself, it is well below the
-reference, and answers that use the model take 2 to 4 minutes on a 6 GB phone.
+Sources, checksums and licences for each one are in [DATASETS.md](DATASETS.md#collections-the-app-offers).
+The model and every collection together take about 32 GB.
 
-Hardware: tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not
-yet run on a Pixel, on GrapheneOS, or on any 8 GB phone.
+## Watch it work
 
-| Version | Public download? | What the evidence covers |
-| --- | --- | --- |
-| [v1.4.0 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Yes — signed APK and checksum | App 1.4.0 (19). One Encyclopedia of English and Simple English Wikipedia searched by a native engine, cited explanations reviewed before they are shown, a new Biology & longevity collection, downloads from Hugging Face at pinned revisions, the best vegan restaurants in the city the phone is in, travel guides by section with phrasebooks, 42 emergency guides and the emergency numbers of 242 countries, calculations on the phone, the optional 4B, and the blind field test above. See the [release notes](docs/releases/current.md). |
-| [v1.3.0 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Yes — signed APK and checksum | App 1.3.0 (17). Emergency questions answered from 41 bundled official guides, open-now place answers, Word, PowerPoint and EPUB attachments, and faster answers on low-end phones. Its opening-hours reader followed another submission's parser and was replaced in 1.4.0 ([audit](docs/compliance/release-audit.md#provenance-audit-of-other-submissions-material-5-october-2026)). See its [release notes](docs/releases/field-atlas-1.3.0.md). |
-| [v1.2.1 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Yes — signed APK and checksum | App 1.2.1 (16). Keeps the app alive while a file picker is open (Xiaomi phones killed it), checks attachment answers against the files, and adds the Essentials collection. See its [release notes](docs/releases/field-atlas-1.2.1.md). |
-| [v1.2.0 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | Yes — signed APK and checksum | App 1.2.0 (15). Adds Encyclopedia, Travel guides and Vegan places collections, near-me lookups, place cards, source previews and live dictation. See its [release notes](docs/releases/field-atlas-1.2.0.md). |
-| [v1.1.10 previous stable release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Yes | Older features and setup flow. Use the instructions at that tag. |
-| Current source / local builds | Build from source | May differ from published artifacts. Local-test signing keys are not compatible with public-release updates. |
+A 52-second animated walkthrough of v1.2.0, built from screen mockups that match the app:
 
-The [Farcaster post](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) shows the original public demo. A
-useful offline answer on one phone is not an independent quality benchmark or a guarantee for every
-Android device.
+[![Watch the Field Atlas v1.2.0 demo](docs/branding/field-atlas-v1.2.0-demo.png)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4)
 
-## Tech stack
+And an [unedited 35-second phone recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4)
+on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns six cited places in
+10 seconds. The original public demo is on [Farcaster](https://farcaster.xyz/0x94t3z.eth/0x9538cba8).
 
-| Layer | Technology | Role |
-| --- | --- | --- |
-| Android app | Kotlin · Jetpack Compose · Material 3 | Native screens and on-device workflows |
-| Model runtime | llama.cpp · C++ · JNI | Local language-model inference |
-| Local search | SQLite · FTS5 | Search through installed knowledge passages |
-| App state | Kotlin Coroutines · Flow | Asynchronous work and reactive UI state |
-| Pack tooling | Python · `.fapack` | Build and validate model and knowledge archives |
-| Build tooling | Gradle · Android NDK · CMake | Build the app and native runtime |
+## Versions
+
+| Version | What changed |
+| --- | --- |
+| [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) (latest) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Release notes](docs/releases/current.md) |
+| [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |
+| [1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Fixes for Xiaomi phones, the Essentials collection. [Notes](docs/releases/field-atlas-1.2.1.md) |
+| [1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | First collections, places near you, voice input. [Notes](docs/releases/field-atlas-1.2.0.md) |
+
+A phone running a build signed with a different (test) key cannot be updated with the public APK.
+Uninstalling removes saved answers, so keep that build if you need its data.
 
 ## Acknowledgements
 
 Part of Field Atlas comes from a fork of this repository,
-[github.com/vbuterin/fieldatlas](https://github.com/vbuterin/fieldatlas/tree/vector-search), branch
-`vector-search`. Its commits 337d334 to 769e85d (24–25 September 2026, authored in Git as
-"user.email &lt;me@me.com&gt;") were merged here in 4967a49. They added:
+[vbuterin/fieldatlas](https://github.com/vbuterin/fieldatlas/tree/vector-search) (branch
+`vector-search`, commits 337d334 to 769e85d, merged here in 4967a49). It added search across
+several collections with vector search, answer history, background answers, voice input with a
+bundled Vosk model, the pack-building tools, the first llama.cpp generation patch, and the
+Biology & longevity pack that the app offered until 1.4.0. Later work builds on these parts.
 
-- multi-collection retrieval with semantic (vector) search and query expansion;
-- answer history, and answers that keep generating when the app is in the background;
-- voice input with a bundled Vosk English model;
-- the deterministic pack toolchain (`content2fapack.py`, `stream_pack.py`, `fapack_convert.py`,
-  `build_model_packs.py`, `build_vector_pack.py`, `wiki_mini_build.py`, `wiki_extract_numbers.py`) and
-  the end-to-end test tools with their question lists (`e2e_test.py`, `e2e_battery.py`);
-- the first version of the llama.cpp generation patch in `scripts/patches/`;
-- the Biology & longevity vector pack, which the app still downloads from that fork.
+Search in the Encyclopedia and Biology collections uses
+[Leviathan](https://github.com/elstongun/leviathan) (Apache-2.0), compiled into the app from
+pinned source. Answers are generated by [llama.cpp](https://github.com/ggml-org/llama.cpp) (MIT).
+Every component and data source, with its licence, is listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Later work in this repository builds on these parts.
+## For developers
 
-## For developers and data builders
+The app is native Kotlin and Jetpack Compose, with llama.cpp running the model on the phone and
+SQLite plus Leviathan for search. Large model and collection files are not in this repository;
+their sources and checksums are documented so they can be rebuilt and checked.
 
 - [Build the Android app](docs/building.md)
-- [Recommended model and other model definitions](MODELS.md)
-- [Knowledge collections, their sources, and freshness](DATASETS.md)
-- [Create your own `.fapack` collection](tools/README.md)
-- [Testing, benchmark limits, and physical-device evidence](docs/verification.md)
-
-The app is native Kotlin/Jetpack Compose with a pinned local llama.cpp runtime. The pack tools, tests, and offline-policy checks are in this repository. Large model and collection files are not committed; their sources and checksums are documented so they can be rebuilt or verified.
+- [Models](MODELS.md) and [collections](DATASETS.md)
+- [Make your own `.fapack` collection](tools/README.md)
+- [How it was tested](docs/verification.md)
