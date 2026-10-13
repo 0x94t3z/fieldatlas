@@ -211,6 +211,13 @@ object EmergencyGuideMatch {
             "(?:[\\p{L}-]+ ){0,4}(?:guides?|sources?|references?|articles?|papers?))\\b",
     )
 
+    // A place's tap water is its supply, answered by that place's travel guide ("Stay healthy").
+    // The treatment guide is for water someone has to make safe, or a supply an event has spoiled.
+    private val tapWater = Regex("(?i)\\btap water\\b")
+    private val waterToTreat = Regex("(?i)\\b(?:purif\\w*|disinfect\\w*|boil\\w*|treat\\w*|filter\\w*|tablets?|bleach|iodine|chlorine|" +
+        "stream|river|lake|pond|creek|well|rain\\w*|flood\\w*|storm|hurricane|earthquake|emergency|outage|contaminat\\w*|" +
+        "dirty|cloudy|murky|brown|smells?|sick|ill|diarrh\\w*|vomit\\w*|advisory|notice)\\b")
+
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
     /**
@@ -252,6 +259,8 @@ object EmergencyGuideMatch {
             }
             // An explicit ingestion needs the saved poison-contact guidance, not a
             // generated treatment. The answer must disclose that this is a general guide.
+            if (guide.id == "safe-drinking-water" && tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question))
+                return@map Triple(guide, 0, false)
             if (guide.id == "poisoning" && batteryIngestion.containsMatchIn(question)) {
                 score += 4
                 specific = true

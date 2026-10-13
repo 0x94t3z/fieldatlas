@@ -64,4 +64,43 @@ object GuideScope {
             isListing(item) || (isGuideSection(item) && item.title.substringBefore(" — ").trim() in destinations)
         }
     }
+
+    /**
+     * The counterpart of [withoutOtherPlaces]: a question naming a place is not answered by
+     * another destination's guide. "Is tap water safe in Mexico City?" matched "Cagayan de Oro —
+     * Stay safe > Tap water", and the model credited that city's water district to Mexico City.
+     * Kept: guides the question names (and their districts, "Mexico City/Centro"), the places the
+     * app itself chose ([chosen]: a beach read through its country), any guide whose name or text
+     * names the place (a region), topic guides and listings.
+     */
+    suspend fun withoutUnaskedPlaces(
+        question: String,
+        evidence: List<Evidence>,
+        chosen: Collection<String>,
+        sectionsOf: suspend (String) -> List<Evidence>,
+    ): List<Evidence> {
+        fun article(item: Evidence) = item.title.substringBefore(" — ").trim()
+        fun base(name: String) = name.substringBefore('/').trim()
+        // As written, capital included: "tap water" does not name the "Water" topic guide.
+        // A lowercase city arrives confirmed through [chosen] instead.
+        fun named(name: String) = Regex("(?<![\\p{L}\\p{N}])" + Regex.escape(base(name)) + "(?![\\p{L}\\p{N}])")
+            .containsMatchIn(question) || chosen.any { base(it).equals(base(name), ignoreCase = true) }
+        val articles = evidence.filter(::isGuideSection).map(::article).distinct()
+        val kept = articles.filter { named(it) }.map(::base).toSet() + chosen.map(::base)
+        if (articles.none { named(it) }) return evidence
+        fun mentions(text: String) = kept.any { name ->
+            Regex("(?i)(?<![\\p{L}\\p{N}])" + Regex.escape(name) + "(?![\\p{L}\\p{N}])").containsMatchIn(text)
+        }
+        // A region or part of the place still speaks about it: "Nordic countries — Do > Saunas"
+        // for Finland, "Finland Proper" for Finland, "Southeast Asia — Respect" naming Thailand.
+        val others = articles.filter { other ->
+            base(other) !in kept && !mentions(other) && evidence.none { article(it) == other && mentions(it.text) }
+        }.take(MAX_ARTICLES)
+        val elsewhere = others.filter { other ->
+            sectionsOf(other).any {
+                it.title.startsWith("$other — ") && it.title.substringAfter(" — ").substringBefore(" > ").trim().lowercase() in destinationHeadings
+            }
+        }.toSet()
+        return evidence.filterNot { isGuideSection(it) && article(it) in elsewhere }
+    }
 }

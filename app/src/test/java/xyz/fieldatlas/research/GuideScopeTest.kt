@@ -31,6 +31,31 @@ class GuideScopeTest {
         assertEquals(emptyList<Evidence>(), GuideScope.withoutOtherPlaces(question, listOf(listing)) { emptyList() })
     }
 
+    @Test fun aQuestionNamingAPlaceReadsNoOtherDestinationsGuide() = runBlocking {
+        val question = "Is it safe to drink tap water in Avelton?"
+        val own = guide("Avelton — Stay healthy", "Tap water in Avelton is not safe to drink; buy bottled water.")
+        val district = guide("Avelton/Centro — Stay safe", "Pickpockets work the old market.")
+        val other = guide("Corvin — Stay safe > Tap water", "The Corvin water district says tap water is safe to drink.")
+        val parent = guide("Velland — Stay healthy", "Bring water purification tablets for rural Velland.")
+        val topic = guide("Water — Tap water", "Ask locals whether tap water is drinkable.")
+        val destinations = setOf("Avelton", "Avelton/Centro", "Corvin", "Velland")
+        val sectionsOf: suspend (String) -> List<Evidence> = { article ->
+            if (article in destinations) listOf(guide("$article — Get in")) else emptyList()
+        }
+        val evidence = listOf(own, district, other, parent, topic)
+        // Another destination goes; the asked place, its district, a topic guide and the app's own choice stay.
+        assertEquals(listOf(own, district, topic), GuideScope.withoutUnaskedPlaces(question, evidence, emptyList(), sectionsOf))
+        assertEquals(listOf(own, district, parent, topic), GuideScope.withoutUnaskedPlaces(question, evidence, listOf("Velland"), sectionsOf))
+        // A region that speaks about the place, or a part named after it, stays.
+        val region = guide("Northern Isles — Respect", "In Avelton and its neighbours, cover your shoulders in temples.")
+        val part = guide("Avelton Proper — Do", "Lakes and saunas.")
+        assertEquals(listOf(own, region, part), GuideScope.withoutUnaskedPlaces(question, listOf(own, region, part, other), emptyList()) { article ->
+            listOf(guide("$article — Get in"))
+        })
+        // No guide of the named place among the evidence: nothing to prefer, nothing removed.
+        assertEquals(listOf(other, topic), GuideScope.withoutUnaskedPlaces(question, listOf(other, topic), emptyList(), sectionsOf))
+    }
+
     @Test fun aQuestionThatNamesNoPlaceReadsNoDestinationsGuideOrListings() = runBlocking {
         val destination = guide("Avelton — Buy > Debit cards", "In Avelton foreign cards are refused; bring cash.")
         val topic = guide("Money — Cards", "A credit card gives more protection against fraud than a debit card.")

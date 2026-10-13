@@ -680,6 +680,12 @@ class ResearchOrchestrator(
                     retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
                 }
             }
+            if (attachments.isEmpty()) {
+                val chosen = travelNames + travelPicked.map { it.title.substringBefore(" — ") } + listOfNotNull(travelPlace)
+                evidence = GuideScope.withoutUnaskedPlaces(question, evidence, chosen) { article ->
+                    retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
+                }
+            }
             if (includeLibrary && attachments.isEmpty() && phraseAsk == null && travelPlace == null && !placesOnly) {
                 EvidenceRelevance.definitionSubject(question)?.let { topic ->
                     if ((evidence + subjects + depth).none {
@@ -836,9 +842,10 @@ class ResearchOrchestrator(
                 first?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
                     TokenEstimate.of(explanation.prompt), at - generationStart) }
                 val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
-                val cleaned = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
-                    AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)
+                val (cleaned, draftGap) = CitedExplanation.withoutGapStatements(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence))
                 var finished = CitedExplanation.finish(cleaned, packed.sources.size)
+                var partial = draftGap
                 if (CitedExplanation.hasScopeRisk(finished, packed) ||
                     CitedExplanation.hasWrongComparisonCitation(finished, question, packed)) finished = CitedExplanation.UNAVAILABLE
                 if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
@@ -857,19 +864,28 @@ class ResearchOrchestrator(
                     val retryPrompt = explanation.prompt.substringBeforeLast("\n\nANSWER:") +
                         CitedExplanation.repairInstruction(cleaned, question, packed, repairShape)
                     inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect { tokens++; retry.append(it) }
-                    val repaired = CitedExplanation.finish(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
-                        AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence), packed.sources.size)
+                    val (retried, repairGap) = CitedExplanation.withoutGapStatements(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                        AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence))
+                    val repaired = CitedExplanation.finish(retried, packed.sources.size)
                     if (repaired == CitedExplanation.GAP) finished = repaired
                     else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
                         !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
                         val review = StringBuilder()
                         inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
-                        if (CitedExplanation.reviewPassed(review.toString())) finished = repaired
+                        if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap }
                     }
                 }
                 val missing = EvidenceRelevance.missingComparisonSubjects(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })
-                val explanationWithGap = if (missing.isEmpty() || finished == CitedExplanation.UNAVAILABLE || finished == CitedExplanation.GAP) finished
-                    else finished + "\n\n_The selected excerpts do not cover ${missing.joinToString(", ")}; this is not a complete comparison._"
+                val answered = finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP
+                val explanationWithGap = when {
+                    !answered -> finished
+                    missing.isNotEmpty() -> finished + "\n\n_The selected excerpts do not cover ${missing.joinToString(", ")}; this is not a complete comparison._"
+                    partial -> finished + "\n\n" + CitedExplanation.PARTIAL
+                    else -> finished
+                }.let { text ->
+                    val conflict = if (answered) ClockConflict.note(question, finished, packed.sources) else null
+                    if (conflict == null) text else text + "\n\n" + conflict
+                }
                 val coverage = selection?.let { AttachmentEvidence.coverageSummary(it, packed.sources.map { s -> s.evidence }, attachments) }
                 val answer = if (coverage == null) explanationWithGap else explanationWithGap + "\n\n_" + coverage + "_"
                 val audit = AnswerText.citationAudit(answer, packed.sources.size)

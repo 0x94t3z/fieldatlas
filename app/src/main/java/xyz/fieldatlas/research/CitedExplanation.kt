@@ -6,6 +6,43 @@ internal object CitedExplanation {
     const val UNAVAILABLE = "I couldn't produce a properly cited explanation from the selected sources. You can inspect the sources or try a narrower question."
     const val GAP = "The selected excerpts don't provide enough evidence to answer this question. Try adding a relevant source or narrowing the question."
 
+    const val PARTIAL = "_The selected sources don't cover every part of this question; the answer gives only what they state._"
+
+    private val gapStatement = Regex("(?i)INSUFFICIENT_EVIDENCE|" +
+        "\\b(?:evidence|excerpts?|sources?|passages?|context)\\b[^.!?]{0,60}?\\b(?:does|do|did)\\s*(?:not|n't)\\s+" +
+        "(?:contain|include|provide|mention|specify|state|say|give|address|cover|discuss|offer)\\b|" +
+        "\\bcannot be (?:determined|found|answered|inferred|identified)\\s+(?:from|based on|using|with)\\b|" +
+        "\\b(?:there is|there's)\\s+no\\s+(?:information|mention|data|details?)\\b[^.!?]{0,60}\\b(?:evidence|excerpts?|sources?|passages?)\\b|" +
+        "\\bnone of (?:the|these)\\s+(?:sources|excerpts|passages)\\b")
+    private val leadingCitations = Regex("^((?:\\[S[0-9]+]\\s*[,;]?\\s*)+)")
+
+    /** A model's own "the sources don't say X" sentence carries no citable fact, and an
+     * uncited one voids an otherwise cited answer. Remove those sentences and let the app
+     * state the gap ([PARTIAL]). Substantive negatives ("the test does not prove…") are
+     * findings, not gap statements, and stay for citation checks and review. */
+    fun withoutGapStatements(raw: String): Pair<String, Boolean> {
+        val visible = AnswerText.visible(raw).trim()
+        // Leading with the gap means the gap is the answer ("no information about the
+        // Zelthar purifier; [S1] discusses space suits"): what follows is unrelated.
+        if (gapStatement.containsMatchIn(visible.split(Regex("(?<=[.!?])\\s+|\\n")).first())) return "INSUFFICIENT_EVIDENCE" to true
+        var removed = false
+        val paragraphs = visible.split(Regex("\\n\\s*\\n")).map { paragraph ->
+            val kept = mutableListOf<String>()
+            for (sentence in paragraph.trim().split(Regex("(?<=[.!?])\\s+"))) {
+                // "X. [S1] The sources do not…": the citation belongs to the sentence before.
+                val lead = leadingCitations.find(sentence)?.value.orEmpty()
+                if (lead.isNotEmpty() && kept.isNotEmpty()) kept[kept.lastIndex] = kept.last() + " " + lead.trim()
+                val body = if (kept.isNotEmpty()) sentence.removePrefix(lead) else sentence
+                if (gapStatement.containsMatchIn(body)) removed = true
+                else if (body.isNotBlank()) kept += body
+            }
+            kept.joinToString(" ")
+        }.filter { it.isNotBlank() }
+        if (!removed) return raw to false
+        val text = paragraphs.joinToString("\n\n")
+        return (if (text.any(Char::isLetter)) text else "INSUFFICIENT_EVIDENCE") to true
+    }
+
     fun explicitlyRequestsQuotes(question: String): Boolean =
         Regex("(?i)\\b(?:quote|verbatim|exact wording|word for word)\\b").containsMatchIn(question)
 
@@ -78,7 +115,8 @@ EVIDENCE:
     }
 
     fun finish(raw: String, count: Int): String {
-        val text = AnswerText.finalized(raw, count).trim()
+        // The prompt ends "ANSWER:", and a small model sometimes echoes that label first.
+        val text = AnswerText.finalized(raw, count).trim().replace(Regex("^ANSWER:\\s*"), "")
         if (text == "INSUFFICIENT_EVIDENCE") return GAP
         val audit = AnswerText.citationAudit(raw, count)
         if (text.isBlank() || audit.hasUnmappedCitation || audit.citedSourceIds.isEmpty()) return UNAVAILABLE

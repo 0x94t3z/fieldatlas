@@ -315,6 +315,14 @@ class EmergencyGuideMatchTest {
         assertNull(match("What is the best way to learn about tsunamis?"))
     }
 
+    @Test fun aPlacesTapWaterIsTravelAdviceNotWaterTreatment() {
+        assertNull(match("Is it safe to drink tap water in Mexico City?"))
+        assertNull(match("Can I drink the tap water in Lisbon?"))
+        // Water someone must treat, or a supply an event has spoiled, still opens the guide.
+        assertEquals("safe-drinking-water", match("Is the tap water safe to drink when it looks brown?"))
+        assertEquals("safe-drinking-water", match("is it safe to drink stream water"))
+    }
+
     @Test fun coolingAndFuelWordsDoNotHideAHeatCollapse() {
         assertEquals("heat-illness", match("She fainted in the heat and her body temperature is very high"))
         assertEquals("heat-illness", match("My friend collapsed in the heat, we poured cold water on him, what else should we do?"))

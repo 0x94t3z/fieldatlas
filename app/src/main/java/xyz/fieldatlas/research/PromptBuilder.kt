@@ -162,11 +162,23 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             }
             if (direct.isNotEmpty()) return build(question, direct, contextTokenBudget)
             val selected = comparison.mapNotNull { topic ->
-                candidates.filter { EvidenceRelevance.hasOverviewStatement(it, listOf(topic)) }
-                    .minByOrNull { item ->
-                        val title = item.title.lowercase().trim()
-                        if (title == topic.lowercase() || title == topic.lowercase() + "s") 0 else 1
-                    }
+                val name = topic.lowercase()
+                // Sectioned packs title an introduction "Solar eclipse — Overview".
+                fun ownArticle(item: Evidence) = item.title.lowercase().substringBefore(" — ").trim()
+                    .let { it == name || it == name + "s" }
+                fun introduction(item: Evidence) = !item.title.contains(" — ") || item.title.endsWith(" — Overview")
+                candidates.mapNotNull { item ->
+                    val states = EvidenceRelevance.hasOverviewStatement(item, listOf(topic))
+                    when {
+                        ownArticle(item) && states -> 0
+                        // "A solar eclipse occurs when…" is outside the statement grammar, yet the
+                        // subject's own introduction still describes it. Without this, one side
+                        // drops out and the model fills it from the other side's passage.
+                        ownArticle(item) && introduction(item) -> 1
+                        states -> 2
+                        else -> null
+                    }?.let { rank -> item to rank }
+                }.minByOrNull { it.second }?.first
             }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             if (selected.isNotEmpty()) return build(question, selected, contextTokenBudget)
         }

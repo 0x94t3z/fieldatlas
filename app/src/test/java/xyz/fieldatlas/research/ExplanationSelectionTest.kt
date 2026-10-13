@@ -21,6 +21,19 @@ class ExplanationSelectionTest {
         assertTrue(packed.sources.single().excerpt.contains("only to the laboratory"))
     }
 
+    @Test fun eachComparisonSideKeepsItsOwnIntroductionWhateverItsOpeningVerb() {
+        val question = "How does a lunar eclipse differ from a solar eclipse?"
+        // The lunar introduction names solar eclipses in passing; that must not stand in for the solar side.
+        val lunar = row("lunar", "Lunar eclipse — Overview",
+            "A lunar eclipse, also called a blood moon, is an astronomical event that occurs when the Moon orbits through Earth's shadow. " +
+                "In contrast with elusive and short-lasting solar eclipses, lunar eclipses can be observed from anywhere on the night side of Earth.")
+        val solar = row("solar", "Solar eclipse — Overview",
+            "A solar eclipse occurs when the Moon passes between Earth and the Sun, thereby obscuring the view of the Sun from a small part of Earth.")
+        val section = row("lunarTypes", "Lunar eclipse — Types", "A lunar eclipse is penumbral, partial or total depending on the shadow.")
+        val packed = PromptBuilder.buildKnowledge(question, listOf(section, lunar, solar), listOf(lunar, solar), emptyList(), 8192, null)
+        assertEquals(listOf(lunar, solar), packed.sources.map { it.evidence })
+    }
+
     @Test fun aFunctionExplainedAcrossSentencesIsNotDiscarded() {
         val question = "How do chloroplasts help plants make food?"
         val direct = row("cells", "Eukaryotic Cells: Plant Cells: Chloroplasts",

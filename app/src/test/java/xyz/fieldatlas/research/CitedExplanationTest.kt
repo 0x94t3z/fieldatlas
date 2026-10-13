@@ -34,6 +34,41 @@ class CitedExplanationTest {
         assertTrue(events.filterIsInstance<ResearchEvent.Token>().last().text.endsWith("[S1]."))
         assertFalse(events.filterIsInstance<ResearchEvent.Token>().any { "Uncited initial" in it.text })
     }
+    @Test fun theModelsOwnGapSentencesBecomeAnAppNoteNotAWithheldAnswer() {
+        val (kept, gap) = CitedExplanation.withoutGapStatements(
+            "Caloric restriction extends lifespan in mice and rats [S1]. However, the provided evidence does not contain information " +
+                "regarding humans. Therefore, the answer is INSUFFICIENT_EVIDENCE.")
+        assertTrue(gap)
+        assertEquals("Caloric restriction extends lifespan in mice and rats [S1].", kept)
+        // A cited absence claim is still a gap statement; citing a source for what it lacks proves nothing.
+        assertEquals("An IPv6 address has 128 bits [S2]." to true, CitedExplanation.withoutGapStatements(
+            "An IPv6 address has 128 bits [S2]. The router's password cannot be determined from the provided evidence [S1]."))
+        // A citation written after the full stop stays with its own sentence.
+        assertEquals("Velin is a liquid. [S1]" to true, CitedExplanation.withoutGapStatements(
+            "Velin is a liquid. [S1] The sources do not mention its boiling point."))
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements("The excerpts do not specify a warranty."))
+        // A draft that leads with the gap has nothing on topic to keep, whatever it cites next.
+        assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements(
+            "The provided evidence does not mention the Zelthar purifier. [S1] and [S3] discuss space suit requirements."))
+        assertEquals("An IPv6 address has 128 bits [S1].", CitedExplanation.finish("ANSWER: An IPv6 address has 128 bits [S1].", 1))
+        // Findings about what a study did not show are answers, not gaps.
+        val finding = "The test does not prove the battery lasts 9 hours below zero, because it was run at 20 °C [S1]."
+        assertEquals(finding to false, CitedExplanation.withoutGapStatements(finding))
+    }
+
+    @Test fun aPartlyAnsweredQuestionKeepsItsCitedPartWithTheGapStated() = runBlocking {
+        val fact = Evidence("luma", "luma:0", "Luma projector", "fixture://luma",
+            "The Luma projector produces a beam through its emitter.", 0.0)
+        val model = FakeInferenceGateway(listOf("The Luma projector emits its beam through an emitter [S1]. " +
+            "Its brightness cannot be determined from the provided evidence [S1]."))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(fact) }, model)
+            .research("How does the Luma projector produce a beam?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertEquals("The Luma projector emits its beam through an emitter [S1].\n\n" + CitedExplanation.PARTIAL, answer)
+        // Only the cited remainder is reviewed; the gap is the app's statement, not a sourced claim.
+        assertFalse(model.reviewPrompts.single().contains("brightness"))
+    }
+
     @Test fun negativeOrAmbiguousSupportReviewNeverPublishesTheDraft() = runBlocking {
         val fact = Evidence("luma", "luma:0", "Luma projector", "fixture://luma",
             "The Luma projector produces a beam through its emitter. The test establishes operation only after dry storage. Wet storage safety is unknown.", 0.0)
