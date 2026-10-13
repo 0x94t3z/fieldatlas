@@ -82,10 +82,15 @@ internal fun LicenceSheet(onDismiss: () -> Unit) {
 
 @Composable
 private fun LicenceChoice(title: String, detail: String?, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(FieldAtlasButtonShape)
-        .clickable(role = Role.Button, onClick = onClick).padding(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(title, style = MaterialTheme.typography.bodyMedium)
-        detail?.let { MoreNote(it) }
+    // The chevron shows each row opens its full text.
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(FieldAtlasButtonShape)
+        .clickable(role = Role.Button, onClick = onClick).padding(vertical = 12.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            detail?.let { MoreNote(it) }
+        }
+        Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f))
 }

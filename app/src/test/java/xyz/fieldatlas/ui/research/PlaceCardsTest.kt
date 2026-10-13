@@ -33,7 +33,7 @@ class PlaceCardsTest {
         assertEquals("Hours not recorded", first.hours)
         assertEquals("Checked 2025-09-01", first.checked)
         assertEquals(answer.sources.indexOf(daizu), first.sourceIndex)
-        assertEquals("Mo-Su 10:00-02:00", cards[1].hours)
+        assertEquals("Daily 10:00–02:00", cards[1].hours)
         assertEquals("No check date", cards[1].checked)
     }
 

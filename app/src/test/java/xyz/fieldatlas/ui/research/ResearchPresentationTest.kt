@@ -45,7 +45,7 @@ class ResearchPresentationTest {
             sourceCount = 1,
         )
         assertTrue(model.hasUnmappedCitation)
-        assertEquals("1 of 1 sources cited", model.citationCoverage)
+        assertEquals("1 of 1 source cited", model.citationCoverage)
     }
 
     @Test fun citationTargetsOnlyExistingSources() {

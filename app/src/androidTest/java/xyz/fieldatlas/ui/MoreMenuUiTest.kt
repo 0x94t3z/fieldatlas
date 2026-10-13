@@ -53,7 +53,7 @@ class MoreMenuUiTest {
     @Test fun allInformationDestinationsOpenDirectlyAndClose() {
         render()
         listOf("Offline readiness" to "Offline readiness", "App & device" to "App & device",
-            "Troubleshooting" to "Support report", "Privacy & offline use" to "Privacy & offline use",
+            "Support report" to "Support report", "Privacy & offline use" to "Privacy & offline use",
             "Licences" to "Licences").forEach { (menu, title) ->
             compose.onNodeWithText(menu).performScrollTo().performClick()
             compose.onNodeWithContentDescription("Close $title").assertIsDisplayed()
@@ -151,7 +151,7 @@ class MoreMenuUiTest {
     @Test fun supportExportRequiresQuestionOptInAndHasAnEmptyState() {
         val exports = mutableListOf<Boolean>()
         render(onExport = { exports += it })
-        compose.onNodeWithText("Troubleshooting").performScrollTo().performClick()
+        compose.onNodeWithText("Support report").performScrollTo().performClick()
         compose.onNodeWithText("No recent issues recorded.").assertExists()
         compose.onNodeWithContentDescription("Include latest question").assertIsOff()
         compose.onNodeWithText("Save support report").performScrollTo().performClick()
@@ -163,7 +163,7 @@ class MoreMenuUiTest {
     @Test fun clearingIssuesNeedsConfirmationAndDoesNotClearOnKeep() {
         var cleared = 0
         render(logs = (1..40).joinToString("\n") { "[Model] Earlier issue $it" }, onClear = { cleared++ })
-        compose.onNodeWithText("Troubleshooting").performScrollTo().performClick()
+        compose.onNodeWithText("Support report").performScrollTo().performClick()
         compose.onNodeWithText("Clear details").assertDoesNotExist()
         compose.onNodeWithText("Recent technical details").performScrollTo().performClick()
         compose.onNodeWithText("Clear details").performScrollTo().performClick()
@@ -195,7 +195,7 @@ class MoreMenuUiTest {
 
     @Test fun largeTextDarkSheetsKeepCloseVisibleAndActionsReachable() {
         render(dark = true, scale = 2f)
-        listOf("Offline readiness" to "Offline readiness", "Troubleshooting" to "Support report",
+        listOf("Offline readiness" to "Offline readiness", "Support report" to "Support report",
             "Privacy & offline use" to "Privacy & offline use", "Licences" to "Licences").forEach { (menu, title) ->
             compose.onNodeWithText(menu).performScrollTo().performClick()
             compose.onAllNodes(hasScrollAction()).onLast().performTouchInput { swipeUp() }

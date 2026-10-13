@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +75,7 @@ fun SourcesScreen(
     var showOriginal by rememberSaveable(evidence.documentId, evidence.chunkId) { mutableStateOf(false) }
     val presentation = sourcePresentation(evidence)
     val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val verifiedKind = evidence.source.split(" · ").getOrNull(1)
     val language = if (presentation.isAttachment && verifiedKind !in setOf("pdf", "image")) TextFileTypes.language(evidence.title) else null
     if (showOriginal && original != null) OriginalSourcePreview(original, evidence.title,
@@ -85,7 +88,10 @@ fun SourcesScreen(
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
             FieldAtlasTopBar(title = "Source $sourceNumber of $sourceCount", onBack = onBack, action = {
                 xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(
-                    onClick = { clipboard.setText(AnnotatedString(evidence.text)) },
+                    onClick = {
+                        clipboard.setText(AnnotatedString(evidence.text))
+                        android.widget.Toast.makeText(context, "Source text copied", android.widget.Toast.LENGTH_SHORT).show()
+                    },
                     description = "Copy source text", icon = FieldAtlasIcons.Copy)
             })
             LazyColumn(
@@ -124,7 +130,10 @@ fun SourcesScreen(
             }
             if (presentation.isAttachment) item {
                 if (original?.file?.isFile == true) {
-                    TextButton(shape = FieldAtlasButtonShape, onClick = { showOriginal = true }) {
+                    androidx.compose.material3.OutlinedButton(shape = FieldAtlasButtonShape, onClick = { showOriginal = true },
+                        modifier = Modifier.heightIn(min = 48.dp)) {
+                        androidx.compose.material3.Icon(FieldAtlasIcons.Document, null, Modifier.size(18.dp))
+                        androidx.compose.foundation.layout.Spacer(Modifier.width(8.dp))
                         Text(when (original.kind) { AttachmentKind.PDF -> "View original PDF"; AttachmentKind.DOCUMENT -> "View document text"; else -> "View original file" })
                     }
                 } else Text("Original file is no longer available locally. The saved excerpt is still available.",

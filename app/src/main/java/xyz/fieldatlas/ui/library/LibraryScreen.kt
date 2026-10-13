@@ -226,7 +226,7 @@ fun LibraryScreen(
                 )
             }
             }
-            if (discovering) {
+            if (discovering && modelDownloads.isNotEmpty()) {
             item { SectionLabel("Answer models") }
             items(modelDownloads.size, key = { "model-offer:${modelDownloads[it].id}:${modelDownloads[it].version}" }) { index ->
                 val offer = modelDownloads[index]
@@ -287,7 +287,7 @@ fun LibraryScreen(
                     itemVerticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = onOpenDownloadSources, shape = FieldAtlasButtonShape,
                         modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(0.dp)) {
-                        Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
+                        Icon(FieldAtlasIcons.Globe, null, Modifier.size(18.dp))
                         Text("Download sources", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelMedium)
                     }
                     TextButton(onClick = onRefreshCatalog, enabled = !catalogRefreshing, shape = FieldAtlasButtonShape,
@@ -320,7 +320,7 @@ fun LibraryScreen(
                     }
                 }
             }
-            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("No new collections available. Your saved packs are on this phone.") }
+            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("Everything offered is already on this phone.") }
             }
             if (knowledgeDownloadError != null) {
                 item {
@@ -336,7 +336,7 @@ fun LibraryScreen(
             if (speech.isEmpty()) {
                 item {
                     EmptyLibraryNote(
-                        "No dictation model installed - the compact built-in voice model is used.",
+                        "Voice input uses the compact model built into the app. Nothing else to download.",
                     )
                 }
             }
@@ -369,12 +369,12 @@ internal fun KnowledgeDownloadCard(
     var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            val visual = categoryVisual(knowledgeCategory(pack.id, pack.category))
+            val visual = subjectVisual(pack.id) ?: categoryVisual(knowledgeCategory(pack.id, pack.category))
             FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(pack.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${formatAssetBytes(pack.bytes)} · version ${pack.version}",
+                    "${formatAssetBytes(pack.bytes)} · version ${xyz.fieldatlas.ui.presentation.displayVersion(pack.version)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -556,16 +556,26 @@ internal fun categoryVisual(category: KnowledgeCategory): PackVisual = when (cat
     else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
 }
 
-internal fun packVisual(asset: InstalledAsset): PackVisual {
-    val id = asset.id.lowercase()
+/** A collection's own subject, so each one is recognisable at a glance in Library and Discover. */
+internal fun subjectVisual(packId: String): PackVisual? {
+    val id = packId.lowercase()
     return when {
-        asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
-        asset.type == PackType.AUDIO -> PackVisual(FieldAtlasIcons.Mic, TileTone.Paper)
-        "guides" in id -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
+        "vegan" in id -> PackVisual(FieldAtlasIcons.Leaf, TileTone.Sage)
+        "essentials" in id -> PackVisual(FieldAtlasIcons.Storefront, TileTone.Gold)
+        "guides" in id -> PackVisual(FieldAtlasIcons.Compass, TileTone.Sage)
         listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Gold)
-        listOf("biology", "science", "longevity", "health", "crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
-        else -> PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
+        listOf("encyclopedia", "wikipedia").any { it in id } -> PackVisual(FieldAtlasIcons.Encyclopedia, TileTone.Sage)
+        listOf("crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Key, TileTone.Paper)
+        listOf("biology", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Dna, TileTone.Sage)
+        "science" in id -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
+        else -> null
     }
+}
+
+internal fun packVisual(asset: InstalledAsset): PackVisual = when {
+    asset.type == PackType.MODEL -> PackVisual(FieldAtlasIcons.Model, TileTone.Sage)
+    asset.type == PackType.AUDIO -> PackVisual(FieldAtlasIcons.Mic, TileTone.Paper)
+    else -> subjectVisual(asset.id) ?: PackVisual(FieldAtlasIcons.Document, TileTone.Paper)
 }
 
 @Composable
@@ -669,7 +679,7 @@ private fun AssetCard(
                     maxLines = if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) Int.MAX_VALUE else 2,
                     overflow = TextOverflow.Ellipsis)
                 Text(
-                    "${model.size} · v${model.version}" + (if (inactive) " · not used" else "") + (note?.let { " · $it" } ?: ""),
+                    "${model.size} · v${xyz.fieldatlas.ui.presentation.displayVersion(model.version)}" + (if (inactive) " · not used" else "") + (note?.let { " · $it" } ?: ""),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 18.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

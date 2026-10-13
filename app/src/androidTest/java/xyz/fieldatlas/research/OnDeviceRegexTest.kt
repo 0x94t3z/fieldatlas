@@ -716,6 +716,16 @@ class OnDeviceRegexTest {
         "AnswerScreen.kt" to "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
         "SourceTextContent.kt" to "^([A-Z][A-Za-z /&'()-]{0,39}):\\s+(\\S.*)\$",
         "SourcesScreen.kt" to "page (\\d+)",
+        "AssetPresentation.kt" to "^\\d+(?:\\.\\d+){1,3}",
+        "PlaceCards.kt" to "(\\d[\\d.,]* (?:m|km)) (?:to the )?((?:north|south|east|west)(?:-(?:east|west))?)\\b",
+        "PlaceCards.kt" to "\\s*;\\s*",
+        "PlaceCards.kt" to "\\bMo-Su\\b",
+        "PlaceCards.kt" to "\\b(Mo|Tu|We|Th|Fr|Sa|Su)\\b",
+        "PlaceCards.kt" to "\\bPH\\b",
+        "PlaceCards.kt" to "\\boff\\b",
+        "PlaceCards.kt" to "(?<=[A-Za-z]{3})-(?=[A-Z][a-z]{2})",
+        "PlaceCards.kt" to "(?<=\\d{2}:\\d{2})-(?=\\d{2}:\\d{2})",
+        "PlaceCards.kt" to "\\s{2,}",
     )
 
     @Test

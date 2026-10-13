@@ -75,7 +75,10 @@ fun answerCardPreview(answer: String): String {
     val firstBody = blocks.firstOrNull {
         it is MarkdownBlock.Paragraph || it is MarkdownBlock.ListBlock || it is MarkdownBlock.Quote
     } ?: blocks.firstOrNull()
-    val text = firstBody?.plainText()
+    // "Nearest saved places …:" introduces a list; the preview should name what follows.
+    val lead = firstBody?.plainText()?.trim()
+    val following = if (lead?.endsWith(":") == true) blocks.getOrNull(blocks.indexOf(firstBody) + 1)?.plainText() else null
+    val text = listOfNotNull(lead, following).joinToString(" ").takeIf(String::isNotBlank)
         ?.replace(Regex("\\[S\\d+]"), "")
         // Pronunciation guides ("Buoyancy (/ˈbɔɪənsi/)") crowd out the first words of a
         // two-line preview; the full answer keeps them verbatim.
@@ -166,7 +169,7 @@ fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchM
             "${metrics.generatedTokenCount} generated tokens",
         tokenRate = rate,
         promptReading = reading,
-        citationCoverage = if (sourceCount == 0) "No local sources cited" else "$citedCount of $sourceCount sources cited",
+        citationCoverage = if (sourceCount == 0) "No local sources cited" else "$citedCount of $sourceCount " + (if (sourceCount == 1) "source cited" else "sources cited"),
         hasUnmappedCitation = metrics.hasUnmappedCitation,
     )
 }
@@ -246,7 +249,7 @@ internal fun researchSteps(state: ResearchUiState, readEstimate: PrefillEstimate
     val writing = state.tokensWritten > 0
     val passages = state.sources.size
     val search = ResearchStep(
-        title = "Search your collections",
+        title = if (state.attachments.isNotEmpty()) "Search your files" else "Search your collections",
         status = if (searched) StepStatus.Done else StepStatus.Active,
         detail = when {
             searched -> when (passages) {

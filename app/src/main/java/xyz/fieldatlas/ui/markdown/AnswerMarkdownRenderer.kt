@@ -258,6 +258,14 @@ private fun SectionHeading(section: AnswerSection, style: TextStyle) {
     }
 }
 
+/** "Japanese phrasebook — Phrase list > Basics" as "Japanese phrasebook · Basics": the article and
+ * the section that holds the line fit one row; middle-cutting the full path split words. */
+internal fun shortSourceTitle(title: String): String {
+    val article = title.substringBefore(" — ").trim()
+    val section = title.substringAfter(" — ", "").substringAfterLast(" > ").trim()
+    return if (section.isEmpty() || section == article) article else "$article · $section"
+}
+
 @Composable
 private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit, sourceTitles: List<String>) {
     Column(
@@ -278,9 +286,9 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit, sou
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(sourceTitles.getOrNull(number - 1) ?: "Open source",
+                    Text(sourceTitles.getOrNull(number - 1)?.let(::shortSourceTitle) ?: "Open source",
                         modifier = Modifier.weight(1f), maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FieldAtlasEditorial, fontSize = 14.sp))
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,

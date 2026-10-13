@@ -88,6 +88,7 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
         withContext(Dispatchers.Main.immediate) { value = loaded }
     }
     val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -105,7 +106,14 @@ internal fun OriginalSourcePreview(original: SourceOriginal, title: String, cite
                     }
                     content.text != null -> LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(20.dp)) {
                         item {
-                            TextButton(shape = FieldAtlasButtonShape, onClick = { clipboard.setText(AnnotatedString(content.text!!)) }) { Text("Copy original text") }
+                            OutlinedButton(shape = FieldAtlasButtonShape, modifier = Modifier.padding(bottom = 16.dp).heightIn(min = 48.dp), onClick = {
+                                clipboard.setText(AnnotatedString(content.text!!))
+                                android.widget.Toast.makeText(context, "Original text copied", android.widget.Toast.LENGTH_SHORT).show()
+                            }) {
+                                Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Copy, null, Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Copy original text")
+                            }
                             SourceTextContent(content.text!!, TextFileTypes.language(title))
                         }
                     }

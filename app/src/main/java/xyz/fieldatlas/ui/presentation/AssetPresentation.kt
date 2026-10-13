@@ -82,6 +82,11 @@ internal fun knowledgeSelectionSummary(packs: List<InstalledAsset>): String? {
     return "${enabled.size} of ${knowledge.size} collections enabled"
 }
 
+/** A version as people read it: "2026.10.12-native-compressed-preview" is shown as "2026.10.12".
+ * Build suffixes stay in technical details; a version without a leading number is kept whole. */
+internal fun displayVersion(version: String): String =
+    Regex("^\\d+(?:\\.\\d+){1,3}").find(version.trim())?.value ?: version.trim()
+
 internal fun formatAssetBytes(bytes: Long): String {
     val formatter = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }
     return when {

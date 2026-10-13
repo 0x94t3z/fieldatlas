@@ -297,7 +297,35 @@ private class MarkdownParser(markdown: String) {
             cursor += 1
         }
         flushPlain()
-        return result
+        return punctuationBeforeCitations(result)
+    }
+
+    /** "worktop [1] ." reads as a stray full stop: a sentence's punctuation goes before its citations. */
+    private fun punctuationBeforeCitations(items: List<MarkdownInline>): List<MarkdownInline> {
+        val out = items.toMutableList()
+        var i = 0
+        while (i < out.size) {
+            if (out[i] !is MarkdownInline.Citation) { i++; continue }
+            var end = i
+            while (end + 1 < out.size && (out[end + 1] is MarkdownInline.Citation ||
+                    (out[end + 1] as? MarkdownInline.Text)?.value?.isBlank() == true)) end++
+            val next = out.getOrNull(end + 1) as? MarkdownInline.Text
+            val mark = next?.value?.firstOrNull()
+            val before = out.getOrNull(i - 1)
+            if (mark != null && mark in ".,;:!?" && before != null) {
+                out[end + 1] = MarkdownInline.Text(next.value.drop(1))
+                when {
+                    before is MarkdownInline.Text && before.value.isNotBlank() ->
+                        out[i - 1] = MarkdownInline.Text(before.value.trimEnd() + mark)
+                    // "fire **112** [S1]." : the space after the bold number takes the mark.
+                    before is MarkdownInline.Text && i >= 2 -> out[i - 1] = MarkdownInline.Text(mark.toString())
+                    before !is MarkdownInline.Text -> { out.add(i, MarkdownInline.Text(mark.toString())); end++; i++ }
+                    else -> out[end + 1] = next
+                }
+            }
+            i = end + 1
+        }
+        return out.filterNot { it is MarkdownInline.Text && it.value.isEmpty() }
     }
 
     private fun citationAt(text: String, start: Int): Pair<Int, Int>? {

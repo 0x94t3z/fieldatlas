@@ -75,7 +75,15 @@ internal fun placeSheetContent(text: String): PlaceSheetContent? {
     val lon = byLabel["Longitude"]?.toDoubleOrNull() ?: return null
     val name = byLabel["Place"] ?: return null
     val facts = fields.filter { (label, _) -> label !in hiddenPlaceFields }
-        .map { (label, value) -> (shortPlaceLabels[label] ?: label) to value } +
+        .map { (label, value) ->
+            val shown = when (label) {
+                "Hours in source", "Hours" -> readableHours(value)
+                // Map tags are lowercase ("restaurant", "vietnamese"); names and addresses keep their case.
+                "Type", "Vegan", "Cuisine", "Diet" -> value.replace('_', ' ').replaceFirstChar(Char::uppercaseChar)
+                else -> value
+            }
+            (shortPlaceLabels[label] ?: label) to shown
+        } +
         ("Coordinates" to "%.5f, %.5f".format(java.util.Locale.ROOT, lat, lon))
     return PlaceSheetContent(name, facts, byLabel["Address"], byLabel["Phone"], lat, lon)
 }
@@ -214,12 +222,12 @@ internal fun SourcePreviewSheet(
                                 modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Next source", style = MaterialTheme.typography.labelLarge) }
                         }
                         val openFull: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {
-                            Icon(FieldAtlasIcons.OpenExternal, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(FieldAtlasIcons.Document, contentDescription = null, modifier = Modifier.size(18.dp))
                             Text("Full source", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
                         }
                         // A place already has its main action (maps) above; one filled button per sheet.
                         if (onOpenFull == null) Unit
-                        else if (place != null) TextButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
+                        else if (place != null) OutlinedButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
                         else Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)

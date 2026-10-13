@@ -79,7 +79,8 @@ internal fun PackAboutSheet(
                 FieldAtlasIconTile(visual.icon, size = 36.dp, tone = visual.tone, iconSize = 20.dp)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(title, style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle)
-                    if (asset.type == PackType.KNOWLEDGE) {
+                    // The category ("Places") adds nothing when it repeats the title ("Encyclopedia").
+                    if (asset.type == PackType.KNOWLEDGE && !knowledgeCategory(asset.id).label.equals(title, ignoreCase = true)) {
                         Text(knowledgeCategory(asset.id).label, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -97,11 +98,11 @@ internal fun PackAboutSheet(
                 Text(it, style = MaterialTheme.typography.bodyLarge)
             }
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                FieldAtlasFactRow("Version", asset.version)
+                FieldAtlasFactRow("Version", xyz.fieldatlas.ui.presentation.displayVersion(asset.version))
                 FieldAtlasFactRow("Licence", asset.license)
                 FieldAtlasFactRow("Checksum", asset.manifestSha256.take(12) + "… verified at install")
                 if (asset.type == PackType.KNOWLEDGE) FieldAtlasFactRow("Search", if (asset.enabled)
-                    "Enabled · works offline" else "Off · saved on this phone")
+                    "On · works offline" else "Off · saved on this phone")
             }
             val examples = asset.discovery?.exampleQuestions.orEmpty()
             attribution?.let { notice ->

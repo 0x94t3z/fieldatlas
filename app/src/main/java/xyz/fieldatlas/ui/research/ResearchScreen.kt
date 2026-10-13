@@ -402,8 +402,11 @@ fun ResearchScreen(
                             Text("Answer ready", style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight(650), letterSpacing = (-0.3).sp))
                             Text(
-                                if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
-                                    "Lookup · no model generation"
+                                if (state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
+                                    state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE) {
+                                    "No answer from your sources"
+                                } else if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
+                                    "Answered from saved data"
                                 } else if (citedSourceCount == 0) {
                                     "Model-generated · no sources cited"
                                 } else {

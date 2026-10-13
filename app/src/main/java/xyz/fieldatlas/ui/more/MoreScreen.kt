@@ -72,17 +72,20 @@ fun MoreScreen(
             MoreGroup("On this phone") {
                 SettingRow(FieldAtlasIcons.Offline, "Offline readiness", "Model, collections and voice.", onClick = { sheet = "readiness" })
                 MoreDivider()
-                SettingRow(FieldAtlasIcons.Storage, "Download sources", "Defaults and alternative servers.", onClick = onOpenDownloadSources)
-                MoreDivider()
-                SettingRow(FieldAtlasIcons.Benchmark, "Performance check", "18 questions · quality and speed.", onClick = onOpenBenchmark)
-                MoreDivider()
-                SettingRow(FieldAtlasIcons.Info, "App & device", "Version, memory and saved packs.", onClick = { sheet = "device" })
+                SettingRow(FieldAtlasIcons.Info, "App & device", "Version, phone and storage.", onClick = { sheet = "device" })
             }
         }
         item {
-            MoreGroup("Help & information") {
-                SettingRow(FieldAtlasIcons.Diagnostics, "Troubleshooting", "Recent issues and support reports.", onClick = { sheet = "support" })
+            MoreGroup("Tools") {
+                SettingRow(FieldAtlasIcons.Globe, "Download sources", "Default servers and mirrors.", onClick = onOpenDownloadSources)
                 MoreDivider()
+                SettingRow(FieldAtlasIcons.Benchmark, "Performance check", "Measure speed and answers on this phone.", onClick = onOpenBenchmark)
+                MoreDivider()
+                SettingRow(FieldAtlasIcons.Support, "Support report", "Save a report if something goes wrong.", onClick = { sheet = "support" })
+            }
+        }
+        item {
+            MoreGroup("About") {
                 SettingRow(FieldAtlasIcons.Privacy, "Privacy & offline use", "Questions stay on this phone.", onClick = { sheet = "privacy" })
                 MoreDivider()
                 SettingRow(FieldAtlasIcons.Document, "Licences", "Components, data and their licences.", onClick = { sheet = "licences" })
@@ -153,13 +156,13 @@ private fun ModelMemoryControls(loaded: Boolean, enabled: Boolean, onLoadedChang
         if (stacked) Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Loaded", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
+                Text("Keep in memory", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                 toggle()
             }
             Box(Modifier.align(Alignment.End)) { details() }
         } else Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Loaded", style = MaterialTheme.typography.bodyMedium)
+            Text("Keep in memory", style = MaterialTheme.typography.bodyMedium)
             toggle()
             Spacer(Modifier.weight(1f))
             details()

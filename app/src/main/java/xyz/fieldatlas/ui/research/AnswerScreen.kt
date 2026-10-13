@@ -71,6 +71,10 @@ fun AnswerScreen(
     // Lookups such as "near me" reply with app-written text and never run the model, so
     // "model-generated" and "not verified against sources" labels would be wrong there.
     val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
+    // The app's own "not enough evidence" reply is not a model answer, whatever ran before it.
+    val withheld = state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
+        state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE
+    val calculated = noModelReply && state.answer.contains("_Calculated on this phone._")
     val suggestTravel = travelCollectionAvailable && Regex(
         "(?i)\\b(restaurants?|caf[eé]s?|hotels?|museums?|sights?|attractions?|shops?)\\b",
     ).containsMatchIn(state.question)
@@ -131,18 +135,20 @@ fun AnswerScreen(
                                 )
                             } else {
                                 FieldAtlasStatusPill(
-                                    if (isInputNotice) "Research notice · no model generation"
-                                    else if (noModelReply) "Lookup · no model generation"
+                                    if (withheld) "No answer from your sources"
+                                    else if (isInputNotice) "Research notice · no model generation"
+                                    else if (calculated) "Calculated on this phone"
+                                    else if (noModelReply) "Answered from saved data"
                                     else if (state.sources.isEmpty()) "Model-generated · no supporting sources found"
                                     else "Model-generated · sources not cited",
-                                    if (isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,
+                                    if (withheld || isInputNotice || noModelReply) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
-                            state.metrics?.totalMillis?.let { FieldAtlasStatusPill(formatResearchElapsed(it)) }
+                            state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
                         }
                     }
                 }
-                if (state.sources.isEmpty() && !isInputNotice && !noModelReply) {
+                if (state.sources.isEmpty() && !isInputNotice && !noModelReply && !withheld) {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(if (suggestTravel) {

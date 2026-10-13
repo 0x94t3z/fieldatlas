@@ -49,7 +49,29 @@ internal data class PlaceCardModel(
 )
 
 private val openNowText = Regex("\\b(Open now(?: until \\d{2}:\\d{2})?|Closed now)\\b")
-private val distanceText = Regex("(\\d[\\d.,]* (?:m|km)) ((?:north|south|east|west)(?:-(?:east|west))?) away")
+// "290 m north-west away" (near me) and "1.2 km to the north" (where am I).
+private val distanceText = Regex("(\\d[\\d.,]* (?:m|km)) (?:to the )?((?:north|south|east|west)(?:-(?:east|west))?)\\b")
+
+private val dayNames = mapOf("Mo" to "Mon", "Tu" to "Tue", "We" to "Wed", "Th" to "Thu", "Fr" to "Fri", "Sa" to "Sat", "Su" to "Sun")
+
+/**
+ * OpenStreetMap hours as people read them: "Mo-Su 12:00-23:00" becomes "Daily 12:00–23:00",
+ * "Mo-Fr 09:00-19:00; Sa 09:00-14:00" becomes "Mon–Fri 09:00–19:00 · Sat 09:00–14:00".
+ * Only day names, ranges and separators change; an unfamiliar rule is still shown in full.
+ */
+internal fun readableHours(raw: String): String {
+    if (raw.trim() == "24/7") return "Open 24 hours"
+    return raw.trim().split(Regex("\\s*;\\s*")).filter(String::isNotBlank).joinToString(" · ") { rule ->
+        rule.replace(Regex("\\bMo-Su\\b"), "Daily")
+            .replace(Regex("\\b(Mo|Tu|We|Th|Fr|Sa|Su)\\b")) { dayNames.getValue(it.value) }
+            .replace(Regex("\\bPH\\b"), "holidays")
+            .replace(Regex("\\boff\\b"), "closed")
+            .replace(Regex("(?<=[A-Za-z]{3})-(?=[A-Z][a-z]{2})"), "–")
+            .replace(Regex("(?<=\\d{2}:\\d{2})-(?=\\d{2}:\\d{2})"), "–")
+            .replace(",", ", ")
+            .replace(Regex("\\s{2,}"), " ")
+    }
+}
 
 /**
  * Cards for an app-written place answer: only when every bullet cites exactly one structured
@@ -94,7 +116,7 @@ internal fun placeCardModel(index: Int, evidence: Evidence, line: String = ""): 
         badge = badge,
         badgePositive = vegan == "fully vegan",
         summary = listOfNotNull(kind, street).joinToString(" · ").takeIf(String::isNotBlank),
-        hours = fields["Hours in source"] ?: fields["Hours"] ?: "Hours not recorded",
+        hours = (fields["Hours in source"] ?: fields["Hours"])?.let(::readableHours) ?: "Hours not recorded",
         openNow = openNowText.find(line)?.value,
         checked = fields["Listing last checked"]?.let { "Checked $it" } ?: "No check date",
         distance = distance?.groupValues?.get(1),

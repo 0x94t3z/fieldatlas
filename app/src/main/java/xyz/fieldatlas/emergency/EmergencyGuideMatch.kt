@@ -50,6 +50,9 @@ object EmergencyGuideMatch {
             "monkey scratched", "scratched by a monkey", "dog scratched", "scratched by a dog", "cat scratched", "scratched by a cat",
             "bat scratched", "scratched by a bat", "animal scratch"),
         "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite", "snake bit", "bit by a snake"),
+        // "Stung" is not "sting": "my friend was stung by a bee" named only "bee", too weak alone.
+        // One plain word, so a swelling throat after a sting still outranks it (anaphylaxis).
+        "insect-stings" to listOf("stung"),
         "tick-bites" to listOf("remove a tick", "removing a tick", "tick bit", "bitten by a tick", "bit by a tick"),
         "carbon-monoxide" to listOf("gas heater", "space heater", "kerosene heater", "paraffin heater", "generator", "charcoal",
             "camp stove", "gas stove", "co alarm", "co detector", "carbon monoxide alarm", "carbon monoxide detector"),

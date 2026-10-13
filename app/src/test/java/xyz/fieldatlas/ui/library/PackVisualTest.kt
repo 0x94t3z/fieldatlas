@@ -12,9 +12,18 @@ class PackVisualTest {
         InstalledAsset(id, "1", type, id, "CC BY-SA", 1, "sha", "/tmp/$id")
 
     @Test fun packsAreDrawnBySubject() {
-        assertEquals(PackVisual(FieldAtlasIcons.Place, TileTone.Gold), packVisual(asset("wikivoyage-places")))
-        assertEquals(PackVisual(FieldAtlasIcons.Place, TileTone.Gold), packVisual(asset("osm-vegan-places")))
-        assertEquals(PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage), packVisual(asset("world-knowledge-biology")))
+        // Every offered collection gets its own subject icon, never one shared pin or book.
+        val offered = mapOf(
+            "wikipedia-encyclopedia" to FieldAtlasIcons.Encyclopedia,
+            "wikivoyage-guides" to FieldAtlasIcons.Compass,
+            "wikivoyage-places" to FieldAtlasIcons.Place,
+            "osm-vegan-places" to FieldAtlasIcons.Leaf,
+            "osm-essentials" to FieldAtlasIcons.Storefront,
+            "crypto-ethereum" to FieldAtlasIcons.Key,
+            "world-knowledge-biology" to FieldAtlasIcons.Dna,
+        )
+        offered.forEach { (id, icon) -> assertEquals(id, icon, packVisual(asset(id)).icon) }
+        assertEquals(offered.size, offered.values.toSet().size)
         assertEquals(PackVisual(FieldAtlasIcons.Document, TileTone.Paper), packVisual(asset("everyday-reference")))
         assertEquals(TileTone.Sage, packVisual(asset("qwen3.5-2b-q4-k-m", PackType.MODEL)).tone)
     }

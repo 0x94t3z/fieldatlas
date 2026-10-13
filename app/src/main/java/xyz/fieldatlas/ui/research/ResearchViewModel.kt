@@ -216,6 +216,9 @@ class ResearchViewModel(
 
     fun updateQuestion(question: String) {
         savedStateHandle[QUESTION_KEY] = question
+        // A dictation error describes the last recording, not a question typed since.
+        if (mutableVoiceState.value.error != null && mutableVoiceState.value.phase == VoicePhase.Idle)
+            mutableVoiceState.value = mutableVoiceState.value.copy(error = null)
         mutableUiState.update { state ->
             if (state.phase == ResearchPhase.Complete && question != state.question) {
                 ResearchUiState(question = question, attachments = attachmentSession.state.value)

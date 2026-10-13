@@ -43,8 +43,8 @@ internal fun AttachmentSheet(onDismiss: () -> Unit, onCamera: () -> Unit, onPhot
                 Text("Add to your question", style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle, modifier = Modifier.weight(1f))
                 xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close attachment choices")
             }
-            Column(Modifier.padding(horizontal = 4.dp, vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Read on this phone. Answers quote the parts they use.",
+            Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Read on this phone. Answers cite the parts they use.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Choice(FieldAtlasIcons.Camera, TileTone.Sage, "Take a photo", "A sign, a menu or a page of notes", onCamera)

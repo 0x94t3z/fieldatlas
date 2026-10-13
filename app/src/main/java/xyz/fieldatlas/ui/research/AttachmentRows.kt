@@ -157,7 +157,8 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                 val blocks = remember(extracted) { previewBlocks(extracted) }
                 androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 400.dp)) {
                     item {
-                        Text("Read locally. Answers use selected excerpts.", style = MaterialTheme.typography.bodySmall)
+                        Text("Read on this phone. Answers use the parts that fit the question.", style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))
                         if (extracted.fromOcr) Text("Text recognition currently supports printed English and may make mistakes. Check the original.", style = MaterialTheme.typography.bodySmall)
                         extracted.coverageNote?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                     }

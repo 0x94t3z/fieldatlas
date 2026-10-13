@@ -315,6 +315,13 @@ class EmergencyGuideMatchTest {
         assertNull(match("What is the best way to learn about tsunamis?"))
     }
 
+    @Test fun stungByABeeIsTheStingGuide() {
+        assertEquals("insect-stings", match("My friend was stung by a bee, what do I do?"))
+        assertEquals("insect-stings", match("I got stung by a wasp on my hand"))
+        // A swelling throat after a sting is still the airway emergency first.
+        assertEquals("anaphylaxis", match("He was stung by a bee and his throat is swelling"))
+    }
+
     @Test fun aPlacesTapWaterIsTravelAdviceNotWaterTreatment() {
         assertNull(match("Is it safe to drink tap water in Mexico City?"))
         assertNull(match("Can I drink the tap water in Lisbon?"))

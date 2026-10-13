@@ -1,6 +1,6 @@
 # Third-party notices
 
-This file is a navigation index for significant source and runtime components. It does not replace the license texts and notices distributed by their copyright holders.
+This list names the significant source and runtime components. It does not replace the licence texts and notices distributed by their copyright holders.
 
 The app shows this list and the full licence texts it ships (Apache-2.0, llama.cpp's MIT licence, Bouncy Castle, LLVM, the Source Serif 4 font licence and the OCR components' licences) under **More → Licences**.
 

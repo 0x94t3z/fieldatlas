@@ -35,6 +35,10 @@ internal fun licenceLabel(path: String): String {
         "source-serif-4-OFL.txt" -> "Source Serif 4 font"
         "source-sans-3-OFL.txt" -> "Source Sans 3 font"
         "manrope-OFL.txt" -> "Manrope font"
+        "bouncycastle-LICENSE.txt" -> "Bouncy Castle"
+        "llvm-LICENSE.txt" -> "LLVM"
+        "rust-runtime-LICENSE.txt" -> "Rust runtime"
+        "tessdata-LICENSE" -> "Tesseract language data"
         else -> name.removeSuffix(".txt").removeSuffix("-LICENSE").removeSuffix("-README").removeSuffix("-OFL")
     }
 }

@@ -53,8 +53,10 @@ internal fun DeviceInfoSheet(proof: ProofModel, onAbout: () -> Unit, onDismiss: 
     var technical by rememberSaveable { mutableStateOf(false) }
     FieldAtlasInfoSheet("App & device", onDismiss) {
         MoreInfoBlock("Field Atlas ${xyz.fieldatlas.BuildConfig.VERSION_NAME}", "Details reported by this phone.")
-        if (proof.device.isNotEmpty()) FactGroup("Device", proof.device)
-        if (proof.latestRun.isNotEmpty()) FactGroup("Latest research", proof.latestRun)
+        val (phone, internals) = phoneFacts(proof.device)
+        if (phone.isNotEmpty()) FactGroup("Phone", phone)
+        // A lone "No run recorded" status says nothing worth a section.
+        if (proof.latestRun.any { it.state != ProofState.Missing }) FactGroup("Latest research", proof.latestRun)
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(FieldAtlasButtonShape)
             .semantics { stateDescription = if (technical) "Expanded" else "Collapsed" }
             .clickable(role = Role.Button) { technical = !technical }, verticalAlignment = Alignment.CenterVertically) {
@@ -63,6 +65,7 @@ internal fun DeviceInfoSheet(proof: ProofModel, onAbout: () -> Unit, onDismiss: 
         }
         if (technical) {
             MoreNote("Manifest checks and verified pack metadata. These are observations, not a guarantee of answer quality.")
+            if (internals.isNotEmpty()) FactGroup("Memory and processor", internals)
             proof.offline.forEach { fact ->
                 Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(fact.label, style = MaterialTheme.typography.labelMedium)
@@ -82,6 +85,22 @@ internal fun DeviceInfoSheet(proof: ProofModel, onAbout: () -> Unit, onDismiss: 
         HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f))
         MoreAction("About Field Atlas", onAbout)
     }
+}
+
+/** What a person reads about their phone, and the measurements only support needs. */
+internal fun phoneFacts(device: List<ProofFact>): Pair<List<ProofFact>, List<ProofFact>> {
+    val everyday = device.mapNotNull { fact ->
+        when (fact.label) {
+            "Device" -> fact
+            "Physical memory" -> fact.copy(label = "Memory")
+            // API 33 is Android 13; later levels follow one-to-one so far.
+            "Android API" -> fact.value.toIntOrNull()?.takeIf { it >= 33 }
+                ?.let { fact.copy(label = "Android", value = "Android ${it - 20} (API $it)") } ?: fact
+            else -> null
+        }
+    }
+    val internals = device.filter { it.label !in setOf("Device", "Physical memory", "Android API") && it.state != ProofState.Missing }
+    return everyday to internals
 }
 
 @Composable
