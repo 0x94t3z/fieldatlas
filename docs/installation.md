@@ -23,7 +23,7 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
-After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download recovery and network-enabled traffic capture have not been independently verified for this release.
+After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for this release; network traffic during research has not been captured.
 
 ## What setup offers in 1.4.0
 
@@ -34,20 +34,19 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 
 | Collection | Download | Covers |
 | --- | ---: | --- |
-| Encyclopedia | about 316 MB | Simple English Wikipedia, December 2025 |
-| Encyclopedia in depth | about 1.39 GB | English Wikipedia's 49,822 vital articles by section, October 2026; read for the article an explanation is about, never searched |
+| Encyclopedia | about 10.64 GB (24.35 GB installed) | English and Simple English Wikipedia in one collection, 8.39 million passages; dated snapshots |
 | Travel guides | about 419 MB | Wikivoyage guides by section, September 2026: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks |
 | Travel places | about 352 MB | Dated Wikivoyage listings: sights, food, hotels, shops |
 | Vegan places | about 40 MB | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
 | Essentials | about 1.78 GB | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
 | Cryptography & Ethereum | about 78 MB | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
-| Biology & longevity | about 1.57 GB | Biology and aging research passages |
+| Biology & longevity | about 8 MB (27 MB installed) | OpenStax Biology 2e, MedlinePlus health topics, ageing gene records and six open-access ageing reviews; not medical advice |
 
 A collection installed in a newer version takes over from the older one, which stays installed
 and switched off until you delete it in Library.
 
 
-Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download has not been validated on a physical phone, so keep the pack-import option in mind.
+Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download was checked on a Redmi 13C for this release (1.40 GB in about 11 minutes); the pack import remains the way to set up a phone that cannot download.
 
 You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Biology is hosted by the fork; the other collections are project release assets. The manual import path accepts `.fapack`, not raw `.gguf` files.
 

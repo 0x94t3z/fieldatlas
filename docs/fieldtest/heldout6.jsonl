@@ -1,0 +1,60 @@
+{"id": "h6-p01", "cat": "places", "q": "where's good dim sum in hong kong? staying in sheung wan and don't want a fancy hotel restaurant"}
+{"id": "h6-p02", "cat": "places", "q": "We're in Singapore for 3 days with a 5 year old. What are the best things to do with kids apart from the zoo?"}
+{"id": "h6-p03", "cat": "places", "q": "First time in Medellín for a week. Is El Poblado or Laureles the better area to stay, and why?"}
+{"id": "h6-p04", "cat": "places", "q": "I have two days in Marrakech. What's worth seeing in and around the medina besides Jemaa el-Fnaa?"}
+{"id": "h6-p05", "cat": "places", "q": "any good flea markets or vintage markets in budapest at the weekend?"}
+{"id": "h6-p06", "cat": "places", "q": "starting a 3 day hike tomorrow. where's the nearest supermarket where i can stock up on water, oats and snacks?", "gps": [55.9533, -3.1883]}
+{"id": "h6-p07", "cat": "places", "q": "Hungry and on a budget. Any good taquerias or cheap local places to eat within walking distance?", "gps": [19.4326, -99.1332]}
+{"id": "h6-p08", "cat": "places", "q": "I've got an hour to kill before my train. Any old churches or historic sights I can walk to from here?", "gps": [50.0617, 19.9373]}
+{"id": "h6-v01", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [-33.8688, 151.2093]}
+{"id": "h6-v02", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [13.7563, 100.5018]}
+{"id": "h6-t01", "cat": "travel", "q": "Visiting London next month. Can I just tap my foreign contactless card on the buses and the Tube, or do I need an Oyster card? Is there a daily cap?"}
+{"id": "h6-t02", "cat": "travel", "q": "in thailand is it better to change cash at the airport or at superrich in bangkok? and do thai ATMs really charge foreign cards a fee every time?"}
+{"id": "h6-t03", "cat": "travel", "q": "Going to Brazil for 3 weeks. Can a foreigner buy a prepaid SIM there, and do I need a CPF number to register it?"}
+{"id": "h6-t04", "cat": "travel", "q": "I'm American and going to France and Italy next spring. Do I need to apply for ETIAS before I go, or has it not started yet?"}
+{"id": "h6-t05", "cat": "travel", "q": "Visiting the Blue Mosque and other mosques in Istanbul as a woman. What should I wear, and can tourists go in during prayer times?"}
+{"id": "h6-t06", "cat": "travel", "q": "landing in johannesburg at night. is it safe to take a taxi from the airport or should i use uber? and which areas are ok to walk around?"}
+{"id": "h6-t07", "cat": "travel", "q": "Heading to Bangkok. I've heard about tuk-tuk drivers saying the Grand Palace is closed and taking people to gem shops. How does that scam work and what others should I watch for?"}
+{"id": "h6-t08", "cat": "travel", "q": "How much should I tip in restaurants in Germany, and do I leave it on the table or tell the waiter the total when I pay?"}
+{"id": "h6-t09", "cat": "travel", "q": "Do shops really close in the afternoon in Spain for siesta? And what's usually open on Sundays?"}
+{"id": "h6-e01", "cat": "emergency", "q": "My friend is having an asthma attack and her inhaler is empty. We're camping with no signal. What can I do to help her breathe?"}
+{"id": "h6-e02", "cat": "emergency", "q": "my friend has type 1 diabetes and after a long hike he's shaky, sweaty and acting confused. he skipped lunch. what do we do"}
+{"id": "h6-e03", "cat": "emergency", "q": "I got pulled away from the shore by a strong current at the beach and barely made it back. If it happens again, or to someone I'm with, what should I do?"}
+{"id": "h6-e04", "cat": "emergency", "q": "Someone just fell through the ice on a frozen lake and is clinging to the edge. How do we get them out safely, and what do we do once they're out?"}
+{"id": "h6-e05", "cat": "emergency", "q": "hiking in the canadian rockies and there are fresh bear tracks. what do we do if we actually meet a grizzly, and what if it charges?"}
+{"id": "h6-e06", "cat": "emergency", "q": "My 60-year-old dad has crushing chest pain spreading to his left arm, he's sweaty and short of breath. We're in a remote lodge with no signal. What should I do?"}
+{"id": "h6-x01", "cat": "explanation", "q": "Why do we get a fever when we're ill? Does the higher temperature actually help fight the infection?"}
+{"id": "h6-x02", "cat": "explanation", "q": "how does a compass work, and why doesn't it point exactly to the north pole?"}
+{"id": "h6-x03", "cat": "explanation", "q": "How do solar panels turn sunlight into electricity?"}
+{"id": "h6-x04", "cat": "explanation", "q": "why do we get hiccups and is there anything that actually stops them"}
+{"id": "h6-x05", "cat": "explanation", "q": "How does a phone touchscreen know where my finger is, and why doesn't it work with gloves on?"}
+{"id": "h6-x06", "cat": "explanation", "q": "Why do planes leave white trails in the sky, and why do they sometimes vanish quickly and sometimes spread out for ages?"}
+{"id": "h6-c01", "cat": "comparison", "q": "eSIM vs buying a physical local SIM when I travel: which is cheaper and easier?"}
+{"id": "h6-c02", "cat": "comparison", "q": "hiking boots vs trail runners for a 5 day trek with some rocky and wet sections. which would you take?"}
+{"id": "h6-c03", "cat": "comparison", "q": "Cheetah vs leopard: how do you tell them apart on a safari?"}
+{"id": "h6-c04", "cat": "comparison", "q": "Visa or Mastercard abroad: does it make any difference which one I take for exchange rates and acceptance?"}
+{"id": "h6-c05", "cat": "comparison", "q": "Tromsø or Rovaniemi for seeing the northern lights in February? Which has better chances and more to do?"}
+{"id": "h6-c06", "cat": "comparison", "q": "what's the difference between a travel plug adapter and a voltage converter? do i need both for my hair dryer in the US?"}
+{"id": "h6-s01", "cat": "synthesis", "q": "Why did the Ottoman Empire decline over the 1700s and 1800s, and how did it finally end?"}
+{"id": "h6-s02", "cat": "synthesis", "q": "How did the Suez Canal change trade between Europe and Asia, and why was the Ever Given getting stuck in 2021 such a big deal?"}
+{"id": "h6-s03", "cat": "synthesis", "q": "Is regular running bad for your knees in the long run? What does the research say about runners and arthritis?"}
+{"id": "h6-s04", "cat": "synthesis", "q": "why is the atacama desert so dry, and why does that make it one of the best places on earth for telescopes?"}
+{"id": "h6-s05", "cat": "synthesis", "q": "Why does Argentina keep having such high inflation? What happened over the last few decades?"}
+{"id": "h6-r01", "cat": "reasoning", "q": "I'm cycling 95 km at an average of 18 km/h and I'll take three 20-minute breaks. If I leave at 7:45, what time do I arrive?"}
+{"id": "h6-r02", "cat": "reasoning", "q": "a video call is set for 10:00 in São Paulo (UTC-3). what time is that in Dubai (UTC+4) and in Mumbai (UTC+5:30)?"}
+{"id": "h6-r03", "cat": "reasoning", "q": "My hotel in Osaka costs 48,000 yen for 2 nights. If 1 US dollar is 148 yen and my card adds a 2.5% foreign transaction fee, how much do I pay in dollars?"}
+{"id": "h6-r04", "cat": "reasoning", "q": "Ordering pizza for 23 people. Everyone eats about 3 slices and each pizza has 8 slices. How many pizzas do I need, and what's the total if each costs 11.50?"}
+{"id": "h6-r05", "cat": "reasoning", "q": "The bus fare went up from 2.40 to 2.90. What percentage increase is that? If I ride twice a day for 22 days a month, how much extra a month?"}
+{"id": "h6-r06", "cat": "reasoning", "q": "On a 1:50,000 map our route measures 14.6 cm. How many km is that, and how long will it take at 4.5 km/h?"}
+{"id": "h6-y01", "cat": "crypto", "q": "How does an ECDSA signature prove I own my bitcoin without ever showing anyone my private key?"}
+{"id": "h6-y02", "cat": "crypto", "q": "what is the lightning network and is it actually good for paying for coffee with bitcoin?"}
+{"id": "h6-y03", "cat": "crypto", "q": "What is MEV on Ethereum, and what is a sandwich attack when I swap tokens on a DEX? How do I avoid it?"}
+{"id": "h6-y04", "cat": "crypto", "q": "Why does my Bitcoin wallet give me a new address every time I want to receive? Is it bad to reuse the same one?"}
+{"id": "h6-l01", "cat": "lookup", "q": "who was nikola tesla?"}
+{"id": "h6-l02", "cat": "lookup", "q": "When was Machu Picchu built, and when did the outside world find out about it?"}
+{"id": "h6-l03", "cat": "lookup", "q": "how big is australia compared to europe?"}
+{"id": "h6-l04", "cat": "lookup", "q": "Tell me about Kazakhstan"}
+{"id": "h6-l05", "cat": "lookup", "q": "What's the longest river in Africa and how long is it?"}
+{"id": "h6-l06", "cat": "lookup", "q": "tell me about Cartagena in Colombia"}
+{"id": "h6-l07", "cat": "lookup", "q": "How many people live in the Tokyo metro area?"}
+{"id": "h6-l08", "cat": "lookup", "q": "who built Angkor Wat, and when?"}

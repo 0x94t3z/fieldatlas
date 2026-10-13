@@ -1,0 +1,60 @@
+{"id": "h5-p01", "cat": "places", "q": "Staying in Ljubljana for 3 nights. Where can I eat traditional Slovenian food that locals actually go to, not tourist menus?"}
+{"id": "h5-p02", "cat": "places", "q": "travelling with a 4 and a 7 year old in Valencia. what can we do with them apart from the beach?"}
+{"id": "h5-p03", "cat": "places", "q": "First time in Istanbul, 4 nights. Should I stay in Sultanahmet, Beyoğlu or Kadıköy? We want to walk to sights but also have good food at night."}
+{"id": "h5-p04", "cat": "places", "q": "Which night markets in Chiang Mai are worth going to, and which nights of the week are they on?"}
+{"id": "h5-p05", "cat": "places", "q": "what is there to see in Hoi An old town and do I need to buy a ticket to walk around?"}
+{"id": "h5-p06", "cat": "places", "q": "need sunscreen and some painkillers, is there a pharmacy or drugstore I can walk to from here?", "gps": [38.7139, -9.1394]}
+{"id": "h5-p07", "cat": "places", "q": "It's 11pm and I'm starving. Anywhere still serving food near where I am?", "gps": [40.4168, -3.7038]}
+{"id": "h5-p08", "cat": "places", "q": "it's pouring with rain. any museum or gallery within walking distance of me?", "gps": [59.3293, 18.0686]}
+{"id": "h5-v01", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [48.8566, 2.3522]}
+{"id": "h5-v02", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [43.6532, -79.3832]}
+{"id": "h5-t01", "cat": "travel", "q": "How do I buy long-distance bus tickets in Peru, say Cusco to Arequipa? Which bus companies are considered safe and is the overnight bus a good idea?"}
+{"id": "h5-t02", "cat": "travel", "q": "going to Cuba in a few weeks. will my foreign debit card work at ATMs there, and how much cash should I bring and in what currency?"}
+{"id": "h5-t03", "cat": "travel", "q": "Landing in Istanbul for 2 weeks. Is it worth buying a tourist SIM at the airport, and is it true foreign phones get blocked after a while if you use a Turkish SIM?"}
+{"id": "h5-t04", "cat": "travel", "q": "I have an Indian passport and want to spend 10 days in Thailand in December. Do I need a visa or can I go visa-free now?"}
+{"id": "h5-t05", "cat": "travel", "q": "We've been invited to dinner at a family's home in Fes, Morocco. Should we bring a gift, and is there anything at the table we should or shouldn't do?"}
+{"id": "h5-t06", "cat": "travel", "q": "is the night bus from Medellín to Bogotá safe? and are there any scams at the bus terminals I should know about"}
+{"id": "h5-t07", "cat": "travel", "q": "How do the marshrutka minibuses work in Bishkek and around Kyrgyzstan? How do I know where they go, how do I pay and how do I get off?"}
+{"id": "h5-t08", "cat": "travel", "q": "Staying at a ryokan in Japan for two nights. Should I tip the staff, or is that considered rude there?"}
+{"id": "h5-t09", "cat": "travel", "q": "Arriving in Jerusalem on a Friday afternoon. What shuts down for Shabbat, and will I still be able to get a bus, a taxi or food until Saturday evening?"}
+{"id": "h5-e01", "cat": "emergency", "q": "Something blew into my eye on a dusty road. It's red, scratchy and won't stop watering. How do I flush it out, and when is it serious enough to worry?"}
+{"id": "h5-e02", "cat": "emergency", "q": "My friend fell off a scooter and hit his head. He was out for a few seconds and now he's vomiting and seems confused. We're on a small island with no signal. What do we do?"}
+{"id": "h5-e03", "cat": "emergency", "q": "got stung by a scorpion that was hiding in my shoe in the desert. my hand is burning and going numb. how worried should i be and what do i do"}
+{"id": "h5-e04", "cat": "emergency", "q": "Spent all day on a boat without enough sunscreen. My back is covered in blisters, I have chills and a headache. How do I treat this and when is it dangerous?"}
+{"id": "h5-e05", "cat": "emergency", "q": "Our rental car broke down on a remote desert road, two of us, about 6 litres of water, no signal. Should we stay with the car or walk for help?"}
+{"id": "h5-e06", "cat": "emergency", "q": "My friend's shoulder popped out while we were climbing. He's in a lot of pain and holding his arm. Should we try to put it back in, or how do we get him out?"}
+{"id": "h5-x01", "cat": "explanation", "q": "How does a lithium-ion battery store energy, and why does my phone battery hold less charge after a couple of years?"}
+{"id": "h5-x02", "cat": "explanation", "q": "why do we get goosebumps when we're cold or scared?"}
+{"id": "h5-x03", "cat": "explanation", "q": "Why do some volcanoes explode violently while others just ooze lava slowly?"}
+{"id": "h5-x04", "cat": "explanation", "q": "How does a QR code store information, and why does it still scan when part of it is scratched or covered?"}
+{"id": "h5-x05", "cat": "explanation", "q": "why does putting salt on icy roads melt the ice?"}
+{"id": "h5-x06", "cat": "explanation", "q": "How does caffeine actually keep you awake, and why do you crash a few hours later?"}
+{"id": "h5-c01", "cat": "comparison", "q": "Is the travel insurance that comes with my credit card good enough, or should I buy a separate policy for a month of trekking in Nepal?"}
+{"id": "h5-c02", "cat": "comparison", "q": "Komodo or Raja Ampat for a diving trip? I'm an intermediate diver with about 40 dives."}
+{"id": "h5-c03", "cat": "comparison", "q": "gore-tex jacket vs a cheap poncho for hiking in the monsoon season, which actually keeps you drier?"}
+{"id": "h5-c04", "cat": "comparison", "q": "On hotel and airport wifi, is a VPN or Tor better for keeping my browsing private? What does each actually protect against?"}
+{"id": "h5-c05", "cat": "comparison", "q": "what's the difference between a frog and a toad?"}
+{"id": "h5-c06", "cat": "comparison", "q": "5 days in Patagonia: should we do the W trek in Torres del Paine or base ourselves in El Chaltén for day hikes?"}
+{"id": "h5-s01", "cat": "synthesis", "q": "How did Dubai get so rich when it has far less oil than Abu Dhabi? What did it build its economy on instead?"}
+{"id": "h5-s02", "cat": "synthesis", "q": "How did the Panama Canal change world shipping, and why has drought become a problem for it in recent years?"}
+{"id": "h5-s03", "cat": "synthesis", "q": "Is sitting all day bad for you even if you go to the gym regularly? What does the research actually show?"}
+{"id": "h5-s04", "cat": "synthesis", "q": "how did a few hundred Spanish soldiers manage to bring down the Inca empire so fast?"}
+{"id": "h5-s05", "cat": "synthesis", "q": "Why is so much of the Netherlands below sea level, and how do the Dutch keep it from flooding?"}
+{"id": "h5-r01", "cat": "reasoning", "q": "My friend and I start from opposite ends of a 27 km trail at 9:00. I walk at 4 km/h and she walks at 5 km/h. What time do we meet, and how far will I have walked?"}
+{"id": "h5-r02", "cat": "reasoning", "q": "leaving Auckland (UTC+13) at 19:30 on Saturday, flight to Honolulu (UTC-10) takes 8 h 50 min. what day and local time do i land?"}
+{"id": "h5-r03", "cat": "reasoning", "q": "The hotel in Bali quotes 1,250,000 rupiah a night, and that already includes 21% tax and service. What's the room rate before tax, and how much are 3 nights in euros if 1 euro is 17,600 rupiah?"}
+{"id": "h5-r04", "cat": "reasoning", "q": "11 of us are renting cars for a 6-day road trip. Each car fits 5 people with luggage and costs 42 euros a day. How many cars do we need, what's the total, and how much is it per person?"}
+{"id": "h5-r05", "cat": "reasoning", "q": "A jacket was 160 dollars, it's marked 30% off and then the till takes another 20% off. Is that the same as 50% off? What do I actually pay?"}
+{"id": "h5-r06", "cat": "reasoning", "q": "My phone uses about 7% battery an hour with offline maps running. I'm at 62% and the hike takes 6 hours. Will I still have at least 10% left at the end?"}
+{"id": "h5-y01", "cat": "crypto", "q": "What is a 51% attack on Bitcoin, and how realistic or expensive would it be to pull one off?"}
+{"id": "h5-y02", "cat": "crypto", "q": "how does a bitcoin transaction actually get from my wallet into a block? what is the mempool and why does my transaction sometimes sit there for hours"}
+{"id": "h5-y03", "cat": "crypto", "q": "What's the difference between proof of work and proof of stake, and why did Ethereum switch?"}
+{"id": "h5-y04", "cat": "crypto", "q": "A website asked me to sign a message in MetaMask to 'verify' my wallet. Is signing a message dangerous? And what is a token approval, and how do I revoke one?"}
+{"id": "h5-l01", "cat": "lookup", "q": "who was Genghis Khan?"}
+{"id": "h5-l02", "cat": "lookup", "q": "how high is La Paz, and is it actually the capital of Bolivia?"}
+{"id": "h5-l03", "cat": "lookup", "q": "tell me about Bhutan"}
+{"id": "h5-l04", "cat": "lookup", "q": "When did the Titanic sink, and how many people died?"}
+{"id": "h5-l05", "cat": "lookup", "q": "How long is the Trans-Siberian railway from Moscow to Vladivostok, and how many days does the train take?"}
+{"id": "h5-l06", "cat": "lookup", "q": "Who was Frida Kahlo?"}
+{"id": "h5-l07", "cat": "lookup", "q": "how many islands does Indonesia have"}
+{"id": "h5-l08", "cat": "lookup", "q": "Tell me about Petra in Jordan"}

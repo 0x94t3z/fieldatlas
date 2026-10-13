@@ -35,7 +35,7 @@ Field Atlas runs a language model on the phone. You can also add local knowledge
 | --- | --- |
 | **Works offline** | Questions, local search, and answer generation stay on the device. Download or transfer the files you need *before* going offline. |
 | **Model first** | Download the default model or import a compatible `.fapack`. General questions can receive an unverified model explanation without a knowledge collection. |
-| **Collections are optional** | Download the Encyclopedia, Encyclopedia in depth, Travel guides, Vegan places, Cryptography & Ethereum or another collection during setup or from Library, or import a compatible knowledge `.fapack`. Collections add searchable passages on their own topics. |
+| **Collections are optional** | Download the Encyclopedia, Travel guides, Vegan places, Cryptography & Ethereum or another collection during setup or from Library, or import a compatible knowledge `.fapack`. Collections add searchable passages on their own topics. |
 | **Android** | ARM64 phone, Android 13 (API 33) or newer. Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not yet tested on a Pixel, on GrapheneOS or on any 8 GB phone. |
 
 ## Watch it work
@@ -57,7 +57,7 @@ On an Android 13+ ARM64 phone:
 1. [Download Field Atlas](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk). A [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk.sha256) is available to verify the APK.
 2. Open the APK on your phone and follow Android’s installation prompts.
 3. In setup, **download the default model** while online, or **import a saved model `.fapack`**. Wait for verification and installation to finish. A raw `.gguf` or checksum file is not an importable model pack.
-4. Optionally download collections such as **Encyclopedia**, **Encyclopedia in depth**, **Travel guides**, **Vegan places**, **Essentials**, **Travel places**, **Cryptography & Ethereum** or **Biology & longevity**, or import a saved knowledge `.fapack`. You can add more later in **Library**.
+4. Optionally download collections such as **Encyclopedia**, **Travel guides**, **Vegan places**, **Essentials**, **Travel places**, **Cryptography & Ethereum** or **Biology & longevity**, or import a saved knowledge `.fapack`. You can add more later in **Library**.
 5. Open **Research**, ask a question, and tap **Start research**. If the answer includes numbered citations, open them to inspect the saved passages.
 
 **Install → download or import a model → optionally add knowledge → research offline.**
@@ -74,35 +74,33 @@ The APK is about 100 MB; the model and collections require additional downloads 
 | Knowledge `.fapack` | No | Supplies local passages the app can search and cite. | A citation only supports what its passage actually says. |
 | Audio pack | No | Supports optional offline speech input in compatible builds. | It does not add factual knowledge. |
 
-Every collection, with its size, checksum, source, snapshot date and licence, is listed in [DATASETS.md](DATASETS.md#collections-the-app-offers). The [Travel places collection](DATASETS.md#broader-travel-places-keyword-only-builder) contains dated Wikivoyage listings for restaurants, hotels, sights, shops, and other places; Vegan places and Essentials are OpenStreetMap places, searched by distance from the phone. None of them can check today's opening hours, menus, quality, or whether a place still exists. Travel guides are Wikivoyage's guides by section, with its phrasebooks. Biology & longevity covers specialist material, not every subject. The Encyclopedia collection is Simple English Wikipedia (a December 2025 snapshot): short leads, not full articles; Encyclopedia in depth adds the sections of 49,822 English Wikipedia articles, read only for the article an explanation is about. The 42 emergency guides and the emergency-number table ship inside the app.
+Every collection, with its size, checksum, source, snapshot date and licence, is listed in [DATASETS.md](DATASETS.md#collections-the-app-offers). The [Travel places collection](DATASETS.md#broader-travel-places-keyword-only-builder) contains dated Wikivoyage listings for restaurants, hotels, sights, shops, and other places; Vegan places and Essentials are OpenStreetMap places, searched by distance from the phone. None of them can check today's opening hours, menus, quality, or whether a place still exists. Travel guides are Wikivoyage's guides by section, with its phrasebooks. Biology & longevity is a biology textbook, health topic summaries, ageing gene records and six ageing reviews, not every subject and not medical advice. The Encyclopedia is English and Simple English Wikipedia in one collection (8.39 million passages; 10.64 GB to download, 24.35 GB installed), from snapshots of December 2025 and October 2026, not live information. The 42 emergency guides and the emergency-number table ship inside the app.
 
 General questions may receive an **unverified model explanation** when local evidence is missing. Unsupported source-only requests return an evidence-gap message. A citation is a way to inspect a passage, not proof that an answer is correct; check the passage's wording, context, and date.
 
 ## Version status
 
 The bounty's bar is an offline tool "more than 50% as good as internet search plus a frontier AI
-model". Field Atlas 1.4.0 was measured against that bar on 60 questions written after the last
-change by a writer who did not read the repository, each answer graded blind against a frontier
-model's web-researched answer ([how](docs/evaluation.md#140-on-60-new-held-out-questions-october-7)):
-**38% of the reference with the default Qwen3.5 2B**, **52% with the optional Qwen3.5 4B** on the questions without a phone position, which only phones with 8 GB of memory are offered. Earlier sets that were
-looked at while the app was changed score higher (61% on our own 61 questions) and are
-reported as development data. References and graders are frontier models of one family, so these
-are development measures, not an independent score. Every answer and grade is in
-[docs/fieldtest/results-1.4.0/](docs/fieldtest/results-1.4.0/).
+model". Field Atlas 1.4.0 was measured against that bar on 60 questions written after the release
+build was frozen, by a writer who did not read the repository, each answer graded blind twice against
+a frontier model's web-researched answer ([how](docs/evaluation.md#140-release-build-on-fresh-questions-october-13)):
+**34% of the reference with the default Qwen3.5 2B**, with 1.02 factual errors per answer. The optional Qwen3.5 4B, offered only to phones with 8 GB of memory, reaches 35% on the 55 questions without a phone position, with about half the factual errors.
+Two earlier fresh sets found and fixed a candidate that withheld answers its own review could not
+confirm (21%) and near-me place bugs; they are reported as development data. References and
+graders are frontier models of one family, so these are development measures, not an independent
+score. Every answer and grade is in [docs/fieldtest/results-1.4.0/](docs/fieldtest/results-1.4.0/).
 
-Where the app answers without the model it is strong: places near the phone and in a named city,
-Vitalik's "best vegan restaurants in the city I'm in", emergency guides and numbers, phrasebook
-lines, calculations and casual lookups. Where the 2B model writes the explanation itself, it is
-well below the reference. On an 8 GB phone the optional Qwen3.5 4B answers better (57% against
-48% of the reference on 96 development questions) at about 2.5 times the time; 6 GB phones are not
-offered it.
+Where the app answers without the model it is strong: places near the phone, Vitalik's "best
+vegan restaurants in the city I'm in", casual lookups, emergency guides and numbers, phrasebook
+lines and calculations. Where the 2B model writes the explanation itself, it is well below the
+reference, and answers that use the model take 2 to 4 minutes on a 6 GB phone.
 
 Hardware: tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not
 yet run on a Pixel, on GrapheneOS, or on any 8 GB phone.
 
 | Version | Public download? | What the evidence covers |
 | --- | --- | --- |
-| [v1.4.0 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Yes — signed APK and checksum | App 1.4.0 (18). The best vegan restaurants in the city the phone is in, the Encyclopedia in depth collection, travel guides by section with phrasebooks, 42 emergency guides and the emergency numbers of 242 countries, calculations on the phone, the optional 4B, and the blind field test above. See the [release notes](docs/releases/current.md). |
+| [v1.4.0 release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Yes — signed APK and checksum | App 1.4.0 (19). One Encyclopedia of English and Simple English Wikipedia searched by a native engine, cited explanations reviewed before they are shown, a new Biology & longevity collection, downloads from Hugging Face at pinned revisions, the best vegan restaurants in the city the phone is in, travel guides by section with phrasebooks, 42 emergency guides and the emergency numbers of 242 countries, calculations on the phone, the optional 4B, and the blind field test above. See the [release notes](docs/releases/current.md). |
 | [v1.3.0 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Yes — signed APK and checksum | App 1.3.0 (17). Emergency questions answered from 41 bundled official guides, open-now place answers, Word, PowerPoint and EPUB attachments, and faster answers on low-end phones. Its opening-hours reader followed another submission's parser and was replaced in 1.4.0 ([audit](docs/compliance/release-audit.md#provenance-audit-of-other-submissions-material-5-october-2026)). See its [release notes](docs/releases/field-atlas-1.3.0.md). |
 | [v1.2.1 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Yes — signed APK and checksum | App 1.2.1 (16). Keeps the app alive while a file picker is open (Xiaomi phones killed it), checks attachment answers against the files, and adds the Essentials collection. See its [release notes](docs/releases/field-atlas-1.2.1.md). |
 | [v1.2.0 previous release](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | Yes — signed APK and checksum | App 1.2.0 (15). Adds Encyclopedia, Travel guides and Vegan places collections, near-me lookups, place cards, source previews and live dictation. See its [release notes](docs/releases/field-atlas-1.2.0.md). |

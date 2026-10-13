@@ -15,6 +15,43 @@ development records are not distributed with the source.
 
 The checks below describe earlier revisions and their limits, not a new release.
 
+## v1.4.0 release build (October 13)
+
+- **Automated:** 1,291 Android JVM tests ran with none failing (54 opt-in tests skipped, among them
+  the desktop runs against the real collections); 78 script and 246 tool tests passed. On the
+  Redmi 13C, `OnDeviceRegexTest` compiled every regular-expression literal of the app with Android's
+  ICU engine and ran the calculators: both tests passed after this release's new emergency, place
+  and calculator patterns.
+- **Answer quality:** three fresh sets of 60 questions, each graded blind twice
+  ([evaluation](evaluation.md#140-release-build-on-fresh-questions-october-13)). On set 6, written
+  after the release build was frozen: 34% of the web-and-frontier reference with the default 2B,
+  1.02 factual errors per answer. The desktop runs loaded the phone's native search (Leviathan,
+  built from the same pinned source) and every collection the app offers, byte-identical to the
+  published files.
+- **Hosted collections:** every catalog link points to a pinned Hugging Face revision, and each
+  public copy was streamed and hashed in full: the Encyclopedia (10,643,533,492 bytes, SHA-256
+  `7d41d7fb…`) and the new Biology & longevity collection (8,183,535 bytes, `06e49130…`) on
+  13 October, the other five when they were mirrored.
+- **Redmi 13C (6 GB, Android 13), local-test key:** the release build installed over earlier
+  1.4.0 test builds with its data kept (version code 19). The Biology & longevity collection was
+  downloaded through setup on Wi-Fi; the connection dropped four times and each resume continued
+  from the saved bytes until the checksum passed. Library then showed the new edition in research
+  and 1.2.0 kept but switched off. In airplane mode with Wi-Fi off: "what are senolytics?" was
+  answered from a PMC review in the new collection in 43 s, a cited answer about the Sistine Chapel
+  took 2 m 47 s, and a labelled model explanation about the Sahara 3 m 43 s. The answer model was
+  re-imported from a saved `.fapack` through setup's file picker after the owner deleted it to see
+  the first-run screen.
+- **Downloads through setup on the phone:** with the model and six collections deleted through
+  Library's own confirmations, setup downloaded each one in turn over USB reverse tethering
+  (about 2.1 MB/s) and installed it after its checksum passed: Qwen3.5 2B (1.40 GB) in 11 m 15 s,
+  Travel places (351 MB) 3 m 08 s, Vegan places (40 MB) 42 s, Essentials (1.78 GB) 14 m 54 s, Travel
+  guides (419 MB) 3 m 37 s, Biology & longevity (8 MB) 20 s and Cryptography & Ethereum (77 MB) 42 s.
+  Back in airplane mode, the downloaded model answered "What is the capital of Laos?" with a cited
+  passage in 1 m 29 s.
+- **Not verified for this release:** the public-key signed APK on a phone, the Encyclopedia's full
+  download and install on a phone (it was imported), network traffic during research, and a clean
+  install following only the README.
+
 ## v1.4.0 (October 6–7)
 
 - **Automated:** 799 Android JVM tests ran with zero failures; 16 opt-in desktop tests were
@@ -25,7 +62,7 @@ The checks below describe earlier revisions and their limits, not a new release.
   engine and ran the calculators on the phone: all 416 patterns compile and the calculators give
   the JVM's answers. It was written after the first 1.4.0 build stopped on launch, because ICU reads
   `[:.]` as the start of a POSIX class; two calculator patterns were rewritten.
-- **Answer quality:** the field test in [evaluation](evaluation.md#140-on-60-new-held-out-questions-october-7):
+- **Answer quality:** the field test in [evaluation](evaluation.md#the-7-october-140-candidate-on-60-new-held-out-questions-october-7):
   38% of the web-and-frontier reference on 60 held-out questions written after the last
   change, graded blind. References and graders are frontier models of one family, so this is a
   development measure, not an independent score.

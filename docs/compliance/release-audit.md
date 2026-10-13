@@ -60,7 +60,7 @@ test now compiles every pattern literal of the app on the device.
 
 On 60 held-out questions written after the last change, graded blind against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 38% of the reference and the optional Qwen3.5 4B 52% on the 55 without a phone position: the bounty's bar is not met with the default model, and only just, on 8 GB phones, with the 4B. The measurement method, its limits (frontier references and graders of one family,
 development sets looked at during the changes) and every graded answer are published
-([evaluation](../evaluation.md#140-on-60-new-held-out-questions-october-7),
+([evaluation](../evaluation.md#the-7-october-140-candidate-on-60-new-held-out-questions-october-7),
 [results](../fieldtest/results-1.4.0/)). The requirement ledger ([bounty-31.json](bounty-31.json))
 records each requirement as pass, partial or fail with the evidence for it.
 

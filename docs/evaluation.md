@@ -1,6 +1,71 @@
 # Evaluation
 
-## 1.4.0 on 60 new held-out questions (October 7)
+## 1.4.0 release build on fresh questions (October 13)
+
+Between 7 and 13 October the answer path changed (one consolidated Encyclopedia searched by a
+native engine, cited explanations reviewed before they are shown, a new biology collection), so the
+release build was measured again, on new questions, three times. Each set was written by a writer
+that read no repository file and avoided every earlier question, sealed by its SHA-256 before the
+run, answered by a frozen build, given web-researched frontier-model references, and graded blind
+in two independent rounds (each answer on its own, as in the field test below; the share of the
+reference is the sum of Field Atlas's scores over the reference's).
+
+Configuration: Qwen3.5 2B, every collection the app offers in 1.4.0, byte-identical to the
+published files ([DATASETS.md](../DATASETS.md#collections-the-app-offers)), in the phone's pack
+order, on the desktop pipeline with the phone's code. The phone's native search (Leviathan) was
+loaded on the desktop from the same pinned source, so the Encyclopedia and Biology collections were
+searched as on the phone; the 7 October measurement used keyword search only.
+
+| Set | Build | Share of the reference | Factual errors per answer |
+| --- | --- | --- | --- |
+| Set 4 ([questions](fieldtest/heldout4.jsonl)) | First 1.4.0 release candidate | 21% (22% and 21% per round) | 0.41 |
+| Set 5 ([questions](fieldtest/heldout5.jsonl)) | After the answer-path fix | 34% (33% and 34%) | 0.83 |
+| **Set 6** ([questions](fieldtest/heldout6.jsonl)) | **The 1.4.0 release build** | **34% (33% and 34%)** | **1.02** |
+| Set 6 without the five phone-position questions | The optional Qwen3.5 4B on the release build | 35% (the 2B: 32% on the same 55) | 0.50 |
+**Set 4: the candidate withheld 25 of 60 answers.** Where saved passages matched, the model wrote a
+cited draft and then reviewed whether the passages supported it; on an unconfirmed draft the app
+showed "I couldn't produce a properly cited explanation" and skipped every route that answered
+before. The 2B's review rejected 32 of the 44 drafts it saw, among them correct ones and some that
+were wrong (two drafts on removing a tick gave unsafe advice). The fix keeps the review and never
+shows a rejected draft, but lets the question continue to a travel guide's section, a phrasebook
+line, the saved excerpts, or a source lead with a model explanation labelled as unverified. To see
+what changed, set 4 was also answered by the 7 October build: graded blind together, that build
+reached 32%, the fixed path 39%, with 1.56 and 0.93 errors per answer (development data: four
+emergency matcher fixes and a power-bank calculator were made with these questions in view).
+
+**Set 5 found place bugs.** "Is there a pharmacy I can walk to from here?" and "any museum within
+walking distance of me?" were not read as near-me questions and went to a worldwide search;
+museums near the phone could not be found by position at all, because travel-guide listings carry
+no map index. Both were fixed, with the note on words no listing carries, and set 5 became
+development data.
+
+**Set 6 is the release number:** 34% of the reference with the default model, with about half
+the factual errors per answer of the 7 October candidate on its own set (1.02 against 1.98). Every
+answer, reference and grade is in [`fieldtest/results-1.4.0/`](fieldtest/results-1.4.0/)
+(`heldout6.jsonl`, and `heldout5.jsonl` and `heldout4-candidate.jsonl` for the earlier sets).
+
+By category on set 6:
+
+| Group | n | Field Atlas, Qwen3.5 2B (mean /10) | Reference (mean /10) | Share of reference |
+| --- | --- | --- | --- | --- |
+| Vitalik's question | 2 | 5.50 | 7.50 | 73% |
+| Casual lookups | 8 | 5.31 | 9.31 | 57% |
+| Practical travel | 9 | 3.06 | 8.83 | 35% |
+| Places | 8 | 2.75 | 8.56 | 32% |
+| Synthesis | 5 | 2.80 | 9.10 | 31% |
+| Explanation | 6 | 2.75 | 9.17 | 30% |
+| Reasoning with numbers | 6 | 2.67 | 10.00 | 27% |
+| Emergencies | 6 | 2.33 | 9.08 | 26% |
+| Comparison | 6 | 2.08 | 9.00 | 23% |
+| Cryptography | 4 | 1.62 | 8.88 | 18% |
+
+Compared with the 7 October candidate's fresh set, practical travel (20% to 35%) and reasoning
+(14% to 27%) rose, comparison held (24% to 23%), and explanation (51% to 30%), emergencies (47% to
+26%), places (45% to 32%), lookups (64% to 57%) and cryptography (26% to 18%) fell; the sets
+differ, so a category's change is not a measured effect of one change. References and graders are frontier models of one family, so these
+are development measures, not an independent score.
+
+## The 7 October 1.4.0 candidate on 60 new held-out questions (October 7)
 
 The questions behind the earlier figures were looked at while the app was changed, the first
 held-out set included: its travel misroutes (a metro ticket answered from river boats, a visa from

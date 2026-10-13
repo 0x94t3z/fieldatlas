@@ -8,18 +8,41 @@ The field test and held-out measurements in [docs/evaluation.md](docs/evaluation
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Encyclopedia (`simplewiki`) | 2025.12.29 | 316,396,538 | `add1984a60ff3cfd2298668e7e40b061a8581aeb24023edf3bf5370eef39a82a` | Simple English Wikipedia CirrusSearch dump, 29 December 2025 | CC BY-SA 4.0 | [knowledge-simplewiki-2025.12.29](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-simplewiki-2025.12.29) |
-| Encyclopedia in depth (`wikipedia-en-vital`) | 2026.10.06 | 1,389,700,139 | `7f824902de3769c26519d050dab4a3f0c0dd90fe62c3eb54316818f0e2655271` | English Wikipedia vital articles (Level 5) by section, MediaWiki extracts read 6 October 2026, each at a pinned revision | CC BY-SA 4.0 | [knowledge-wikipedia-en-vital-2026.10.06](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-wikipedia-en-vital-2026.10.06) |
-| Travel guides (`wikivoyage-guides`) | 2026.09.01 | 419,107,865 | `1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83` | English Wikivoyage pages-articles dump, 1 September 2026, one passage per section | CC BY-SA 4.0 | [knowledge-wikivoyage-guides-2026.09.01](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-wikivoyage-guides-2026.09.01) |
-| Travel places (`wikivoyage-places`) | 2026.09.1 | 351,581,170 | `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac` | English Wikivoyage pages-articles dump, 1 September 2026 | CC BY-SA 4.0 | [knowledge-travel-2026.09.1](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-travel-2026.09.1) |
-| Vegan places (`osm-vegan-places`) | 2026.10.05 | 40,068,046 | `4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [knowledge-vegan-places-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-vegan-places-2026.10.05) |
-| Essentials (`osm-essentials`) | 2026.10.05 | 1,781,015,519 | `a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [knowledge-essentials-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-essentials-2026.10.05) |
-| Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05 | 77,678,612 | `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [knowledge-crypto-ethereum-2026.10.05](https://github.com/0x94t3z/fieldatlas/releases/tag/knowledge-crypto-ethereum-2026.10.05) |
+| Encyclopedia (`wikipedia-encyclopedia`) | 2026.10.12-native-compressed-preview | 10,643,533,492 | `7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59` | Simple English Wikipedia CirrusSearch dump, 29 December 2025; English Wikipedia vital articles by section, read 6 October 2026; English Wikipedia CirrusSearch content index, 4 October 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/tree/4a31af613133782cb6ba62d2a660a920e5a64cd6) |
+| Travel guides (`wikivoyage-guides`) | 2026.09.01 | 419,107,865 | `1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83` | English Wikivoyage pages-articles dump, 1 September 2026, one passage per section | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/5b72377fe68508ae00ea3856bdfdff40a19fb3f4/wikivoyage-guides/2026.09.01) |
+| Travel places (`wikivoyage-places`) | 2026.09.1 | 351,581,170 | `1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac` | English Wikivoyage pages-articles dump, 1 September 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/1c547f35c613e4984e5932a3173845b1cef3e76f/wikivoyage-places/2026.09.1) |
+| Vegan places (`osm-vegan-places`) | 2026.10.05 | 40,068,046 | `4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/86064123736fc5c8ff966b44bfcbe6e07de30441/osm-vegan-places/2026.10.05) |
+| Essentials (`osm-essentials`) | 2026.10.05 | 1,781,015,519 | `a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/e320ff8a3fe4dbcaa68c725c54aaffe93793f35c/osm-essentials/2026.10.05) |
+| Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05 | 77,678,612 | `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/6be16bab707c3ee9f6cc2b7b5694182492a43516/crypto-ethereum/2026.10.05) |
 | Biology & longevity (`world-knowledge-biology`) | 2026.10.13 | 8,183,535 | `06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376` | OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026; Human Ageing Genomic Resources, 13 October 2026; six PubMed Central reviews | CC BY 4.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13) |
+
+## Encyclopedia (October 12)
+
+One download replaces the separate Encyclopedia and Encyclopedia in depth collections of earlier
+1.4.0 builds, so a phone carries one encyclopedia instead of a growing list of shards. It combines,
+without rewriting a passage:
+
+- **Simple English Wikipedia**: lead sections of 211,159 articles from the CirrusSearch dump of
+  29 December 2025 (the earlier Encyclopedia collection, below).
+- **English Wikipedia vital articles by section**: 49,822 articles read on 6 October 2026, each at a
+  pinned revision (the earlier Encyclopedia in depth collection, below).
+- **English Wikipedia**: articles from the CirrusSearch content index dump of 4 October 2026, built in
+  45 modules and merged.
+
+8,386,572 passages in all; the merge checked that no passage was dropped or duplicated
+(`origins.json`, inside the pack, records each input's size and SHA-256). Every passage keeps its
+article and revision link. The database carries the app's keyword index and a Leviathan 0.2.0 index
+over the same text, so the phone searches it natively. The `.fapack` (`wikipedia-encyclopedia`,
+version `2026.10.12-native-compressed-preview`, schema 2) is 10,643,533,492 bytes and installs to
+24,346,003,429 bytes; SHA-256 `7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59`;
+licence CC BY-SA 4.0. It is hosted on Hugging Face at a pinned revision, and that public copy was
+streamed and hashed in full before the catalog pointed to it. It is a dated snapshot, not live
+information. Installing it needs room for the download and the installed database at once; the
+app checks free space before it starts.
 
 ## English Wikipedia vital articles by section (October 6)
 
-`tools/packs/build_wikipedia_sections_pack.py` builds the Encyclopedia in depth collection: English Wikipedia's
+`tools/packs/build_wikipedia_sections_pack.py` builds the vital-articles part of the Encyclopedia (offered on its own as Encyclopedia in depth in earlier 1.4.0 builds): English Wikipedia's
 vital articles (the 49,831 titles of `tools/data/wiki_vital_titles.json`, the Level 5 list), one
 passage per section, each linked to the exact revision read. It exists because Simple English
 Wikipedia defines a subject but rarely explains its causes or mechanisms.
