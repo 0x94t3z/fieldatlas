@@ -221,6 +221,26 @@ class ResearchOrchestrator(
         }
     }
 
+    /**
+     * [leading], taken back when the run found nothing: a note promising the city's listings above
+     * "I couldn't produce a properly cited explanation" contradicts itself.
+     */
+    private fun leadingIfFound(lead: String, core: Flow<ResearchEvent>): Flow<ResearchEvent> = flow {
+        var shown = ""
+        var found = false
+        leading(lead, core).collect { event ->
+            when (event) {
+                is ResearchEvent.Sources -> if (event.evidence.isNotEmpty()) found = true
+                is ResearchEvent.Lead -> shown = event.text.removePrefix(lead)
+                is ResearchEvent.Token -> shown = if (event.replace) event.text.removePrefix(lead) else shown + event.text
+                is ResearchEvent.Complete -> if (!found || shown.trim() in setOf(CitedExplanation.GAP, CitedExplanation.UNAVAILABLE))
+                    emit(ResearchEvent.Token(shown, replace = true))
+                else -> Unit
+            }
+            emit(event)
+        }
+    }
+
     private fun researchCore(
         question: String,
         resultLimit: Int,
@@ -356,7 +376,7 @@ class ResearchOrchestrator(
                         // This run hands over to the city question, which takes the run itself. The
                         // reader asked about their surroundings, so the answer says it is city-wide.
                         activeRun.set(false)
-                        emitAll(leading(VenueLookup.cityWideNote(question, city),
+                        emitAll(leadingIfFound(VenueLookup.cityWideNote(question, city),
                             research(VenueLookup.inCity(question, city), resultLimit, contextTokenBudget, maxOutputTokens)))
                         return@flow
                     }

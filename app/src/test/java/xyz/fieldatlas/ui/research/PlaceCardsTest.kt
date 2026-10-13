@@ -47,6 +47,13 @@ class PlaceCardsTest {
         assertEquals(false, card.eat)
     }
 
+    @Test fun aDistanceInsideTheGuidesDescriptionIsNotTheDistanceFromThePhone() {
+        val museum = Evidence("wv-place-alcazar", "wv-place-alcazar:0", "Seville — Real Alcázar", "https://en.wikivoyage.org/w/index.php?oldid=1",
+            "Destination: Seville\nCategory: See\nPlace: Real Alcázar\nDescription: The royal palace, 200 m north of the cathedral.", 0.0)
+        val result = VenueLookup.answer("which museums in Seville should we see?", listOf(museum))
+        result?.let { r -> placeCardModels(parseAnswerMarkdown(r.answer), r.sources)?.forEach { assertNull(it.distance) } }
+    }
+
     @Test fun anOpenNowAnswerPutsEachPlacesStatusOnItsCard() {
         val answer = VenueLookup.answer("Which vegan restaurants in Berlin are open now?", listOf(grill, daizu),
             java.time.LocalDateTime.of(2026, 10, 4, 23, 0))!!

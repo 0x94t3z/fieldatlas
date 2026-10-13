@@ -50,7 +50,10 @@ internal data class PlaceCardModel(
 
 private val openNowText = Regex("\\b(Open now(?: until \\d{2}:\\d{2})?|Closed now)\\b")
 // "290 m north-west away" (near me) and "1.2 km to the north" (where am I).
-private val distanceText = Regex("(\\d[\\d.,]* (?:m|km)) (?:to the )?((?:north|south|east|west)(?:-(?:east|west))?)\\b")
+// The app writes "1.2 km to the north", "220 m west away" or "300 m away"; a guide's own "200 m north of
+// the cathedral" is in the quoted description and is not the distance from the phone.
+private const val COMPASS = "((?:north|south|east|west)(?:-(?:east|west))?)"
+private val distanceText = Regex("(\\d[\\d.,]* (?:m|km)) (?:to the $COMPASS\\b|(?:$COMPASS )?away\\b)")
 
 private val dayNames = mapOf("Mo" to "Mon", "Tu" to "Tue", "We" to "Wed", "Th" to "Thu", "Fr" to "Fri", "Sa" to "Sat", "Su" to "Sun")
 
@@ -116,7 +119,7 @@ internal fun placeCardModel(index: Int, evidence: Evidence, line: String = ""): 
     val street = fields["Address"]?.let { address ->
         address.substringBefore(',').trim().takeIf { part -> part.any(Char::isLetter) } ?: address.trim()
     }
-    val distance = distanceText.find(line)
+    val distance = distanceText.find(line.substringBefore('“'))
     return PlaceCardModel(
         sourceIndex = index,
         name = fields.getValue("Place"),
@@ -127,7 +130,7 @@ internal fun placeCardModel(index: Int, evidence: Evidence, line: String = ""): 
         openNow = openNowText.find(line)?.value,
         checked = fields["Listing last checked"]?.let { "Checked $it" } ?: "No check date",
         distance = distance?.groupValues?.get(1),
-        direction = distance?.groupValues?.get(2),
+        direction = distance?.let { d -> d.groupValues[2].ifEmpty { d.groupValues[3] } }?.takeIf(String::isNotEmpty),
         eat = fields["Category"] in setOf("Eat", "Drink"),
     )
 }

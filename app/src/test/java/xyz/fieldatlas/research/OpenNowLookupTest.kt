@@ -166,4 +166,30 @@ class OpenNowLookupTest {
         assertFalse(shown(events), "as a whole" in shown(events))
         assertTrue(events.last() is ResearchEvent.Complete)
     }
+
+    @Test fun openTonightIsNotOpenNow() {
+        val lunch = place("8", "Mittag", "Eat", "restaurant", "Mo-Su 11:00-16:00")
+        val dinner = place("9", "Abend", "Eat", "restaurant", "Mo-Su 18:00-23:00")
+        val sundayAfternoon = LocalDateTime.of(2026, 10, 4, 15, 30)
+        val answer = VenueLookup.answer("restaurants in Berlin open tonight", listOf(lunch, dinner), sundayAfternoon)?.answer.orEmpty()
+        assertFalse(answer, "Open now" in answer || "Closed now" in answer)
+    }
+
+    @Test fun theCityWideNoteIsTakenBackWhenTheCityHasNothing() = runBlocking {
+        val retriever = object : Retriever {
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit) = emptyList<Evidence>()
+            override suspend fun nearby(point: GeoPoint, radiusKm: Double, limit: Int, categories: Set<String>): List<NearbyPlace> =
+                if (categories.isEmpty()) listOf(NearbyPlace(weekdays, 0.2), NearbyPlace(allNight, 0.4)) else emptyList()
+        }
+        val events = ResearchOrchestrator(retriever, FakeInferenceGateway(listOf("must not run")), location = { GeoPoint(52.5, 13.4) })
+            .research("any museum within walking distance of me?").toList()
+        val shown = StringBuilder().apply {
+            for (e in events) when (e) {
+                is ResearchEvent.Lead -> { clear(); append(e.text) }
+                is ResearchEvent.Token -> { if (e.replace) clear(); append(e.text) }
+                else -> Unit
+            }
+        }.toString()
+        assertFalse(shown, "as a whole" in shown)
+    }
 }

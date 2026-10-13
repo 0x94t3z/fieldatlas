@@ -153,6 +153,50 @@ class NearbyVenueTest {
         assertTrue(VenueLookup.cityWideNote("museums near me?", "Lyon").contains("near you"))
     }
 
+    private fun guideListing(city: String, name: String, description: String, category: String = "Eat") = Evidence(
+        "wv-place-$name", "wv-place-$name:0", "$city — $name", "https://en.wikivoyage.org/w/index.php?oldid=1",
+        "Destination: $city\nCategory: $category\nPlace: $name\nDescription: $description", 0.0)
+
+    @Test fun aListingThatSaysNoVeganFoodIsNotVegan() {
+        val steak = guideListing("Berlin", "Boucherie Steak", "Hearty meat dishes; no vegan options at all.")
+        val near = VenueLookup.nearbyAnswer("best vegan restaurants in the city I'm in", listOf(NearbyPlace(steak, 3.0), NearbyPlace(corner, 0.4), NearbyPlace(nearFully, 0.6)), 15.0)
+        assertFalse(near.answer, "Boucherie Steak" in near.answer)
+        val city = VenueLookup.answer("best vegan restaurants in Berlin", listOf(steak, corner))
+        assertFalse(city?.answer.orEmpty(), "Boucherie Steak" in city?.answer.orEmpty())
+        // A guide listing that does say it has vegan food still counts.
+        val green = guideListing("Berlin", "Green Table", "A relaxed bistro with several vegan dishes.")
+        assertTrue(VenueLookup.answer("best vegan restaurants in Berlin", listOf(green))?.answer.orEmpty().contains("Green Table"))
+    }
+
+    @Test fun aCityIsNamedNotMerelyMentioned() {
+        assertFalse(VenueLookup.names("Any nice vegan restaurants in Berlin?", "Nice"))
+        assertTrue(VenueLookup.names("Vegan restaurants in Nice?", "Nice"))
+        assertTrue(VenueLookup.names("vegan restaurants in nice?", "Nice"))
+        assertFalse(VenueLookup.names("best vegan restaurants in New York", "York"))
+        assertTrue(VenueLookup.names("best vegan restaurants in York", "York"))
+        val nice = guideListing("Nice", "Le Vegan Coin", "Vegan cafe.")
+        assertNull(VenueLookup.answer("Any nice vegan restaurants in Berlin?", listOf(nice)))
+    }
+
+    @Test fun aLandmarkNearTheAskedPlaceIsNotWhatIsAsked() {
+        assertTrue(VenueLookup.nearbyCategories("Which hotels near the train station in Milan?").none { it == "Transport" })
+        assertTrue(VenueLookup.nearbyCategories("cafes near the hospital close to me").none { it == "Health" })
+        assertTrue(VenueLookup.nearbyCategories("vegan restaurants near me, my GPS is on").none { it == "Health" })
+        assertTrue(VenueLookup.nearbyCategories("where is the nearest hospital?").contains("Health"))
+    }
+
+    @Test fun timePhrasesAreNotPlacesForNearMe() {
+        for (q in listOf("nearest pharmacy open at night", "closest hospital at night", "nearest hospital in an emergency",
+            "nearest ATM in the morning", "closest pharmacy open in the evening", "nearest supermarket open at midnight"))
+            assertTrue(q, VenueLookup.isNearMe(q))
+        assertTrue(VenueLookup.isPlaceLookup("nearest pharmacy in Lyon"))
+    }
+
+    @Test fun theCityRewriteReadsAsAQuestion() {
+        assertEquals("best museums in Stockholm?", VenueLookup.inCity("best museums in the city I'm in", "Stockholm"))
+        assertEquals("museum in Stockholm?", VenueLookup.inCity("museum I can walk to from here", "Stockholm"))
+    }
+
     @Test fun tripWordsAndTimesAreNotReportedAsMissingFromListings() {
         // "It's 11pm and I'm starving": no listing is found by a time, so none is reported missing.
         val late = VenueLookup.nearbyAnswer("It's 11pm and I'm starving. Anywhere still serving food near where I am?",

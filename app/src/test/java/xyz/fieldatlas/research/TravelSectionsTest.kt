@@ -86,6 +86,30 @@ class TravelSectionsTest {
         assertEquals("Swim between the flags [S1].", answer)
     }
 
+    @Test fun aQuoteStandsAloneOnlyWhenItAnswersWhatWasAsked() {
+        fun src(title: String, text: String) = PromptSource("S1", Evidence("wvs-$title", "wvs-$title:0", title, "https://en.wikivoyage.org/w/index.php?oldid=1", text, 0.0))
+        // "Is it safe to <do something>" asks about the activity, not the place's general verdict.
+        for (q in listOf("Is it safe to hitchhike in Avelia?", "Is it safe to protest in Avelia?",
+            "Is it safe to use ATMs at night in Avelia?", "Is the ice on the lake in Avelia safe to walk on?"))
+            assertFalse(q, TravelSections.asksSafetyVerdict(q))
+        assertTrue(TravelSections.asksSafetyVerdict("Is Avelia safe for a solo traveller?"))
+        // A quote that shares only "night" with the question does not answer it.
+        val safe = src("Avelia — Stay safe", "Avelia is generally safe. Pickpockets operate on crowded buses. Avoid the port area at night.")
+        for (q in listOf("Is the metro safe at night in Avelia?", "Is it safe to take a taxi from the airport in Avelia at night?")) {
+            val lead = TravelSections.lead(q, "Avelia", listOf(safe))
+            assertTrue(q, lead == null || !TravelSections.coversEveryClause(q, lead))
+        }
+        // Clothes for the weather are not a church dress code.
+        val respect = src("Avelia — Respect", "Wear long trousers and cover your shoulders when visiting churches. Remove your shoes before entering mosques.")
+        for (q in listOf("What should I wear in Avelia in winter?", "What should I wear for hiking in Avelia?", "What should I wear to the beach in Avelia?")) {
+            val lead = TravelSections.lead(q, "Avelia", listOf(respect))
+            assertTrue(q, lead == null || !TravelSections.coversEveryClause(q, lead))
+        }
+        // The dress code still answers a question about churches.
+        val church = "What should I wear to visit churches in Avelia?"
+        assertTrue(TravelSections.lead(church, "Avelia", listOf(respect))?.let { TravelSections.coversEveryClause(church, it) } == true)
+    }
+
     @Test fun aQuoteThatPointsBackStartsAtTheSentenceItPointsTo() {
         val beach = PromptSource("S1", Evidence("wvs-av", "wvs-av:0", "Avelton — Stay safe > Beaches", "https://en.wikivoyage.org/w/index.php?oldid=1",
             "Take care on any beach. The main rule is to swim between the yellow and red flags. These flags are set by lifeguards and mark the safest place to swim.", 0.0))

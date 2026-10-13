@@ -71,7 +71,7 @@ object VenueLookup {
     )
 
     private val venueWords = Regex("(?i)\\b(?:" + KINDS.joinToString("|") { it.wordPattern } + "|" + foodBar.pattern.removePrefix("(?i)\\b").removeSuffix("\\b") + ")\\b")
-    private val lookupWords = Regex("(?i)\\b(best|good|recommend|suggest|find|list|which|where|any|need|is there|are there)\\b")
+    private val lookupWords = Regex("(?i)\\b(best|good|recommend|suggest|find|list|which|where|any|need|is there|are there|nearest|closest)\\b")
 
     /**
      * Everyday essentials a traveller asks for, mapped to the listing category and, where the
@@ -82,7 +82,8 @@ object VenueLookup {
     private val ESSENTIALS = listOf(
         Essential(Regex("(?i)\\b(pharmac(?:y|ies)|chemists?|drug ?stores?)\\b"), "Health", typeLine("pharmacy"), "pharmacies"),
         Essential(Regex("(?i)\\b(hospitals?|emergency rooms?|emergency departments?|A&E)\\b"), "Health", typeLine("hospital"), "hospitals"),
-        Essential(Regex("(?i)\\b(clinics?|doctors?|GPs?)\\b"), "Health", typeLine("clinic"), "clinics"),
+        // "GP" is a doctor; "GPS" is not.
+        Essential(Regex("(?i)\\b(clinics?|doctors?|(?-i:GPs?))\\b"), "Health", typeLine("clinic"), "clinics"),
         Essential(Regex("(?i)\\b(medical|medicine|health care|healthcare)\\b"), "Health", null, "health services"),
         Essential(Regex("(?i)\\b(atms?|cash ?machines?|cashpoints?|withdraw(?:ing)? (?:cash|money)|get (?:cash|money))\\b"), "Money", typeLine("ATM"), "ATMs"),
         Essential(Regex("(?i)\\b(currency exchange|money exchange|exchange (?:money|currency)|bureau de change|change money)\\b"), "Money", typeLine("currency exchange"), "currency exchanges"),
@@ -95,9 +96,26 @@ object VenueLookup {
         Essential(Regex("(?i)\\b(ferry|ferries|ferry terminals?)\\b"), "Transport", typeLine("ferry terminal"), "ferry terminals"),
         Essential(Regex("(?i)\\b(supermarkets?|grocer(?:y|ies)|groceries)\\b"), "Buy", typeLine("supermarket"), "supermarkets"),
     )
-    private fun essential(question: String) = ESSENTIALS.firstOrNull { it.words.containsMatchIn(question) }
+    // "Hotels near the train station", "cafes by the hospital": the essential is a landmark, not what is asked for.
+    private val landmarkBefore = Regex("(?i)\\b(?:near|by|close to|next to|opposite|beside|behind|around|across from|in front of|walking distance (?:of|from))\\s+(?:the\\s+|a\\s+|an\\s+|my\\s+|our\\s+)?$")
+    private fun essential(question: String) = ESSENTIALS.firstOrNull { e ->
+        e.words.findAll(question).any { m -> !landmarkBefore.containsMatchIn(question.substring(0, m.range.first)) }
+    }
     private val complexWords = Regex("(?i)\\b(compare|contrast|explain|why|how|reason|evidence|versus)\\b")
     private val veganWord = Regex("(?i)\\bvegans?\\b")
+    // "No vegan options at all", "nothing for vegans", "not vegetarian-friendly": a mention that says no.
+    private val saysNo = Regex("(?i)\\b(?:no|not|nothing|none|without|lacks?|lacking|zero|never|hardly|barely|isn'?t|aren'?t|won'?t|can'?t|non)\\b[^.;!?]{0,25}$")
+    private val noAfter = Regex("(?i)^[^.;!?]{0,20}\\b(?:not|aren'?t|isn'?t|elsewhere|look elsewhere|avoid|struggle)\\b")
+    /**
+     * The listing says it serves this diet. A map listing's own field ("Vegan: vegan options") says so outright;
+     * a travel guide's description must say it without a "no" or "not" around the word.
+     */
+    private fun serves(text: String, word: Regex): Boolean {
+        Regex("(?im)^(Vegan|Vegetarian):\\s*(.+)$").findAll(text).firstOrNull { word.containsMatchIn(it.groupValues[1]) }?.let { field ->
+            return !Regex("(?i)^\\s*(?:no|none|false)\\b").containsMatchIn(field.groupValues[2])
+        }
+        return word.findAll(text).any { m -> !saysNo.containsMatchIn(text.substring(0, m.range.first)) && !noAfter.containsMatchIn(text.substring(m.range.last + 1)) }
+    }
     private val vegetarianWord = Regex("(?i)\\bvegetarians?\\b")
     private val bestWord = Regex("(?i)\\bbest\\b")
     // Asking for the places worth going to, not the closest ones.
@@ -114,7 +132,8 @@ object VenueLookup {
     private fun excluded(question: String): List<String> = exclusion.findAll(question).map { it.groupValues[1].lowercase() }.toList()
 
     private fun leftOut(listing: Listing, names: List<String>) = names.any { listing.name.lowercase().contains(it) }
-    private val openNow = Regex("(?i)\\b(open|closed)\\b.{0,30}\\b(now|today|tonight|currently)\\b|\\b(currently|still) (open|closed)\\b")
+    // "Open now" is this minute; "open tonight" or "today" is a later time, which the current minute does not answer.
+    private val openNow = Regex("(?i)\\b(open|closed)\\b.{0,30}\\b(now|currently)\\b|\\b(currently|still) (open|closed)\\b")
     private val word = Regex("[\\p{L}\\p{N}]+")
     private val genericWords = setOf(
         "best", "recommend", "recommendation", "recommendations", "suggest", "suggestions",
@@ -221,11 +240,29 @@ object VenueLookup {
         return "fully vegan $destination$noun"
     }
 
-    /** The city a question names, as spelled in the place listings already retrieved for it. */
+    /**
+     * The question names this place: as written, capitalised ("Nice", "York"), or after a word that
+     * places it ("in berlin", typed in lowercase). "Any nice restaurants" is not Nice, and "New York"
+     * is not York.
+     */
+    internal fun names(question: String, place: String): Boolean {
+        val pattern = Regex("(?<![\\p{L}\\p{N}])${Regex.escape(place)}(?![\\p{L}\\p{N}])", RegexOption.IGNORE_CASE)
+        val placing = Regex("(?i)\\b(?:in|at|near|around|to|from|of|visiting|for)\\s+(?:the\\s+)?$")
+        return pattern.findAll(question).any { m ->
+            val before = question.substring(0, m.range.first)
+            val written = m.value.firstOrNull()?.isUpperCase() == true
+            // A capitalised word right before it makes a longer name: "New York", "Little Italy".
+            val longer = Regex("\\b\\p{Lu}[\\p{L}'.-]*\\s+$").containsMatchIn(before) && !placing.containsMatchIn(before)
+            (written || placing.containsMatchIn(before)) && !longer
+        }
+    }
+
+    /** The city a question names, as spelled in the place listings already retrieved for it; the longest name wins. */
     private fun destinationIn(question: String, evidence: List<Evidence>): String? = evidence.asSequence()
         .filter { isOsmPlace(it) || isGuidePlace(it) }
         .mapNotNull { field(it.text, "Destination")?.substringBefore('/') }
-        .firstOrNull { Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(it)}(?![\\p{L}\\p{N}])").containsMatchIn(question) }
+        .filter { names(question, it) }
+        .maxByOrNull { it.length }
 
     private val museumWord = Regex("(?i)\\b(museums?|galler(?:y|ies))\\b")
 
@@ -360,9 +397,9 @@ object VenueLookup {
         if (!(legacyEat && "Eat" in request.categories) && !newPlace) return null
         val destination = field(item.text, "Destination")?.substringBefore('/')
         if (destinationRequired) {
-            // "in Berlin", or the city named anywhere ("the saved Berlin vegan restaurants").
-            if (destination == null || !Regex("(?i)(?<![\\p{L}\\p{N}])${Regex.escape(destination)}(?![\\p{L}\\p{N}])")
-                    .containsMatchIn(question)) return null
+            // "in Berlin", or the city named anywhere ("the saved Berlin vegan restaurants"), but not an
+            // ordinary word that is also a city ("any nice restaurants in Berlin" is not Nice).
+            if (destination == null || !names(question, destination)) return null
         }
         val name = field(item.text, if (legacyEat) "Place to eat" else "Place")?.takeIf(String::isNotBlank)
             ?: return null
@@ -370,9 +407,8 @@ object VenueLookup {
         if (request.kinds.any { kind -> kind.exclude?.containsMatchIn(item.text) == true }) return null
         val qualifiers = if (relaxed) emptyList() else freeWords(question, request, destinationRequired, destination)
         if (!qualifiers.all { qualifier -> says(item.text, qualifier) }) return null
-        if (request.diet == "vegan" && !veganWord.containsMatchIn(item.text)) return null
-        if (request.diet == "vegetarian" && !veganWord.containsMatchIn(item.text) &&
-            !vegetarianWord.containsMatchIn(item.text)) return null
+        if (request.diet == "vegan" && !serves(item.text, veganWord)) return null
+        if (request.diet == "vegetarian" && !serves(item.text, veganWord) && !serves(item.text, vegetarianWord)) return null
         return Listing(
             evidence = item,
             name = name,
@@ -592,7 +628,7 @@ object VenueLookup {
     // A time after "at" or "in" is not a place: "open at night", "in the evening", "in under ten minutes".
     private val timeNotPlace = Regex("(?i)\\b(?:in|at|around)\\s+(?:night|midnight|noon|dawn|dusk|sunset|sunrise|lunch\\w*|breakfast\\w*|" +
         "dinner\\w*|brunch|supper|happy hour|christmas|easter|new year\\w*|summer|winter|spring|autumn|fall|holidays?|tonight|today|" +
-        "tomorrow|case|walking (?:range|distance)|the (?:(?:early|late) )?(?:morning|afternoon|evening|night|moment|weekend|rain|snow|" +
+        "tomorrow|case|an? emergency|walking (?:range|distance)|the (?:(?:early|late) )?(?:morning|afternoon|evening|night|moment|weekend|rain|snow|" +
         "heat|cold|summer|winter|holidays?)|under|less than|about|around|over|a few|an? (?:hour|minute|few|bit|while|moment)|one|two|" +
         "three|four|five|ten|twenty|thirty|this (?:time|hour)|time|weekends?)\\b(?![\\p{L}-])")
     private val fromHere = Regex("(?i)\\b$FROM_HERE\\b")
@@ -605,8 +641,7 @@ object VenueLookup {
     /** A place question answered from the phone's own location rather than a named city.
      * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
     fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) && !namedLandmark.containsMatchIn(question) &&
-        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question) ||
-            fromHere.containsMatchIn(question) && !namedPlace.containsMatchIn(question.replace(timeNotPlace, " "))) &&
+        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question.replace(timeNotPlace, " "))) &&
         (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question) || essential(question) != null) &&
         !complexWords.containsMatchIn(question)
 
@@ -737,7 +772,11 @@ object VenueLookup {
                 append(if (request.diet == "vegan") ", fully vegan first within each distance. " else ". ")
             }
             append("Nearest saved places to your current location")
-            if (request.diet == "vegan") append(" that OpenStreetMap tags as fully vegan or serving vegan options")
+            if (request.diet == "vegan") append(if (chosen.all { (listing, _) -> isGuidePlace(listing.evidence) })
+                " that the travel guide describes as vegan or serving vegan food"
+                else if (chosen.any { (listing, _) -> isGuidePlace(listing.evidence) })
+                    " that OpenStreetMap tags, or the travel guide describes, as vegan or serving vegan options"
+                else " that OpenStreetMap tags as fully vegan or serving vegan options")
             snapshot?.let { append(" (map data as of ").append(it).append(')') }
             append(":\n\n")
             appendUnmatched(unmatchedWords)
@@ -811,8 +850,10 @@ object VenueLookup {
         KINDS.any { kind -> kind.categories.any { it == "See" || it == "Do" } && kind.words.containsMatchIn(question) }
 
     /** The question with its "near me" words replaced by the city the phone is in. */
+    // The near-me words with what leads into them: "in the city I'm in", "I can walk to from here".
+    private val nearMeWithLead = Regex("(?i)\\s*(?:\\b(?:in|at|to|of|from|near|around)\\s+)?(?:\\b(?:i|we|you)\\s+(?:can|could)\\s+)?(?:${nearMePhrase.pattern.removePrefix("(?i)")})")
     fun inCity(question: String, city: String): String =
-        question.replace(nearMePhrase, " ").replace(Regex("\\s+(?:of|to)\\s+(?=[?.!,]|$)"), " ")
+        question.replace(nearMeWithLead, " ").replace(Regex("\\s+(?:of|to)\\s+(?=[?.!,]|$)"), " ")
             .replace(Regex("\\s+([?.!,])"), "$1").trim().trimEnd('?', '.', '!') + " in $city?"
 
     /** Said before a city-wide answer stands in for a near-me one, so the dropped distance is not hidden. */

@@ -31,8 +31,10 @@ object TravelSections {
         "Get in" to Regex("(?i)\\b(airport|arrive|arriving|arrival|get (?:to|from)|$VISA|border|ferry from|train to|flights?)\\b"),
         "Get around" to Regex("(?i)\\b(get around|getting around|bus|buses|taxi|taxis|metro|subway|tram|train|trains|ride[- ]hailing|grab|uber|bolt|lyft|rent a car|car rental|drive|driving|scooter|motorbike|bike|" +
             "rickshaws?|tuk-?tuks?|autos?)\\b"),
-        "Respect" to Regex("(?i)\\b(wear|dress|clothing|temples?|wats?|mosques?|churches|church|cathedrals?|shrines?|pagodas?|etiquette|customs?|rude|polite|respect\\w*|taboo|shoes|" +
-            "cover(?:ing)? (?:up|my|your|the)?\\s*(?:shoulders|knees|head|hair|arms)|modest(?:ly)?)\\b"),
+        // What to wear is etiquette beside a temple or a custom; "what should I wear in winter" is the weather.
+        "Respect" to Regex("(?i)\\b(temples?|wats?|mosques?|churches|church|cathedrals?|shrines?|pagodas?|etiquette|customs?|rude|polite|respect\\w*|taboo|shoes|" +
+            "cover(?:ing)? (?:up|my|your|the)?\\s*(?:shoulders|knees|head|hair|arms)|modest(?:ly)?)\\b|" +
+            "^(?=.*\\b(?:temples?|wats?|mosques?|church\\w*|cathedrals?|shrines?|pagodas?|religio\\w*|worship|sacred|etiquette|modest\\w*|customs?)\\b).*\\b(?:wear|dress|clothing)\\b"),
         "Connect" to Regex("(?i)\\b(sim|sim card|phone|mobile data|internet|wi-?fi|esim)\\b"),
         "Talk" to Regex("(?i)\\b(language|speak|say|phrase|english)\\b"),
         "Understand" to Regex("(?i)\\b(climate|weather|season|rainy|monsoon|best time|when to (?:go|visit)|holidays?|festivals?)\\b"),
@@ -453,7 +455,7 @@ object TravelSections {
     private const val TERMINAL = ".!?\"”’)"
 
     // "Is Rio de Janeiro safe for a solo traveller?", "how safe is Johannesburg", "is it safe to walk around Naples at night".
-    private val verdict = Regex("(?i)\\bis \\p{Lu}[\\p{L}'’ -]*?\\bsafe\\b|\\bhow safe is\\b|\\bis it safe (?:to (?:travel|go|visit|walk|stay)|in|at|for)\\b|" +
+    private val verdict = Regex("(?i)\\bis (?-i:\\p{Lu})[\\p{L}'’ -]*?\\bsafe\\b|\\bhow safe is\\b|\\bis it safe (?:to (?:travel|go|visit|walk|stay)|in|at|for)\\b|" +
         "\\bsafe (?:for|as) (?:a |an )?(?:solo|single|female|woman|women|girls?|lgbt\\w*|gay|tourists?|travell?ers?|backpackers?|famil(?:y|ies))\\b|" +
         "\\bsafe (?:to visit|to travel|to go|at night|city|country|place|destination)\\b")
     // An activity's safety ("is it safe to drive at night", "is the tap water safe") is answered by its own passage, not the verdict on the place.
@@ -514,9 +516,15 @@ object TravelSections {
     private fun clauseWords(clause: String, placeWords: Set<String>): List<String> = questionWords(clause, placeWords).filterNot { it in generic }
 
     /** Whether a quoted [text] answers the [clause]: it shares a specific word, with a figure when an amount is asked. */
+    // Times of day and year say when, not what: "is the metro safe at night" is not answered by "avoid the port at night".
+    private val timeWords = setOf("night", "nights", "day", "days", "morning", "evening", "afternoon", "today", "tonight", "tomorrow",
+        "winter", "summer", "spring", "autumn", "fall", "season", "week", "weekend", "weekends", "time", "times", "year", "month")
     private fun covers(clause: String, words: List<String>, text: String): Boolean {
         val tokens = tokensOf(text)
-        if (words.none { shares(it, tokens) }) return false
+        val real = words.filter { it !in timeWords }
+        // One shared word is enough only for a one-word clause; otherwise two must be shared.
+        val needed = if (real.size >= 2) 2 else 1
+        if (real.isEmpty() || real.count { shares(it, tokens) } < needed) return false
         return !amount.containsMatchIn(clause) || figure.containsMatchIn(text)
     }
 
@@ -804,6 +812,8 @@ object TravelSections {
     fun coversPart(question: String, place: String, picked: List<Evidence>, journey: Journey? = journeyOf(question), resolved: List<String> = listOf(place),
         things: List<String> = emptyList()): Boolean {
         val wanted = wanted(question)
+        // A care question (health, safety, customs) reads its own place's guide first; whether the quote
+        // answers it is judged clause by clause in coversEveryClause.
         if (wanted.isEmpty() || asksCare(question)) return true
         val own = picked.filter { it.title.startsWith("$place — ") }
         // A regional rail overview or discount pass does not cover ticket validation. Continue
