@@ -35,12 +35,32 @@ object Calculators {
         val durationMinutes: Int? = null,
     )
 
-    private const val NUM = "(\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)"
+    // A number starts where no digit, comma or dot comes before it: without that, a long run of digits is
+    // searched again from every digit in it, which froze the question box on a pasted number.
+    private const val NUM = "(?<![\\d.,])(\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)"
     private fun num(text: String) = text.replace(",", "").toDouble()
     private const val SYMBOLS = "[$€£¥₹]"
     private const val PCT = "(?:%|per\\s?cent\\b)"
     // Every number in the question, thousands separators and decimals included; "6-bed" is not one.
     private val numberToken = Regex("(?<![\\d.,])\\d+(?:[.,]\\d+)*(?![\\d-]|[.,]\\d)")
+
+    // Number forms these calculations cannot read for certain: a decimal comma ("1,5 litres"), thousands
+    // split by spaces ("1 000 km") or by dots ("1.200 km"). Money with its currency named is read by
+    // exchange(), which knows how each currency is written; anything else is left to research.
+    private val spacedThousands = Regex("(?<![\\d.,])\\d{1,3}(?:[ \\u00A0\\u202F]\\d{3})+(?![\\d.,])")
+    private val commaDecimal = Regex("(?<![\\d.,])\\d+,\\d{1,2}(?![\\d,])")
+    private val dotThousands = Regex("(?<![\\d.,])[1-9]\\d{0,2}(?:\\.\\d{3})+(?![\\d.,])")
+    // Counts written as words are quantities as much as digits: "two beers at 120 lira each".
+    private val quantityWord = Regex("(?i)\\b(?:two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|both|couple|dozen|pair|twice|double|triple)\\b")
+    // A year, or a number inside a code ("BA117", "gate B12", "T2"), counts nothing.
+    // A word with a capital in it ("iPhone 15", "Route 66", "Terminal 2"), or a word that numbers things
+    // ("bus number 22", "gate 12", "platform 3", "room 210", "seat 14"), makes the number an identifier.
+    private val namedBefore = Regex("(?<![.!?]\\s|^)\\b\\p{L}*\\p{Lu}\\p{L}*\\s$|(?i)\\b(?:number|no\\.?|#|gate|platform|terminal|" +
+        "route|line|bus|tram|train|flight|room|seat|row|car|coach|track|pier|exit|level|floor|zone|stand|bay|counter|door)\\s*$")
+    private fun countsNothing(q: String, d: MatchResult): Boolean =
+        Regex("^(?:19|20)\\d{2}$").matches(d.value) ||
+            namedBefore.containsMatchIn(q.substring(maxOf(0, d.range.first - 20), d.range.first)) ||
+            d.range.first > 0 && q[d.range.first - 1].isLetter() || d.range.last + 1 < q.length && q[d.range.last + 1].isLetter()
 
     // Anything beyond the arithmetic ("is it dangerous", "should I") is left to research. "How long should it
     // take" asks for the time, not for advice.
@@ -50,6 +70,9 @@ object Calculators {
     )
 
     fun solve(question: String, today: LocalDate = LocalDate.now()): Result? {
+        if (spacedThousands.containsMatchIn(question)) return null
+        if (commaDecimal.containsMatchIn(question) || dotThousands.containsMatchIn(question))
+            return exchange(question)?.let { judged(question, listOf(it to MONEY + EXCHANGE)) }
         // A trip whose length is worked out here: a clock time beside it is its start or end, so the plain
         // time-plus-span sums stand aside and the worked-out length is carried to the clock instead.
         val timed = listOfNotNull(naismith(question)?.let { it to HIKE }, travelTime(question)?.let { it to TRAVEL })
@@ -64,6 +87,11 @@ object Calculators {
             recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }) + plainTimes + listOfNotNull(
             perUnit(question)?.let { it to PER_UNIT }, provisions(question)?.let { it to PROVISIONS },
             units(question)?.let { it to UNITS }, percent(question)?.let { it to PERCENT })
+        return judged(question, families)
+    }
+
+    /** The calculations that read the question, judged as a whole answer, a lead, or nothing. */
+    private fun judged(question: String, families: List<Pair<Pair<Result, Set<String>>, Set<String>>>): Result? {
         if (families.isEmpty()) return null
         val parts = families.map { it.first }
         val covered = parts.flatMap { it.second }.toSet()
@@ -71,7 +99,11 @@ object Calculators {
         // A number no calculation read ("until the end of day 2" when the water sum took one day) means the
         // sum is not the whole answer.
         val used = parts.flatMap { it.first.used }
-        val stray = numberToken.findAll(question).any { d -> used.none { d.range.first in it } }
+        val stray = numberToken.findAll(question).any { d -> used.none { d.range.first in it } && !countsNothing(question, d) } ||
+            quantityWord.findAll(question).any { w -> used.none { w.range.first in it } }
+        // A quantity no calculation read ("two beers at 120 lira each", "split between the four of us") means
+        // the sum shown would be the wrong one: nothing is shown and research answers instead.
+        if (stray) return null
         // Words the calculation does not account for mean something else is asked too: "the best time
         // to hike the 43 km Inca Trail", "my baby has a fever of 39°C". Then the numbers lead and
         // research answers the question; only a question that is all arithmetic is answered here.
@@ -280,8 +312,10 @@ object Calculators {
         val from = maxOf(clause.range.first, s.range.first - 30); val to = minOf(clause.range.last, s.range.last + 30)
         if (!breakWord.containsMatchIn(q.substring(from, to + 1))) return@mapNotNull null
         val prefix = breakCount.find(q.substring(clause.range.first, s.range.first))
-        val times = prefix?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }?.let { count(it) } ?: if (Regex("(?i)\\btwice\\b").containsMatchIn(clause.value)) 2 else 1
-        val start = prefix?.let { clause.range.first + it.range.first } ?: s.range.first
+        val twice = Regex("(?i)\\btwice\\b").find(clause.value)
+        val times = prefix?.groupValues?.get(1)?.takeIf { it.isNotEmpty() }?.let { count(it) } ?: if (twice != null) 2 else 1
+        val start = minOf(prefix?.let { clause.range.first + it.range.first } ?: s.range.first,
+            if (prefix == null && twice != null) clause.range.first + twice.range.first else s.range.first)
         (start..s.range.last) to spanMinutes(s) * times
     }.toList()
     private fun stopsNote(stops: List<Pair<IntRange, Int>>): String {
@@ -344,7 +378,7 @@ object Calculators {
         }
         mpg.find(q)?.takeIf { wantsPer100 != null }?.let { m ->
             val v = num(m.groupValues[1]); if (v <= 0) return null
-            val imperial = Regex("(?i)imperial|uk|british").containsMatchIn(m.value)
+            val imperial = Regex("(?i)imperial|\\buk\\b|british").containsMatchIn(m.value + q.substring(m.range.last + 1).take(14))
             val l = (if (imperial) 282.481 else 235.215) / v
             return Result("${fmt(v)} mpg (${if (imperial) "UK imperial" else "US"} gallons) is about **${fmt(l)} L/100 km**.\n\n" +
                 "Working: ${if (imperial) "282.481" else "235.215"} ÷ ${fmt(v)} = ${fmt(l, 2)}.", true, "${fmt(v)} mpg = ${fmt(l)} L/100 km.",
@@ -400,7 +434,9 @@ object Calculators {
             append("The rule assumes a reasonably fit walker on good paths; steep descents, rough ground, heavy packs and heat all slow you down.")
         }
         val facts = "Naismith time = ${hours(walk + climb)}" + (if (stops.isEmpty()) "." else ", ${hours(total / 60.0)} with stops.")
-        return Result(text, true, facts, used = listOfNotNull(d.range, up?.range) + ruleRanges + stops.map { it.first },
+        val heights = altitude.findAll(q).filter { m -> Regex("(?i)altitude|elevation|above sea level").containsMatchIn(m.value) &&
+            (up == null || m.range.first !in up.range) }.map { it.range }.toList()
+        return Result(text, true, facts, used = listOfNotNull(d.range, up?.range) + ruleRanges + stops.map { it.first } + heights,
             durationMinutes = total) to emptySet()
     }
 
@@ -465,7 +501,7 @@ object Calculators {
 
     /* ---------- changing money at a quoted rate, less the commission ---------- */
     // "25,400 dong per US dollar", "0.84 pounds per euro", "38 lira to the euro": so much local money for one of the base.
-    private const val LOOSE = "(\\d(?:[\\d.,]*\\d)?)"
+    private const val LOOSE = "(?<![\\d.,])(\\d(?:[\\d.,]*\\d)?)"
     private val ratePer = Regex("(?i)(?<![\\d.,])$LOOSE\\s*((?:[a-z]+\\s+)?[a-z]+?)s?\\s+(?:(?:per|a|each)\\s+(?:(?:one|1)\\s+)?|(?:to|for|against)\\s+(?:the|one|1|a|an)\\s+)" +
         "((?:us |u\\.s\\. |uk |australian |canadian |singapore |new zealand |hong kong |taiwan |swiss |swedish |norwegian |danish |turkish |mexican |philippine )?[a-z]+)\\b")
     // "1 euro is 38 lira", "1 USD = 25,400 VND", "one pound buys 1.25 dollars".
@@ -501,9 +537,22 @@ object Calculators {
      * dot before exactly three digits is a thousands separator only for money that is written that way; for
      * anything else ("1.500 dollars") the reading is uncertain and nothing is returned.
      */
-    private fun parseAmount(text: String, currency: String): Double? {
+    // Money whose rate against a major currency runs into the thousands ("25.400 dong to the dollar"),
+    // and money named the same in countries whose rates run from under 1 to over 1,000 (the Mexican peso
+    // is about 18, the Colombian about 4,000), where a rate like "18.245" cannot be read either way.
+    private val thousandsRate = setOf("dong", "rupiah", "won", "rial", "riel", "kip", "guarani", "som", "sum")
+    private val eitherRate = setOf("peso", "shilling", "dinar", "franc", "lira", "pound", "rupee", "colon")
+    private fun parseAmount(text: String, currency: String, isRate: Boolean = false): Double? {
         val dots = text.count { it == '.' }; val commas = text.count { it == ',' }
         if (dots == 0 && commas == 0) return text.toDouble()
+        // "0.921" is never a thousands figure.
+        if (text.startsWith("0.") && dots == 1 && commas == 0) return text.toDouble()
+        // A rate is often quoted to three or four places ("18.245 pesos"); an amount of money never is.
+        if (isRate && dots == 1 && commas == 0 && text.substringAfter('.').length == 3) return when (canon(currency)) {
+            in thousandsRate -> text.replace(".", "").toDouble()
+            in eitherRate -> null
+            else -> text.toDouble()
+        }
         val groupedBy = { sep: Char -> text.split(sep).drop(1).all { it.length == 3 } }
         return when {
             dots > 0 && commas > 0 -> {
@@ -562,7 +611,7 @@ object Calculators {
             else -> return null
         }
         val local = localName.substringAfterLast(' ')
-        val perBase = parseAmount(if (per != null) per.groupValues[1] else eq!!.groupValues[2], local) ?: return null
+        val perBase = parseAmount(if (per != null) per.groupValues[1] else eq!!.groupValues[2], local, isRate = true) ?: return null
         if (perBase <= 0 || canon(base) == canon(local)) return null
         // The amount changed sits outside the rate and is in one of its two currencies; a fee's money is not it.
         val flatFees = flatFee.findAll(q).toList()
@@ -577,7 +626,7 @@ object Calculators {
             val g = m.groupValues
             val cur = symbolCurrency[g[1].ifBlank { g[4] }] ?: g[5]
             canon(cur) == canon(local) && changing.containsMatchIn(clauseOf(m.range.first)?.value.orEmpty()) &&
-                parseAmount(g[2].ifBlank { g[3] }, cur)?.let { it >= perBase * 0.2 && it <= perBase * 5 } == true
+                parseAmount(g[2].ifBlank { g[3] }, cur, isRate = true)?.let { it >= perBase * 0.2 && it <= perBase * 5 } == true
         }
         val offeredRate = if (amounts.size == 2 && offered.size == 1) offered.single() else null
         if (offeredRate != null) amounts = amounts.filter { it !== offeredRate }
@@ -592,8 +641,8 @@ object Calculators {
         val taken = listOf(r.range, amounts.single().range) + flatFees.map { it.range } + pctFees.map { it.range } + listOfNotNull(offeredRate?.range)
         val second = bareNumber.findAll(q).filter { n -> taken.none { n.range.first in it } && changing.containsMatchIn(clauseOf(n.range.first)?.value.orEmpty()) &&
                 givesRate.containsMatchIn(q.substring(0, n.range.first)) }
-            .mapNotNull { n -> parseAmount(n.value, local)?.takeIf { it >= perBase * 0.2 && it <= perBase * 5 }?.let { n.range to it } }.toList() +
-            listOfNotNull(offeredRate?.let { m -> m.range to parseAmount(m.groupValues[2].ifBlank { m.groupValues[3] }, local)!! })
+            .mapNotNull { n -> parseAmount(n.value, local, isRate = true)?.takeIf { it >= perBase * 0.2 && it <= perBase * 5 }?.let { n.range to it } }.toList() +
+            listOfNotNull(offeredRate?.let { m -> parseAmount(m.groupValues[2].ifBlank { m.groupValues[3] }, local, isRate = true)?.let { m.range to it } })
         if (second.size > 1) return null
         val other = second.singleOrNull()
         // Each fee belongs to the rate nearest before it in its sentence; a fee in a sentence with no rate is the
@@ -1075,26 +1124,48 @@ object Calculators {
     }
 
     /* ---------- temperature ---------- */    /* ---------- temperature ---------- */
-    private val temp = Regex("(?i)(-?$NUM)\\s*(?:°|degrees?)?\\s*(f|fahrenheit|c|celsius|centigrade)\\b")
+    // A sign is a minus only where no number comes before it: "30-35°C" is a range, "-5°C", "−5 °C",
+    // "–5°C" and "minus 5 C" are below zero.
+    private val temp = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–]\\s*|\\bminus\\s+)?)$NUM\\s*(?:°|degrees?)?\\s*(f|fahrenheit|c|celsius|centigrade)\\b")
+    private val rangeStart = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–]\\s*|\\bminus\\s+)?)$NUM\\s*(?:°\\s*[cf]?\\s*)?(?:-|–|—|to|and)\\s*$")
+    /** The temperature is the weather's, not a body's, an oven's or a fridge's. */
+    private fun isWeather(q: String): Boolean =
+        Regex("(?i)\\b(outside|outdoors|weather|forecast|heat ?wave|today|tomorrow|tonight|walk\\w*|hik\\w*|run|running|jog\\w*|" +
+            "cycl\\w*|bik\\w*|climb\\w*|camp\\w*|beach|sun|shade|trek\\w*|work outside|working outside|commute)\\b").containsMatchIn(q) &&
+            !Regex("(?i)\\b(fever|body|oven|cook\\w*|bak\\w*|water|bath|shower|pool|sauna|freezer|fridge|refrigerator|engine|cpu|laptop|phone|battery)\\b").containsMatchIn(q)
+
+    private fun signed(sign: String, digits: String) = num(digits) * (if (sign.isBlank()) 1 else -1)
     private fun temperature(q: String): Pair<Result, Set<String>>? {
         val m = temp.find(q) ?: return null
         // A bare "C" or "F" counts only beside weather words, so "5 c" in other text is not a temperature.
         if (!Regex("(?i)celsius|fahrenheit|°|degrees?|\\bin [cf]\\b").containsMatchIn(q) &&
             !Regex("(?i)\\b(outside|outdoors|weather|temperature|hot|cold|warm|freezing|heat)\\b").containsMatchIn(q)) return null
-        val value = num(m.groupValues[1].removePrefix("-")) * (if (m.groupValues[1].startsWith("-")) -1 else 1)
+        val value = signed(m.groupValues[1], m.groupValues[2])
         val fromF = m.groupValues[3].lowercase().startsWith("f")
+        // "20-25°C", "between 30 and 35 C": both ends are converted; one end alone would be a wrong answer.
+        val low = rangeStart.find(q.substring(0, m.range.first))
+        if (low != null) {
+            val from = signed(low.groupValues[1], low.groupValues[2])
+            fun conv(v: Double) = if (fromF) (v - 32) * 5 / 9 else v * 9 / 5 + 32
+            val unit = if (fromF) "°F" else "°C"; val other = if (fromF) "°C" else "°F"
+            val text = "${fmt(from)}–${fmt(value)}$unit is **${fmt(conv(from))}–${fmt(conv(value))}$other**."
+            val c = listOf(from, value).map { if (fromF) (it - 32) * 5 / 9 else it }
+            val air = isWeather(q)
+            val guide = if (!air) null else when { c.max() >= 32 -> "heat-illness"; c.min() <= -10 -> "extreme-cold"; else -> null }
+            return Result(text, true, "${fmt(from)}–${fmt(value)}$unit = ${fmt(conv(from))}–${fmt(conv(value))}$other.",
+                guideId = guide, used = listOf(low.range.first..m.range.last)) to emptySet()
+        }
         val text = if (fromF) "${fmt(value)}°F is **${fmt((value - 32) * 5 / 9)}°C**.\n\nWorking: (${fmt(value)} − 32) × 5 ÷ 9 = ${fmt((value - 32) * 5 / 9, 2)}."
             else "${fmt(value)}°C is **${fmt(value * 9 / 5 + 32)}°F**.\n\nWorking: ${fmt(value)} × 9 ÷ 5 + 32 = ${fmt(value * 9 / 5 + 32, 2)}."
         val celsius = if (fromF) (value - 32) * 5 / 9 else value
         val fact = if (fromF) "${fmt(value)}°F = ${fmt(celsius)}°C." else "${fmt(value)}°C = ${fmt(value * 9 / 5 + 32)}°F."
-        val feel = when { celsius >= 32 -> ", very hot"; celsius >= 27 -> ", hot"; celsius <= -10 -> ", extreme cold"; celsius <= 0 -> ", freezing cold"; else -> "" }
-        val stated = if (fromF) "${fmt(value)}°F (${fmt(celsius)}°C$feel)" else "${fmt(value)}°C (${fmt(value * 9 / 5 + 32)}°F$feel)"
         // Heat and cold guides are about the weather: a 104°F fever, a 0°F freezer or 75°C for cooking
         // chicken are not heatstroke or frostbite.
-        val air = Regex("(?i)\\b(outside|outdoors|weather|forecast|heat ?wave|today|tomorrow|tonight|walk\\w*|hik\\w*|run|running|jog\\w*|" +
-            "cycl\\w*|bik\\w*|climb\\w*|camp\\w*|beach|sun|shade|trek\\w*|work outside|working outside|commute)\\b").containsMatchIn(q) &&
-            !Regex("(?i)\\b(fever|body|oven|cook\\w*|bak\\w*|water|bath|shower|pool|sauna|freezer|fridge|refrigerator|engine|cpu|laptop|phone|battery)\\b").containsMatchIn(q)
+        val air = isWeather(q)
         val guide = if (!air) null else when { celsius >= 32 -> "heat-illness"; celsius <= -10 -> "extreme-cold"; else -> null }
+        // "Very hot" describes weather. A body at 34°C is cold, so a temperature not of the air gets no word.
+        val feel = if (!air) "" else when { celsius >= 32 -> ", very hot"; celsius >= 27 -> ", hot"; celsius <= -10 -> ", extreme cold"; celsius <= 0 -> ", freezing cold"; else -> "" }
+        val stated = if (fromF) "${fmt(value)}°F (${fmt(celsius)}°C$feel)" else "${fmt(value)}°C (${fmt(value * 9 / 5 + 32)}°F$feel)"
         val f = if (fromF) value else value * 9 / 5 + 32
         val pair = "${fmt(celsius)}°C (${fmt(f)}°F)"
         // The National Weather Service rates a heat index of 90-103°F "extreme caution" and above 103°F
@@ -1200,15 +1271,36 @@ object Calculators {
         "melbourne" to "Australia/Melbourne", "sydney" to "Australia/Sydney", "auckland" to "Pacific/Auckland", "dubai" to "Asia/Dubai",
         "hong kong" to "Asia/Hong_Kong", "singapore" to "Asia/Singapore", "seoul" to "Asia/Seoul", "taipei" to "Asia/Taipei",
         "ho chi minh city" to "Asia/Ho_Chi_Minh", "mexico city" to "America/Mexico_City", "montreal" to "America/Toronto", "vancouver" to "America/Vancouver",
+        // Countries on one clock. Countries with several (the US, Australia, Spain with the Canaries) are left out.
+        "samoa" to "Pacific/Apia", "american samoa" to "Pacific/Pago_Pago", "south korea" to "Asia/Seoul", "korea" to "Asia/Seoul",
+        "japan" to "Asia/Tokyo", "thailand" to "Asia/Bangkok", "vietnam" to "Asia/Ho_Chi_Minh", "philippines" to "Asia/Manila",
+        "india" to "Asia/Kolkata", "china" to "Asia/Shanghai", "taiwan" to "Asia/Taipei", "nepal" to "Asia/Kathmandu",
+        "sri lanka" to "Asia/Colombo", "israel" to "Asia/Jerusalem", "turkey" to "Europe/Istanbul", "greece" to "Europe/Athens",
+        "egypt" to "Africa/Cairo", "kenya" to "Africa/Nairobi", "south africa" to "Africa/Johannesburg", "morocco" to "Africa/Casablanca",
+        "uk" to "Europe/London", "united kingdom" to "Europe/London", "england" to "Europe/London", "scotland" to "Europe/London",
+        "wales" to "Europe/London", "ireland" to "Europe/Dublin", "france" to "Europe/Paris", "germany" to "Europe/Berlin",
+        "italy" to "Europe/Rome", "netherlands" to "Europe/Amsterdam", "belgium" to "Europe/Brussels", "switzerland" to "Europe/Zurich",
+        "austria" to "Europe/Vienna", "poland" to "Europe/Warsaw", "czechia" to "Europe/Prague", "czech republic" to "Europe/Prague",
+        "hungary" to "Europe/Budapest", "sweden" to "Europe/Stockholm", "norway" to "Europe/Oslo", "denmark" to "Europe/Copenhagen",
+        "finland" to "Europe/Helsinki", "iceland" to "Atlantic/Reykjavik", "peru" to "America/Lima", "colombia" to "America/Bogota",
+        "argentina" to "America/Argentina/Buenos_Aires",
     )
+    // Zone names that are not one place: old region aliases ("Australia/South" is Adelaide, "Pacific/Samoa"
+    // is American Samoa) and names several places share (Victoria, Córdoba). The sum would be wrong as often
+    // as right, so these are left to research unless an alias names the place.
+    private val notOnePlace = setOf("north", "south", "east", "west", "central", "eastern", "western", "pacific", "mountain",
+        "atlantic", "samoa", "victoria", "cordoba", "córdoba", "georgia", "general", "universal", "zulu", "acre", "canary", "yukon")
     private val zonesByCity: Map<String, String> by lazy {
         ZoneId.getAvailableZoneIds().filter { Regex("^(Europe|Asia|America|Africa|Australia|Pacific|Atlantic|Indian)/[^/]+$").matches(it) }
-            .associateBy { it.substringAfterLast('/').replace('_', ' ').lowercase() } + zoneAliases
+            .associateBy { it.substringAfterLast('/').replace('_', ' ').lowercase() }.filterKeys { it !in notOnePlace } + zoneAliases
     }
+    // "New York City" and "Lisbon airport" name the place before the generic word; "South Korea" and "Santiago
+    // de Compostela" are names in full, never "South" or "Santiago".
+    private val placeSuffix = setOf("city", "town", "centre", "center", "downtown", "airport", "area", "proper", "time")
     private fun zoneFor(phrase: String): Pair<String, ZoneId>? {
         val words = phrase.trimEnd('.', ',').split(Regex("\\s+"))
-        // "New York City" tries "New York City", then "New York", then "New".
         for (n in words.size downTo 1) {
+            if (words.drop(n).any { it.lowercase() !in placeSuffix }) continue
             val name = words.take(n).joinToString(" ")
             zonesByCity[name.lowercase()]?.let { return name to ZoneId.of(it) }
         }
@@ -1249,6 +1341,8 @@ object Calculators {
         if (!Regex("(?i)\\bhow (?:many|much|long)\\b|\\bdaylight\\b|\\bduration\\b|\\btime between\\b").containsMatchIn(q)) return null
         // "What time is it in Tokyo when…" converts a time; it does not measure one.
         if (Regex("(?i)\\bwhat time\\b|\\btime (?:is it|there)\\b").containsMatchIn(q)) return null
+        // "Leaves Paris at 10:00, lands in New York at 12:30": two clocks, and the gap needs their zones.
+        if (travels.containsMatchIn(q) && namesPlace(q)) return null
         val found = clockTime.findAll(q).toList()
         val times = found.mapNotNull { t ->
             if (t.groupValues[3].isNotEmpty()) {
@@ -1256,14 +1350,28 @@ object Calculators {
                 if (h !in 1..12 || m > 59) null else ((h % 12) + if (t.groupValues[3].lowercase().startsWith("p")) 12 else 0) * 60 + m
             } else t.groupValues[4].toInt() * 60 + t.groupValues[5].toInt()
         }.toList()
-        if (times.size != 2) return null
-        var minutes = times[1] - times[0]
+        if (times.size != 2 || found.size != 2) return null
+        // "Until sunset at 18:30 if it's 14:15 now": the time that is now is where the gap starts.
+        val nowAt = found.indexOfFirst { t ->
+            val around = q.substring(maxOf(0, t.range.first - 12), minOf(q.length, t.range.last + 8))
+            Regex("(?i)\\b(?:it(?:'s| is)|now(?: it(?:'s| is))?|the time is|currently)\\s*$").containsMatchIn(q.substring(maxOf(0, t.range.first - 14), t.range.first)) ||
+                Regex("(?i)^\\s*(?:now|right now|at the moment)\\b").containsMatchIn(q.substring(t.range.last + 1).take(14)) && around.isNotEmpty()
+        }
+        val (from, to) = if (nowAt == 1) times[1] to times[0] else times[0] to times[1]
+        var minutes = to - from
         val overnight = minutes <= 0
+        // Which time comes first is not said and the gap would cross midnight: that is a guess, not a sum.
+        // "Opens at 9 pm and closes at 2 am" says it.
+        val startWord = Regex("(?i)\\b(?:opens?|starts?|begins?|leaves?|departs?|from|sets? off)\\W+(?:\\w+\\W+){0,2}$")
+        val endWord = Regex("(?i)\\b(?:closes?|ends?|finish\\w*|arriv\\w*|lands?|until|till|to|gets? (?:in|there|back))\\W+(?:\\w+\\W+){0,2}$")
+        val ordered = startWord.containsMatchIn(q.substring(maxOf(0, found[0].range.first - 30), found[0].range.first)) &&
+            endWord.containsMatchIn(q.substring(maxOf(found[0].range.last + 1, found[1].range.first - 30), found[1].range.first))
+        if (overnight && nowAt < 0 && !ordered) return null
         if (overnight) minutes += 24 * 60
         fun clock(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
         val length = hours(minutes / 60.0)
-        val text = "From ${clock(times[0])} to ${clock(times[1])}${if (overnight) " the next day" else ""} is **$length**."
-        return Result(text, true, "${clock(times[0])} to ${clock(times[1])} = $length.", used = found.map { it.range }) to emptySet()
+        val text = "From ${clock(from)} to ${clock(to)}${if (overnight) " the next day" else ""} is **$length**."
+        return Result(text, true, "${clock(from)} to ${clock(to)} = $length.", used = found.map { it.range }) to emptySet()
     }
 
     /* ---------- a clock time plus or minus a duration ---------- */
@@ -1345,6 +1453,15 @@ object Calculators {
         val back = relative.find(after)?.let { e ->
             val from = s.range.last + 1 + e.range.last + 1
             val event = namedEvent.find(after.substring(e.range.last + 1))?.groupValues?.get(1)?.lowercase()
+            val later = e.groupValues[1].lowercase() in setOf("after", "later")
+            // The words that name the event in the time's own clause or in the question asked.
+            val eventWords = when (event) {
+                null, "" -> null
+                "departure", "take-off", "takeoff" -> Regex("(?i)\\b(?:depart\\w*|leav\\w*|take[- ]?off|takes off|flight leaves|plane leaves)\\b")
+                else -> Regex("(?i)\\b${Regex.escape(event.removeSuffix("s"))}\\w*\\b")
+            }
+            // The words that lead up to the time, in its sentence: "Boarding starts at" names boarding.
+            val timeClause = before.split('.', '?', '!').last()
             val own = when {
                 // "30 minutes early" is early for the time itself.
                 e.groupValues[1].startsWith("early", ignoreCase = true) && e.groupValues[2].lowercase() !in setOf("than", "for") -> true
@@ -1352,12 +1469,35 @@ object Calculators {
                 t.range.first >= from && q.substring(from, t.range.first).none { it in ".?!" } -> true
                 event == null -> false
                 event.isEmpty() || event in setOf("it", "that", "this", "then", "time") -> true
-                event in setOf("departure", "take-off", "takeoff") -> timeStarts == true
-                else -> Regex("(?i)\\b${Regex.escape(event)}\\b").containsMatchIn(before.split('.', '?', '!').last())
+                // The time is the event's only when its own clause names the event: "boarding starts at
+                // 13:20" is boarding's time, not the departure's.
+                else -> eventWords!!.containsMatchIn(timeClause)
             }
-            if (!own) return null
-            e.groupValues[1].lowercase() !in setOf("after", "later")
+            when {
+                own -> !later
+                // "Boarding starts at 13:20, 40 minutes before departure. When does it leave?": the event
+                // asked about comes 40 minutes after the time given.
+                eventWords != null && asked.findAll(q).any { eventWords.containsMatchIn(it.value) } -> later
+                else -> return null
+            }
         } ?: run {
+            // "Immigration takes 1 hour" after a landing is another step, not the flight: counting it back
+            // from the landing would answer a different question.
+            val spanClause = clauses.findAll(q).firstOrNull { s.range.first in it.range }?.value.orEmpty()
+            val journey = Regex("(?i)\\b(?:trip|journey|flight|fly\\w*|drive|driving|ride|walk\\w*|hike|hiking|train|bus|coach|ferry|boat|" +
+                "crossing|transfer|route|way there|leaves?|departs?|travel\\w*)\\b")
+            val otherStep = Regex("(?i)\\b(?:immigration|customs|passport control|security|check[- ]?in|baggage|bags|luggage|queue|meeting|" +
+                "lunch|dinner|breakfast|tour|show|class|appointment|visit|exam|game|match|concert|film|movie|shopping|layover|connection)\\b")
+            // The part of the sentence that says how long, after the time: "and immigration takes about 1 hour".
+            val stepPart = if (s.range.first > t.range.last) q.substring(t.range.last + 1, s.range.last + 1) else spanClause
+            if (otherStep.containsMatchIn(stepPart) && !journey.containsMatchIn(stepPart.replace(otherStep, " "))) {
+                // A step after the time ends later ("when can I leave the airport?", "when do we finish?"); asked
+                // when to set off or arrive, it could come before or after, so nothing is guessed.
+                val askedAfter = Regex("(?i)\\b(?:finish\\w*|done|end|over|out|through|leave the|exit|get out|be free|free)\\b")
+                if (!asked.findAll(q).any { askedAfter.containsMatchIn(it.value) } &&
+                    !Regex("(?i)\\bwhen\\b[^.?!]*\\b(?:finish\\w*|done|over|out|through|leave the|exit)\\b").containsMatchIn(q)) return null
+                return@run false
+            }
             val asks = asked.findAll(q).filterNot { m ->
                 m.range.last < t.range.first && !auxiliary.containsMatchIn(m.value) &&
                     q.substring(m.range.last + 1, t.range.first).none { it in ".?!" }

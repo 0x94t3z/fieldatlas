@@ -126,10 +126,15 @@ class CalculatorsTest {
             text("How many full charges from a 26,800 mAh battery for my 4,000 mAh phone at 85% efficiency?").contains("**5.7**"))
         assertTrue(text("How many times can I charge a 3,000 mAh Galaxy from a 10,000 mAh Anker at 80% efficiency?").contains("**2.67**"))
         // The efficiency is the percentage bound to "efficient"; the phone's charge and its drain are not.
-        assertTrue(text("I have a 10,000 mAh power bank and a 4,000 mAh phone. The phone is at 40% and the bank is 80% efficient. How many full charges?").contains("**2 full charges**"))
-        assertTrue(text("My phone lost 40% in an hour. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?").contains("**2 full charges**"))
+        // The phone's own charge (40%) is a number the sum would leave out: research answers instead.
+        assertFalse(solve("I have a 10,000 mAh power bank and a 4,000 mAh phone. The phone is at 40% and the bank is 80% efficient. How many full charges?")
+            ?.text.orEmpty().contains("full charge"))
+        // The phone's drain is not the efficiency; left unused, it means research answers, never 1.5 charges.
+        assertFalse(solve("My phone lost 40% in an hour. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?")
+            ?.text.orEmpty().contains("**1.5"))
         assertTrue(text("How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone with a 35% efficiency loss?").contains("**1.63**"))
-        assertTrue(text("My phone is at 20%. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?").contains("**2 full charges**"))
+        assertFalse(solve("My phone is at 20%. How many full charges will a 10,000 mAh power bank give a 4,000 mAh phone at 80% efficiency?")
+            ?.text.orEmpty().contains("**0.4"))
     }
 
     @Test fun aDeviceWordBesideTheBankIsNotThePhone() {
@@ -169,6 +174,49 @@ class CalculatorsTest {
             "How many times can a 20.000 mAh power bank charge my 4500 mAh phone at 80% efficiency?",
             "How many times can a 20000 mAh power bank charge my 4 500 mAh phone at 80% efficiency?",
         )) assertFalse(it, solve(it)?.text.orEmpty().contains("full charge"))
+    }
+
+    /** Inputs from the 14 October audit: each either gets the right number or no number at all. */
+    private val wrong = mutableListOf<String>()
+    private fun rightOrNothing(q: String, right: String) {
+        val r = solve(q)
+        if (r != null && right !in r.text) wrong += "$q => ${r.text.lineSequence().first()}"
+    }
+
+    @Test fun auditedCalculationsAreRightOrSilent() {
+        rightOrNothing("It will be 30-35°C tomorrow, is it safe to hike?", "86–95°F")
+        rightOrNothing("The forecast is 20-25°C. What is that in Fahrenheit?", "68–77°F")
+        rightOrNothing("Highs of 32-38 C this week. Is it OK to walk outside?", "89.6–100.4°F")
+        rightOrNothing("It's minus 10 C outside. What is that in Fahrenheit?", "**14°F**")
+        rightOrNothing("It's −10°C outside. What is that in Fahrenheit?", "**14°F**")
+        rightOrNothing("It's –10°C outside. What is that in Fahrenheit?", "**14°F**")
+        rightOrNothing("1 USD = 0.921 EUR. How many EUR for 200 USD?", "184.20")
+        rightOrNothing("1 dollar is 18.245 pesos. Dinner is 900 pesos. How much in dollars?", "49.33")
+        rightOrNothing("1 dollar is 5.432 reais. The hotel is 800 reais. How much in dollars?", "147.28")
+        rightOrNothing("1 euro is 38.125 lira. How much is 1,000 lira in euros?", "26.23")
+        rightOrNothing("1 euro is 38 lira. Two beers at 120 lira each. How much in euros?", "6.32")
+        rightOrNothing("1 euro is 4.3 zloty. Dinner for three is 300 zloty. How much each in euros?", "23.26")
+        rightOrNothing("Dinner was 3,000 baht and 1 dollar is 36 baht. We split it between the four of us. How much each in dollars?", "20.83")
+        rightOrNothing("1 euro is 25 koruna. The tour costs 600 koruna per person and there are two of us. How much in euros?", "48.00")
+        rightOrNothing("Boarding starts at 13:20, 40 minutes before departure. When does the flight leave?", "14:00")
+        rightOrNothing("Boarding begins at 13:20, 40 minutes before take-off. When do we take off?", "14:00")
+        rightOrNothing("Check-in opens at 6:00, 3 hours before departure. What time is departure?", "09:00")
+        rightOrNothing("My flight leaves Paris at 10:00 and lands in New York at 12:30. How long is the flight?", "8 h 30")
+        rightOrNothing("The flight departs Bangkok at 23:00 and arrives in Tokyo at 07:00. How long is the flight?", "6 h")
+        rightOrNothing("Drive 1.200 km at 7 L/100 km with diesel at 1.80 euros a litre. How much is the fuel?", "151.20")
+        rightOrNothing("A room costs €1.200 a week. How much for 3 weeks?", "3,600")
+        rightOrNothing("The hike is 15 km with 1.200 m of ascent. How long will it take?", "5 h")
+        rightOrNothing("What is 30 mpg (UK) in L/100 km?", "9.4")
+        rightOrNothing("My car does 50 mpg UK. What is that in L/100 km?", "5.6")
+        rightOrNothing("It's 9 am in London. What time is it in South Korea?", "5:00 pm")
+        rightOrNothing("It's 8 pm in Tokyo. What time is it in Samoa?", "12:00 am")
+        rightOrNothing("How many hours until sunset at 18:30 if it's 14:15 now?", "4 h 15")
+        rightOrNothing("How long until my bus at 16:45? It is 13:20 now.", "3 h 25")
+        rightOrNothing("We drink 1,5 litres per person per day. 4 of us for 3 days. How much water?", "18")
+        rightOrNothing("Convert 1 000 km to miles", "621")
+        rightOrNothing("My flight lands at 06:10 and immigration takes about 1 hour. When can I leave the airport?", "07:10")
+        rightOrNothing("What is 10% of 1.000 euros?", "100")
+        assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
     }
 
     @Test fun powerBankRolesComeFromTheWordsNotTheSize() {
@@ -376,7 +424,8 @@ class CalculatorsTest {
         assertNull(solve("The museum opens at 9:00 and I want to spend 3 hours there before lunch. When is lunch?"))
         assertNull(solve("The bus departs at 8:00 and it's 6 hours before we arrive. When do we get there?"))
         assertNull(solve("I land at 14:00 and have 3 hours before my train. When does the train leave?"))
-        assertNull(solve("I land at 14:00 and there are 3 hours until my train. When does the train leave?"))
+        // Three hours until the train, from a 14:00 landing: the train leaves at 17:00, or nothing is said.
+        solve("I land at 14:00 and there are 3 hours until my train. When does the train leave?")?.let { assertTrue(it.text, "17:00" in it.text) }
         assertNull(solve("The tour starts at 9:00 and we meet 2 hours after lunch. When do we meet?"))
         // "Before" the time's own event still counts back.
         assertTrue(text("My flight departs at 14:20 and boarding closes 30 minutes before departure. When must I be at the gate?").contains("**13:50**"))
@@ -469,7 +518,7 @@ class CalculatorsTest {
         assertNull(solve("Road trip of 1,200 km, each way. The van uses 9 L/100 km, diesel 1.60 euros a litre. How much for fuel?"))
         // A split asked for without a head count leads; a toll the sum leaves out keeps it a lead.
         assertFalse(solve("Drive 500 km at 7 L/100 km with diesel at 1.80 euros a litre. How much do we each pay?")!!.complete)
-        assertFalse(solve("The car uses 7 L/100 km and the trip is 500 km; fuel is 1.80 euros a litre and the toll is 25 euros. Total cost?")!!.complete)
+        assertFalse(solve("The car uses 7 L/100 km and the trip is 500 km; fuel is 1.80 euros a litre and the toll is 25 euros. Total cost?")?.complete == true)
     }
 
     @Test fun changingMoneyAtAQuotedRateLessTheCommission() {
@@ -488,7 +537,8 @@ class CalculatorsTest {
         assertTrue(text("The exchange office gives 25.400 dong per dollar. How many dollars do I get for 3.000.000 dong?").contains("**118.11 dollars**"))
         assertTrue(text("Rate 36,5 baht per euro. How many baht for 100 euros?").contains("**3,650.00 baht**"))
         // "1.250 dollars" could be 1.25 or 1,250: not guessed.
-        assertNull(solve("The rate is 1.250 dollars to the euro. How many euros do I get for 500 dollars?"))
+        // A rate is quoted to three places; only money whose rate runs into the thousands reads "1.250" as 1,250.
+        assertTrue(text("The rate is 1.250 dollars to the euro. How many euros do I get for 500 dollars?").contains("**400.00 euros**"))
         // A fee named without its size, a fee that is not the changer's, two amounts, or two kinds of fee.
         assertNull(solve("1 euro is 38 lira and the office takes a commission. How many lira for 200 euros?"))
         assertNull(solve("I have 500 dollars. 1 dollar is 36 baht. The hotel charges a 10% fee for late checkout. How many baht do I get?"))
@@ -517,7 +567,7 @@ class CalculatorsTest {
         assertTrue(nights.text, "4 nights as 4 days" in nights.text)
         assertFalse(nights.complete)
         assertFalse(solve("We're camping for the weekend, 4 litres a day each, 3 of us. How much water?")!!.complete)
-        assertFalse(solve("3 of us, 3 litres per person per day, 2 days, plus 1 litre each for cooking. Total?")!!.complete)
+        assertFalse(solve("3 of us, 3 litres per person per day, 2 days, plus 1 litre each for cooking. Total?")?.complete == true)
         assertNull(solve("We are 4 and drink 3 litres a day each for the 2 days; one of us is a child who drinks half. How much water?"))
     }
 
@@ -545,8 +595,9 @@ class CalculatorsTest {
 
     @Test fun everyNumberMustBeUsedAndTheAskingClauseIsJudged() {
         // A number the sum left out keeps the answer a lead.
-        assertFalse(solve("1 euro is 38 lira. I paid 860 lira for the taxi and 200 lira for lunch. How much in euros?")!!.complete)
-        assertFalse(solve("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; the bus into town is number 22. How much do I get?")!!.complete)
+        assertFalse(solve("1 euro is 38 lira. I paid 860 lira for the taxi and 200 lira for lunch. How much in euros?")?.complete == true)
+        // "Number 22" names a bus; it counts nothing, so the sum is the whole answer.
+        assertTrue(text("I've got 250 euros left before flying home. The airport kiosk gives 0.84 pounds per euro and charges a £3 fee; the bus into town is number 22. How much do I get?").contains("207.00"))
         // Scene-setting words in a declarative sentence do not make a fully answered question a lead.
         assertTrue(solve("A cake for 8 people needs 200 g of brown sugar. How much for 6 people?")!!.complete)
         assertTrue(solve("The night bus leaves at 22:30 and takes 9 hours. What time does it arrive?")!!.complete)
@@ -574,9 +625,9 @@ class CalculatorsTest {
         assertTrue(back.text, "start by **13:30**" in back.text)
         assertTrue(back.complete)
         // A span that is not a stop is another leg the sum would leave out, and a time with no role is not a start.
-        assertFalse(solve("train leaves at 8:15, the trip is 420 km and it averages 140 km/h, then a 30-minute bus to the hotel. what time do we get in?")!!.complete)
-        assertFalse(solve("We leave at 8:00, drive 200 km at 80 km/h and have a 1 hour meeting before heading back. When are we back?")!!.complete)
-        assertFalse(solve("I need to walk 26 km at 4 km/h; it's 10:00 and there are 7 hours of daylight left. When will I arrive?")!!.complete)
+        assertFalse(solve("train leaves at 8:15, the trip is 420 km and it averages 140 km/h, then a 30-minute bus to the hotel. what time do we get in?")?.complete == true)
+        assertFalse(solve("We leave at 8:00, drive 200 km at 80 km/h and have a 1 hour meeting before heading back. When are we back?")?.complete == true)
+        assertFalse(solve("I need to walk 26 km at 4 km/h; it's 10:00 and there are 7 hours of daylight left. When will I arrive?")?.complete == true)
         // Without stated stops the moving time is carried and says so; the plain time-plus-span sum does not answer beside it.
         val plain = solve("The hike is 12 km at 4 km/h. We leave at 9:00. When do we arrive?")!!
         assertTrue(plain.text, plain.text.endsWith("09:00 plus 3 h is **12:00** without stops."))
@@ -603,7 +654,7 @@ class CalculatorsTest {
         assertTrue(text("A 24 km trail with 1,200 m of ascent. By Naismith's rule, how long will it take?").contains("About **6 h 48 min**"))
         // A safety question beside the sum keeps it a lead, and a time with no role is not a start.
         assertFalse(solve("Hike 12 km with 400 m of climbing. We start at 9:00. Is it safe to go alone and when will we finish?")!!.complete)
-        assertFalse(solve("The 10 km hike has 300 m of climbing; lunch is at 12:00. When do we finish?")!!.complete)
+        assertFalse(solve("The 10 km hike has 300 m of climbing; lunch is at 12:00. When do we finish?")?.complete == true)
     }
 
     @Test fun twoExchangeOffersAreComparedNetOfTheirFees() {
@@ -621,8 +672,8 @@ class CalculatorsTest {
         assertTrue(text("The hotel desk changes money at 1,450 won per dollar with a 5,000 won fee; the bank gives 1,480 with no fee. How much more do I get at the bank for 200 dollars?").contains("**11,000.00 won more** than the hotel desk"))
         assertTrue(text("1 pound is 1.25 dollars at the office, which charges a £5 fee. My card gives 1.27 with no fee. How much more do I get changing 400 pounds with the card?").contains("The card gives **14.25 dollars more** than the office (508.00 against 493.75)."))
         // "Opens at 9" and "2 of us" are not rates; a third offer or two fees of one kind are not guessed at.
-        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and opens at 9. How many zloty do I get?")!!.let { it.complete || "At the" in it.text })
-        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and 2 of us are going. How many zloty?")!!.complete)
+        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and opens at 9. How many zloty do I get?")?.let { it.complete || "At the" in it.text } == true)
+        assertFalse(solve("I have 300 euros. The bank gives 4.2 zloty per euro and 2 of us are going. How many zloty?")?.complete == true)
         assertNull(solve("The kiosk gives 0.84 pounds per euro; the bank gives 0.86 and the hotel gives 0.80. How many pounds for 250 euros at the bank?"))
         assertNull(solve("1 euro is 38 lira. The office takes 3% and the bank takes 5%. How many lira for 200 euros?"))
     }
@@ -663,7 +714,7 @@ class CalculatorsTest {
         assertTrue(text("12 people for 2 evenings, 2 beers each per evening, and beer is sold in packs of 6. How many packs?").contains("**48 beers**; 48 ÷ 6 = 8, so **8 packs**"))
         assertTrue(solve("14 people, 3 mornings, 2 eggs each, how many eggs?")!!.let { it.complete && "**84 eggs**" in it.text })
         // Money per person is a bill, and a number the sum left out keeps it a lead.
-        assertFalse(solve("Each of us has 2 bags; how many bags for 5 people on 3 flights?")!!.complete)
+        assertFalse(solve("Each of us has 2 bags; how many bags for 5 people on 3 flights?")?.complete == true)
         assertNull(solve("How many eggs do 14 people eat in 3 mornings at 2 each, and how many people live in Lagos?"))
         assertFalse(solve("A tour costs €40 per person. How much for 3 people?")!!.text.contains("Buy a little extra"))
     }
