@@ -3,7 +3,7 @@
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
   "auditScope": "Status of the v1.4.0 source against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md has the detail.",
-  "lastAuditedAt": "2026-10-07",
+  "lastAuditedAt": "2026-10-13",
   "requirements": [
     {
       "id": "B31-01",
@@ -37,7 +37,7 @@
         "app/src/test/java/xyz/fieldatlas/assets/StorageBudgetTest.kt",
         "DATASETS.md"
       ],
-      "note": "Every offered collection and both models together take about 10.4 GB."
+      "note": "Every offered collection and both models together take about 32 GB installed (the Encyclopedia alone 24.35 GB); installing the Encyclopedia needs about 43 GB at its peak, under the 50 GB limit."
     },
     {
       "id": "B31-04",
@@ -136,7 +136,7 @@
         "docs/evidence/physical/redmi-13c-android13/",
         "docs/evidence/physical/infinix-x6840-android16/current-package-version.txt"
       ],
-      "note": "The 1.4.0 source was installed and checked on a Redmi 13C with the local test key; the public-key APK is installed after the release."
+      "note": "The 1.4.0 release source was installed and checked on a Redmi 13C with the local test key; the public-key APK cannot update that installation without uninstalling, so it was not installed there."
     },
     {
       "id": "B31-13",
@@ -146,7 +146,7 @@
         "docs/installation.md",
         "docs/evidence/physical/infinix-x6840-android16/README.md"
       ],
-      "note": "Documented; the public path (APK, in-app model download, collections) has not been run end to end on a clean phone."
+      "note": "On a Redmi 13C, setup downloaded and installed the model and six collections through the app (4.1 GB in about 35 minutes) and answered offline; not yet run from the public APK on a clean phone, and the Encyclopedia was imported rather than downloaded."
     },
     {
       "id": "B31-14",
@@ -158,7 +158,7 @@
         "docs/installation.md",
         "app/src/main/assets/knowledge/catalog.json"
       ],
-      "note": "Models and collections download in the app; their releases carry checksums and source locks."
+      "note": "Models and collections download in the app from pinned Hugging Face revisions, each checked against its size and SHA-256; a .fapack can be imported instead."
     },
     {
       "id": "B31-15",
@@ -196,7 +196,7 @@
         "https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0",
         "docs/releases/current.md"
       ],
-      "note": "v1.4.0 is to be tagged and released, then claimed."
+      "note": "v1.4.0 is tagged and released at the reviewed source; the claim is still to be updated."
     },
     {
       "id": "B31-19",
@@ -219,7 +219,7 @@
         "docs/fieldtest/heldout3.jsonl",
         "docs/fieldtest/results-1.4.0/"
       ],
-      "note": "On 60 held-out questions written after the last change, graded blind against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 38% of the reference and the optional Qwen3.5 4B 52% on the 55 without a phone position: the bar is not met with the default model and only just, on 8 GB phones, with the 4B. The method, its limits and every graded answer are published."
+      "note": "On 60 fresh questions written after the release build was frozen, graded blind twice against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 34% of the reference (1.02 factual errors per answer) and the optional 4B 35% on the 55 without a phone position: the bar is not met. Method, limits and every graded answer are published."
     }
   ]
 }

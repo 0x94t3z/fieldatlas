@@ -34,33 +34,42 @@ model, quoting an Ethereum proposal's own summary, and a table of emergency numb
 are implemented here independently, from primary sources (the Wikipedia list of emergency
 numbers at a pinned revision, the EIP and ERC repositories, NIST publications).
 
-## v1.4.0 release handoff (7 October 2026)
+## v1.4.0 release handoff (13 October 2026)
 
 ### Public artifact verification
 
-Built the optimized public-key APK from app source at `a72b082`: version 1.4.0 (18),
-108,762,220 bytes, SHA-256 `34803a89e454746e73d1e225073e323f0e7d68877917fc28ef0f610a579a13b5`. The certificate matches the existing public release
-certificate recorded below (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
-Release build and lint passed (0 errors, 47 warnings); 799 JVM tests passed and 16 opt-in desktop tests were skipped in the
-ordinary run (run separately against the real collections). All 147 Python tests passed (57
-scripts, 12 packtool, 6 benchmark, 72 builders). The offline packaging audit (`verify_offline.sh`)
-passed. Five knowledge releases accompany the app: `knowledge-wikivoyage-guides-2026.09.01`,
-`knowledge-vegan-places-2026.10.05`, `knowledge-essentials-2026.10.05`,
-`knowledge-crypto-ethereum-2026.10.05` and `knowledge-wikipedia-en-vital-2026.10.06`, each with its
-`SHA256SUMS` and source lock; the catalog in the app names their sizes and checksums.
+Built the optimized public-key APK from source at `be2d899` (app code as of `ac582dd`): version
+1.4.0 (19), 73,071,787 bytes, SHA-256
+`b19fca697ab1fe293b60064e4496c97ee129907dcd788e4a967ed5ffee9fae49`. The certificate matches the
+existing public release certificate recorded below
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). Release build and lint passed;
+1,291 JVM tests ran with none failing (54 opt-in tests skipped); 78 script and 246 tool tests passed;
+the website's 25 browser tests passed. The offline packaging audit (`verify_offline.sh`) passed, the
+APK is 16 KB-aligned (`zipalign -c -P 16`), and all 23 native libraries pass
+`check_native_alignment.py`. An instrumentation test on a Redmi 13C compiled every regular-expression
+literal of the app with Android's engine. An earlier 1.4.0 public-key APK built on 7 October from
+`a72b082` was never published and is superseded.
 
-Phone checks used a locally signed build of the same source on a Redmi 13C (Android 13, airplane
-mode, Wi-Fi and mobile data off, installed over 1.3.0 with data kept, the five 1.4.0 collections
-imported from files); the public-key APK was not installed on a phone. The first 1.4.0 build
-stopped on launch: Android's ICU regex engine reads `[:.]` as the start of a POSIX class, which the
-JVM the unit tests run on accepts. Two calculator patterns were rewritten and an instrumentation
-test now compiles every pattern literal of the app on the device.
+Collections are not attached to this release: the catalog downloads each one from Hugging Face at
+a pinned revision, and each public copy was streamed and hashed in full before the catalog pointed
+to it ([DATASETS.md](../../DATASETS.md#collections-the-app-offers)). The knowledge releases already on
+GitHub stay for older app versions.
+
+Phone checks used a locally signed build of the same app source on a Redmi 13C (Android 13),
+installed over earlier 1.4.0 test builds with its data kept; the public-key APK was not installed on
+a phone. Through setup, the phone downloaded and installed the model and six collections after each
+checksum passed, then answered in airplane mode
+([verification](../verification.md#v140-release-build-october-13)).
 
 ### Answer quality against the bounty bar
 
-On 60 held-out questions written after the last change, graded blind against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 38% of the reference and the optional Qwen3.5 4B 52% on the 55 without a phone position: the bounty's bar is not met with the default model, and only just, on 8 GB phones, with the 4B. The measurement method, its limits (frontier references and graders of one family,
-development sets looked at during the changes) and every graded answer are published
-([evaluation](../evaluation.md#the-7-october-140-candidate-on-60-new-held-out-questions-october-7),
+On 60 fresh questions written after the release build was frozen, graded blind twice against a
+frontier model's web-researched answers, the default Qwen3.5 2B reaches 34% of the reference with
+1.02 factual errors per answer, and the optional Qwen3.5 4B 35% on the 55 questions without a phone
+position: the bounty's bar is not met. Two earlier fresh sets, on a candidate that withheld answers
+(21%) and on the build before the last place fixes (34%), are reported as development data. The
+measurement method, its limits (frontier references and graders of one family) and every graded
+answer are published ([evaluation](../evaluation.md#140-release-build-on-fresh-questions-october-13),
 [results](../fieldtest/results-1.4.0/)). The requirement ledger ([bounty-31.json](bounty-31.json))
 records each requirement as pass, partial or fail with the evidence for it.
 
