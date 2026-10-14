@@ -12,6 +12,8 @@ class TravelResumeRoutingTest {
         assertFalse(VenueLookup.isPlaceLookup("Are shops closed on public holidays in Berlin?"))
         assertTrue(VenueLookup.isPlaceLookup("Which supermarkets are open on Sunday in Berlin?"))
         assertTrue(VenueLookup.isPlaceLookup("Find a supermarket open now near me"))
+        // Asked on the phone on 14 October 2026; it went to the encyclopedia's Lisbon article.
+        assertTrue(VenueLookup.isPlaceLookup("Where can I get vegan pastries in Lisbon?"))
     }
 
     @Test fun aRegionalRailOverviewDoesNotCoverValidation() {

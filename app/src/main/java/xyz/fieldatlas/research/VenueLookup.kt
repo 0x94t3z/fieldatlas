@@ -35,7 +35,8 @@ object VenueLookup {
             setOf("See", "Do"), null, SEE_QUERY),
         Kind("markets?|market halls?|halles", setOf("Buy", "Eat"), "markets?|halles?|mercados?|march[eé]s?|markt|bazaars?|souks?", "market halles",
             excludePattern = "supermarket|convenience|mall|department store"),
-        Kind("baker(?:y|ies)|boulangeries?|p[aâ]tisseries?", setOf("Eat", "Buy"), "baker(?:y|ies)|boulangeries?|p[aâ]tisseries?|pastr(?:y|ies)|bread", "bakery"),
+        // "Where can I get vegan pastries in Lisbon?" asks for a bakery as plainly as naming one does.
+        Kind("baker(?:y|ies)|boulangeries?|p[aâ]tisseries?|pastr(?:y|ies)", setOf("Eat", "Buy"), "baker(?:y|ies)|boulangeries?|p[aâ]tisseries?|pastr(?:y|ies)|bread", "bakery"),
         Kind("street[- ]food|food stalls?|hawker (?:centres?|centers?|stalls?)", setOf("Eat"),
             "street[- ]?food|stalls?|stands?|hawkers?|taquer[ií]as?|puestos?|food trucks?|carts?", "street food"),
         Kind("beach(?:es)?", setOf("See", "Do"), "beach(?:es)?|plages?|playas?|praias?|strand|swim\\w*", "beach"),
