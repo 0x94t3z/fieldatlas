@@ -525,7 +525,8 @@ object VenueLookup {
                 ?: day?.let { ask -> chosen.sortedBy { dayRank(it.hours, ask) } }
                 ?: if (asksBest(question)) {
                     val chains = chainNames(evidence)
-                    chosen.sortedWith { a, b -> compareRanks(bestRanks(a, request, picks, chains), bestRanks(b, request, picks, chains)) }
+                    // A named city has no position to measure from: every place sits in the same band.
+                    chosen.sortedWith { a, b -> compareRanks(bestRanks(a, 0.0, request, picks, chains), bestRanks(b, 0.0, request, picks, chains)) }
                 } else chosen
             val shown = ordered.onePerBusiness(request) { it.name }.take(OSM_LISTINGS)
             return osmAnswer(question, diet, shown, request.essential?.noun, clock, guided = shown.any { brand(it.name) in picks },
@@ -905,15 +906,18 @@ object VenueLookup {
     /**
      * Order for "best" with no ratings offline, lower first at each step: fully vegan when vegan
      * food was asked for, recommended by the city's Wikivoyage guide, a sit-down restaurant before a
-     * café or fast food, an independent place before a chain, then the more completely mapped.
+     * café or fast food, an independent place before a chain, then the nearer distance band, then the
+     * more completely mapped. A missing opening-hours tag says nothing about the food, so it must not
+     * send the place round the corner below one across town.
      */
-    private fun bestRanks(listing: Listing, request: Request, picks: Map<String, Evidence>, chains: Set<String>): List<Int> {
+    private fun bestRanks(listing: Listing, distanceKm: Double, request: Request, picks: Map<String, Evidence>, chains: Set<String>): List<Int> {
         val key = brand(listing.name)
         return listOf(
             if (request.diet == "vegan" && listing.vegan != "fully vegan") 1 else 0,
             if (key in picks || isGuidePlace(listing.evidence)) 0 else 1,
             when (listing.type) { "restaurant" -> 0; null, "cafe" -> 1; else -> 2 },
             if (key in chains) 1 else 0,
+            DISTANCE_BANDS_KM.indexOfFirst { distanceKm <= it }.let { if (it < 0) DISTANCE_BANDS_KM.size else it },
             3 - listOfNotNull(listing.hours, listing.cuisine, listing.checked).size,
         )
     }
@@ -984,7 +988,7 @@ object VenueLookup {
         val picks = guidePicks(places.map { it.evidence }, city)
         val chains = chainNames(places.map { it.evidence })
         val chosen = local.sortedWith { a, b ->
-            compareRanks(bestRanks(a.first, request, picks, chains), bestRanks(b.first, request, picks, chains))
+            compareRanks(bestRanks(a.first, a.second, request, picks, chains), bestRanks(b.first, b.second, request, picks, chains))
                 .takeIf { it != 0 } ?: a.second.compareTo(b.second)
         }.onePerBusiness(request) { (listing, _) -> listing.name }.take(OSM_LISTINGS)
         val guides = chosen.mapNotNull { (listing, _) ->

@@ -86,6 +86,18 @@ class NearbyVenueTest {
         assertTrue(answer.contains("location, which stayed on the phone"))
     }
 
+    @Test fun aMissingTagDoesNotSendTheBestPlaceNearbyAcrossTown() {
+        // Lisbon, 14 October 2026: two fully vegan restaurants, neither in the guide nor a chain. The one
+        // 4.4 km away had more tags mapped and was listed above the one 110 m away.
+        val across = place("21", "Escolha Natura", "fully vegan", cuisine = "mediterranean").let {
+            it.copy(text = it.text + "\nHours in source: Mo-Fr 12:00-15:00\nListing last checked: 2025-06-01")
+        }
+        val corner = place("22", "Ao 26", "fully vegan")
+        val result = VenueLookup.nearbyAnswer("Tell me the best vegan restaurants in the city I am currently in",
+            listOf(NearbyPlace(across, 4.4), NearbyPlace(corner, 0.11)), 15.0)
+        assertEquals(listOf(corner, across), result.sources)
+    }
+
     @Test fun anOldFixIsUsedOnlyWithItsAge() {
         val fresh = VenueLookup.nearbyAnswer("best vegan restaurants near me", listOf(NearbyPlace(nearFully, 0.8)), 15.0)
         assertFalse(fresh.answer.contains("last known location"))
