@@ -50,3 +50,23 @@ Pipe/cloud providers retain the spool-and-verify fallback and may require more
 space. Copy/extraction loops check coroutine cancellation between reads, remove
 their staging session on failure, and preserve downloaded archives for retry.
 This is format support, not evidence of completed full-size device acceptance.
+
+Android timing
+
+`tools/android/run_leviathan_timing.py` times both indexes of each pack on a phone with
+`app_process`, from a scratch folder it deletes afterwards; the installed app and its data are not
+touched. Redmi 13C (23108RN04Y, 6 GB), 14 October 2026, 20 results per search, milliseconds:
+
+| Pack | Passages | First search | Later searches (median) | Keyword index (median) | One destination (median) |
+|---|---:|---:|---:|---:|---:|
+| Biology & longevity | 9,260 | 132 | 70 | 147 | |
+| Cryptography & Ethereum | 22,805 | 142 | 102 | 663 | |
+| Vegan places | 52,064 | 364 | 309 | 804 | 60 |
+| Travel guides | 363,815 | 500 | 185 | 1,406 | |
+| Travel places | 405,849 | 307 | 257 | 419 | 21 |
+| Essentials | 2,981,023 | 1,491 | 979 | 3,187 | 219 |
+
+Leviathan was faster than the keyword index on every pack. A search within one destination, as the
+app runs for a named city, stays under a quarter of a second even in Essentials. The slowest
+whole-pack search was 3.2 s (Essentials, "drinking water toilet"). The Encyclopedia was not timed
+this way: its 24 GB database does not fit beside the installed copy.
