@@ -601,7 +601,7 @@ object AnswerChecks {
     private val answerLine = Regex("(?i)^[\\s>*#-]*(?:final\\s+)?answer\\W*:")
     // The result written first, as a label's value: "Total cost: 92 (8 pizzas × 11.50)". "Pizzas for 77 slices
     // (77 ÷ 8) = 9" names an input before its step, so a result needs the colon or equals sign and no "=" after.
-    private val stepBefore = Regex("(?<=[:=]\\s{0,3})(${quantityToken.pattern})\\s*\\(\\s*(${quantityToken.pattern})(?:\\s*([×*+\\-−–÷/])\\s*|\\s+([xX])\\s+)(${quantityToken.pattern})\\s*\\)(?!\\s*=)")
+    private val stepBefore = Regex("(?<=[=:]\\s{0,3})(${quantityToken.pattern})\\s*\\(\\s*(${quantityToken.pattern})(?:\\s*([×*+\\-−–÷/])\\s*|\\s+([xX])\\s+)(${quantityToken.pattern})\\s*\\)(?!\\s*=)")
     private val chained = Regex("(?:[×*+\\-−–÷/=]|\\s[xX])\\s*$")
     private const val CORRECTED = " (corrected on this phone)"
     const val STEP_CORRECTED_NOTE = "_A step above was corrected on this phone; check the answer against the corrected steps._"

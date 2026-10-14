@@ -1077,7 +1077,7 @@ object Calculators {
     // is its complement: "35% is lost", "30% conversion loss". "My phone is at 40%" is neither.
     private val efficiencyLoss = Regex("(?i)$NUM\\s*%\\s*(?:efficiency|conversion|energy|power|charging)\\s+loss(?:es)?\\b")
     private val efficiencyPct = Regex("(?i)$NUM\\s*%[\\s-]*(?:charging\\s+|conversion\\s+)?efficien\\w*|" +
-        "\\befficien\\w*(?:\\s+rating)?\\s*[:~=(]?\\s*(?:(?:is|of|at|about|around|only|roughly|just|rated)\\s+)*$NUM\\s*%")
+        "\\befficien\\w*(?:\\s+rating)?\\s*[~=(:]?\\s*(?:(?:is|of|at|about|around|only|roughly|just|rated)\\s+)*$NUM\\s*%")
     // A loss counts only as a charging loss: "35% is lost to heat", "a 30% loss". "My phone loses 30%
     // overnight" is the phone's drain, not the bank's efficiency.
     private const val LOSS_CAUSE = "(?:to|in|as|during)\\s+(?:\\w+\\s+){0,2}(?:heat|conversion|charging|transfer|cables?|wiring)"

@@ -1094,7 +1094,7 @@ object VenueLookup {
     // "M-F", "W" and "F" are how Wikivoyage abbreviates weekdays whose two letters would clash.
     private val letterDays = Regex("\\b(M|W|F)\\b(?=[\\s,;-]|$)")
     private val adjacentDays = Regex("\\b(Mo|Tu|We|Th|Fr|Sa|Su)\\s+(?=(?:Mo|Tu|We|Th|Fr|Sa|Su)\\b)")
-    private val daily = Regex("(?i)\\b(?:open\\s+)?(?:daily|every\\s*day)\\b[:,]?\\s*")
+    private val daily = Regex("(?i)\\b(?:open\\s+)?(?:daily|every\\s*day)\\b[,:]?\\s*")
 
     /**
      * A Wikivoyage listing's hours in the OpenStreetMap form [OpeningHours] reads: "Daily 11:00-22:00"
