@@ -42,7 +42,9 @@ The app only goes online when you start a download or refresh the list of collec
   used, and you can open each one.
 - **Help in an emergency.** 42 first-aid and safety guides and the emergency numbers of 242
   countries are built in and work without any download.
-- **Do travel maths**, like fuel cost, currency at a given rate, time zones and water for a group.
+- **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
+  group, when the question is worded the way its calculators expect. Other word problems go to the
+  model, which often gets them wrong (5 of 6 in the latest test).
 - **Show phrases** from Wikivoyage phrasebooks, in the local script with pronunciation.
 
 ## Get started
