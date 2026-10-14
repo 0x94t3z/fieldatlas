@@ -91,4 +91,29 @@ class KnowledgePackDownloadTest {
         assertFalse(old.exists())
         assertTrue(current.exists())
     }
+
+    @Test fun aDiscardedPausedDownloadFreesOnlyItsOwnSavedPart() {
+        val root = temp.newFolder("discard")
+        val vegan = essentials.copy(id = "osm-vegan-places", url = "https://example.org/osm-vegan-places-2026.10.05.fapack")
+        val discarded = paused(root, essentials)
+        val kept = paused(root, vegan)
+        val download = KnowledgePackDownload(root, AssetRegistry(File(root, "assets")), AssetImporter(root))
+        assertTrue(download.discardResumable(essentials))
+        assertFalse(discarded.exists())
+        assertEquals(0L, download.resumableBytes(essentials))
+        assertEquals(400L, download.resumableBytes(vegan))
+        assertTrue(kept.exists())
+        assertFalse(download.discardResumable(essentials))
+    }
+
+    @Test fun onlyTheDiscardedDownloadIsForgottenForResuming() {
+        val saved = kotlinx.serialization.json.Json.encodeToString(KnowledgeCatalogEntry.serializer(), essentials)
+        assertTrue(pendingDownloadIs(null, saved, null, "osm-essentials"))
+        assertFalse(pendingDownloadIs(null, saved, null, "osm-essentials-extra"))
+        assertFalse(pendingDownloadIs(null, saved, null, "osm"))
+        assertFalse(pendingDownloadIs(null, "not json", null, "osm-essentials"))
+        assertTrue(pendingDownloadIs("qwen3.5-2b", null, "qwen3.5-2b", null))
+        assertFalse(pendingDownloadIs("qwen3.5-4b", null, "qwen3.5-2b", null))
+        assertFalse(pendingDownloadIs("qwen3.5-2b", saved, null, null))
+    }
 }

@@ -206,8 +206,26 @@ class AppContainer(context: Context) {
     suspend fun downloadModel(offer: ModelOffer, downloadUrl: String = offer.url, onProgress: (Long) -> Unit): InstalledAsset =
         provisioningMutex.withLock { modelDownload.install(offer, downloadUrl, onProgress).also { refreshPacks() } }
 
-    fun resumableModelBytes(offer: ModelOffer = ModelOffers.recommended): Long = modelDownload.resumableBytes(offer)
-    fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long = knowledgePackDownload.resumableBytes(pack)
+    // Screens read saved sizes while drawing; reading this state makes them redraw after a discard.
+    private val discardedParts = androidx.compose.runtime.mutableIntStateOf(0)
+    fun resumableModelBytes(offer: ModelOffer = ModelOffers.recommended): Long =
+        discardedParts.intValue.let { modelDownload.resumableBytes(offer) }
+    fun resumableKnowledgeBytes(pack: KnowledgeCatalogEntry): Long =
+        discardedParts.intValue.let { knowledgePackDownload.resumableBytes(pack) }
+
+    /** Discards a paused download (a model or a collection): its saved part is deleted and it is not resumed later. */
+    suspend fun discardPausedDownload(item: Any) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        if (backgroundDownloads.state.value.active || !provisioningMutex.tryLock()) return@withContext false
+        try {
+            when (item) {
+                is ModelOffer -> { backgroundDownloads.forget(item.id, null); modelDownload.discardResumable(item) }
+                is KnowledgeCatalogEntry -> { backgroundDownloads.forget(null, item.id); knowledgePackDownload.discardResumable(item) }
+                else -> false
+            }.also { if (it) discardedParts.intValue++ }
+        } finally {
+            provisioningMutex.unlock()
+        }
+    }
 
     /** Paused downloads of collection versions the catalog has replaced; called before any download starts. */
     fun discardStaleKnowledgeDownloads(): Int = knowledgePackDownload.discardStale(catalogRepository.state.value.packs)

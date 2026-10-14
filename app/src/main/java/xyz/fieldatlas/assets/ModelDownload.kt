@@ -18,6 +18,9 @@ class ModelDownload internal constructor(
 ) {
     fun resumableBytes(spec: ModelOffer): Long = partialFile(spec).length().coerceIn(0, spec.bytes)
 
+    /** Frees a paused download's saved part the user no longer wants. */
+    fun discardResumable(spec: ModelOffer): Boolean = partialFile(spec).delete()
+
     private fun partialFile(spec: ModelOffer) = File(storageRoot, "model-downloads/${spec.id}-${spec.version}.part")
 
     suspend fun install(spec: ModelOffer, downloadUrl: String = spec.url, onProgress: (Long) -> Unit): InstalledAsset = withContext(Dispatchers.IO) {

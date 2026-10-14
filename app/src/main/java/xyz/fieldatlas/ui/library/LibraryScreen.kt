@@ -115,6 +115,8 @@ fun LibraryScreen(
     onDownloadModel: (ModelOffer) -> Unit = {},
     onCancelModelDownload: () -> Unit = {},
     resumableModelBytes: (ModelOffer) -> Long = { 0 },
+    /** Discards a paused download of a model or collection. */
+    onDiscardPausedDownload: ((Any) -> Unit)? = null,
     /** A model is loading or answering; switching then would wait for it, so it is offered after. */
     modelBusy: Boolean = false,
     modelFits: (InstalledAsset) -> Boolean = { true },
@@ -242,6 +244,7 @@ fun LibraryScreen(
                     error = modelDownloadError?.takeIf { modelDownloadErrorId == offer.id },
                     onDownload = { onDownloadModel(offer) },
                     onCancel = onCancelModelDownload,
+                    onDiscard = onDiscardPausedDownload?.let { discard -> { discard(offer) } },
                     downloadUrl = modelDownloadUrl(offer),
                 )
             }
@@ -318,6 +321,7 @@ fun LibraryScreen(
                             resumableBytes = resumableKnowledgeBytes(candidate),
                             onDownload = { onDownloadKnowledge(candidate) },
                             onCancel = onCancelKnowledgeDownload,
+                            onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } },
                             downloadUrl = knowledgeDownloadUrl(candidate),
                         )
                     }
@@ -367,6 +371,8 @@ internal fun KnowledgeDownloadCard(
     resumableBytes: Long = 0,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    /** Deletes a paused download's saved part; null hides the choice. */
+    onDiscard: (() -> Unit)? = null,
     downloadUrl: String = pack.url,
 ) {
     var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
@@ -441,7 +447,14 @@ internal fun KnowledgeDownloadCard(
                     onDownload()
                 }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
             },
-            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") } },
+            dismissButton = {
+                Row {
+                    // A paused download holds its saved part until it finishes or is discarded here.
+                    if (resumableBytes > 0 && onDiscard != null) TextButton(shape = FieldAtlasButtonShape, enabled = !busy,
+                        onClick = { confirmDownload = false; onDiscard() }) { Text("Discard saved part") }
+                    TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") }
+                }
+            },
         )
     }
 }
@@ -457,6 +470,8 @@ internal fun ModelDownloadCard(
     error: String? = null,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    /** Deletes a paused download's saved part; null hides the choice. */
+    onDiscard: (() -> Unit)? = null,
     downloadUrl: String = offer.url,
 ) {
     var confirmDownload by rememberSaveable(offer.id, offer.version) { mutableStateOf(false) }
@@ -537,7 +552,14 @@ internal fun ModelDownloadCard(
                     onDownload()
                 }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
             },
-            dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") } },
+            dismissButton = {
+                Row {
+                    // A paused download holds its saved part until it finishes or is discarded here.
+                    if (resumableBytes > 0 && onDiscard != null) TextButton(shape = FieldAtlasButtonShape, enabled = !busy,
+                        onClick = { confirmDownload = false; onDiscard() }) { Text("Discard saved part") }
+                    TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") }
+                }
+            },
         )
     }
 }

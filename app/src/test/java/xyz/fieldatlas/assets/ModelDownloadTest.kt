@@ -52,6 +52,17 @@ class ModelDownloadTest {
         assertEquals(0L, saving.resumableBytes(offer("compact-model")))
     }
 
+    @Test fun discardingAPausedModelDownloadLeavesOtherModelsParts() {
+        val root = folder.newFolder("discard")
+        val saving = download(root, AssetRegistry(root))
+        File(root, "model-downloads").mkdirs()
+        File(root, "model-downloads/larger-model-1.0.0.part").writeBytes(body.copyOfRange(0, 9))
+        File(root, "model-downloads/compact-model-1.0.0.part").writeBytes(body.copyOfRange(0, 5))
+        assertTrue(saving.discardResumable(offer("larger-model")))
+        assertEquals(0L, saving.resumableBytes(offer("larger-model")))
+        assertEquals(5L, saving.resumableBytes(offer("compact-model")))
+    }
+
     @Test fun anInstalledOfferIsNotFetchedAgain() = runBlocking {
         val root = folder.newFolder("files")
         val registry = AssetRegistry(root)

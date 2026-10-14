@@ -164,6 +164,12 @@ class BackgroundAssetDownloads(
         job?.cancel()
     }
 
+    /** Forgets a paused download the user discarded, so opening the app does not start it again. */
+    fun forget(modelId: String?, packId: String?) {
+        if (mutableState.value.active) return
+        if (pendingDownloadIs(preferences.getString(PENDING_MODEL, null), preferences.getString(PENDING_PACK, null), modelId, packId)) clearPending()
+    }
+
     private fun clearPending() {
         preferences.edit().remove(PENDING_KIND).remove(PENDING_PACK).remove(PENDING_MODEL)
             .remove(PENDING_ARTIFACT).remove(PENDING_URL).commit()
@@ -180,4 +186,11 @@ class BackgroundAssetDownloads(
         const val PENDING_ARTIFACT = "artifact"
         const val PENDING_URL = "url"
     }
+}
+
+/** Whether the saved pending download is the discarded model or collection; an unreadable saved collection never matches. */
+internal fun pendingDownloadIs(pendingModel: String?, pendingPack: String?, modelId: String?, packId: String?): Boolean {
+    if (modelId != null && pendingModel == modelId) return true
+    if (packId == null || pendingPack == null) return false
+    return runCatching { Json.decodeFromString<KnowledgeCatalogEntry>(pendingPack).id }.getOrNull() == packId
 }

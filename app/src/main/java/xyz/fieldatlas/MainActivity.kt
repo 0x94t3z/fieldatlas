@@ -270,6 +270,7 @@ class MainActivity : ComponentActivity() {
                 onDismissKnowledgeOffer = setupViewModel::dismissKnowledgeOffer,
                 onDownloadKnowledge = setupViewModel::downloadKnowledge,
                 onCancelKnowledgeDownload = setupViewModel::cancelKnowledgeDownload,
+                onDiscardPausedDownload = { item -> lifecycleScope.launch { container.discardPausedDownload(item) } },
                 onQuestionChange = researchViewModel::updateQuestion,
                 onSubmit = {
                     if ((xyz.fieldatlas.research.VenueLookup.isNearMe(researchState.question) ||

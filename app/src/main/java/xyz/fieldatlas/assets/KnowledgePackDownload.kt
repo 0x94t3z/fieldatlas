@@ -12,6 +12,9 @@ class KnowledgePackDownload internal constructor(
     private val footprint: StorageFootprint = StorageFootprint { listOf(storageRoot) },
     private val downloader: VerifiedResumableDownload = VerifiedResumableDownload(),
 ) {
+    /** Frees a paused download's saved part the user no longer wants. */
+    fun discardResumable(pack: KnowledgeCatalogEntry): Boolean = File(storageRoot, "knowledge-downloads/${pack.id}-${pack.version}.part").delete()
+
     fun resumableBytes(pack: KnowledgeCatalogEntry): Long =
         File(storageRoot, "knowledge-downloads/${pack.id}-${pack.version}.part")
             .length().coerceIn(0, pack.bytes)
