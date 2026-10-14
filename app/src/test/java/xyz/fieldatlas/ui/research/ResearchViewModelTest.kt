@@ -143,6 +143,45 @@ class ResearchViewModelTest {
         assertEquals("doc:0000", viewModel.uiState.value.sources.single().chunkId)
     }
 
+    @Test fun aNewRunWaitsForEveryCancelledRunToLetGo() {
+        // The model takes a moment to stop after a cancel. A run started meanwhile must wait for it, even after
+        // "Ask another question" and even when a second run is cancelled while it is still waiting.
+        val letGo = kotlinx.coroutines.CompletableDeferred<Unit>()
+        var started = 0
+        val prompts = mutableListOf<String>()
+        val gateway = object : InferenceGateway {
+            override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+                val first = ++started == 1
+                prompts += prompt
+                try {
+                    emit("part")
+                    if (first) awaitCancellation()
+                } finally {
+                    if (first) kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { letGo.await() }
+                }
+            }
+            override suspend fun unload() = Unit
+        }
+        val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, gateway)
+        viewModel.updateQuestion("Explain one")
+        viewModel.submit()
+        viewModel.startNewQuestion()
+        viewModel.updateQuestion("Explain two")
+        viewModel.submit()
+        viewModel.cancelResearch()
+        viewModel.updateQuestion("Explain three")
+        viewModel.submit()
+        assertEquals(1, started)
+        assertEquals(null, viewModel.uiState.value.error)
+        letGo.complete(Unit)
+        // The run cancelled while waiting never reached the model; the last one did, without an error.
+        assertFalse(prompts.any { "Explain two" in it })
+        assertTrue(prompts.drop(1).isNotEmpty() && prompts.drop(1).all { "Explain three" in it })
+        assertEquals(null, viewModel.uiState.value.error)
+    }
+
     @Test fun errorsKeepQuestionForRetry() {
         val viewModel = viewModel(
             Retriever { _, _, _ -> throw IOException("broken index") },

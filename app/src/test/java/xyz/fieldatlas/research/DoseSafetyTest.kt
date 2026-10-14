@@ -47,4 +47,16 @@ class DoseSafetyTest {
         assertFalse(answer, answer.trim() == CitedExplanation.UNAVAILABLE)
         assertTrue(answer, "leaflet" in answer || "pharmacist" in answer)
     }
+
+    @Test fun aCitedAnswerKeepsItsFactsWhenOnlyTheDoseGoes() = runBlocking {
+        val article = Evidence("mp-ibu", "mp-ibu:0000", "Ibuprofen — MedlinePlus", "https://medlineplus.gov/druginfo/meds/a682159.html",
+            "Ibuprofen is used to relieve pain from various conditions such as headache, dental pain and menstrual cramps. " +
+                "It is also used to reduce fever.", 0.0)
+        val model = FakeInferenceGateway(listOf("Ibuprofen relieves headache pain and lowers fever [S1]. Adults usually take 200 to 400 mg [S1]."))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(article) }, model).research("Can I take ibuprofen for a headache?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertFalse(answer, "400 mg" in answer)
+        assertTrue(answer, "relieves headache pain" in answer)
+        assertTrue(answer, "follow the package leaflet" in answer)
+    }
 }

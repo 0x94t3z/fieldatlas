@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.runBlocking
 import com.arm.aichat.PromptProgress
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -231,6 +232,12 @@ class ResearchViewModel(
     /** The last run cancelled, which the next one waits for. */
     private var stoppingJob: kotlinx.coroutines.Job? = null
 
+    /** Cancels the running answer and remembers it, so the next run starts only after it has let go of the model. */
+    private fun stopRunning() {
+        researchJob?.let { job -> job.cancel(); stoppingJob = job }
+        researchJob = null
+    }
+
     fun submit() {
         val question = mutableUiState.value.question
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
@@ -245,7 +252,10 @@ class ResearchViewModel(
         // or the new run fails with "Another local research run is active".
         val previous = stoppingJob
         researchJob = scope.launch {
-            previous?.join()
+            // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join() }
+            // A run cancelled while it waited never touches the model.
+            ensureActive()
             orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }).collect { event ->
                 mutableUiState.value = when (event) {
                     is ResearchEvent.Planning -> mutableUiState.value.copy(
@@ -319,8 +329,7 @@ class ResearchViewModel(
         // A run in flight is kept in History as Cancel keeps it, not thrown away.
         if (mutableUiState.value.isRunning) cancelResearch()
         attachmentSession.clear()
-        stoppingJob = researchJob?.also { it.cancel() }
-        researchJob = null
+        stopRunning()
         rawAnswer.clear()
         savedStateHandle[QUESTION_KEY] = ""
         mutableUiState.value = ResearchUiState()
@@ -328,8 +337,7 @@ class ResearchViewModel(
 
     fun cancelResearch() {
         val wasRunning = mutableUiState.value.isRunning
-        stoppingJob = researchJob?.also { it.cancel() }
-        researchJob = null
+        stopRunning()
         if (wasRunning) {
             // Keep whatever the model managed to write: a half-answer the user walked away
             // from and cancelled is still worth finding in History later.

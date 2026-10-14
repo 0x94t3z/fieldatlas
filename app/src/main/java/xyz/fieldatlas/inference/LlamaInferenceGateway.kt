@@ -206,4 +206,7 @@ class LlamaInferenceGateway internal constructor(
  * still line up and the text is read as text.
  */
 internal fun withoutControlTokens(prompt: String): String =
-    prompt.replace(Regex("<(?=\\|[^\\s<>|]{1,40}\\|>)|<(?=/?think>)"), "\u2039")
+    // ChatML and Qwen ("<|im_end|>", "<think>", "<tool_call>"), Gemma ("<start_of_turn>"), Llama and Mistral
+    // ("<s>", "</s>", "[INST]", "<<SYS>>"): the shapes chat models give their control tokens.
+    prompt.replace(Regex("<(?=\\|[^\\s<>|]{1,40}\\|>)|<(?=/?(?:think|tools?|s)>)|<(?=/?[A-Za-z]+_[A-Za-z_]+>)|<(?=<SYS>>)|<(?=</SYS>>)"), "\u2039")
+        .replace(Regex("\\[(?=/?INST])"), "\u27E6")

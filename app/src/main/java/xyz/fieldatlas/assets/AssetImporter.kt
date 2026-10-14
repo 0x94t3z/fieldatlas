@@ -32,6 +32,17 @@ class AssetImportException(
     val budgetDecision: BudgetDecision? = null,
 ) : Exception(message, cause)
 
+/** Present only inside a pack folder moved into place but not yet registered. */
+internal const val INSTALLING_MARKER = ".installing"
+
+/**
+ * Pack folders an install moved into place but never registered: the process died in between. Only folders
+ * carrying the install's marker count, so a folder whose registry entry went missing some other way is kept.
+ */
+internal fun interruptedInstalls(packs: java.io.File, registeredRoots: Set<String>): List<java.io.File> =
+    packs.listFiles().orEmpty().filter { it.isDirectory }.flatMap { id -> id.listFiles().orEmpty().toList() }
+        .filter { it.isDirectory && it.canonicalPath !in registeredRoots && java.io.File(it, INSTALLING_MARKER).exists() }
+
 class AssetImporter private constructor(
     private val storageRoot: File,
     private val registry: AssetRegistry,
@@ -231,6 +242,9 @@ class AssetImporter private constructor(
 
                 currentCoroutineContext().ensureActive()
                 finalRoot.parentFile?.mkdirs()
+                // Marks the folder as not yet registered, so a process that dies before registry.add leaves a
+                // folder that startup recovery may delete. A folder without it is never deleted as an orphan.
+                File(extracted, INSTALLING_MARKER).writeText("")
                 Files.move(extracted.toPath(), finalRoot.toPath(), StandardCopyOption.ATOMIC_MOVE)
                 val installed = InstalledAsset(
                     id = manifest.id,
@@ -246,6 +260,7 @@ class AssetImporter private constructor(
                 )
                 try {
                     registry.add(installed)
+                    File(finalRoot, INSTALLING_MARKER).delete()
                 } catch (error: Exception) {
                     finalRoot.deleteRecursively()
                     if (error is CancellationException) throw error

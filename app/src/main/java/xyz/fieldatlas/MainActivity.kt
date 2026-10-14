@@ -130,7 +130,8 @@ class MainActivity : ComponentActivity() {
             val exportStore = remember { ExportStagingStore(File(filesDir, "pending-exports")) }
             // Reading memory use (smaps) is slow with a large model mapped: it is refreshed off the main
             // thread when something it reports changes, not during drawing.
-            var proof by remember { mutableStateOf(container.proof(null, null)) }
+            // Only a cold start reads it here, before any model is mapped and while the read is quick.
+            var proof by remember { mutableStateOf(container.lastProof ?: container.proof(null, null)) }
             LaunchedEffect(setupState.packs, inferenceState, researchState.metrics, researchState.completion) {
                 proof = withContext(Dispatchers.IO) { container.proof(researchState.metrics, researchState.completion) }
             }

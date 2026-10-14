@@ -889,7 +889,11 @@ class ResearchOrchestrator(
                 val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
                 val dosed = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)
-                val (cleaned, draftGap) = CitedExplanation.withoutGapStatements(dosed)
+                // The app's own notes ("amounts of medicine are left out…") carry no citation; they are set aside
+                // while the draft is checked and reviewed, and added back to an answer that passes.
+                val (draftBody, draftNotes) = AnswerChecks.withoutAppNotes(dosed)
+                var notes = draftNotes
+                val (cleaned, draftGap) = CitedExplanation.withoutGapStatements(draftBody)
                 // The same repairs as every other answer from saved sources: a citation moved to the passage
                 // its details come from, and a 12-hour time that disagrees with the 24-hour time stated.
                 fun repairedDraft(text: String) = if (text == CitedExplanation.UNAVAILABLE || text == CitedExplanation.GAP) text
@@ -914,19 +918,24 @@ class ResearchOrchestrator(
                     val retryPrompt = explanation.prompt.substringBeforeLast("\n\nANSWER:") +
                         CitedExplanation.repairInstruction(cleaned, question, packed, repairShape)
                     inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect { tokens++; retry.append(it) }
-                    val (retried, repairGap) = CitedExplanation.withoutGapStatements(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    val (retryBody, retryNotes) = AnswerChecks.withoutAppNotes(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                         AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence))
+                    val (retried, repairGap) = CitedExplanation.withoutGapStatements(retryBody)
                     val repaired = repairedDraft(CitedExplanation.finish(retried, packed.sources.size))
                     if (repaired == CitedExplanation.GAP) finished = repaired
                     else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
                         !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
                         val review = StringBuilder()
                         inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
-                        if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap }
+                        if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap; notes = retryNotes }
                     }
                 }
-                // Only an amount of medicine was taken out: say why and where to look, not that nothing could be cited.
-                if (finished == CitedExplanation.UNAVAILABLE && AnswerChecks.DOSE_NOTE in dosed) finished = AnswerChecks.DOSE_NOTE
+                if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP && notes.isNotEmpty())
+                    finished = finished.trimEnd() + notes.joinToString("") { "\n\n$it" }
+                // Only an amount of medicine was taken out and the run ends here (a file, or saved sources only): say
+                // why and where to look. Otherwise the routes below answer, each with its own dose check.
+                val endsHere = attachments.isNotEmpty() || CitedExplanation.explicitlyRequestsQuotes(question) || PromptBuilder.requiresSavedSources(question)
+                if (finished == CitedExplanation.UNAVAILABLE && endsHere && draftNotes.isNotEmpty()) finished = draftNotes.joinToString("\n\n")
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {

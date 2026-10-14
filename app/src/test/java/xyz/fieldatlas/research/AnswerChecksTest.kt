@@ -364,6 +364,25 @@ From saved sources
             AnswerChecks.removeUnsupportedSteps("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].\n- Apply a tourniquet above the knee and note the time [S1].", bleeding))
     }
 
+    @Test fun onlyTheOnlineClauseOfASentenceGoes() {
+        val q = "How do I pay for the tram in Oslo?"
+        fun check(text: String) = AnswerChecks.removeOnlineAdvice(text, q)
+        assertEquals("A single ticket costs 42 NOK; buy it from the machine at the stop [S1].",
+            check("A single ticket costs 42 NOK; buy it from the machine at the stop or with the Ruter app [S1]."))
+        assertEquals("Pay the driver in cash [S2].", check("Pay the driver in cash, or through the Bolt app [S2]."))
+        assertEquals("Get a travel card at any station kiosk [S1].",
+            check("Get a travel card at any station kiosk; it also works in the Ruter app [S1]."))
+        assertEquals("- Ask the front desk to call a taxi [S3].",
+            check("- Ask the front desk to call a taxi; or book through the Uber app [S3]."))
+        // Naming an app without telling them to use it is not advice to go online.
+        assertEquals("Ask the front desk to call a taxi; the Uber app is popular here [S3].",
+            check("Ask the front desk to call a taxi; the Uber app is popular here [S3]."))
+        // A quoted source line is never cut down.
+        assertFalse(check("> Buy a day ticket at the kiosk, or with the Ruter app [S1].").contains("kiosk [S1]"))
+        // Nothing offline is left: the sentence goes.
+        assertEquals("Trams run every 10 minutes [S1].", check("Trams run every 10 minutes [S1]. Download the Ruter app and pay in it [S1]."))
+    }
+
     @Test fun onlineAdviceIsRemovedWhateverTheQuestionMentionsInPassing() {
         val checked = AnswerChecks.removeOnlineAdvice("The train runs every 20 minutes. Check the official website for the latest timetable.",
             "Is there a train link from Lisbon airport to the city centre?")

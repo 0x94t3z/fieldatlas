@@ -188,7 +188,7 @@ object AnswerChecks {
     )
     // Phrasing that tells the person to do it, as opposed to describing it.
     private val advice = Regex(
-        "(?i)(^|[\\s(\"“])(try|check|visit|search|look (?:it |this |them |that )?up|use|consult|download|install|book|order|reserve|get|pay|register|" +
+        "(?i)(^|[\\s(\"“])(try|check|visit|search|look (?:it |this |them |that )?up|use|consult|download|install|book|buy|order|reserve|get|pay|register|" +
             "see|browse|open|sign up|subscribe|" +
             "consider|contact|email|read)\\b|\\b(?:you|they) (?:can|could|should|may want to|might want to|might|will need to|need to)\\b|" +
             "\\b(?:i |we )?recommend\\b|\\bit(?:'s| is) (?:best|advisable|recommended|a good idea) to\\b|\\b(?:be|make) sure to\\b",
@@ -303,6 +303,12 @@ object AnswerChecks {
     }
 
     private val otherHeading = Regex("^(?:#{1,6}\\s+.+|\\*\\*[^*]{1,60}\\*\\*:?|[A-Z][^.!?]{0,60}:)$")
+
+    /** [text] without the notes [removeDoses] adds, and those notes in order. */
+    fun withoutAppNotes(text: String): Pair<String, List<String>> {
+        val notes = listOf(DOSE_NOTE, RECIPE_NOTE).filter { it in text }
+        return notes.fold(text) { t, note -> t.replace(note, "") }.replace(Regex("\\n{3,}"), "\n\n").trim() to notes
+    }
 
     const val DOSE_NOTE = "_Amounts of medicine are left out of this explanation: follow the package leaflet, or ask a pharmacist or doctor._"
     const val RECIPE_NOTE = "_Amounts for a home mixture are left out of this explanation because the saved sources do not give them: " +
@@ -475,6 +481,41 @@ object AnswerChecks {
      * an app is removed; a sentence that only mentions such things ("Google Maps can't route
      * offline") stays. Questions about online services themselves are left alone.
      */
+    // Where a sentence's clauses part: "; ", ", or …", ", but …", and "or with/through/using … app".
+    private val onlineClauseBreak = Regex("(?i)\\s*;\\s*|,\\s*(?=(?:or|and|but|while|though|although)\\b)|\\s+(?=or\\s+(?:with|through|using|via|in|on|by|from)\\b)")
+    private val citationRun = Regex("\\s*\\[S\\d+](?:\\s*\\[S\\d+])*")
+
+    /**
+     * "Tickets cost 2 EUR; pay by card at the machine or with the HSL app [S1]." keeps "Tickets cost 2 EUR; pay by
+     * card at the machine [S1].": only the clauses that name the app or site go, with the sentence's citations kept.
+     * Null when nothing with content is left.
+     */
+    private fun withoutOnlineClauses(part: String): String? {
+        // A quoted line is the source's own words: it is kept or removed whole, never cut down.
+        if (part.trimStart().startsWith(">")) return null
+        val cites = citationRun.findAll(part).map { it.value.trim() }.distinct().toList()
+        val lead = Regex("^\\s*(?:[-*•+]|\\d+[.)])\\s+").find(part)?.value.orEmpty()
+        val body = citationRun.replace(part.removePrefix(lead), "").trim().trimEnd('.', '!', '?', ' ')
+        val pieces = mutableListOf<Pair<String, String>>()
+        var start = 0
+        var separator = ""
+        for (b in onlineClauseBreak.findAll(body)) {
+            pieces += separator to body.substring(start, b.range.first)
+            separator = b.value
+            start = b.range.last + 1
+        }
+        pieces += separator to body.substring(start)
+        if (pieces.size < 2) return null
+        val kept = pieces.filter { (_, clause) -> clause.isNotBlank() && !onlineTarget.containsMatchIn(clause) }
+        if (kept.isEmpty() || kept.sumOf { (_, clause) -> Regex("\\p{L}{2,}").findAll(clause).count() } < 3) return null
+        val joined = kept.mapIndexed { i, (sep, clause) ->
+            val text = clause.trim()
+            if (i == 0) Regex("(?i)^(?:or|and|but|while|though|although)\\s+").replace(text, "").replaceFirstChar(Char::uppercaseChar)
+            else (if (";" in sep) "; " else if ("," in sep) ", " else " ") + text
+        }.joinToString("")
+        return lead + joined + (if (cites.isEmpty()) "" else " " + cites.joinToString(" ")) + "."
+    }
+
     fun removeOnlineAdvice(text: String, question: String): String {
         if (asksAboutOnline.containsMatchIn(question)) return text
         val lines = text.split("\n")
@@ -485,10 +526,11 @@ object AnswerChecks {
             val survivors = parts.map { part ->
                 val trimmed = onlineAlternative.replace(part, "")
                 if (trimmed != part && !onlineTarget.containsMatchIn(trimmed)) trimmed else part
-            }.filterNot { part ->
-                onlineTarget.containsMatchIn(part) && advice.containsMatchIn(part) && !offline.containsMatchIn(part) &&
+            }.mapNotNull { part ->
+                val online = onlineTarget.containsMatchIn(part) && advice.containsMatchIn(part) && !offline.containsMatchIn(part) &&
                     // "...or check a current source when you're online" defers honestly to later; it stays.
                     !later.containsMatchIn(part)
+                if (!online) part else withoutOnlineClauses(part)
             }
             when {
                 survivors == parts -> line

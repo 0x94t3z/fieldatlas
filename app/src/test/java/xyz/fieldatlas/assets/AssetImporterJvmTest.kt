@@ -44,6 +44,25 @@ class AssetImporterJvmTest {
         assertFalse(File(root, "pack-staging").walkTopDown().any { it.isFile })
     }
 
+    @Test fun onlyAnInstallThatNeverRegisteredIsRecovered() = runBlocking {
+        val root = temporaryFolder.newFolder("recovery")
+        val source = temporaryFolder.newFile("recovery.fapack")
+        source.writeBytes(pack(ByteArray(1024) { 3 }, schemaVersion = 2, storedPayload = false))
+        val registry = AssetRegistry(root)
+        val installed = java.nio.file.Files.newByteChannel(source.toPath()).use {
+            AssetImporter(root, registry).importSeekable(it, source.length(), Long.MAX_VALUE)
+        }
+        // A finished install carries no marker.
+        assertFalse(File(installed.rootPath, INSTALLING_MARKER).exists())
+        val packs = File(root, "packs")
+        val registered = registry.list().map { File(it.rootPath).canonicalPath }.toSet()
+        // A folder moved into place by an install that died before registering, and one whose entry went missing.
+        val interrupted = File(packs, "travel/2026.10.01").apply { mkdirs(); File(this, INSTALLING_MARKER).writeText("") }
+        val unlisted = File(packs, "encyclopedia/2026.10.05").apply { mkdirs(); File(this, "content.sqlite").writeText("x") }
+        assertEquals(listOf(interrupted.canonicalPath), interruptedInstalls(packs, registered).map { it.canonicalPath })
+        assertTrue(unlisted.exists())
+    }
+
     @Test fun seekableImportCountsExternalArchiveAgainstGlobalLimit() = runBlocking {
         val root = temporaryFolder.newFolder("seekable-budget")
         val source = temporaryFolder.newFile("external-budget.fapack")

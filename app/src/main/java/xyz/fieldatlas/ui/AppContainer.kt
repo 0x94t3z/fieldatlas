@@ -370,7 +370,11 @@ class AppContainer(context: Context) {
     }
 
     fun proof(metrics: ResearchMetrics?, completion: ResearchCompletion?): ProofModel =
-        ProofMapper.map(diagnosticsSnapshot(metrics, completion, null, false))
+        ProofMapper.map(diagnosticsSnapshot(metrics, completion, null, false)).also { lastProof = it }
+
+    /** The last proof read off the main thread: a recreated screen (a rotation with the model mapped) starts from it. */
+    @Volatile var lastProof: ProofModel? = null
+        private set
 
     fun diagnosticsSnapshot(
         metrics: ResearchMetrics?,
@@ -445,12 +449,9 @@ class AppContainer(context: Context) {
         try {
             File(appContext.filesDir, "pack-staging").listFiles()?.forEach { it.deleteRecursively() }
             val registered = registry.list().map { File(it.rootPath).canonicalPath }.toSet()
-            File(appContext.filesDir, "packs").listFiles()?.forEach { id ->
-                id.listFiles()?.forEach { version ->
-                    if (version.isDirectory && version.canonicalPath !in registered && version.walkTopDown().none { it.extension == "gguf" })
-                        version.deleteRecursively()
-                }
-                if (id.isDirectory && id.listFiles()?.isEmpty() == true) id.delete()
+            xyz.fieldatlas.assets.interruptedInstalls(File(appContext.filesDir, "packs"), registered).forEach { version ->
+                version.deleteRecursively()
+                version.parentFile?.takeIf { it.listFiles()?.isEmpty() == true }?.delete()
             }
         } finally {
             provisioningMutex.unlock()
