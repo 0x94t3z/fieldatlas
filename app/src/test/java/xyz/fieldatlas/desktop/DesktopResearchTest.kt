@@ -108,7 +108,8 @@ class DesktopResearchTest {
             // Read the existing private constant instead of keeping another prompt copy.
             val system = AppContainer::class.java.getDeclaredField("SYSTEM_PROMPT").apply { isAccessible = true }.get(null) as String
             val gateway = DesktopGateway(config.getValue("endpoint").jsonPrimitive.content, system,
-                config["answerPolicy"]?.jsonPrimitive?.content ?: "app", seed, temperature)
+                config["answerPolicy"]?.jsonPrimitive?.content ?: "app", seed, temperature,
+                retrievalOnly = System.getenv("FIELDATLAS_DESKTOP_RETRIEVAL_ONLY") == "1")
             val multi = MultiKnowledgeRetriever(
                 { databases },
                 packEmbeddings = { databases.map { if (it == vectorDatabase) embedding else null } },

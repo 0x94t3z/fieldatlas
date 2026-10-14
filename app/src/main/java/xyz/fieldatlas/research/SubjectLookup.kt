@@ -315,7 +315,8 @@ object SubjectLookup {
             // A stem under four letters is in too many words ("go" in "government"); a short word must appear whole.
             if (lower.length < 4) return lower in tokens || lower + "s" in tokens
             val stem = lower.take(maxOf(4, lower.length - 2))
-            return tokens.any { it.startsWith(stem) }
+            // A compound holds the word too: "smartphones" mentions "phone", "headsets" mentions "set" only by stem.
+            return tokens.any { it.startsWith(stem) || lower.length >= 5 && lower in it }
         }
         // A hyphenated modifier is mentioned by any of its words: "noise" for "noise-cancelling".
         fun mentions(w: String): Boolean {
@@ -591,7 +592,15 @@ object SubjectLookup {
     fun isChoice(question: String): Boolean = choice(question) != null
 
     /** Whether the answer opens with what the saved articles say of the question's subjects. */
-    fun leads(question: String): Boolean = explains(question) || isChoice(question)
+    fun leads(question: String): Boolean = explains(question) || isChoice(question) || compares(question)
+
+    // "Cheetah vs leopard: how do you tell them apart?", "What's the difference between a frog and a toad?":
+    // a comparison reads the article of each subject it names.
+    private val tellApart = Regex("(?i)\\btell\\b[^.?!]{1,60}?\\bapart\\b|\\btell the difference\\b")
+    fun compares(question: String): Boolean {
+        val asked = discoveryQuestion(question)
+        return comparisonWords.containsMatchIn(asked) || tellApart.containsMatchIn(asked)
+    }
 
     // Factual lookups: who, when, where, which; yes-or-no questions about facts; how many, big or
     // old; and "tell me about X". The articles they name hold the answer, as an explanation's
@@ -606,7 +615,8 @@ object SubjectLookup {
     /** A factual lookup, which reads the articles it names; an explanation [leads] with its one subject. */
     fun looksUp(question: String): Boolean {
         val asked = discoveryQuestion(question)
-        return factOf.containsMatchIn(asked) || !leads(asked) && looksUpForms.containsMatchIn(asked)
+        // A comparison of facts ("how big is Australia compared to Europe") is still a lookup of each side.
+        return factOf.containsMatchIn(asked) || !(explains(asked) || isChoice(asked)) && looksUpForms.containsMatchIn(asked)
     }
 
     private val comparisonWords = Regex("(?i)\\b(?:difference|differences|differ|different|distinguish|distinguishes|distinguishing|compare|compared|comparison|versus|vs\\.?)\\b")
@@ -624,7 +634,7 @@ object SubjectLookup {
         if (lookup) return MAX_SUBJECTS
         val asked = discoveryQuestion(question)
         val chosen = choice(asked)
-        if (chosen == null && !comparisonWords.containsMatchIn(asked)) return 1
+        if (chosen == null && !comparisonWords.containsMatchIn(asked) && !tellApart.containsMatchIn(asked)) return 1
         val text = chosen?.let { asked.substring(it.start) } ?: asked
         val matches = word.findAll(text).toList()
         // Each noun phrase as the range of its word indices.

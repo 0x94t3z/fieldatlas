@@ -11,6 +11,24 @@ import org.junit.Test
 import xyz.fieldatlas.text.MarkdownLiteral
 
 class SubjectLookupTest {
+    @Test fun aComparisonReadsTheArticleOfEachSubject() {
+        // "Tell them apart" and "vs" ask for both sides, read from their own articles.
+        assertTrue(SubjectLookup.leads("Cheetah vs leopard: how do you tell them apart on a safari?"))
+        assertTrue(SubjectLookup.leads("How do you tell a crocodile and an alligator apart?"))
+        assertTrue(SubjectLookup.subjectsWanted("How do you tell a crocodile and an alligator apart?") >= 2)
+        // A comparison of facts stays a lookup of each side ("Australia" and "Europe", not "Size").
+        assertTrue(SubjectLookup.looksUp("how big is australia compared to europe?"))
+    }
+
+    @Test fun aCompoundWordMentionsTheWordItHolds() {
+        // "phone touchscreen": the article "Touchscreen" says "smartphones", which mentions the phone.
+        val article = Evidence("enw-touch", "enw-touch:0000", "Touchscreen — Overview", "https://en.wikipedia.org/wiki/Touchscreen",
+            "A touchscreen is a type of display used in smartphones, tablets and laptops.", 0.0)
+        assertTrue(SubjectLookup.accepts(SubjectLookup.Candidate("touchscreen", listOf("phone"), "phone"), article))
+        // A word the article never holds, whole or inside another, still rules it out.
+        assertFalse(SubjectLookup.accepts(SubjectLookup.Candidate("touchscreen", listOf("glove"), "glove"), article))
+    }
+
     @Test fun modalWhyQuestionsReachExplanatoryArticleDepth() {
         for (auxiliary in listOf("can", "could", "would", "should", "will", "may", "might", "must")) {
             val question = "Why $auxiliary an enclosure leak despite its sealing membrane?"

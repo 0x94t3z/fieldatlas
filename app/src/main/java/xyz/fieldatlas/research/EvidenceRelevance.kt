@@ -280,7 +280,9 @@ object EvidenceRelevance {
         // must not outweigh its actual subjects (metal + wood).
         if (titleHits >= maxOf(minOf(2, topicTerms.size), (topicTerms.size * 2 + 2) / 3)) return true
         val explanation = Regex("(?i)\\b(?:because|due to|caused by|results? from|results? in|therefore|through|enables?|allows?|gives?|causes?|requires?|converts?|consists? of|defined as|refers? to)\\b")
-        val required = if (topicTerms.size <= 3) topicTerms.size else (topicTerms.size * 2 + 2) / 3
+        // Capped at three: a long natural question ("how does tapping my card or phone on a payment terminal work, is
+        // it safe if someone gets close with a reader") is not held to two thirds of its eleven words in one sentence.
+        val required = minOf(3, if (topicTerms.size <= 3) topicTerms.size else (topicTerms.size * 2 + 2) / 3)
         return topicalText(item.text).split(Regex("(?<=[.!?])\\s+|[\\r\\n]+"))
             .any { sentence ->
                 explanation.containsMatchIn(sentence) &&

@@ -44,6 +44,9 @@ internal class DesktopGateway(
     // The app passes no seed for answers, so each phone run differs; repeat runs over several seeds.
     private val defaultSeed: Int = 17,
     private val temperature: Double = 0.3,
+    // Retrieval benchmark: short calls (keyword planning) still reach the model; answers are skipped so a
+    // whole question set measures which sources the app picks in seconds per question.
+    private val retrievalOnly: Boolean = false,
 ) : InferenceGateway {
     private val base = URI(endpoint).also {
         require(it.scheme == "http" && it.host in setOf("127.0.0.1", "localhost", "[::1]") &&
@@ -62,6 +65,7 @@ internal class DesktopGateway(
         request(prompt, maxTokens, null, -1, 1.0)
 
     private fun request(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, repeatPenalty: Double): Flow<String> = flow {
+        if (retrievalOnly && maxTokens > RETRIEVAL_ONLY_MAX_TOKENS) { emit("INSUFFICIENT_EVIDENCE"); return@flow }
         val request = buildJsonObject {
             put("messages", buildJsonArray {
                 add(buildJsonObject { put("role", "system"); put("content", systemPrompt ?: system) })
@@ -102,3 +106,5 @@ internal class DesktopGateway(
         } finally { connection.disconnect() }
     }
 }
+
+private const val RETRIEVAL_ONLY_MAX_TOKENS = 64
