@@ -79,6 +79,7 @@ class BenchmarkViewModel(
                                 currentAnswer = AnswerText.visible(active?.answer?.toString().orEmpty()),
                             )
                         }
+                        is ResearchEvent.Drafting -> Unit
                         is ResearchEvent.Complete -> {
                             active?.metrics = event.metrics
                             finishActive(BenchmarkResultState.COMPLETE)

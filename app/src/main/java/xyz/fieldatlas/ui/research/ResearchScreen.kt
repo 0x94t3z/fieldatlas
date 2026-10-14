@@ -1,5 +1,6 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
 import androidx.compose.foundation.layout.Arrangement
@@ -574,7 +575,8 @@ private fun ResearchAction(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 // A source lead arrives before the model writes; until then the model is still reading.
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty()),
+                    Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
+                        drafting = modelWriting, checking = state.checking),
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
                             fontWeight = FontWeight(650)))
                     if (state.startedAtNanos != null) {
@@ -706,7 +708,7 @@ private fun ResearchSteps(steps: List<ResearchStep>) {
                         val indicator = Modifier.padding(top = 5.dp).fillMaxWidth().height(5.dp)
                             .semantics { contentDescription = "Research progress" }
                         val progress = step.progress
-                        if (progress != null) LinearProgressIndicator(progress = { progress }, modifier = indicator,
+                        if (progress != null) FieldAtlasProgressBar(progress = { progress }, modifier = indicator,
                             color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
                         else LinearProgressIndicator(indicator,
                             color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)

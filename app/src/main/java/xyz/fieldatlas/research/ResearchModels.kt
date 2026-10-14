@@ -17,6 +17,12 @@ sealed interface ResearchEvent {
      */
     data class Lead(val text: String) : ResearchEvent
     data class Token(val text: String, val replace: Boolean = false) : ResearchEvent
+    /**
+     * The model is writing ([tokens] so far) or [checking] a draft that is shown only once it
+     * passes review: progress for the screen, never text. Zero tokens means the draft was set
+     * aside and the next answer starts from reading again.
+     */
+    data class Drafting(val tokens: Int, val checking: Boolean = false) : ResearchEvent
     data class Complete(val metrics: ResearchMetrics) : ResearchEvent
     data class InsufficientEvidence(val reason: String) : ResearchEvent
     data class Failed(val message: String) : ResearchEvent

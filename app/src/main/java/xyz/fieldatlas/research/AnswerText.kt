@@ -112,7 +112,8 @@ object AnswerText {
             if (closing < 0) break
             cursor = closing + THINK_CLOSE.length
         }
-        return visible.toString().trimStart()
+        // The answer is shown as Markdown, never typeset: math the model writes in LaTeX is turned into plain symbols.
+        return MathText.readable(visible.toString().trimStart())
     }
 
     /** Normalizes model citation variants and removes placeholders that cannot open a source. */

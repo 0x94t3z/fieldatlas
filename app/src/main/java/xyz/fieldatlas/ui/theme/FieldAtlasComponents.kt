@@ -515,3 +515,24 @@ fun FieldAtlasDeleteDialog(
         }
     }
 }
+
+/**
+ * A determinate progress bar drawn as one continuous track. Material 3's default leaves a gap
+ * after the filled part and a stop dot at the end of the track, which reads as a stray full stop.
+ */
+@Composable
+fun FieldAtlasProgressBar(
+    progress: () -> Float,
+    modifier: Modifier = Modifier,
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
+    trackColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.surfaceVariant,
+) {
+    androidx.compose.material3.LinearProgressIndicator(
+        progress = progress,
+        modifier = modifier,
+        color = color,
+        trackColor = trackColor,
+        gapSize = 0.dp,
+        drawStopIndicator = {},
+    )
+}

@@ -1,5 +1,6 @@
 package xyz.fieldatlas.ui.library
 
+import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.assets.downloadFreeBytes
 
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
@@ -405,7 +406,7 @@ internal fun KnowledgeDownloadCard(
             if (installing) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             } else {
-                LinearProgressIndicator(
+                FieldAtlasProgressBar(
                     progress = { (downloadedBytes.toFloat() / pack.bytes).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -503,7 +504,7 @@ internal fun ModelDownloadCard(
             if (installing) {
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             } else {
-                LinearProgressIndicator(
+                FieldAtlasProgressBar(
                     progress = { (downloadedBytes.toFloat() / offer.bytes).coerceIn(0f, 1f) },
                     modifier = Modifier.fillMaxWidth(),
                 )

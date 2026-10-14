@@ -1,5 +1,6 @@
 package xyz.fieldatlas.ui.setup
 
+import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.assets.downloadFreeBytes
 
 import androidx.compose.foundation.layout.*
@@ -358,7 +359,7 @@ private fun SetupDownloadRow(
         }
         if (downloading) {
             if (installing) LinearProgressIndicator(Modifier.fillMaxWidth())
-            else LinearProgressIndicator(progress = { (downloadedBytes.toFloat() / bytes).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+            else FieldAtlasProgressBar(progress = { (downloadedBytes.toFloat() / bytes).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(if (installing) "Verifying and installing…" else "${downloadSize(downloadedBytes)} / ${downloadSize(bytes)}",
                     modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)

@@ -11,12 +11,15 @@ import xyz.fieldatlas.ui.markdown.plainText
 
 typealias ResearchCompletion = DomainResearchCompletion
 
-internal fun researchProgressHeading(phase: ResearchPhase, answer: String, hasSources: Boolean): String =
+internal fun researchProgressHeading(
+    phase: ResearchPhase, answer: String, hasSources: Boolean, drafting: Boolean = false, checking: Boolean = false,
+): String =
     when (phase) {
         ResearchPhase.Planning -> "Understanding your question…"
         ResearchPhase.Searching -> "Finding evidence"
         ResearchPhase.Generating -> when {
-            answer.isNotBlank() -> "Writing your answer"
+            checking -> "Checking your answer"
+            answer.isNotBlank() || drafting -> "Writing your answer"
             hasSources -> "Reading your sources"
             else -> "Preparing your answer…"
         }
@@ -284,7 +287,11 @@ internal fun researchSteps(state: ResearchUiState, readEstimate: PrefillEstimate
     val write = ResearchStep(
         title = "Write the answer",
         status = if (writing) StepStatus.Active else StepStatus.Pending,
-        detail = if (writing) "${state.tokensWritten} tokens written" else null,
+        detail = when {
+            !writing -> null
+            state.checking -> "Checking it against your sources"
+            else -> "${state.tokensWritten} tokens written"
+        },
     )
     return listOf(search, read, write)
 }

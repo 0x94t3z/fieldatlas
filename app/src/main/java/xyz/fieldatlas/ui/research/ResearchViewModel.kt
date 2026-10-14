@@ -48,6 +48,8 @@ data class ResearchUiState(
     /** (tokensRead, tokensTotal) while the engine decodes the answer prompt; null otherwise. */
     val promptRead: Pair<Int, Int>? = null,
     val tokensWritten: Int = 0,
+    /** The model's draft is being checked against the sources before it is shown. */
+    val checking: Boolean = false,
     val metrics: ResearchMetrics? = null,
     val completion: ResearchCompletion? = null,
     val error: String? = null,
@@ -292,8 +294,15 @@ class ResearchViewModel(
                             answer = AnswerText.visible(rawAnswer.toString()),
                             phase = ResearchPhase.Generating,
                             tokensWritten = mutableUiState.value.tokensWritten + if (marker) 0 else 1,
+                            checking = mutableUiState.value.checking && marker,
                         )
                     }
+                    // Progress only: an unreviewed draft is never put on screen.
+                    is ResearchEvent.Drafting -> mutableUiState.value.copy(
+                        phase = ResearchPhase.Generating,
+                        tokensWritten = event.tokens,
+                        checking = event.checking,
+                    )
                     is ResearchEvent.Complete -> {
                         val finalAnswer = AnswerText.finalized(rawAnswer.toString(), mutableUiState.value.sources.size)
                         mutableUiState.value.copy(

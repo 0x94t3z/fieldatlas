@@ -885,6 +885,7 @@ class ResearchOrchestrator(
                     if (first == null) first = monotonicMillis()
                     tokens++
                     draft.append(token)
+                    emit(ResearchEvent.Drafting(tokens))
                 }
                 first?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
                     TokenEstimate.of(explanation.prompt), at - generationStart) }
@@ -906,6 +907,7 @@ class ResearchOrchestrator(
                     CitedExplanation.hasWrongComparisonCitation(finished, question, packed)) finished = CitedExplanation.UNAVAILABLE
                 if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
                     val review = StringBuilder()
+                    emit(ResearchEvent.Drafting(tokens, checking = true))
                     inference.reviewEvidence(CitedExplanation.reviewPrompt(finished, packed)).collect { review.append(it) }
                     // Model review reduces risk but is not independent fact checking.
                     // Fail closed on an ambiguous, truncated or negative verdict.
@@ -919,7 +921,9 @@ class ResearchOrchestrator(
                         else "Give just one short explanatory sentence."
                     val retryPrompt = explanation.prompt.substringBeforeLast("\n\nANSWER:") +
                         CitedExplanation.repairInstruction(cleaned, question, packed, repairShape)
-                    inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect { tokens++; retry.append(it) }
+                    inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect {
+                        tokens++; retry.append(it); emit(ResearchEvent.Drafting(tokens))
+                    }
                     val (retryBody, retryNotes) = AnswerChecks.withoutAppNotes(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                         AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence))
                     val (retried, repairGap) = CitedExplanation.withoutGapStatements(retryBody)
@@ -928,6 +932,7 @@ class ResearchOrchestrator(
                     else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
                         !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
                         val review = StringBuilder()
+                        emit(ResearchEvent.Drafting(tokens, checking = true))
                         inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
                         if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap; notes = retryNotes }
                     }
@@ -978,6 +983,7 @@ class ResearchOrchestrator(
                 return@flow
                 }
                 unconfirmed = finished
+                emit(ResearchEvent.Drafting(0))
                 emit(ResearchEvent.Token("", replace = true))
             }
             if (attachments.isEmpty()) PartialComparison.answer(question, packed)?.let { partial ->
