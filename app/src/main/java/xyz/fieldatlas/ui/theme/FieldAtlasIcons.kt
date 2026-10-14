@@ -43,6 +43,9 @@ object FieldAtlasIcons {
     val Check by prototypeIcon("Check", "M4 12l5 5L20 6", false, 24f, PathFillType.NonZero)
     val Citation by prototypeIcon("Citation", "M10 5v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Zm11 0v3c-2 .3-3 1.4-3 3h2a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1v-6c0-3.7 2.3-5.7 7-6Z", true, 24f, PathFillType.NonZero)
     val Offline by prototypeIcon("Offline", "M18 2h11v1h1v8h-7v2h5v2H18v3h3v2h-2v-1h-2v4h-2v3h2v2h-5v-4h-2v2h1v2H6v-4h2v-2H6v-2H4v-2H2v-6h2v3h2v2h2v-2h2v-2h2v-2h3V8h2V3h1V2Zm2 3v2h2V5h-2Z", true, 32f, PathFillType.EvenOdd)
+    // The same dinosaur mid-stride, one foot lifted in each frame: it walks while the phone is online.
+    val DinoWalkA by prototypeIcon("DinoWalkA", "M18 2h11v1h-11ZM17 3h13v2h-13ZM17 5h3v2h-3ZM22 5h8v2h-8ZM17 7h13v1h-13ZM15 8h15v3h-15ZM12 11h11v2h-11ZM2 12h2v3h-2ZM10 13h18v2h-18ZM2 15h4v2h-4ZM8 15h10v2h-10ZM2 17h16v1h-16ZM4 18h17v1h-17ZM4 19h13v1h-13ZM19 19h2v1h-2ZM6 20h11v2h-11ZM8 22h9v1h-9ZM8 23h7v1h-7ZM6 24h5v2h-5ZM12 24h3v2h-3ZM12 26h5v2h-5Z", true, 32f, PathFillType.NonZero)
+    val DinoWalkB by prototypeIcon("DinoWalkB", "M18 2h11v1h-11ZM17 3h13v2h-13ZM17 5h3v2h-3ZM22 5h8v2h-8ZM17 7h13v1h-13ZM15 8h15v3h-15ZM12 11h11v2h-11ZM2 12h2v3h-2ZM10 13h18v2h-18ZM2 15h4v2h-4ZM8 15h10v2h-10ZM2 17h16v1h-16ZM4 18h17v1h-17ZM4 19h13v1h-13ZM19 19h2v1h-2ZM6 20h11v2h-11ZM8 22h9v1h-9ZM8 23h7v1h-7ZM6 24h4v2h-4ZM12 24h5v2h-5ZM6 26h5v2h-5Z", true, 32f, PathFillType.NonZero)
     val Model by prototypeIcon("Model", "M8 5H16a3 3 0 0 1 3 3V16a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3Z M9 1v4m6-4v4M9 19v4m6-4v4M1 9h4m-4 6h4m14-6h4m-4 6h4M9 9h6v6H9z", false, 24f, PathFillType.NonZero)
     val Archive by prototypeIcon("Archive", "M3 3h18v5H3V3Zm2 7h14v11H5V10Zm4 4h6", false, 24f, PathFillType.NonZero)
     val Knowledge by prototypeIcon("Knowledge", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)

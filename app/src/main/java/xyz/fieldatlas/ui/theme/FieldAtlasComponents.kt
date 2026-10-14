@@ -190,7 +190,8 @@ fun FieldAtlasStatusPill(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
         ) {
             if (icon != null) Icon(icon, contentDescription = null, modifier = Modifier.size(
-                if (icon == FieldAtlasIcons.Offline || icon == FieldAtlasIcons.Citation) 16.dp else 14.dp))
+                if (icon == FieldAtlasIcons.Offline || icon == FieldAtlasIcons.DinoWalkA || icon == FieldAtlasIcons.DinoWalkB ||
+                    icon == FieldAtlasIcons.Citation) 16.dp else 14.dp))
             Text(text = text, style = if (compact) MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp, lineHeight = 14.sp) else MaterialTheme.typography.labelMedium)
         }

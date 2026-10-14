@@ -181,8 +181,7 @@ fun ResearchScreen(
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Reflects the real connection: research runs on the phone either way.
                 val online = xyz.fieldatlas.ui.setup.rememberSetupConnectivity()
-                FieldAtlasStatusPill(if (online) "Works offline" else "Offline now", StatusTone.Positive,
-                    icon = FieldAtlasIcons.Offline)
+                FieldAtlasStatusPill(if (online) "Online" else "Offline", StatusTone.Positive, icon = connectionDino(online))
                 FieldAtlasStatusPill(
                     if (collectionCount == 1) "1 collection" else "$collectionCount collections",
                     icon = FieldAtlasIcons.Database,
@@ -782,3 +781,29 @@ private fun RecordingDot() {
     )
     Box(Modifier.size(10.dp).alpha(alpha).background(MaterialTheme.colorScheme.error, CircleShape))
 }
+
+/**
+ * The pixel dinosaur stands still offline and walks while the phone is online, two frames a step. With the
+ * phone's animations turned off (an accessibility setting) it stays still.
+ */
+@Composable
+private fun connectionDino(online: Boolean): androidx.compose.ui.graphics.vector.ImageVector {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val still = remember(context) {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }
+    val walking = online && !still
+    val step by androidx.compose.runtime.produceState(0, walking) {
+        while (walking) {
+            kotlinx.coroutines.delay(DINO_STEP_MILLIS)
+            value = 1 - value
+        }
+    }
+    return when {
+        !walking -> FieldAtlasIcons.Offline
+        step == 0 -> FieldAtlasIcons.DinoWalkA
+        else -> FieldAtlasIcons.DinoWalkB
+    }
+}
+
+private const val DINO_STEP_MILLIS = 220L

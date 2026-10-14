@@ -25,6 +25,14 @@ class FieldAtlasThemeTest {
         assertEquals(24f, FieldAtlasIcons.Database.viewportWidth)
     }
 
+    @Test fun theDinosaurWalksOnTheSameGridItStandsOn() {
+        val frames = listOf(FieldAtlasIcons.Offline, FieldAtlasIcons.DinoWalkA, FieldAtlasIcons.DinoWalkB)
+        frames.forEach { assertEquals(32f, it.viewportWidth); assertEquals(32f, it.viewportHeight) }
+        val (a, b) = frames.drop(1).map { (it.root[0] as androidx.compose.ui.graphics.vector.VectorPath).pathData }
+        // Two different strides, so the walk is visible.
+        org.junit.Assert.assertNotEquals(a, b)
+    }
+
     @Test fun restrainedShapeRolesKeepStatusPillsAndTheOriginalResearchControl() {
         assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(10.dp), FieldAtlasButtonShape)
         assertEquals(androidx.compose.foundation.shape.RoundedCornerShape(16.dp), FieldAtlasLayout.CardShape)
