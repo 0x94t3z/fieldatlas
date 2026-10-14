@@ -97,4 +97,37 @@ class EmergencyNumbersTest {
         assertTrue(lead, lead.startsWith("Emergency numbers saved for **Thailand**: police **191**, ambulance **1669**, fire **199**."))
         assertTrue(events.filterIsInstance<ResearchEvent.Sources>().first().evidence.first().documentId == "emergency:cpr")
     }
+
+    @Test fun aTownNamedAfterACountryIsInItsState() {
+        // The state says where the town is; the country in its name is not asked about.
+        for (q in listOf("We're staying in Jordan, Minnesota. What's the emergency number?",
+            "What number do I call for an ambulance in Peru, IN?", "Emergency number in Mexico City, New Mexico?")) {
+            val answer = text(q)!!
+            assertTrue(q, answer.startsWith("In **United States of America**") && "**Jordan**" !in answer && "**Peru**" !in answer && "**Mexico**," !in answer)
+        }
+        // A real country's capital stays the country.
+        assertTrue(text("What's the emergency number in Mexico City?")!!.contains("**Mexico**"))
+    }
+
+    @Test fun aNumberThePersonAlreadyGivesIsNotAnsweredAgain() {
+        // Both are places they could be; the one with its number already given is the comparison.
+        val canada = text("In France we ring 112, so what's the emergency number in Canada?")!!
+        assertTrue(canada, "**Canada**" in canada && "**France**" !in canada)
+        val spain = text("Is 112 the emergency number in Spain?")!!
+        assertTrue(spain, "**Spain**" in spain)
+    }
+
+    @Test fun eachSideOfACrossingGetsItsNumbers() {
+        val both = text("Driving from Germany into Austria, what are the emergency numbers for both countries?")!!
+        assertTrue(both, "**Germany**" in both && "**Austria**" in both)
+        // Two places ahead are the two asked about; home is not added.
+        val islands = text("We live in Canada and are flying to Japan and Thailand, what are the emergency numbers for both?")!!
+        assertTrue(islands, "**Japan**" in islands && "**Thailand**" in islands && "**Canada**" !in islands)
+        // A person named like a country is not a country, even beside a number they give.
+        val italy = text("Jordan told me the police number in Greece is 100, is that right?")!!
+        assertTrue(italy, "**Greece**" in italy && "**Jordan**" !in italy)
+        // Without that ask, the place they are going is the one answered.
+        val austria = text("Driving from Germany into Austria, what is the emergency number?")!!
+        assertTrue(austria, "**Austria**" in austria && "**Germany**" !in austria)
+    }
 }

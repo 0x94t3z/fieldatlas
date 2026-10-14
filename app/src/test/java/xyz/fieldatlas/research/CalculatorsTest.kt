@@ -27,8 +27,8 @@ class CalculatorsTest {
         assertTrue(t, "14 km ÷ 5 km/h = 2 h 48 min, plus 900 m ÷ 600 m/h = 1 h 30 min" in t)
         // Miles and feet are converted first: 16.09 km ÷ 5 = 3.219 h, 914.4 m ÷ 600 = 1.524 h, 4.743 h in all.
         assertTrue(text("How long will a 10 mile hike with 3,000 ft of climbing take?").contains("About **4 h 45 min**"))
-        // Height above the sea is not climb: the lake is at 2,400 m, the walk is 8 km.
-        assertTrue(text("How long to hike 8 km to a lake at 2,400 m elevation?").contains("About **1 h 36 min**"))
+        // Height above the sea is not climb, and the climb to a lake at 2,400 m is not given: no flat-ground time.
+        assertNull(solve("How long to hike 8 km to a lake at 2,400 m elevation?")?.takeIf { it.complete })
     }
 
     @Test fun aBillAtAGivenRateWithATip() {
@@ -731,5 +731,22 @@ class CalculatorsTest {
         assertTrue(solve("The night bus leaves at 23:30 on Saturday and takes 9 hours. What day and time do we arrive?")!!.let { it.complete && "23:30 plus 9 h is **08:30 on Sunday**" in it.text })
         // Another question beside the landing keeps it a lead.
         assertFalse(solve("My flight leaves Sydney at 10:00 on Tuesday and takes 12 h 30 min to get to Santiago. Sydney is on UTC+11 and Santiago on UTC-3 right now. What day do I land and is the airport far from town?")!!.complete)
+    }
+
+    @Test fun aGapThatCouldCrossNoonOrMidnightIsLeftToResearch() {
+        // Without am or pm, 10:45 to 1:20 is 2 h 35 over noon or 14 h 35 overnight.
+        for (q in listOf("How long is it from 10:45 to 1:20?", "Our connection is from 9:50 to 3:05, how long is that?",
+            "How long is the overnight stop from 10:45 to 1:20?")) assertNull(q, solve(q)?.takeIf { it.complete })
+        // A 24-hour or marked time settles it.
+        assertTrue(solve("How long is it from 22:30 to 06:15?")!!.text.contains("7 h 45 min"))
+        assertTrue(solve("How long is it from 10:45 pm to 1:20 am?")!!.text.contains("2 h 35 min"))
+        assertTrue(solve("How long is it from 10:45 to 13:20?")!!.text.contains("2 h 35 min"))
+    }
+
+    @Test fun aHillyHikeWithoutItsClimbIsNotTimedAsFlat() {
+        for (q in listOf("How long will it take to hike 14 km on a steep trail?", "How long to walk 9 km through the hills?",
+            "Hiking 12 km, mostly uphill, how many hours?")) assertNull(q, solve(q)?.takeIf { it.complete })
+        assertTrue(solve("How long will it take to hike 14 km with 800 m of ascent?")!!.complete)
+        assertTrue(solve("How long will it take to hike 14 km on a flat trail?")!!.text.contains("About **2 h 48 min**"))
     }
 }

@@ -353,7 +353,7 @@ object VenueLookup {
         !nearestWords.containsMatchIn(question) && essential(question) == null
 
     /** The listing categories a near-me question asks for, so the lookup can filter early. */
-    fun nearbyCategories(question: String): Set<String> = request(question).categories
+    fun nearbyCategories(question: String): Set<String> = request(withoutOwnPosition(question)).categories
 
     /**
      * What the question asks for: every kind of place it names ("hostels or cheap hotels" wants
@@ -638,12 +638,27 @@ object VenueLookup {
         // Two capitalised words after "in" or "at" are a name: "at Sunset Boulevard", not "at sunset".
         "\\b(?:in|at)\\s+\\p{Lu}\\p{L}+\\s+\\p{Lu}\\p{L}+")
 
+    // Where the person is standing now: "I'm at the Hilton", "we're staying at the campsite", "I'm in the
+    // lobby of the Novotel". That place is the phone's position, not somewhere to search; "in Lyon" names a
+    // city and stays a city lookup. A plan ("we're at a conference in Berlin next week") is not a position.
+    private val ownPosition = Regex("(?i)\\b(?:i'?m|i am|we'?re|we are)\\s+(?:(?:currently|now|right now|still|staying|sitting|waiting|stuck)\\s+)*" +
+        "(?:at|inside|outside|in the (?:lobby|car park|parking lot|foyer|bar|restaurant) of)\\s+[^,.;?!\\n]*|\\bstaying at\\s+[^,.;?!\\n]*")
+    private val notNow = Regex("(?i)\\b(?:next|tomorrow|later|soon|tonight'?s|will|planning|plan to|going to be)\\b")
+
+    /** The question without the person's own position, which says where they are, not what they want. */
+    internal fun withoutOwnPosition(question: String): String =
+        ownPosition.replace(question) { if (notNow.containsMatchIn(it.value)) it.value else " " }
+
     /** A place question answered from the phone's own location rather than a named city.
      * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
-    fun isNearMe(question: String): Boolean = nearMePhrase.containsMatchIn(question) && !namedLandmark.containsMatchIn(question) &&
-        (selfPhrase.containsMatchIn(question) || !namedPlace.containsMatchIn(question.replace(timeNotPlace, " "))) &&
-        (venueWords.containsMatchIn(question) || foodWords.containsMatchIn(question) || essential(question) != null) &&
-        !complexWords.containsMatchIn(question)
+    fun isNearMe(question: String): Boolean {
+        val rest = withoutOwnPosition(question)
+        val placed = rest != question
+        return (nearMePhrase.containsMatchIn(rest) || placed) && !namedLandmark.containsMatchIn(rest) &&
+            (placed || selfPhrase.containsMatchIn(rest) || !namedPlace.containsMatchIn(rest.replace(timeNotPlace, " "))) &&
+            (venueWords.containsMatchIn(rest) || foodWords.containsMatchIn(rest) || essential(rest) != null) &&
+            !complexWords.containsMatchIn(rest)
+    }
 
     const val LOCATION_UNAVAILABLE = "I couldn't get this phone's location. Turn on Location (GPS works " +
         "offline) and allow Field Atlas to use it, or name the city in your question."
@@ -736,8 +751,10 @@ object VenueLookup {
      * fully vegan place 9 km away never outranks one around the corner; within a band, fully
      * vegan places lead when vegan food was asked for.
      */
-    fun nearbyAnswer(question: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now(),
+    fun nearbyAnswer(asked: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now(),
                      fixAgeMinutes: Long = 0): Result {
+        // "I'm at the campsite, nearest shop": the campsite is where the phone is, not a second thing to find.
+        val question = withoutOwnPosition(asked)
         val request = request(question)
         val clock = now.takeIf { openNow.containsMatchIn(question) }
         val day = dayAsk(question)

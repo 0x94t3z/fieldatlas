@@ -424,6 +424,8 @@ object Calculators {
         val d = distanceOnly.findAll(q).firstOrNull { m -> ruleRanges.none { m.range.first in it } } ?: return null
         val km = num(d.groupValues[1]) * (if (d.groupValues[2].lowercase().startsWith("mi")) 1.609344 else 1.0)
         val up = (ascent.findAll(q) + ascentAfter.findAll(q)).firstOrNull { m -> ruleRanges.none { m.range.first in it } }
+        // "11 km, it's pretty hilly": the rule needs the climb, and a flat-ground time would be too short.
+        if (up == null && Regex("(?i)\\b(?:hilly|hills?|steep\\w*|mountain\\w*|uphill|climb\\w*|ascents?|elevation|up and down|undulating|scrambl\\w*)\\b").containsMatchIn(q)) return null
         val metres = up?.let { num(it.groupValues[1]) * (if (it.groupValues[2].lowercase().startsWith("f")) 0.3048 else 1.0) } ?: 0.0
         val kmPerHour = ruleD?.let { num(it.groupValues[3]) * (if (it.groupValues[4].lowercase().startsWith("mi")) 1.609344 else 1.0) / (ruleMinutes(it) / 60) } ?: 5.0
         val climbPerHour = ruleC?.let { num(it.groupValues[3]) * (if (it.groupValues[4].lowercase().startsWith("f")) 0.3048 else 1.0) / (ruleMinutes(it) / 60) } ?: 600.0
@@ -1374,6 +1376,10 @@ object Calculators {
         val ordered = startWord.containsMatchIn(q.substring(maxOf(0, found[0].range.first - 30), found[0].range.first)) &&
             endWord.containsMatchIn(q.substring(maxOf(found[0].range.last + 1, found[1].range.first - 30), found[1].range.first))
         if (overnight && nowAt < 0 && !ordered) return null
+        // "From 11:30 to 2:15" without am or pm: on a 12-hour clock that is 2 h 45 over noon, not 14 h 45 overnight.
+        val twelveHourDial = found.all { t -> t.groupValues[3].isEmpty() && !t.groupValues[4].startsWith("0") && t.groupValues[4].toIntOrNull() in 1..12 }
+        // "Overnight" does not settle it: 10:45 overnight to 1:20 may be 22:45, which the 24-hour reading is not.
+        if (overnight && twelveHourDial && (to + 12 * 60 - from) in 1 until 12 * 60) return null
         if (overnight) minutes += 24 * 60
         fun clock(m: Int) = String.format(Locale.US, "%02d:%02d", m / 60, m % 60)
         val length = hours(minutes / 60.0)

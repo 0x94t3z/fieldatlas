@@ -377,4 +377,17 @@ class NearbyVenueTest {
         val bare = VenueLookup.whereAnswer(GeoPoint(-33.9, 151.2), emptyList())
         assertTrue(bare.answer, "33.90000° S, 151.20000° E" in bare.answer && bare.sources.isEmpty())
     }
+
+    @Test fun wherePeopleSayTheyAreIsThePhonesPosition() {
+        for (q in listOf("We're at the Radisson, closest ATM?", "I'm staying at the youth hostel, is there a pharmacy nearby?",
+            "I'm in the lobby of the Grand, where can I eat?", "We are currently at the ferry terminal, nearest pharmacy?")) {
+            assertTrue(q, VenueLookup.isNearMe(q))
+        }
+        // The place they are at is not something to look for.
+        assertEquals(setOf("Money"), VenueLookup.nearbyCategories("We're at the campsite, closest ATM?"))
+        // A plan or a city is not where the phone is.
+        for (q in listOf("We're at a conference in Berlin next week, best vegan restaurants?", "I'm in Lyon, nearest pharmacy?")) {
+            assertFalse(q, VenueLookup.isNearMe(q))
+        }
+    }
 }

@@ -114,7 +114,7 @@ object EmergencyNumbers {
     // What a place name is to the person asking, read from the words before it: where they are ("in",
     // "travelling to", "visiting"), where they are from ("from", "live in", "I'm American"), or somebody's
     // name ("my friend Chad").
-    private enum class Role { HERE, HOME, NAME, OPEN }
+    private enum class Role { HERE, HOME, NAME, OPEN, KNOWN }
     // Where they are from, or leaving: "leaving Spain tomorrow for Croatia" will be in Croatia.
     private val homeBefore = Regex("(?i)\\b(?:from|live in|living in|lives in|home is|home in|back home in|citizen of|resident of|" +
         "native of|born in|grew up in|passport (?:is )?(?:from)?|leaving|left|departing|flying out of|out of)\\s+(?:the\\s+)?$")
@@ -132,6 +132,22 @@ object EmergencyNumbers {
     private val nationalities = mapOf("american" to "US", "australian" to "AU", "british" to "GB", "canadian" to "CA",
         "new zealander" to "NZ", "kiwi" to "NZ", "irish" to "IE", "german" to "DE", "french" to "FR", "dutch" to "NL", "indian" to "IN",
         "chinese" to "CN", "japanese" to "JP", "korean" to "KR", "brazilian" to "BR", "mexican" to "MX", "south african" to "ZA")
+    // A country name that is a town in a state: "Lebanon, New Hampshire", "Panama City, Florida", "Peru, IN".
+    private val inState = Regex("^(?:\\s+city)?,\\s*(?:" + (usStates + australianStates).joinToString("|") { Regex.escape(it) } + ")(?![\\p{L}])")
+    private val stateCode = Regex("^(?:\\s+[Cc]ity)?,\\s*(?:AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|" +
+        "NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY|(NSW|QLD|VIC|TAS|SA|NT|ACT))\\b")
+    // A country whose number the person already gives ("in the US I'd call 911, what about Thailand?") is not asked about.
+    private val givesNumber = Regex("(?i)\\b(?:call|calls|dial|dials|ring|is|it'?s|use|uses|was)\\s+(?:the\\s+)?\\d{2,4}\\b|\\b\\d{2,4}\\s+(?:is|was|works)\\b")
+    private val clauseBreak = Regex("[,;.!?—–]|\\bbut\\b|\\bwhat\\b|\\bwhich\\b|\\bhow\\b")
+    // "What numbers do I need for each side?": every place named is asked about, the starting one too.
+    private val everyPlace = Regex("(?i)\\b(?:each|both|either)\\s+(?:side|sides|country|countries|border|places?)\\b|\\bfor both\\b|\\bboth numbers\\b")
+
+    private fun clauseAround(text: String, range: IntRange): String {
+        val start = clauseBreak.findAll(text.substring(0, range.first)).lastOrNull()?.range?.last?.plus(1) ?: 0
+        val end = clauseBreak.find(text, range.last + 1)?.range?.first ?: text.length
+        return text.substring(start, end)
+    }
+
     // Places in the US whose name is also a country's: "Atlanta, Georgia" is the state.
     private val usPlace = Regex("(?i)\\b(usa|u\\.s\\.a?\\.?|united states|us state|atlanta|savannah|augusta)\\b")
 
@@ -152,9 +168,15 @@ object EmergencyNumbers {
         for ((range, code0, name) in picked) {
             val lead = text.substring(maxOf(0, range.first - 40), range.first).split('.', '?', '!', ';').last()
             val between = previous?.let { text.substring(it.first.last + 1, range.first) }
+            // A town named after a country, placed in a state: the state gives the country. A written-out state
+            // is a mention of its own; a postal code ("Peru, IN") stands for its country here.
+            val code = if (code0 == "US" || code0 == "AU") null else stateCode.takeIf { question.any(Char::isLowerCase) }
+                ?.find(question.substring(minOf(question.length, range.last + 1)))
+            val townInState = code0 != "US" && code0 != "AU" && (inState.containsMatchIn(text.substring(range.last + 1)) || code != null)
             val role = when {
                 name in nationalities -> Role.HOME
                 personBefore.containsMatchIn(lead) || personAfter.containsMatchIn(text.substring(range.last + 1)) -> Role.NAME
+                givesNumber.containsMatchIn(clauseAround(text, range)) -> Role.KNOWN
                 homeBefore.containsMatchIn(lead) -> Role.HOME
                 hereBefore.containsMatchIn(lead) -> Role.HERE
                 // "in Sweden or Norway": a name joined to the one before takes its role.
@@ -166,13 +188,27 @@ object EmergencyNumbers {
             val georgianPlace = Regex("(?i)\\b(tbilisi|batumi|kutaisi|svaneti|kazbegi|mestia)\\b").containsMatchIn(text)
             val cityBefore = name == "georgia" && Regex("\\b\\p{Lu}[\\p{L}.]+,\\s*$").containsMatchIn(question.substring(0, range.first))
             if (name == "georgia" && !usHere && !georgianPlace && cityBefore) { previous = range to role; continue }
-            val code = if (name == "georgia" && usHere) "US" else code0
-            if (code in book.countries) mentions += code to role
+            if (townInState) {
+                code?.let { mentions += (if (it.groupValues[1].isNotEmpty()) "AU" else "US") to role }
+                previous = range to role; continue
+            }
+            val code1 = if (name == "georgia" && usHere) "US" else code0
+            if (code1 in book.countries) mentions += code1 to role
             previous = range to role
         }
         val here = mentions.filter { it.second == Role.HERE }.map { it.first }.distinct()
         val open = mentions.filter { it.second == Role.OPEN }.map { it.first }.distinct()
-        return (here.ifEmpty { open }).take(3)
+        // "Both" means two places: the ones they are in or going to when there are two ("from Australia to New
+        // Zealand and Fiji, numbers for both"), the starting one too when it takes it to make two ("from Germany
+        // into Austria, for both countries").
+        if (everyPlace.containsMatchIn(text)) {
+            val asked = (here + open).distinct()
+            if (asked.size > 1) return asked.take(3)
+            mentions.filter { it.second != Role.NAME }.map { it.first }.distinct().takeIf { it.size > 1 }?.let { return it.take(3) }
+        }
+        // Only a number the person already gave: they are checking it ("Is 112 right in Spain?").
+        val known = mentions.filter { it.second == Role.KNOWN }.map { it.first }.distinct()
+        return (here.ifEmpty { open }.ifEmpty { known }).take(3)
     }
 
     private fun describe(row: CountryNumbers): String = buildString {
