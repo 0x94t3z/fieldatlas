@@ -66,29 +66,25 @@ file copied from another device: collections from Hugging Face
 ## How good is it?
 
 The bounty asks for an offline tool that is more than half as good as a web search plus a
-frontier AI model. We tested Field Atlas 1.4.0 on 60 new questions that were written after the app
-was finished, by an AI model that had never seen the app's code, so the questions could not be
-tailored to what the app already handles well. Other AI models then scored each answer blind, on
-its own, and scored an answer researched on the web the same way. The result is Field Atlas's total
-as a share of the web answer's.
+frontier AI model. We tested Field Atlas 1.4.1 on 60 new questions written after it was released,
+by an AI model that had never seen the app's code, so the questions could not be tailored to what
+the app already handles well. Other AI models then scored each answer blind, on its own, and scored
+an answer researched on the web the same way. The result is Field Atlas's total as a share of the
+web answer's.
 
-- **34%** of the web-and-AI answers with the default model. **Not there yet.**
-- **35%** with the larger Qwen3.5 4B, which 1.4.0 offered on phones with 8 GB of memory, on the
-  55 questions that need no phone position (the default model scores 32% on those). Later versions
-  offer only the default model.
-- **Strongest:** vegan restaurants in the city you are in (73%, 2 questions) and quick facts (57%,
+- **29%** of the web-and-AI answers with the default model. **Not there yet.** 1.4.0 scored 34% on
+  its own set of new questions; the questions differ, but 1.4.1 is not better.
+- **Strongest:** vegan restaurants in the city you are in (83%, 2 questions) and quick facts (58%,
   8 questions).
-- **Weakest:** cryptography (18%), comparisons (23%), emergencies (26%) and reasoning with numbers
-  (27%).
+- **Weakest:** emergencies (10%), synthesis (11%), comparisons
+  (13%) and reasoning with numbers (19%).
 
 The graders and the reference answers come from AI models of one family, so treat these numbers as
 our own measurement, not an independent score. Every question, answer and grade is published in
-[docs/fieldtest/results-1.4.0](docs/fieldtest/results-1.4.0/), and the
-[evaluation](docs/evaluation.md#140-release-build-on-fresh-questions-october-13) explains the method.
-
-1.4.1 was not measured against the web answers again. In it, every collection is searched with
-Leviathan; on 135 graded development questions the right article reached the model as often as
-before (106), and on a Redmi 13C it searched each of the six collections timed faster than the old index did.
+[docs/fieldtest/results-1.4.1](docs/fieldtest/results-1.4.1/heldout9.jsonl) (1.4.0's in
+[docs/fieldtest/results-1.4.0](docs/fieldtest/results-1.4.0/)), and the
+[evaluation](docs/evaluation.md#141-release-build-on-fresh-questions-october-15) explains the method
+and the failures.
 
 ## Good to know
 

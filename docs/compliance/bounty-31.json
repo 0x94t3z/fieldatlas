@@ -216,10 +216,11 @@
       "status": "partial",
       "evidence": [
         "docs/evaluation.md",
-        "docs/fieldtest/heldout3.jsonl",
+        "docs/fieldtest/heldout9.jsonl",
+        "docs/fieldtest/results-1.4.1/heldout9.jsonl",
         "docs/fieldtest/results-1.4.0/"
       ],
-      "note": "On 60 fresh questions written after the release build was frozen, graded blind twice against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 34% of the reference (1.02 factual errors per answer) and the optional 4B 35% on the 55 without a phone position: the bar is not met. Method, limits and every graded answer are published."
+      "note": "On 60 fresh questions written after the 1.4.1 release (set 9), graded blind twice against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 29% of the reference (0.67 factual errors per answer); 1.4.0 reached 34% on its own fresh set (1.02 errors per answer). The bar is not met. Method, limits and every graded answer are published."
     }
   ]
 }

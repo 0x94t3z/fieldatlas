@@ -43,9 +43,14 @@ on the phone, with no account and nothing sent anywhere.
 
 ## How good is it?
 
-1.4.1 was not measured against web-and-AI answers again; the last such measurement is the
-[1.4.0 result](field-atlas-1.4.0.md#how-good-is-it) (34% with the default model). What was measured
-for 1.4.1, with every answer and grade published ([details](../evaluation.md#141-on-the-phone-answers-speed-tokens-and-failures-october-14-15)):
+- **Against web-and-AI answers:** on 60 new questions written after the release and graded blind
+  twice, 1.4.1 scores **29%** of the web-and-AI answers with the default model, below the bounty's
+  bar and below 1.4.0's 34% on its own set of questions. Strongest on vegan restaurants in the city
+  you are in (83%) and quick facts (58%); weakest on emergencies (10%), synthesis (11%),
+  comparisons (13%) and reasoning with numbers (19%)
+  ([details](../evaluation.md#141-release-build-on-fresh-questions-october-15)).
+
+Also measured for 1.4.1, with every answer and grade published ([details](../evaluation.md#141-on-the-phone-answers-speed-tokens-and-failures-october-14-15)):
 
 - **On the phone:** 20 new questions asked in the app on a Redmi 13C scored 4.65 of 10 on average
   with Qwen3.5 2B. Word problems and emergencies scored highest (6 to 10). Travel know-how, named

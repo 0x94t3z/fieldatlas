@@ -1,5 +1,56 @@
 # Evaluation
 
+## 1.4.1 release build on fresh questions (October 15)
+
+The published 1.4.1 build was measured on a new set the same way 1.4.0 was measured on set 6. A
+writer that read no repository file and avoided every earlier question wrote 60 questions (set 9,
+[questions](fieldtest/heldout9.jsonl)), sealed by SHA-256
+`a938fbf13b77e8e7f4f57f57f40b5ae9b981c52d0acf6ee61375c388eebe8dd8` before the run. The release
+commit (2817ce8) answered them on the desktop pipeline with the phone's code, Qwen3.5 2B and the
+seven 1.4.1 collections with their Leviathan indexes, the files published to Hugging Face, with the
+phone's native search loaded. Web-researched frontier-model references and two independent blind
+grading rounds followed, each answer graded on its own
+([every answer and grade](fieldtest/results-1.4.1/heldout9.jsonl)).
+
+| Set | Build | Share of the reference | Factual errors per answer |
+| --- | --- | --- | --- |
+| **Set 9** ([questions](fieldtest/heldout9.jsonl)) | **The 1.4.1 release build** | **29% (29% and 28%)** | **0.67** (reference 0.07) |
+
+By category, both rounds together:
+
+| Category | Questions | Field Atlas (mean /10) | Share of the reference |
+| --- | ---: | ---: | ---: |
+| Vegan restaurants in the city you are in | 2 | 7.5 | 83% |
+| Lookups | 8 | 5.4 | 58% |
+| Places | 8 | 2.9 | 33% |
+| Cryptography | 4 | 2.9 | 30% |
+| Travel | 9 | 2.5 | 29% |
+| Explanations | 6 | 2.3 | 25% |
+| Reasoning with numbers | 6 | 1.9 | 19% |
+| Comparisons | 6 | 1.2 | 13% |
+| Synthesis | 5 | 1.0 | 11% |
+| Emergencies | 6 | 0.9 | 10% |
+
+This is below 1.4.0's 34% on set 6. The two sets hold different questions, so the gap is not a
+controlled comparison, but 1.4.1 is not better on new questions. Failures seen in the answers:
+
+- **Emergency guides chosen by matching words.** Wild mushrooms eaten at a campsite were answered
+  with the guide for injuries outdoors, and a question about the PREDIMED diet trial with the
+  heart-attack signs guide. An earthquake in a hotel, a fish hook in a finger and a knocked-out tooth
+  got no usable answer.
+- **Unrelated passages instead of an answer.** "Wise or Revolut card in Colombia" showed the
+  encyclopedia entry for wisdom; "mineral vs chemical sunscreen" the entry for minerals; the 1918
+  flu question the entry for young adults.
+- **Word problems the calculators did not take.** Five of six (a flight across time zones, a
+  currency quote, a budget in percentages, a trail gradient, a river current) reached the model,
+  which refused or got them wrong; the sandwich count for a group was answered fully.
+- **Travel answers quoting the wrong paragraph of the right section:** crowding on the Kandy to
+  Ella train instead of how to reserve a seat, extending a Brazilian tourist visa instead of whether
+  Canadians now need one.
+
+Set 9 is now development data. References and graders are frontier AI models of one family; a
+grader scores the same text differently from run to run, by about 2 points on one answer.
+
 ## 1.4.1 on the phone: answers, speed, tokens and failures (October 14-15)
 
 Raw data for everything below is in [results-1.4.1](fieldtest/results-1.4.1/). These are our own
