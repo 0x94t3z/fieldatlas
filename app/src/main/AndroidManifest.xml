@@ -23,11 +23,13 @@
         android:theme="@style/Theme.FieldAtlas"
         android:usesCleartextTraffic="false">
         <!-- The emoji font initializer asks Google Play services for a font at launch, a network request no
-             one asked for; Compose draws emoji with the phone's own fonts without it. -->
+             one asked for; Compose draws emoji with the phone's own fonts without it. This entry only edits
+             the provider the AndroidX libraries declare; lint looks for the class among direct dependencies. -->
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="${applicationId}.androidx-startup"
             android:exported="false"
+            tools:ignore="MissingClass"
             tools:node="merge">
             <meta-data
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"
