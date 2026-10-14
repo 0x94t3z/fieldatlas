@@ -2,30 +2,30 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.4.0**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`; on a phone with 8 GB of memory or more, Library also offers Qwen3.5 4B, which answers better but about 2.5 times slower. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.4.1**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
 | If you want to… | Use this | Important difference |
 | --- | --- | --- |
-| Use the current release | [Signed v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Qwen3.5 2B, or the optional 4B on 8 GB phones; optional collections are separate. Read the [known limitations](releases/current.md). |
-| Use the previous stable release | [v1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.3.0/docs/installation.md). |
+| Use the current release | [Signed v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |
+| Use the previous stable release | [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/docs/installation.md). |
 | Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
 Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.
 
 ## Current release: phone setup
 
-1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0). Verify the checksum if possible.
+1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/MODELS.md). A raw `.gguf` is not a model pack.
+3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/MODELS.md). A raw `.gguf` is not a model pack.
 4. Optionally download or import a knowledge collection. A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
 After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for this release; network traffic during research has not been captured.
 
-## What setup offers in 1.4.0
+## What setup offers in 1.4.1
 
 The app needs **only an installed model** to answer questions. The 42 emergency guides and the
 emergency-number table for 242 countries ship inside the app and work before any download. Setup
@@ -35,11 +35,11 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 | Collection | Download | Covers |
 | --- | ---: | --- |
 | Encyclopedia | about 10.64 GB (24.35 GB installed) | English and Simple English Wikipedia in one collection, 8.39 million passages; dated snapshots |
-| Travel guides | about 419 MB | Wikivoyage guides by section, September 2026: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks |
-| Travel places | about 352 MB | Dated Wikivoyage listings: sights, food, hotels, shops |
-| Vegan places | about 40 MB | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
-| Essentials | about 1.78 GB | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
-| Cryptography & Ethereum | about 78 MB | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
+| Travel guides | about 290 MB (660 MB installed) | Wikivoyage guides by section, September 2026: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks |
+| Travel places | about 215 MB (650 MB installed) | Dated Wikivoyage listings: sights, food, hotels, shops |
+| Vegan places | about 24 MB (77 MB installed) | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
+| Essentials | about 986 MB (3.62 GB installed) | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
+| Cryptography & Ethereum | about 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
 | Biology & longevity | about 8 MB (27 MB installed) | OpenStax Biology 2e, MedlinePlus health topics, ageing gene records and six open-access ageing reviews; not medical advice |
 
 A collection installed in a newer version takes over from the older one, which stays installed

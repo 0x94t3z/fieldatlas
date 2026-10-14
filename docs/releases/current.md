@@ -1,61 +1,73 @@
-# Field Atlas 1.4.0
+# Field Atlas 1.4.1
 
 Field Atlas answers questions on your Android phone without an internet connection. While you are
-online, download an answer model and the collections you want. After that, search and answers run
+online, download the answer model and the collections you want. After that, search and answers run
 on the phone, with no account and nothing sent anywhere.
 
 ## What's new
 
-- **One encyclopedia.** English and Simple English Wikipedia in a single download: 8.39 million
-  passages, 10.64 GB to download and 24.35 GB on the phone. It replaces the two encyclopedia
-  downloads of earlier versions.
-- **Faster search on the phone.** The Encyclopedia and Biology are searched by a search engine
-  built into the app (Leviathan).
-- **Answers that show their sources.** When your collections cover a question, the answer cites
-  the passages it used, and you can open each one. The app checks a cited answer before showing
-  it. If the check fails, you still get an answer, labelled as not verified.
-- **A new Biology & longevity collection.** A biology textbook, MedlinePlus health topics, ageing
-  gene data and six research reviews, with every source credited. It is 8 MB and replaces the
-  earlier 1.5 GB pack, whose sources could not be checked.
-- **Simpler setup.** The model and every collection download inside the app and are checked
-  before they install. You can point any download at your own server, or import a `.fapack` file.
-- **Places.** "Best vegan restaurants in the city I'm in", "a pharmacy I can walk to from here"
-  and "a museum near me" use the phone's location.
-- **Emergencies.** 42 first-aid and safety guides and the emergency numbers of 242 countries are
-  built into the app and work before any download.
-- **Calculations.** Fuel cost, money at a given rate, time zones, water for a group, power-bank
-  charges and more are worked out on the phone, without the model.
-- **Optional larger model.** Phones with 8 GB of memory can download Qwen3.5 4B, which makes
-  about half as many factual errors but answers more slowly.
+- **Leviathan search in every collection.** Travel guides, Travel places, Vegan places, Essentials
+  and Cryptography & Ethereum now have the same built-in search engine as the Encyclopedia and
+  Biology. On a Redmi 13C it was faster than the old index in all six collections timed: about
+  1 s instead of 3.2 s in Essentials (3 million places) and 0.2 s instead of 1.4 s in Travel guides.
+- **Places are searched one city at a time.** A question that names a city, like "vegan pastries in
+  Lisbon", searches only that city's listings, in under a quarter of a second even in Essentials.
+- **Better "best vegan restaurants near me".** Among places that are equally good by every signal
+  the map has, the nearer one now comes first: a fully vegan place 110 m away is no longer listed
+  under one 4.4 km away. Asking for pastries, not only bakeries, finds the bakeries.
+- **New collection versions.** The five collections above download as their `-leviathan` versions.
+  Downloads are smaller and the installed size is larger:
+
+  | Collection | Download | Installed |
+  | --- | ---: | ---: |
+  | Essentials | 986 MB | 3.62 GB |
+  | Travel guides | 290 MB | 660 MB |
+  | Travel places | 215 MB | 650 MB |
+  | Cryptography & Ethereum | 59 MB | 92 MB |
+  | Vegan places | 24 MB | 77 MB |
+
+  A version you already have stays installed and keeps working until you delete it in Library.
+- **Clearer progress.** "Write the answer" now shows how much the model has written and says when it
+  checks the answer against your sources, instead of sitting at "100% read". The progress bars have
+  no stray dot at the end.
+- **Readable formulas.** Chemistry and maths the model writes in LaTeX show as text: CO₂, H₂O, 3 × 10⁸.
+- **Online or Offline.** The home screen shows whether the phone is online; the dinosaur walks when it is.
+- **One answer model.** Qwen3.5 2B is the only download. Version 1.4.0 also offered Qwen3.5 4B on
+  8 GB phones; a phone that has it keeps it. Google's Gemma 4 E2B was tried and not offered: asked 20
+  new questions in the app on a phone and graded blind, it scored 3.75 of 10 against 4.65 for
+  Qwen3.5 2B, often answering that the sources did not cover a question Qwen explained.
+- **Fixes from two review rounds** of 1.4.0: calculators that answer right or not at all (fuel,
+  money and time zones), the emergency number for where you are, place and travel answers
+  only from what the sources say, storage freed after interrupted installs, saved answers and
+  positions kept on the phone, and Android-safe patterns for every text rule.
 
 ## How good is it?
 
-We tested it on 60 new questions written after this version was finished. Graders scored every
-answer blind, on its own, and scored an answer from a web search plus a frontier AI model the same
-way; the result is Field Atlas's total as a share of that answer's.
+1.4.1 was not measured against web-and-AI answers again; the last such measurement is the
+[1.4.0 result](field-atlas-1.4.0.md#how-good-is-it) (34% with the default model). What was measured
+for 1.4.1, with every answer and grade published ([details](../evaluation.md#141-on-the-phone-answers-speed-tokens-and-failures-october-14-15)):
 
-- With the default model, Field Atlas scores **34%** of the web-and-AI answers. The bounty asks
-  for more than 50%, so it is **not there yet**. The optional 4B model scores 35% on the 55
-  questions that need no phone position, where the default model scores 32%.
-- It is strongest on vegan restaurants in the city you are in (73%, 2 questions) and quick facts
-  (57%, 8 questions).
-- It is weakest on cryptography (18%), comparisons (23%), emergencies (26%) and reasoning with
-  numbers (27%).
-
-Every question, answer and grade is published in
-[results-1.4.0](../fieldtest/results-1.4.0/). The [evaluation](../evaluation.md#140-release-build-on-fresh-questions-october-13)
-explains the method.
+- **On the phone:** 20 new questions asked in the app on a Redmi 13C scored 4.65 of 10 on average
+  with Qwen3.5 2B. Word problems and emergencies scored highest (6 to 10). Travel know-how, named
+  places and comparisons scored lowest (0 to 3).
+- **Vitalik's test:** "best vegan restaurants in the city I am currently in" listed real vegan
+  places with addresses and hours in all 8 cities tried, and in the same 8 cities when named.
+- **Search:** the right article reached the model as often with Leviathan in every collection as
+  before (106 of 135 development questions).
+- **Speed:** an answer the model writes takes about 3,700 prompt tokens over three model calls; on
+  the phone that is 2 to 6 minutes, mostly the model reading and checking its answer.
 
 ## Good to know
 
-- **Answers that use the model take under a minute to about 4 minutes** on a 6 GB phone. Answers
-  built from saved data (places, guides, phrases, calculations) take seconds.
+- **Answers that use the model take about 2 to 6 minutes, typically 4,** on a 6 GB phone; most of
+  that is the model reading the passages and checking its answer. Answers built from saved data (places, guides, phrases, calculations)
+  take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   The emergency guides are information, not training, and many were written for the United States.
 - **Map data and opening hours can be out of date.**
-- **Storage.** The default model and every collection take about 28.4 GB (31.5 GB with both
-  models). Installing the Encyclopedia needs room for the download and the installed copy at the
-  same time: about 39 GB at the peak (42 GB with both models), which fits the 50 GB budget.
+- **Storage.** The model and every collection take about 30.9 GB. Installing the Encyclopedia last
+  needs room for its download and installed copy at once: about 41.5 GB at the peak, inside the
+  50 GB budget.
 - **Tested phones.** Redmi 13C (6 GB, Android 13) and Infinix X6840 (4 GB, Android 16). Not yet
   tested on a Pixel, on GrapheneOS or on an 8 GB phone.
 
@@ -63,8 +75,8 @@ explains the method.
 
 1. Download `fieldatlas.apk` (and `fieldatlas.apk.sha256` if you want to check it) below.
    Requires Android 13 or later on an arm64 phone.
-2. Open the APK and allow the installation. It installs over 1.3.0 and keeps your data.
-3. In setup, download the Qwen3.5 2B model (1.4 GB) and any collections you want.
+2. Open the APK and allow the installation. It installs over 1.4.0 and keeps your data.
+3. In setup or Library, download the Qwen3.5 2B model (1.4 GB) and any collections you want.
 4. Turn on airplane mode and start asking.
 
 A phone running a build signed with a different (test) key cannot be updated with this APK.
@@ -72,10 +84,10 @@ Uninstalling removes saved answers, so keep that build if you need its data.
 
 ## More detail
 
-- [Full change notes](field-atlas-1.4.0-details.md)
+- [Every change since 1.4.0](https://github.com/0x94t3z/fieldatlas/compare/v1.4.0...v1.4.1)
 - [Collections: sources, sizes, checksums and licences](../../DATASETS.md#collections-the-app-offers)
-- [How it was tested](../verification.md#v140-release-build-october-13)
+- [Leviathan timings on a phone](../../native/leviathan/README.md)
 - [Install guide](../installation.md)
-- Notes for the previous version: [1.3.0](field-atlas-1.3.0.md)
+- Notes for the previous version: [1.4.0](field-atlas-1.4.0.md)
 
-App version 1.4.0 (19).
+App version 1.4.1 (20).

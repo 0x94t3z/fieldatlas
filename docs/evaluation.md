@@ -1,5 +1,95 @@
 # Evaluation
 
+## 1.4.1 on the phone: answers, speed, tokens and failures (October 14-15)
+
+Raw data for everything below is in [results-1.4.1](fieldtest/results-1.4.1/). These are our own
+measurements: the questions, the graders and the reference answers all come from AI models.
+
+### Answers on a real phone
+
+20 questions from a new set (two per category, written by an AI model that never saw the app,
+[set 7](fieldtest/results-1.4.1/set7-questions.jsonl)) were typed into the installed app on a Redmi
+13C (6 GB) in airplane mode, once with each model. Two graders scored all 40 answers 0-10 without
+knowing which model wrote them, checking claims on the web; their scores agreed closely
+(correlation 0.99). The build was the 14 October 1.4.1 candidate with the Leviathan collections.
+
+| | Qwen3.5 2B | Gemma 4 E2B |
+| --- | ---: | ---: |
+| Mean score (0-10) | **4.65** | 3.75 |
+| Answers scoring 7 or more | 5 of 20 | 7 of 20 |
+| Answers scoring 3 or less | 7 of 20 | 12 of 20 |
+| Factual errors per answer | 0.50 | 0.12 |
+| Median time for an answer the model wrote | 240 s | 195 s |
+
+Qwen3.5 2B stays the only model offered. Gemma made fewer mistakes but often gave up when the
+saved passages did not state the whole answer ("The provided excerpts do not contain..."), or gave
+one line.
+
+What Qwen3.5 2B did, by kind of question (score of each of the two questions):
+
+- **Word problems** (fuel cost split four ways, a flight across time zones): 10 and 10, worked out
+  by the app's calculators.
+- **Emergencies** (snake bite, heat stroke): 8 and 6, from the built-in guides.
+- **Quick facts** (Ada Lovelace, Lake Baikal): 5.5 and 7.5.
+- **Explanations, synthesis, cryptography and Ethereum ideas:** 3.5 to 7.5, apart from the seed-words
+  question below (0).
+- **Travel know-how** (tipping in Egypt, trains in India): 2 and 0. **Named places** (Edinburgh's
+  Royal Mile, pubs in Prague): 1 and 3. **Comparisons** (alligator or crocodile, dengue painkillers):
+  0 and 2. These are the weakest areas.
+
+Failures seen:
+
+- **Unrelated passages instead of an answer.** "How do 12 seed words turn into wallet addresses?"
+  showed a token standard's motivation and a dictionary entry for "wallet" with both models (0).
+- **Travel questions answered from the wrong passages**, so the guide's own advice never reached the
+  answer.
+- **Short answers that restate the question** ("On a clear day, the sky appears blue.").
+
+### Vitalik's test: best vegan restaurants in the city you are in
+
+"Tell me the best vegan restaurants in the city I am currently in" with a phone position in Lisbon,
+Berlin, Bangkok, Chiang Mai, Tokyo, Buenos Aires, Singapore and Nairobi, and the same question
+naming each city: all 16 answers listed six vegan places (fully vegan where the city has them) with
+address or coordinates, hours and, near the phone, distance and direction, from the OpenStreetMap
+collection. This ran on a Mac with the app's own code and collections, not on the phone.
+
+### Where the time goes
+
+Each stage of three questions, timed on the Redmi from tapping Start research
+([timings](fieldtest/results-1.4.1/phone-stage-timings.json)):
+
+| Question | Finding evidence | Reading sources | Writing | Checking | Total |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Why is the sky blue... | 30 s | 36 s | 17 s | 17 s | 103 s |
+| How deep is Lake Baikal... | 19 s | 37 s | 15 s | 124 s | 198 s |
+| How do vaccines train... | 27 s | 30 s | 30 s | 139 s | 229 s |
+
+- **Checking** is short when the model's draft passes its own review. When it fails, the app writes a
+  new draft and reviews it again, which took about two minutes in two of the three questions.
+- **Finding evidence:** with the Encyclopedia switched off, the vaccines question found its
+  evidence in 9 s instead of 27 s. On a Mac most of the Encyclopedia's share is a title lookup that
+  reads the title of every passage holding any word of the question.
+- **Search itself is fast.** Leviathan's median search took 0.07-1 s per collection on the phone and
+  was faster than the old index in every collection timed ([table](../native/leviathan/README.md)).
+
+### Tokens per answer
+
+60 questions of a second new set ([set 8](fieldtest/results-1.4.1/set8-questions.jsonl)) answered
+on a Mac with the same prompts the phone builds, Qwen3.5 2B. 52 needed the model:
+
+- 3.25 model calls per answer: the draft, its review, and in many answers a second draft and review.
+- 3,656 prompt tokens read and 388 written per answer on average (median read 3,860).
+- At the Redmi's measured speed (about 16 tokens a second reading, 5.3 writing) that is about five
+  minutes of model time per answer, which matches the 2-6 minutes seen on the phone.
+
+### A faster check that was not adopted
+
+When the review rejected a draft, the app would keep the sentences the review accepted instead of
+writing a new draft. On set 8 it cut the estimated model time per answer by a fifth (median 304 s
+to 239 s), but the 19 answers it changed scored 3.63 against 4.68, and 11 of them were worse: the
+kept sentences lost their context ("In contrast, an ERC-721 token is..."). It was reverted. Every
+answer and grade is in [claim-review-experiment.jsonl](fieldtest/results-1.4.1/claim-review-experiment.jsonl).
+
 ## 1.4.0 release build on fresh questions (October 13)
 
 Between 7 and 13 October the answer path changed (one consolidated Encyclopedia searched by a

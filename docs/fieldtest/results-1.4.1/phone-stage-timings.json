@@ -1,0 +1,214 @@
+[
+ {
+  "question": "why is the sky blue but sunsets are orange and red?",
+  "stages": {
+   "Finding evidence": 2.5,
+   "Reading your sources": 32.3,
+   "Writing your answer": 68.1,
+   "Checking your answer": 85.5,
+   "Answer shown": 102.6
+  },
+  "details": [
+   [
+    42.9,
+    "30% read \u00b7 about 25 s left"
+   ],
+   [
+    46.5,
+    "41% read \u00b7 about 20 s left"
+   ],
+   [
+    50.1,
+    "52% read \u00b7 about 20 s left"
+   ],
+   [
+    53.6,
+    "54% read \u00b7 about 15 s left"
+   ],
+   [
+    56.9,
+    "76% read \u00b7 about 10 s left"
+   ],
+   [
+    60.6,
+    "87% read \u00b7 about 5 s left"
+   ],
+   [
+    64.3,
+    "98% read \u00b7 almost done"
+   ],
+   [
+    68.1,
+    "14 tokens written"
+   ],
+   [
+    71.6,
+    "30 tokens written"
+   ],
+   [
+    75.1,
+    "46 tokens written"
+   ],
+   [
+    78.7,
+    "61 tokens written"
+   ],
+   [
+    82.2,
+    "77 tokens written"
+   ],
+   [
+    85.5,
+    "Checking it against your sources"
+   ]
+  ]
+ },
+ {
+  "question": "How deep is Lake Baikal and how old is it?",
+  "stages": {
+   "Finding evidence": 2.6,
+   "Reading your sources": 21.4,
+   "Writing your answer": 58.5,
+   "Checking your answer": 73.7,
+   "Answer shown": 197.5
+  },
+  "details": [
+   [
+    39.7,
+    "50% read \u00b7 about 20 s left"
+   ],
+   [
+    43.4,
+    "60% read \u00b7 about 15 s left"
+   ],
+   [
+    47.0,
+    "70% read \u00b7 about 10 s left"
+   ],
+   [
+    50.6,
+    "80% read \u00b7 about 10 s left"
+   ],
+   [
+    54.3,
+    "93% read \u00b7 almost done"
+   ],
+   [
+    58.5,
+    "8 tokens written"
+   ],
+   [
+    62.8,
+    "28 tokens written"
+   ],
+   [
+    66.6,
+    "45 tokens written"
+   ],
+   [
+    70.0,
+    "62 tokens written"
+   ],
+   [
+    73.7,
+    "Checking it against your sources"
+   ],
+   [
+    157.1,
+    "76 tokens written"
+   ],
+   [
+    160.7,
+    "92 tokens written"
+   ],
+   [
+    164.0,
+    "Checking it against your sources"
+   ]
+  ]
+ },
+ {
+  "question": "how do vaccines train the immune system?",
+  "stages": {
+   "Finding evidence": 2.6,
+   "Reading your sources": 30.1,
+   "Writing your answer": 60.2,
+   "Checking your answer": 90.5,
+   "Answer shown": 228.9
+  },
+  "details": [
+   [
+    44.7,
+    "58% read \u00b7 about 15 s left"
+   ],
+   [
+    48.3,
+    "71% read \u00b7 about 10 s left"
+   ],
+   [
+    52.0,
+    "83% read \u00b7 about 5 s left"
+   ],
+   [
+    55.7,
+    "95% read \u00b7 almost done"
+   ],
+   [
+    60.2,
+    "14 tokens written"
+   ],
+   [
+    64.5,
+    "32 tokens written"
+   ],
+   [
+    68.2,
+    "50 tokens written"
+   ],
+   [
+    71.8,
+    "65 tokens written"
+   ],
+   [
+    75.3,
+    "81 tokens written"
+   ],
+   [
+    79.7,
+    "99 tokens written"
+   ],
+   [
+    83.2,
+    "116 tokens written"
+   ],
+   [
+    87.1,
+    "132 tokens written"
+   ],
+   [
+    90.5,
+    "Checking it against your sources"
+   ],
+   [
+    174.6,
+    "159 tokens written"
+   ],
+   [
+    178.7,
+    "175 tokens written"
+   ],
+   [
+    182.2,
+    "191 tokens written"
+   ],
+   [
+    185.8,
+    "206 tokens written"
+   ],
+   [
+    189.1,
+    "Checking it against your sources"
+   ]
+  ]
+ }
+]

@@ -1,0 +1,309 @@
+{
+ "device": "23108RN04Y",
+ "rows": [
+  {
+   "pack": "world-knowledge-biology",
+   "query": "telomere ageing",
+   "cold": true,
+   "openMs": 27.2,
+   "leviathanMs": 132.1,
+   "leviathanRows": 20,
+   "keywordMs": 280.3,
+   "keywordRows": 20
+  },
+  {
+   "pack": "world-knowledge-biology",
+   "query": "rapamycin lifespan mice",
+   "cold": false,
+   "openMs": 27.2,
+   "leviathanMs": 73.6,
+   "leviathanRows": 20,
+   "keywordMs": 147.1,
+   "keywordRows": 20
+  },
+  {
+   "pack": "world-knowledge-biology",
+   "query": "photosynthesis chloroplast",
+   "cold": false,
+   "openMs": 27.2,
+   "leviathanMs": 66.2,
+   "leviathanRows": 20,
+   "keywordMs": 113.2,
+   "keywordRows": 20
+  },
+  {
+   "pack": "crypto-ethereum",
+   "query": "blob transactions rollups",
+   "cold": true,
+   "openMs": 2.5,
+   "leviathanMs": 141.7,
+   "leviathanRows": 20,
+   "keywordMs": 880.9,
+   "keywordRows": 20
+  },
+  {
+   "pack": "crypto-ethereum",
+   "query": "mnemonic seed words wallet",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 115.8,
+   "leviathanRows": 20,
+   "keywordMs": 473.8,
+   "keywordRows": 20
+  },
+  {
+   "pack": "crypto-ethereum",
+   "query": "sha256 preimage resistance",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 87.4,
+   "leviathanRows": 20,
+   "keywordMs": 168.6,
+   "keywordRows": 20
+  },
+  {
+   "pack": "crypto-ethereum",
+   "query": "proof of stake validator withdrawal",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 102.1,
+   "leviathanRows": 20,
+   "keywordMs": 851.9,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "vegan restaurant",
+   "cold": true,
+   "openMs": 2.6,
+   "leviathanMs": 364.0,
+   "leviathanRows": 20,
+   "keywordMs": 908.1,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "vegan bakery",
+   "cold": false,
+   "openMs": 2.6,
+   "leviathanMs": 313.5,
+   "leviathanRows": 20,
+   "keywordMs": 554.8,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "vegan cafe",
+   "cold": false,
+   "openMs": 2.6,
+   "leviathanMs": 305.1,
+   "leviathanRows": 20,
+   "keywordMs": 803.7,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "restaurant",
+   "city": "lisbon",
+   "leviathanMs": 64.2,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "restaurant",
+   "city": "berlin",
+   "leviathanMs": 115.6,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "restaurant",
+   "city": "bangkok",
+   "leviathanMs": 53.7,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-vegan-places",
+   "query": "restaurant",
+   "city": "tokyo",
+   "leviathanMs": 56.5,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "wikivoyage-guides",
+   "query": "train tickets sleeper class india",
+   "cold": true,
+   "openMs": 3.1,
+   "leviathanMs": 499.8,
+   "leviathanRows": 20,
+   "keywordMs": 6011.7,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-guides",
+   "query": "tipping baksheesh egypt",
+   "cold": false,
+   "openMs": 3.1,
+   "leviathanMs": 116.1,
+   "leviathanRows": 20,
+   "keywordMs": 444.9,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-guides",
+   "query": "tourist sim card istanbul",
+   "cold": false,
+   "openMs": 3.1,
+   "leviathanMs": 271.6,
+   "leviathanRows": 20,
+   "keywordMs": 1664.9,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-guides",
+   "query": "money atm cash argentina",
+   "cold": false,
+   "openMs": 3.1,
+   "leviathanMs": 184.8,
+   "leviathanRows": 20,
+   "keywordMs": 1147.4,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "castle royal mile edinburgh",
+   "cold": true,
+   "openMs": 2.6,
+   "leviathanMs": 307.0,
+   "leviathanRows": 20,
+   "keywordMs": 357.9,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "beer pub prague",
+   "cold": false,
+   "openMs": 2.6,
+   "leviathanMs": 256.7,
+   "leviathanRows": 20,
+   "keywordMs": 424.8,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "vegan restaurant lisbon",
+   "cold": false,
+   "openMs": 2.6,
+   "leviathanMs": 545.8,
+   "leviathanRows": 20,
+   "keywordMs": 602.8,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "museum berlin",
+   "cold": false,
+   "openMs": 2.6,
+   "leviathanMs": 251.4,
+   "leviathanRows": 20,
+   "keywordMs": 413.5,
+   "keywordRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "restaurant",
+   "city": "lisbon",
+   "leviathanMs": 13.1,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "restaurant",
+   "city": "berlin",
+   "leviathanMs": 29.7,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "restaurant",
+   "city": "edinburgh",
+   "leviathanMs": 22.6,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "wikivoyage-places",
+   "query": "restaurant",
+   "city": "prague",
+   "leviathanMs": 19.4,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "pharmacy",
+   "cold": true,
+   "openMs": 2.5,
+   "leviathanMs": 1491.1,
+   "leviathanRows": 20,
+   "keywordMs": 3624.0,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "atm cash",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 979.0,
+   "leviathanRows": 20,
+   "keywordMs": 2681.7,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "hospital emergency",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 927.0,
+   "leviathanRows": 20,
+   "keywordMs": 2749.2,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "drinking water toilet",
+   "cold": false,
+   "openMs": 2.5,
+   "leviathanMs": 3238.2,
+   "leviathanRows": 20,
+   "keywordMs": 10461.5,
+   "keywordRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "pharmacy",
+   "city": "bangkok",
+   "leviathanMs": 224.8,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "pharmacy",
+   "city": "lisbon",
+   "leviathanMs": 237.0,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "pharmacy",
+   "city": "nairobi",
+   "leviathanMs": 190.5,
+   "leviathanRows": 20
+  },
+  {
+   "pack": "osm-essentials",
+   "query": "pharmacy",
+   "city": "berlin",
+   "leviathanMs": 213.2,
+   "leviathanRows": 20
+  }
+ ]
+}

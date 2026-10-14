@@ -7,7 +7,7 @@
 <p align="center">Research, explore, and question the knowledge on your phone—even offline.</p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -20,7 +20,7 @@
   <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0">v1.4.0 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">v1.4.1 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -49,9 +49,9 @@ The app only goes online when you start a download or refresh the list of collec
 
 You need an Android 13 or later phone with an arm64 processor.
 
-1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk)
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk)
    (about 73 MB). You can check it against its
-   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.0/fieldatlas.apk.sha256).
+   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk.sha256).
 2. Open the file and follow Android's prompts to install it.
 3. In setup, download the answer model (1.4 GB).
 4. Add any collections you want. You can add more later in **Library**.
@@ -73,9 +73,9 @@ its own, and scored an answer researched on the web the same way. The result is 
 as a share of the web answer's.
 
 - **34%** of the web-and-AI answers with the default model. **Not there yet.**
-- **35%** with the optional larger model (Qwen3.5 4B), offered on phones with 8 GB of memory, on
-  the 55 questions that need no phone position (the default model scores 32% on those). It makes
-  about half as many factual errors.
+- **35%** with the larger Qwen3.5 4B, which 1.4.0 offered on phones with 8 GB of memory, on the
+  55 questions that need no phone position (the default model scores 32% on those). Later versions
+  offer only the default model.
 - **Strongest:** vegan restaurants in the city you are in (73%, 2 questions) and quick facts (57%,
   8 questions).
 - **Weakest:** cryptography (18%), comparisons (23%), emergencies (26%) and reasoning with numbers
@@ -85,6 +85,10 @@ The graders and the reference answers come from AI models of one family, so trea
 our own measurement, not an independent score. Every question, answer and grade is published in
 [docs/fieldtest/results-1.4.0](docs/fieldtest/results-1.4.0/), and the
 [evaluation](docs/evaluation.md#140-release-build-on-fresh-questions-october-13) explains the method.
+
+1.4.1 was not measured against the web answers again. In it, every collection is searched with
+Leviathan; on 135 graded development questions the right article reached the model as often as
+before (106), and on a Redmi 13C it searched each of the six collections timed faster than the old index did.
 
 ## Good to know
 
@@ -104,15 +108,15 @@ All collections are optional and download inside the app from Hugging Face
 | Collection | Download | What's inside |
 | --- | ---: | --- |
 | Encyclopedia | 10.64 GB (24.35 GB installed) | English and Simple English Wikipedia, 8.39 million passages |
-| Travel guides | 419 MB | Wikivoyage guides by section, with phrasebooks |
-| Travel places | 352 MB | Wikivoyage listings: sights, food, hotels, shops |
-| Vegan places | 40 MB | OpenStreetMap places tagged vegan or with vegan options |
-| Essentials | 1.78 GB | Pharmacies, hospitals, ATMs, toilets, water, stations and more from OpenStreetMap |
-| Cryptography & Ethereum | 78 MB | Ethereum proposals and specifications, NIST post-quantum standards |
-| Biology & longevity | 8 MB | A biology textbook, health topics, ageing gene data, six research reviews |
+| Travel guides | 290 MB (660 MB installed) | Wikivoyage guides by section, with phrasebooks |
+| Travel places | 215 MB (650 MB installed) | Wikivoyage listings: sights, food, hotels, shops |
+| Vegan places | 24 MB (77 MB installed) | OpenStreetMap places tagged vegan or with vegan options |
+| Essentials | 986 MB (3.62 GB installed) | Pharmacies, hospitals, ATMs, toilets, water, stations and more from OpenStreetMap |
+| Cryptography & Ethereum | 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards |
+| Biology & longevity | 8 MB (27 MB installed) | A biology textbook, health topics, ageing gene data, six research reviews |
 
 Sources, checksums and licences for each one are in [DATASETS.md](DATASETS.md#collections-the-app-offers).
-The default model and every collection together take about 28.4 GB (31.5 GB with both models).
+The default model and every collection together take about 30.9 GB.
 
 ## Watch it work
 
@@ -128,7 +132,8 @@ on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns s
 
 | Version | What changed |
 | --- | --- |
-| [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) (latest) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Release notes](docs/releases/current.md) |
+| [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) (latest) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Release notes](docs/releases/current.md) |
+| [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Notes](docs/releases/field-atlas-1.4.0.md) |
 | [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |
 | [1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Fixes for Xiaomi phones, the Essentials collection. [Notes](docs/releases/field-atlas-1.2.1.md) |
 | [1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) | First collections, places near you, voice input. [Notes](docs/releases/field-atlas-1.2.0.md) |
