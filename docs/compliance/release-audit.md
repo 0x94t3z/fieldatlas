@@ -34,6 +34,39 @@ model, quoting an Ethereum proposal's own summary, and a table of emergency numb
 are implemented here independently, from primary sources (the Wikipedia list of emergency
 numbers at a pinned revision, the EIP and ERC repositories, NIST publications).
 
+## v1.4.1 release handoff (15 October 2026)
+
+### Public artifact verification
+
+Built the optimized public-key APK from the source of `2a2011a` (app code as of `b3ef684` with the
+version raised): version 1.4.1 (20), 73,164,251 bytes, SHA-256
+`bca52edf4830ee3c853c9175f921556a2e7388c5316bd6fd61db0fadc052aff0`. The certificate matches the
+existing public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
+Release build and release lint passed (0 errors); 1,387 JVM tests ran with none failing (56 opt-in
+tests skipped); 78 script, 12 pack-tool, 10 benchmark and 256 tool tests passed; the website's 25
+browser tests passed. The offline packaging audit (`verify_offline.sh`) passed, the APK is 16
+KB-aligned (`zipalign -c -P 16`), and all 23 native libraries pass `check_native_alignment.py`. The
+answer-text tests that use new regular expressions also ran on the Redmi 13C's own runtime.
+
+Collections are not attached to this release. The catalog downloads each one from Hugging Face at a
+pinned revision, and each public copy was downloaded and hashed in full before the catalog pointed
+to it ([DATASETS.md](../../DATASETS.md#collections-the-app-offers)). The knowledge releases on GitHub
+are retired; their build inputs are kept on Hugging Face.
+
+Phone checks used a locally signed build of the same app code on a Redmi 13C (Android 13), installed
+over earlier builds with its data kept; the public-key APK was not installed on a phone. The five
+new collection versions were imported through Library, the earlier versions deleted in the app, and
+questions answered in airplane mode.
+
+### Answer quality
+
+Not measured against web-researched answers for this version; the 1.4.0 result (34% of the
+reference with the default model) is the latest such measurement, and the bounty's bar is not met.
+For 1.4.1, 20 new questions asked in the installed app on the Redmi and graded blind scored 4.65 of
+10 with Qwen3.5 2B, and retrieval found the right article as often as before with Leviathan in every
+collection ([evaluation](../evaluation.md#141-on-the-phone-answers-speed-tokens-and-failures-october-14-15),
+[results](../fieldtest/results-1.4.1/)).
+
 ## v1.4.0 release handoff (13 October 2026)
 
 ### Public artifact verification

@@ -2,7 +2,7 @@
   "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
-  "auditScope": "Status of the v1.4.0 source against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md has the detail.",
+  "auditScope": "Status of the v1.4.1 source against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md has the detail.",
   "lastAuditedAt": "2026-10-13",
   "requirements": [
     {
