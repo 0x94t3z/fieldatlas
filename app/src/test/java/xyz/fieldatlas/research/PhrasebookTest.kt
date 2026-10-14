@@ -180,6 +180,36 @@ class PhrasebookTest {
         assertTrue(near.prompts.single().first.contains("私はベジタリアンです"))
     }
 
+    @Test fun thePhrasebookLeadStaysAboveTheModelsWordsInAStrictAnswer() = runBlocking {
+        val thaiOverview = row("wvs-30000-0000:0000", "Overview", "Thai is spoken in Thailand.", book = "Thai phrasebook")
+        val thaiPlaces = row("wvs-30000-0040:0000", "Phrase list > Directions", listOf(
+            "- Where is the hotel near here? : โรงแรมอยู่ที่ไหน (rohng raem yoo tee nai)",
+            "- Where is the station? : สถานีอยู่ที่ไหน (sa-tha-nee yoo tee nai)",
+        ).joinToString("\n"), book = "Thai phrasebook")
+        val retriever = object : Retriever {
+            override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit) = emptyList<Evidence>()
+            override suspend fun article(article: String, limit: Int): List<Evidence> =
+                if (article == "Thai phrasebook") listOf(thaiOverview, thaiPlaces) else emptyList()
+        }
+        for (modelText in listOf("Ask \"rohng raem yoo tee nai\" [S1]. Search online for audio of the pronunciation.",
+            "Ask \"rohng raem yoo tee nai\" [S1].")) {
+            val events = ResearchOrchestrator(retriever, FakeInferenceGateway(listOf(modelText)))
+                .research("How do I say 'where is the hotel' in Thai?").toList()
+            val shown = StringBuilder().apply {
+                for (e in events) when (e) {
+                    is ResearchEvent.Lead -> { clear(); append(e.text) }
+                    is ResearchEvent.Token -> { if (e.replace) clear(); append(e.text) }
+                    else -> Unit
+                }
+            }.toString()
+            val leadShown = events.any { it is ResearchEvent.Lead }
+            // When the phrasebook line leads, it stays in the final answer, and the model's words are never inside its quote.
+            if (leadShown) assertTrue(shown, "โรงแรมอยู่ที่ไหน" in shown)
+            assertTrue(shown, shown.lines().none { it.trimStart().startsWith(">") && "Ask" in it })
+            assertFalse(shown, "online" in shown)
+        }
+    }
+
     @Test fun anEmergencyWithAPhraseRequestIsAnEmergencyFirst() = runBlocking {
         val guides = xyz.fieldatlas.emergency.EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText()).guides
         val help = row("wvs-16153-0060:0000", "Phrase list > Problems", "- Help! : 助けて! Tasukete!")

@@ -12,14 +12,30 @@ object MarkupText {
         "title", "main", "aside", "nav", "caption",
     )
     private val htmlSkipped = setOf("script", "style", "head", "noscript", "template", "svg", "math")
-    private val tag = Regex("<(/?)([A-Za-z][\\w:.-]*)([^>]*?)(/?)>", RegexOption.DOT_MATCHES_ALL)
+    // "[^<>]" rather than "[^>]": an unclosed "<a" in a broken file would otherwise send every match attempt
+    // to the end of the text, which on a large attachment takes minutes.
+    private val tag = Regex("<(/?)([A-Za-z][\\w:.-]*)([^<>]*?)(/?)>", RegexOption.DOT_MATCHES_ALL)
+
+    /** [text] without each [open] … [close] span, found by index so a missing [close] cannot cost a rescan. */
+    internal fun withoutSpans(text: String, open: String, close: String, keepInner: Boolean = false, with: String = " "): String {
+        val out = StringBuilder(text.length)
+        var cursor = 0
+        while (true) {
+            val start = text.indexOf(open, cursor)
+            if (start < 0) { out.append(text, cursor, text.length); break }
+            out.append(text, cursor, start)
+            val end = text.indexOf(close, start + open.length)
+            if (end < 0) break // An unclosed comment runs to the end, as a browser reads it.
+            out.append(if (keepInner) text.substring(start + open.length, end) else with)
+            cursor = end + close.length
+        }
+        return out.toString()
+    }
 
     /** Visible text of an HTML or XHTML document; headings and list items keep their own lines. */
     fun html(source: String): String {
-        val body = source
-            .replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), " ")
-            .replace(Regex("<!\\[CDATA\\[(.*?)]]>", RegexOption.DOT_MATCHES_ALL), "$1")
-            .replace(Regex("<![^>]*>|<\\?[^>]*\\?>"), " ")
+        val body = withoutSpans(withoutSpans(source, "<!--", "-->"), "<![CDATA[", "]]>", keepInner = true)
+            .replace(Regex("<![^<>]*>|<\\?[^<>]*\\?>"), " ")
         val out = StringBuilder()
         var skipping: String? = null
         var cursor = 0

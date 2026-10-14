@@ -183,11 +183,13 @@ object AnswerChecks {
     private val onlineTarget = Regex(
         "(?i)\\b(online|on the internet|on the web|internet search|search engines?|google|websites?|web ?sites?|web ?pages?|" +
             "social media|instagram|facebook|tripadvisor|yelp|happycow|booking\\.com|online reviews?|reviews online|" +
-            "(?:an?|the) app\\b|apps\\b|app stores?|play store|e-?mail them)\\b|https?://|www\\.",
+            // "the app", "the Grab app", "a translation app".
+            "(?:an?|the|this|that|your|their)\\s+(?:[\\p{L}-]+\\s+){0,2}app\\b|apps\\b|app stores?|play store|e-?mail them)\\b|https?://|www\\.",
     )
     // Phrasing that tells the person to do it, as opposed to describing it.
     private val advice = Regex(
-        "(?i)(^|[\\s(\"“])(try|check|visit|search|look (?:it |this |them |that )?up|use|consult|download|see|browse|open|sign up|subscribe|" +
+        "(?i)(^|[\\s(\"“])(try|check|visit|search|look (?:it |this |them |that )?up|use|consult|download|install|book|order|reserve|get|pay|register|" +
+            "see|browse|open|sign up|subscribe|" +
             "consider|contact|email|read)\\b|\\b(?:you|they) (?:can|could|should|may want to|might want to|might|will need to|need to)\\b|" +
             "\\b(?:i |we )?recommend\\b|\\bit(?:'s| is) (?:best|advisable|recommended|a good idea) to\\b|\\b(?:be|make) sure to\\b",
     )
@@ -208,7 +210,10 @@ object AnswerChecks {
     private val noConnectionSentence = Regex(
         "(?i)^(?:[-*] |\\d+\\. )?(?:Since|As|Because|Without) (?:you (?:have no|don't have|do not have|are (?:offline|without))|(?:an? )?(?:internet|connection))\\b[^.!?]*\\b(?:cannot|can't|can not|unable|not possible|won't be able)\\b",
     )
-    private val asksAboutOnline = Regex("(?i)\\b(online|internet|website|web|app|apps|google|social media|email|url|link|wi-?fi|data|sim|esim|roaming)\\b")
+    // The question is about the online service itself ("Do I need a SIM card?", "Is there Wi-Fi?"), so naming it is
+    // the answer. A train "link" or visitor "data" is not.
+    private val asksAboutOnline = Regex("(?i)\\b(online|internet|websites?|web ?sites?|apps?|google|social media|e-?mail|url|wi-?fi|" +
+        "mobile data|data (?:plan|roaming|sim|package|bundle)|sim(?: card)?s?|e-?sim|roaming)\\b")
     // "Buy tickets at the station or online": the offline half is the advice; only the alternative goes.
     private val onlineAlternative = Regex("(?i),?\\s+or\\s+(?:book |buy |check |look |search )?(?:online|on (?:the|their|its) (?:official )?website|on google maps|via (?:the|an|their) app|in (?:the|an|their) app)\\b")
     // A sentence that offers something to do besides what can't be done keeps that part.
@@ -277,8 +282,14 @@ object AnswerChecks {
         var removedDose = false
         var removedRecipe = false
         val kept = text.lines().mapNotNull { line ->
-            if (sourceHeading.matches(line.trim())) quotes = true
-            if (quotes || !(isDose(line) || isRecipe(line))) return@mapNotNull line
+            val trimmed = line.trim()
+            // A saved source is quoted word for word under its heading; any other heading ("Model explanation")
+            // ends that part, and only lines that are themselves quoted are left as written.
+            if (sourceHeading.matches(trimmed)) quotes = true
+            else if (otherHeading.matches(trimmed)) quotes = false
+            val body = trimmed.replace(Regex("^(?:[-*•+]|\\d+[.)])\\s+"), "")
+            val quoted = body.startsWith(">") || body.startsWith("\"") || body.startsWith("“")
+            if ((quotes && quoted) || !(isDose(line) || isRecipe(line))) return@mapNotNull line
             val sentences = line.split(sentenceEnd)
             val rest = sentences.filterNot { isDose(it) || isRecipe(it) }
             if (sentences.any(::isDose)) removedDose = true
@@ -290,6 +301,8 @@ object AnswerChecks {
         return kept.joinToString("\n").trimEnd() + listOfNotNull(DOSE_NOTE.takeIf { removedDose }, RECIPE_NOTE.takeIf { removedRecipe })
             .joinToString("") { "\n\n$it" }
     }
+
+    private val otherHeading = Regex("^(?:#{1,6}\\s+.+|\\*\\*[^*]{1,60}\\*\\*:?|[A-Z][^.!?]{0,60}:)$")
 
     const val DOSE_NOTE = "_Amounts of medicine are left out of this explanation: follow the package leaflet, or ask a pharmacist or doctor._"
     const val RECIPE_NOTE = "_Amounts for a home mixture are left out of this explanation because the saved sources do not give them: " +

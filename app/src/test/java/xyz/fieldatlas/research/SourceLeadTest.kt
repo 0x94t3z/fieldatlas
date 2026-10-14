@@ -133,6 +133,20 @@ class SourceLeadTest {
         assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
     }
 
+    @Test fun aFailingModelStillLeavesTheSavedTextAnswer() = runBlocking {
+        // Without "Quote the source", the question first goes to the cited explanation; a model that fails
+        // there must not end the run with an error when the saved text can answer.
+        val failing = object : InferenceGateway by FakeInferenceGateway() {
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+                flow { throw IllegalStateException("native decode failed") }
+            override fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
+                flow { throw IllegalStateException("native decode failed") }
+        }
+        val events = ResearchOrchestrator(guideComparisonRetriever(), failing).research(guideComparisonQuestion).toList()
+        assertTrue(events.toString(), events.none { it is ResearchEvent.Failed })
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
     private val guideComparisonQuestion = "What is the difference between a single metro ticket and a day pass in Avelton?"
 
     private fun guideComparisonRetriever(): Retriever {

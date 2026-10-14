@@ -18,7 +18,7 @@ internal class TechnicalRuleFocus private constructor(
     } else listOf(owner)
     private val ownerPatterns = owners.map { label ->
         val (prefix, number) = label.split('-')
-        Regex("(?i)^\\s*${Regex.escape(prefix)}[- ]?${Regex.escape(number)}(?=[:\\s—–]|$)")
+        Regex("(?i)^\\s*${Regex.escape(prefix)}[- ]?${Regex.escape(number)}(?=[\\s:—–]|$)")
     }
     private val symbolPattern = exactToken(symbol)
     private val literalPattern = exactToken(literal)

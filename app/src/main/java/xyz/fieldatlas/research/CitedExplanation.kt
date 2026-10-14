@@ -47,8 +47,14 @@ internal object CitedExplanation {
     /** The sentence without its gap clause: null when it states no gap, "" when the gap is all it
      * says. "The evidence does not give a Sunday time, but the museum opens daily at 10:00 [S1]"
      * keeps its cited second half. */
+    // "Plant foods are not reliable sources; these sources do not provide B12": "these sources" points back
+    // to sources in the world, named just before, not to the excerpts.
+    private val worldSources = Regex("(?i)\\b(?!(?:the|these|this|those|both|all|provided|selected|given|saved|available|cited|retrieved|" +
+        "supplied|relevant|above|my|your|current|research|search|offline|local|reference|attached|listed)\\b)\\p{L}+\\s+sources?\\b")
+
     private fun withoutGapClause(sentence: String): String? {
         val gap = gapStatement.find(sentence) ?: return null
+        if (worldSources.containsMatchIn(sentence.substring(0, gap.range.first))) return null
         fun answers(part: String) = citation.containsMatchIn(part) && gapStatement.find(part) == null &&
             citation.replace(part, " ").lowercase().split(Regex("[^\\p{L}]+")).count { it.length > 1 && it !in pointerWords } >= 2
         fun sentenceOf(part: String) = part.trim().trimEnd('.', ',', ';').replaceFirstChar { it.uppercaseChar() } + "."

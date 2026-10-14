@@ -92,9 +92,19 @@ object DocumentTextReader {
         paragraph = setOf("text:p", "text:h"), text = setOf("text:p", "text:h", "text:span", "text:a"),
         tab = setOf("text:tab"), lineBreak = setOf("text:line-break"), cell = setOf("table:table-cell"), row = setOf("table:table-row"), space = "text:s")
 
-    fun odpSlides(xml: String): List<AttachmentPage> =
-        Regex("<draw:page\\b.*?</draw:page>", RegexOption.DOT_MATCHES_ALL).findAll(xml)
-            .mapIndexed { index, match -> AttachmentPage(index + 1, odf(match.value)) }.toList()
+    fun odpSlides(xml: String): List<AttachmentPage> {
+        // Found by index: a page opened and never closed cannot make each later search rescan the file.
+        val pages = mutableListOf<String>()
+        var cursor = 0
+        while (true) {
+            val start = Regex("<draw:page\\b").find(xml, cursor)?.range?.first ?: break
+            val end = xml.indexOf("</draw:page>", start)
+            if (end < 0) break
+            pages += xml.substring(start, end + "</draw:page>".length)
+            cursor = end + "</draw:page>".length
+        }
+        return pages.mapIndexed { index, page -> AttachmentPage(index + 1, odf(page)) }
+    }
 
     /** Spine order from the OPF package; falls back to no pages when the book has no spine. */
     fun epub(text: (String) -> String?): List<AttachmentPage> {
@@ -102,13 +112,13 @@ object DocumentTextReader {
         val opfPath = Regex("full-path\\s*=\\s*\"([^\"]+)\"").find(container)?.groupValues?.get(1) ?: return emptyList()
         val opf = text(opfPath) ?: return emptyList()
         val base = opfPath.substringBeforeLast('/', "").let { if (it.isEmpty()) "" else "$it/" }
-        val manifest = Regex("<(?:\\w+:)?item\\b[^>]*>").findAll(opf).mapNotNull { item ->
+        val manifest = Regex("<(?:\\w+:)?item\\b[^<>]*>").findAll(opf).mapNotNull { item ->
             val attrs = item.value
             val id = Regex("\\bid\\s*=\\s*\"([^\"]+)\"").find(attrs)?.groupValues?.get(1)
             val href = Regex("\\bhref\\s*=\\s*\"([^\"]+)\"").find(attrs)?.groupValues?.get(1)
             if (id != null && href != null) id to href else null
         }.toMap()
-        val spine = Regex("<(?:\\w+:)?itemref\\b[^>]*\\bidref\\s*=\\s*\"([^\"]+)\"").findAll(opf).map { it.groupValues[1] }.toList()
+        val spine = Regex("<(?:\\w+:)?itemref\\b[^<>]*\\bidref\\s*=\\s*\"([^\"<>]+)\"").findAll(opf).map { it.groupValues[1] }.toList()
         return spine.mapNotNull(manifest::get).distinct().mapIndexedNotNull { index, href ->
             val path = normalize(base + java.net.URLDecoder.decode(href.substringBefore('#'), "UTF-8"))
             text(path)?.let { AttachmentPage(index + 1, MarkupText.html(it)) }

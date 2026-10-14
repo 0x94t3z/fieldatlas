@@ -363,4 +363,24 @@ From saved sources
         assertEquals("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].",
             AnswerChecks.removeUnsupportedSteps("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].\n- Apply a tourniquet above the knee and note the time [S1].", bleeding))
     }
+
+    @Test fun onlineAdviceIsRemovedWhateverTheQuestionMentionsInPassing() {
+        val checked = AnswerChecks.removeOnlineAdvice("The train runs every 20 minutes. Check the official website for the latest timetable.",
+            "Is there a train link from Lisbon airport to the city centre?")
+        assertFalse(checked, "website" in checked)
+        assertFalse(AnswerChecks.removeOnlineAdvice("Book a ride with the Grab app if you have luggage.", "How do I get to my hotel with luggage?")
+            .contains("Grab app"))
+        assertFalse(AnswerChecks.removeOnlineAdvice("Download a translation app to hear the pronunciation.", "How do I say thank you in Thai?")
+            .contains("translation app"))
+        // A question about the service itself keeps it.
+        assertTrue(AnswerChecks.removeOnlineAdvice("Buy a local SIM card at the airport.", "Where can I get a SIM card in Bangkok?").contains("SIM card"))
+    }
+
+    @Test fun transitLinesInAQuotedGuideAreNotCitations() {
+        val quoted = "## From the saved reference\n\n> Take the S8 to the city and change to S8 at Ostbahnhof. Night buses replace the airport train (S1) after midnight. [S1]"
+        val shown = AnswerText.finalized(quoted, 1)
+        assertTrue(shown, "change to S8 at Ostbahnhof" in shown && "airport train (S1) after" in shown)
+        // The model's own text is still normalised.
+        assertTrue(AnswerText.finalized("The train is fast (S1).", 1).contains("[S1]"))
+    }
 }

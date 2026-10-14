@@ -873,6 +873,11 @@ class ResearchOrchestrator(
                 var tokens = 0
                 var first: Long? = null
                 val generationStart = monotonicMillis()
+                var finished = CitedExplanation.UNAVAILABLE
+                var partial = false
+                // A model that fails here (out of memory, a native error) leaves the draft unconfirmed: the
+                // question still gets the saved-text routes below, as it did before cited explanations.
+                try {
                 inference.explainEvidence(explanation.prompt, CitedExplanation.outputBudget(question, outputBudget),
                     savedPrefixChars = explanation.savedPrefixChars).collect { token ->
                     if (first == null) first = monotonicMillis()
@@ -882,10 +887,15 @@ class ResearchOrchestrator(
                 first?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
                     TokenEstimate.of(explanation.prompt), at - generationStart) }
                 val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
-                val (cleaned, draftGap) = CitedExplanation.withoutGapStatements(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
-                    AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence))
-                var finished = CitedExplanation.finish(cleaned, packed.sources.size)
-                var partial = draftGap
+                val dosed = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)
+                val (cleaned, draftGap) = CitedExplanation.withoutGapStatements(dosed)
+                // The same repairs as every other answer from saved sources: a citation moved to the passage
+                // its details come from, and a 12-hour time that disagrees with the 24-hour time stated.
+                fun repairedDraft(text: String) = if (text == CitedExplanation.UNAVAILABLE || text == CitedExplanation.GAP) text
+                    else AnswerChecks.addTwelveHour(AnswerChecks.repairTimes(AnswerChecks.repairCitations(text, selectedEvidence), selectedEvidence), question)
+                finished = repairedDraft(CitedExplanation.finish(cleaned, packed.sources.size))
+                partial = draftGap
                 if (CitedExplanation.hasScopeRisk(finished, packed) ||
                     CitedExplanation.hasWrongComparisonCitation(finished, question, packed)) finished = CitedExplanation.UNAVAILABLE
                 if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
@@ -906,7 +916,7 @@ class ResearchOrchestrator(
                     inference.explainEvidence(retryPrompt, minOf(outputBudget, 256), explanation.savedPrefixChars).collect { tokens++; retry.append(it) }
                     val (retried, repairGap) = CitedExplanation.withoutGapStatements(AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                         AnswerChecks.removeOnlineAdvice(retry.toString(), question), question), question, selectedEvidence))
-                    val repaired = CitedExplanation.finish(retried, packed.sources.size)
+                    val repaired = repairedDraft(CitedExplanation.finish(retried, packed.sources.size))
                     if (repaired == CitedExplanation.GAP) finished = repaired
                     else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
                         !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
@@ -914,6 +924,13 @@ class ResearchOrchestrator(
                         inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
                         if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap }
                     }
+                }
+                // Only an amount of medicine was taken out: say why and where to look, not that nothing could be cited.
+                if (finished == CitedExplanation.UNAVAILABLE && AnswerChecks.DOSE_NOTE in dosed) finished = AnswerChecks.DOSE_NOTE
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    finished = CitedExplanation.UNAVAILABLE
                 }
                 val missing = EvidenceRelevance.missingComparisonSubjects(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })
                 val answered = finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP
@@ -1095,9 +1112,14 @@ class ResearchOrchestrator(
                     }
                     generatedTokenCount++
                     output.append(token)
-                    emit(if (packed.mixedAnswer) {
-                        ResearchEvent.Token(compose(AnswerText.mixed(output.toString(), attributionEvidence)), replace = true)
-                    } else ResearchEvent.Token(token))
+                    // What streams passes the same removals as the final text below (online advice always, a dose
+                    // in the model's own words of a mixed answer), so neither is on screen even before the final
+                    // check, and a cancelled run keeps the checked text. The whole
+                    // text is sent each time, under the lead, so model words never run into a quoted line.
+                    val streamed = AnswerChecks.removeOnlineAdvice(output.toString(), question)
+                    emit(ResearchEvent.Token(compose(if (packed.mixedAnswer)
+                        AnswerText.mixed(AnswerChecks.removeDoses(streamed, question, attributionEvidence), attributionEvidence)
+                    else streamed), replace = true))
                 }
             } catch (error: CancellationException) {
                 throw error
@@ -1136,10 +1158,8 @@ class ResearchOrchestrator(
                     val coverage = selection?.let { AttachmentEvidence.coverageSummary(it, packed.sources.map { s -> s.evidence }, attachments) }
                     if (coverage == null || generationFailed) text else "$text\n\n_${coverage}_"
                 }
-            if (packed.mixedAnswer && checked == raw && raw != output.toString()) {
-                // The streamed mixed answer still holds the removed advice; show it composed again without.
-                emit(ResearchEvent.Token(compose(AnswerText.mixed(raw, attributionEvidence)), replace = true))
-            } else if (checked != output.toString()) emit(ResearchEvent.Token(checked, replace = true))
+            // The final checked text, under its lead.
+            emit(ResearchEvent.Token(compose(if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked), replace = true))
             val modelText = if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked
             val composed = when {
                 generationFailed -> compose(modelText) + "\n\n_The model explanation could not be completed._"

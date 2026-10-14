@@ -76,6 +76,17 @@ class CitedExplanationTest {
         assertTrue(events.last() is ResearchEvent.Complete)
     }
 
+    @Test fun aCitedAnswerGetsTheSameTimeRepairAsAnyOther() = runBlocking {
+        val ferry = Evidence("ferry", "ferry:0", "Koh Samui — Get around", "https://en.wikivoyage.org/w/index.php?oldid=1",
+            "The last ferry from Koh Samui to Koh Phangan leaves Nathon pier at 21:30.", 0.0)
+        val model = FakeInferenceGateway(listOf("The last ferry from Koh Samui to Koh Phangan leaves at 21:30 (10:30 PM) [S1]."))
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(ferry) }, model)
+            .research("When does the last ferry from Koh Samui to Koh Phangan leave? Give the time in 12-hour format.").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertFalse(answer, "10:30 PM" in answer)
+        assertTrue(answer, "9:30" in answer)
+    }
+
     @Test fun sourcesInTheWorldAreNotTheExcerpts() {
         // "Plant sources" are foods, not the excerpts: a cited finding, kept whole.
         val b12 = "Plant sources do not contain reliable vitamin B12 [S1]. Vegans need fortified foods or a supplement [S2]."
@@ -85,6 +96,11 @@ class CitedExplanationTest {
         // A gap clause followed by a cited fact keeps the fact.
         assertEquals("The museum is open daily 10:00-18:00 [S1]." to true, CitedExplanation.withoutGapStatements(
             "The evidence does not state a Sunday closing time, but the museum is open daily 10:00-18:00 [S1]."))
+    }
+
+    @Test fun theseSourcesAfterFoodSourcesAreFood() {
+        val fact = "Plant foods are not reliable sources; these sources do not provide B12, so vegans need fortified foods or supplements [S1]."
+        assertEquals(fact to false, CitedExplanation.withoutGapStatements(fact))
     }
 
     @Test fun aGapClauseIsSplitOnlyAtARealClauseBreak() {

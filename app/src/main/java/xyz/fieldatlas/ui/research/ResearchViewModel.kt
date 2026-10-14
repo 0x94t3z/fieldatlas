@@ -228,6 +228,9 @@ class ResearchViewModel(
         }
     }
 
+    /** The last run cancelled, which the next one waits for. */
+    private var stoppingJob: kotlinx.coroutines.Job? = null
+
     fun submit() {
         val question = mutableUiState.value.question
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
@@ -238,7 +241,11 @@ class ResearchViewModel(
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
         )
+        // A run cancelled a moment ago may still be letting go of the model and search; start after it,
+        // or the new run fails with "Another local research run is active".
+        val previous = stoppingJob
         researchJob = scope.launch {
+            previous?.join()
             orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }).collect { event ->
                 mutableUiState.value = when (event) {
                     is ResearchEvent.Planning -> mutableUiState.value.copy(
@@ -312,7 +319,7 @@ class ResearchViewModel(
         // A run in flight is kept in History as Cancel keeps it, not thrown away.
         if (mutableUiState.value.isRunning) cancelResearch()
         attachmentSession.clear()
-        researchJob?.cancel()
+        stoppingJob = researchJob?.also { it.cancel() }
         researchJob = null
         rawAnswer.clear()
         savedStateHandle[QUESTION_KEY] = ""
@@ -321,7 +328,7 @@ class ResearchViewModel(
 
     fun cancelResearch() {
         val wasRunning = mutableUiState.value.isRunning
-        researchJob?.cancel()
+        stoppingJob = researchJob?.also { it.cancel() }
         researchJob = null
         if (wasRunning) {
             // Keep whatever the model managed to write: a half-answer the user walked away

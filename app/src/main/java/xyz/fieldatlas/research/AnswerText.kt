@@ -116,9 +116,19 @@ object AnswerText {
     }
 
     /** Normalizes model citation variants and removes placeholders that cannot open a source. */
+    // A quoted line (a guide or reference quoted by the app) is the source's own words: "change to S8"
+    // and "the airport train (S1)" are transit lines there, not citations to normalise or drop.
+    private val quotedLine = Regex("(?m)^[ \\t]*>.*$")
+
     fun finalized(raw: String, sourceCount: Int): String {
         val sourceRange = 1..sourceCount.coerceAtLeast(0)
-        return normalizeReferences(visible(raw))
+        val kept = mutableListOf<String>()
+        val shielded = quotedLine.replace(visible(raw)) { line -> kept += line.value; "\u0000${kept.size - 1}\u0000" }
+        return finalizedText(shielded, sourceRange).replace(Regex("\u0000(\\d+)\u0000")) { kept[it.groupValues[1].toInt()] }
+    }
+
+    private fun finalizedText(text: String, sourceRange: IntRange): String {
+        return normalizeReferences(text)
             // Small models commonly emit [1] despite being asked for [S1]. Normalize it so the
             // same citation chip and source navigation work instead of showing dead punctuation.
             .replace(citationPattern) { match ->
