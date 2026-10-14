@@ -50,9 +50,23 @@ fn open(path: &str) -> Result<i64, String> {
     );
     Ok(id)
 }
-fn search(id: i64, query: &str, limit: i32) -> Result<String, String> {
+/// `values` is newline-separated; several values for the one `field` mean any of them.
+/// An empty `field` searches the whole pack.
+fn search(id: i64, query: &str, limit: i32, field: &str, values: &str) -> Result<String, String> {
     if !(1..=50).contains(&limit) || query.trim().is_empty() || query.len() > 4096 {
         return Err("invalid search bounds".into());
+    }
+    let filters: Vec<(String, String)> = if field.is_empty() {
+        Vec::new()
+    } else {
+        values.lines().map(|v| (field.to_string(), v.to_string())).collect()
+    };
+    if field.len() > 64
+        || (!field.is_empty() && filters.is_empty())
+        || filters.len() > 16
+        || filters.iter().any(|(_, v)| v.trim().is_empty() || v.len() > 256)
+    {
+        return Err("invalid search filter".into());
     }
     let entry = entry(id)?;
     let store = entry.store.lock().map_err(|_| "search store poisoned")?;
@@ -60,6 +74,7 @@ fn search(id: i64, query: &str, limit: i32) -> Result<String, String> {
         .search(&SearchRequest {
             query: query.into(),
             limit: limit as usize,
+            filters,
             fallback: false,
             ..Default::default()
         })
@@ -82,7 +97,10 @@ fn search(id: i64, query: &str, limit: i32) -> Result<String, String> {
         if bytes > 4_194_304 {
             return Err("evidence exceeds search bound".into());
         }
-        passages.push(record);
+        // Leviathan's own BM25 (title-weighted, higher is stronger), so the app can weigh a
+        // weak match in a small pack against a strong one elsewhere, as it does for keyword search.
+        let relevance = card.relevance.filter(|r| r.is_finite()).ok_or("missing relevance")?;
+        passages.push(serde_json::json!({ "record": record, "relevance": relevance }));
     }
     serde_json::to_string(&passages).map_err(|e| e.to_string())
 }
@@ -131,11 +149,15 @@ pub extern "system" fn Java_xyz_fieldatlas_research_LeviathanNative_search(
     id: jlong,
     query: JString,
     limit: jint,
+    field: JString,
+    values: JString,
 ) -> jstring {
     let mut env = env;
     let result = guarded(|| {
         let query: String = env.get_string(&query).map_err(|e| e.to_string())?.into();
-        let answer = search(id, &query, limit)?;
+        let field: String = env.get_string(&field).map_err(|e| e.to_string())?.into();
+        let values: String = env.get_string(&values).map_err(|e| e.to_string())?.into();
+        let answer = search(id, &query, limit, &field, &values)?;
         env.new_string(answer)
             .map(|v| v.into_raw())
             .map_err(|e| e.to_string())
@@ -179,9 +201,11 @@ mod tests {
     use super::*;
     #[test]
     fn invalid_handles_and_bounds_fail_closed() {
-        assert!(search(-1, "water", 5).is_err());
-        assert!(search(-1, "water", 51).is_err());
-        assert!(search(-1, "", 1).is_err());
+        assert!(search(-1, "water", 5, "", "").is_err());
+        assert!(search(-1, "water", 51, "", "").is_err());
+        assert!(search(-1, "", 1, "", "").is_err());
+        assert_eq!(search(-1, "water", 5, "places[]", "").unwrap_err(), "invalid search filter");
+        assert_eq!(search(-1, "water", 5, "places[]", "lisbon\n ").unwrap_err(), "invalid search filter");
         assert!(close(-1).is_ok());
         assert!(open("/nonexistent-fieldatlas-test/index.sqlite").is_err());
     }
@@ -194,13 +218,13 @@ mod tests {
     fn converted_pack_search_and_close() {
         let path = std::env::var("FIELDATLAS_NATIVE_FIXTURE").expect("fixture path required");
         let id = open(&path).unwrap();
-        let result = search(id, "Alto pump", 5).unwrap();
+        let result = search(id, "Alto pump", 5, "", "").unwrap();
         assert!(result.contains("F-27"));
         assert!(result.contains("document_id"));
         (entry(id).unwrap().cancel)();
-        assert!(!search(id, "Neris battery", 5).unwrap().is_empty());
+        assert!(!search(id, "Neris battery", 5, "", "").unwrap().is_empty());
         close(id).unwrap();
-        assert!(search(id, "Alto pump", 5).is_err());
+        assert!(search(id, "Alto pump", 5, "", "").is_err());
         close(id).unwrap();
     }
 }

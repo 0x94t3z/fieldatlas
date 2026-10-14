@@ -14,6 +14,7 @@ class ToolLayoutTests(unittest.TestCase):
     def test_commands_support_help_from_another_directory(self):
         commands = (
             "tools/packs/build_dual_search_pack.py",
+            "tools/packs/index_pack_for_leviathan.py",
             "tools/android/build_leviathan_native.py",
             "tools/evaluation/compare_research_runs.py",
             "tools/maintenance/plan_library_storage.py",

@@ -129,10 +129,16 @@ class MultiKnowledgeRetriever(
                             val database = opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
                             // Native search drops its own stopwords ("time", "last", "into"); a query left with
                             // none lists arbitrary records, so it takes the keyword path instead.
-                            val nativeTerms = FtsQuery.from(query)!!.terms.filter { it.lowercase() !in LEVIATHAN_STOPWORDS }
-                            val candidates = if (!placesOnly && !database.isPlaceListing() && technicalFocus == null && nativeTerms.isNotEmpty())
-                                database.leviathanCandidates(FtsQuery.from(query)!!.terms.joinToString(" "), limit)
-                            else null
+                            val terms = FtsQuery.from(query)!!.terms
+                            val nativeTerms = terms.filter { it.lowercase() !in LEVIATHAN_STOPWORDS }
+                            val destinations = if (database.isPlaceListing()) {
+                                DestinationScope.resolve(destinationCandidates, database::holdsDestination)
+                            } else emptyList()
+                            val candidates = when {
+                                nativeTerms.isEmpty() -> null
+                                database.isPlaceListing() -> placeCandidates(database, terms, destinations, limit)
+                                else -> database.leviathanCandidates(terms.joinToString(" "), limit)
+                            }
                             // A pack of whole articles by section is read only through article(), for the
                             // subject of an explanation: its million passages would crowd every other
                             // pack's matches and slow each search.
@@ -140,14 +146,13 @@ class MultiKnowledgeRetriever(
                                 report(slot, 1.0)
                                 return@runCatching emptyList()
                             }
-                            val destinations = if (database.isPlaceListing()) {
-                                DestinationScope.resolve(destinationCandidates, database::holdsDestination)
-                            } else emptyList()
                             val ranking = FtsRetriever(database)
                             val keyword = if (candidates != null) {
-                                ranking.rankVerifiedCandidates(query, candidates, limit).map { row ->
-                                    row.copy(score = 0.0, matchedBy = if (candidates.any { it.chunkId == row.chunkId })
-                                        "Leviathan candidate; full saved passage; app ranking; not BM25 confidence"
+                                ranking.rankVerifiedCandidates(query, candidates, limit, technicalFocus).map { row ->
+                                    // Leviathan's BM25 stays on the row, so the merge weighs this pack's weak
+                                    // matches against other packs' strong ones as it does keyword results.
+                                    row.copy(matchedBy = if (candidates.any { it.chunkId == row.chunkId })
+                                        "Leviathan candidate; full saved passage; app ranking; Leviathan BM25"
                                     else "App title anchor; full saved passage; not a Leviathan hit")
                                 }
                             } else ranking.searchFocused(query, limit, destinations, technicalFocus) { inner -> report(slot, inner.fraction) }
@@ -170,6 +175,26 @@ class MultiKnowledgeRetriever(
         }
         onProgress(SearchProgress(1.0, vectorMatches.get()))
         mergeRelevantEvidence(runs, query, question, limit)
+    }
+
+    /**
+     * A place pack's Leviathan search. With destinations named, it runs within their listings
+     * (the index's places filter) on the words left once the city's own words and lookup
+     * wording are dropped, so the kind of place asked for decides the ranking, as in
+     * [FtsRetriever.searchFocused]. Too few listings there search the whole pack, as before.
+     * Null keeps the pack's own keyword search: an old pack, or no native engine.
+     */
+    private suspend fun placeCandidates(database: KnowledgeDatabase, terms: List<String>, destinations: List<String>, limit: Int): List<Evidence>? {
+        if (destinations.isNotEmpty()) {
+            val destinationTerms = destinations.flatMap { FtsQuery.from(it)?.terms.orEmpty() }.toHashSet()
+            val scoped = terms.filterNot { term -> term in destinationTerms || term in EvidenceRelevance.placeSearchFiller }
+            if (scoped.none { it.lowercase() !in LEVIATHAN_STOPWORDS }) return database.leviathanCandidates(terms.joinToString(" "), limit)
+            val rows = database.leviathanCandidates(scoped.joinToString(" "), limit, destinations.map(DestinationScope::fold).distinct())
+                ?: return null
+            val within = rows.filter { row -> DestinationScope.scopes(row.title, destinations) }
+            if (within.size >= FtsRetriever.MIN_SCOPED_ROWS) return within
+        }
+        return database.leviathanCandidates(terms.joinToString(" "), limit)
     }
 
     private fun quoted(text: String) = "\"" + text.replace("\"", " ").trim() + "\""

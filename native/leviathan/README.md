@@ -17,13 +17,20 @@ source using Cargo.lock. No binary is checked in. ARM64 linker pages use 16KiB.
 
 Only databases with the validated `fieldatlas_search` marker use native search.
 Old packs keep their original SQL path. A native failure falls back to the same
-pack's legacy posting index. Maps and specialized technical routes remain on
-their existing paths. Returned cards select IDs; original full records supply
-evidence. Native rank is never presented as the old BM25 confidence.
+pack's legacy posting index. Every knowledge pack can be built for it with
+`tools/packs/index_pack_for_leviathan.py`. A place pack's index carries a
+`places[]` filter (each listing's destination and its parent destinations,
+lowercase without accents), so a question naming a city searches only that
+city's listings; a pack without the filter keeps its keyword search for those.
+Near-me lookups still read `place_points`. Returned cards select IDs; original
+full records supply evidence. Each record comes back with Leviathan's own BM25
+relevance, which the app uses only to weigh one pack's matches against
+another's, as it does keyword scores.
 
 `tools/packs/build_dual_search_pack.py` creates a transitional single-content database:
-one original record copy and two posting indexes. It rejects unsupported
-auxiliary tables rather than dropping vectors/maps. It does not create or publish
+one original record copy and two posting indexes. It carries the rowid-aligned
+`place_points` and `chunk_vectors` tables unchanged and rejects any other
+auxiliary table rather than dropping it. It does not create or publish
 an installable `.fapack`; packaging, checksum updates and measured storage remain
 separate release steps. Do not modify an installed pack in place.
 

@@ -27,12 +27,24 @@ def digest(path):
     with path.open('rb') as file: return hashlib.file_digest(file, 'sha256').hexdigest()
 
 
+def vectors(db):
+    """Row count and digest of every (rowid, vector) pair, in rowid order."""
+    hasher, count = hashlib.sha256(), 0
+    for rowid, quant in db.execute('SELECT rowid, quant FROM chunk_vectors ORDER BY rowid'):
+        hasher.update(rowid.to_bytes(8, 'big', signed=True) + len(quant).to_bytes(4, 'big') + quant)
+        count += 1
+    return count, hasher.hexdigest()
+
+
 def package(original_manifest, database, output, version, compressed=False):
     if output.exists() or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}', version):
         raise ValueError('Use a new output and a valid version')
     manifest = json.loads(original_manifest.read_text())
-    if manifest.get('type') != 'KNOWLEDGE' or manifest.get('schemaVersion') != 1 or manifest.get('embedding'):
-        raise ValueError('Only plain knowledge manifests are supported')
+    if manifest.get('type') != 'KNOWLEDGE' or manifest.get('schemaVersion') != 1:
+        raise ValueError('Only schema-1 knowledge manifests are supported')
+    embedding = manifest.get('embedding')
+    if embedding is not None and (not isinstance(embedding, dict) or embedding.get('table') != 'chunk_vectors'):
+        raise ValueError('Only chunk_vectors embeddings are supported')
     if version == manifest['version']: raise ValueError('New database requires a distinct immutable version')
     artifacts = {}
     original_pins = {}
@@ -51,6 +63,13 @@ def package(original_manifest, database, output, version, compressed=False):
             raise ValueError('Not a supported dual-search pack')
         if db.execute("SELECT 1 FROM meta WHERE key='source_manifest'").fetchone():
             raise ValueError('Build-machine metadata must not be distributed')
+        # The encoder stays pinned below; its vectors must still be in the new database, one per passage it covered.
+        if embedding is not None:
+            original_db = original_manifest.parent / 'content.sqlite'
+            with closing(sqlite3.connect(original_db.resolve().as_uri() + '?mode=ro', uri=True)) as before:
+                expected = vectors(before)
+            if vectors(db) != expected or expected[0] != embedding.get('count'):
+                raise ValueError('Vector search data changed')
     manifest['version'] = version
     manifest['schemaVersion'] = 2 if compressed else 1
     manifest['artifacts'] = [dict(path=name, bytes=path.stat().st_size, sha256=digest(path))

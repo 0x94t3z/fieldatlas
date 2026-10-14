@@ -103,15 +103,27 @@ class FtsRetriever(private val database: KnowledgeDatabase) : Retriever {
     /** Test candidate engines retain the app's title nomination and document diversity.
      * Callers must verify candidates against this immutable pack before ranking them.
      * Candidate scores must use one consistent ordering; they are not BM25 confidence. */
-    internal fun rankVerifiedCandidates(query: String, candidates: List<Evidence>, limit: Int): List<Evidence> {
+    internal fun rankVerifiedCandidates(query: String, candidates: List<Evidence>, limit: Int): List<Evidence> =
+        rankVerifiedCandidates(query, candidates, limit, null)
+
+    /**
+     * [focus] belongs to the original question: its exact rule passages join the pool as in
+     * [searchFocused], since prefix and stem matching can spend every candidate before the rule.
+     */
+    internal fun rankVerifiedCandidates(query: String, candidates: List<Evidence>, limit: Int, focus: TechnicalRuleFocus?): List<Evidence> {
         require(limit in 1..50)
         val sanitized = FtsQuery.from(query) ?: return emptyList()
         val alive = sanitized.terms.filter { frequencyOf(it) > 0 }
         val pool = LinkedHashMap<String, Evidence>()
         candidates.forEach { row -> pool.putIfAbsent(row.documentId + ":" + row.chunkId, row) }
         val placeListing = database.isPlaceListing()
+        val ruleFocus = focus.takeUnless { placeListing }
+        ruleFocus?.let { wanted ->
+            database.search(wanted.matchExpression, minOf(limit, FOCUSED_CANDIDATE_CAP))
+                .filter(wanted::matches).forEach { row -> pool.putIfAbsent(row.documentId + ":" + row.chunkId, row) }
+        }
         return rankPool(pool, limit, query, sanitized, alive, placeListing,
-            TechnicalRuleFocus.from(query).takeUnless { placeListing })
+            (ruleFocus ?: TechnicalRuleFocus.from(query)).takeUnless { placeListing })
     }
 
     private fun rankPool(
@@ -472,6 +484,6 @@ internal object DestinationScope {
     }
 
     /** Lowercase without accents, as the FTS index compares ("zurich" finds "Zürich — Kunsthaus"). */
-    private fun fold(text: String): String =
+    fun fold(text: String): String =
         Normalizer.normalize(text, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 }

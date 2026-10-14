@@ -15,7 +15,8 @@ internal object LeviathanNative {
         catch (_: UnsatisfiedLinkError) { false }
     }
     external fun open(path: String): Long
-    external fun search(handle: Long, query: String, limit: Int): String
+    /** [values] are newline-separated, any of them matching [field]; an empty [field] searches the whole pack. */
+    external fun search(handle: Long, query: String, limit: Int, field: String, values: String): String
     external fun interrupt(handle: Long)
     external fun close(handle: Long)
 }
@@ -23,7 +24,9 @@ internal object LeviathanNative {
 internal class LeviathanSession(file: File) : Closeable {
     private var handle = LeviathanNative.open(file.absolutePath)
 
-    suspend fun search(query: String, limit: Int): List<Evidence> = runInterruptible(Dispatchers.IO) {
+    /** [places] keeps the search to listings of those destinations (folded, see [PLACE_FILTER]); empty searches everything. */
+    suspend fun search(query: String, limit: Int, places: List<String> = emptyList()): List<Evidence> = runInterruptible(Dispatchers.IO) {
+        require(places.none { it.isBlank() || '\n' in it })
         synchronized(this) {
             if (Thread.currentThread().isInterrupted) throw InterruptedException("Search cancelled")
             check(handle != 0L) { "Search store closed" }
@@ -42,7 +45,10 @@ internal class LeviathanSession(file: File) : Closeable {
                     }
                 }
             }, 25, 25, TimeUnit.MILLISECONDS)
-            val result = try { LeviathanNative.search(handle, query, limit) }
+            val result = try {
+                if (places.isEmpty()) LeviathanNative.search(handle, query, limit, "", "")
+                else LeviathanNative.search(handle, query, limit, PLACE_FILTER, places.joinToString("\n"))
+            }
             catch (failure: Exception) {
                 if (worker.isInterrupted) throw InterruptedException("Search cancelled").apply { initCause(failure) }
                 throw failure
@@ -59,6 +65,8 @@ internal class LeviathanSession(file: File) : Closeable {
     }
 
     companion object {
+        /** The filter place packs are indexed with: each listing's destination and its parents, folded. */
+        const val PLACE_FILTER = "places[]"
         private val watchdog = Executors.newSingleThreadScheduledExecutor { task ->
             Thread(task, "knowledge-search-cancellation").apply { isDaemon = true }
         }
@@ -68,14 +76,18 @@ internal class LeviathanSession(file: File) : Closeable {
             check(records.size <= limit)
             val seen = HashSet<String>()
             return records.map { raw ->
-                val row = raw.jsonObject
+                val hit = raw.jsonObject
+                val row = hit.getValue("record").jsonObject
                 fun field(name: String) = row.getValue(name).jsonPrimitive.let {
                     check(it.isString && it.content.isNotBlank()); it.content
                 }
                 val id = field("id")
                 check(seen.add(id)) { "Duplicate source identity" }
-                Evidence(field("document_id"), id, field("title"), field("source"), field("text"), 0.0,
-                    "Leviathan candidate; full saved passage; not BM25 confidence")
+                val relevance = hit.getValue("relevance").jsonPrimitive.double
+                check(relevance.isFinite())
+                // Negated into the keyword path's direction: more negative is stronger, as raw FTS5 bm25.
+                Evidence(field("document_id"), id, field("title"), field("source"), field("text"), -relevance,
+                    "Leviathan candidate; full saved passage; Leviathan BM25")
             }
         }
     }

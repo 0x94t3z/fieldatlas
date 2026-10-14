@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Build one-content knowledge DB with upstream Leviathan and legacy search indexes.
 
-Text packs and their explicitly validated source-provenance tables are supported.
-Reject vectors, maps and unknown auxiliary tables rather than silently losing them.
+Text packs, their explicitly validated source-provenance tables, and the two
+known rowid-aligned auxiliary tables (place_points coordinates, chunk_vectors
+embeddings) are supported. Unknown tables or layouts are rejected rather than
+silently lost.
 Input files are immutable; output is new.
 The two posting indexes share original text in records.doc (no second text corpus).
 This creates content.sqlite, not an independently installable .fapack archive.
@@ -26,6 +28,69 @@ PROVENANCE = {
     'source_provenance': ('document_id', 'metadata_json'),
     'dataset_provenance': ('metadata_json',),
 }
+
+
+# Rowid-aligned with chunks_fts, so they stay valid because the dual pack keeps every passage's rowid.
+# Each entry: accepted PRAGMA table_info layouts (name, type, notnull, pk) -> DDL, and the indexes it carries.
+AUXILIARY = {
+    'place_points': {
+        (('rowid', 'INTEGER', 0, 1), ('lat', 'REAL', 1, 0), ('lon', 'REAL', 1, 0)):
+            'CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL)',
+        (('rowid', 'INTEGER', 0, 1), ('lat', 'REAL', 1, 0), ('lon', 'REAL', 1, 0), ('category', 'TEXT', 0, 0)):
+            'CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL, category TEXT)',
+    },
+    'chunk_vectors': {
+        (('rowid', 'INTEGER', 0, 1), ('quant', 'BLOB', 0, 0)): 'CREATE TABLE chunk_vectors(rowid INTEGER PRIMARY KEY, quant BLOB)',
+    },
+}
+AUXILIARY_INDEXES = {'place_points_lat': ('place_points', 'CREATE INDEX place_points_lat ON place_points(lat)')}
+
+
+def auxiliary_layouts(database, tables):
+    """The DDL of each known auxiliary table present, after checking its layout, indexes and rowid alignment."""
+    result = {}
+    for table, layouts in AUXILIARY.items():
+        if table not in tables:
+            continue
+        layout = tuple((row[1], row[2].upper(), row[3], row[5]) for row in database.execute(f'PRAGMA table_info({table})'))
+        if layout not in layouts:
+            raise ValueError(f'Unsupported {table} layout')
+        if database.execute(f'SELECT 1 FROM {table} WHERE rowid NOT IN (SELECT rowid FROM chunks_fts) LIMIT 1').fetchone():
+            raise ValueError(f'{table} rows must belong to passages')
+        result[table] = layouts[layout]
+    indexes = {name: table for name, table in database.execute(
+        "SELECT name, tbl_name FROM sqlite_master WHERE type='index' AND sql IS NOT NULL")}
+    for name, table in indexes.items():
+        if AUXILIARY_INDEXES.get(name, (None,))[0] != table or table not in result:
+            raise ValueError('Unknown index; no auxiliary data is discarded')
+    if database.execute("SELECT 1 FROM sqlite_master WHERE type IN ('view','trigger') LIMIT 1").fetchone():
+        raise ValueError('Views and triggers are not supported')
+    return result, sorted(indexes)
+
+
+def copy_auxiliary(original, db, layouts, indexes):
+    for table, ddl in layouts.items():
+        db.execute(ddl)
+        columns = ','.join(['rowid'] + [row[1] for row in original.execute(f'PRAGMA table_info({table})') if row[1] != 'rowid'])
+        marks = ','.join('?' * len(columns.split(',')))
+        rows = original.execute(f'SELECT {columns} FROM {table} ORDER BY rowid')
+        while batch := rows.fetchmany(50_000):
+            db.executemany(f'INSERT INTO {table}({columns}) VALUES ({marks})', batch)
+    for name in indexes:
+        db.execute(AUXILIARY_INDEXES[name][1])
+
+
+def same_auxiliary(original, db, layouts):
+    for table in layouts:
+        query = f'SELECT * FROM {table} ORDER BY rowid'
+        left, right = original.execute(query), db.execute(query)
+        while True:
+            a, b = left.fetchmany(50_000), right.fetchmany(50_000)
+            if a != b:
+                return False
+            if not a:
+                break
+    return True
 
 
 def provenance_rows(database, tables):
@@ -65,9 +130,10 @@ def build(source: Path, index: Path, output: Path):
         original.execute('BEGIN')
         tables = {r[0] for r in original.execute("SELECT name FROM sqlite_master WHERE type='table'")}
         allowed = {'chunks_fts', 'chunks_fts_data', 'chunks_fts_idx', 'chunks_fts_content', 'chunks_fts_docsize', 'chunks_fts_config'}
-        if tables - allowed - PROVENANCE.keys() or original.execute('PRAGMA user_version').fetchone()[0] != 1:
+        if tables - allowed - PROVENANCE.keys() - AUXILIARY.keys() or original.execute('PRAGMA user_version').fetchone()[0] != 1:
             raise ValueError('Only schema-1 text packs with known provenance are supported; no auxiliary data is discarded')
         provenance = provenance_rows(original, tables)
+        auxiliary, auxiliary_indexes = auxiliary_layouts(original, tables)
         schema = original.execute("SELECT sql FROM sqlite_master WHERE name='chunks_fts'").fetchone()[0]
         if 'tokenize' in schema.lower() and "tokenize='porter unicode61'" not in schema:
             raise ValueError('Unsupported source tokenizer')
@@ -91,6 +157,7 @@ def build(source: Path, index: Path, output: Path):
                     else:
                         db.execute('CREATE TABLE dataset_provenance(metadata_json TEXT NOT NULL)')
                         db.executemany('INSERT INTO dataset_provenance VALUES (?)', rows)
+                copy_auxiliary(original, db, auxiliary, auxiliary_indexes)
                 records = db.execute('SELECT rowid,id,doc FROM records ORDER BY rowid')
                 seen = 0
                 for _, identity, raw in records:
@@ -133,10 +200,13 @@ def build(source: Path, index: Path, output: Path):
                     found = db.execute('SELECT rowid,chunk_id,document_id,title,source,text FROM chunks_fts WHERE rowid=?', (row[0],)).fetchone()
                     if row != found:
                         raise ValueError('Fallback source hydration changed')
+                if not same_auxiliary(original, db, auxiliary):
+                    raise ValueError('Auxiliary data changed')
             # link is exclusive (unlike rename/replace), so a concurrent output is never overwritten.
             import os
             os.link(staged, output)
-    return {'records': seen, 'bytes': output.stat().st_size, 'fullContentCopies': 1, 'postingIndexes': 2}
+    return {'records': seen, 'bytes': output.stat().st_size, 'fullContentCopies': 1, 'postingIndexes': 2,
+            'auxiliary': sorted(auxiliary)}
 
 
 if __name__ == '__main__':

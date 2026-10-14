@@ -200,6 +200,9 @@ versions. Network-backed fetch commands are separate from offline pack assembly.
 | `build_osm_vegan_pack.py` | Overpass API responses (archived with SHA-256) | worldwide OpenStreetMap places tagged fully vegan or with vegan options (ODbL) |
 | `build_osm_essentials_pack.py` | Overpass API responses (archived with SHA-256) | worldwide pharmacies, hospitals, clinics, ATMs, currency exchange, toilets, drinking water, police, embassies, stations, supermarkets and hostels, with a category per place for near-me lookups (ODbL) |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
+| `index_pack_for_leviathan.py` | a schema-1 `content.sqlite` + a verified Leviathan 0.2.0 binary | the upstream Leviathan index; place packs also get a `places[]` filter (each listing's destination and its parents, lowercase without accents) for searches within one city |
+| `build_dual_search_pack.py` | `content.sqlite` + its Leviathan index | one DB with both posting indexes over one copy of the text; `place_points` and `chunk_vectors` are carried unchanged |
+| `package_search_upgrade.py` | the original pack's unpacked files + the dual-search DB | a new `.fapack` version with the same credits, encoder and vectors |
 
 Paths follow the working-tree convention: `REPO` = the fieldatlas repository (holds
 `packtool/`, `models/`), `WORK = REPO.parent` = the data working directory holding
@@ -270,6 +273,15 @@ python3 tools/packs/build_wikipedia_sections_pack.py fetch --spool build/wikiped
 python3 tools/packs/build_wikipedia_sections_pack.py build --spool build/wikipedia-en/vital.spool.jsonl \
   --out build/wikipedia-en/full --version 2026.10.06
 
+# Leviathan search for any knowledge pack (the app then searches it natively): index the
+# unpacked content.sqlite, merge both indexes into one DB, then package a new version.
+python3 tools/packs/index_pack_for_leviathan.py --database pack/content.sqlite \
+  --leviathan /path/to/verified/leviathan --output build/leviathan/leviathan.sqlite
+python3 tools/packs/build_dual_search_pack.py --source pack/content.sqlite \
+  --index build/leviathan/leviathan.sqlite --output build/leviathan/dual/content.sqlite
+python3 tools/packs/package_search_upgrade.py --manifest pack/manifest.json \
+  --database build/leviathan/dual/content.sqlite --output build/leviathan/new.fapack --version 2026.10.14
+
 # embeddings: run the corpus embedder, then quantize + inject + restamp:
 python3 tools/packs/build_vector_pack.py \
     --base-fapack ../fapacks/world-knowledge-biology/world-knowledge-biology-1.1.0.fapack \
@@ -288,7 +300,10 @@ A `.fapack` is a zip with `manifest.json` (+ artifacts). KNOWLEDGE packs carry
 `content.sqlite` whose `chunks_fts` FTS5 table (`porter unicode61` tokenizer for
 prose) is what the app searches; vector packs additionally carry a `chunk_vectors`
 table (`rowid` aligned with `chunks_fts`, blob = float32 scale + 384 int8) and an
-`encoder.gguf`, described by the manifest's optional `embedding` block. The app
+`encoder.gguf`, described by the manifest's optional `embedding` block. A pack
+built for both search engines also holds the Leviathan tables (`records`,
+`record_fts`, `meta`) and a `fieldatlas_search` row `(1, 'leviathan-0.2.0')`;
+its `chunks_fts` then reads the text from `records`, so the text is stored once. The app
 re-hashes every artifact against the manifest before installing, so the builders'
 hash bookkeeping must match the final bytes exactly — `fapack_convert.verify_pack`
 replays those checks after every build.

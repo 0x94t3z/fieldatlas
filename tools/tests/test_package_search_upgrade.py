@@ -54,6 +54,31 @@ class SearchUpgradePackagingTest(unittest.TestCase):
             self.assertEqual(archive.read('content.sqlite'),self.database.read_bytes())
             self.assertEqual(archive.read('origins.json'),(self.manifest.parent/'origins.json').read_bytes())
 
+    def vector_pack(self, changed):
+        old=self.root/'vectors';old.mkdir()
+        for db_path,quant in ((old/'content.sqlite',b'\x01\x02'),(self.database,b'\x01\x03' if changed else b'\x01\x02')):
+            with sqlite3.connect(db_path) as db:
+                db.execute('CREATE TABLE chunk_vectors(rowid INTEGER PRIMARY KEY, quant BLOB)')
+                db.execute('INSERT INTO chunk_vectors VALUES (1,?)',(quant,))
+        (old/'encoder.gguf').write_bytes(b'encoder fixture')
+        manifest=old/'manifest.json'
+        manifest.write_text(json.dumps(dict(schemaVersion=1,id='vectors',version='1',type='KNOWLEDGE',title='Vectors',
+            license='CC0-1.0',sourceUrls=['https://example.test/reference'],
+            embedding=dict(table='chunk_vectors',count=1,encoderPath='encoder.gguf'),artifacts=[
+                dict(path=p.name,bytes=p.stat().st_size,sha256=digest(p)) for p in [old/'content.sqlite',old/'encoder.gguf']
+            ])))
+        return manifest
+
+    def test_vector_pack_keeps_its_encoder_and_vectors(self):
+        report=package(self.vector_pack(changed=False),self.database,self.output,'2')
+        self.assertEqual(report['manifest']['embedding']['table'],'chunk_vectors')
+        with zipfile.ZipFile(self.output) as archive:
+            self.assertEqual(archive.read('encoder.gguf'),b'encoder fixture')
+
+    def test_vector_pack_with_changed_vectors_is_refused(self):
+        with self.assertRaises(ValueError):package(self.vector_pack(changed=True),self.database,self.output,'2')
+        self.assertFalse(self.output.exists())
+
     def test_refuses_build_machine_metadata(self):
         with sqlite3.connect(self.database) as db:db.execute("INSERT INTO meta VALUES('source_manifest','private path')")
         with self.assertRaises(ValueError):package(self.manifest,self.database,self.output,'2')

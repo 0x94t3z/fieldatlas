@@ -43,6 +43,36 @@ class DualSearchPackTest(unittest.TestCase):
         with self.assertRaises(ValueError): build(self.source,self.index,self.output)
         self.assertFalse(self.output.exists())
 
+    def test_map_points_and_vectors_survive_unchanged(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL, category TEXT)')
+            db.execute('CREATE INDEX place_points_lat ON place_points(lat)')
+            db.execute("INSERT INTO place_points VALUES (7, 38.71, -9.14, 'pharmacy')")
+            db.execute('CREATE TABLE chunk_vectors(rowid INTEGER PRIMARY KEY, quant BLOB)')
+            db.execute('INSERT INTO chunk_vectors VALUES (7, ?)', (bytes([1, 255, 0, 128]),))
+        report = build(self.source, self.index, self.output)
+        self.assertEqual(report['auxiliary'], ['chunk_vectors', 'place_points'])
+        with sqlite3.connect(self.output) as db:
+            self.assertEqual(db.execute('SELECT rowid,lat,lon,category FROM place_points').fetchall(), [(7, 38.71, -9.14, 'pharmacy')])
+            self.assertEqual(db.execute('SELECT rowid,quant FROM chunk_vectors').fetchall(), [(7, bytes([1, 255, 0, 128]))])
+            self.assertTrue(db.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='place_points_lat'").fetchone())
+            # The map row still joins the passage it belongs to.
+            self.assertEqual(db.execute('SELECT c.title FROM place_points p JOIN chunks_fts c ON c.rowid = p.rowid').fetchall(), [('Water',)])
+
+    def test_map_points_without_a_passage_are_rejected(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE place_points (rowid INTEGER PRIMARY KEY, lat REAL NOT NULL, lon REAL NOT NULL)')
+            db.execute('INSERT INTO place_points VALUES (8, 1.0, 2.0)')
+        with self.assertRaises(ValueError): build(self.source, self.index, self.output)
+        self.assertFalse(self.output.exists())
+
+    def test_unknown_index_is_rejected(self):
+        with sqlite3.connect(self.source) as db:
+            db.execute('CREATE TABLE chunk_vectors(rowid INTEGER PRIMARY KEY, quant BLOB)')
+            db.execute('CREATE INDEX vectors_quant ON chunk_vectors(quant)')
+        with self.assertRaises(ValueError): build(self.source, self.index, self.output)
+        self.assertFalse(self.output.exists())
+
     def test_missing_rows_rejected(self):
         with sqlite3.connect(self.source) as db:
             db.execute("INSERT INTO chunks_fts VALUES('c2','d2','Other','Local','Another passage.')")

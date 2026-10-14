@@ -6,6 +6,10 @@ import androidx.sqlite.driver.bundled.SQLITE_OPEN_FULLMUTEX
 import androidx.sqlite.driver.bundled.SQLITE_OPEN_READONLY
 import java.io.Closeable
 import java.io.File
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class InvalidKnowledgeDatabaseException(message: String, cause: Throwable? = null) :
     IllegalArgumentException(message, cause)
@@ -14,9 +18,13 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     private val matchCounts = CappedMatchCountCache()
     private var nativeSearch: LeviathanSession? = null
     private var nativeChecked = false
+    private var nativePlaces = false
 
-    /** Old packs and unavailable/failed native engines retain the existing SQL path. */
-    internal suspend fun leviathanCandidates(query: String, limit: Int): List<Evidence>? {
+    /**
+     * Old packs and unavailable/failed native engines retain the existing SQL path. [places] keeps a
+     * place pack's search to those destinations; a pack indexed without that filter returns null too.
+     */
+    internal suspend fun leviathanCandidates(query: String, limit: Int, places: List<String> = emptyList()): List<Evidence>? {
         val session = synchronized(database) {
             if (!nativeChecked) {
                 nativeChecked = true
@@ -25,13 +33,16 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
                         val compatible = database.prepare("SELECT format,engine FROM fieldatlas_search").use { row ->
                             row.step() && row.getInt(0) == 1 && row.getText(1) == "leviathan-0.2.0" && !row.step()
                         }
-                        if (compatible) LeviathanSession(file) else null
+                        if (compatible) {
+                            nativePlaces = indexedFilters().contains(LeviathanSession.PLACE_FILTER)
+                            LeviathanSession(file)
+                        } else null
                     } catch (_: Exception) { null }
                 }
             }
-            nativeSearch
+            nativeSearch.takeIf { places.isEmpty() || nativePlaces }
         } ?: return null
-        return try { session.search(query, limit) }
+        return try { session.search(query, limit, places) }
         catch (cancelled: kotlin.coroutines.cancellation.CancellationException) { throw cancelled }
         catch (error: Exception) {
             // Fail back to this same pack's legacy posting index, never another corpus.
@@ -39,6 +50,15 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
             null
         }
     }
+
+    /** The filter fields the pack's Leviathan index was built with; asking for any other one fails the search. */
+    private fun indexedFilters(): List<String> = runCatching {
+        database.prepare("SELECT value FROM meta WHERE key = 'config'").use { row ->
+            if (!row.step()) return@use emptyList()
+            Json.parseToJsonElement(row.getText(0)).jsonObject["fields"]?.jsonObject?.get("filters")
+                ?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
+        }
+    }.getOrDefault(emptyList())
 
     internal fun search(matchExpression: String, limit: Int): List<Evidence> = synchronized(database) {
         database.prepare(SEARCH_SQL).use { statement ->
