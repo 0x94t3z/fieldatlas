@@ -1,6 +1,50 @@
 # Verification
 
-## Current source checks (October 12, 2026)
+## Source checks after 1.4.0 (October 14, 2026, not released)
+
+These checks cover the fixes made after the published 1.4.0 (commits after `65851ba`). No new
+version was built for release.
+
+- **Automated:** 1,376 Android JVM tests ran with none failing. Python: 78 script, 12 pack-tool,
+  10 benchmark and 247 tool tests passed. On the Redmi 13C, the unit suite was run under Android's
+  own runtime (ART) without installing anything: 1,302 tests ran, and the 50 failures all need
+  something only a desktop or a full app provides (desktop files, Compose and AndroidX classes).
+  All 815 regular expressions the app holds compiled with Android's ICU engine. That run caught a
+  pattern that compiled on the JVM but not on a phone; a JVM test now rejects the cause (`[:` in a
+  pattern).
+- **Blind question sets:** an AI model that never saw the code wrote calculator (420), emergency
+  number (300) and place-routing (300) questions with expected answers, split into a development
+  half and a held-out half. Scored once on the held-out half before it was used, against the
+  published 1.4.0:
+
+  | Held-out half | 1.4.0 | This source |
+  | --- | ---: | ---: |
+  | Calculator answers shown and wrong | 20 | 0 |
+  | Emergency numbers for the wrong country | 19 | 5 |
+  | Place questions sent to the wrong route | 7 | 5 |
+
+  Most of the remaining held-out errors were then fixed as general rules, so later scores on that
+  half are no longer blind. The calculator is silent more often than in 1.4.0: it answers only when
+  every number in the question is accounted for.
+- **Emergency guides:** a blind set of 320 labelled questions runs as a unit test: no question
+  opens a guide that could mislead, and none is answered worse than by 1.4.0.
+- **Old against new:** every change was compared with the previous code over 7,978 corpus and
+  blind questions and 614 recorded answers; each difference was read before it was kept.
+- **Real model, fresh set 6 (desktop, Qwen3.5 2B, every collection):** 54 of the 60 answers are
+  identical to the 1.4.0 run. Better: the frozen-lake rescue opens the drowning guide instead of
+  frostbite, and a wrong "23 × 8 = 184 slices" lead is gone. Withheld instead of answered: the
+  siesta question and "old churches I can walk to" in Kraków, where the model's draft (that Kraków
+  has no historic churches) failed its review. Two answers written by the model were wrong: a São
+  Paulo time conversion, which the phone now works out itself, and a pizza total, which the
+  arithmetic check now corrects and flags. Both fixes were checked on the recorded text, not in a
+  new model run.
+- **Redmi 13C, local-test key:** the optimized release build installed over 1.4.0 with its data
+  kept (answer model in use, nine packs). With the app showing "Offline now", "It is 22:00 in Tokyo
+  (UTC+9). What time is it in Honolulu (UTC-10)?" was answered on the phone in under a second.
+- **Not verified:** the public-key APK, a paused download discarded and the keep-alive service
+  during a real background download on a phone, and network traffic during research.
+
+## Source checks (October 12, 2026)
 
 The local optimized release passed 1,153 JVM tests; 53 opt-in tests were skipped.
 Release assembly, signing verification and 16 KiB APK alignment passed.
