@@ -77,31 +77,34 @@ class KnowledgeCatalogTest {
     @Test fun travelDownloadMatchesPublishedArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "wikivoyage-places" }
-        assertEquals("2026.09.1", pack.version)
-        assertEquals(351_581_170L, pack.bytes)
-        assertEquals("1aa075cb2f5dd57415589b3a8e083d701e63f9bb87498f3da97ccbda1c3567ac", pack.sha256)
-        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/1c547f35c613e4984e5932a3173845b1cef3e76f/wikivoyage-places/2026.09.1/wikivoyage-places-2026.09.1.fapack", pack.url)
+        assertEquals("2026.09.1-leviathan", pack.version)
+        assertEquals(215_077_879L, pack.bytes)
+        assertEquals(650_272_768L, pack.installedBytes)
+        assertEquals("c94daea43ae042048b7427fefc50abcee10a554a5a80fc359cc4fe9a273e8c63", pack.sha256)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-places/2026.09.1-leviathan/wikivoyage-places-2026.09.1-leviathan.fapack", pack.url)
     }
 
     @Test fun veganPlacesDownloadMatchesBuiltArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "osm-vegan-places" }
-        assertEquals("2026.10.05", pack.version)
-        assertEquals(40_068_046L, pack.bytes)
-        assertEquals("4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd", pack.sha256)
+        assertEquals("2026.10.05-leviathan", pack.version)
+        assertEquals(24_183_118L, pack.bytes)
+        assertEquals(76_947_456L, pack.installedBytes)
+        assertEquals("ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d", pack.sha256)
         assertEquals("ODbL-1.0", pack.license)
-        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/86064123736fc5c8ff966b44bfcbe6e07de30441/osm-vegan-places/2026.10.05/osm-vegan-places-2026.10.05.fapack", pack.url)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan/osm-vegan-places-2026.10.05-leviathan.fapack", pack.url)
     }
 
     @Test fun essentialsDownloadMatchesBuiltArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "osm-essentials" }
-        assertEquals("2026.10.05", pack.version)
-        assertEquals(1_781_015_519L, pack.bytes)
-        assertEquals("a8f85f91e9716d05fa08880cea5d5e512723b3a8d32870cc910906fe75eaf6d9", pack.sha256)
+        assertEquals("2026.10.05-leviathan", pack.version)
+        assertEquals(986_143_236L, pack.bytes)
+        assertEquals(3_620_782_080L, pack.installedBytes)
+        assertEquals("f41811ed8fe4aa1883adb98a57cd75b60aaf30f918358eb3a5c391fc85f7e2d2", pack.sha256)
         assertEquals("ODbL-1.0", pack.license)
         assertEquals("Places", pack.category)
-        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/e320ff8a3fe4dbcaa68c725c54aaffe93793f35c/osm-essentials/2026.10.05/osm-essentials-2026.10.05.fapack", pack.url)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-essentials/2026.10.05-leviathan/osm-essentials-2026.10.05-leviathan.fapack", pack.url)
     }
 
     @Test fun hostedDownloadsArePinnedToARevision() {
@@ -126,21 +129,23 @@ class KnowledgeCatalogTest {
         assertTrue(encyclopedia.url.endsWith("/encyclopedia-2026.10.12.fapack"))
         assertTrue(catalog.packs.none { it.id in setOf("simplewiki", "wikipedia-en-vital") })
         val guides = catalog.packs.single { it.id == "wikivoyage-guides" }
-        assertEquals(419_107_865L, guides.bytes)
-        assertEquals("1de13456098ddbf307665257e88a6f5b98f646f7aa078b18d8a1a2a8e8032c83", guides.sha256)
+        assertEquals(289_828_270L, guides.bytes)
+        assertEquals(660_324_352L, guides.installedBytes)
+        assertEquals("e67ab97828da0d73266e462b1bff08acd61125140cf797202806cd83234805de", guides.sha256)
         assertEquals("Travel", guides.category)
-        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/5b72377fe68508ae00ea3856bdfdff40a19fb3f4/wikivoyage-guides/2026.09.01/wikivoyage-guides-2026.09.01.fapack", guides.url)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan/wikivoyage-guides-2026.09.01-leviathan.fapack", guides.url)
         assertTrue(catalog.packs.all { it.category.isNotBlank() })
     }
 
     @Test fun cryptographyDownloadMatchesBuiltArtifact() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "crypto-ethereum" }
-        assertEquals("2026.10.05", pack.version)
-        assertEquals(77_678_612L, pack.bytes)
-        assertEquals("b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7", pack.sha256)
+        assertEquals("2026.10.05-leviathan", pack.version)
+        assertEquals(59_453_558L, pack.bytes)
+        assertEquals(92_226_912L, pack.installedBytes)
+        assertEquals("3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014", pack.sha256)
         assertEquals("Science", pack.category)
-        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/6be16bab707c3ee9f6cc2b7b5694182492a43516/crypto-ethereum/2026.10.05/crypto-ethereum-2026.10.05.fapack", pack.url)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan/crypto-ethereum-2026.10.05-leviathan.fapack", pack.url)
     }
 
     @Test fun rejectsDuplicateAndInsecureEntries() {
