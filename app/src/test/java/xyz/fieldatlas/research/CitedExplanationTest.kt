@@ -101,6 +101,17 @@ class CitedExplanationTest {
     @Test fun theseSourcesAfterFoodSourcesAreFood() {
         val fact = "Plant foods are not reliable sources; these sources do not provide B12, so vegans need fortified foods or supplements [S1]."
         assertEquals(fact to false, CitedExplanation.withoutGapStatements(fact))
+        // A word that only counts or picks out a source still means the excerpts: the gap is a gap.
+        for (pointer in listOf("one source", "another source", "its sources", "two sources", "the other source", "neither source")) {
+            val gap = "While $pointer mentions Jewish families in Fez, it does not specify whether hosts require gifts; therefore food is optional."
+            assertEquals(pointer, true, CitedExplanation.withoutGapStatements(gap).second)
+        }
+        // The pronoun is a place, or the source is one in the world: not a gap.
+        for (fact in listOf(
+            "One source lists the hostel near the station [S1], and it does not include breakfast [S1].",
+            "Plant foods are poor sources and say little; they do not mention B12 on labels [S1].",
+            "The museum opens at 10:00 [S1]; it does not open on Mondays [S1].",
+        )) assertEquals(fact, false, CitedExplanation.withoutGapStatements(fact).second)
     }
 
     @Test fun aGapClauseIsSplitOnlyAtARealClauseBreak() {

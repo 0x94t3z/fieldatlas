@@ -48,12 +48,32 @@ internal object CitedExplanation {
      * says. "The evidence does not give a Sunday time, but the museum opens daily at 10:00 [S1]"
      * keeps its cited second half. */
     // "Plant foods are not reliable sources; these sources do not provide B12": "these sources" points back
-    // to sources in the world, named just before, not to the excerpts.
-    private val worldSources = Regex("(?i)\\b(?!(?:the|these|this|those|both|all|provided|selected|given|saved|available|cited|retrieved|" +
-        "supplied|relevant|above|my|your|current|research|search|offline|local|reference|attached|listed)\\b)\\p{L}+\\s+sources?\\b")
+    // to sources in the world, named just before, not to the excerpts. A word that only picks out or counts
+    // sources (a determiner, number, possessive or ordinal: "one source", "another source", "its sources")
+    // still means the excerpts, as do the words the model uses for them ("provided", "cited").
+    private val worldSources = Regex("(?i)\\b(?!(?:the|these|this|those|both|all|each|every|either|neither|any|no|some|several|many|" +
+        "few|most|other|another|same|different|separate|multiple|single|only|which|what|whose|that|its|their|our|his|her|my|your|" +
+        "one|two|three|four|five|six|seven|eight|nine|ten|\\d+|first|second|third|last|latter|former|" +
+        "provided|selected|given|saved|available|cited|retrieved|supplied|relevant|above|current|research|search|offline|local|" +
+        "reference|attached|listed)\\b)\\p{L}+\\s+sources?\\b")
+
+    // "One source mentions Jewish families in Fez, it does not specify whether…": the pronoun's antecedent is
+    // an excerpt that was just the subject of a reporting verb. Only reporting verbs count after the pronoun,
+    // since "it does not include breakfast" is about the place.
+    private val excerptReports = Regex("(?i)\\b(?:sources?|excerpts?|passages?|evidence|text)\\s+(?:\\[S\\d+]\\s+)?" +
+        "(?:mentions?|says?|states?|notes?|describes?|discusses?|lists?|refers? to|talks? about|covers?|confirms?|shows?|indicates?)\\b")
+    private val pronounGap = Regex("(?i)\\b(?:it|they)\\s+(?:does|do|did)\\s*(?:not|n't)\\s+" +
+        "(?:mention|specify|state|say|address|discuss|cover|indicate|clarify|explain|describe)\\b")
+
+    private fun pronounGapIn(sentence: String): MatchResult? {
+        val gap = pronounGap.find(sentence) ?: return null
+        val before = sentence.substring(0, gap.range.first)
+        val report = excerptReports.find(before) ?: return null
+        return gap.takeIf { !worldSources.containsMatchIn(before.substring(0, report.range.last + 1)) }
+    }
 
     private fun withoutGapClause(sentence: String): String? {
-        val gap = gapStatement.find(sentence) ?: return null
+        val gap = gapStatement.find(sentence) ?: pronounGapIn(sentence) ?: return null
         if (worldSources.containsMatchIn(sentence.substring(0, gap.range.first))) return null
         fun answers(part: String) = citation.containsMatchIn(part) && gapStatement.find(part) == null &&
             citation.replace(part, " ").lowercase().split(Regex("[^\\p{L}]+")).count { it.length > 1 && it !in pointerWords } >= 2
