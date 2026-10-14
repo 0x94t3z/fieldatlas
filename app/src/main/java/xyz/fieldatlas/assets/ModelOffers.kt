@@ -36,28 +36,11 @@ object ModelOffers {
     )
 
     /**
-     * The other choice, from models/compact-gemma-4-e2b.example.json: Google's quantization-aware 4-bit
-     * Gemma 4 E2B. On 180 graded development questions it made about half as many factual errors as
-     * Qwen3.5 2B and did better on questions with numbers. On a Redmi 13C (6 GB) it read 14 and wrote 4.1
-     * tokens a second, against about 16 and 5.3 for Qwen3.5 2B, and peaked at 2.4 GB resident. It is
-     * offered from 6 GB phones (a 6 GB phone reports about 6,000,000,000 bytes) until a 4 GB phone has run it.
+     * Qwen3.5 2B is the only download. Gemma 4 E2B was tried as a second choice; asked 20 fresh
+     * questions in the app on a Redmi 13C and graded blind, it scored 3.75 of 10 against 4.65 for
+     * Qwen3.5 2B, answering "the excerpts do not contain this" where Qwen explained.
      */
-    val gemma = ModelOffer(
-        id = "gemma-4-e2b-q4-0",
-        version = "1.0.0",
-        name = "Gemma 4 E2B",
-        title = "Gemma 4 E2B — Q4_0 QAT",
-        license = "Apache-2.0",
-        bytes = 3_349_516_256L,
-        sha256 = "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
-        url = "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf/resolve/675cff42a74c774d6cb76f76d8eacb49b48c9b93/gemma-4-E2B_q4_0-it.gguf",
-        description = "Google's small model. In our tests it made about half as many factual errors as " +
-            "Qwen3.5 2B and was better with numbers. It answers a little slower and is a larger download.",
-        minimumMemoryBytes = 5_500_000_000L,
-        minimumMemoryLabel = "6 GB",
-    )
-
-    val all = listOf(recommended, gemma)
+    val all = listOf(recommended)
 
     fun byId(id: String): ModelOffer? = all.firstOrNull { it.id == id }
 }

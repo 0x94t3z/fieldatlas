@@ -9,7 +9,6 @@ The app shows this list and the full licence texts it ships (Apache-2.0, llama.c
 | `vbuterin/fieldatlas` fork, branch `vector-search` (retrieval, history, voice, pack toolchain, Biology pack; see README Acknowledgements) | commits 337d334–769e85d, merged in 4967a49 | carries this repository's Apache-2.0 LICENSE | [vbuterin/fieldatlas](https://github.com/vbuterin/fieldatlas/tree/vector-search) |
 | `ggml-org/llama.cpp` | commit `60081bb2b5b3294165a4d67c5cbeebe74c868014` | MIT | [llama.cpp LICENSE](https://github.com/ggml-org/llama.cpp/blob/60081bb2b5b3294165a4d67c5cbeebe74c868014/LICENSE) |
 | `Qwen/Qwen3.5-2B` / bartowski GGUF | revisions pinned in `models/compact-qwen3.5-2b.example.json` | Apache-2.0 | [Qwen3.5-2B model card](https://huggingface.co/Qwen/Qwen3.5-2B) |
-| `google/gemma-4-E2B-it` / Google QAT Q4_0 GGUF (optional download) | revision pinned in `models/compact-gemma-4-e2b.example.json` | Apache-2.0 | [Gemma 4 E2B model card](https://huggingface.co/google/gemma-4-E2B-it) |
 | `Qwen/Qwen3.5-4B` / bartowski GGUF (offered in 1.4.0) | revisions pinned in `models/compact-qwen3.5-4b.example.json` | Apache-2.0 | [Qwen3.5-4B model card](https://huggingface.co/Qwen/Qwen3.5-4B) |
 | `openbmb/MiniCPM5-1B` | revisions pinned in `models/compact-minicpm5-1b*.example.json` | Apache-2.0 | [MiniCPM5-1B model card](https://huggingface.co/openbmb/MiniCPM5-1B) |
 | Vosk Android | `0.3.75` | Apache-2.0 | [Vosk API repository](https://github.com/alphacep/vosk-api) |

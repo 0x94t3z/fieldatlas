@@ -9,7 +9,6 @@ A **model pack** is the large local file that lets Field Atlas generate answers.
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
 | [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
 | [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0), on a phone with 8 GB of memory or more | Qwen3.5 4B, optional | Download in Library; see the [notes below](#qwen35-4b-in-v140) |
-| The next version, on a phone with 6 GB of memory or more | Gemma 4 E2B, the second choice | Download in Library, or the [build steps below](#second-choice-gemma-4-e2b) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. Building a `.fapack` for manual import still needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
@@ -42,42 +41,23 @@ Copy `build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack` to Android and import it
 
 The builder downloads the pinned GGUF, rejects a hash mismatch, and stores it uncompressed in a deterministic pack. Model weights are not committed to Git. The exact upstream sources and runtime profile are in [`models/compact-qwen3.5-2b.example.json`](models/compact-qwen3.5-2b.example.json).
 
-## Second choice: Gemma 4 E2B
+## Gemma 4 E2B, tried and not offered
 
-From the version after 1.4.0, a phone that reports at least 5,500,000,000 bytes of memory, which
-6 GB phones do, can choose Google's Gemma 4 E2B in **Library** instead of Qwen3.5 2B. Qwen3.5 2B
-stays the default and the only choice on 4 GB phones until one has run Gemma.
+Google's Gemma 4 E2B (QAT Q4_0, pinned at `google/gemma-4-E2B-it-qat-q4_0-gguf` revision
+`675cff42a74c774d6cb76f76d8eacb49b48c9b93`, GGUF SHA-256
+`fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634`) was tried as a second choice
+after 1.4.0 and was never released.
 
-- On 180 development questions graded blind (sets 4 to 6, all seen during development, so these
-  are not fresh-question results), the same app scored 44.2% of the reference answers with Gemma
-  4 E2B against 40.7% with Qwen3.5 2B. Gemma made 0.33 factual errors per answer against 0.65, and
-  did best on questions with numbers.
-- On a Redmi 13C (6 GB) llama-bench read 14.0 and wrote 4.1 tokens a second (Qwen3.5 2B: about
-  16 and 5.3). In the app it loaded and answered a cited question without being stopped; the app
-  peaked at 3.7 GB resident while loading (memory-mapped model pages count) and 2.5 GB while
-  answering. Answers are slower than with Qwen3.5 2B.
-- If the app ends while loading it, or in the 15 s after, the next load uses Qwen3.5 2B when it is
-  installed and makes it the selected model; Library says why.
+- On 180 development questions it seemed better: 44.2% of the reference answers against 40.7%
+  for Qwen3.5 2B, with half as many factual errors. Those questions had been seen during
+  development.
+- On a Redmi 13C, 20 fresh questions were asked in the installed app with each model and
+  graded blind by two graders. Qwen3.5 2B scored 4.65 of 10 against 3.75. Gemma still made fewer
+  factual errors (0.12 per answer against 0.50), but scored 3 or less on 12 of the 20. Where the
+  saved passages did not state every part of the answer, it often replied that the excerpts do
+  not contain it, or gave one line, while Qwen3.5 2B explained.
 
-- File: `gemma-4-E2B_q4_0-it.gguf`, published by Google in `google/gemma-4-E2B-it-qat-q4_0-gguf`,
-  pinned at revision `675cff42a74c774d6cb76f76d8eacb49b48c9b93`
-- License: Apache-2.0
-- GGUF size: 3,349,516,256 bytes
-- Expected GGUF SHA-256: `fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634`
-- Expected `.fapack` SHA-256: `454385837430991a4e3a5bcfaaaed6515254af80bb9eff7db6ea732e127ef108`
-- Registry: [`models/compact-gemma-4-e2b.example.json`](models/compact-gemma-4-e2b.example.json)
-
-To import it instead, build the pack on a computer (a ZIP64 archive, as the file is over 2 GiB):
-
-```sh
-python3 tools/packs/build_model_packs.py \
-  --pack gemma-4-e2b-q4-0 \
-  --out-dir build/packs/model \
-  --cache-dir build/model-cache
-printf '%s  %s\n' \
-  454385837430991a4e3a5bcfaaaed6515254af80bb9eff7db6ea732e127ef108 \
-  build/packs/model/gemma-4-e2b-q4-0-1.0.0.fapack | shasum -a 256 -c -
-```
+Qwen3.5 2B therefore stays the only download.
 
 ## Qwen3.5 4B in v1.4.0
 

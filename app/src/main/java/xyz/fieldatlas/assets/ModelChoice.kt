@@ -12,11 +12,16 @@ fun modelLoadKey(pack: InstalledAsset): String = "${pack.id}:${pack.version}"
  * [modelLoadKey]). Then the recommended model answers instead when it is installed, because
  * running out of memory again can freeze or restart the phone.
  */
-fun chooseModel(models: List<InstalledAsset>, deviceMemoryBytes: Long, unfinishedLoad: String?): ModelChoice {
+fun chooseModel(
+    models: List<InstalledAsset>,
+    deviceMemoryBytes: Long,
+    unfinishedLoad: String?,
+    offerFor: (String) -> ModelOffer? = ModelOffers::byId,
+): ModelChoice {
     val selected = models.firstOrNull { it.active } ?: models.firstOrNull()
         ?: error("Install a verified model pack first")
     val recommended = ModelOffers.recommended
-    val offer = ModelOffers.byId(selected.id)
+    val offer = offerFor(selected.id)
     val tooLarge = offer != null && !offer.fits(deviceMemoryBytes)
     val interrupted = selected.id != recommended.id && unfinishedLoad == modelLoadKey(selected)
     if (!tooLarge && !interrupted) return ModelChoice(selected)

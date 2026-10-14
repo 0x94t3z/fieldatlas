@@ -17,8 +17,16 @@ class ModelChoiceTest {
         installedBytes = 1, manifestSha256 = "a".repeat(64), rootPath = "/unused/$id", active = active,
     )
 
+    // A larger model that needs a 6 GB phone; no such download is offered now, but one installed
+    // from a file or an earlier version is still held to its memory floor.
+    private val largerOffer = ModelOffers.recommended.copy(id = "larger-test", name = "Larger model",
+        minimumMemoryBytes = 5_500_000_000L, minimumMemoryLabel = "6 GB")
+    private fun offerFor(id: String) = if (id == largerOffer.id) largerOffer else ModelOffers.byId(id)
+    private fun chooseModel(models: List<InstalledAsset>, memory: Long, unfinished: String?) =
+        chooseModel(models, memory, unfinished, ::offerFor)
+
     private val compact = model(ModelOffers.recommended.id)
-    private val larger = model(ModelOffers.gemma.id, active = true)
+    private val larger = model(largerOffer.id, active = true)
 
     @Test fun theSelectedModelLoadsWhenThePhoneHasTheMemory() {
         val choice = chooseModel(listOf(compact, larger), eightGb, unfinishedLoad = null)
@@ -33,19 +41,19 @@ class ModelChoiceTest {
     @Test fun aPhoneWithoutTheMemoryGetsTheRecommendedModelAndIsTold() {
         val choice = chooseModel(listOf(larger, compact), fourGb, null)
         assertSame(compact, choice.pack)
-        assertEquals("Gemma 4 E2B needs a phone with 6 GB of memory or more, so Qwen3.5 2B answers instead.", choice.notice)
+        assertEquals("Larger model needs a phone with 6 GB of memory or more, so Qwen3.5 2B answers instead.", choice.notice)
     }
 
     @Test fun withoutTheRecommendedModelTheReasonIsTheError() {
         val error = assertThrows(IllegalStateException::class.java) { chooseModel(listOf(larger), fourGb, null) }
-        assertTrue(error.message!!, error.message!!.startsWith("Gemma 4 E2B needs a phone with 6 GB of memory or more."))
+        assertTrue(error.message!!, error.message!!.startsWith("Larger model needs a phone with 6 GB of memory or more."))
         assertTrue(error.message!!, "Download Qwen3.5 2B in Library" in error.message!!)
     }
 
     @Test fun aLoadTheAppDidNotSurviveFallsBackOnce() {
         val choice = chooseModel(listOf(compact, larger), eightGb, modelLoadKey(larger))
         assertSame(compact, choice.pack)
-        assertEquals("Field Atlas closed while loading Gemma 4 E2B last time, so Qwen3.5 2B answers instead.", choice.notice)
+        assertEquals("Field Atlas closed while loading Larger model last time, so Qwen3.5 2B answers instead.", choice.notice)
     }
 
     @Test fun anUnfinishedLoadOfAnotherModelOrVersionIsIgnored() {

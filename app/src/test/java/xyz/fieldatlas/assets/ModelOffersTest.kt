@@ -6,7 +6,6 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,7 +15,6 @@ class ModelOffersTest {
     @Test fun everyOfferMatchesItsRegistryFile() {
         for ((offer, file) in listOf(
             ModelOffers.recommended to "compact-qwen3.5-2b.example.json",
-            ModelOffers.gemma to "compact-gemma-4-e2b.example.json",
         )) {
             val spec = Json.parseToJsonElement(File("../models/$file").readText()).jsonObject
             val text = { key: String -> spec.getValue(key).jsonPrimitive.content }
@@ -30,25 +28,20 @@ class ModelOffersTest {
         }
     }
 
-    @Test fun gemmaIsOfferedFromSixGigabytePhones() {
-        // MemTotal as reported by a Redmi 13C (6 GB), where llama-bench ran Gemma 4 E2B at 2.4 GB resident,
-        // and a typical 4 GB phone, which has not run it yet.
-        val sixGb = 5_867_976L * 1024
-        val fourGb = 3_790_000_000L
-        assertTrue(ModelOffers.gemma.fits(sixGb))
-        assertFalse(ModelOffers.gemma.fits(fourGb))
-        assertTrue(ModelOffers.recommended.fits(fourGb))
+    @Test fun theRecommendedModelRunsOnEveryPhone() {
+        assertTrue(ModelOffers.recommended.fits(3_790_000_000L))
         assertTrue(ModelOffers.recommended.fits(0))
     }
 
-    @Test fun theTwoChoicesAreTheTwoSmallModels() {
-        assertEquals(listOf("Qwen3.5 2B", "Gemma 4 E2B"), ModelOffers.all.map { it.name })
-        // The 4B is no longer offered; a phone that already has it keeps it.
+    @Test fun qwenIsTheOnlyDownload() {
+        assertEquals(listOf("Qwen3.5 2B"), ModelOffers.all.map { it.name })
+        // Neither the 4B nor Gemma 4 E2B is offered; a phone that already has one keeps it.
         assertNull(ModelOffers.byId("qwen3.5-4b-q4-k-m"))
+        assertNull(ModelOffers.byId("gemma-4-e2b-q4-0"))
     }
 
     @Test fun offersAreFoundById() {
-        assertEquals(ModelOffers.gemma, ModelOffers.byId("gemma-4-e2b-q4-0"))
+        assertEquals(ModelOffers.recommended, ModelOffers.byId("qwen3.5-2b-q4-k-m"))
         assertNull(ModelOffers.byId("minicpm5-1b-q4-k-m"))
         assertEquals(ModelOffers.all.size, ModelOffers.all.map { it.id }.distinct().size)
     }
