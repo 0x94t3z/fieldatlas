@@ -598,7 +598,10 @@ object AnswerChecks {
     private val durationQuantity = Regex("(?i)^(\\d+(?:\\.\\d+)?)\\s?($HOURS)(?:\\s?(?:and\\s+)?(\\d+)\\s?($MINUTES))?$|^(\\d+)\\s?($MINUTES)$")
     private val plainQuantity = Regex("^($CURRENCY_SIGNS\\s?)?(\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.(\\d+))?((?:\\s?%)?(?:\\s?\\p{L}+(?:/\\p{L}+)?)?)$")
     private val currencyWord = Regex("(?i)^\\s?(?:euros?|eur|pounds?|gbp|dollars?|usd|aud|cad|nzd|yen|jpy|francs?|chf|rupees?|inr|pesos?|baht|lira|zloty|krona|kronor|kroner|rand|won|yuan|rmb|dirhams?|riyals?|ringgit|dong|rupiah|shillings?|real|reais|cents?|pence|p)$")
-    private val answerLine = Regex("(?i)^[\\s>*#-]*answer\\W*:")
+    private val answerLine = Regex("(?i)^[\\s>*#-]*(?:final\\s+)?answer\\W*:")
+    // The result written first, as a label's value: "Total cost: 92 (8 pizzas × 11.50)". "Pizzas for 77 slices
+    // (77 ÷ 8) = 9" names an input before its step, so a result needs the colon or equals sign and no "=" after.
+    private val stepBefore = Regex("(?<=[:=]\\s{0,3})(${quantityToken.pattern})\\s*\\(\\s*(${quantityToken.pattern})(?:\\s*([×*+\\-−–÷/])\\s*|\\s+([xX])\\s+)(${quantityToken.pattern})\\s*\\)(?!\\s*=)")
     private val chained = Regex("(?:[×*+\\-−–÷/=]|\\s[xX])\\s*$")
     private const val CORRECTED = " (corrected on this phone)"
     const val STEP_CORRECTED_NOTE = "_A step above was corrected on this phone; check the answer against the corrected steps._"
@@ -759,7 +762,18 @@ object AnswerChecks {
                 ra.text + rest(1, a) + between(1, 4) + rb.text + rest(4, b) + between(4, 5) +
                     (if (agrees(c, expected)) c.text else written(expected, c)) + CORRECTED + rest(5, c)
             }
-            if (touched) checked else line
+            // The same check for a step written result first, "72 (8 pizzas × 11.50)": only the result is replaced.
+            val reversed = stepBefore.replace(checked) { m ->
+                val c = parseQuantity(m.groupValues[1]); val a = parseQuantity(m.groupValues[2]); val b = parseQuantity(m.groupValues[5])
+                if (a == null || b == null || c == null) return@replace m.value
+                val op = when (m.groupValues[3].ifEmpty { m.groupValues[4] }) { "×", "*", "x", "X" -> '×'; "+" -> '+'; "÷", "/" -> '÷'; else -> '−' }
+                val expected = expected(resolved(a), op, resolved(b), c) ?: return@replace m.value
+                steps += Step(listOf(a, b), c, expected)
+                if (agrees(c, expected)) return@replace m.value
+                touched = true
+                written(expected, c) + CORRECTED + m.groupValues[1].substring(c.text.length) + m.value.substring(m.groupValues[1].length)
+            }
+            if (touched) reversed else line
         }.toMutableList()
         val corrected = steps.filter { it.corrected }
         if (corrected.isEmpty()) return text

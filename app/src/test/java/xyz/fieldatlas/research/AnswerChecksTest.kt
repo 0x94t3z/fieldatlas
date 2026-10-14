@@ -364,6 +364,15 @@ From saved sources
             AnswerChecks.removeUnsupportedSteps("**Steps**\n\n- Cover with a clean cloth and apply pressure [S1].\n- Apply a tourniquet above the knee and note the time [S1].", bleeding))
     }
 
+    @Test fun aStepWrittenResultFirstIsCheckedToo() {
+        val q = "Lunch for 14 people, 2 sandwiches each, 6 sandwiches per platter at 9.50 a platter. How many platters and what total?"
+        val out = AnswerChecks.checkArithmetic("Sandwiches: 28 (14 × 2)\nPlatters: 5 (28 ÷ 6 = 4.67, round up)\nTotal: 38 (5 platters × 9.50)\nFinal answer: 5 platters, 38", q)
+        assertTrue(out, "Total: 47.5 (corrected on this phone) (5 platters × 9.50)" in out)
+        assertTrue(out, "Sandwiches: 28 (14 × 2)" in out)
+        // The final answer repeats a figure no correct step gave: it is flagged.
+        assertTrue(out, AnswerChecks.STEP_CORRECTED_NOTE in out )
+    }
+
     @Test fun onlyTheOnlineClauseOfASentenceGoes() {
         val q = "How do I pay for the tram in Oslo?"
         fun check(text: String) = AnswerChecks.removeOnlineAdvice(text, q)
