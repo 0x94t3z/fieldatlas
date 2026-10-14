@@ -20,7 +20,7 @@ class PrefillSpeedTest {
         // Saved before models had their own speed: the recommended model must still find it.
         assertEquals("prefill_tokens_per_second", PrefillSpeed.storageKey(xyz.fieldatlas.assets.ModelOffers.recommended.id))
         assertEquals("prefill_tokens_per_second", PrefillSpeed.storageKey(null))
-        assertEquals("prefill_tokens_per_second:qwen3.5-4b-q4-k-m", PrefillSpeed.storageKey(xyz.fieldatlas.assets.ModelOffers.larger.id))
+        assertEquals("prefill_tokens_per_second:gemma-4-e2b-q4-0", PrefillSpeed.storageKey(xyz.fieldatlas.assets.ModelOffers.gemma.id))
     }
     @Test fun aLearnedSlowSpeedShrinksTheNextPrompt() = kotlinx.coroutines.runBlocking {
         var captured = ""

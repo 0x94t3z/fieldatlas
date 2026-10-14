@@ -36,28 +36,28 @@ object ModelOffers {
     )
 
     /**
-     * Optional, from models/compact-qwen3.5-4b.example.json. It needs about 3.5 GB resident:
-     * llama.cpp keeps a 2.7 GB repacked copy of the weights besides the mapped file, plus 0.58 GB
-     * of context and compute buffers. A 4 GB phone rebooted running it, and a 6 GB Redmi 13C had the app killed by
-     * Android just after loading it, so it is offered from 8 GB phones, which report about
-     * 7,500,000,000 bytes; a 6 GB phone reports under 6,100,000,000.
+     * The other choice, from models/compact-gemma-4-e2b.example.json: Google's quantization-aware 4-bit
+     * Gemma 4 E2B. On 180 graded development questions it made about half as many factual errors as
+     * Qwen3.5 2B and did better on questions with numbers. On a Redmi 13C (6 GB) it read 14 and wrote 4.1
+     * tokens a second, against about 16 and 5.3 for Qwen3.5 2B, and peaked at 2.4 GB resident. It is
+     * offered from 6 GB phones (a 6 GB phone reports about 6,000,000,000 bytes) until a 4 GB phone has run it.
      */
-    val larger = ModelOffer(
-        id = "qwen3.5-4b-q4-k-m",
+    val gemma = ModelOffer(
+        id = "gemma-4-e2b-q4-0",
         version = "1.0.0",
-        name = "Qwen3.5 4B",
-        title = "Qwen3.5 4B — Q4_K_M",
+        name = "Gemma 4 E2B",
+        title = "Gemma 4 E2B — Q4_0 QAT",
         license = "Apache-2.0",
-        bytes = 3_013_027_808L,
-        sha256 = "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
-        url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/4168f45a16a1290d65a4ec0fa312ae917a4c15d6/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        description = "More accurate: in our tests it made about half as many factual errors as " +
-            "Qwen3.5 2B. It answers about 2.5 times slower.",
-        minimumMemoryBytes = 7_000_000_000L,
-        minimumMemoryLabel = "8 GB",
+        bytes = 3_349_516_256L,
+        sha256 = "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+        url = "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf/resolve/675cff42a74c774d6cb76f76d8eacb49b48c9b93/gemma-4-E2B_q4_0-it.gguf",
+        description = "Google's small model. In our tests it made about half as many factual errors as " +
+            "Qwen3.5 2B and was better with numbers. It answers a little slower and is a larger download.",
+        minimumMemoryBytes = 5_500_000_000L,
+        minimumMemoryLabel = "6 GB",
     )
 
-    val all = listOf(recommended, larger)
+    val all = listOf(recommended, gemma)
 
     fun byId(id: String): ModelOffer? = all.firstOrNull { it.id == id }
 }

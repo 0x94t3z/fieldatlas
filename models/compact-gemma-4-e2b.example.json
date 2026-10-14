@@ -1,0 +1,17 @@
+{
+  "converter": "Quantization-aware-trained Q4_0 artifact published by Google (google/gemma-4-E2B-it-qat-q4_0-gguf at Hugging Face revision 675cff42a74c774d6cb76f76d8eacb49b48c9b93)",
+  "expectedSha256": "fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+  "id": "gemma-4-e2b-q4-0",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Compact candidate: ARM64 CPU inference on the pinned runtime's 8192-token context; gemma4 architecture verified to load at the pinned commit; 2.3B effective parameters (5B with per-layer embeddings, which llama.cpp maps from the file); thinking stays off under the app's native formatter; 3.35 GB artifact - on a Redmi 13C (6 GB) llama-bench peaked at 2.4 GB resident, reading 14 and writing 4.1 tokens a second",
+  "quantizer": "Q4_0 quantization-aware training by Google; expected upstream SHA-256 fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634",
+  "sourceUrls": [
+    "https://huggingface.co/google/gemma-4-E2B-it",
+    "https://huggingface.co/google/gemma-4-E2B-it-qat-q4_0-gguf/blob/675cff42a74c774d6cb76f76d8eacb49b48c9b93/gemma-4-E2B_q4_0-it.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "Gemma 4 E2B — Q4_0 QAT",
+  "upstreamModel": "google/gemma-4-E2B-it",
+  "version": "1.0.0"
+}

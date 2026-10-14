@@ -41,7 +41,7 @@ class KnowledgeSetupStateTest {
         assertTrue(active.withDownload(AssetDownloadStatus(offerKnowledge = true)).offerKnowledge)
     }
     @Test fun aModelDownloadSaysWhichModelAndKeepsItsErrorApartFromImports() {
-        val larger = xyz.fieldatlas.assets.ModelOffers.larger
+        val larger = xyz.fieldatlas.assets.ModelOffers.gemma
         val active = SetupUiState(error = "Import failed").withDownload(AssetDownloadStatus(
             kind = AssetDownloadKind.MODEL, model = larger, downloadedBytes = 7, totalBytes = larger.bytes,
         ))
