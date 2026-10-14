@@ -136,17 +136,17 @@ class LiveDownloadDeviceTest {
     )
 
     private fun veganPack() = KnowledgeCatalogEntry(
-        id = "osm-vegan-places", version = "2026.10.05", title = "Vegan places", description = "Live transfer test",
+        id = "osm-vegan-places", version = "2026.10.05-leviathan", title = "Vegan places", description = "Live transfer test",
         license = "ODbL-1.0", bytes = VEGAN_BYTES,
-        sha256 = "4c08ac74b221890cc0d7559c717fff8762252d9d61b04a9ffdf0d3d8daf660fd",
-        url = "https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-vegan-places-2026.10.05/osm-vegan-places-2026.10.05.fapack",
+        sha256 = "ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d",
+        url = "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan/osm-vegan-places-2026.10.05-leviathan.fapack",
     )
 
     companion object {
         private const val FIXTURE_BYTES = 1_766_807L
         private const val FIXTURE_HASH = "cedc56ca6e2e89f63e781696d1fd76b4b1d49e6720dee86463e915f6e90016ac"
         private const val FIXTURE_URL = "https://raw.githubusercontent.com/ggml-org/llama.cpp/60081bb2b5b3294165a4d67c5cbeebe74c868014/models/ggml-vocab-gpt-2.gguf"
-        private const val VEGAN_BYTES = 40_068_046L
-        private const val VEGAN_MIRROR = "https://ghfast.top/https://github.com/0x94t3z/fieldatlas/releases/download/knowledge-vegan-places-2026.10.05/osm-vegan-places-2026.10.05.fapack"
+        private const val VEGAN_BYTES = 24_183_118L
+        private const val VEGAN_MIRROR = "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan/osm-vegan-places-2026.10.05-leviathan.fapack"
     }
 }
