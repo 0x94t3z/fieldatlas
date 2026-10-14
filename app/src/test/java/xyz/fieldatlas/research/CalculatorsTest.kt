@@ -767,4 +767,14 @@ class CalculatorsTest {
         assertNull(solve("It is 9:00 in Santiago de Compostela. What time is it in New York?")?.takeIf { it.complete })
         assertTrue(solve("It is 9:00 in Santiago. What time is it in New York?") != null)
     }
+
+    @Test fun aTimeIsConvertedWithTheOffsetsTheQuestionGives() {
+        val call = solve("Our meeting is at 9:30 in Lima (UTC-5). What time is that in Berlin (UTC+2) and in Delhi (UTC+5:30)?")!!
+        assertTrue(call.text, call.complete && "**16:30 in Berlin**" in call.text && "**20:00 in Delhi**" in call.text)
+        assertTrue(solve("It is 22:00 in Tokyo (UTC+9). What time is it in Honolulu (UTC-10)?")!!.text.contains("**03:00 in Honolulu** (UTC"))
+        val early = solve("It is 06:00 in Tokyo (UTC+9). What time is it in Honolulu (UTC-10)?")!!
+        assertTrue(early.text, "**11:00 in Honolulu** the previous day" in early.text)
+        // An offset with no place to belong to, or a flight, is not this conversion.
+        assertNull(solve("It is 9:30 at UTC-5. What time is it at UTC+2?")?.takeIf { it.text.contains("Worked from the offsets") })
+    }
 }

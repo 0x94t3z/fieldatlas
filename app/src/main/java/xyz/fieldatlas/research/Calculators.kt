@@ -89,7 +89,7 @@ object Calculators {
             (chained?.let { listOf(it) } ?: timed) + listOfNotNull(
             (currency(question) ?: exchange(question))?.let { it to MONEY + EXCHANGE }, water(question)?.let { it to WATER },
             (charges(question)?.let { it to CHARGES } ?: battery(question)?.let { it to BATTERY }),
-            temperature(question)?.let { it to TEMPERATURE }, clock(question, today)?.let { it to CLOCK }, arrival(question)?.let { it to ARRIVAL },
+            temperature(question)?.let { it to TEMPERATURE }, (statedClock(question) ?: clock(question, today))?.let { it to CLOCK + UTC_WORDS }, arrival(question)?.let { it to ARRIVAL },
             recipe(question)?.let { it to RECIPE }, boiling(question)?.let { it to BOILING }) + plainTimes + listOfNotNull(
             perUnit(question)?.let { it to PER_UNIT }, provisions(question)?.let { it to PROVISIONS },
             units(question)?.let { it to UNITS }, percent(question)?.let { it to PERCENT })
@@ -202,6 +202,7 @@ object Calculators {
     private val TEMPERATURE = setOf("outside", "outdoors", "today", "weather", "temperature", "degrees", "celsius", "fahrenheit",
         "centigrade")
     private val CLOCK = setOf("time", "when", "now", "am", "pm", "there", "here", "o'clock", "difference")
+    private val UTC_WORDS = setOf("utc", "gmt", "that", "is", "in", "and", "set", "for", "call", "meeting", "video")
     private val RECIPE = setOf("recipe", "people", "persons", "servings", "portions", "guests", "serves", "feeds", "makes", "cups",
         "cup", "grams", "tablespoons", "teaspoons", "ounces", "pounds", "ml", "kg", "scale", "instead")
     private val BOILING = setOf("water", "boil", "boils", "boiling", "point", "temperature", "altitude", "elevation", "metres",
@@ -1318,6 +1319,42 @@ object Calculators {
         }
         return null
     }
+    /**
+     * A clock time converted with the offsets the question states for each place: "a call at 10:00 in São Paulo
+     * (UTC-3), what time is that in Dubai (UTC+4) and in Mumbai (UTC+5:30)?". The stated offsets are the
+     * premise, so no time-zone table is consulted; every offset must belong to a named place.
+     */
+    private fun statedClock(q: String): Pair<Result, Set<String>>? {
+        if (!Regex("(?i)\\bwhat (?:local )?time\\b|\\btime (?:is it|there|will it be)\\b").containsMatchIn(q)) return null
+        if (Regex("(?i)\\b(fly|flying|flight|land|lands|landing|arrive|arrives|arrival|depart\\w*|leave|leaves|take off|takes off)\\b").containsMatchIn(q)) return null
+        val offsets = offsetAt.findAll(q).filter { it.groupValues[1].isNotEmpty() }.toList()
+        // The "5:30" of "UTC+5:30" is part of an offset, not a time of day.
+        val t = clockTime.findAll(q).filter { c -> offsets.none { c.range.first in it.range } }.toList().singleOrNull() ?: return null
+        if (offsets.size !in 2..4) return null
+        val bound = offsets.map { m ->
+            val place = placeOfOffset.find(q.substring(maxOf(0, m.range.first - 40), m.range.first))?.groupValues?.get(1) ?: return null
+            Triple(place, offsetMinutes(m), m)
+        }
+        if (bound.map { it.first.lowercase() }.distinct().size != bound.size || bound.any { it.first.lowercase() in setOf("home", "here", "there") }) return null
+        // "10:00 in São Paulo (UTC-3)": the time belongs to the place whose offset sits nearest it.
+        val source = bound.minBy { kotlin.math.abs(it.third.range.first - t.range.last) }
+        val start = if (t.groupValues[3].isNotEmpty()) {
+            val h = t.groupValues[1].toInt(); val m = t.groupValues[2].ifBlank { "0" }.toInt()
+            if (h !in 1..12 || m > 59) return null
+            (h % 12 + if (t.groupValues[3].lowercase().startsWith("p")) 12 else 0) * 60 + m
+        } else t.groupValues[4].toInt() * 60 + t.groupValues[5].toInt()
+        fun clockOf(minutes: Int) = String.format(Locale.US, "%02d:%02d", Math.floorMod(minutes, 1440) / 60, Math.floorMod(minutes, 1440) % 60)
+        val targets = bound.filter { it !== source }.map { (place, offset, _) ->
+            val there = start - source.second + offset
+            val day = when (Math.floorDiv(there, 1440)) { 1 -> " the next day"; -1 -> " the previous day"; else -> "" }
+            "**${clockOf(there)} in $place**$day (${utc(offset)})"
+        }
+        val text = "${clockOf(start)} in ${source.first} (${utc(source.second)}) is ${targets.joinToString(" and ")}.\n\n" +
+            "Worked from the offsets in your question; a place on daylight saving time can be an hour off them."
+        return Result(text, true, "${clockOf(start)} in ${source.first} = " + targets.joinToString("; ") { it.replace("**", "") } + ".",
+            used = listOf(t.range) + offsets.map { it.range }) to emptySet()
+    }
+
     private fun clock(q: String, today: LocalDate): Pair<Result, Set<String>>? {
         if (!Regex("(?i)\\bwhat (?:local )?time\\b|\\b(?:what|which) day\\b|\\btime (?:is it|there|difference)\\b").containsMatchIn(q)) return null
         // An arrival time needs the flight's length, which a clock conversion would silently leave out.
