@@ -152,4 +152,9 @@ class AnswerTextTest {
             AnswerText.citationAudit(raw, 2),
         )
     }
+
+    @Test fun theModelsOwnQuoteLineKeepsNoCitationWithoutSources() {
+        val out = AnswerText.finalized("> Trains leave every hour [S1].", 0)
+        org.junit.Assert.assertFalse(out, "[S1]" in out)
+    }
 }

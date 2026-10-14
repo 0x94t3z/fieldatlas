@@ -122,6 +122,8 @@ object AnswerText {
 
     fun finalized(raw: String, sourceCount: Int): String {
         val sourceRange = 1..sourceCount.coerceAtLeast(0)
+        // Without sources (the model's own words in a mixed answer) no line quotes one, and no citation may stay.
+        if (sourceCount <= 0) return finalizedText(visible(raw), sourceRange)
         val kept = mutableListOf<String>()
         val shielded = quotedLine.replace(visible(raw)) { line -> kept += line.value; "\u0000${kept.size - 1}\u0000" }
         return finalizedText(shielded, sourceRange).replace(Regex("\u0000(\\d+)\u0000")) { kept[it.groupValues[1].toInt()] }

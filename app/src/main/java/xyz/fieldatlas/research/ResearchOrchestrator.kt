@@ -237,6 +237,8 @@ class ResearchOrchestrator(
                 is ResearchEvent.Token -> shown = if (event.replace) event.text.removePrefix(lead) else shown + event.text
                 is ResearchEvent.Complete -> if (!found || shown.trim() in setOf(CitedExplanation.GAP, CitedExplanation.UNAVAILABLE))
                     emit(ResearchEvent.Token(shown, replace = true))
+                // A run that ends without an answer does not keep a note promising one.
+                is ResearchEvent.Failed, is ResearchEvent.InsufficientEvidence -> emit(ResearchEvent.Token(shown, replace = true))
                 else -> Unit
             }
             emit(event)
