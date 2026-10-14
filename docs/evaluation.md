@@ -31,8 +31,21 @@ By category, both rounds together:
 | Synthesis | 5 | 1.0 | 11% |
 | Emergencies | 6 | 0.9 | 10% |
 
-This is below 1.4.0's 34% on set 6. The two sets hold different questions, so the gap is not a
-controlled comparison, but 1.4.1 is not better on new questions. Failures seen in the answers:
+This is below 1.4.0's 34% on set 6, but the two sets hold different questions. To separate the
+build from the questions, the published 1.4.0 build (65851ba, with its own collections, search
+library and runtime patch) answered set 9 too, and six new graders scored both builds' answers and
+the references in two more blind rounds; each question's three answers went to three different
+graders ([both builds' answers and grades](fieldtest/results-1.4.1/heldout9-140-vs-141.jsonl)).
+
+| Same 60 questions, same graders | Share of the reference | Factual errors per answer |
+| --- | --- | --- |
+| 1.4.1 | 29.7% (29.6% and 29.8%) | 0.69 |
+| 1.4.0 | 28.6% (29.0% and 28.1%) | 0.76 |
+
+The fall from 34% is the harder set, not a regression: on the same questions the two builds are
+level, 1.4.1 a point ahead in both rounds. 39 of the 60 answers differ between them; 1.4.1 scored
+higher on 14, lower on 12 and the same on 13. 1.4.1's 29.7% with new graders also repeats the 29%
+above. Failures seen in 1.4.1's answers:
 
 - **Emergency guides chosen by matching words.** Wild mushrooms eaten at a campsite were answered
   with the guide for injuries outdoors, and a question about the PREDIMED diet trial with the

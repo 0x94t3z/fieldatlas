@@ -62,7 +62,7 @@ questions answered in airplane mode.
 
 On 60 fresh questions written after the release (set 9), graded blind twice against a frontier
 model's web-researched answers, the published 1.4.1 build reaches 29% of the reference with Qwen3.5
-2B (0.67 factual errors per answer), below 1.4.0's 34% on its own set: the bounty's bar is not met
+2B (0.67 factual errors per answer), and 1.4.0 28.6% on the same questions (34% on its earlier set 6): the bounty's bar is not met
 ([evaluation](../evaluation.md#141-release-build-on-fresh-questions-october-15),
 [results](../fieldtest/results-1.4.1/heldout9.jsonl)). Also for 1.4.1, 20 new questions asked in the installed app on the Redmi and graded blind scored 4.65 of
 10 with Qwen3.5 2B, and retrieval found the right article as often as before with Leviathan in every

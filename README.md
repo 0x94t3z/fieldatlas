@@ -73,7 +73,8 @@ an answer researched on the web the same way. The result is Field Atlas's total 
 web answer's.
 
 - **29%** of the web-and-AI answers with the default model. **Not there yet.** 1.4.0 scored 34% on
-  its own set of new questions; the questions differ, but 1.4.1 is not better.
+  an earlier set; on these same questions it scores 28.6% against 1.4.1's 29.7%, so the new set is
+  harder rather than 1.4.1 worse.
 - **Strongest:** vegan restaurants in the city you are in (83%, 2 questions) and quick facts (58%,
   8 questions).
 - **Weakest:** emergencies (10%), synthesis (11%), comparisons

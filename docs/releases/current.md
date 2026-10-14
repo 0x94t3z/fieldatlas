@@ -45,7 +45,8 @@ on the phone, with no account and nothing sent anywhere.
 
 - **Against web-and-AI answers:** on 60 new questions written after the release and graded blind
   twice, 1.4.1 scores **29%** of the web-and-AI answers with the default model, below the bounty's
-  bar and below 1.4.0's 34% on its own set of questions. Strongest on vegan restaurants in the city
+  bar. On the same questions 1.4.0 scores 28.6% and 1.4.1 29.7%, so the gap to 1.4.0's 34% on an
+  earlier set comes from harder questions. Strongest on vegan restaurants in the city
   you are in (83%) and quick facts (58%); weakest on emergencies (10%), synthesis (11%),
   comparisons (13%) and reasoning with numbers (19%)
   ([details](../evaluation.md#141-release-build-on-fresh-questions-october-15)).
