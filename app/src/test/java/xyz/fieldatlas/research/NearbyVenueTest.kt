@@ -386,7 +386,9 @@ class NearbyVenueTest {
         // The place they are at is not something to look for.
         assertEquals(setOf("Money"), VenueLookup.nearbyCategories("We're at the campsite, closest ATM?"))
         // A plan or a city is not where the phone is.
-        for (q in listOf("We're at a conference in Berlin next week, best vegan restaurants?", "I'm in Lyon, nearest pharmacy?")) {
+        for (q in listOf("We're at a conference in Berlin next week, best vegan restaurants?", "I'm in Lyon, nearest pharmacy?",
+            "What are the best vegan restaurants in Kyoto? We'll be staying at a ryokan in Gion.",
+            "I'm at Gatwick waiting to board, where should I eat in Lisbon tonight?", "We're at home, what are good cafes in Porto?")) {
             assertFalse(q, VenueLookup.isNearMe(q))
         }
     }

@@ -549,8 +549,10 @@ object Calculators {
     // Money whose rate against a major currency runs into the thousands ("25.400 dong to the dollar"),
     // and money named the same in countries whose rates run from under 1 to over 1,000 (the Mexican peso
     // is about 18, the Colombian about 4,000), where a rate like "18.245" cannot be read either way.
-    private val thousandsRate = setOf("dong", "rupiah", "won", "rial", "riel", "kip", "guarani", "som", "sum")
-    private val eitherRate = setOf("peso", "shilling", "dinar", "franc", "lira", "pound", "rupee", "colon")
+    private val thousandsRate = setOf("dong", "rupiah", "won", "riel", "kip", "guarani", "sum")
+    // Names shared by currencies on very different scales: the Kyrgyz som is about 87 to the dollar, the Uzbek
+    // som about 12,000; the Iranian rial tens of thousands, the Omani rial 0.385 and the Yemeni about 250.
+    private val eitherRate = setOf("peso", "shilling", "dinar", "franc", "lira", "pound", "rupee", "colon", "som", "rial")
     private fun parseAmount(text: String, currency: String, isRate: Boolean = false): Double? {
         val dots = text.count { it == '.' }; val commas = text.count { it == ',' }
         if (dots == 0 && commas == 0) return text.toDouble()
@@ -1133,10 +1135,10 @@ object Calculators {
     }
 
     /* ---------- temperature ---------- */    /* ---------- temperature ---------- */
-    // A sign is a minus only where no number comes before it: "30-35°C" is a range, "-5°C", "−5 °C",
-    // "–5°C" and "minus 5 C" are below zero.
-    private val temp = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–]\\s*|\\bminus\\s+)?)$NUM\\s*(?:°|degrees?)?\\s*(f|fahrenheit|c|celsius|centigrade)\\b")
-    private val rangeStart = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–]\\s*|\\bminus\\s+)?)$NUM\\s*(?:°\\s*[cf]?\\s*)?(?:-|–|—|to|and)\\s*$")
+    // A sign is a minus only where no number comes before it and it touches its number: "30-35°C" is a range,
+    // "-5°C", "−5 °C", "–5°C" and "minus 5 C" are below zero, and "tomorrow - 30C" is a dash, not a minus.
+    private val temp = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–](?=\\d)|\\bminus\\s+)?)$NUM\\s*(?:°|degrees?)?\\s*(f|fahrenheit|c|celsius|centigrade)\\b")
+    private val rangeStart = Regex("(?i)((?:(?<![\\p{L}\\p{N}.,])[-−–](?=\\d)|\\bminus\\s+)?)$NUM\\s*(?:°\\s*[cf]?\\s*)?(?:-|–|—|to|and)\\s*$")
     /** The temperature is the weather's, not a body's, an oven's or a fridge's. */
     private fun isWeather(q: String): Boolean =
         Regex("(?i)\\b(outside|outdoors|weather|forecast|heat ?wave|today|tomorrow|tonight|walk\\w*|hik\\w*|run|running|jog\\w*|" +
@@ -1266,7 +1268,8 @@ object Calculators {
     /* ---------- the time in another city ---------- */
     private val clockTime = Regex("(?i)\\b(\\d{1,2})(?:[.:](\\d{2}))?\\s*(a\\.?m\\.?|p\\.?m\\.?)(?![a-z])|\\b([01]?\\d|2[0-3]):([0-5]\\d)\\b")
     // A full stop ends the name: "in London. What time" is London.
-    private val cityAfterIn = Regex("\\b(?:in|at)\\s+((?:[A-Z][\\p{L}'-]+)(?:\\s+[A-Z][\\p{L}'-]+){0,2})")
+    // A lowercase particle stays inside the name: "Santiago de Compostela" is in Spain, not Santiago in Chile.
+    private val cityAfterIn = Regex("\\b(?:in|at)\\s+((?:[A-Z][\\p{L}'-]+)(?:\\s+(?:(?:de|del|da|do|dos|das|di|du|la|le|el|al|of|upon|am|an|der|den|y)\\s+)?[A-Z][\\p{L}'-]+){0,3})")
     // Cities the time-zone database does not name directly.
     private val zoneAliases = mapOf(
         "delhi" to "Asia/Kolkata", "new delhi" to "Asia/Kolkata", "mumbai" to "Asia/Kolkata", "bangalore" to "Asia/Kolkata", "bengaluru" to "Asia/Kolkata",
@@ -1366,9 +1369,18 @@ object Calculators {
             Regex("(?i)\\b(?:it(?:'s| is)|now(?: it(?:'s| is))?|the time is|currently)\\s*$").containsMatchIn(q.substring(maxOf(0, t.range.first - 14), t.range.first)) ||
                 Regex("(?i)^\\s*(?:now|right now|at the moment)\\b").containsMatchIn(q.substring(t.range.last + 1).take(14)) && around.isNotEmpty()
         }
-        val (from, to) = if (nowAt == 1) times[1] to times[0] else times[0] to times[1]
+        // With the time now given, the words say which way the gap runs: "how long ago", "since" count up to now;
+        // "until", "left" count on from now. Without either, a gap over midnight is a guess.
+        val back = Regex("(?i)\\b(?:ago|since|elapsed|passed|been)\\b").containsMatchIn(q)
+        val ahead = Regex("(?i)\\b(?:until|till|(?:time|hours?|minutes?|mins?|long|much) (?:is |are )?left|before|to go|remain\\w*|away|wait\\w*)\\b").containsMatchIn(q)
+        val (from, to) = when {
+            nowAt < 0 -> times[0] to times[1]
+            back && !ahead -> times[1 - nowAt] to times[nowAt]
+            else -> times[nowAt] to times[1 - nowAt]
+        }
         var minutes = to - from
         val overnight = minutes <= 0
+        if (overnight && nowAt >= 0 && back == ahead) return null
         // Which time comes first is not said and the gap would cross midnight: that is a guess, not a sum.
         // "Opens at 9 pm and closes at 2 am" says it.
         val startWord = Regex("(?i)\\b(?:opens?|starts?|begins?|leaves?|departs?|from|sets? off)\\W+(?:\\w+\\W+){0,2}$")

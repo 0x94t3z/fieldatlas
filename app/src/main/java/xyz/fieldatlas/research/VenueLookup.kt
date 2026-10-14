@@ -643,11 +643,11 @@ object VenueLookup {
     // city and stays a city lookup. A plan ("we're at a conference in Berlin next week") is not a position.
     private val ownPosition = Regex("(?i)\\b(?:i'?m|i am|we'?re|we are)\\s+(?:(?:currently|now|right now|still|staying|sitting|waiting|stuck)\\s+)*" +
         "(?:at|inside|outside|in the (?:lobby|car park|parking lot|foyer|bar|restaurant) of)\\s+[^,.;?!\\n]*|\\bstaying at\\s+[^,.;?!\\n]*")
-    private val notNow = Regex("(?i)\\b(?:next|tomorrow|later|soon|tonight'?s|will|planning|plan to|going to be)\\b")
+    private val notNow = Regex("(?i)\\b(?:next|tomorrow|later|soon|tonight'?s|will|we'?ll|i'?ll|planning|plan to|going to be|arriv\\w*)\\b")
 
     /** The question without the person's own position, which says where they are, not what they want. */
     internal fun withoutOwnPosition(question: String): String =
-        ownPosition.replace(question) { if (notNow.containsMatchIn(it.value)) it.value else " " }
+        if (notNow.containsMatchIn(question)) question else ownPosition.replace(question, " ")
 
     /** A place question answered from the phone's own location rather than a named city.
      * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
@@ -655,7 +655,8 @@ object VenueLookup {
         val rest = withoutOwnPosition(question)
         val placed = rest != question
         return (nearMePhrase.containsMatchIn(rest) || placed) && !namedLandmark.containsMatchIn(rest) &&
-            (placed || selfPhrase.containsMatchIn(rest) || !namedPlace.containsMatchIn(rest.replace(timeNotPlace, " "))) &&
+            // The rest still names a city or place to search ("…where should I eat in Barcelona?"): that place is asked.
+            (selfPhrase.containsMatchIn(rest) || !namedPlace.containsMatchIn(rest.replace(timeNotPlace, " "))) &&
             (venueWords.containsMatchIn(rest) || foodWords.containsMatchIn(rest) || essential(rest) != null) &&
             !complexWords.containsMatchIn(rest)
     }

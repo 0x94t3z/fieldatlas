@@ -60,6 +60,14 @@ class EmergencyGuideMatchTest {
         assertTrue(wrong.joinToString("\n"), wrong.isEmpty())
     }
 
+    @Test fun sayingChokingOpensChokingEvenWithAnAllergen() {
+        assertEquals("choking", match("My daughter is choking, she was eating cashew nuts and can't breathe!"))
+        assertEquals("choking", match("Grandpa swallowed a peanut and now he cannot breathe"))
+        // Swelling or hives are an allergy's own signs: anaphylaxis, whatever word the person uses.
+        assertEquals("anaphylaxis", match("He ate peanuts, his lips are swollen and he's choking, can't breathe"))
+        assertEquals("anaphylaxis", match("Stung by a wasp, now hives all over and struggling to breathe"))
+    }
+
     @Test fun aStingThatBurnsIsNotABurn() {
         // The burns guide says to cool the burn under running water; fresh water can fire a
         // jellyfish's remaining stingers. No bundled guide covers marine stings, so research answers.

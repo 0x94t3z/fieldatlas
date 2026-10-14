@@ -278,6 +278,11 @@ object EmergencyGuideMatch {
         "cough\\w*|gag\\w*|piece|candy|sweet|grape|nut|toy|coin|bone|button|marble)\\b")
     private val otherBreathingCause = Regex("(?i)\\b(chest|heart|altitude|elevation|trek\\w*|everest|summit|mountain|asthma\\w*|inhaler|" +
         "smoke|fumes|panic\\w*|stairs)\\b")
+    // "Is choking", "swallowed a nut": something in the airway, said outright. It stays anaphylaxis when the
+    // person names the allergy, when the trigger is a sting (nothing was swallowed), or with swelling, hives or a
+    // rash, which only an allergy shows.
+    private val saysChoking = Regex("(?i)\\bchok\\w*|\\bswallow\\w*\\s+(?:a|an|the|some|his|her|their|my|one)\\s+\\p{L}+")
+    private val allergyOnlySign = Regex("(?i)\\b(hives|rash\\w*|welts?|itch\\w*|swollen|swelling|puff\\w*|blotch\\w*)\\b")
     // An allergic trigger with airway or swelling signs is anaphylaxis, not a mild sting or choking.
     private val allergyTrigger = Regex("(?i)\\b(stung|stings?|bee|bees|wasps?|hornets?|insect|peanuts?|nuts?|shellfish|allerg\\w*)\\b")
     private val allergySign = Regex("(?i)\\b(wheez\\w*|(?:trouble|difficulty|problems?|struggling) (?:to )?breath\\w*|hard to breathe|" +
@@ -377,7 +382,9 @@ object EmergencyGuideMatch {
             scored.any { (guide, score, specific) -> guide.id in outranksNumbness && score > 0 &&
                 if (guide.id == "hypothermia") hypothermiaSigns.containsMatchIn(question) else specific }
         val allergic = allergyTrigger.containsMatchIn(question) && allergySign.containsMatchIn(question) &&
-            !chokingOnSomething.containsMatchIn(question)
+            !chokingOnSomething.containsMatchIn(question) &&
+            !(saysChoking.containsMatchIn(question) && !allergyOnlySign.containsMatchIn(question) &&
+                !Regex("(?i)\\b(allerg\\w*|stung|stings?|bees?|wasps?|hornets?|insect)\\b").containsMatchIn(question))
         val ranked = scored.map { (guide, score, _) ->
             guide to when {
                 guide.id == revive -> maxOf(score, 1)

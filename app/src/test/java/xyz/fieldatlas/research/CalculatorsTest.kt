@@ -749,4 +749,22 @@ class CalculatorsTest {
         assertTrue(solve("How long will it take to hike 14 km with 800 m of ascent?")!!.complete)
         assertTrue(solve("How long will it take to hike 14 km on a flat trail?")!!.text.contains("About **2 h 48 min**"))
     }
+
+    @Test fun aSpacedDashIsNotAMinus() {
+        assertTrue(solve("Forecast for Friday - 28C. What is that in F?")!!.text.contains("82.4°F"))
+        assertTrue(solve("It will be -28C tonight. What is that in F?")!!.text.contains("**-18.4°F**"))
+        assertTrue(solve("It will be minus 28 C tonight, what is that in Fahrenheit?")!!.text.contains("**-18.4°F**"))
+    }
+
+    @Test fun theTimeNowCountsTheRightWay() {
+        assertTrue(solve("The ferry left at 17:45 and it's 19:10 now. How long ago was that?")!!.text.contains("1 h 25 min"))
+        assertTrue(solve("It's 21:30 now and sunrise is at 06:15. How long until sunrise?")!!.text.contains("8 h 45 min"))
+        assertTrue(solve("It's 14:15 now and sunset is at 18:30, how long until sunset?")!!.text.contains("4 h 15 min"))
+    }
+
+    @Test fun aNameWithAParticleIsNotItsFirstWord() {
+        // Santiago de Compostela is not Santiago in Chile: with no zone for it, the conversion is left to research.
+        assertNull(solve("It is 9:00 in Santiago de Compostela. What time is it in New York?")?.takeIf { it.complete })
+        assertTrue(solve("It is 9:00 in Santiago. What time is it in New York?") != null)
+    }
 }
