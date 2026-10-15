@@ -156,16 +156,13 @@ fun AnswerScreen(
                             text = state.shownQuestion.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineMedium,
                         )
-                        FlowRow(
+                        // While research runs the status card says what is happening; the pills describe a finished answer.
+                        if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             val cited = citedSourceGroups.size
-                            if (running) {
-                                FieldAtlasStatusPill("Working on this phone", icon = connectionDino(false),
-                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
-                            } else if (cited > 0) {
+                            if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
                                     (if (noModelReply) "From saved data · " else "") +
@@ -187,7 +184,7 @@ fun AnswerScreen(
                                     if (withheld || isInputNotice || noModelReply || workedFromQuestion) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
-                            if (!running) state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
+                            state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
                         }
                     }
                 }
