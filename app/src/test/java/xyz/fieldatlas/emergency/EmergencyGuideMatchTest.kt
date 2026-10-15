@@ -683,4 +683,35 @@ class EmergencyGuideMatchTest {
             "why can't anyone predict earthquakes, can they warn people early",
         ).forEach { assertNull(it, match(it)) }
     }
+
+    @Test fun aStoryAFilmOrACableIsNotAnEmergencyHappeningNow() {
+        for (question in listOf(
+            "I bought a lightning cable for my iphone and it stopped charging",
+            "I'm writing a school report on the 1906 San Francisco earthquake",
+            "we survived the 2011 earthquake in Japan, what magnitude was it",
+            "I felt an earthquake last night, how strong was it?",
+            "we're watching a movie about a tsunami",
+            "I'm in a band called Tornado",
+            "she wrote a song about a thunderstorm",
+            "we had a blackout in our town last week, why do grids fail",
+            "I ate mushrooms and got sick last year, what was it?",
+        )) assertEquals(question, null, match(question))
+        // Happening now, the same words still open the guide.
+        assertEquals("tornado", match("tornado on the ground a few miles away and we're in a trailer"))
+        assertEquals("earthquake", match("we're in an earthquake right now, the building is shaking"))
+    }
+
+    @Test fun aRequestWordedWithCareStillGetsItsGuide() {
+        assertEquals("severe-bleeding", match("proven way to stop severe bleeding fast"))
+        assertEquals("snakebite", match("evidence-based first aid for a snakebite"))
+        assertEquals("hypothermia", match("what is the proven treatment for hypothermia"))
+        assertEquals("choking", match("choking first aid, evidence based steps"))
+        // A question about the evidence itself is still research.
+        assertEquals(null, match("what did the trials find about tourniquets for bleeding?"))
+    }
+
+    @Test fun anAllergicReactionToldAsItHappensIsAnaphylaxis() {
+        assertEquals("anaphylaxis", match("I ate shellfish and now I have hives and my throat feels tight"))
+        assertEquals("anaphylaxis", match("we ate peanuts and now I have hives and my throat is closing"))
+    }
 }

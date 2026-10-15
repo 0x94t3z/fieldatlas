@@ -240,6 +240,10 @@ object EmergencyGuideMatch {
             "(?:[\\p{L}-]+ ){0,4}(?:guides?|sources?|references?|articles?|papers?))\\b",
     )
 
+    // "Evidence-based first aid for a snakebite", "the proven way to stop bleeding": a request for the steps, worded
+    // with care. Only what remains decides whether the question is about evidence.
+    private val carefulRequest = Regex("(?i)\\b(?:evidence[- ]based|proven(?=\\s+(?:ways?|methods?|treatments?|steps|techniques?|first aid)\\b))")
+
     // "What did the PREDIMED trial find?" asks about evidence, not for help, unless a person is in it.
     private val evidenceResearch = Regex("(?i)\\b(?:trials?|stud(?:y|ies)|evidence|proven|research(?:ers)?|meta-analys\\w*|retract\\w*|" +
         "peer[- ]reviewed|statistic\\w*|epidemiolog\\w*)\\b")
@@ -324,6 +328,14 @@ object EmergencyGuideMatch {
         "my (?:friends?|child|children|kids?|sons?|daughters?|wife|husband|partner|boyfriend|girlfriend|dad|mom|mum|mother|father|" +
         "baby|parents|brothers?|sisters?|uncle|aunt|grandma|grandpa|group))\\b")
 
+    /**
+     * A person and a hazard in the same message, but not in danger now: a story from last year, a film, a song, a school
+     * report, or a phone's Lightning cable. "We survived the 2011 earthquake, what magnitude was it" is a lookup.
+     */
+    private val notHappeningNow = Regex("(?i)\\b(?:yesterday|last (?:night|week|month|year|summer|winter|spring|autumn|fall|time)|" +
+        "years? ago|(?:19|20)\\d{2}|(?:movie|film|documentary|song|novel|book|podcast|series|report|essay|article|show)s? (?:about|on|called)|" +
+        "(?:band|game) called|lightning (?:cable|charger|port|connector|adapter))\\b")
+
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
     /**
@@ -334,7 +346,8 @@ object EmergencyGuideMatch {
         val text = " " + normalize(question) + " "
         val words = text.trim().split(' ').filter(String::isNotBlank)
         if (words.isEmpty()) return emptyList()
-        if ((sourceResearch.containsMatchIn(question) || evidenceResearch.containsMatchIn(question)) && !personalSituation.containsMatchIn(question) &&
+        if ((sourceResearch.containsMatchIn(question) || evidenceResearch.containsMatchIn(question.replace(carefulRequest, " "))) &&
+            !personalSituation.containsMatchIn(question) &&
             !someoneInvolved.containsMatchIn(question)) return emptyList()
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
@@ -433,9 +446,11 @@ object EmergencyGuideMatch {
         // and we're in a motel room". A guide named by its own specific term, with a person in the
         // message, is the help; the research and explanation gates above have already run.
         val namedForSomeone = scored.any { (guide, score, specific) -> guide.id == order.first().first.id && specific && score > 0 } &&
-            inTheSituation.containsMatchIn(question)
+            inTheSituation.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
+        // "I ate shellfish and now I have hives and my throat feels tight": an allergic reaction told as it happens.
+        val reacting = allergic && inTheSituation.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
         return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) ||
-            personalSituation.containsMatchIn(question) || namedForSomeone) order else emptyList()
+            personalSituation.containsMatchIn(question) || namedForSomeone || reacting) order else emptyList()
     }
 
     /** A guide this short, or with one section, leaves the model little to work from. */

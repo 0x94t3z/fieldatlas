@@ -43,15 +43,21 @@ object WordProblem {
     // a place or a subject to look up.
     private val namedRule = Regex("\\b\\p{Lu}[\\p{L}'’-]*(?:['’]s)?\\s+(?:rule|formula|law|method)\\b")
 
+    // "On 14 July 2026" gives a day and a year, not figures the sum needs: entry to the Louvre for 2 adults and 3
+    // kids on that day still needs the ticket price looked up.
+    private val dateFigures = Regex("(?i)\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\b|" +
+        "\\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\b(?:19|20)\\d{2}\\b")
+
     fun of(question: String): Problem {
         val numbers = number.findAll(question).map { it.value }.toList()
         val counted = numbers.size + numberWord.findAll(question).count()
+        val figures = counted - dateFigures.findAll(question).sumOf { date -> number.findAll(date.value).count() }
         val plain = namedRule.replace(question, "rule")
         val lowered = sentenceOpener.replace(plain) { m -> m.value.dropLast(1) + m.groupValues[1].lowercase() }
         val selfContained = counted >= MIN_NUMBERS &&
             arithmeticAsk.containsMatchIn(question) &&
             !PromptBuilder.requiresSavedSources(question) &&
-            (counted >= FIGURES_OVER_PLACES ||
+            (figures >= FIGURES_OVER_PLACES ||
                 !GuideScope.namesPlace(lowered) && TravelSections.lookup(plain)?.places.isNullOrEmpty() && !SubjectLookup.leads(plain)) &&
             !judgement.containsMatchIn(shouldTake.replace(question, "take"))
         return Problem(numbers, selfContained)

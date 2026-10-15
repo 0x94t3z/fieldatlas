@@ -54,4 +54,9 @@ class WordProblemTest {
             "Is it safe to hike 20 km at 35 degrees with 2 litres of water each in Arizona?",
         ).forEach { assertFalse(it, WordProblem.isSelfContained(it)) }
     }
+
+    @Test fun aDatesNumbersAreNotFiguresToWorkWith() {
+        assertFalse(WordProblem.isSelfContained("How much is entry to the Louvre for 2 adults and 3 kids on 14 July 2026?"))
+        assertTrue(WordProblem.isSelfContained("Tickets are 12 euros for adults and 6 for kids. How much for 2 adults and 3 kids on 14 July?"))
+    }
 }
