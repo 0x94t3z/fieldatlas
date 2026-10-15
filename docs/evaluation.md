@@ -64,6 +64,76 @@ answers:
 Set 9 is now development data. References and graders are frontier AI models of one family; a
 grader scores the same text differently from run to run, by about 2 points on one answer.
 
+## 1.4.1 over a long session: 120 questions in a row on the phone (October 15)
+
+The bounty asks for consistent answer quality across longer sessions. To test that, an AI model
+that read no repository file wrote 100 new questions in ten categories and 10 follow-up pairs
+([questions](fieldtest/heldout10.jsonl)). They were sealed by SHA-256
+(`bdea73c4900392254ff795991205bdee16e778201e375eda0fbe27cf73917ac4` for the 100, `afd4dc65…`
+for the pairs) and put in a shuffled order, so early and late questions are alike. The 1.4.1 build
+on the Redmi 13C answered all 120 in one sitting, typed into the app one after another, from 06:51
+to 16:36.
+
+The phone held up for the whole session:
+
+| Session quarter | Questions | Median time per answer | Median memory (PSS) | Median battery temperature |
+| --- | --- | --- | --- | --- |
+| 1 | 1-30 | 199 s | 1,687 MB | 40.5 °C |
+| 2 | 31-60 | 204 s | 1,694 MB | 42.0 °C |
+| 3 | 61-90 | 188 s | 1,717 MB | 42.4 °C |
+| 4 | 91-120 | 262 s | 1,713 MB | 42.6 °C |
+
+- One app process answered all 120 questions, with no crash or restart.
+- Median memory stayed flat: about 26 MB more in the last quarter than the first, after ten
+  hours.
+- Answers did not slow down. The last quarter's higher median comes from its question types: against
+  the median time of its own question type, every quarter is within 10 seconds, and the rank
+  correlation between position and time is -0.04.
+
+Quality was graded the same way as set 9. Five web-researching frontier-model agents wrote
+reference answers, and six blind graders scored each answer on its own, with a question's two
+answers always going to different graders. Follow-ups were graded with the earlier question shown.
+One answer is missing: the screen dump skipped its text and History had already dropped it.
+([Every answer, reference and grade](fieldtest/results-1.4.1/heldout10-session.jsonl);
+[memory and temperature every 30 seconds](fieldtest/results-1.4.1/heldout10-memory.json).)
+
+| Set 10 | Questions | Field Atlas (mean /10) | Reference (mean /10) | Share of the reference |
+| --- | --- | --- | --- | --- |
+| All | 119 | 2.15 | 9.18 | 23% |
+| Without the follow-up second questions | 109 | 2.34 | 9.19 | 25% |
+| First half of the session | 54 | 2.39 | 9.17 | 26% |
+| Second half of the session | 55 | 2.29 | 9.22 | 25% |
+
+Quality did not drift. The trend across the session is -0.6 points per 100 questions, and a
+permutation test puts it well within chance (p = 0.34). By quarter the share moves between 19% and
+31%, about what 27 questions per quarter give by chance.
+
+| Category | Questions | Field Atlas (mean /10) | Share of the reference |
+| --- | ---: | ---: | ---: |
+| Lookups | 14 | 4.9 | 51% |
+| Follow-up pairs, first question | 10 | 4.4 | 47% |
+| Explanations | 10 | 3.0 | 33% |
+| Travel | 15 | 2.1 | 24% |
+| Emergencies | 10 | 2.0 | 21% |
+| Comparisons | 10 | 1.6 | 18% |
+| Synthesis | 8 | 1.6 | 18% |
+| Crypto | 7 | 1.0 | 11% |
+| Reasoning with numbers | 10 | 1.1 | 11% |
+| Places | 12 | 0.9 | 10% |
+| Vitalik's vegan test | 3 | 1.0 | 13% |
+| Follow-up pairs, second question | 10 | 0.1 | 1% |
+
+1.4.1 has no follow-ups, so every second question was read alone: "which of them are free to
+visit?" after a question about Kyoto got an answer about VisIt, a visualization program. The 23% is
+not a controlled comparison with set 9's 29%: the questions differ, and these answers came from the
+phone rather than the desktop pipeline.
+
+Two things about the method. The answers were read from the phone's screen dump, which misses text
+drawn with inline citation marks, so 7 answers were transcribed from History or from screenshots.
+25 answers whose explanation sits above quoted passages were first graded without the passages; set
+9 graded them with the passages, so these 25 were graded again with them (mean 0.88 before, 1.04
+after). References and graders are frontier AI models of one family.
+
 ## 1.4.1 on the phone: answers, speed, tokens and failures (October 14-15)
 
 Raw data for everything below is in [results-1.4.1](fieldtest/results-1.4.1/). These are our own
