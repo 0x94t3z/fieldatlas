@@ -15,8 +15,8 @@ object EmergencyGuideMatch {
     private val intent = Regex(
         "(?i)\\b(how (do|to|can|should)|what (do|to|should|can) (i|we|you)|what to do|treat|treatment|first aid|help|stop|" +
             "prevent|survive|safe|safety|emergency|signs?|symptoms?|someone|somebody|" +
-            "my (friend|child|kid|son|daughter|wife|husband|partner|dad|mom|mother|father|baby)|bitten|stung|burned|burnt|bleeding|" +
-            "choking|lost|stranded|injured|hurt|unconscious|not breathing|can'?t breathe|collapsed|prepare|should i|do i|is it safe|purify|disinfect|boil|safest)\\b",
+            "my (friends?|child|children|kids?|sons?|daughters?|wife|husband|partner|dad|mom|mother|father|baby|parents)|bitten|stung|burned|burnt|bleeding|" +
+            "choking|lost|stranded|injured|hurt|unconscious|not breathing|can'?t breathe|collapsed|prepare|(?:should|do) (?:i|we)|is it safe|purify|disinfect|boil|safest)\\b",
     )
     /** Words people use that the sources' keywords miss. */
     private val synonyms = mapOf(
@@ -91,6 +91,9 @@ object EmergencyGuideMatch {
         "frostbite" to Regex("(?i)\\b(frost\\w*|cold(?! sweats?\\b| water\\b| drinks?\\b| compress\\w*| packs?\\b| sores?\\b| medicine\\b)|" +
             "freez\\w*|froze\\w*|snow\\w*|ski(?:s|ing|ed|er|ers)?|icy|on (?:the )?ice|through the ice|ice ?(?:storms?|packs?|bags?|cubes?)|cold water for|ice (?:climb\\w*|fish\\w*|axe|field|sheet|skat\\w*|rinks?|hockey)|skating rink|outdoor rink|sled\\w*|sledg\\w*|toboggan\\w*|winter|blizzard|" +
             "below zero|minus|mountains?|hut|glacier|subzero|sub-zero)\\b"),
+        // Its steps are for someone hurt far from help; being far from help is not itself an injury.
+        "injured-outdoors" to Regex("(?i)\\b(injur\\w*|hurt\\w*|fell|fall(?:s|en)?|broke\\w*|broken|bleed\\w*|sprain\\w*|twist\\w*|cut|cuts|" +
+            "wound\\w*|can'?t walk|cannot walk|bitten|stung|burn\\w*|fractur\\w*|dislocat\\w*|unconscious|bruis\\w*|pain\\w*)\\b"),
         "altitude-sickness" to Regex("(?i)\\b(altitude|elevation|mountains?|mount|mt|summit|peak|trek(?:king|ked)?|climb(?:s|ed|ing)?|hiked up|high up|" +
             "above sea level|cusco|la paz|lhasa|tibet|quito|bogot[aá]|leh|ladakh|everest|kilimanjaro|himalaya\\w*|andes|" +
             "\\d[\\d,]*\\s*(?:m|meters?|metres?|ft|feet)\\b|ams|hape|hace)\\b"),
@@ -144,7 +147,7 @@ object EmergencyGuideMatch {
             "(ambulance|help) (is|has been|was|has) (called|coming|on (its|the) way|not arrived)|" +
             "called (911|112|999|000|an ambulance|emergency services)|" +
             "(help|save) (me|us|him|her|them)|i need help|we need help|right now|" +
-            "my (friend|child|kid|son|daughter|wife|husband|partner|dad|mom|mother|father|baby|brother|sister)|" +
+            "my (friends?|child|children|kids?|sons?|daughters?|wife|husband|partner|dad|mom|mother|father|baby|parents|brothers?|sisters?)|" +
             "(i|we|he|she|they) (have|has) (bad |severe )?diarrh(?:o)?ea|" +
             "(i|we|he|she|they)(?: (?:am|are|is|have been|has been)|['’](?:m|re|s|ve)(?: been)?) (vomiting|throwing up|dehydrated)|" +
             "(i|we|he|she|they) (was|were|got|have been|has been|'ve been|'s been|am|are|is) " +
@@ -235,6 +238,10 @@ object EmergencyGuideMatch {
             "(?:[\\p{L}-]+ ){0,4}(?:guides?|sources?|references?|articles?|papers?))\\b",
     )
 
+    // "What did the PREDIMED trial find?" asks about evidence, not for help, unless a person is in it.
+    private val evidenceResearch = Regex("(?i)\\b(?:trials?|stud(?:y|ies)|evidence|proven|research(?:ers)?|meta-analys\\w*|retract\\w*|" +
+        "peer[- ]reviewed|statistic\\w*|epidemiolog\\w*)\\b")
+
     // A place's tap water is its supply, answered by that place's travel guide ("Stay healthy").
     // The treatment guide is for water someone has to make safe, or a supply an event has spoiled.
     private val tapWater = Regex("(?i)\\btap water\\b")
@@ -297,6 +304,24 @@ object EmergencyGuideMatch {
             if (m.groupValues[2].lowercase().startsWith("f")) value <= 32 else value <= 0
         } || Regex("(?i)\\bminus \\d").containsMatchIn(question)
 
+    /**
+     * Something wild or unknown was eaten: "we ate some mushrooms we picked … now vomiting". The
+     * poisoning guide covers plants and fungi; the danger regex only knew "swallowed".
+     */
+    private val wildIngestion = Regex("(?i)\\b(?:ate|eaten|eating|eat|swallowed|ingested|chewed|tasted|drank|drunk)\\b[^.?!]{0,40}?\\b" +
+        "(?:mushrooms?|toadstools?|fung(?:i|us)|berr(?:y|ies)|plants?|leaves|seeds|roots?|flowers?|bulbs?)\\b")
+    private val poisonSign = Regex("(?i)\\b(not sure what|don'?t know what|unknown|poison\\w*|toxic|vomit\\w*|throwing up|cramps?|nause\\w*|" +
+        "diarrh\\w*|sick|dizz\\w*|hallucinat\\w*|seizure|unconscious)\\b")
+
+    /**
+     * Someone in the situation itself: the asker ("we're in a motel", "our campsite") or a named
+     * person. "Them", "people" and a bare "my" are not enough: "why do people get altitude
+     * sickness?" and "my iphone lightning cable" describe nobody in danger.
+     */
+    private val inTheSituation = Regex("(?i)\\b(?:i|i'm|im|i've|we|we're|we've|our|he|he's|she|she's|someone|somebody|" +
+        "my (?:friends?|child|children|kids?|sons?|daughters?|wife|husband|partner|boyfriend|girlfriend|dad|mom|mum|mother|father|" +
+        "baby|parents|brothers?|sisters?|uncle|aunt|grandma|grandpa|group))\\b")
+
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
     /**
@@ -307,7 +332,7 @@ object EmergencyGuideMatch {
         val text = " " + normalize(question) + " "
         val words = text.trim().split(' ').filter(String::isNotBlank)
         if (words.isEmpty()) return emptyList()
-        if (sourceResearch.containsMatchIn(question) && !personalSituation.containsMatchIn(question) &&
+        if ((sourceResearch.containsMatchIn(question) || evidenceResearch.containsMatchIn(question)) && !personalSituation.containsMatchIn(question) &&
             !someoneInvolved.containsMatchIn(question)) return emptyList()
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
@@ -349,7 +374,8 @@ object EmergencyGuideMatch {
                 return@map Triple(guide, 0, false)
             if (guide.id == "choking" && !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question))
                 return@map Triple(guide, 0, false)
-            if (guide.id == "poisoning" && batteryIngestion.containsMatchIn(question)) {
+            if (guide.id == "poisoning" && (batteryIngestion.containsMatchIn(question) ||
+                    wildIngestion.containsMatchIn(question) && poisonSign.containsMatchIn(question))) {
                 score += 4
                 specific = true
             }
@@ -401,8 +427,13 @@ object EmergencyGuideMatch {
             compareByDescending<Pair<EmergencyGuide, Int>> { it.first.id == revive }.thenByDescending { it.second }.thenByDescending { if (it.first.urgent) 1 else 0 },
         )
         // "He fell off the ladder and isn't responding" asks for nothing, but the sign is the emergency.
+        // People in trouble often write what is happening, not a question: "tornado siren going off
+        // and we're in a motel room". A guide named by its own specific term, with a person in the
+        // message, is the help; the research and explanation gates above have already run.
+        val namedForSomeone = scored.any { (guide, score, specific) -> guide.id == order.first().first.id && specific && score > 0 } &&
+            inTheSituation.containsMatchIn(question)
         return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) ||
-            personalSituation.containsMatchIn(question)) order else emptyList()
+            personalSituation.containsMatchIn(question) || namedForSomeone) order else emptyList()
     }
 
     /** A guide this short, or with one section, leaves the model little to work from. */

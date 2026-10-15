@@ -638,4 +638,44 @@ class EmergencyGuideMatchTest {
         val hot = "Someone fainted in the heat at a festival. What should I do?"
         assertEquals(EmergencyGuideMatch.select(hot, heat, 700), EmergencyGuideMatch.select(hot, listOf(heat), 700))
     }
+
+    @Test fun askingForUsReadsLikeAskingForMe() {
+        listOf(
+            "big earthquake just now and the walls cracked, should we stay inside?",
+            "an earthquake woke us up and the shaking stopped, do we go outside now?",
+        ).forEach { assertEquals(it, "earthquake", match(it)) }
+    }
+
+    @Test fun eatingSomethingWildAndFallingIllIsPoisoning() {
+        listOf(
+            "my kids ate some red berries from a bush on the trail and now one is throwing up",
+            "I ate a mushroom I found in the forest and now I feel dizzy and sick, what do I do?",
+        ).forEach { assertEquals(it, "poisoning", match(it)) }
+        assertNull(match("we ate wild mushrooms for dinner in Italy, which kind were they?"))
+    }
+
+    @Test fun beingFarFromHelpIsNotAnInjury() {
+        assertNotEquals("injured-outdoors", match("we are camping with no signal for a week, what should we bring?"))
+        assertEquals("injured-outdoors", EmergencyGuideMatch.rank("I hurt my knee on the trail and there is no signal, what should I do?",
+            book.guides).map { it.first.id }.firstOrNull { it == "injured-outdoors" })
+    }
+
+    @Test fun askingWhatStudiesFoundIsResearch() {
+        assertNull(match("What did the big studies find about aspirin preventing heart attacks?"))
+        assertNull(match("Is it proven that cold water swimming prevents strokes?"))
+        assertEquals("heart-attack", match("my dad has crushing chest pain right now, is there evidence aspirin helps?"))
+    }
+
+    @Test fun aHazardHappeningToUsNeedsNoQuestionMark() {
+        listOf(
+            "flash flood warning on our phones and we're camped right by the creek" to "flood",
+            "wildfire smoke getting thick and our road out is closed" to "wildfire",
+            "tornado on the ground a few miles away and we're in a trailer" to "tornado",
+        ).forEach { (q, id) -> assertEquals(q, id, match(q)) }
+        listOf(
+            "how many people died in the 2004 tsunami",
+            "my iphone lightning cable stopped charging",
+            "why can't anyone predict earthquakes, can they warn people early",
+        ).forEach { assertNull(it, match(it)) }
+    }
 }
