@@ -82,6 +82,8 @@ class ResearchOrchestrator(
         contextTokenBudget: Int = 2_048,
         maxOutputTokens: Int = 1_536,
         attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment> = emptyList(),
+        /** For a follow-up: the answer it builds on, whose passages can be read again. */
+        topic: TopicEvidence.Carried? = null,
     ): Flow<ResearchEvent> {
         val phrase = phraseRequest(question, attachments.isNotEmpty())
         val guide = if (attachments.isEmpty() && phrase == null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) else null
@@ -120,7 +122,7 @@ class ResearchOrchestrator(
             return arithmetic(question, calculation?.text, maxOutputTokens)
         }
         if (calculation == null) {
-            val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments)
+            val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments, topic = topic)
             val numbers = guide?.let { emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) } }
             return if (numbers == null) core else leading(numbers + "\n\n", core)
         }
@@ -252,6 +254,7 @@ class ResearchOrchestrator(
         maxOutputTokens: Int,
         attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment>,
         preferredGuideId: String? = null,
+        topic: TopicEvidence.Carried? = null,
     ): Flow<ResearchEvent> = flow {
         if (question.isBlank()) {
             emit(ResearchEvent.Failed("Question must not be blank"))
@@ -430,6 +433,9 @@ class ResearchOrchestrator(
                 retriever.hasEligiblePacks(question)) {
                 evidence = MultipartEvidence.recover(question, evidence, retriever, candidateLimit, resultLimit)
             }
+            // A follow-up also reads the passages behind the answer it follows (library questions only; files and
+            // place lookups keep their own sources).
+            if (includeLibrary && !placesOnly) evidence = TopicEvidence.merge(evidence, topic, resultLimit)
 
             // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
             // answer immediately; only a weak first pass spends one short model turn finding

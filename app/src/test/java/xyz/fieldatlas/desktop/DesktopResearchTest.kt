@@ -25,6 +25,9 @@ class DesktopResearchTest {
         val manualEvidence = config["manualEvidence"]?.jsonObject
         // Text files attached to a question go through the same attachment path as the phone (no OCR).
         val attachedFiles = config["attachments"]?.jsonObject
+        // A follow-up reads the sources of the answer it follows, as on the phone.
+        val followUps = config["followUps"]?.jsonObject
+        val answeredSources = mutableMapOf<Pair<Int, String>, List<Evidence>>()
         val output = File(config.getValue("output").jsonPrimitive.content)
         val databases = config.getValue("databases").jsonArray.map { File(it.jsonPrimitive.content).canonicalFile }
         // Fail explicitly rather than allowing the production retriever's recovery path to
@@ -84,6 +87,7 @@ class DesktopResearchTest {
                     put("temperature", config["temperature"] ?: JsonPrimitive(0.3))
                     put("attachments", attachedFiles ?: JsonNull)
                     put("location", config["location"] ?: JsonNull)
+                    put("followUps", followUps ?: JsonNull)
                 })
                 put("identities", identities)
                 put("limitations", buildJsonArray {
@@ -202,7 +206,11 @@ class DesktopResearchTest {
                 prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull()),
                 // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
                 articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
-                onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments).collect { event ->
+                onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
+                topic = followUps?.get(question)?.jsonObject?.let { link ->
+                    TopicEvidence.Carried(link.getValue("asked").jsonPrimitive.content,
+                        answeredSources[seed to link.getValue("after").jsonPrimitive.content].orEmpty())
+                }).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
                     is ResearchEvent.Lead -> { answer.clear(); answer.append(event.text) }
@@ -213,6 +221,7 @@ class DesktopResearchTest {
                     else -> Unit
                 }
             }
+            answeredSources[seed to question] = sources
             if (metrics == null || error != null) failures++
             rows += buildJsonObject {
                 put("question", question)

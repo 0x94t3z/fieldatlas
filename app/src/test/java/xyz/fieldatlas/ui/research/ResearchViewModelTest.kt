@@ -293,6 +293,25 @@ class ResearchViewModelTest {
         assertEquals(null, original.readAs)
     }
 
+    @Test fun aFollowUpAlsoReadsThePassagesOfTheAnswerItFollows() {
+        val overview = Evidence("hagia", "hagia:0000", "Hagia Sophia — Overview", "Source",
+            "Hagia Sophia is a former church in Istanbul, a mosque after 1453.", 1.0)
+        val details = Evidence("hagia-history", "hagia-history:0000", "Hagia Sophia — History", "Source",
+            "Hagia Sophia became a museum in 1935; in July 2020 Hagia Sophia was turned back into a mosque.", 1.0)
+        var call = 0
+        val viewModel = viewModel(
+            // The follow-up's own search finds only the overview, as on the phone; the history passage was the first answer's.
+            Retriever { _, _, _ -> call++; if (call == 1) listOf(details) else listOf(overview) },
+            FakeInferenceGateway(listOf("First [S1]", "Second [S1]", "Third [S1]")),
+        )
+        viewModel.updateQuestion("tell me about the hagia sophia")
+        viewModel.submit()
+        assertEquals(listOf("hagia-history:0000"), viewModel.uiState.value.sources.map { it.chunkId })
+        viewModel.submitFollowUp("when was it turned back into a mosque?")
+        val sources = viewModel.uiState.value.sources.map { it.chunkId }
+        assertEquals(listOf("hagia-history:0000", "hagia:0000"), sources)
+    }
+
     @Test fun aFollowUpNeedsAFinishedAnswerAndEditStartsOver() {
         val viewModel = viewModel(Retriever { _, _, _ -> kotlinx.coroutines.awaitCancellation() }, FakeInferenceGateway())
         viewModel.submitFollowUp("and in winter?")

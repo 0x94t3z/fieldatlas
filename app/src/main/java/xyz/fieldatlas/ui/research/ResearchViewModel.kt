@@ -310,7 +310,8 @@ class ResearchViewModel(
         savedStateHandle[QUESTION_KEY] = readAs
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
-        run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis())
+        run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(),
+            carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(), state.sources))
     }
 
     /**
@@ -326,7 +327,8 @@ class ResearchViewModel(
         mutableUiState.value = ResearchUiState(question = state.question, attachments = attachmentSession.state.value)
     }
 
-    private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long) {
+    private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long,
+                    carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null) {
         rawAnswer.clear()
         mutableUiState.value = ResearchUiState(
             question = question,
@@ -345,7 +347,7 @@ class ResearchViewModel(
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join() }
             // A run cancelled while it waited never touches the model.
             ensureActive()
-            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }).collect { event ->
+            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried).collect { event ->
                 mutableUiState.value = when (event) {
                     is ResearchEvent.Planning -> mutableUiState.value.copy(
                         phase = ResearchPhase.Planning,
