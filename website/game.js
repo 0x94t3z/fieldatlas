@@ -267,7 +267,9 @@ if (journey.game) {
   const fromHash = stages.findIndex(s => s.id && `#${s.id}` === location.hash);
   if (fromHash > 0) {
     travel(fromHash, { open: true, instant: true });
-    requestAnimationFrame(() => panelOf(fromHash)?.focus({ preventScroll: true }));
+    // After load, not before: Chrome re-applies the #fragment when loading finishes, which clears focus.
+    const focusIt = () => requestAnimationFrame(() => { if (journey.open === fromHash) panelOf(fromHash)?.focus({ preventScroll: true }); });
+    if (document.readyState === 'complete') focusIt(); else addEventListener('load', focusIt, { once: true });
   }
   // Reloads start from the top (or the linked section) rather than a restored scroll the tour did not walk.
   if ('scrollRestoration' in history) history.scrollRestoration = 'manual';

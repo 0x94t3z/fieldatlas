@@ -231,7 +231,9 @@ test('if the tour script never arrives, the plain page takes over', async ({ pag
 });
 
 test('navigation and FAQ work with JavaScript disabled', async ({ browser }) => {
-  const context = await browser.newContext({ javaScriptEnabled: false });
+  // Reduced motion turns off smooth scrolling, which otherwise keeps the FAQ moving while Playwright scrolls it
+  // into view, so the click is retried as "not stable" until the test times out.
+  const context = await browser.newContext({ javaScriptEnabled: false, reducedMotion: 'reduce' });
   const page = await context.newPage();
   await page.goto(home);
   await page.getByRole('navigation').getByRole('link', { name: 'How it works' }).click();
