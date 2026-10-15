@@ -74,6 +74,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
 import xyz.fieldatlas.ui.theme.FieldAtlasColors
 
+@OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
 fun FieldAtlasApp(
     packs: List<InstalledAsset>,
@@ -267,16 +268,39 @@ fun FieldAtlasApp(
         }
 
         val closeDetail = { navigation.back(); Unit }
-        val detail = navigation.detail
+        // The Research home as it was when Start research was tapped. The home changes to its running view at once;
+        // while it fades out, this frame keeps its question box on screen to travel down into the answer page's.
+        var launchFrame by remember { mutableStateOf<ResearchUiState?>(null) }
+        androidx.compose.animation.SharedTransitionLayout {
+        androidx.compose.runtime.CompositionLocalProvider(LocalSharedTransition provides this) {
+        androidx.compose.animation.AnimatedContent(
+            targetState = navigation.detail,
+            contentKey = ::pageKey,
+            transitionSpec = { pageTransition() },
+            label = "Page",
+        ) { detail ->
+        androidx.compose.runtime.CompositionLocalProvider(LocalPageVisibility provides this) {
+        val leaving = transition.targetState == androidx.compose.animation.EnterExitState.PostExit
         if (detail != null) {
             when (detail) {
+                // Start research opens this page in the same tap, but the run's first state reaches the screen a frame
+                // later: until then the page shows the question as starting, and goes back if it never starts.
+                DetailDestination.Answer -> {
+                val pending = launchFrame
+                val starting = pending != null && !researchState.isRunning && researchState.phase != ResearchPhase.Complete &&
+                    researchState.startedAtNanos == pending.startedAtNanos
+                if (starting) LaunchedEffect(pending) {
+                    kotlinx.coroutines.delay(START_GRACE_MILLIS)
+                    navigation.back()
+                }
                 // Nothing running and nothing finished (stopped, an error, Edit on a follow-up's reading, or a restart
                 // that kept only the question): the Research home says what happened and holds the question.
-                DetailDestination.Answer -> if (!researchState.isRunning &&
+                if (!starting && !researchState.isRunning &&
                     (researchState.phase != ResearchPhase.Complete || researchState.answer.isBlank())) {
                     LaunchedEffect(Unit) { navigation.back() }
                 } else AnswerScreen(
-                    state = researchState,
+                    state = if (starting) ResearchUiState(question = pending!!.question, attachments = pending.attachments,
+                        phase = ResearchPhase.Searching) else researchState,
                     onBack = closeDetail,
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
                     // The follow-up is researched on this page, under the answer it follows.
@@ -302,6 +326,7 @@ fun FieldAtlasApp(
                     attachmentNotice = attachmentNotice,
                     onLeaveFollowUp = onLeaveFollowUp,
                 )
+                }
                 is DetailDestination.Source -> {
                     val source = researchState.sources.getOrNull(detail.index)
                     if (source == null) {
@@ -345,14 +370,17 @@ fun FieldAtlasApp(
                     }
                 }
             }
-            return@FieldAtlasTheme
-        }
-
+        } else {
+        // The launch frame is spent once the tabs are back and still; never in the frame of the tap itself, when the
+        // page change may not have reached this transition yet.
+        val settled = transition.currentState == androidx.compose.animation.EnterExitState.Visible &&
+            transition.targetState == androidx.compose.animation.EnterExitState.Visible
+        LaunchedEffect(settled) { if (settled && navigation.detail == null) launchFrame = null }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 Box(
-                    Modifier.fillMaxWidth()
+                    Modifier.navigationBarTransition().fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .navigationBarsPadding()
                         .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -400,7 +428,7 @@ fun FieldAtlasApp(
             Box(Modifier.padding(padding)) {
                 when (navigation.primary) {
                     PrimaryDestination.Research -> ResearchScreen(
-                        state = researchState,
+                        state = if (leaving) launchFrame ?: researchState else researchState,
                         inferenceState = inferenceState,
                         collectionCount = enabledKnowledge.size,
                         suggestions = enabledKnowledge.flatMap { it.discovery?.exampleQuestions.orEmpty() },
@@ -414,7 +442,11 @@ fun FieldAtlasApp(
                         onRemoveAttachment = onRemoveAttachment,
                         onRetryAttachment = onRetryAttachment,
                         onQuestionChange = onQuestionChange,
-                        onSubmit = onSubmit,
+                        onSubmit = {
+                            launchFrame = researchState
+                            navigation.openAnswer()
+                            onSubmit()
+                        },
                         onStop = onStop,
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
@@ -476,6 +508,11 @@ fun FieldAtlasApp(
                     )
                 }
             }
+        }
+        }
+        }
+        }
+        }
         }
     }
 }
@@ -546,3 +583,6 @@ private fun primaryIcon(destination: PrimaryDestination): ImageVector = when (de
 /** Whether a run that has just started should open the answer page: once per run, identified by its start time. */
 internal fun opensAnswerOnStart(startedAtNanos: Long?, running: Boolean, openedForRun: Long?): Boolean =
     running && startedAtNanos != null && startedAtNanos != openedForRun
+
+/** How long a just-opened answer page waits for its run to start before returning to the Research home. */
+private const val START_GRACE_MILLIS = 2_000L

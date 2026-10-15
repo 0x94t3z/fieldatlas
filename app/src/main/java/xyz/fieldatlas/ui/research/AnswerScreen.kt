@@ -162,7 +162,9 @@ fun AnswerScreen(
                         ) {
                             val cited = citedSourceGroups.size
                             if (running) {
-                                FieldAtlasStatusPill("Working on this phone", StatusTone.Neutral, icon = connectionDino(false))
+                                FieldAtlasStatusPill("Working on this phone", icon = connectionDino(false),
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                             } else if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.

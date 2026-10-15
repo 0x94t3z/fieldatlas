@@ -1,5 +1,6 @@
 package xyz.fieldatlas.ui.research
 
+import xyz.fieldatlas.ui.sharedQuestionBox
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.foundation.clickable
@@ -117,6 +118,7 @@ internal fun FollowUpComposer(
                     modifier = Modifier.weight(1f, fill = false))
             }
             Surface(
+                modifier = Modifier.sharedQuestionBox(),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surface,
                 border = BorderStroke(if (draft.isBlank() && !recording) 1.dp else 1.5.dp,
