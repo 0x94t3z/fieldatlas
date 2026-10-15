@@ -522,7 +522,7 @@ fun ResearchScreen(
 
 /** How a follow-up is searched, as one standalone question, with Edit to correct it. */
 @Composable
-internal fun ReadAsRow(readAs: String, onEdit: () -> Unit, modifier: Modifier = Modifier) {
+private fun ReadAsRow(readAs: String, onEdit: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),

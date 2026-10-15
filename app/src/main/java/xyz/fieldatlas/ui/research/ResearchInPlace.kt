@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -329,5 +330,42 @@ private fun SourceSoFarRow(number: Int, evidence: Evidence) {
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+/**
+ * What the run reads besides the title, as (label, text): a follow-up's standalone reading, or the extra search words
+ * the app chose when the first search found too little. Null when the question is searched just as it was typed.
+ */
+internal fun researchReading(state: ResearchUiState): Pair<String, String>? = when {
+    state.asked.isNotBlank() -> "Read as" to state.question
+    state.keywords.isNotEmpty() -> "Also searching for" to state.keywords.take(6).joinToString(", ")
+    else -> null
+}
+
+/** One quiet line under the title: a search icon, the label, the reading in two lines at most, and Edit if offered. */
+@Composable
+internal fun ReadingLine(label: String, reading: String, onEdit: (() -> Unit)?) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Icon(FieldAtlasIcons.Research, null, Modifier.padding(top = 3.dp).size(15.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            androidx.compose.ui.text.buildAnnotatedString {
+                append("$label ")
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold))
+                append(reading)
+                pop()
+            },
+            style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 19.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f).padding(top = 1.dp),
+        )
+        // The touch area stays 48dp though the word is small; it overlaps the line's padding, not the trail.
+        if (onEdit != null) androidx.compose.material3.TextButton(
+            onClick = onEdit,
+            modifier = Modifier.offset(y = (-12).dp).heightIn(min = 48.dp)
+                .semantics { contentDescription = "Edit how this follow-up is read" },
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
+        ) { Text("Edit", style = MaterialTheme.typography.labelLarge) }
     }
 }

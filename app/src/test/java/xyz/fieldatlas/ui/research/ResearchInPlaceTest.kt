@@ -66,4 +66,12 @@ class ResearchInPlaceTest {
         reloaded.ensureLoaded()
         assertEquals(165_000L, reloaded.records.value.single().durationMs)
     }
+
+    @Test fun aReadingIsShownOnlyWhenItDiffersFromTheTitle() {
+        assertNull("a question is searched as typed", researchReading(ResearchUiState(question = "tell me about the hagia sophia")))
+        assertEquals("Read as" to "tell me about the hagia sophia: is it free to visit?", researchReading(ResearchUiState(
+            question = "tell me about the hagia sophia: is it free to visit?", asked = "is it free to visit?")))
+        assertEquals("Also searching for" to "tide, moon, gravity", researchReading(ResearchUiState(
+            question = "why are there two tides a day", keywords = listOf("tide", "moon", "gravity"))))
+    }
 }

@@ -158,6 +158,11 @@ fun AnswerScreen(
                             text = state.shownQuestion.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineMedium,
                         )
+                        // While it runs, how the question is read, when that differs from the title: a follow-up read
+                        // with the question before it (Edit corrects it), or the extra words a weak first search tried.
+                        if (running) researchReading(state)?.let { (label, reading) ->
+                            ReadingLine(label, reading, onEdit = if (state.asked.isNotBlank()) onEditReadAs else null)
+                        }
                         // While research runs the status card says what is happening; the pills describe a finished answer.
                         if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -192,7 +197,6 @@ fun AnswerScreen(
                 }
                 if (running) {
                     // A follow-up shows how it is searched, with Edit, then the live status where its answer will appear.
-                    if (state.asked.isNotBlank()) item(key = "readAs") { ReadAsRow(state.question, onEditReadAs) }
                     item(key = "progress") { ResearchTrailStatus(state, typicalAnswerMillis) }
                     item(key = "forthcoming") { ForthcomingAnswer(state) }
                     item(key = "sourcesSoFar") { SourcesSoFar(state) }
