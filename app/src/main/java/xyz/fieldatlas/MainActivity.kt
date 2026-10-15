@@ -81,6 +81,7 @@ class MainActivity : ComponentActivity() {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
             val historyRecords by container.answerHistory.records.collectAsStateWithLifecycle()
+            val historyStorage by container.answerHistory.storage.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { container.answerHistory.ensureLoaded() }
             // A run in flight outranks background process trimming: the service pins priority.
             // A system picker also puts the app in the background with the model loaded, and some
@@ -245,6 +246,7 @@ class MainActivity : ComponentActivity() {
                 setupError = setupState.error,
                 researchState = researchState,
                 historyRecords = historyRecords,
+                historyStorage = historyStorage,
                 onDeleteHistory = container.answerHistory::delete,
                 inferenceState = inferenceState,
                 proof = proof,

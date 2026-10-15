@@ -30,17 +30,36 @@ data class AnswerRecord(
 )
 
 /**
- * File-backed log of completed answers, newest first, capped so it cannot grow forever.
- * The state flow is the single source of truth for the UI; the JSON file (answers.json in
- * app storage) is rewritten whole on each entry — trivially small at the cap.
+ * What the History screen needs to know about the phone's storage: how much is free where answers are kept, and
+ * whether the last save failed. Answers are never dropped to make room; when space runs low the reader is told.
  */
-class AnswerHistoryStore(private val file: File, private val synchronousWrites: Boolean = false) {
+data class HistoryStorage(val freeBytes: Long = Long.MAX_VALUE, val lastSaveFailed: Boolean = false) {
+    val low: Boolean get() = lastSaveFailed || freeBytes < LOW_STORAGE_BYTES
+
+    companion object {
+        /** Below this Android itself starts to struggle, and a collection update no longer fits. */
+        const val LOW_STORAGE_BYTES = 300L * 1024 * 1024
+    }
+}
+
+/**
+ * File-backed log of completed answers, newest first. It keeps every answer until the reader deletes it: a long
+ * session must not quietly lose its first questions. The state flow is the single source of truth for the UI; the
+ * JSON file (answers.json in app storage) is rewritten whole on each entry, a few kilobytes per answer.
+ */
+class AnswerHistoryStore(
+    private val file: File,
+    private val synchronousWrites: Boolean = false,
+    private val freeSpace: () -> Long = { (file.parentFile ?: file.absoluteFile.parentFile)?.usableSpace ?: Long.MAX_VALUE },
+) {
     private val json = Json { ignoreUnknownKeys = true }
     private val lock = Any()
     private var loaded = false
     private var initialLoadSucceeded = false
     private val mutableRecords = MutableStateFlow<List<AnswerRecord>>(emptyList())
     val records: StateFlow<List<AnswerRecord>> = mutableRecords.asStateFlow()
+    private val mutableStorage = MutableStateFlow(HistoryStorage())
+    val storage: StateFlow<HistoryStorage> = mutableStorage.asStateFlow()
 
     /** Reads answers.json once, lazily, off the main thread. */
     suspend fun ensureLoaded() = withContext(Dispatchers.IO) {
@@ -61,10 +80,15 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
                     json.decodeFromString(ListSerializer(AnswerRecord.serializer()), file.readText())
                 }
             }.getOrNull()?.let { saved ->
-                mutableRecords.value = saved.sortedByDescending(AnswerRecord::createdAtEpochMs).take(MAX_ENTRIES)
+                mutableRecords.value = saved.sortedByDescending(AnswerRecord::createdAtEpochMs)
                 initialLoadSucceeded = true
             }
+            refreshStorage(lastSaveFailed = false)
         }
+    }
+
+    private fun refreshStorage(lastSaveFailed: Boolean) {
+        mutableStorage.value = HistoryStorage(runCatching(freeSpace).getOrDefault(Long.MAX_VALUE), lastSaveFailed)
     }
 
     /** Read-only support metadata; unknown after a failed load, never an inferred empty history. */
@@ -88,7 +112,7 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
             readAs = readAs,
         )
         synchronized(lock) {
-            (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }
+            mutableRecords.value = listOf(entry) + mutableRecords.value
         }
         persist()
     }
@@ -105,19 +129,18 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
 
     private fun persist() {
         val write = Runnable {
-            runCatching {
+            // A failed write (usually a full disk) is reported, not swallowed: the answer stays on screen this session,
+            // and the History screen says it could not be kept.
+            val saved = runCatching {
                 synchronized(lock) {
                     file.parentFile?.mkdirs()
                     val pending = File(file.parentFile, "${file.name}.tmp")
                     pending.writeText(json.encodeToString(ListSerializer(AnswerRecord.serializer()), mutableRecords.value))
                     check(pending.renameTo(file))
                 }
-            }
+            }.isSuccess
+            refreshStorage(lastSaveFailed = !saved)
         }
         if (synchronousWrites) write.run() else Thread(write).apply { isDaemon = true; start() }
-    }
-
-    companion object {
-        private const val MAX_ENTRIES = 100
     }
 }

@@ -100,6 +100,7 @@ fun FieldAtlasApp(
     setupError: String?,
     researchState: ResearchUiState,
     historyRecords: List<AnswerRecord> = emptyList(),
+    historyStorage: xyz.fieldatlas.research.HistoryStorage = xyz.fieldatlas.research.HistoryStorage(),
     onDeleteHistory: (Long) -> Unit = {},
     proof: ProofModel,
     navigation: FieldAtlasNavigationState = rememberFieldAtlasNavigationState(),
@@ -421,7 +422,7 @@ fun FieldAtlasApp(
                         onAskExample = { question -> askAnew(question) },
                     )
                     PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question -> askAnew(question) },
-                        onDelete = onDeleteHistory)
+                        onDelete = onDeleteHistory, storage = historyStorage)
                     PrimaryDestination.More -> MoreScreen(
                         packs = packs,
                         onOpenLibrary = { navigation.select(PrimaryDestination.Library) },

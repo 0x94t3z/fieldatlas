@@ -53,12 +53,12 @@ class AnswerHistoryDiagnosticsTest {
         runBlocking { assertEquals(3, AnswerHistoryStore(file).diagnosticsEntryCount()) }
     }
 
-    @Test fun persistedOverflowStillUsesExistingNewestFirstHundredEntryCap() = withFile { file ->
-        file.writeText(records(105))
+    @Test fun everySavedAnswerIsKeptNewestFirstWithNoCap() = withFile { file ->
+        file.writeText(records(250))
         val original = file.readBytes()
         val store = AnswerHistoryStore(file)
-        runBlocking { assertEquals(100, store.diagnosticsEntryCount()) }
-        assertEquals((105L downTo 6L).toList(), store.records.value.map { it.createdAtEpochMs })
+        runBlocking { assertEquals(250, store.diagnosticsEntryCount()) }
+        assertEquals((250L downTo 1L).toList(), store.records.value.map { it.createdAtEpochMs })
         assertTrue(original.contentEquals(file.readBytes()))
     }
 

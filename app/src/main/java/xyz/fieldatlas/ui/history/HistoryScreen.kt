@@ -50,6 +50,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import xyz.fieldatlas.R
 import xyz.fieldatlas.research.AnswerRecord
+import xyz.fieldatlas.research.HistoryStorage
 import xyz.fieldatlas.text.MarkdownLiteral
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
@@ -69,6 +70,7 @@ fun HistoryScreen(
     records: List<AnswerRecord>,
     onAskAgain: (String) -> Unit = {},
     onDelete: (Long) -> Unit = {},
+    storage: HistoryStorage = HistoryStorage(),
 ) {
     // The same quick look as on an answer, over the passages saved with this record.
     var savedSource by remember { mutableStateOf<Pair<AnswerRecord, Int>?>(null) }
@@ -112,6 +114,8 @@ fun HistoryScreen(
                 subtitle = "Past questions, kept on this phone.",
             )
         }
+        // History keeps every answer; when the phone runs short of space, say so before answers stop being saved.
+        if (storage.low) item(key = "storage") { HistoryStorageWarning(storage) }
         // Search earns its space once History is longer than a screen.
         // Kept while a search is typed, or deleting matches could hide every answer with no way to clear it.
         if (records.size >= SEARCH_THRESHOLD || query.isNotEmpty()) item(key = "search") {
@@ -363,4 +367,37 @@ private fun HistorySearchField(query: String, onQueryChange: (String) -> Unit) {
             }
         }
     }
+}
+
+/** Shown at the top of History when free space is low or the last answer could not be saved. */
+@Composable
+internal fun HistoryStorageWarning(storage: HistoryStorage) {
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.55f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(if (storage.lastSaveFailed) "The last answer wasn't saved" else "Phone storage is almost full",
+                style = MaterialTheme.typography.titleSmall)
+            Text(storageWarningText(storage), style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+internal fun storageWarningText(storage: HistoryStorage): String {
+    val free = storage.freeBytes.takeIf { it != Long.MAX_VALUE }?.let { formatFreeSpace(it) }
+    return when {
+        storage.lastSaveFailed -> "There wasn't room to save it to History. It stays on screen until you close the app. " +
+            "Free up space on the phone or delete answers you no longer need."
+        free != null -> "$free free. New answers may not be saved to History. Free up space on the phone or delete answers you no longer need."
+        else -> "New answers may not be saved to History. Free up space on the phone or delete answers you no longer need."
+    }
+}
+
+internal fun formatFreeSpace(bytes: Long): String {
+    val mb = bytes / (1024.0 * 1024.0)
+    return if (mb >= 1024) String.format(java.util.Locale.US, "%.1f GB", mb / 1024) else "${mb.toInt()} MB"
 }
