@@ -114,4 +114,23 @@ class EmergencyRoutingTest {
             assertTrue(question, VenueLookup.isNearMe(question))
         }
     }
+
+    @Test fun aFollowUpIsNotAnsweredWithTheGuideItsAnswerAlreadyShowed() = runBlocking {
+        val sunburn = EmergencyGuideMatch.evidence(guides.first { it.id == "sunburn" })
+        val model = Recording("Coconut oil does not treat a sunburn [S1].")
+        var searched = false
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> searched = true; emptyList() }, model, emergencyGuides = { guides })
+            .research("my son has a bad sunburn, what should we do: is it ok to use coconut oil on it?",
+                topic = xyz.fieldatlas.research.TopicEvidence.Carried("is it ok to use coconut oil on it?", listOf(sunburn))).toList()
+        assertTrue("the follow-up is researched, not answered with the same guide", searched)
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().none { sources -> sources.evidence.any { it.documentId == "emergency:sunburn" } })
+    }
+
+    @Test fun anEmergencyToldAsAFollowUpGetsItsGuide() = runBlocking {
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Recording("unused"), emergencyGuides = { guides })
+            .research("What are the best things to see in Oklahoma City over a long weekend with kids who like museums and parks: " +
+                "tornado on the ground a few miles away and we're in a trailer",
+                topic = xyz.fieldatlas.research.TopicEvidence.Carried("tornado on the ground a few miles away and we're in a trailer", emptyList())).toList()
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().first().evidence.all { it.documentId == "emergency:tornado" })
+    }
 }

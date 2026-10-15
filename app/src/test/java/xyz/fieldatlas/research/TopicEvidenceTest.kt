@@ -15,11 +15,11 @@ class TopicEvidenceTest {
         assertEquals(listOf(details, overview, other), merged)
     }
 
-    @Test fun earlierPassagesWithoutTheWordsOnlyFillEmptySlots() {
+    @Test fun earlierPassagesWithoutTheWordsAreNotCarried() {
         val unrelated = ev("u", "Hagia Sophia — Architecture", "The dome rises 55 metres.")
-        val merged = TopicEvidence.merge(listOf(overview), TopicEvidence.Carried("is it free to visit?", listOf(unrelated)), 8)
-        assertEquals(listOf(overview, unrelated), merged)
-        assertEquals(listOf(overview), TopicEvidence.merge(listOf(overview), TopicEvidence.Carried("is it free?", listOf(unrelated)), 1))
+        // Standing in for an empty search, it would be quoted as if it said whether entry is free.
+        assertEquals(listOf(overview), TopicEvidence.merge(listOf(overview), TopicEvidence.Carried("is it free to visit?", listOf(unrelated)), 8))
+        assertEquals(emptyList<Evidence>(), TopicEvidence.merge(emptyList(), TopicEvidence.Carried("is it free to visit?", listOf(unrelated)), 8))
     }
 
     @Test fun aMatchingEarlierPassageMovesAheadOfOverviewsAddedLater() {
@@ -50,6 +50,6 @@ class TopicEvidenceTest {
         val found = listOf(ev("n", "New", "fresh result"))
         val merged = TopicEvidence.merge(found, TopicEvidence.Carried("when was it turned back into a mosque", earlier), 8)
         assertEquals("New", merged[TopicEvidence.MAX_LEADING].title)
-        assertEquals(6, merged.size)
+        assertEquals(TopicEvidence.MAX_LEADING + 1, merged.size)
     }
 }

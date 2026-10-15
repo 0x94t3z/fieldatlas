@@ -86,7 +86,7 @@ class ResearchOrchestrator(
         topic: TopicEvidence.Carried? = null,
     ): Flow<ResearchEvent> {
         val phrase = phraseRequest(question, attachments.isNotEmpty())
-        val guide = if (attachments.isEmpty() && phrase == null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) else null
+        val guide = if (attachments.isEmpty() && phrase == null) guideFor(question, topic) else null
         // An emergency number is read from the saved table, never guessed by the model; a first-aid
         // question that also asks for the number keeps its guide, with the number leading it.
         if (attachments.isEmpty() && guide == null && phrase == null) {
@@ -285,7 +285,7 @@ class ResearchOrchestrator(
             // Emergency instructions must not be rewritten by the model. Real-model regression
             // checks reversed official instructions despite lexical support; show the guide itself.
             val phraseAsk = phraseRequest(question, attachments.isNotEmpty())
-            val guide = if (attachments.isEmpty()) (if (phraseAsk == null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) else null)
+            val guide = if (attachments.isEmpty()) (if (phraseAsk == null) guideFor(question, topic) else null)
                 ?: preferredGuideId?.let { id -> emergencyGuides().firstOrNull { it.id == id } } else null
             if (guide != null) {
                 emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
@@ -1220,6 +1220,21 @@ class ResearchOrchestrator(
     }.catch { error ->
         if (error is CancellationException) throw error
         emit(ResearchEvent.Failed(error.message ?: "Research failed"))
+    }
+
+    /**
+     * The saved guide for [question], read as the follow-up it may be. A follow-up is first matched as typed: "tornado on
+     * the ground and we're in a trailer" after a long question about Oklahoma City is its own emergency, though the
+     * joined reading is too long to count as one. Otherwise the joined reading still matches the earlier emergency, and
+     * that guide is shown again only if the answer it follows did not already show it: "is it ok to use coconut oil on
+     * it?" after the sunburn guide asks something the guide does not say.
+     */
+    private fun guideFor(question: String, topic: TopicEvidence.Carried?): xyz.fieldatlas.emergency.EmergencyGuide? {
+        val guides = emergencyGuides()
+        if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let { return it }
+        val guide = xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides) ?: return null
+        val shown = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide).documentId
+        return guide.takeIf { topic == null || topic.sources.none { it.documentId == shown } }
     }
 
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)

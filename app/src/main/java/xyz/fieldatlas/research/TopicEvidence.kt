@@ -44,9 +44,9 @@ object TopicEvidence {
         val terms = FtsQuery.from(carried.asked)?.terms.orEmpty().map { it.lowercase() }.filter { it.length > 2 }
         val earlier = carried.sources.distinctBy { it.chunkId }.filter { it.chunkId !in seen }
             .map { it to terms.count { term -> term in it.text.lowercase() || term in it.title.lowercase() } }
-        // Earlier passages that share the follow-up's words go first; the others only fill slots the search left empty.
+        // Earlier passages that share the follow-up's words go first. One sharing none of them would only stand in for
+        // a search that found nothing, and be quoted as if it answered the follow-up.
         val leading = earlier.filter { it.second > 0 }.sortedByDescending { it.second }.take(MAX_LEADING).map { it.first }
-        val rest = earlier.map { it.first }.filter { it !in leading }
-        return (leading + found + rest).take(limit)
+        return (leading + found).take(limit)
     }
 }
