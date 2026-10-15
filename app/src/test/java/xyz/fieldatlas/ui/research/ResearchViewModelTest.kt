@@ -267,4 +267,46 @@ class ResearchViewModelTest {
     private val temporaryDir: java.io.File by lazy { 
         java.nio.file.Files.createTempDirectory("history").toFile().apply { deleteOnExit() }
     }
+
+    @Test fun aFollowUpIsSearchedAsOneQuestionAndKeptWithItsTopic() {
+        val store = xyz.fieldatlas.research.AnswerHistoryStore(java.io.File(temporaryDir, "followups.json"), synchronousWrites = true)
+        val searched = mutableListOf<String>()
+        val viewModel = viewModel(
+            Retriever { query, _, _ -> searched += query; listOf(evidence) },
+            FakeInferenceGateway(listOf("Answer [S1]")),
+            historyStore = store,
+        )
+        viewModel.updateQuestion("What are the tipping customs in Japan?")
+        viewModel.submit()
+        val first = viewModel.uiState.value
+        viewModel.submitFollowUp("what about South Korea?")
+        val state = viewModel.uiState.value
+        assertEquals("What are the tipping customs in South Korea?", state.question)
+        assertEquals("what about South Korea?", state.shownQuestion)
+        assertEquals(listOf("What are the tipping customs in Japan?"), state.earlier.map { it.asked })
+        assertEquals(first.topic, state.topic)
+        assertTrue(searched.last(), searched.last().contains("korea", ignoreCase = true))
+        val (followUp, original) = store.records.value
+        assertEquals("what about South Korea?", followUp.question)
+        assertEquals("What are the tipping customs in South Korea?", followUp.readAs)
+        assertEquals(original.topic, followUp.topic)
+        assertEquals(null, original.readAs)
+    }
+
+    @Test fun aFollowUpNeedsAFinishedAnswerAndEditStartsOver() {
+        val viewModel = viewModel(Retriever { _, _, _ -> kotlinx.coroutines.awaitCancellation() }, FakeInferenceGateway())
+        viewModel.submitFollowUp("and in winter?")
+        assertEquals(ResearchPhase.Idle, viewModel.uiState.value.phase)
+
+        val answering = viewModel(Retriever { _, _, _ -> listOf(evidence) }, FakeInferenceGateway(listOf("Answer [S1]")))
+        answering.updateQuestion("Best vegan food in Lisbon")
+        answering.submit()
+        answering.submitFollowUp("which one is closest to the castle?")
+        answering.editReadAs()
+        val edited = answering.uiState.value
+        assertEquals("Best vegan food in Lisbon: which one is closest to the castle?", edited.question)
+        assertEquals("", edited.asked)
+        assertTrue(edited.earlier.isEmpty())
+        assertEquals(ResearchPhase.Idle, edited.phase)
+    }
 }

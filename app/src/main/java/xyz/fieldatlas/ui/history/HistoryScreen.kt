@@ -92,6 +92,11 @@ fun HistoryScreen(
     val zone = ZoneId.systemDefault()
     var query by rememberSaveable { mutableStateOf("") }
     val shown = remember(records, query) { records.filter { historyMatches(it, query) } }
+    // The first question of each topic, named above its follow-ups.
+    val topicRoots = remember(records) {
+        records.filter { it.topic != null }.groupBy { it.topic }.filterValues { it.size > 1 }
+            .mapValues { (_, turns) -> turns.minBy(AnswerRecord::createdAtEpochMs) }
+    }
     val days = remember(shown) {
         shown.groupBy { Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate() }.toList()
     }
@@ -141,7 +146,8 @@ fun HistoryScreen(
             }
             dayRecords.forEach { record ->
                 item(key = record.createdAtEpochMs) {
-                    HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain,
+                    val root = topicRoots[record.topic]?.takeIf { it.createdAtEpochMs != record.createdAtEpochMs }
+                    HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain, followUpOf = root?.question,
                         onDelete = { onDelete(record.createdAtEpochMs) }) { index -> savedSource = record to index }
                 }
             }
@@ -154,6 +160,7 @@ private fun HistoryCard(
     record: AnswerRecord,
     time: String,
     onAskAgain: (String) -> Unit,
+    followUpOf: String? = null,
     onDelete: () -> Unit,
     onOpenSource: (Int) -> Unit,
 ) {
@@ -171,6 +178,10 @@ private fun HistoryCard(
         .clickable(onClickLabel = if (expanded) "Collapse answer" else "Expand answer") { expanded = !expanded },
         contentPadding = 18.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            followUpOf?.let {
+                Text("Follow-up to · $it", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top) {
                 Text(record.question, style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 25.sp),
@@ -216,7 +227,7 @@ private fun HistoryCard(
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 val context = androidx.compose.ui.platform.LocalContext.current
-                HistoryActions(onAskAgain = { onAskAgain(record.question) },
+                HistoryActions(onAskAgain = { onAskAgain(record.readAs ?: record.question) },
                     onShare = {
                         xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
                             xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))

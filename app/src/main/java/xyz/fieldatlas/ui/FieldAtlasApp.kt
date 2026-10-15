@@ -134,6 +134,8 @@ fun FieldAtlasApp(
     diagnosticsText: String = "",
     onClearDiagnostics: () -> Unit = {},
     onAskAnotherQuestion: () -> Unit = {},
+    onFollowUp: (String) -> Unit = {},
+    onEditReadAs: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -257,6 +259,8 @@ fun FieldAtlasApp(
                     state = researchState,
                     onBack = closeDetail,
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
+                    // Back to the research screen, which shows the follow-up's progress; the answer opens again when done.
+                    onFollowUp = { text -> onFollowUp(text); navigation.back() },
                     onCitation = navigation::openSource,
                     travelCollectionAvailable = availableKnowledge.any { it.id == "wikivoyage-places" } &&
                         packs.none { it.id == "wikivoyage-places" },
@@ -381,6 +385,7 @@ fun FieldAtlasApp(
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
                         onAskAnotherQuestion = onAskAnotherQuestion,
+                        onEditReadAs = onEditReadAs,
                         answersWithoutModel = answersWithoutModel,
                     )
                     PrimaryDestination.Library -> LibraryScreen(

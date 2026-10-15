@@ -121,6 +121,7 @@ fun ResearchScreen(
     onPrepareModel: () -> Unit,
     onOpenAnswer: () -> Unit,
     onAskAnotherQuestion: () -> Unit = {},
+    onEditReadAs: () -> Unit = {},
     listState: LazyListState = rememberLazyListState(),
     /** True when the app answers this question itself (emergency guide, near-me lookup), with no model. */
     answersWithoutModel: (question: String, hasAttachments: Boolean) -> Boolean = { question, hasAttachments ->
@@ -203,9 +204,12 @@ fun ResearchScreen(
         if (state.isRunning || (hasReadyAnswer && !editReadyQuestion)) {
             item {
                 ResearchQuestionPanel(
-                    question = state.question,
+                    question = state.shownQuestion,
                     onEdit = if (hasReadyAnswer && !state.isRunning) ({ editReadyQuestion = true }) else null,
                     running = state.isRunning,
+                    followsUp = state.earlier.firstOrNull()?.asked?.takeIf { state.asked.isNotBlank() },
+                    readAs = state.question.takeIf { state.asked.isNotBlank() },
+                    onEditReadAs = onEditReadAs,
                 )
             }
         } else item {
@@ -515,14 +519,38 @@ fun ResearchScreen(
 }
 
 @Composable
-internal fun ResearchQuestionPanel(question: String, onEdit: (() -> Unit)?, running: Boolean = false) {
+internal fun ResearchQuestionPanel(
+    question: String,
+    onEdit: (() -> Unit)?,
+    running: Boolean = false,
+    followsUp: String? = null,
+    readAs: String? = null,
+    onEditReadAs: () -> Unit = {},
+) {
     if (running) {
         FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text("YOUR QUESTION", style = MaterialTheme.typography.labelSmall.copy(
+            Text(if (followsUp != null) "FOLLOW-UP TO · ${followsUp.uppercase()}" else "YOUR QUESTION",
+                style = MaterialTheme.typography.labelSmall.copy(
                 fontSize = 10.sp, fontWeight = FontWeight(650), letterSpacing = 0.6.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             Text(question, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 15.sp, lineHeight = 24.sp, fontWeight = FontWeight(450)))
+            // A follow-up is searched as one standalone question; show that reading, and let it be corrected.
+            if (readAs != null) Surface(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+            ) {
+                Row(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Icon(FieldAtlasIcons.Research, null, Modifier.padding(top = 2.dp).size(17.dp), tint = MaterialTheme.colorScheme.primary)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("Searching for", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(readAs, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(550)))
+                    }
+                    androidx.compose.material3.TextButton(onClick = onEditReadAs) { Text("Edit") }
+                }
+            }
         }
         return
     }

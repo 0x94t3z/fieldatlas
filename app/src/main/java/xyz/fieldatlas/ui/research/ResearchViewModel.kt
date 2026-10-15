@@ -37,7 +37,14 @@ data class VoiceUiState(
 
 data class ResearchUiState(
     val attachments: List<AttachmentUiState> = emptyList(),
+    /** The standalone question research runs on; for a follow-up, the reading built from the topic. */
     val question: String = "",
+    /** A follow-up as it was typed ("which one is closest?"); blank for a question asked on its own. */
+    val asked: String = "",
+    /** Answered questions of the same topic, oldest first. */
+    val earlier: List<xyz.fieldatlas.research.FollowUp.Turn> = emptyList(),
+    /** Groups a question and its follow-ups in History. */
+    val topic: Long? = null,
     val startedAtNanos: Long? = null,
     val answer: String = "",
     val sources: List<Evidence> = emptyList(),
@@ -54,6 +61,8 @@ data class ResearchUiState(
     val completion: ResearchCompletion? = null,
     val error: String? = null,
 ) {
+    /** What the person asked, as they typed it. */
+    val shownQuestion: String get() = asked.ifBlank { question }
     val canAddAttachment: Boolean get() = !isRunning && attachments.size < AttachmentPolicy.MAX_COUNT
     val canSubmit: Boolean get() = question.isNotBlank() && !isRunning && attachments.all { it.phase == AttachmentPhase.Ready }
     val isRunning: Boolean get() = phase == ResearchPhase.Planning ||
@@ -243,9 +252,43 @@ class ResearchViewModel(
     fun submit() {
         val question = mutableUiState.value.question
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
+        run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis())
+    }
+
+    /**
+     * Asks [text] about the answer on screen. The follow-up is read together with the question it
+     * follows, and that reading is what research runs on and what the progress screen shows.
+     */
+    fun submitFollowUp(text: String) {
+        val state = mutableUiState.value
+        if (text.isBlank() || state.answer.isBlank() || state.isRunning || !attachmentSession.ready ||
+            researchJob?.isActive == true) return
+        val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer)
+        val readAs = xyz.fieldatlas.research.FollowUp.readAs(state.question, text, root = earlier.first().readAs)
+        savedStateHandle[QUESTION_KEY] = readAs
+        run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis())
+    }
+
+    /**
+     * The reading of a follow-up was wrong: stop, and put it in the question box to correct and
+     * ask on its own.
+     */
+    fun editReadAs() {
+        val state = mutableUiState.value
+        if (state.asked.isBlank()) return
+        stopRunning()
+        rawAnswer.clear()
+        savedStateHandle[QUESTION_KEY] = state.question
+        mutableUiState.value = ResearchUiState(question = state.question, attachments = attachmentSession.state.value)
+    }
+
+    private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long) {
         rawAnswer.clear()
         mutableUiState.value = ResearchUiState(
             question = question,
+            asked = asked,
+            earlier = earlier,
+            topic = topic,
             attachments = attachmentSession.state.value,
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
@@ -313,10 +356,12 @@ class ResearchViewModel(
                         ).also {
                             val state = it
                             historyStore?.record(
-                                question = state.question,
+                                question = state.shownQuestion,
                                 answer = state.answer,
                                 sources = state.sources.map { evidence -> evidence.title },
                                 evidence = historyEvidence(state.sources),
+                                topic = state.topic,
+                                readAs = state.question.takeIf { state.asked.isNotBlank() },
                             )
                         }
                     }
@@ -352,10 +397,12 @@ class ResearchViewModel(
             // from and cancelled is still worth finding in History later.
             val state = mutableUiState.value
             historyStore?.record(
-                question = state.question,
+                question = state.shownQuestion,
                 answer = state.answer,
                 sources = state.sources.map { evidence -> evidence.title },
                 evidence = historyEvidence(state.sources),
+                topic = state.topic,
+                readAs = state.question.takeIf { state.asked.isNotBlank() },
             )
             mutableUiState.value = state.copy(
                 phase = ResearchPhase.Idle,

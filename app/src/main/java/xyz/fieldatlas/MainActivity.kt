@@ -317,6 +317,8 @@ class MainActivity : ComponentActivity() {
                 diagnosticsText = diagnosticsNotices.joinToString("\n") { "[${it.area}] ${it.message}" },
                 onClearDiagnostics = container.errorBus::clear,
                 onAskAnotherQuestion = { researchViewModel.startNewQuestion() },
+                onFollowUp = researchViewModel::submitFollowUp,
+                onEditReadAs = researchViewModel::editReadAs,
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {

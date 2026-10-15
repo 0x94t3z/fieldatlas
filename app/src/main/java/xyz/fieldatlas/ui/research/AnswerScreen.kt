@@ -61,6 +61,7 @@ fun AnswerScreen(
     onBack: () -> Unit,
     onAskAnother: () -> Unit,
     onCitation: (zeroBasedSourceIndex: Int) -> Unit,
+    onFollowUp: (String) -> Unit = {},
     onOpenLibrary: () -> Unit = {},
     travelCollectionAvailable: Boolean = false,
 ) {
@@ -117,10 +118,15 @@ fun AnswerScreen(
                 contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
+                // Earlier questions of this topic, folded to one line each.
+                state.earlier.forEachIndexed { index, turn ->
+                    item(key = "earlier:$index") { EarlierTurnCard(index + 1, turn) }
+                }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (state.earlier.isNotEmpty()) FollowUpLabel(state.earlier.size + 1)
                         Text(
-                            text = state.question.ifBlank { "Research result" },
+                            text = state.shownQuestion.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineMedium,
                         )
                         FlowRow(
@@ -335,14 +341,23 @@ fun AnswerScreen(
                     appWritten = noModelReply,
                 )
             }
-            // Pinned like the design, so the next question is always one tap away.
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-            Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
-                OutlinedButton(shape = FieldAtlasButtonShape, 
-                    onClick = onAskAnother,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-                ) {
-                    Text("Ask another question")
+            // Pinned, so a follow-up or a new topic is always one tap away. A follow-up is only offered
+            // once the answer is finished: it is read together with this answer.
+            if (state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {
+                FollowUpComposer(
+                    follows = (state.earlier.firstOrNull()?.asked ?: state.shownQuestion).ifBlank { "this answer" },
+                    onSend = onFollowUp,
+                    onNewTopic = onAskAnother,
+                )
+            } else {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                Box(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 10.dp)) {
+                    OutlinedButton(shape = FieldAtlasButtonShape,
+                        onClick = onAskAnother,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                    ) {
+                        Text("Ask another question")
+                    }
                 }
             }
         }

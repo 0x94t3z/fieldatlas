@@ -23,6 +23,10 @@ data class AnswerRecord(
     val createdAtEpochMs: Long,
     val sources: List<String> = emptyList(),
     val evidence: List<Evidence> = emptyList(),
+    /** Shared by a question and its follow-ups; null for records saved before follow-ups existed. */
+    val topic: Long? = null,
+    /** For a follow-up, the standalone question it was read as. */
+    val readAs: String? = null,
 )
 
 /**
@@ -71,7 +75,8 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
         }
     }
 
-    fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList()) {
+    fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList(),
+               topic: Long? = null, readAs: String? = null) {
         if (answer.isBlank()) return
         val entry = AnswerRecord(
             question = question.trim(),
@@ -79,6 +84,8 @@ class AnswerHistoryStore(private val file: File, private val synchronousWrites: 
             createdAtEpochMs = System.currentTimeMillis(),
             sources = sources,
             evidence = evidence,
+            topic = topic,
+            readAs = readAs,
         )
         synchronized(lock) {
             (listOf(entry) + mutableRecords.value).take(MAX_ENTRIES).also { mutableRecords.value = it }
