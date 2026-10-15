@@ -654,6 +654,11 @@ class EmergencyGuideMatchTest {
         assertNull(match("we ate wild mushrooms for dinner in Italy, which kind were they?"))
     }
 
+    @Test fun anAccidentFarFromHelpCountsAsAnInjury() {
+        val q = "a motorbike crashed on the mountain road, the rider is pinned under it, no signal out here, what do we do"
+        assertTrue(q, EmergencyGuideMatch.rank(q, book.guides).any { it.first.id == "injured-outdoors" })
+    }
+
     @Test fun beingFarFromHelpIsNotAnInjury() {
         assertNotEquals("injured-outdoors", match("we are camping with no signal for a week, what should we bring?"))
         assertEquals("injured-outdoors", EmergencyGuideMatch.rank("I hurt my knee on the trail and there is no signal, what should I do?",

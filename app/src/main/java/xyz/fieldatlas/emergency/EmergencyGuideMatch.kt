@@ -93,7 +93,9 @@ object EmergencyGuideMatch {
             "below zero|minus|mountains?|hut|glacier|subzero|sub-zero)\\b"),
         // Its steps are for someone hurt far from help; being far from help is not itself an injury.
         "injured-outdoors" to Regex("(?i)\\b(injur\\w*|hurt\\w*|fell|fall(?:s|en)?|broke\\w*|broken|bleed\\w*|sprain\\w*|twist\\w*|cut|cuts|" +
-            "wound\\w*|can'?t walk|cannot walk|bitten|stung|burn\\w*|fractur\\w*|dislocat\\w*|unconscious|bruis\\w*|pain\\w*)\\b"),
+            "wound\\w*|can'?t walk|cannot walk|bitten|stung|burn\\w*|fractur\\w*|dislocat\\w*|unconscious|bruis\\w*|pain\\w*|" +
+            // An accident is an injury until shown otherwise: "the car rolled off the road, the driver is trapped and moaning".
+            "crash\\w*|accident\\w*|collision|collided|wreck\\w*|trapped|pinned|rolled (?:over|off)|moaning|groaning|crushed)\\b"),
         "altitude-sickness" to Regex("(?i)\\b(altitude|elevation|mountains?|mount|mt|summit|peak|trek(?:king|ked)?|climb(?:s|ed|ing)?|hiked up|high up|" +
             "above sea level|cusco|la paz|lhasa|tibet|quito|bogot[aá]|leh|ladakh|everest|kilimanjaro|himalaya\\w*|andes|" +
             "\\d[\\d,]*\\s*(?:m|meters?|metres?|ft|feet)\\b|ams|hape|hace)\\b"),
