@@ -784,7 +784,7 @@ private fun MessageCard(title: String, message: String) {
 
 /** Five bars that follow the microphone level, newest on the right, so speech visibly registers. */
 @Composable
-private fun VoiceLevelMeter(level: Float, modifier: Modifier = Modifier) {
+internal fun VoiceLevelMeter(level: Float, modifier: Modifier = Modifier) {
     val history = remember { mutableStateListOf(0f, 0f, 0f, 0f, 0f) }
     LaunchedEffect(level) {
         history.removeAt(0)
@@ -801,7 +801,7 @@ private fun VoiceLevelMeter(level: Float, modifier: Modifier = Modifier) {
 
 /** A softly pulsing red dot: the conventional "recording now" mark. */
 @Composable
-private fun RecordingDot() {
+internal fun RecordingDot() {
     val pulse = rememberInfiniteTransition(label = "recordingDot")
     val alpha by pulse.animateFloat(
         initialValue = 1f,

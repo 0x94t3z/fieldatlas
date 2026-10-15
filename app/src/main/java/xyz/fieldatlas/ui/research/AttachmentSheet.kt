@@ -28,7 +28,8 @@ import xyz.fieldatlas.ui.theme.TileTone
 /** The attach choices with a line each on what happens to the file, all of it on the phone. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AttachmentSheet(onDismiss: () -> Unit, onCamera: () -> Unit, onPhotos: () -> Unit, onFiles: () -> Unit) {
+internal fun AttachmentSheet(onDismiss: () -> Unit, onCamera: () -> Unit, onPhotos: () -> Unit, onFiles: () -> Unit,
+                             title: String = "Add to your question") {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -40,7 +41,7 @@ internal fun AttachmentSheet(onDismiss: () -> Unit, onCamera: () -> Unit, onPhot
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("Add to your question", style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle, modifier = Modifier.weight(1f))
+                Text(title, style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle, modifier = Modifier.weight(1f))
                 xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close attachment choices")
             }
             Column(Modifier.padding(vertical = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

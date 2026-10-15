@@ -64,6 +64,17 @@ fun AnswerScreen(
     onFollowUp: (String) -> Unit = {},
     onOpenLibrary: () -> Unit = {},
     travelCollectionAvailable: Boolean = false,
+    followUpDraft: String = "",
+    onFollowUpDraftChange: (String) -> Unit = {},
+    voiceState: VoiceUiState = VoiceUiState(),
+    onFollowUpMic: () -> Unit = {},
+    onFollowUpCamera: () -> Unit = {},
+    onFollowUpPhotos: () -> Unit = {},
+    onFollowUpFiles: () -> Unit = {},
+    onRemoveAttachment: (String) -> Unit = {},
+    onRetryAttachment: (String) -> Unit = {},
+    attachmentNotice: String? = null,
+    onLeaveFollowUp: () -> Unit = {},
 ) {
     BackHandler(onBack = onBack)
     val presentation = buildAnswerPresentation(state.answer, state.sources.size)
@@ -346,8 +357,22 @@ fun AnswerScreen(
             if (state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {
                 FollowUpComposer(
                     follows = (state.earlier.firstOrNull()?.asked ?: state.shownQuestion).ifBlank { "this answer" },
+                    draft = followUpDraft,
+                    onDraftChange = onFollowUpDraftChange,
                     onSend = onFollowUp,
                     onNewTopic = onAskAnother,
+                    voice = voiceState,
+                    onMic = onFollowUpMic,
+                    attachments = state.attachments,
+                    canAddAttachment = state.canAddAttachment,
+                    attachmentsReady = state.attachmentsReady,
+                    onCamera = onFollowUpCamera,
+                    onPhotos = onFollowUpPhotos,
+                    onFiles = onFollowUpFiles,
+                    onRemoveAttachment = onRemoveAttachment,
+                    onRetryAttachment = onRetryAttachment,
+                    attachmentNotice = attachmentNotice,
+                    onLeave = onLeaveFollowUp,
                 )
             } else {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))

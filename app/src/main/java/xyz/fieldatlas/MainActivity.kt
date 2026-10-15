@@ -97,6 +97,7 @@ class MainActivity : ComponentActivity() {
                 launch()
             }
             val voiceState by researchViewModel.voiceState.collectAsStateWithLifecycle()
+            val followUpDraft by researchViewModel.followUpDraft.collectAsStateWithLifecycle()
             val diagnosticsNotices by container.errorBus.notices.collectAsStateWithLifecycle()
             val microphonePermissionLauncher = rememberLauncherForActivityResult(
                 ActivityResultContracts.RequestPermission(),
@@ -321,6 +322,11 @@ class MainActivity : ComponentActivity() {
                 onAskAnotherQuestion = { researchViewModel.startNewQuestion() },
                 onFollowUp = researchViewModel::submitFollowUp,
                 onEditReadAs = researchViewModel::editReadAs,
+                followUpDraft = followUpDraft,
+                onFollowUpDraftChange = researchViewModel::updateFollowUpDraft,
+                onSelectVoiceTarget = researchViewModel::selectVoiceTarget,
+                onSelectAttachmentTarget = researchViewModel::selectAttachmentTarget,
+                onLeaveFollowUp = researchViewModel::leaveFollowUp,
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {

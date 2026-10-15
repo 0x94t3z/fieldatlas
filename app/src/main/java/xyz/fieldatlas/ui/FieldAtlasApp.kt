@@ -137,6 +137,12 @@ fun FieldAtlasApp(
     onAskAnotherQuestion: () -> Unit = {},
     onFollowUp: (String) -> Unit = {},
     onEditReadAs: () -> Unit = {},
+    followUpDraft: String = "",
+    onFollowUpDraftChange: (String) -> Unit = {},
+    /** Which box the next dictation or file goes to: true for the follow-up box under an answer. */
+    onSelectVoiceTarget: (Boolean) -> Unit = {},
+    onSelectAttachmentTarget: (Boolean) -> Unit = {},
+    onLeaveFollowUp: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -269,6 +275,17 @@ fun FieldAtlasApp(
                         navigation.back()
                         navigation.select(PrimaryDestination.Library)
                     },
+                    followUpDraft = followUpDraft,
+                    onFollowUpDraftChange = onFollowUpDraftChange,
+                    voiceState = voiceState,
+                    onFollowUpMic = { onSelectVoiceTarget(true); onMicClick() },
+                    onFollowUpCamera = { onSelectAttachmentTarget(true); onCameraClick() },
+                    onFollowUpPhotos = { onSelectAttachmentTarget(true); onPhotosClick() },
+                    onFollowUpFiles = { onSelectAttachmentTarget(true); onFilesClick() },
+                    onRemoveAttachment = onRemoveAttachment,
+                    onRetryAttachment = onRetryAttachment,
+                    attachmentNotice = attachmentNotice,
+                    onLeaveFollowUp = onLeaveFollowUp,
                 )
                 is DetailDestination.Source -> {
                     val source = researchState.sources.getOrNull(detail.index)
@@ -372,11 +389,12 @@ fun FieldAtlasApp(
                         inferenceState = inferenceState,
                         collectionCount = enabledKnowledge.size,
                         suggestions = enabledKnowledge.flatMap { it.discovery?.exampleQuestions.orEmpty() },
-                        voiceState = voiceState,
-                        onMicClick = onMicClick,
-                        onCameraClick = onCameraClick,
-                        onPhotosClick = onPhotosClick,
-                        onFilesClick = onFilesClick,
+                        // A recording into the follow-up box is not this box's.
+                        voiceState = if (voiceState.forFollowUp) VoiceUiState() else voiceState,
+                        onMicClick = { onSelectVoiceTarget(false); onMicClick() },
+                        onCameraClick = { onSelectAttachmentTarget(false); onCameraClick() },
+                        onPhotosClick = { onSelectAttachmentTarget(false); onPhotosClick() },
+                        onFilesClick = { onSelectAttachmentTarget(false); onFilesClick() },
                         attachmentNotice = attachmentNotice,
                         onRemoveAttachment = onRemoveAttachment,
                         onRetryAttachment = onRetryAttachment,

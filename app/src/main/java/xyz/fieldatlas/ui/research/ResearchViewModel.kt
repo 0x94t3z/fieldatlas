@@ -31,8 +31,10 @@ data class VoiceUiState(
     val phase: VoicePhase = VoicePhase.Idle,
     val level: Float = 0f,
     val error: String? = null,
-    /** Words recognised so far while recording, already shown in the question box. */
+    /** Words recognised so far while recording, already shown in the box being dictated into. */
     val liveText: String = "",
+    /** Dictating into the follow-up box under an answer rather than the question box. */
+    val forFollowUp: Boolean = false,
 )
 
 data class ResearchUiState(
@@ -64,7 +66,8 @@ data class ResearchUiState(
     /** What the person asked, as they typed it. */
     val shownQuestion: String get() = asked.ifBlank { question }
     val canAddAttachment: Boolean get() = !isRunning && attachments.size < AttachmentPolicy.MAX_COUNT
-    val canSubmit: Boolean get() = question.isNotBlank() && !isRunning && attachments.all { it.phase == AttachmentPhase.Ready }
+    val attachmentsReady: Boolean get() = attachments.all { it.phase == AttachmentPhase.Ready }
+    val canSubmit: Boolean get() = question.isNotBlank() && !isRunning && attachmentsReady
     val isRunning: Boolean get() = phase == ResearchPhase.Planning ||
         phase == ResearchPhase.Searching ||
         phase == ResearchPhase.Generating
@@ -87,9 +90,15 @@ class ResearchViewModel(
         ResearchUiState(question = savedStateHandle.get<String>(QUESTION_KEY).orEmpty()),
     )
     private val attachmentSession = AttachmentSession(scope, attachmentReader, cleanupAttachment)
+    /**
+     * Where the next file goes. From the question box it starts a new question; from the follow-up box under an
+     * answer it joins the topic and the answer stays.
+     */
+    private var attachForFollowUp = false
+    fun selectAttachmentTarget(followUp: Boolean) { attachForFollowUp = followUp }
     fun addAttachment(name: String, load: suspend () -> AttachmentInput) {
         if (mutableUiState.value.isRunning) return
-        if (mutableUiState.value.phase == ResearchPhase.Complete) {
+        if (mutableUiState.value.phase == ResearchPhase.Complete && !attachForFollowUp) {
             mutableUiState.value = ResearchUiState(question = mutableUiState.value.question, attachments = attachmentSession.state.value)
         }
         attachmentSession.add(name, load)
@@ -152,6 +161,36 @@ class ResearchViewModel(
      * Starting phase while the model loads) stops it. Transcription is only
      * parked into the question box — the user still presses Start research.
      */
+    /** Where dictation writes: the question box, or the follow-up box under an answer. Chosen before the mic starts. */
+    private var voiceForFollowUp = false
+    fun selectVoiceTarget(followUp: Boolean) {
+        if (mutableVoiceState.value.phase == VoicePhase.Idle) voiceForFollowUp = followUp
+    }
+
+    private val mutableFollowUpDraft = MutableStateFlow("")
+    /** The follow-up being typed or dictated under an answer. */
+    val followUpDraft: StateFlow<String> = mutableFollowUpDraft.asStateFlow()
+    fun updateFollowUpDraft(text: String) {
+        mutableFollowUpDraft.value = text
+        if (mutableVoiceState.value.error != null && mutableVoiceState.value.phase == VoicePhase.Idle)
+            mutableVoiceState.value = mutableVoiceState.value.copy(error = null)
+    }
+
+    /** The follow-up box left the screen: a recording into it is dropped rather than left running. */
+    fun leaveFollowUp() {
+        if (!voiceForFollowUp) return
+        activeTranscriber?.let { transcriber ->
+            activeTranscriber = null
+            scope.launch { runCatching { transcriber.cancel() } }
+            // The abandoned recording's words go; what was typed before it stays.
+            mutableFollowUpDraft.value = voiceBaseQuestion
+        }
+        voiceForFollowUp = false
+        mutableVoiceState.value = VoiceUiState()
+    }
+
+    private fun writeDictation(text: String) = if (voiceForFollowUp) updateFollowUpDraft(text) else updateQuestion(text)
+
     fun onMicClick() {
         if (mutableUiState.value.isRunning) return
         when (mutableVoiceState.value.phase) {
@@ -164,20 +203,22 @@ class ResearchViewModel(
     fun onMicrophonePermissionDenied() {
         mutableVoiceState.value = VoiceUiState(
             error = "Allow microphone access in Android settings to use offline dictation.",
+            forFollowUp = voiceForFollowUp,
         )
     }
 
     private fun startVoiceCapture() {
         scope.launch {
-            mutableVoiceState.value = VoiceUiState(VoicePhase.Starting)
+            val forFollowUp = voiceForFollowUp
+            mutableVoiceState.value = VoiceUiState(VoicePhase.Starting, forFollowUp = forFollowUp)
             val transcriber = runCatching { createTranscriber() }.getOrNull()
             if (transcriber == null) {
-                mutableVoiceState.value = VoiceUiState(error = "Voice input isn't available on this phone right now.")
+                mutableVoiceState.value = VoiceUiState(error = "Voice input isn't available on this phone right now.", forFollowUp = forFollowUp)
                 return@launch
             }
             activeTranscriber = transcriber
             // Live words are appended to what was already typed; stop() swaps in the final text.
-            voiceBaseQuestion = mutableUiState.value.question.trim()
+            voiceBaseQuestion = (if (forFollowUp) mutableFollowUpDraft.value else mutableUiState.value.question).trim()
             val startFailure = runCatching {
                 transcriber.start(
                     onLevel = { level ->
@@ -187,7 +228,7 @@ class ResearchViewModel(
                         scope.launch {
                             if (activeTranscriber !== transcriber) return@launch
                             mutableVoiceState.value = mutableVoiceState.value.copy(liveText = live)
-                            updateQuestion(joinQuestion(voiceBaseQuestion, live))
+                            writeDictation(joinQuestion(voiceBaseQuestion, live))
                         }
                     },
                 )
@@ -196,10 +237,10 @@ class ResearchViewModel(
                 activeTranscriber = null
                 runCatching { transcriber.cancel() }
                 val reason = startFailure?.let { "Could not start recording: ${it.message ?: it.javaClass.simpleName}" }
-                mutableVoiceState.value = VoiceUiState(error = reason)
+                mutableVoiceState.value = VoiceUiState(error = reason, forFollowUp = forFollowUp)
                 return@launch
             }
-            mutableVoiceState.value = VoiceUiState(VoicePhase.Recording)
+            mutableVoiceState.value = VoiceUiState(VoicePhase.Recording, forFollowUp = forFollowUp)
         }
     }
 
@@ -211,14 +252,15 @@ class ResearchViewModel(
         scope.launch {
             val transcriber = activeTranscriber ?: return@launch
             val live = mutableVoiceState.value.liveText
-            mutableVoiceState.value = VoiceUiState(VoicePhase.Processing)
+            mutableVoiceState.value = VoiceUiState(VoicePhase.Processing, forFollowUp = voiceForFollowUp)
             val result = runCatching { transcriber.stop() }
             activeTranscriber = null
             // The final pass can correct the live guess; if it returns nothing, keep what was shown.
             val transcript = result.getOrDefault("").ifBlank { live }
-            updateQuestion(joinQuestion(voiceBaseQuestion, transcript))
+            writeDictation(joinQuestion(voiceBaseQuestion, transcript))
             val failure = result.exceptionOrNull()
             mutableVoiceState.value = VoiceUiState(
+                forFollowUp = voiceForFollowUp,
                 error = failure?.let {
                     "The recording stopped early: ${it.message ?: it.javaClass.simpleName}"
                 } ?: if (transcript.isBlank()) "No speech was detected. Try speaking again." else null,
@@ -266,6 +308,8 @@ class ResearchViewModel(
         val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer)
         val readAs = xyz.fieldatlas.research.FollowUp.readAs(state.question, text, root = earlier.first().readAs)
         savedStateHandle[QUESTION_KEY] = readAs
+        mutableFollowUpDraft.value = ""
+        attachForFollowUp = false
         run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis())
     }
 
@@ -385,6 +429,8 @@ class ResearchViewModel(
         attachmentSession.clear()
         stopRunning()
         rawAnswer.clear()
+        mutableFollowUpDraft.value = ""
+        attachForFollowUp = false
         savedStateHandle[QUESTION_KEY] = ""
         mutableUiState.value = ResearchUiState()
     }
