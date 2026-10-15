@@ -27,6 +27,8 @@ data class AnswerRecord(
     val topic: Long? = null,
     /** For a follow-up, the standalone question it was read as. */
     val readAs: String? = null,
+    /** How long the answer took on this phone; null for answers saved before this was kept, and for stopped ones. */
+    val durationMs: Long? = null,
 ) {
     /** The topic this answer belongs to. One saved before topics existed is its own, keyed by when it was saved. */
     val topicKey: Long get() = topic ?: createdAtEpochMs
@@ -107,7 +109,7 @@ class AnswerHistoryStore(
     }
 
     fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList(),
-               topic: Long? = null, readAs: String? = null) {
+               topic: Long? = null, readAs: String? = null, durationMs: Long? = null) {
         if (answer.isBlank()) return
         val entry = AnswerRecord(
             question = question.trim(),
@@ -117,6 +119,7 @@ class AnswerHistoryStore(
             evidence = evidence,
             topic = topic,
             readAs = readAs,
+            durationMs = durationMs,
         )
         synchronized(lock) {
             mutableRecords.value = listOf(entry) + mutableRecords.value

@@ -644,14 +644,9 @@ private fun ResearchAction(
     }
 }
 
-/**
- * The live status of a research run: what it is doing, time so far, the steps, and the draft as it is written.
- * The Research home shows it with its own Stop; the answer page shows it where the answer will appear, with Stop in
- * the question box below ([onStop] null).
- */
+/** The live status of a research run on the Research home: what it is doing, time so far, the steps, and Stop. */
 @Composable
-internal fun ResearchProgressCard(state: ResearchUiState, onStop: (() -> Unit)?) {
-    val onAnswerPage = onStop == null
+private fun ResearchProgressCard(state: ResearchUiState, onStop: () -> Unit) {
     var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
     LaunchedEffect(state.startedAtNanos) {
         val start = state.startedAtNanos ?: return@LaunchedEffect
@@ -671,24 +666,19 @@ internal fun ResearchProgressCard(state: ResearchUiState, onStop: (() -> Unit)?)
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
                         fontWeight = FontWeight(650)))
                 if (state.startedAtNanos != null) {
-                    Text(formatResearchElapsed(elapsedMillis) + if (onAnswerPage) " elapsed" else "", style = MaterialTheme.typography.labelSmall,
+                    Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
                 }
             }
-            if (onStop != null) FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
+            FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )) { Text("Stop") }
         }
-        ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)), gap = if (onAnswerPage) 12.dp else 18.dp)
-        // On the answer page the passages being read are named; when the answer is written they become its sources.
-        if (onAnswerPage && state.phase == ResearchPhase.Generating && state.tokensWritten == 0 && state.sources.isNotEmpty()) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-            ReadingNow(state.sources)
-        }
+        ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
         if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
             Text("Model-generated · no supporting sources found",
                 style = MaterialTheme.typography.bodySmall,
@@ -705,54 +695,15 @@ internal fun ResearchProgressCard(state: ResearchUiState, onStop: (() -> Unit)?)
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (onAnswerPage && draftBlocks.isEmpty()) {
-            Text("Keeps going if you switch apps. On slower phones an answer takes 2 to 5 minutes.",
-                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
     }
 }
-
-/** The passages the model is reading, numbered as they will be cited. */
-@Composable
-private fun ReadingNow(sources: List<xyz.fieldatlas.research.Evidence>) {
-    val shown = sources.take(READING_NOW_ROWS)
-    val tileColor = if (androidx.compose.foundation.isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceVariant
-        else xyz.fieldatlas.ui.theme.FieldAtlasColors.SageWash
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("READING NOW", style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.5.sp, fontWeight = FontWeight(650),
-            letterSpacing = 0.6.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        shown.forEachIndexed { index, evidence ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(Modifier.size(28.dp), shape = MaterialTheme.shapes.small, color = tileColor) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("${index + 1}", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.semantics { contentDescription = "Source ${index + 1}" })
-                    }
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(evidence.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.5.sp, lineHeight = 19.sp),
-                        fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    val presentation = xyz.fieldatlas.ui.sourcePresentation(evidence)
-                    Text(if (presentation.isAttachment) presentation.metadata else xyz.fieldatlas.ui.sourceDisplayName(evidence.source),
-                        style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.5.sp, lineHeight = 15.sp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-        }
-        if (sources.size > shown.size) Text("and ${sources.size - shown.size} more",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-private const val READING_NOW_ROWS = 4
 
 /**
  * Keeps the engine's prompt-reading reports with their arrival times and re-estimates progress
  * a few times a second, so the bar keeps moving between the engine's block reports.
  */
 @Composable
-private fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
+internal fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
     val reading = state.phase == ResearchPhase.Generating && state.tokensWritten == 0
     val startedAt = remember(state.startedAtNanos, reading) { android.os.SystemClock.uptimeMillis() }
     val samples = remember(state.startedAtNanos) { mutableStateListOf<PrefillSample>() }
@@ -775,7 +726,7 @@ private fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
 private data class ExampleQuestion(val label: String, val question: String, val icon: ImageVector, val tone: TileTone)
 
 @Composable
-private fun ResearchSteps(steps: List<ResearchStep>, gap: androidx.compose.ui.unit.Dp = 18.dp) {
+private fun ResearchSteps(steps: List<ResearchStep>) {
     Column(Modifier.fillMaxWidth()) {
         steps.forEachIndexed { index, step ->
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -787,7 +738,7 @@ private fun ResearchSteps(steps: List<ResearchStep>, gap: androidx.compose.ui.un
                                 else MaterialTheme.colorScheme.outlineVariant))
                     }
                 }
-                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = if (index < steps.lastIndex) gap else 0.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = if (index < steps.lastIndex) 18.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(step.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp),
                         fontWeight = FontWeight.Medium,
                         color = if (step.status == StepStatus.Pending) MaterialTheme.colorScheme.onSurfaceVariant

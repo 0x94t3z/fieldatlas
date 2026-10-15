@@ -437,6 +437,7 @@ class ResearchViewModel(
                                 evidence = historyEvidence(state.sources),
                                 topic = state.topic,
                                 readAs = state.question.takeIf { state.asked.isNotBlank() },
+                                durationMs = event.metrics.totalMillis,
                             )
                         }
                     }

@@ -305,6 +305,7 @@ fun FieldAtlasApp(
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
                     // The follow-up is researched on this page, under the answer it follows.
                     onFollowUp = onFollowUp,
+                    typicalAnswerMillis = remember(historyRecords) { xyz.fieldatlas.ui.research.typicalAnswerMillis(historyRecords) },
                     onStop = onStop,
                     onEditReadAs = onEditReadAs,
                     onCitation = navigation::openSource,

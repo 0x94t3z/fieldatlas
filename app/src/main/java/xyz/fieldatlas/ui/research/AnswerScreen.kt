@@ -77,6 +77,8 @@ fun AnswerScreen(
     onLeaveFollowUp: () -> Unit = {},
     onStop: () -> Unit = {},
     onEditReadAs: () -> Unit = {},
+    /** How long this phone's recent answers took, for the status line while one is researched. */
+    typicalAnswerMillis: Long? = null,
 ) {
     BackHandler(onBack = onBack)
     // The page opens as soon as research starts: the live status sits where the answer will appear.
@@ -191,7 +193,9 @@ fun AnswerScreen(
                 if (running) {
                     // A follow-up shows how it is searched, with Edit, then the live status where its answer will appear.
                     if (state.asked.isNotBlank()) item(key = "readAs") { ReadAsRow(state.question, onEditReadAs) }
-                    item(key = "progress") { ResearchProgressCard(state, onStop = null) }
+                    item(key = "progress") { ResearchTrailStatus(state, typicalAnswerMillis) }
+                    item(key = "forthcoming") { ForthcomingAnswer(state) }
+                    item(key = "sourcesSoFar") { SourcesSoFar(state) }
                 } else {
                 // No collection can support a sum worked from the question's own numbers, so none is suggested.
                 if (state.sources.isEmpty() && !isInputNotice && !noModelReply && !withheld && !workedFromQuestion) {
