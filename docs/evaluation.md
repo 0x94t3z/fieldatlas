@@ -1,5 +1,88 @@
 # Evaluation
 
+## 1.4.2: follow-up questions, emergencies told as statements, word problems (October 15)
+
+Every number below compares 1.4.1 with the 1.4.2 code on questions written after the changes by
+AI models that read no repository file, sealed by SHA-256 before any run, and graded blind. The
+answers, readings, guides and grades are in [results-1.4.2](fieldtest/results-1.4.2/).
+
+### Follow-up questions
+
+A question asked under an answer is now read together with the question before it. "What about
+X", "how about X" and "and in/for/during X" swap in the new subject ("tipping customs in Japan",
+then "what about South Korea?", is searched as "tipping customs in South Korea"); anything else
+keeps both questions. The screen shows that reading while it searches, and Edit corrects it.
+
+30 pairs of a first question and the follow-up a person would type next were answered twice by the
+same build: the follow-up alone, as 1.4.1 asks it, and as read. Six graders scored the 60 answers in
+two rounds, each seeing the conversation and one answer, never which version wrote it
+([pairs and grades](fieldtest/results-1.4.2/followups.jsonl)).
+
+| Follow-up kind | Pairs | Asked alone (1.4.1) | As read (1.4.2) |
+| --- | ---: | ---: | ---: |
+| Pointing back ("which one is cheapest?") | 8 | 0.75 | 2.50 |
+| New subject ("what about Peru?") | 8 | 0.06 | 2.81 |
+| Going deeper ("why?", "is that safe?") | 7 | 0.86 | 1.50 |
+| Practical next step ("how do I get there?") | 7 | 0.14 | 2.07 |
+| **All** | **30** | **0.45 of 10** | **2.25 of 10** |
+
+The reading was better on 19 pairs, worse on 4 and the same on 7; the two rounds agreed (0.47 and
+0.43 against 2.27 and 2.23). Asked alone, "which of those are free?" after Tallinn's sights was
+answered about free algebras, and "which ones got executed?" after Henry VIII's wives about a Texas
+prison escape. The level stays low: the model is the same, and a follow-up such as "which one is
+closest to the castle?" lists the places without measuring from the castle.
+
+### Emergencies told as statements
+
+On new emergency questions 1.4.1 found the right guide for 9 of 45. Most misses named the hazard
+but did not ask anything ("tornado siren going off and we're in a motel room"), and a final check
+dropped them. A guide named by its own term, with someone in the situation, is now shown; "should
+we" reads like "should I"; plants, berries or mushrooms eaten before falling ill open the poisoning
+guide; the outdoor-injury guide needs an injury or an accident; questions about trials and
+evidence go to research.
+
+| Set (80 questions, 45 emergencies, 35 look-alikes) | Build | Right guide | Look-alikes given no guide | Unsafe guide |
+| --- | --- | ---: | ---: | ---: |
+| A ([questions](fieldtest/results-1.4.2/emergency-a.jsonl)), used while making the changes | 1.4.1 | 9 | 35 | 0 |
+| | 1.4.2 | 14 | 35 | 0 |
+| **B** ([questions](fieldtest/results-1.4.2/emergency-b.jsonl)), written after them | 1.4.1 | 9 | 30 | 0 |
+| | **1.4.2** | **14** | **31** | **0** |
+
+The 320-question labelled set (development data) goes from 129 to 152 answered well, with no
+unsafe guide. Most new emergencies still get no guide: symptoms described without the hazard's
+name ("her face went lopsided", "went stiff and started jerking") match no word list. Matching them
+by the words of each guide's own text was tried and rejected: half of what it added was the wrong
+guide (CPR for a stroke, the earthquake guide for a seizure).
+
+### Word problems that name places
+
+A question with four or more of its own figures and an arithmetic ask is worked from its figures
+even when it names places ("leaves Tokyo at 17:05 … lands in San Francisco at 10:20 … UTC+9 …
+UTC-7"), and "which is cheaper", "by how much" and "what's my daily budget" count as arithmetic
+asks. Over the 876 earlier questions, 9 change route, each a self-contained word problem.
+
+### Single questions: set 11
+
+60 new questions ([questions](fieldtest/heldout11.jsonl)) answered by 1.4.1 and the 1.4.2 code with
+the same collections, graded blind in two rounds against web-researched frontier answers. 57 of
+the 60 answers are identical; of the three that differ, one is a pharmacy list read at another
+minute, one is a question about omega-3 trials that no longer gets the heart-attack guide, and one
+(a car off the road with the driver trapped) lost the outdoor guide, which was fixed before release.
+
+| Set 11 | Share of the reference | Per round |
+| --- | --- | --- |
+| 1.4.1 | 27.3% | 28.1%, 26.4% |
+| 1.4.2 code | 27.3% | 28.3%, 26.3% |
+
+Single questions are where they were: the changes help follow-ups and emergencies, not the
+answers the model writes.
+
+### History keeps every answer
+
+In the long session below, History kept only the newest 100 answers, so the first 20 of 120 were
+gone by the end with no notice. 1.4.2 keeps every answer until the reader deletes it. The History
+screen warns instead when the phone has less than 300 MB free, or when an answer could not be saved.
+
 ## 1.4.1 release build on fresh questions (October 15)
 
 The published 1.4.1 build was measured on a new set, the same way 1.4.0 was measured on set 6. An
@@ -124,9 +207,9 @@ permutation test puts it well within chance (p = 0.34). By quarter the share mov
 | Follow-up pairs, second question | 10 | 0.1 | 1% |
 
 1.4.1 has no follow-ups, so every second question was read alone: "which of them are free to
-visit?" after a question about Kyoto got an answer about VisIt, a visualization program. The 23% is
-not a controlled comparison with set 9's 29%: the questions differ, and these answers came from the
-phone rather than the desktop pipeline.
+visit?" after a question about Kyoto got an answer about VisIt, a visualization program. 1.4.2 adds
+follow-ups (see above). The 23% is not a controlled comparison with set 9's 29%: the questions
+differ, and these answers came from the phone rather than the desktop pipeline.
 
 Two things about the method. The answers were read from the phone's screen dump, which misses text
 drawn with inline citation marks, so 7 answers were transcribed from History or from screenshots.
