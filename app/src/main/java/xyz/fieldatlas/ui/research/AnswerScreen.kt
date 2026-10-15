@@ -75,17 +75,33 @@ fun AnswerScreen(
     onRetryAttachment: (String) -> Unit = {},
     attachmentNotice: String? = null,
     onLeaveFollowUp: () -> Unit = {},
+    onStop: () -> Unit = {},
+    onEditReadAs: () -> Unit = {},
 ) {
     BackHandler(onBack = onBack)
-    val presentation = buildAnswerPresentation(state.answer, state.sources.size)
-    val isInputNotice = state.answer.isNotBlank() && state.answer ==
+    // The page opens as soon as research starts: the live status sits where the answer will appear.
+    val running = state.isRunning
+    var confirmNewTopic by rememberSaveable { mutableStateOf(false) }
+    if (confirmNewTopic && running) {
+        xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
+            title = "Stop this research?",
+            message = "The answer being written stops and a new topic starts. What was written so far is kept in History.",
+            onKeep = { confirmNewTopic = false },
+            onDelete = { confirmNewTopic = false; onAskAnother() },
+            deleteLabel = "Stop and start new",
+        )
+    }
+    // What follows reads the finished answer. While research runs it is skipped: the research rules it calls are being
+    // loaded on a worker the first time, and waiting for them here would freeze the screen.
+    val presentation = if (running) AnswerPresentation(emptyList(), emptySet(), emptySet()) else buildAnswerPresentation(state.answer, state.sources.size)
+    val isInputNotice = !running && state.answer.isNotBlank() && state.answer ==
         xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty())
     // Lookups such as "near me" reply with app-written text and never run the model, so
     // "model-generated" and "not verified against sources" labels would be wrong there.
     val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
     // The app's own "not enough evidence" reply is not a model answer, whatever ran before it.
-    val withheld = state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
-        state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE
+    val withheld = !running && (state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
+        state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE)
     val calculated = noModelReply && state.answer.contains("_Calculated on this phone._")
     val workedFromQuestion = state.metrics?.workedFromQuestion == true
     val suggestTravel = travelCollectionAvailable && Regex(
@@ -114,14 +130,14 @@ fun AnswerScreen(
     val placeCards = if (noModelReply) remember(state.answer, state.sources) {
         placeCardModels(presentation.blocks, state.sources)
     } else null
-    val missingSubjects = xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
+    val missingSubjects = if (running) emptyList() else xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
         Column(Modifier.fillMaxSize().navigationBarsPadding()) {
-            FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank()) null else ({
+            FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank() || running) null else ({
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
             LazyColumn(
@@ -145,7 +161,9 @@ fun AnswerScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             val cited = citedSourceGroups.size
-                            if (cited > 0) {
+                            if (running) {
+                                FieldAtlasStatusPill("Working on this phone", StatusTone.Neutral, icon = connectionDino(false))
+                            } else if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
                                     (if (noModelReply) "From saved data · " else "") +
@@ -167,10 +185,15 @@ fun AnswerScreen(
                                     if (withheld || isInputNotice || noModelReply || workedFromQuestion) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
-                            state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
+                            if (!running) state.metrics?.totalMillis?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
                         }
                     }
                 }
+                if (running) {
+                    // A follow-up shows how it is searched, with Edit, then the live status where its answer will appear.
+                    if (state.asked.isNotBlank()) item(key = "readAs") { ReadAsRow(state.question, onEditReadAs) }
+                    item(key = "progress") { ResearchProgressCard(state, onStop = null) }
+                } else {
                 // No collection can support a sum worked from the question's own numbers, so none is suggested.
                 if (state.sources.isEmpty() && !isInputNotice && !noModelReply && !withheld && !workedFromQuestion) {
                     item {
@@ -339,6 +362,7 @@ fun AnswerScreen(
                         }
                     }
                 }
+                }
             }
             previewIndex?.let { index ->
                 SourcePreviewSheet(
@@ -352,15 +376,15 @@ fun AnswerScreen(
                     appWritten = noModelReply,
                 )
             }
-            // Pinned, so a follow-up or a new topic is always one tap away. A follow-up is only offered
-            // once the answer is finished: it is read together with this answer.
-            if (state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {
+            // Pinned, so a follow-up or a new topic is always one tap away. A follow-up is only sent once the
+            // answer is finished: it is read together with this answer. While research runs the box's button is Stop.
+            if (running || state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {
                 FollowUpComposer(
                     follows = (state.earlier.firstOrNull()?.asked ?: state.shownQuestion).ifBlank { "this answer" },
                     draft = followUpDraft,
                     onDraftChange = onFollowUpDraftChange,
                     onSend = onFollowUp,
-                    onNewTopic = onAskAnother,
+                    onNewTopic = { if (running) confirmNewTopic = true else onAskAnother() },
                     voice = voiceState,
                     onMic = onFollowUpMic,
                     attachments = state.attachments,
@@ -373,6 +397,8 @@ fun AnswerScreen(
                     onRetryAttachment = onRetryAttachment,
                     attachmentNotice = attachmentNotice,
                     onLeave = onLeaveFollowUp,
+                    running = running,
+                    onStop = onStop,
                 )
             } else {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))

@@ -74,6 +74,9 @@ internal fun FollowUpComposer(
     onRetryAttachment: (String) -> Unit = {},
     attachmentNotice: String? = null,
     onLeave: () -> Unit = {},
+    /** An answer is being researched on this page: the button is Stop, and a follow-up can be drafted but not sent. */
+    running: Boolean = false,
+    onStop: () -> Unit = {},
 ) {
     // Turning the phone rebuilds the screen around the same answer; only really leaving it drops a follow-up recording.
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -84,7 +87,7 @@ internal fun FollowUpComposer(
     val mine = voice.forFollowUp
     val recording = mine && voice.phase == VoicePhase.Recording
     val busy = mine && (voice.phase == VoicePhase.Starting || voice.phase == VoicePhase.Processing)
-    val canSend = draft.isNotBlank() && attachmentsReady && !recording && !busy
+    val canSend = draft.isNotBlank() && attachmentsReady && !recording && !busy && !running
     val send = { if (canSend) onSend(draft.trim()) }
     Column(Modifier.fillMaxWidth()) {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -93,7 +96,9 @@ internal fun FollowUpComposer(
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(FieldAtlasIcons.History, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(
-                    buildAnnotatedString {
+                    if (running) buildAnnotatedString {
+                        append(if (draft.isBlank()) "Working on this answer · Stop ends it" else "Send opens when this answer is ready")
+                    } else buildAnnotatedString {
                         append("Follows ")
                         withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)) { append(follows) }
                     },
@@ -129,7 +134,11 @@ internal fun FollowUpComposer(
                         }
                         Box(Modifier.weight(1f).padding(vertical = 12.dp)) {
                             // A slim box under the answer: medium text, so the placeholder does not compete with the answer.
-                            if (draft.isEmpty()) Text(if (recording) "Speak your follow-up" else "Ask a follow-up",
+                            if (draft.isEmpty()) Text(when {
+                                recording -> "Speak your follow-up"
+                                running -> "Type your follow-up now"
+                                else -> "Ask a follow-up"
+                            },
                                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             BasicTextField(
                                 value = draft, onValueChange = onDraftChange,
@@ -143,9 +152,18 @@ internal fun FollowUpComposer(
                             )
                         }
                         if (recording) VoiceLevelMeter(voice.level, Modifier.padding(end = 6.dp))
+                        // While an answer is researched the button stops it; the microphone is hidden so it means one thing.
+                        if (running) IconButton(onClick = onStop) {
+                            Surface(Modifier.size(40.dp), shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(androidx.compose.material.icons.Icons.Filled.Stop, "Stop research", Modifier.size(20.dp))
+                                }
+                            }
+                        }
                         // Typed text turns the microphone into Send, as in a message box; while recording it is Stop.
                         val showSend = draft.isNotBlank() && !recording && !busy
-                        IconButton(onClick = if (showSend) send else onMic,
+                        if (!running) IconButton(onClick = if (showSend) send else onMic,
                             enabled = if (showSend) canSend else voice.phase == VoicePhase.Idle || recording) {
                             Surface(Modifier.size(40.dp), shape = MaterialTheme.shapes.small,
                                 color = when {

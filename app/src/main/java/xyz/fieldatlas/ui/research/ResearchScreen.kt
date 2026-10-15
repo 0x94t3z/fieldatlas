@@ -518,6 +518,25 @@ fun ResearchScreen(
     }
 }
 
+/** How a follow-up is searched, as one standalone question, with Edit to correct it. */
+@Composable
+internal fun ReadAsRow(readAs: String, onEdit: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(FieldAtlasIcons.Research, null, Modifier.padding(top = 2.dp).size(17.dp), tint = MaterialTheme.colorScheme.primary)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("Searching for", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(readAs, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(550)))
+            }
+            androidx.compose.material3.TextButton(onClick = onEdit) { Text("Edit") }
+        }
+    }
+}
+
 @Composable
 internal fun ResearchQuestionPanel(
     question: String,
@@ -537,20 +556,7 @@ internal fun ResearchQuestionPanel(
             Text(question, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 15.sp, lineHeight = 24.sp, fontWeight = FontWeight(450)))
             // A follow-up is searched as one standalone question; show that reading, and let it be corrected.
-            if (readAs != null) Surface(
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-            ) {
-                Row(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Icon(FieldAtlasIcons.Research, null, Modifier.padding(top = 2.dp).size(17.dp), tint = MaterialTheme.colorScheme.primary)
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Searching for", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(readAs, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(550)))
-                    }
-                    androidx.compose.material3.TextButton(onClick = onEditReadAs) { Text("Edit") }
-                }
-            }
+            if (readAs != null) ReadAsRow(readAs, onEditReadAs, Modifier.padding(top = 6.dp))
         }
         return
     }
@@ -589,55 +595,7 @@ private fun ResearchAction(
     onPrepareModel: () -> Unit,
 ) {
     if (state.isRunning || inferenceState == InferenceState.Generating) {
-        var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
-        LaunchedEffect(state.startedAtNanos) {
-            val start = state.startedAtNanos ?: return@LaunchedEffect
-            while (true) {
-                elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
-                delay(1_000)
-            }
-        }
-        val modelWriting = state.tokensWritten > 0
-        FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                // A source lead arrives before the model writes; until then the model is still reading.
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
-                        drafting = modelWriting, checking = state.checking),
-                        style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
-                            fontWeight = FontWeight(650)))
-                    if (state.startedAtNanos != null) {
-                        Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
-                    }
-                }
-                FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )) { Text("Stop") }
-            }
-            ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
-            if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
-                Text("Model-generated · no supporting sources found",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            // Parsed once per answer change, not on every progress tick.
-            val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
-            if (draftBlocks.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                AnswerMarkdownRenderer(
-                    blocks = draftBlocks,
-                    sourceCount = 0,
-                    onCitation = {},
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
+        ResearchProgressCard(state, onStop)
         return
     }
     // Missing inputs, emergency guides and near-me lookups are answered without the language
@@ -681,6 +639,64 @@ private fun ResearchAction(
             modifier = Modifier.fillMaxWidth(),
         )
         InferenceState.Generating -> Unit
+    }
+}
+
+/**
+ * The live status of a research run: what it is doing, time so far, the steps, and the draft as it is written.
+ * The Research home shows it with its own Stop; the answer page shows it where the answer will appear, with Stop in
+ * the question box below ([onStop] null).
+ */
+@Composable
+internal fun ResearchProgressCard(state: ResearchUiState, onStop: (() -> Unit)?) {
+    var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
+    LaunchedEffect(state.startedAtNanos) {
+        val start = state.startedAtNanos ?: return@LaunchedEffect
+        while (true) {
+            elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
+            delay(1_000)
+        }
+    }
+    val modelWriting = state.tokensWritten > 0
+    FieldAtlasCard(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // A source lead arrives before the model writes; until then the model is still reading.
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
+                    drafting = modelWriting, checking = state.checking),
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
+                        fontWeight = FontWeight(650)))
+                if (state.startedAtNanos != null) {
+                    Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
+                }
+            }
+            if (onStop != null) FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )) { Text("Stop") }
+        }
+        ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
+        if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
+            Text("Model-generated · no supporting sources found",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        // Parsed once per answer change, not on every progress tick.
+        val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
+        if (draftBlocks.isNotEmpty()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+            AnswerMarkdownRenderer(
+                blocks = draftBlocks,
+                sourceCount = 0,
+                onCitation = {},
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
@@ -817,7 +833,7 @@ internal fun RecordingDot() {
  * phone's animations turned off (an accessibility setting) it stays still.
  */
 @Composable
-private fun connectionDino(online: Boolean): androidx.compose.ui.graphics.vector.ImageVector {
+internal fun connectionDino(online: Boolean): androidx.compose.ui.graphics.vector.ImageVector {
     val context = androidx.compose.ui.platform.LocalContext.current
     val still = remember(context) {
         android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f

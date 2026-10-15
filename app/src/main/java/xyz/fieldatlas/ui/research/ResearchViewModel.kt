@@ -11,6 +11,7 @@ import com.arm.aichat.PromptProgress
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.research.Evidence
@@ -86,6 +87,11 @@ class ResearchViewModel(
     clearAbandonedAttachments: (Set<String>) -> Unit = {},
 ) : ViewModel() {
     private val scope = launchScope ?: viewModelScope
+    // The research pipeline compiles hundreds of patterns the first time it runs and works through every passage; on
+    // the main thread that froze a Redmi 13C for 6.7 s ("isn't responding" on any tap). It runs on a worker; only the
+    // screen's state is updated on the main thread. A test's own scope keeps everything on its thread.
+    private val researchContext: kotlin.coroutines.CoroutineContext =
+        if (launchScope == null) kotlinx.coroutines.Dispatchers.Default else kotlin.coroutines.EmptyCoroutineContext
     private val mutableUiState = MutableStateFlow(
         ResearchUiState(question = savedStateHandle.get<String>(QUESTION_KEY).orEmpty()),
     )
@@ -308,6 +314,7 @@ class ResearchViewModel(
     fun submit() {
         val question = mutableUiState.value.question
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
+        beforeFollowUp = null
         run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis())
     }
 
@@ -324,6 +331,7 @@ class ResearchViewModel(
         savedStateHandle[QUESTION_KEY] = readAs
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
+        beforeFollowUp = state
         run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(),
             // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
             // is no longer attached, and its words must not be quoted as the library's.
@@ -338,6 +346,7 @@ class ResearchViewModel(
     fun editReadAs() {
         val state = mutableUiState.value
         if (state.asked.isBlank()) return
+        beforeFollowUp = null
         stopRunning()
         rawAnswer.clear()
         savedStateHandle[QUESTION_KEY] = state.question
@@ -364,7 +373,10 @@ class ResearchViewModel(
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join() }
             // A run cancelled while it waited never touches the model.
             ensureActive()
-            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried).collect { event ->
+            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried)
+                .flowOn(researchContext).collect { event ->
+                // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
+                ensureActive()
                 mutableUiState.value = when (event) {
                     is ResearchEvent.Planning -> mutableUiState.value.copy(
                         phase = ResearchPhase.Planning,
@@ -448,6 +460,7 @@ class ResearchViewModel(
      */
     fun continueTopic(record: xyz.fieldatlas.research.AnswerRecord, history: List<xyz.fieldatlas.research.AnswerRecord>): Boolean {
         if (mutableUiState.value.isRunning) return false
+        beforeFollowUp = null
         // An answer saved before topics existed starts its own: its follow-ups take its time as their topic.
         val key = record.topicKey
         val turns = history.filter { it.topicKey == key }
@@ -478,6 +491,7 @@ class ResearchViewModel(
     fun startNewQuestion() {
         // A run in flight is kept in History as Cancel keeps it, not thrown away.
         if (mutableUiState.value.isRunning) cancelResearch()
+        beforeFollowUp = null
         attachmentSession.clear()
         stopRunning()
         rawAnswer.clear()
@@ -502,12 +516,25 @@ class ResearchViewModel(
                 topic = state.topic,
                 readAs = state.question.takeIf { state.asked.isNotBlank() },
             )
-            mutableUiState.value = state.copy(
+            val followed = beforeFollowUp?.takeIf { state.asked.isNotBlank() }
+            beforeFollowUp = null
+            if (followed != null) {
+                // A stopped follow-up gives the page back to the answer it followed, with the follow-up back in the box
+                // to send again or change: nothing of the topic is lost.
+                rawAnswer.clear()
+                rawAnswer.append(followed.answer)
+                savedStateHandle[QUESTION_KEY] = followed.question
+                mutableUiState.value = followed.copy(attachments = attachmentSession.state.value)
+                mutableFollowUpDraft.value = state.asked
+            } else mutableUiState.value = state.copy(
                 phase = ResearchPhase.Idle,
                 completion = ResearchCompletion.Cancelled,
             )
         }
     }
+
+    /** The finished answer a running follow-up builds on, given back if that follow-up is stopped. */
+    private var beforeFollowUp: ResearchUiState? = null
 
     override fun onCleared() {
         attachmentSession.clear()

@@ -162,6 +162,17 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("Stop").assertExists().assertIsEnabled()
     }
 
+    @Test fun aStartedRunOpensTheAnswerPageWithStopInTheQuestionBox() {
+        render(researchState = ResearchUiState(question = "Explain tides", phase = ResearchPhase.Searching,
+            startedAtNanos = System.nanoTime()))
+        compose.waitUntil { compose.onAllNodesWithText("Working on this phone").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Explain tides").assertExists()
+        compose.onNodeWithContentDescription("Stop research").assertExists().assertIsEnabled()
+        // One Stop: the status card on this page has no button of its own, and nothing can be sent yet.
+        compose.onNodeWithText("Stop").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Ask follow-up").assertDoesNotExist()
+    }
+
     @Test fun bottomNavigationUsesLabeledSemanticIcons() {
         render()
         compose.onNodeWithContentDescription("Research").assertExists()

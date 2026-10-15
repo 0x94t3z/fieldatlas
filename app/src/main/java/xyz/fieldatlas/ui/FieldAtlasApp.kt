@@ -205,6 +205,15 @@ fun FieldAtlasApp(
             navigation.openAnswer()
         }
     }
+    // Start research opens the answer page at once, where the live status sits until the answer replaces it. Once per
+    // run: Back returns to the Research home, which keeps showing the progress, and the page reopens when it is done.
+    var answerOpenedForRun by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf<Long?>(null) }
+    LaunchedEffect(researchState.startedAtNanos, researchState.isRunning) {
+        if (opensAnswerOnStart(researchState.startedAtNanos, researchState.isRunning, answerOpenedForRun)) {
+            answerOpenedForRun = researchState.startedAtNanos
+            navigation.openAnswer()
+        }
+    }
     FieldAtlasTheme {
         var showDownloadSources by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
         fun sourceFor(artifact: xyz.fieldatlas.assets.DownloadArtifact): String =
@@ -261,15 +270,19 @@ fun FieldAtlasApp(
         val detail = navigation.detail
         if (detail != null) {
             when (detail) {
-                // After the process was restarted only the question survives: there is no answer to show.
-                DetailDestination.Answer -> if (researchState.answer.isBlank() && !researchState.isRunning) {
+                // Nothing running and nothing finished (stopped, an error, Edit on a follow-up's reading, or a restart
+                // that kept only the question): the Research home says what happened and holds the question.
+                DetailDestination.Answer -> if (!researchState.isRunning &&
+                    (researchState.phase != ResearchPhase.Complete || researchState.answer.isBlank())) {
                     LaunchedEffect(Unit) { navigation.back() }
                 } else AnswerScreen(
                     state = researchState,
                     onBack = closeDetail,
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
-                    // Back to the research screen, which shows the follow-up's progress; the answer opens again when done.
-                    onFollowUp = { text -> onFollowUp(text); navigation.back() },
+                    // The follow-up is researched on this page, under the answer it follows.
+                    onFollowUp = onFollowUp,
+                    onStop = onStop,
+                    onEditReadAs = onEditReadAs,
                     onCitation = navigation::openSource,
                     travelCollectionAvailable = availableKnowledge.any { it.id == "wikivoyage-places" } &&
                         packs.none { it.id == "wikivoyage-places" },
@@ -529,3 +542,7 @@ private fun primaryIcon(destination: PrimaryDestination): ImageVector = when (de
     PrimaryDestination.History -> FieldAtlasIcons.History
     PrimaryDestination.More -> FieldAtlasIcons.More
 }
+
+/** Whether a run that has just started should open the answer page: once per run, identified by its start time. */
+internal fun opensAnswerOnStart(startedAtNanos: Long?, running: Boolean, openedForRun: Long?): Boolean =
+    running && startedAtNanos != null && startedAtNanos != openedForRun

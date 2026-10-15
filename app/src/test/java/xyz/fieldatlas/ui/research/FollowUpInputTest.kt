@@ -49,10 +49,11 @@ class FollowUpInputTest {
     }
 
     private fun answered(speech: String = "", inference: FakeInferenceGateway = FakeInferenceGateway(listOf("Answer [S1]", "Second [S1]")),
-                         seen: MutableList<Int>? = null, transcriber: SpeechTranscriber? = null): ResearchViewModel {
+                         seen: MutableList<Int>? = null, transcriber: SpeechTranscriber? = null,
+                         retriever: Retriever = Retriever { _, _, _ -> listOf(evidence) }): ResearchViewModel {
         val viewModel = ResearchViewModel(
             savedStateHandle = SavedStateHandle(),
-            orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, inference),
+            orchestrator = ResearchOrchestrator(retriever, inference),
             launchScope = scope,
             createTranscriber = { transcriber ?: ScriptedSpeech(speech) },
             attachmentReader = reader,
@@ -135,6 +136,42 @@ class FollowUpInputTest {
         assertEquals("", viewModel.followUpDraft.value)
         assertEquals(VoicePhase.Idle, viewModel.voiceState.value.phase)
         assertEquals(null, viewModel.voiceState.value.error)
+    }
+
+    @Test fun stoppingAFollowUpGivesThePageBackToTheAnswerItFollowed() {
+        var hang = false
+        // The first question is answered; the follow-up's search never finishes, so it can be stopped midway.
+        val viewModel = answered(retriever = Retriever { _, _, _ ->
+            if (hang) kotlinx.coroutines.awaitCancellation() else listOf(evidence)
+        })
+        val before = viewModel.uiState.value
+        hang = true
+        viewModel.submitFollowUp("which one is closest to the castle?")
+        assertTrue(viewModel.uiState.value.isRunning)
+        assertEquals("", viewModel.followUpDraft.value)
+        viewModel.cancelResearch()
+        val after = viewModel.uiState.value
+        assertEquals(ResearchPhase.Complete, after.phase)
+        assertEquals(before.answer, after.answer)
+        assertEquals(before.question, after.question)
+        assertEquals(before.sources, after.sources)
+        assertEquals(before.earlier, after.earlier)
+        assertEquals("which one is closest to the castle?", viewModel.followUpDraft.value)
+    }
+
+    @Test fun stoppingAQuestionOfItsOwnStillLeavesItInTheBox() {
+        val viewModel = ResearchViewModel(
+            savedStateHandle = SavedStateHandle(),
+            orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> kotlinx.coroutines.awaitCancellation() },
+                FakeInferenceGateway(listOf("unused"))),
+            launchScope = scope,
+        )
+        viewModel.updateQuestion("Best vegan food in Lisbon")
+        viewModel.submit()
+        viewModel.cancelResearch()
+        assertEquals(ResearchPhase.Idle, viewModel.uiState.value.phase)
+        assertEquals("Best vegan food in Lisbon", viewModel.uiState.value.question)
+        assertEquals(ResearchCompletion.Cancelled, viewModel.uiState.value.completion)
     }
 
     @Test fun aFileAddedToAFollowUpKeepsTheAnswerAndGoesWithTheFollowUp() {
