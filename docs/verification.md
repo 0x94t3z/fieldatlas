@@ -1,9 +1,39 @@
 # Verification
 
-## Source checks after 1.4.0 (October 14, 2026, not released)
+## v1.4.1 release build (October 15, 2026)
 
-These checks cover the fixes made after the published 1.4.0 (commits after `65851ba`). No new
-version was built for release.
+- **Public APK:** version 1.4.1 (20), built from `2a2011a` and tagged on `2817ce8`. 73,164,251
+  bytes, SHA-256 `bca52edf4830ee3c853c9175f921556a2e7388c5316bd6fd61db0fadc052aff0`. Its
+  certificate matches the existing public release certificate
+  (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). The download from the
+  GitHub release was hashed again after publishing.
+- **Automated:** release build and release lint passed (0 errors). 1,387 JVM tests ran with none
+  failing (56 opt-in tests skipped). 78 script, 12 pack-tool, 10 benchmark and 256 tool tests
+  passed, and so did the website's 25 browser tests. The offline packaging audit passed, the APK is
+  16 KB-aligned, and all 23 native libraries pass the alignment check. The answer-text tests that use
+  new regular expressions also ran on the Redmi 13C's own runtime.
+- **Collections:** not attached to the release. Each one downloads from Hugging Face at a pinned
+  revision, and each public copy was downloaded and hashed in full before the catalog pointed to it
+  ([DATASETS.md](../DATASETS.md#collections-the-app-offers)).
+- **Phone:** a locally signed build of the same app code on a Redmi 13C (Android 13), installed over
+  earlier builds with its data kept. The five new collection versions were imported through
+  Library, the earlier versions deleted in the app, and questions answered in airplane mode. The
+  public-key APK itself was not installed on a phone.
+- **Answer quality:** 29% of web-researched frontier-model answers on 60 fresh questions (set 9),
+  with 0.67 factual errors per answer. On the same questions 1.4.0 scored 28.6% and 1.4.1 29.7%.
+  20 new questions asked in the installed app on the Redmi scored 4.65 of 10. Over 120 questions in
+  a row on the phone, quality did not drift (26% of the reference in the first half, 25% in the
+  second) and the app neither crashed nor slowed down. Details:
+  [set 9](evaluation.md#141-release-build-on-fresh-questions-october-15),
+  [long session](evaluation.md#141-over-a-long-session-120-questions-in-a-row-on-the-phone-october-15),
+  [on the phone](evaluation.md#141-on-the-phone-answers-speed-tokens-and-failures-october-14-15).
+  The bounty's bar is not met.
+- **Not verified:** the public-key APK on a phone, and network traffic during research.
+
+## Source checks after 1.4.0 (October 14, 2026, released in 1.4.1)
+
+These checks cover the fixes made after the published 1.4.0 (commits after `65851ba`). They were
+released in 1.4.1 the next day.
 
 - **Automated:** 1,376 Android JVM tests ran with none failing. Python: 78 script, 12 pack-tool,
   10 benchmark and 247 tool tests passed. On the Redmi 13C, the unit suite was run under Android's

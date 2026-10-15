@@ -119,9 +119,11 @@ The default model and every collection together take about 30.9 GB.
 
 ## Watch it work
 
-A 52-second animated walkthrough of v1.2.0, built from screen mockups that match the app:
+A 2-minute narrated tour of v1.4.1, built from screen mockups that match the app: first-run
+setup, then airplane mode, a pharmacy open now found by GPS, a snakebite question spoken aloud, and
+a PDF answered with its page cited:
 
-[![Watch the Field Atlas v1.2.0 demo](docs/branding/field-atlas-v1.2.0-demo.png)](https://github.com/0x94t3z/fieldatlas/releases/download/v1.2.0/field-atlas-1.2.0-film.mp4)
+[![Watch the Field Atlas v1.4.1 tour](docs/branding/field-atlas-v1.4.1-demo.png)](https://x.com/0x94t3z/status/2110516184823304644)
 
 And an [unedited 35-second phone recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4)
 on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns six cited places in
