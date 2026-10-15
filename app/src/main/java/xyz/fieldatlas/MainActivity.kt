@@ -327,6 +327,7 @@ class MainActivity : ComponentActivity() {
                 onSelectVoiceTarget = researchViewModel::selectVoiceTarget,
                 onSelectAttachmentTarget = researchViewModel::selectAttachmentTarget,
                 onLeaveFollowUp = researchViewModel::leaveFollowUp,
+                onContinueTopic = { record -> researchViewModel.continueTopic(record, historyRecords) },
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {

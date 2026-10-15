@@ -71,6 +71,7 @@ fun HistoryScreen(
     onAskAgain: (String) -> Unit = {},
     onDelete: (Long) -> Unit = {},
     storage: HistoryStorage = HistoryStorage(),
+    onContinue: (AnswerRecord) -> Unit = {},
 ) {
     // The same quick look as on an answer, over the passages saved with this record.
     var savedSource by remember { mutableStateOf<Pair<AnswerRecord, Int>?>(null) }
@@ -152,6 +153,7 @@ fun HistoryScreen(
                 item(key = record.createdAtEpochMs) {
                     val root = topicRoots[record.topic]?.takeIf { it.createdAtEpochMs != record.createdAtEpochMs }
                     HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain, followUpOf = root?.question,
+                        onContinue = { onContinue(record) },
                         onDelete = { onDelete(record.createdAtEpochMs) }) { index -> savedSource = record to index }
                 }
             }
@@ -165,6 +167,7 @@ private fun HistoryCard(
     time: String,
     onAskAgain: (String) -> Unit,
     followUpOf: String? = null,
+    onContinue: (() -> Unit)? = null,
     onDelete: () -> Unit,
     onOpenSource: (Int) -> Unit,
 ) {
@@ -231,7 +234,7 @@ private fun HistoryCard(
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 val context = androidx.compose.ui.platform.LocalContext.current
-                HistoryActions(onAskAgain = { onAskAgain(record.readAs ?: record.question) },
+                HistoryActions(onAskAgain = { onAskAgain(record.readAs ?: record.question) }, onContinue = onContinue,
                     onShare = {
                         xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
                             xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))
@@ -251,9 +254,19 @@ private fun HistoryCard(
 
 /** A clear repeat action plus quiet utilities; large text never shrinks the tap targets. */
 @Composable
-internal fun HistoryActions(onAskAgain: () -> Unit, onShare: () -> Unit, onDelete: () -> Unit) {
+internal fun HistoryActions(onAskAgain: () -> Unit, onShare: () -> Unit, onDelete: () -> Unit, onContinue: (() -> Unit)? = null) {
     BoxWithConstraints(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         val stacked = maxWidth < 280.dp || LocalDensity.current.fontScale > 1.3f
+        // Continue picks the topic up where it ended, follow-up box ready; Ask again runs the question afresh.
+        val resume: @Composable (Modifier) -> Unit = { modifier ->
+            if (onContinue != null) androidx.compose.material3.Button(onClick = onContinue,
+                modifier = modifier.heightIn(min = 48.dp), shape = FieldAtlasButtonShape,
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp)) {
+                Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.History, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Continue", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold))
+            }
+        }
         val repeat: @Composable (Modifier) -> Unit = { modifier ->
             androidx.compose.material3.OutlinedButton(onClick = onAskAgain,
                 modifier = modifier.heightIn(min = 48.dp), shape = FieldAtlasButtonShape,
@@ -271,10 +284,12 @@ internal fun HistoryActions(onAskAgain: () -> Unit, onShare: () -> Unit, onDelet
             }
         }
         if (stacked) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            resume(Modifier.fillMaxWidth())
             repeat(Modifier.fillMaxWidth())
             Box(Modifier.align(Alignment.End)) { utilities() }
-        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically) {
+            resume(Modifier)
             repeat(Modifier)
             Spacer(Modifier.weight(1f))
             utilities()

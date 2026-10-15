@@ -143,6 +143,8 @@ fun FieldAtlasApp(
     onSelectVoiceTarget: (Boolean) -> Unit = {},
     onSelectAttachmentTarget: (Boolean) -> Unit = {},
     onLeaveFollowUp: () -> Unit = {},
+    /** Picks a History topic up again; false while an answer is being written. */
+    onContinueTopic: (AnswerRecord) -> Boolean = { false },
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -440,7 +442,12 @@ fun FieldAtlasApp(
                         onAskExample = { question -> askAnew(question) },
                     )
                     PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question -> askAnew(question) },
-                        onDelete = onDeleteHistory, storage = historyStorage)
+                        onDelete = onDeleteHistory, storage = historyStorage,
+                        onContinue = { record ->
+                            // While an answer is being written it is never interrupted: show it instead.
+                            navigation.select(PrimaryDestination.Research)
+                            if (onContinueTopic(record)) navigation.openAnswer()
+                        })
                     PrimaryDestination.More -> MoreScreen(
                         packs = packs,
                         onOpenLibrary = { navigation.select(PrimaryDestination.Library) },

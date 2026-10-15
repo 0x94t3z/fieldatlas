@@ -424,6 +424,37 @@ class ResearchViewModel(
         }
     }
 
+    /**
+     * Picks a topic up again from History: its latest answer is shown as finished, the questions before it fold above
+     * it, and the next follow-up reads it like any other (with the passages saved alongside it). Returns false while an
+     * answer is being written, which is never interrupted for this.
+     */
+    fun continueTopic(record: xyz.fieldatlas.research.AnswerRecord, history: List<xyz.fieldatlas.research.AnswerRecord>): Boolean {
+        if (mutableUiState.value.isRunning) return false
+        val turns = (if (record.topic == null) listOf(record) else history.filter { it.topic == record.topic })
+            .sortedBy { it.createdAtEpochMs }.ifEmpty { listOf(record) }
+        val last = turns.last()
+        stopRunning()
+        rawAnswer.clear()
+        attachmentSession.clear()
+        mutableFollowUpDraft.value = ""
+        attachForFollowUp = false
+        val readAs = last.readAs ?: last.question
+        savedStateHandle[QUESTION_KEY] = readAs
+        rawAnswer.append(last.answer)
+        mutableUiState.value = ResearchUiState(
+            question = readAs,
+            asked = if (last.readAs != null) last.question else "",
+            earlier = turns.dropLast(1).map { xyz.fieldatlas.research.FollowUp.Turn(it.question, it.readAs ?: it.question, it.answer) },
+            topic = last.topic ?: last.createdAtEpochMs,
+            answer = last.answer,
+            sources = last.evidence,
+            phase = ResearchPhase.Complete,
+            completion = ResearchCompletion.Complete,
+        )
+        return true
+    }
+
     /** Clears the finished answer so the screen returns to a fresh-asking state. */
     fun startNewQuestion() {
         // A run in flight is kept in History as Cancel keeps it, not thrown away.
