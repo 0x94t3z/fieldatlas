@@ -212,7 +212,7 @@ details[open] summary::after { content: '−'; }
   .setup-section, .download-section { grid-template-columns: 1fr; padding: 2rem 1.5rem; gap: 2rem; }
   .split-heading { display: block; }
   .split-heading > p { margin: 1.3rem 0 0; }
-  .collection-grid { grid-template-columns: 1fr; }
+  .collection-grid { grid-template-columns: minmax(0, 1fr); }
   .collection-top { margin-bottom: 1.5rem; }
   .faq-section { grid-template-columns: 1fr; gap: 1.5rem; }
   .site-footer { flex-direction: column; gap: .5rem; padding: 1.5rem 0; }
@@ -283,3 +283,375 @@ summary:hover, summary:focus-visible { background: #e5eadc; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+
+/* ===================== Shared: tokens and controls used by both views ===================== */
+:root { --hud: #10261ed9; --hud-ink: #eaf1e4; --hud-dim: #a9c2b2; --amber: #d9a441; --panel: #fbf9f2ee;
+}
+/* inset: 0 rather than 100vh: on phones it follows the visible area as the toolbar comes and goes. */
+#world { position: fixed; inset: 0; z-index: 0; display: none; width: 100%; height: 100%; }
+.world-fallback { position: fixed; inset: 0; z-index: 0; display: grid; place-items: center; background: var(--paper); pointer-events: none; }
+.world-fallback img { width: min(520px, 70vw); opacity: .5; }
+@media (min-width: 1101px) { .world-fallback { place-items: center end; padding-right: 9vw; } }
+.track, .hud, .beacon-tag, .prompt, .start-hint, .hud-strip { display: none; }
+.round-btn { display: grid; place-items: center; flex-shrink: 0; width: 40px; height: 40px; border: 1px solid #10261e1f; border-radius: 50%;
+  background: #ffffff99; color: var(--ink); cursor: pointer; transition: background .18s; }
+.round-btn:hover:not(:disabled) { background: var(--green); border-color: var(--green); color: #fffdf7; }
+.round-btn:disabled { opacity: .35; cursor: default; }
+.round-btn .icon { width: 1.05rem; height: 1.05rem; }
+.prompt-prev .icon, .popup-prev .icon { transform: rotate(180deg); }
+
+/* ===================== Plain page: every section as a card over the compass ===================== */
+/* The fallback without JavaScript or WebGL. */
+body { overflow-x: hidden; }
+.page-shell { position: relative; z-index: 2; }
+.site-header { position: sticky; top: 0; z-index: 6; padding: .8rem 1.4rem; border: 1px solid #d3d8cb99; border-top: 0; border-radius: 0 0 14px 14px;
+  background: #f8f6eecc; backdrop-filter: blur(10px) saturate(1.2); -webkit-backdrop-filter: blur(10px) saturate(1.2); }
+.stage { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 1.6rem; padding: 7rem 0 5rem; }
+.panel { position: relative; max-width: 560px; padding: 2.4rem; background: var(--panel); border: 1px solid #d3d8cb; border-radius: 16px;
+  box-shadow: 0 30px 60px -28px #10261e66, 0 1px 0 #ffffff inset; }
+/* Corner brackets: a field-card look */
+.panel::before, .panel::after { content: ''; position: absolute; width: 18px; height: 18px; border: 2px solid var(--green); opacity: .55; pointer-events: none; }
+.panel::before { top: 10px; left: 10px; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
+.panel::after { bottom: 10px; right: 10px; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
+.panel-right { margin-left: auto; }
+.panel-wide { width: 100%; max-width: 1080px; margin-inline: auto; }   /* full width up to the cap; auto margins alone shrink-wrap it */
+.stage.hero { padding-top: 8rem; }
+.hero .panel { max-width: 600px; align-self: flex-start; }
+.hero h1 { font-size: clamp(3rem, 6.2vw, 5.6rem); }
+.hero .field-tag { position: static; display: inline-flex; margin-top: 1.4rem; box-shadow: none; }
+.hero .principles { align-self: flex-start; max-width: 600px; justify-content: flex-start; gap: .6rem; padding: 0; border: 0; }
+.hero .principles > span { padding: .55rem .85rem; border-radius: 999px; background: var(--hud); color: var(--hud-ink); font-size: .75rem; }
+.hero .principles .icon { color: #9fd2b4; }
+.setup-section, .download-section, .faq-section { display: flex; padding: 7rem 0 5rem; background: none; border: 0; border-radius: 0; }
+.setup-section .panel { display: grid; gap: 2rem; max-width: 620px; }
+.faq-panel { display: grid; grid-template-columns: .8fr 1.2fr; gap: 3rem; }
+.community-section { margin: 0; border: 0; }
+.community-section .panel { max-width: 760px; }
+.community-card { grid-template-columns: 1fr; gap: 22px; background: #f3f3ea; }
+.panel-dark { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem 3rem; align-items: center; max-width: 760px; margin-inline: auto;
+  background: #174d3bf2; border-color: #2c6a53; color: var(--paper); }
+.panel-dark::before, .panel-dark::after { border-color: var(--amber); }
+.panel-dark .release-notice { grid-column: 1 / -1; margin: 0; padding-top: 1.4rem; border-top: 1px solid #46715d; font-size: .8125rem; }
+/* Collections as an inventory: each slot with a coloured edge */
+.collection-card { position: relative; border-width: 1px 1px 1px 4px; }
+/* Not links, so no hover lift. */
+.collection-card.essentials { border-left-color: #b4553a; }
+.collection-card.vegan { border-left-color: #b98543; }
+.collection-card.encyclopedia { border-left-color: #2f6f73; }
+.collection-card.travel { border-left-color: #5b7a3c; }
+.collection-card.biology { border-left-color: #3c7a55; }
+.collection-card .small-label { padding: .25rem .55rem; border-radius: 4px; background: var(--hud); color: var(--hud-ink); letter-spacing: .14em; }
+.site-footer.panel { max-width: none; margin-bottom: 48px; }
+.site-footer.panel::before, .site-footer.panel::after { display: none; }
+@media (max-width: 1000px) { .faq-panel, .panel-dark { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .site-header { padding: .7rem 1rem; border-radius: 0 0 12px 12px; }
+  .stage, .setup-section, .download-section, .faq-section { min-height: 92vh; padding: 5.5rem 0 4rem; }
+  .stage.hero { min-height: auto; padding: 1.5rem 0 4rem; }
+  .panel { padding: 1.5rem; border-radius: 14px; }
+  .panel::before, .panel::after { width: 12px; height: 12px; }
+  .value-grid, .collection-grid { grid-template-columns: minmax(0, 1fr); }   /* minmax: cards wrap rather than outgrow a narrow screen */
+}
+
+/* ===================== Island view (html.game, set by boot.js) ===================== */
+/* The world fills the screen. The page scrolls an empty track that walks the trail; the hero is a title screen,
+   each later stop shows a small prompt, and its section opens as a pop-up only when asked for.
+   Everything that floats over the world is smoked glass with light text: it reads over sky and forest alike and
+   lets the island show through. Pop-ups, made for reading, are frosted paper. */
+:root { --smoke: #0f241cad; --smoke-line: #ffffff26; --smoke-ink: #eef3ea; --smoke-dim: #b6cabb; --smoke-hover: #ffffff1c;
+  --cta: #e3b45a; --cta-hover: #f0c776; --cta-ink: #10261e; --frost: #f7f5edeb; --frost-bar: #f3f1e8f0;
+  --glass-blur: blur(14px) saturate(1.3); }
+html.game { scroll-snap-type: y proximity; }
+.game body { background: #cfe1d9; }
+.game #world { display: block; }
+.game .world-fallback { display: none; }
+.game .track { display: block; position: relative; z-index: 0; pointer-events: none; }
+.game .track > span { display: block; height: 100vh; scroll-snap-align: start; }
+.game .page-shell { position: fixed; inset: 0; z-index: 3; max-width: none; margin: 0; padding: 0; pointer-events: none; }
+.game .stage { display: none; }
+.game .stage.hero, .game .stage.is-open { display: flex; }
+/* Rings: light amber over the world, the darker page amber inside the paper pop-ups. */
+.game :focus-visible { outline-color: var(--cta); outline-offset: 3px; }
+.game .stage.is-open .panel:not(.panel-dark) :focus-visible { outline-color: #a26524; }
+
+/* ---------- smoked glass: one surface for every floating control ---------- */
+.game .site-header .wordmark, .game #site-navigation, .game .nav-ready #menu-toggle, .game .hud-strip, .game .prompt, .game .beacon-tag, .game .hud-map {
+  background: var(--smoke); border: 1px solid var(--smoke-line); color: var(--smoke-ink); box-shadow: 0 14px 34px -20px #050f0bcc;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+.game .round-btn { background: #ffffff14; border-color: #ffffff2e; color: var(--smoke-ink); }
+.game .round-btn:hover:not(:disabled) { background: var(--smoke-ink); border-color: var(--smoke-ink); color: var(--cta-ink); }
+.game .round-btn:disabled { opacity: .3; }
+
+/* Top bar */
+.game .site-header { position: fixed; top: 14px; left: 16px; right: 16px; z-index: 7; justify-content: flex-start; gap: .6rem; padding: 0;
+  border: 0; border-radius: 0; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; pointer-events: none; }
+.game .site-header > * { pointer-events: auto; }
+/* Round mark in a round pill: the circle sits concentric with the pill's end, an even ring all around. */
+.game .site-header .wordmark { gap: .55rem; padding: .25rem 1rem .25rem .25rem; border-radius: 999px; font-size: 1.02rem; white-space: nowrap; transition: background .18s; }
+.game .site-header .wordmark img { width: 32px; height: 32px; border-radius: 50%; }
+.game .site-header .wordmark:hover { background: #0f241ce6; }
+.game .hud-strip { display: flex; align-items: center; gap: 1rem; padding: .62rem .95rem; border-radius: 999px;
+  font: 600 .62rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; white-space: nowrap; }
+.hud-status { display: inline-flex; align-items: center; gap: .45rem; }
+/* The dinosaur from the app's Offline chip; it walks while the camera travels (world.js). */
+/* 16px: on a 2x screen one device pixel per cell of the 32-cell sprite, so the pixel art stays sharp. */
+.dino { width: 16px; height: 16px; flex-shrink: 0; fill: #9fdcb5; stroke: none; shape-rendering: crispEdges; }
+.hud-sep { color: var(--smoke-dim); }
+.hud-readout { display: inline-flex; gap: .7rem; color: var(--smoke-dim); font-variant-numeric: tabular-nums; }
+.hud-progress { display: inline-flex; align-items: center; gap: .5rem; }
+.hud-wp-index { color: var(--cta); font-size: .7rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hud-wp-name { font: 400 .8rem/1 Georgia, serif; letter-spacing: 0; color: #fff; }
+.hud-bar { width: 64px; height: 5px; overflow: hidden; border-radius: 3px; background: #ffffff22; }
+.hud-bar-fill { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; border-radius: 3px; background: linear-gradient(90deg, #7fd3a1, var(--cta)); }
+.hud-pct { color: var(--smoke-dim); font-size: .6rem; }
+.game #sound-toggle { display: grid; place-items: center; flex-shrink: 0; width: 44px; height: 44px; margin-left: auto; padding: 0; border-radius: 50%;
+  background: var(--smoke); border: 1px solid var(--smoke-line); color: var(--smoke-dim); box-shadow: 0 14px 34px -20px #050f0bcc;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); cursor: pointer; transition: color .18s, background .18s; }
+.game #sound-toggle:hover { background: #0f241ce6; color: #fff; }
+.game #sound-toggle.is-on { color: var(--cta); }
+#sound-toggle[hidden] { display: none; }
+#sound-toggle .icon { width: 1.15rem; height: 1.15rem; }
+#sound-toggle .sound-waves, #sound-toggle.is-on .sound-off { display: none; }
+#sound-toggle.is-on .sound-waves { display: inline; }
+#sound-toggle .sound-hint { display: none; }
+/* Waiting for the browser to allow sound: the button widens into a hint, waves showing, pulsing gently. */
+.game #sound-toggle.is-waiting { display: inline-flex; gap: .45rem; width: auto; padding: 0 1rem 0 .85rem; border-radius: 999px; color: var(--cta-hover); background: #0f241cf2;
+  border-color: #e3b45a66; font: 600 .78rem/1 Arial, Helvetica, sans-serif; white-space: nowrap; animation: sound-wait 2s ease-in-out infinite; }
+.game #sound-toggle.is-waiting:hover { background: #0f241ce6; color: var(--cta-hover); }
+#sound-toggle.is-waiting .sound-hint, #sound-toggle.is-waiting .sound-waves { display: inline; }
+#sound-toggle.is-waiting .sound-off { display: none; }
+@keyframes sound-wait { 50% { box-shadow: 0 0 0 6px #e3b45a33; } }
+@media (prefers-reduced-motion: reduce) { .game #sound-toggle.is-waiting { animation: none; } }
+/* Narrow phones: the hint keeps only its icon. */
+@media (max-width: 400px) { .game #sound-toggle.is-waiting { width: 44px; padding: 0; justify-content: center; } #sound-toggle.is-waiting .sound-hint { display: none; } }
+.game #site-navigation { margin-left: .6rem; gap: 0 .2rem; padding: .25rem .25rem .25rem .6rem; border-radius: 999px; }
+.game nav a { min-height: 38px; padding: 0 .7rem; border-radius: 999px; color: var(--smoke-ink); font-size: .8rem; transition: background .18s, color .18s; }
+.game nav a:hover:hover { background: var(--smoke-hover); color: #fff; text-decoration: none; }
+.game nav .nav-download { margin-left: .3rem; padding: 0 1rem; border: 0; background: var(--cta); color: var(--cta-ink); font-weight: 600; }
+.game nav .nav-download:hover { background: var(--cta-hover); color: var(--cta-ink); }
+
+/* Base camp: a title screen. Light words on a dark vignette from the left, the island lit on the right;
+   the facts run along the bottom like a status line. */
+.game .stage.hero { position: fixed; top: 84px; bottom: 26px; left: clamp(20px, 4.4vw, 64px); width: min(600px, calc(100vw - 40px)); min-height: 0;
+  align-items: stretch; justify-content: space-between; gap: 1.5rem; padding: 0; pointer-events: none; color: #f5f2e9;
+  opacity: calc(1 - var(--hero-out, 0)); transform: translateY(calc(var(--hero-out, 0) * -32px)); will-change: opacity, transform; }
+.game.hero-away .stage.hero { visibility: hidden; }
+.game .stage.hero::before { content: ''; position: absolute; z-index: -1; top: -84px; bottom: -26px; left: calc(-1 * clamp(20px, 4.4vw, 64px)); width: max(70vw, 760px);
+  pointer-events: none; background: linear-gradient(90deg, #0b1d16e0 0%, #0b1d16b8 34%, #0b1d1666 56%, #0b1d1600 80%); }
+.game .hero .panel { margin-block: auto; max-width: none; padding: 0; background: none; border: 0; box-shadow: none; pointer-events: auto; }
+.game .hero .panel::before, .game .hero .panel::after { display: none; }
+.game .hero .eyebrow { margin-bottom: 1.2rem; color: #b6cabb; }
+.game .hero .status-dot { background: #9fdcb5; }
+.game .hero h1 { margin-bottom: 1.2rem; color: #f5f2e9; font-size: clamp(3rem, 5.6vw, 5.4rem); text-shadow: 0 2px 30px #0b1d1666; }
+.game .hero h1 em { color: #9fdcb5; }
+.game .hero .hero-description { max-width: 27rem; margin-bottom: 1.8rem; color: #d3dfd5; font-size: 1.1rem; }
+.game .hero .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; }
+.game .hero .button-primary { min-height: 50px; border-radius: 999px; padding: .9rem 1.4rem; background: var(--cta); color: var(--cta-ink); }
+.game .hero .button-primary:hover { background: var(--cta-hover); }
+.game .start-hint { display: inline-flex; align-items: center; gap: .6rem; min-height: 50px; padding: 0 1.3rem; pointer-events: auto;
+  border: 1.5px solid #f5f2e966; border-radius: 999px; background: none; color: #f5f2e9; font: 600 .95rem/1 Arial, Helvetica, sans-serif; cursor: pointer;
+  transition: background .18s, color .18s, border-color .18s; }
+.game .start-hint .icon { width: 1.05rem; height: 1.05rem; transform: rotate(90deg); animation: nudge 1.8s ease-in-out infinite; }
+.game .start-hint:hover { background: #f5f2e9; border-color: #f5f2e9; color: var(--cta-ink); }
+@keyframes nudge { 50% { transform: rotate(90deg) translateX(4px); } }
+.game .hero .hero-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem 1.4rem; margin-top: 1rem; }
+.game .hero .release-caption { margin: 0; color: #b6cabb; font-size: .8rem; }
+.game .hero .github-link { margin: 0; min-height: 40px; color: #f5f2e9; font-size: .82rem; }
+.game .hero .github-link:hover { color: #9fdcb5; }
+/* The bottom line: the book line in plain words with its icon, then the facts in the HUD's monospace capitals. */
+.game .hero-facts { display: grid; gap: .6rem; padding-top: 1rem; border-top: 1px solid #f5f2e924; pointer-events: auto; }
+.game .hero .principles .icon { display: none; }
+.game .hero .field-tag { display: flex; align-items: center; gap: .55rem; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.game .hero .field-tag .tag-icon { width: auto; height: auto; background: none; color: #9fdcb5; }
+.game .hero .field-tag .icon { width: 1rem; height: 1rem; }
+.game .hero .field-tag div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .35rem; }
+.game .hero .field-tag strong { color: #f5f2e9; font: 400 .85rem/1.4 Arial, Helvetica, sans-serif; }
+.game .hero .field-tag div > span { margin: 0; color: var(--smoke-dim); font-size: .85rem; }
+.game .hero .principles { display: flex; flex-wrap: wrap; gap: .3rem 0; max-width: none; margin: 0; padding: 0; border: 0;
+  font: 600 .72rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.game .hero .principles > span { display: inline; padding: 0; background: none; border-radius: 0; color: var(--smoke-dim); font-size: inherit; }
+/* The dot hangs on the item before it, so a wrapped line never starts with one. */
+.game .hero .principles > span { white-space: nowrap; }
+.game .hero .principles > span:not(:last-child)::after { content: '·'; margin: 0 .75em; color: #9fdcb5; }
+
+/* The sound offer: a small card under the speaker chip */
+.sound-ask { display: none; }
+.game .sound-ask { position: fixed; z-index: 8; top: 72px; right: 16px; width: min(340px, calc(100vw - 24px)); display: grid; gap: .8rem; padding: 1rem 1.05rem;
+  border-radius: 16px; background: var(--smoke); border: 1px solid var(--smoke-line); color: var(--smoke-ink); box-shadow: 0 18px 40px -20px #050f0bcc;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  opacity: 0; transform: translateY(-10px); transition: opacity .3s ease, transform .4s cubic-bezier(.2, .8, .2, 1); }
+.game .sound-ask[hidden] { display: none; }
+.game .sound-ask.is-in { opacity: 1; transform: none; }
+.sound-ask-text { margin: 0; color: var(--smoke-dim); font-size: .84rem; line-height: 1.5; }
+.sound-ask-text strong { display: block; color: #fff; font: 400 1.05rem/1.3 Georgia, 'Times New Roman', serif; }
+.sound-ask-actions { display: flex; gap: .5rem; }
+.sound-ask-actions button { min-height: 40px; padding: 0 1rem; border-radius: 999px; font: 600 .82rem/1 Arial, Helvetica, sans-serif; cursor: pointer; transition: background .18s, color .18s; }
+.sound-ask-yes { border: 0; background: var(--cta); color: var(--cta-ink); }
+.sound-ask-yes:hover { background: var(--cta-hover); }
+.sound-ask-no { border: 1px solid #ffffff2e; background: none; color: var(--smoke-ink); }
+.sound-ask-no:hover { background: var(--smoke-hover); }
+@media (max-width: 760px) { .game .sound-ask { top: 64px; right: 12px !important; left: 12px; width: auto; } }
+/* While the card asks, the speaker shows only its icon: one message at a time. */
+.game.sound-asking #sound-toggle.is-waiting { width: 44px; padding: 0; justify-content: center; }
+.game.sound-asking #sound-toggle.is-waiting .sound-hint { display: none; }
+@media (prefers-reduced-motion: reduce) { .game .sound-ask { transition: none; transform: none; } }
+
+/* Tour complete: a banner from the top, like a level-clear card */
+.finish-banner { display: none; }
+.game .finish-banner { position: fixed; z-index: 8; top: 84px; left: 50%; display: grid; justify-items: center; gap: .25rem; padding: .9rem 1.8rem 1rem;
+  border-radius: 16px; background: var(--smoke); border: 1px solid #e3b45a66; box-shadow: 0 18px 40px -18px #050f0bcc, 0 0 0 4px #e3b45a1a;
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); text-align: center; pointer-events: none;
+  opacity: 0; transform: translate(-50%, -24px) scale(.96); transition: opacity .35s ease, transform .5s cubic-bezier(.2, 1.3, .3, 1); }
+.game .finish-banner[hidden] { display: none; }
+.game .finish-banner.is-in { opacity: 1; transform: translate(-50%, 0) scale(1); }
+.finish-kicker { margin: 0; color: var(--cta); font: 600 .66rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .18em; text-transform: uppercase; }
+.finish-line { margin: 0; color: #fff; font: 400 1.35rem/1.25 Georgia, 'Times New Roman', serif; letter-spacing: -.01em; white-space: nowrap; }
+@media (max-width: 760px) { .game .finish-banner { top: 66px; } .finish-line { font-size: 1.1rem; } }
+@media (prefers-reduced-motion: reduce) { .game .finish-banner { transition: opacity .2s; transform: translate(-50%, 0); } }
+
+/* The prompt: one stop at a time, small enough to leave the island in view */
+.game .prompt { position: fixed; z-index: 6; left: clamp(16px, 4vw, 56px); bottom: 24px; width: min(640px, calc(100vw - 32px)); display: flex; align-items: center; gap: 1rem;
+  padding: .85rem .85rem .85rem 1.2rem; border-radius: 18px;
+  opacity: 0; visibility: hidden; transform: translateY(18px); transition: opacity .35s ease, transform .45s cubic-bezier(.2, .8, .2, 1), visibility 0s linear .45s; }
+.game.prompt-on:not(.popup-on) .prompt { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.prompt-text { flex: 1; min-width: 0; }
+.prompt-kicker { display: flex; gap: .55rem; margin: 0 0 .3rem; color: var(--smoke-dim); font: 600 .6rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; }
+.prompt-place { color: var(--cta); }
+.prompt-place::before { content: '·'; margin-right: .55rem; color: var(--smoke-dim); }
+.prompt-title { margin: 0 0 .2rem; color: #fff; font: 400 1.32rem/1.2 Georgia, 'Times New Roman', serif; letter-spacing: -.02em; }
+.prompt-lead { margin: 0; color: var(--smoke-dim); font-size: .8rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.prompt-actions { display: flex; align-items: center; gap: .4rem; flex-shrink: 0; }
+.prompt-open { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: 0 1.05rem; border: 0; border-radius: 999px;
+  background: var(--cta); color: var(--cta-ink); font: 600 .84rem/1 Arial, Helvetica, sans-serif; white-space: nowrap; cursor: pointer; transition: background .18s; }
+.prompt-open:hover { background: var(--cta-hover); }
+.prompt-open .icon { width: 1rem; height: 1rem; }
+
+/* The tag over the flag where the explorer stands */
+.game .beacon-tag { position: fixed; left: 0; top: 0; z-index: 4; display: inline-flex; align-items: center; gap: .45rem; padding: .45rem .85rem .45rem .55rem;
+  border-radius: 999px; font: 600 .78rem/1 Arial, Helvetica, sans-serif; white-space: nowrap; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s, background .18s; }
+.game .beacon-tag.is-shown { opacity: 1; pointer-events: auto; }
+.game .beacon-tag:hover { background: var(--cta); border-color: var(--cta); color: var(--cta-ink); }
+.beacon-tag::after { content: ''; position: absolute; left: 50%; bottom: -16px; width: 1.5px; height: 16px; background: var(--smoke-ink); opacity: .8; }
+.beacon-tag-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cta); animation: beacon 1.6s ease-out infinite; }
+@keyframes beacon { 0% { box-shadow: 0 0 0 0 #e3b45aaa; } 100% { box-shadow: 0 0 0 9px #e3b45a00; } }
+
+/* Minimap: tap a waypoint to walk there */
+.game .hud { display: block; position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+.hud-map { position: absolute; right: 24px; bottom: 24px; padding: 4px; border-radius: 50%; pointer-events: auto; transition: border-color .18s; }
+.game .hud-map:hover { border-color: var(--cta); }
+.hud-map-canvas { display: block; width: 140px; height: 140px; border-radius: 50%; cursor: pointer; }
+.hud-map-label { position: absolute; top: 10px; left: 12px; color: var(--smoke-ink); font: 600 .55rem ui-monospace, Menlo, monospace; letter-spacing: .08em; text-shadow: 0 1px 2px #000a; pointer-events: none; }
+
+/* Pop-ups: frosted paper beside the explorer; the island stays faintly visible through them */
+.game .stage.is-open { position: fixed; inset: 0; z-index: 5; flex-direction: column; align-items: flex-end; justify-content: flex-start; gap: 0; min-height: 0;
+  padding: 76px clamp(16px, 2.4vw, 32px) 24px; pointer-events: none; }
+.game .stage.is-open > .panel { width: min(600px, 100%); max-width: none; max-height: 100%; margin: 0; padding: 0 2.1rem 2.1rem; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--frost); border-color: #ffffff8c; box-shadow: 0 30px 60px -30px #050f0b99;
+  backdrop-filter: blur(22px) saturate(1.2); -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  pointer-events: auto; scrollbar-width: thin; animation: popup-in .42s cubic-bezier(.2, .8, .2, 1); }
+.game .stage.is-open .panel-wide { width: min(860px, 100%); }
+.game .stage.is-open .panel-dark { width: min(720px, 100%); background: #143f30d1; border-color: #ffffff26; }
+/* Grid panels already space their children; the bar needs no margin of its own there. */
+.game .setup-section .popup-bar, .game .faq-panel .popup-bar, .game .panel-dark .popup-bar { margin-bottom: 0; }
+.game .stage.is-open > .panel::before, .game .stage.is-open > .panel::after { display: none; }
+.game .stage.is-open > .panel:focus { outline: none; }
+@keyframes popup-in { from { opacity: 0; transform: translateX(26px) scale(.985); } }
+.popup-bar { grid-column: 1 / -1; position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .4rem; margin: 0 -2.1rem 1.6rem; padding: .65rem .65rem .65rem 2.1rem;
+  background: var(--frost-bar); border-bottom: 1px solid #174d3b1f; border-radius: 16px 16px 0 0; }
+.popup-where { flex: 1; min-width: 0; margin: 0; color: var(--muted); font: 600 .7rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .1em; text-transform: uppercase; }
+.popup-bar .round-btn { width: 40px; height: 40px; }
+.popup-close .icon { width: 1.1rem; height: 1.1rem; }
+/* Inside the paper pop-ups the round buttons are ink on paper, filling green on hover. */
+.game .panel:not(.panel-dark) .round-btn { background: #ffffff8c; border-color: #10261e1f; color: var(--ink); }
+.game .panel:not(.panel-dark) .round-btn:hover:not(:disabled) { background: var(--green); border-color: var(--green); color: #fffdf7; }
+.panel-dark .popup-bar { background: #143f30f2; border-color: #46715d; }
+.panel-dark .popup-where { color: #c8dcc7; }
+/* Cards inside a pop-up let a little of the frost through instead of sitting on it as solid blocks. */
+.game .stage.is-open .collection-card { padding: 1.6rem; background-color: #fbfaf4a6; }
+.game .stage.is-open .collection-card.essentials { background-color: #f6e7dfbf; }
+.game .stage.is-open .collection-card.vegan { background-color: #f4ece0bf; }
+.game .stage.is-open .collection-card.encyclopedia { background-color: #e5eeebbf; }
+.game .stage.is-open .collection-card.biology { background-color: #e8efdfbf; }
+.game .stage.is-open .community-card { background: #fbfaf499; }
+.game .stage.is-open h2 { font-size: clamp(2rem, 3.2vw, 2.9rem); }
+.game .stage.is-open .value-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.6rem 2rem; }
+.game .stage.is-open .section-heading { margin-bottom: 2rem; }
+.game .stage.is-open .split-heading { display: block; }
+.game .stage.is-open .split-heading > p { margin: 1rem 0 0; }
+.game .stage.is-open .collection-card h3 { font-size: 1.7rem; }
+.game .stage.is-open .collection-top { margin-bottom: 1.2rem; }
+.game .stage.is-open .faq-panel { gap: 2rem; }
+/* The footer closes the trail, at the end of the summit pop-up */
+/* A compact sign-off: name and line on one row, links on the next, the note last. */
+.game .site-footer.panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1.5rem; max-width: none;
+  margin: 1.8rem 0 0; padding: 1.3rem 0 0; background: none; border: 0; border-top: 1px solid #174d3b24; border-radius: 0; box-shadow: none; }
+.game .site-footer > div:first-child { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem .9rem; }
+.game .site-footer .wordmark { gap: .5rem; font-size: 1rem; }
+.game .site-footer .wordmark img { width: 26px; height: 26px; }
+.game .site-footer p { margin: 0; font-size: .78rem; }
+.game .site-footer .footer-links { gap: 0 1.1rem; margin: 0; }
+.game .site-footer .footer-links a { min-height: 36px; padding: 0; font-size: .8rem; }
+.game .site-footer .footer-links a:hover { color: var(--green); text-decoration: underline; }
+.game .eyebrow-in-bar { display: none; }
+.game.popup-on .hud-map { opacity: 0; visibility: hidden; }
+.game .site-footer .footer-note { display: block; flex-basis: 100%; min-height: 0; color: var(--muted); font-size: .72rem; text-align: left; }
+
+@media (max-width: 1280px) { .game .hud-readout { display: none; } }
+@media (max-width: 1100px) { .game .hud-bar, .game .hud-pct { display: none; } }
+@media (max-width: 960px) {
+  .game .hud-progress { display: none; }
+  .game .stage.is-open .faq-panel { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) { .game .hud-map { display: none; } }
+/* Below 960px the links no longer fit beside the HUD: they move into a Menu pop-up (navigation.js uses the same width). */
+@media (max-width: 960px) {
+  .game .site-header { flex-wrap: nowrap; }
+  .game .nav-ready #menu-toggle { display: inline-flex; align-items: center; gap: 8px; margin-left: 0; min-height: 42px; padding: 0 .95rem; border-radius: 999px;
+    font: inherit; font-size: .8rem; cursor: pointer; }
+  .game #menu-toggle .icon { width: 18px; height: 18px; }
+  .game #menu-toggle .menu-close, .game .menu-open #menu-toggle .menu-bars { display: none; }
+  .game .menu-open #menu-toggle .menu-close { display: block; }
+  .game .nav-ready #site-navigation { display: none; }
+  .game .nav-ready.menu-open #site-navigation { position: absolute; top: 54px; right: 0; width: min(280px, calc(100vw - 24px)); display: flex; flex-direction: column;
+    align-items: stretch; gap: 0; margin: 0; padding: .5rem; border-radius: 18px; background: #0f241ce0; animation: popup-in .3s cubic-bezier(.2, .8, .2, 1); }
+  .game .nav-ready #site-navigation a { justify-content: flex-start; padding: 0 .8rem; min-height: 44px; border-radius: 10px; font-size: .9rem; }
+  .game .nav-ready #site-navigation .nav-download { margin: .4rem 0 0; justify-content: space-between; border-radius: 999px; }
+}
+@media (max-width: 760px) {
+  .game .site-header { top: 10px; left: 12px; right: 12px; gap: .45rem; }
+  /* Phones keep the dinosaur and OFFLINE; the rest of the HUD needs a wider screen. */
+  .game .hud-strip { padding: .62rem .8rem; }
+  .game .hud-strip .hud-sep, .game .hud-strip .hud-nosignal { display: none; }
+  .game .stage.hero { top: auto; bottom: 14px; left: 16px; width: calc(100vw - 32px); gap: 1rem; justify-content: flex-end; }
+  .game .stage.hero::before { top: -40vh; bottom: -14px; left: -16px; width: 100vw; background: linear-gradient(to top, #0b1d16eb 0%, #0b1d16c4 55%, #0b1d1600 100%); }
+  .game .hero .panel { margin-block: 0; }
+  .game .hero h1 { font-size: clamp(2.3rem, 10.5vw, 3rem); margin-bottom: .8rem; }
+  .game .hero .headline-line { display: inline; }
+  .game .hero .eyebrow { margin-bottom: .7rem; }
+  .game .hero .hero-description { font-size: .95rem; line-height: 1.55; margin-bottom: 1.1rem; }
+  .game .hero .button-primary { min-height: 48px; padding: .8rem 1.2rem; }
+  .game .start-hint { min-height: 48px; padding: 0 1rem; font-size: .88rem; }
+  .game .hero .hero-meta { margin-top: .6rem; gap: 0 1rem; }
+  .game .hero-facts { gap: .5rem; padding-top: .8rem; }
+  .game .hero .principles { font-size: .68rem; }
+  .game .hero .field-tag strong, .game .hero .field-tag div > span { font-size: .78rem; }
+  .game .prompt { left: 12px; right: 12px; bottom: 12px; width: auto; flex-wrap: wrap; gap: .7rem; padding: .9rem; }
+  .game .prompt-title { font-size: 1.15rem; }
+  .game .prompt-actions { width: 100%; }
+  .game .prompt-open { flex: 1; justify-content: center; }
+  .game .stage.is-open { padding: 66px 8px 8px; justify-content: flex-end; align-items: stretch; }
+  .game .stage.is-open > .panel { width: 100%; max-height: min(68svh, 100%); padding: 0 1.2rem 1.4rem; border-radius: 18px; }
+  .game .stage.is-open > .panel { animation-name: sheet-in; }
+  .popup-bar { margin: 0 -1.2rem 1.2rem; padding: .55rem .55rem .55rem 1.2rem; border-radius: 18px 18px 0 0; }
+  .game .stage.is-open .value-grid { grid-template-columns: 1fr; }
+}
+/* The narrowest phones: Menu keeps its name for screen readers but shows only the icon. */
+@media (max-width: 400px) {
+  .game #menu-toggle > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .game .nav-ready #menu-toggle { padding: 0 .8rem; }
+}
+@keyframes sheet-in { from { opacity: 0; transform: translateY(40px); } }
+
+/* FAQ rows: the hover band needs room around the question, so it never hugs the text. */
+.faq-list summary { margin-inline: -.8rem; padding-inline: .8rem; border-radius: 8px; }

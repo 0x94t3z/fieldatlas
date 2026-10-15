@@ -40,7 +40,7 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of fifteen public files to `dist/`.
+headers. `build.mjs` copies an explicit allowlist of public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.
@@ -72,7 +72,8 @@ To regenerate the favicon fallbacks and X preview icon from the same logo, run
 `node website/tools/render-icons.mjs` and commit the generated icons. These are
 separate from the social preview; chat apps may still use their own generic link icon.
 
-To edit the card, update `tools/social-card.html`, then run from the repo root:
+The card is the island's title screen, rendered from the site itself. After changing
+the hero or the world, run from the repo root:
 
 ```sh
 node website/tools/render-social-card.mjs
@@ -82,15 +83,19 @@ The renderer uses the same installed browser as the tests. Commit the generated
 PNG along with its source. Production builds copy the PNG without needing a
 browser; the renderer and HTML template are excluded from the public build.
 
-`motion.js` loads the local compass SVG into the page for continuous needle and
-headline animation. There is no on-page motion control. The SVG file remains
-the single artwork source. If the script or SVG request fails, the page stays
-static and usable. Reduce Motion disables animation, and background tabs pause it.
-Feature cards, setup steps, collections, and FAQ rows also ease into view on
-scroll and replay when they re-enter. IntersectionObserver tracks stationary
-containers; only their children move. Content is never fully hidden, and keyboard
-focus stops the reveal on the focused container. Without JavaScript or observer
-support, these sections remain static.
+The page is an island tour. `boot.js` runs before first paint and picks the view:
+the island (`html.game`) when WebGL is available and the screen is at least 500px
+tall, otherwise the plain stacked page. Crawlers always get the plain page, and so
+does anyone who follows "Skip to content". `game.js` maps the scroll position to the
+seven stops, opens each section as a pop-up, and keeps the address in step (`#faq`
+and the other section ids can be shared). `world.js` draws the island with the
+vendored Three.js r160 (`vendor/`, MIT licence alongside it) and is loaded only for
+the island view; if it cannot start, the plain page takes over. `audio.js`
+synthesises the music and sound effects with Web Audio, so there are no media files.
+Sound starts from a tap, never a key press, and visitors can mute it; the mute is
+remembered.
+Reduce Motion turns the world into a still picture: no walking animation, no
+helicopter, no confetti. Background tabs stop drawing.
 All animation styles are in `styles.css`. CSP allows only same-origin scripts,
 styles, images, and fetches; it does not allow inline scripts or styles.
 

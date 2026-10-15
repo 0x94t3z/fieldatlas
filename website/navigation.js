@@ -3,7 +3,7 @@ const menuButton = document.querySelector('#menu-toggle');
 const menu = document.querySelector('#site-navigation');
 const header = document.querySelector('.site-header');
 if (menuButton && menu && header) {
-  const mobile = matchMedia('(max-width: 760px)');
+  const mobile = matchMedia('(max-width: 960px)');
   const setOpen = open => {
     menuButton.setAttribute('aria-expanded', String(open));
     header.classList.toggle('menu-open', open);

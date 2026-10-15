@@ -5,7 +5,8 @@ const root = new URL('./', import.meta.url);
 const dist = new URL('./dist/', root);
 await rm(dist, { recursive: true, force: true });
 await mkdir(new URL('assets/', dist), { recursive: true });
-for (const file of ['index.html', 'styles.css', 'motion.js', 'community.js', 'navigation.js', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'assets/atlas.svg', 'assets/compass.svg', 'assets/social-card.png', 'assets/social-icon.png', 'assets/bankr.svg', 'assets/dexscreener.png', 'assets/base.ico']) {
+await mkdir(new URL('vendor/', dist), { recursive: true });
+for (const file of ['index.html', 'styles.css', 'boot.js', 'game.js', 'world.js', 'audio.js', 'vendor/three.module.min.js', 'vendor/three.LICENSE', 'community.js', 'navigation.js', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'assets/atlas.svg', 'assets/compass.svg', 'assets/social-card.png', 'assets/social-icon.png', 'assets/bankr.svg', 'assets/dexscreener.png', 'assets/base.ico']) {
   await copyFile(new URL(file, root), new URL(file, dist));
 }
-console.log('Built website/dist with 15 public files.');
+console.log(`Built ${new URL('dist/', root).pathname}`);

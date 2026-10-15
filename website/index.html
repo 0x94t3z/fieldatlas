@@ -16,7 +16,7 @@
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Field Atlas — Knowledge, wherever you go. Offline research for Android, with compass artwork.">
+  <meta property="og:image:alt" content="Field Atlas — Knowledge, wherever you go. A low-poly island with a trail up to its summit and a pixel dinosaur at the start.">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Field Atlas — Knowledge, wherever you go.">
   <meta name="twitter:description" content="Research offline on Android. Install a model, add knowledge collections, and ask questions using the files on your phone.">
@@ -27,7 +27,12 @@
   <link rel="icon" type="image/svg+xml" sizes="any" href="/assets/atlas.svg?v=932dcce1">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <link rel="stylesheet" href="styles.css">
-  <script src="motion.js" defer></script>
+  <script src="boot.js"></script>
+  <link rel="modulepreload" href="game.js">
+  <link rel="modulepreload" href="world.js">
+  <link rel="modulepreload" href="audio.js">
+  <link rel="modulepreload" href="vendor/three.module.min.js">
+  <script type="module" src="game.js"></script>
   <script src="community.js" defer></script>
   <script src="navigation.js" defer></script>
 </head>
@@ -42,109 +47,163 @@
     <symbol id="pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="9" r="2"/></symbol>
     <symbol id="leaf" viewBox="0 0 24 24"><path d="M20 3C7 2 2 9 6 16s15 1 14-13ZM4 21 16 8"/></symbol>
     <symbol id="check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="wifi-off" viewBox="0 0 24 24"><path d="M3.5 10a12 12 0 0 1 17 0M7.5 14a6.5 6.5 0 0 1 9 0M12 18.5h.01M4 4l16 16"/></symbol>
+    <symbol id="user-off" viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4.5 21a7.5 7.5 0 0 1 15 0M3 3l18 18"/></symbol>
+    <symbol id="code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-12-2 14"/></symbol>
     <symbol id="bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Zm6-3c0-2 2-2 2-4m3 4c0-2 2-2 2-4"/></symbol>
+    <!-- The app's offline dinosaur (FieldAtlasIcons.Offline) and its two walking frames, on the same 32 grid. -->
+    <symbol id="dino" viewBox="0 0 32 32"><path fill-rule="evenodd" d="M18 2h11v1h1v8h-7v2h5v2H18v3h3v2h-2v-1h-2v4h-2v3h2v2h-5v-4h-2v2h1v2H6v-4h2v-2H6v-2H4v-2H2v-6h2v3h2v2h2v-2h2v-2h2v-2h3V8h2V3h1V2Zm2 3v2h2V5h-2Z"/></symbol>
+    <symbol id="dino-walk-a" viewBox="0 0 32 32"><path d="M18 2h11v1h-11ZM17 3h13v2h-13ZM17 5h3v2h-3ZM22 5h8v2h-8ZM17 7h13v1h-13ZM15 8h15v3h-15ZM12 11h11v2h-11ZM2 12h2v3h-2ZM10 13h18v2h-18ZM2 15h4v2h-4ZM8 15h10v2h-10ZM2 17h16v1h-16ZM4 18h17v1h-17ZM4 19h13v1h-13ZM19 19h2v1h-2ZM6 20h11v2h-11ZM8 22h9v1h-9ZM8 23h7v1h-7ZM6 24h5v2h-5ZM12 24h3v2h-3ZM12 26h5v2h-5Z"/></symbol>
+    <symbol id="dino-walk-b" viewBox="0 0 32 32"><path d="M18 2h11v1h-11ZM17 3h13v2h-13ZM17 5h3v2h-3ZM22 5h8v2h-8ZM17 7h13v1h-13ZM15 8h15v3h-15ZM12 11h11v2h-11ZM2 12h2v3h-2ZM10 13h18v2h-18ZM2 15h4v2h-4ZM8 15h10v2h-10ZM2 17h16v1h-16ZM4 18h17v1h-17ZM4 19h13v1h-13ZM19 19h2v1h-2ZM6 20h11v2h-11ZM8 22h9v1h-9ZM8 23h7v1h-7ZM6 24h4v2h-4ZM12 24h5v2h-5ZM6 26h5v2h-5Z"/></symbol>
   </defs></svg>
+
+  <!-- The world: a live island the page travels across. Purely decorative; every word is in the HTML below. -->
+  <canvas id="world" aria-hidden="true"></canvas>
+  <div class="world-fallback" aria-hidden="true"><img src="assets/compass.svg?v=abe66699" width="640" height="700" alt=""></div>
+
+  <!-- Island view only (see boot.js): the scroll track that moves the camera, the map, and the prompt for the current stop. -->
+  <div class="track" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="hud" aria-hidden="true">
+    <div class="hud-map"><canvas class="hud-map-canvas" width="168" height="168"></canvas></div>
+  </div>
+  <button type="button" class="beacon-tag" tabindex="-1" aria-hidden="true"><span class="beacon-tag-dot"></span><span class="beacon-tag-text">Start the tour</span></button>
   <div class="page-shell">
     <header class="site-header">
       <a class="wordmark" href="#" aria-label="Field Atlas home"><img src="assets/atlas.svg?v=932dcce1" width="36" height="36" alt=""><span>Field Atlas</span></a>
+      <div class="hud-strip" aria-hidden="true">
+        <span class="hud-status"><svg class="dino" viewBox="0 0 32 32"><use href="#dino"/></svg><span>OFFLINE</span><span class="hud-sep">·</span><span class="hud-nosignal">NO SIGNAL</span></span>
+        
+        <span class="hud-readout"><span class="hud-coords">N 00.0000° · W 0.0000°</span><span class="hud-alt">ALT 000 m</span></span>
+        <span class="hud-progress"><span class="hud-wp-name">Home</span><span class="hud-bar"><span class="hud-bar-fill"></span></span></span>
+      </div>
+      <button type="button" id="sound-toggle" aria-pressed="false" aria-label="Sound off. Turn sound on" hidden><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4Z"/><path class="sound-waves" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="sound-off" d="m16 9.5 5 5m0-5-5 5"/></svg><span class="sound-hint">Tap for sound</span></button>
       <button type="button" id="menu-toggle" aria-expanded="false" aria-controls="site-navigation" hidden><span>Menu</span><svg class="icon menu-bars" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg><svg class="icon menu-close" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
       <nav id="site-navigation" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#collections">Collections</a><a href="#faq">FAQ</a><a href="#community">Community</a><a class="nav-download" href="#download">Get the app <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></nav>
     </header>
     <main id="main" tabindex="-1">
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
+      <section class="stage hero" data-waypoint="Home" aria-labelledby="hero-title">
+        <div class="panel hero-copy">
           <p class="eyebrow"><span class="status-dot"></span> OFFLINE RESEARCH FOR ANDROID</p>
           <h1 id="hero-title"><span class="headline-line">Knowledge,</span> <span class="headline-line">wherever</span> <em class="headline-line">you go.</em></h1>
           <p class="hero-description">Ask questions using the model and knowledge saved on your phone. No connection needed after setup.</p>
-          <div class="hero-actions"><a class="button button-primary" href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk"><svg class="icon" aria-hidden="true"><use href="#download-icon"/></svg>Download for Android</a></div>
-          <p class="release-caption">v1.4.1 · Release · Android 13+ / arm64</p>
-          <a class="text-link github-link" href="https://github.com/0x94t3z/fieldatlas">View source on GitHub <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a>
+          <div class="hero-actions"><a class="button button-primary" href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk"><svg class="icon" aria-hidden="true"><use href="#download-icon"/></svg>Download for Android</a><button type="button" class="start-hint">Start the tour <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></button></div>
+          <div class="hero-meta"><p class="release-caption">v1.4.1 · Release · Android 13+ / arm64</p><a class="text-link github-link" href="https://github.com/0x94t3z/fieldatlas">View source on GitHub <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></div>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="atlas-frame"><img src="assets/compass.svg?v=abe66699" width="640" height="700" alt="" fetchpriority="high"><div class="atlas-label"><span>FIELD ATLAS</span><span>OFFLINE RESEARCH</span></div></div>
+        <div class="hero-facts">
           <div class="field-tag"><span class="tag-icon"><svg class="icon"><use href="#book"/></svg></span><div><strong>Saved on your phone.</strong><span>Available when you’re offline.</span></div></div>
-        </div>
-      </section>
-      <div class="principles" aria-label="At a glance"><span><svg class="icon" aria-hidden="true"><use href="#check"/></svg>Works offline after setup</span><span><svg class="icon" aria-hidden="true"><use href="#check"/></svg>No account required</span><span><svg class="icon" aria-hidden="true"><use href="#check"/></svg>Open source</span></div>
-
-      <section class="section why-section" aria-labelledby="why-title">
-        <div class="section-heading"><p class="eyebrow">01 / WHAT IT DOES</p><h2 id="why-title">Research with<br><em>saved knowledge.</em></h2><p>Use it while travelling, without mobile data, or anywhere the connection is unreliable.</p></div>
-        <div class="value-grid">
-          <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#device"/></svg></span><h3>Runs on your phone.</h3><p>The model runs on your Android device. Research questions, local search, and answer generation stay on the phone.</p></article>
-          <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#book"/></svg></span><h3>Read the sources.</h3><p>Open a numbered citation to inspect the saved passage. Check whether it supports the answer.</p></article>
-          <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#layers"/></svg></span><h3>Choose your collections.</h3><p>Add knowledge collections for the subjects you care about. Download before you leave, or import a compatible saved pack.</p></article>
-          <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#file"/></svg></span><h3>Ask about your files.</h3><p>Attach a PDF, a text file, or a photo of a printed page. Text is read on the phone, and the answer cites the file.</p></article>
+          <div class="principles" aria-label="At a glance"><span><svg class="icon" aria-hidden="true"><use href="#wifi-off"/></svg>Works offline after setup</span><span><svg class="icon" aria-hidden="true"><use href="#user-off"/></svg>No account required</span><span><svg class="icon" aria-hidden="true"><use href="#code"/></svg>Open source</span></div>
         </div>
       </section>
 
-      <section class="setup-section section" id="how-it-works" aria-labelledby="setup-title">
-        <div class="setup-intro"><p class="eyebrow">02 / SETUP</p><h2 id="setup-title">Set up once.<br><em>Use it offline.</em></h2><p>Download the files while you have internet, or import packs you’ve already saved.</p><a class="text-link" href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Read the installation notes <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></div>
-        <ol class="steps">
-          <li><span class="step-number">01</span><div><h3>Install a model.</h3><p>Install the Android app, then download the default model or import a compatible model pack.</p></div></li>
-          <li><span class="step-number">02</span><div><h3>Add knowledge collections.</h3><p>Add optional knowledge collections in Library. Model and collection files need additional storage beyond the app.</p></div></li>
-          <li><span class="step-number">03</span><div><h3>Ask a question.</h3><p>Start a research question. Open any numbered citations to read the saved passages.</p></div></li>
-        </ol>
-      </section>
-
-      <section class="section collections-section" id="collections" aria-labelledby="collections-title">
-        <div class="section-heading split-heading"><div><p class="eyebrow">03 / KNOWLEDGE COLLECTIONS</p><h2 id="collections-title">Choose what<br><em>to download.</em></h2></div><p>Collections are optional. Download them in the app, or import a compatible saved pack.</p></div>
-        <div class="collection-grid">
-          <article class="collection-card essentials"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#cross"/></svg></span><span class="small-label">PLACES</span></div><h3>Essentials</h3><p>2,981,023 pharmacies, hospitals, clinics, police stations, embassies, ATMs, stations, toilets, drinking water, supermarkets, and hostels, worldwide. Ask “nearest pharmacy” or “ATM near me”.</p><div class="collection-bottom"><span>OpenStreetMap · 986 MB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">What mappers recorded, with dates. It can’t confirm today’s opening hours or availability. In an emergency, call your local emergency number first.</p></article>
-          <article class="collection-card vegan"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#bowl"/></svg></span><span class="small-label">PLACES</span></div><h3>Vegan places</h3><p>52,064 restaurants, cafés, and shops tagged fully vegan or with vegan options, worldwide. Ask by city, or near you.</p><div class="collection-bottom"><span>OpenStreetMap</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">Map tags can be out of date. No ratings, and no “best” ranking.</p></article>
-          <article class="collection-card encyclopedia"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#book"/></svg></span><span class="small-label">ENCYCLOPEDIA</span></div><h3>Encyclopedia</h3><p>English and Simple English Wikipedia in one collection: 8.39 million passages, each linked to its exact revision, searched on the phone.</p><div class="collection-bottom"><span>Wikipedia · 10.64 GB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">24.35 GB once installed. A snapshot, not live facts.</p></article>
-          <article class="collection-card travel"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#pin"/></svg></span><span class="small-label">TRAVEL</span></div><h3>Travel guides &amp; places</h3><p>Wikivoyage destination guides, plus saved listings for restaurants, hotels, sights, and shops.</p><div class="collection-bottom"><span>Wikivoyage</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">A saved snapshot, not a live directory. Listings, hours, and menus may be outdated.</p></article>
-          <article class="collection-card biology"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#leaf"/></svg></span><span class="small-label">BIOLOGY</span></div><h3>Biology &amp; Longevity</h3><p>The OpenStax Biology 2e textbook, MedlinePlus health topics, ageing gene records and six open-access ageing reviews.</p><div class="collection-bottom"><span>Each source credited · 8 MB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">Not a general encyclopedia or medical advice. Coverage varies by topic.</p></article>
-        </div>
-        <p class="collections-footnote">Have your own collection? Import a compatible <code>.fapack</code>. <a href="https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/tools/README.md">View the pack tools <span aria-hidden="true">↗</span></a></p>
-      </section>
-
-      <section class="download-section" id="download" aria-labelledby="download-title">
-        <div class="download-copy"><p class="eyebrow">DOWNLOAD</p><h2 id="download-title">Get Field Atlas<br><em>for Android.</em></h2><p>Install the app, then download or import a model to get started.</p></div>
-        <div class="download-details"><span class="release-label"><span class="status-dot"></span> Release · v1.4.1</span><a class="button button-cream" href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk"><svg class="icon" aria-hidden="true"><use href="#download-icon"/></svg>Download for Android</a><p>Android 13+ · arm64 · APK ≈ 100 MB<br>Model and knowledge downloads are separate.</p><div class="download-links"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Release notes</a><span aria-hidden="true">/</span><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk.sha256">Verify checksum</a></div></div>
-        <p class="release-notice">Answers can be wrong, and the collections don’t cover every topic. Check important claims against the original sources.</p>
-      </section>
-
-      <section class="section faq-section" id="faq" aria-labelledby="faq-title">
-        <div><p class="eyebrow">04 / FAQ</p><h2 id="faq-title">Common<br><em>questions.</em></h2><p>Need help?<br><a class="text-link" href="https://github.com/0x94t3z/fieldatlas/issues">Ask on GitHub <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></p></div>
-        <div class="faq-list">
-          <details><summary>Does it really work offline?</summary><div><p>Yes, research works offline after setup. Install a model and any collections you want first. Downloads and catalog refresh need an internet connection; research uses the files already on your phone.</p></div></details>
-          <details><summary>Do I need a knowledge collection?</summary><div><p>No. A model is required, but collections are optional. The model can answer general questions without a collection, but those answers aren’t checked against saved sources. If you ask it to use only sources and it can’t find enough information, it will say so.</p></div></details>
-          <details><summary>How much should I trust an answer?</summary><div><p>Treat it as a starting point, not a guarantee. Models can make mistakes, and a citation does not prove a claim. Read the linked passage and check its context and date. The current collections do not cover every subject.</p></div></details>
-          <details><summary>Can it find places near me?</summary><div><p>Yes, with the Essentials or Vegan places collection. Ask for “nearest pharmacy”, “ATM near me”, or “vegan restaurants near me”, and the app reads your phone’s location through Android, after explaining why and asking permission. GPS works without a connection, and the location never leaves the phone. You can also name a city instead.</p></div></details>
-          <details><summary>What stays on my phone?</summary><div><p>Research questions, local search, and answer generation stay on the device. There’s no account to create. User-requested downloads contact the model or collection host; this website’s downloads are served by GitHub.</p></div></details>
-          <details><summary>Will it work on my Android phone?</summary><div><p>The app requires Android 13 or newer and an arm64 processor. Performance and available storage matter when running a local model. It has been tested on an Infinix X6840 and a Redmi 13C; performance on other devices may differ. Allow additional space for model and collection files.</p></div></details>
-          <details><summary>How do I install or update it?</summary><div><p>Open the downloaded APK and follow Android’s installation prompts. Public releases use the same project signing key. A locally test-signed build cannot be updated with the public APK; preserve your data before considering a reinstall. <a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">See the installation notes.</a></p></div></details>
-        </div>
-      </section>
-      <section class="community-section" id="community" aria-labelledby="community-title">
-        <p class="eyebrow">05 / COMMUNITY</p>
-        <div class="community-card">
-        <div class="community-copy">
-          <h2 id="community-title">Community token</h2>
-          <p>The Field Atlas dev didn’t launch this token. A third party launched it on Bankr, with creator fees going to the dev. No token is needed to use the app.</p>
-          <div class="community-risk" role="note" aria-label="Token risk warning">
-            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
-            <p>Not financial advice or a promise of ongoing token support. Tokens can lose all their value.</p>
+      <section class="stage why-section" id="features" data-waypoint="What it does" data-title="Research with saved knowledge." data-lead="Use it while travelling, without mobile data, or anywhere the connection is unreliable." data-open="View features" aria-labelledby="why-title">
+        <div class="panel panel-wide">
+          <div class="section-heading"><p class="eyebrow">01 / WHAT IT DOES</p><h2 id="why-title">Research with<br><em>saved knowledge.</em></h2><p>Use it while travelling, without mobile data, or anywhere the connection is unreliable.</p></div>
+          <div class="value-grid">
+            <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#device"/></svg></span><h3>Runs on your phone.</h3><p>The model runs on your Android device. Research questions, local search, and answer generation stay on the phone.</p></article>
+            <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#book"/></svg></span><h3>Read the sources.</h3><p>Open a numbered citation to inspect the saved passage. Check whether it supports the answer.</p></article>
+            <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#layers"/></svg></span><h3>Choose your collections.</h3><p>Add knowledge collections for the subjects you care about. Download before you leave, or import a compatible saved pack.</p></article>
+            <article><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#file"/></svg></span><h3>Ask about your files.</h3><p>Attach a PDF, a text file, or a photo of a printed page. Text is read on the phone, and the answer cites the file.</p></article>
           </div>
         </div>
-        <div class="community-details">
-          <div class="token-meta"><label for="token-address">Contract address</label><span class="token-chain"><img src="assets/base.ico" width="14" height="14" alt="">Base</span></div>
-          <div class="token-address-row">
-            <input id="token-address" aria-label="Full contract address" value="0xb462a5039a540883508ee37b5cf3999647557ba3" readonly spellcheck="false">
-            <span class="token-short" aria-hidden="true" hidden>0xb462…57ba3</span>
-            <button type="button" id="copy-address" aria-label="Copy full contract address" hidden><svg class="icon copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/></svg><svg class="icon copy-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
-          </div>
-          <div class="platform-links">
-            <a href="https://bankr.bot/terminal/trade?out=0xb462a5039a540883508ee37b5cf3999647557ba3&amp;chain=base" target="_blank" rel="noopener noreferrer"><img src="assets/bankr.svg" width="20" height="20" alt="">Bankr <span aria-hidden="true">↗</span></a>
-            <a href="https://dexscreener.com/base/0xb462a5039a540883508ee37b5cf3999647557ba3" target="_blank" rel="noopener noreferrer"><img src="assets/dexscreener.png" width="20" height="20" alt="">Dex Screener <span aria-hidden="true">↗</span></a>
-          </div>
-          <p class="platform-note">External platforms · Not required for the app</p>
-          <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="stage setup-section" id="how-it-works" data-waypoint="Setup" data-title="Set up once. Use it offline." data-lead="Download the files while you have internet, or import packs you’ve already saved." data-open="View setup steps" aria-labelledby="setup-title">
+        <div class="panel panel-right">
+          <div class="setup-intro"><p class="eyebrow">02 / SETUP</p><h2 id="setup-title">Set up once.<br><em>Use it offline.</em></h2><p>Download the files while you have internet, or import packs you’ve already saved.</p><a class="text-link" href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Read the installation notes <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></div>
+          <ol class="steps">
+            <li><span class="step-number">01</span><div><h3>Install a model.</h3><p>Install the Android app, then download the default model or import a compatible model pack.</p></div></li>
+            <li><span class="step-number">02</span><div><h3>Add knowledge collections.</h3><p>Add optional knowledge collections in Library. Model and collection files need additional storage beyond the app.</p></div></li>
+            <li><span class="step-number">03</span><div><h3>Ask a question.</h3><p>Start a research question. Open any numbered citations to read the saved passages.</p></div></li>
+          </ol>
         </div>
+      </section>
+
+      <section class="stage collections-section" id="collections" data-waypoint="Collections" data-title="Choose what to download." data-lead="Collections are optional. Download them in the app, or import a compatible saved pack." data-open="View collections" aria-labelledby="collections-title">
+        <div class="panel panel-wide">
+          <div class="section-heading split-heading"><div><p class="eyebrow">03 / KNOWLEDGE COLLECTIONS</p><h2 id="collections-title">Choose what<br><em>to download.</em></h2></div><p>Collections are optional. Download them in the app, or import a compatible saved pack.</p></div>
+          <div class="collection-grid">
+            <article class="collection-card essentials"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#cross"/></svg></span><span class="small-label">PLACES</span></div><h3>Essentials</h3><p>2,981,023 pharmacies, hospitals, clinics, police stations, embassies, ATMs, stations, toilets, drinking water, supermarkets, and hostels, worldwide. Ask “nearest pharmacy” or “ATM near me”.</p><div class="collection-bottom"><span>OpenStreetMap · 986 MB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">What mappers recorded, with dates. It can’t confirm today’s opening hours or availability. In an emergency, call your local emergency number first.</p></article>
+            <article class="collection-card vegan"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#bowl"/></svg></span><span class="small-label">PLACES</span></div><h3>Vegan places</h3><p>52,064 restaurants, cafés, and shops tagged fully vegan or with vegan options, worldwide. Ask by city, or near you.</p><div class="collection-bottom"><span>OpenStreetMap</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">Map tags can be out of date. No ratings, and no “best” ranking.</p></article>
+            <article class="collection-card encyclopedia"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#book"/></svg></span><span class="small-label">ENCYCLOPEDIA</span></div><h3>Encyclopedia</h3><p>English and Simple English Wikipedia in one collection: 8.39 million passages, each linked to its exact revision, searched on the phone.</p><div class="collection-bottom"><span>Wikipedia · 10.64 GB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">24.35 GB once installed. A snapshot, not live facts.</p></article>
+            <article class="collection-card travel"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#pin"/></svg></span><span class="small-label">TRAVEL</span></div><h3>Travel guides &amp; places</h3><p>Wikivoyage destination guides, plus saved listings for restaurants, hotels, sights, and shops.</p><div class="collection-bottom"><span>Wikivoyage</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">A saved snapshot, not a live directory. Listings, hours, and menus may be outdated.</p></article>
+            <article class="collection-card biology"><div class="collection-top"><span class="collection-icon"><svg class="icon" aria-hidden="true"><use href="#leaf"/></svg></span><span class="small-label">BIOLOGY</span></div><h3>Biology &amp; Longevity</h3><p>The OpenStax Biology 2e textbook, MedlinePlus health topics, ageing gene records and six open-access ageing reviews.</p><div class="collection-bottom"><span>Each source credited · 8 MB</span><span>Available in Library <svg class="icon" aria-hidden="true"><use href="#check"/></svg></span></div><p class="collection-note">Not a general encyclopedia or medical advice. Coverage varies by topic.</p></article>
+          </div>
+          <p class="collections-footnote">Have your own collection? Import a compatible <code>.fapack</code>. <a href="https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/tools/README.md">View the pack tools <span aria-hidden="true">↗</span></a></p>
+        </div>
+      </section>
+
+      <section class="stage download-section" id="download" data-waypoint="Download" data-title="Get Field Atlas for Android." data-lead="Install the app, then download or import a model to get started." data-open="View download options" aria-labelledby="download-title">
+        <div class="panel panel-dark">
+          <div class="download-copy"><p class="eyebrow">DOWNLOAD</p><h2 id="download-title">Get Field Atlas<br><em>for Android.</em></h2><p>Install the app, then download or import a model to get started.</p></div>
+          <div class="download-details"><span class="release-label"><span class="status-dot"></span> Release · v1.4.1</span><a class="button button-cream" href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk"><svg class="icon" aria-hidden="true"><use href="#download-icon"/></svg>Download for Android</a><p>Android 13+ · arm64 · APK ≈ 100 MB<br>Model and knowledge downloads are separate.</p><div class="download-links"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Release notes</a><span aria-hidden="true">/</span><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk.sha256">Verify checksum</a></div></div>
+          <p class="release-notice">Answers can be wrong, and the collections don’t cover every topic. Check important claims against the original sources.</p>
+        </div>
+      </section>
+
+      <section class="stage faq-section" id="faq" data-waypoint="FAQ" data-title="Common questions." data-lead="Offline use, collections, trust, nearby places, privacy, phones, and installing." data-open="View answers" aria-labelledby="faq-title">
+        <div class="panel panel-wide faq-panel">
+          <div><p class="eyebrow">04 / FAQ</p><h2 id="faq-title">Common<br><em>questions.</em></h2><p>Need help?<br><a class="text-link" href="https://github.com/0x94t3z/fieldatlas/issues">Ask on GitHub <svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></a></p></div>
+          <div class="faq-list">
+            <details><summary>Does it really work offline?</summary><div><p>Yes, research works offline after setup. Install a model and any collections you want first. Downloads and catalog refresh need an internet connection; research uses the files already on your phone.</p></div></details>
+            <details><summary>Do I need a knowledge collection?</summary><div><p>No. A model is required, but collections are optional. The model can answer general questions without a collection, but those answers aren’t checked against saved sources. If you ask it to use only sources and it can’t find enough information, it will say so.</p></div></details>
+            <details><summary>How much should I trust an answer?</summary><div><p>Treat it as a starting point, not a guarantee. Models can make mistakes, and a citation does not prove a claim. Read the linked passage and check its context and date. The current collections do not cover every subject.</p></div></details>
+            <details><summary>Can it find places near me?</summary><div><p>Yes, with the Essentials or Vegan places collection. Ask for “nearest pharmacy”, “ATM near me”, or “vegan restaurants near me”, and the app reads your phone’s location through Android, after explaining why and asking permission. GPS works without a connection, and the location never leaves the phone. You can also name a city instead.</p></div></details>
+            <details><summary>What stays on my phone?</summary><div><p>Research questions, local search, and answer generation stay on the device. There’s no account to create. User-requested downloads contact the model or collection host; this website’s downloads are served by GitHub.</p></div></details>
+            <details><summary>Will it work on my Android phone?</summary><div><p>The app requires Android 13 or newer and an arm64 processor. Performance and available storage matter when running a local model. It has been tested on an Infinix X6840 and a Redmi 13C; performance on other devices may differ. Allow additional space for model and collection files.</p></div></details>
+            <details><summary>How do I install or update it?</summary><div><p>Open the downloaded APK and follow Android’s installation prompts. Public releases use the same project signing key. A locally test-signed build cannot be updated with the public APK; preserve your data before considering a reinstall. <a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">See the installation notes.</a></p></div></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="stage community-section" id="community" data-waypoint="Community" data-title="Community token" data-lead="Launched by a third party on Bankr. Not needed to use the app." data-open="View token details" aria-labelledby="community-title">
+        <div class="panel panel-right">
+          <p class="eyebrow">05 / COMMUNITY</p>
+          <div class="community-card">
+            <div class="community-copy">
+              <h2 id="community-title">Community token</h2>
+              <p>The Field Atlas dev didn’t launch this token. A third party launched it on Bankr, with creator fees going to the dev. No token is needed to use the app.</p>
+              <div class="community-risk" role="note" aria-label="Token risk warning">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+                <p>Not financial advice or a promise of ongoing token support. Tokens can lose all their value.</p>
+              </div>
+            </div>
+            <div class="community-details">
+              <div class="token-meta"><label for="token-address">Contract address</label><span class="token-chain"><img src="assets/base.ico" width="14" height="14" alt="">Base</span></div>
+              <div class="token-address-row">
+                <input id="token-address" aria-label="Full contract address" value="0xb462a5039a540883508ee37b5cf3999647557ba3" readonly spellcheck="false">
+                <span class="token-short" aria-hidden="true" hidden>0xb462…57ba3</span>
+                <button type="button" id="copy-address" aria-label="Copy full contract address" hidden><svg class="icon copy-glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M15 8V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h4"/></svg><svg class="icon copy-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button>
+              </div>
+              <div class="platform-links">
+                <a href="https://bankr.bot/terminal/trade?out=0xb462a5039a540883508ee37b5cf3999647557ba3&amp;chain=base" target="_blank" rel="noopener noreferrer"><img src="assets/bankr.svg" width="20" height="20" alt="">Bankr <span aria-hidden="true">↗</span></a>
+                <a href="https://dexscreener.com/base/0xb462a5039a540883508ee37b5cf3999647557ba3" target="_blank" rel="noopener noreferrer"><img src="assets/dexscreener.png" width="20" height="20" alt="">Dex Screener <span aria-hidden="true">↗</span></a>
+              </div>
+              <p class="platform-note">External platforms · Not required for the app</p>
+              <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
         </div>
       </section>
     </main>
-    <footer class="site-footer"><div><a class="wordmark" href="#"><img src="assets/atlas.svg?v=932dcce1" width="32" height="32" alt=""><span>Field Atlas</span></a><p>Offline research for Android.</p></div><div class="footer-links"><a href="https://github.com/0x94t3z/fieldatlas">GitHub</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Setup help</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Release notes</a></div><span class="footer-note">Open source. No account required.</span></footer>
+    <footer class="site-footer panel"><div><a class="wordmark" href="#"><img src="assets/atlas.svg?v=932dcce1" width="32" height="32" alt=""><span>Field Atlas</span></a><p>Offline research for Android.</p></div><div class="footer-links"><a href="https://github.com/0x94t3z/fieldatlas">GitHub</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Setup help</a><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">Release notes</a></div><span class="footer-note">Open source. No account required.</span></footer>
   </div>
+
+  <div class="sound-ask" role="region" aria-label="Sound" hidden>
+    <p class="sound-ask-text"><strong>This island has music.</strong> <span>Sound effects too, as you walk.</span></p>
+    <div class="sound-ask-actions"><button type="button" class="sound-ask-yes">Turn on sound</button><button type="button" class="sound-ask-no">Not now</button></div>
+  </div>
+  <div class="finish-banner" role="status" hidden><p class="finish-kicker">Tour complete</p><p class="finish-line">You reached the summit.</p></div>
+  <section class="prompt" aria-label="Current stop">
+    <div class="prompt-text">
+      <p class="prompt-kicker">01 / What it does</p>
+      <p class="prompt-title">Research with saved knowledge.</p>
+      <p class="prompt-lead">Use it while travelling, without mobile data, or anywhere the connection is unreliable.</p>
+    </div>
+    <div class="prompt-actions">
+      <button type="button" class="round-btn prompt-prev" aria-label="Previous stop"><svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></button>
+      <button type="button" class="prompt-open"><span class="prompt-open-text">See what it does</span><svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></button>
+      <button type="button" class="round-btn prompt-next" aria-label="Next stop"><svg class="icon" aria-hidden="true"><use href="#arrow"/></svg></button>
+    </div>
+  </section>
 </body>
 </html>
