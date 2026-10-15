@@ -97,7 +97,7 @@ fun HistoryScreen(
     val shown = remember(records, query) { records.filter { historyMatches(it, query) } }
     // The first question of each topic, named above its follow-ups.
     val topicRoots = remember(records) {
-        records.filter { it.topic != null }.groupBy { it.topic }.filterValues { it.size > 1 }
+        records.groupBy { it.topicKey }.filterValues { it.size > 1 }
             .mapValues { (_, turns) -> turns.minBy(AnswerRecord::createdAtEpochMs) }
     }
     val days = remember(shown) {
@@ -151,7 +151,7 @@ fun HistoryScreen(
             }
             dayRecords.forEach { record ->
                 item(key = record.createdAtEpochMs) {
-                    val root = topicRoots[record.topic]?.takeIf { it.createdAtEpochMs != record.createdAtEpochMs }
+                    val root = topicRoots[record.topicKey]?.takeIf { it.createdAtEpochMs != record.createdAtEpochMs }
                     HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain, followUpOf = root?.question,
                         onContinue = { onContinue(record) },
                         onDelete = { onDelete(record.createdAtEpochMs) }) { index -> savedSource = record to index }
@@ -283,9 +283,18 @@ internal fun HistoryActions(onAskAgain: () -> Unit, onShare: () -> Unit, onDelet
                 HistoryUtilityButton(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Trash, "Delete from History", onDelete)
             }
         }
+        // Continue, Ask again, Share and Delete need about 360dp in one line; a 360dp phone's card has 280dp, where
+        // Delete was pushed out of reach. There the two actions share a line and the utilities take the next.
+        val twoLines = onContinue != null && maxWidth < 360.dp
         if (stacked) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             resume(Modifier.fillMaxWidth())
             repeat(Modifier.fillMaxWidth())
+            Box(Modifier.align(Alignment.End)) { utilities() }
+        } else if (twoLines) Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                resume(Modifier.weight(1f))
+                repeat(Modifier.weight(1f))
+            }
             Box(Modifier.align(Alignment.End)) { utilities() }
         } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically) {

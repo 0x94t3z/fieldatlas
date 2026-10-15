@@ -2,6 +2,7 @@ package xyz.fieldatlas.ui.research
 
 import androidx.lifecycle.SavedStateHandle
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,13 +37,24 @@ class FollowUpInputTest {
 
     private val reader = AttachmentReader { input -> ExtractedAttachment(input.id, input.displayName, listOf(AttachmentPage(1, "Menu: falafel, hummus"))) }
 
+    /** Speech that waits: start() until [started] completes, stop() until [stopped] completes. */
+    private class SlowSpeech : SpeechTranscriber {
+        val started = CompletableDeferred<Unit>()
+        val stopped = CompletableDeferred<String>()
+        var cancelled = false
+        override suspend fun start(onLevel: (Float) -> Unit) = Unit
+        override suspend fun start(onLevel: (Float) -> Unit, onText: (String) -> Unit) { started.await() }
+        override suspend fun stop() = stopped.await()
+        override suspend fun cancel() { cancelled = true }
+    }
+
     private fun answered(speech: String = "", inference: FakeInferenceGateway = FakeInferenceGateway(listOf("Answer [S1]", "Second [S1]")),
-                         seen: MutableList<Int>? = null): ResearchViewModel {
+                         seen: MutableList<Int>? = null, transcriber: SpeechTranscriber? = null): ResearchViewModel {
         val viewModel = ResearchViewModel(
             savedStateHandle = SavedStateHandle(),
             orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, inference),
             launchScope = scope,
-            createTranscriber = { ScriptedSpeech(speech) },
+            createTranscriber = { transcriber ?: ScriptedSpeech(speech) },
             attachmentReader = reader,
         )
         viewModel.updateQuestion("Best vegan food in Lisbon")
@@ -86,6 +98,43 @@ class FollowUpInputTest {
         viewModel.leaveFollowUp()
         assertEquals(VoicePhase.Idle, viewModel.voiceState.value.phase)
         assertEquals("", viewModel.followUpDraft.value)
+    }
+
+    @Test fun leavingWhileTheRecordingIsStillStartingWritesNothing() {
+        val speech = SlowSpeech()
+        val viewModel = answered(transcriber = speech)
+        val answer = viewModel.uiState.value.answer
+        viewModel.selectVoiceTarget(followUp = true)
+        viewModel.onMicClick()
+        assertEquals(VoicePhase.Starting, viewModel.voiceState.value.phase)
+        viewModel.leaveFollowUp()
+        speech.started.complete(Unit)
+        assertTrue(speech.cancelled)
+        assertEquals(VoicePhase.Idle, viewModel.voiceState.value.phase)
+        assertEquals("Best vegan food in Lisbon", viewModel.uiState.value.question)
+        assertEquals(answer, viewModel.uiState.value.answer)
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+    }
+
+    @Test fun leavingWhileTheRecordingIsBeingTranscribedKeepsTheAnswer() {
+        val speech = SlowSpeech()
+        val viewModel = answered(transcriber = speech)
+        val answer = viewModel.uiState.value.answer
+        viewModel.selectVoiceTarget(followUp = true)
+        viewModel.onMicClick()
+        speech.started.complete(Unit)
+        assertEquals(VoicePhase.Recording, viewModel.voiceState.value.phase)
+        viewModel.onMicClick()
+        assertEquals(VoicePhase.Processing, viewModel.voiceState.value.phase)
+        viewModel.leaveFollowUp()
+        speech.stopped.complete("which one is open late")
+        // The transcript of a box that has gone is dropped: not written into the question box over the answer.
+        assertEquals("Best vegan food in Lisbon", viewModel.uiState.value.question)
+        assertEquals(answer, viewModel.uiState.value.answer)
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+        assertEquals("", viewModel.followUpDraft.value)
+        assertEquals(VoicePhase.Idle, viewModel.voiceState.value.phase)
+        assertEquals(null, viewModel.voiceState.value.error)
     }
 
     @Test fun aFileAddedToAFollowUpKeepsTheAnswerAndGoesWithTheFollowUp() {

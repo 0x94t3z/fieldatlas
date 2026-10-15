@@ -27,7 +27,10 @@ data class AnswerRecord(
     val topic: Long? = null,
     /** For a follow-up, the standalone question it was read as. */
     val readAs: String? = null,
-)
+) {
+    /** The topic this answer belongs to. One saved before topics existed is its own, keyed by when it was saved. */
+    val topicKey: Long get() = topic ?: createdAtEpochMs
+}
 
 /**
  * What the History screen needs to know about the phone's storage: how much is free where answers are kept, and
@@ -54,6 +57,10 @@ class AnswerHistoryStore(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val lock = Any()
+    // Writing a long History to disk takes time; record() runs on the main thread and must not wait for it.
+    private val writeLock = Any()
+    private var version = 0L
+    private var writtenVersion = 0L
     private var loaded = false
     private var initialLoadSucceeded = false
     private val mutableRecords = MutableStateFlow<List<AnswerRecord>>(emptyList())
@@ -131,12 +138,16 @@ class AnswerHistoryStore(
         val write = Runnable {
             // A failed write (usually a full disk) is reported, not swallowed: the answer stays on screen this session,
             // and the History screen says it could not be kept.
+            val (snapshotVersion, snapshot) = synchronized(lock) { ++version to mutableRecords.value }
             val saved = runCatching {
-                synchronized(lock) {
+                synchronized(writeLock) {
+                    // A later change's copy is already on disk; this older one must not replace it.
+                    if (snapshotVersion <= writtenVersion) return@synchronized
                     file.parentFile?.mkdirs()
                     val pending = File(file.parentFile, "${file.name}.tmp")
-                    pending.writeText(json.encodeToString(ListSerializer(AnswerRecord.serializer()), mutableRecords.value))
+                    pending.writeText(json.encodeToString(ListSerializer(AnswerRecord.serializer()), snapshot))
                     check(pending.renameTo(file))
+                    writtenVersion = snapshotVersion
                 }
             }.isSuccess
             refreshStorage(lastSaveFailed = !saved)

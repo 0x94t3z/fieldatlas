@@ -176,9 +176,14 @@ class ResearchViewModel(
             mutableVoiceState.value = mutableVoiceState.value.copy(error = null)
     }
 
+    // Each recording's number; leaving the follow-up box moves it on, so a recording still loading or transcribing
+    // when the box left finds itself stale and writes nothing, instead of filling the question box over the answer.
+    private var voiceSession = 0
+
     /** The follow-up box left the screen: a recording into it is dropped rather than left running. */
     fun leaveFollowUp() {
         if (!voiceForFollowUp) return
+        voiceSession++
         activeTranscriber?.let { transcriber ->
             activeTranscriber = null
             scope.launch { runCatching { transcriber.cancel() } }
@@ -189,7 +194,7 @@ class ResearchViewModel(
         mutableVoiceState.value = VoiceUiState()
     }
 
-    private fun writeDictation(text: String) = if (voiceForFollowUp) updateFollowUpDraft(text) else updateQuestion(text)
+    private fun writeDictation(text: String, forFollowUp: Boolean) = if (forFollowUp) updateFollowUpDraft(text) else updateQuestion(text)
 
     fun onMicClick() {
         if (mutableUiState.value.isRunning) return
@@ -210,8 +215,13 @@ class ResearchViewModel(
     private fun startVoiceCapture() {
         scope.launch {
             val forFollowUp = voiceForFollowUp
+            val session = voiceSession
             mutableVoiceState.value = VoiceUiState(VoicePhase.Starting, forFollowUp = forFollowUp)
             val transcriber = runCatching { createTranscriber() }.getOrNull()
+            if (session != voiceSession) {
+                transcriber?.let { runCatching { it.cancel() } }
+                return@launch
+            }
             if (transcriber == null) {
                 mutableVoiceState.value = VoiceUiState(error = "Voice input isn't available on this phone right now.", forFollowUp = forFollowUp)
                 return@launch
@@ -226,13 +236,14 @@ class ResearchViewModel(
                     },
                     onText = { live ->
                         scope.launch {
-                            if (activeTranscriber !== transcriber) return@launch
+                            if (activeTranscriber !== transcriber || session != voiceSession) return@launch
                             mutableVoiceState.value = mutableVoiceState.value.copy(liveText = live)
-                            writeDictation(joinQuestion(voiceBaseQuestion, live))
+                            writeDictation(joinQuestion(voiceBaseQuestion, live), forFollowUp)
                         }
                     },
                 )
             }.exceptionOrNull()
+            if (session != voiceSession) return@launch
             if (startFailure != null || activeTranscriber !== transcriber) {
                 activeTranscriber = null
                 runCatching { transcriber.cancel() }
@@ -252,15 +263,18 @@ class ResearchViewModel(
         scope.launch {
             val transcriber = activeTranscriber ?: return@launch
             val live = mutableVoiceState.value.liveText
-            mutableVoiceState.value = VoiceUiState(VoicePhase.Processing, forFollowUp = voiceForFollowUp)
+            val forFollowUp = voiceForFollowUp
+            val session = voiceSession
+            mutableVoiceState.value = VoiceUiState(VoicePhase.Processing, forFollowUp = forFollowUp)
             val result = runCatching { transcriber.stop() }
+            if (session != voiceSession) return@launch
             activeTranscriber = null
             // The final pass can correct the live guess; if it returns nothing, keep what was shown.
             val transcript = result.getOrDefault("").ifBlank { live }
-            writeDictation(joinQuestion(voiceBaseQuestion, transcript))
+            writeDictation(joinQuestion(voiceBaseQuestion, transcript), forFollowUp)
             val failure = result.exceptionOrNull()
             mutableVoiceState.value = VoiceUiState(
-                forFollowUp = voiceForFollowUp,
+                forFollowUp = forFollowUp,
                 error = failure?.let {
                     "The recording stopped early: ${it.message ?: it.javaClass.simpleName}"
                 } ?: if (transcript.isBlank()) "No speech was detected. Try speaking again." else null,
@@ -311,7 +325,10 @@ class ResearchViewModel(
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
         run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(),
-            carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(), state.sources))
+            // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
+            // is no longer attached, and its words must not be quoted as the library's.
+            carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(),
+                state.sources.filterNot { it.documentId.startsWith("attachment:") }))
     }
 
     /**
@@ -431,7 +448,9 @@ class ResearchViewModel(
      */
     fun continueTopic(record: xyz.fieldatlas.research.AnswerRecord, history: List<xyz.fieldatlas.research.AnswerRecord>): Boolean {
         if (mutableUiState.value.isRunning) return false
-        val turns = (if (record.topic == null) listOf(record) else history.filter { it.topic == record.topic })
+        // An answer saved before topics existed starts its own: its follow-ups take its time as their topic.
+        val key = record.topicKey
+        val turns = history.filter { it.topicKey == key }
             .sortedBy { it.createdAtEpochMs }.ifEmpty { listOf(record) }
         val last = turns.last()
         stopRunning()

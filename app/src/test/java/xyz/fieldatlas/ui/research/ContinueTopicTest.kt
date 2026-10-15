@@ -71,4 +71,22 @@ class ContinueTopicTest {
         assertEquals(records.first().topic, next.topic)
         assertEquals(3, history.records.value.count { it.topic == records.first().topic })
     }
+
+    @Test fun anAnswerSavedBeforeTopicsExistedStartsOneThatStaysTogether() {
+        val history = store()
+        // As 1.4.1 saved it: no topic.
+        history.record("tell me about the hagia sophia", "Hagia Sophia is in Istanbul [S1].", listOf("Hagia Sophia — Overview"), listOf(evidence))
+        val old = history.records.value.single()
+        assertEquals(null, old.topic)
+        val vm = viewModel(history)
+        assertTrue(vm.continueTopic(old, history.records.value))
+        vm.submitFollowUp("when was it turned back into a mosque?")
+        vm.startNewQuestion()
+        val followUp = history.records.value.first()
+        assertEquals(old.createdAtEpochMs, followUp.topic)
+        // Continuing again from the follow-up still finds the old first question.
+        val again = viewModel(history)
+        assertTrue(again.continueTopic(followUp, history.records.value))
+        assertEquals(listOf("tell me about the hagia sophia"), again.uiState.value.earlier.map { it.asked })
+    }
 }

@@ -75,7 +75,11 @@ internal fun FollowUpComposer(
     attachmentNotice: String? = null,
     onLeave: () -> Unit = {},
 ) {
-    androidx.compose.runtime.DisposableEffect(Unit) { onDispose(onLeave) }
+    // Turning the phone rebuilds the screen around the same answer; only really leaving it drops a follow-up recording.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.runtime.DisposableEffect(Unit) {
+        onDispose { if (context.findActivity()?.isChangingConfigurations != true) onLeave() }
+    }
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     val mine = voice.forFollowUp
     val recording = mine && voice.phase == VoicePhase.Recording
@@ -102,8 +106,10 @@ internal fun FollowUpComposer(
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 RecordingDot()
                 Text("Listening on this phone", style = MaterialTheme.typography.labelLarge)
+                // At large text the hint takes what width is left and wraps by words, not letter by letter.
                 Text(if (voice.liveText.isBlank()) "· start speaking" else "· tap stop when done",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f, fill = false))
             }
             Surface(
                 shape = MaterialTheme.shapes.medium,
@@ -154,7 +160,10 @@ internal fun FollowUpComposer(
                                 }) {
                                 Box(contentAlignment = Alignment.Center) {
                                     when {
-                                        busy -> androidx.compose.material3.CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                                        busy -> androidx.compose.material3.CircularProgressIndicator(
+                                            Modifier.size(20.dp).semantics {
+                                                contentDescription = if (voice.phase == VoicePhase.Starting) "Preparing offline voice" else "Transcribing"
+                                            }, strokeWidth = 2.dp)
                                         recording -> Icon(androidx.compose.material.icons.Icons.Filled.Stop, "Stop recording", Modifier.size(20.dp))
                                         showSend -> Icon(FieldAtlasIcons.Back, "Ask follow-up", Modifier.size(20.dp).rotate(90f))
                                         else -> Icon(FieldAtlasIcons.Mic, "Speak follow-up", Modifier.size(20.dp))
@@ -226,4 +235,10 @@ internal fun FollowUpLabel(number: Int) {
     Text("$number · Follow-up", style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 2.dp))
     Spacer(Modifier.size(0.dp))
+}
+
+private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
