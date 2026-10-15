@@ -42,4 +42,16 @@ class WordProblemTest {
         assertFalse(WordProblem.isSelfContained("What time is it?"))
         assertFalse(WordProblem.of("How long should a 2 km walk take?").selfContained)
     }
+
+    @Test fun figuresGivenOutweighAPlaceName() {
+        listOf(
+            "A tour costs 2,400 baht in Chiang Mai or 75 dollars. 1 dollar is 34 baht and my card charges 2% on baht. Which option is cheaper and by how much?",
+            "I have 1,500 for 10 days. Hostels take 40% and transport 25%. What's my daily budget?",
+            "The bus leaves Lima at 22:30 on day 1 and arrives in Cusco at 18:10 on day 2, with a 45 minute stop. How long is the ride?",
+        ).forEach { assertTrue(it, WordProblem.isSelfContained(it)) }
+        listOf(
+            "How many people live in Tokyo, and how much did it grow from 1950 to 2020?",
+            "Is it safe to hike 20 km at 35 degrees with 2 litres of water each in Arizona?",
+        ).forEach { assertFalse(it, WordProblem.isSelfContained(it)) }
+    }
 }

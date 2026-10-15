@@ -11,6 +11,12 @@ object WordProblem {
     data class Problem(val numbers: List<String>, val selfContained: Boolean)
 
     private const val MIN_NUMBERS = 3
+    /**
+     * With this many of its own figures and an arithmetic ask, a question that names places is still
+     * worked from its figures: "leaves Tokyo at 17:05 … lands in San Francisco at 10:20 … UTC+9 …
+     * UTC-7" gives everything, and the travel guide's passages only mislead the sum.
+     */
+    private const val FIGURES_OVER_PLACES = 4
     // A clock time, then a plain number with thousands separators and decimals ("two 10-minute stops" has one).
     private val number = Regex("(?<![\\d.,:])(?:\\d{1,2}:\\d{2}|\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d+)?)(?![\\d:]|[.,]\\d)")
     private val numberWord = Regex("(?i)\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|quarter)\\b")
@@ -24,7 +30,11 @@ object WordProblem {
     // Three numbers alone do not make a calculation: model numbers, dates and versions
     // can occur in a question that needs knowledge not supplied by the person.
     private val arithmeticAsk = Regex("(?i)\\b(?:how (?:many|much|long|far|heavy|fast)|what time|when (?:do|does|will|would|can)|" +
-        "(?:what(?:'s| is)|find|calculate|work out) (?:the )?(?:total|sum|product|difference|cost|price|amount)|calculate|work out)\\b|[×÷=]")
+        "(?:what(?:'s| is)|find|calculate|work out) (?:the )?(?:total|sum|product|difference|cost|price|amount)|calculate|work out|" +
+        // "Which option is cheaper and by how much?", "what's my daily budget?", "the gradient as a percentage".
+        "which (?:\\w+ )?(?:is|are|works? out|comes? out) (?:cheaper|faster|quicker|shorter|longer|more expensive)|by how much|" +
+        "what(?:'s| is| are) (?:my|our|the|each) (?:\\w+ ){0,2}(?:budget|gradient|slope|speed|average|percentage|rate|share|split|cost|price|total)|" +
+        "as a percentage|in degrees)\\b|[×÷=]")
     // A sentence opens with a capital whatever it is about ("Our hotel", "Using the rule"); GuideScope
     // reads such a word as a name unless it is a question word, so it is lowered first. A name a
     // colon marks ("Hanoi: how do I...") keeps its capital.
@@ -41,7 +51,8 @@ object WordProblem {
         val selfContained = counted >= MIN_NUMBERS &&
             arithmeticAsk.containsMatchIn(question) &&
             !PromptBuilder.requiresSavedSources(question) &&
-            !GuideScope.namesPlace(lowered) && TravelSections.lookup(plain)?.places.isNullOrEmpty() && !SubjectLookup.leads(plain) &&
+            (counted >= FIGURES_OVER_PLACES ||
+                !GuideScope.namesPlace(lowered) && TravelSections.lookup(plain)?.places.isNullOrEmpty() && !SubjectLookup.leads(plain)) &&
             !judgement.containsMatchIn(shouldTake.replace(question, "take"))
         return Problem(numbers, selfContained)
     }
