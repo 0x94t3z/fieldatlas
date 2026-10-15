@@ -38,6 +38,16 @@ data class VoiceUiState(
     val forFollowUp: Boolean = false,
 )
 
+/** An answer still being researched after New topic, or just saved to History from the background. */
+data class BackgroundAnswer(
+    val question: String,
+    val startedAtNanos: Long?,
+    val done: Boolean = false,
+    val failed: Boolean = false,
+) {
+    val running: Boolean get() = !done && !failed
+}
+
 data class ResearchUiState(
     val attachments: List<AttachmentUiState> = emptyList(),
     /** The standalone question research runs on; for a follow-up, the reading built from the topic. */
@@ -63,6 +73,8 @@ data class ResearchUiState(
     val metrics: ResearchMetrics? = null,
     val completion: ResearchCompletion? = null,
     val error: String? = null,
+    /** Asked while another answer was still being researched in the background: that question, until it is done. */
+    val waitingFor: String? = null,
 ) {
     /** What the person asked, as they typed it. */
     val shownQuestion: String get() = asked.ifBlank { question }
@@ -113,7 +125,18 @@ class ResearchViewModel(
     fun retryAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.retry(id) }
     val uiState: StateFlow<ResearchUiState> = mutableUiState.asStateFlow()
     private var researchJob: Job? = null
-    private val rawAnswer = StringBuilder()
+
+    /** Where a run's progress goes: the screen, or, once New topic has sent it to the background, its own copy. */
+    private class RunSink {
+        var detached = false
+        var state = ResearchUiState()
+    }
+    private var currentSink: RunSink? = null
+    private var backgroundSink: RunSink? = null
+    private var backgroundJob: Job? = null
+    private val mutableBackground = MutableStateFlow<BackgroundAnswer?>(null)
+    /** The answer New topic left running, for the Research home's row and to keep the app alive while it runs. */
+    val background: StateFlow<BackgroundAnswer?> = mutableBackground.asStateFlow()
     private val mutableVoiceState = MutableStateFlow(VoiceUiState())
     val voiceState: StateFlow<VoiceUiState> = mutableVoiceState.asStateFlow()
     private var activeTranscriber: SpeechTranscriber? = null
@@ -348,14 +371,15 @@ class ResearchViewModel(
         if (state.asked.isBlank()) return
         beforeFollowUp = null
         stopRunning()
-        rawAnswer.clear()
         savedStateHandle[QUESTION_KEY] = state.question
         mutableUiState.value = ResearchUiState(question = state.question, attachments = attachmentSession.state.value)
     }
 
     private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long,
                     carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null) {
-        rawAnswer.clear()
+        // One answer is researched at a time on the phone: a question asked while another runs in the background
+        // waits for it, and says so.
+        val ahead = backgroundJob?.takeIf { it.isActive }
         mutableUiState.value = ResearchUiState(
             question = question,
             asked = asked,
@@ -364,38 +388,44 @@ class ResearchViewModel(
             attachments = attachmentSession.state.value,
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
+            waitingFor = ahead?.let { mutableBackground.value?.question },
         )
         // A run cancelled a moment ago may still be letting go of the model and search; start after it,
         // or the new run fails with "Another local research run is active".
         val previous = stoppingJob
+        val sink = RunSink()
+        currentSink = sink
+        val rawAnswer = StringBuilder()
         researchJob = scope.launch {
             // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
-            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join() }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join(); ahead?.join() }
             // A run cancelled while it waited never touches the model.
             ensureActive()
+            if (ahead != null) mutableUiState.update { it.copy(waitingFor = null) }
             orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried)
                 .flowOn(researchContext).collect { event ->
                 // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
                 ensureActive()
-                mutableUiState.value = when (event) {
-                    is ResearchEvent.Planning -> mutableUiState.value.copy(
+                val current = if (sink.detached) sink.state else mutableUiState.value
+                val next = when (event) {
+                    is ResearchEvent.Planning -> current.copy(
                         phase = ResearchPhase.Planning,
                         error = null,
                     )
-                    is ResearchEvent.Keywords -> mutableUiState.value.copy(keywords = event.terms)
-                    is ResearchEvent.Searching -> mutableUiState.value.copy(
+                    is ResearchEvent.Keywords -> current.copy(keywords = event.terms)
+                    is ResearchEvent.Searching -> current.copy(
                         phase = ResearchPhase.Searching,
                         retrievalProgress = 0.0,
                         retrievalVectorMatches = 0,
                         error = null,
                     )
-                    is ResearchEvent.Sources -> mutableUiState.value.copy(sources = event.evidence)
+                    is ResearchEvent.Sources -> current.copy(sources = event.evidence)
                     is ResearchEvent.Lead -> {
                         // Shown while the model is still reading its prompt; tokensWritten
                         // stays at zero so the prefill progress label remains visible.
                         rawAnswer.clear()
                         rawAnswer.append(event.text)
-                        mutableUiState.value.copy(
+                        current.copy(
                             answer = AnswerText.visible(rawAnswer.toString()),
                             phase = ResearchPhase.Generating,
                         )
@@ -408,22 +438,22 @@ class ResearchViewModel(
                         val marker = event.text.isEmpty()
                         if (event.replace) rawAnswer.clear()
                         rawAnswer.append(event.text)
-                        mutableUiState.value.copy(
+                        current.copy(
                             answer = AnswerText.visible(rawAnswer.toString()),
                             phase = ResearchPhase.Generating,
-                            tokensWritten = mutableUiState.value.tokensWritten + if (marker) 0 else 1,
-                            checking = mutableUiState.value.checking && marker,
+                            tokensWritten = current.tokensWritten + if (marker) 0 else 1,
+                            checking = current.checking && marker,
                         )
                     }
                     // Progress only: an unreviewed draft is never put on screen.
-                    is ResearchEvent.Drafting -> mutableUiState.value.copy(
+                    is ResearchEvent.Drafting -> current.copy(
                         phase = ResearchPhase.Generating,
                         tokensWritten = event.tokens,
                         checking = event.checking,
                     )
                     is ResearchEvent.Complete -> {
-                        val finalAnswer = AnswerText.finalized(rawAnswer.toString(), mutableUiState.value.sources.size)
-                        mutableUiState.value.copy(
+                        val finalAnswer = AnswerText.finalized(rawAnswer.toString(), current.sources.size)
+                        current.copy(
                             answer = finalAnswer,
                             phase = ResearchPhase.Complete,
                             metrics = event.metrics,
@@ -441,17 +471,51 @@ class ResearchViewModel(
                             )
                         }
                     }
-                    is ResearchEvent.InsufficientEvidence -> mutableUiState.value.copy(
+                    is ResearchEvent.InsufficientEvidence -> current.copy(
                         phase = ResearchPhase.Insufficient,
                         error = event.reason,
                     )
-                    is ResearchEvent.Failed -> mutableUiState.value.copy(
+                    is ResearchEvent.Failed -> current.copy(
                         phase = ResearchPhase.Error,
                         error = event.message,
                     ).also { onError("Answer attempt failed: ${event.message}") }
                 }
+                if (sink.detached) settleBackground(sink, next) else mutableUiState.value = next
             }
         }
+    }
+
+    /** A background answer's progress: kept with it, and its end (saved, or no answer) shown on the Research home. */
+    private fun settleBackground(sink: RunSink, state: ResearchUiState) {
+        sink.state = state
+        if (backgroundSink !== sink) return
+        when (state.phase) {
+            ResearchPhase.Complete -> mutableBackground.update { it?.copy(done = true) }
+            ResearchPhase.Insufficient, ResearchPhase.Error -> mutableBackground.update { it?.copy(failed = true) }
+            else -> Unit
+        }
+    }
+
+    /** Back to the page of the answer New topic left running, if nothing else is being researched. */
+    fun reopenBackground(): Boolean {
+        val sink = backgroundSink ?: return false
+        if (mutableUiState.value.isRunning || mutableBackground.value?.running != true) return false
+        sink.detached = false
+        mutableUiState.value = sink.state
+        savedStateHandle[QUESTION_KEY] = sink.state.question
+        currentSink = sink
+        researchJob = backgroundJob
+        backgroundJob = null
+        backgroundSink = null
+        mutableBackground.value = null
+        return true
+    }
+
+    /** The Research home's row for a finished background answer was read or dismissed. */
+    fun clearBackground() {
+        if (mutableBackground.value?.running == true) return
+        backgroundSink = null
+        mutableBackground.value = null
     }
 
     /**
@@ -468,13 +532,11 @@ class ResearchViewModel(
             .sortedBy { it.createdAtEpochMs }.ifEmpty { listOf(record) }
         val last = turns.last()
         stopRunning()
-        rawAnswer.clear()
         attachmentSession.clear()
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
         val readAs = last.readAs ?: last.question
         savedStateHandle[QUESTION_KEY] = readAs
-        rawAnswer.append(last.answer)
         mutableUiState.value = ResearchUiState(
             question = readAs,
             asked = if (last.readAs != null) last.question else "",
@@ -490,12 +552,26 @@ class ResearchViewModel(
 
     /** Clears the finished answer so the screen returns to a fresh-asking state. */
     fun startNewQuestion() {
-        // A run in flight is kept in History as Cancel keeps it, not thrown away.
-        if (mutableUiState.value.isRunning) cancelResearch()
+        val state = mutableUiState.value
+        val sink = currentSink
+        if (state.isRunning && state.waitingFor == null && sink != null && researchJob?.isActive == true) {
+            // Not stopped: the answer goes on in the background and is saved to History when it is done. Only one can
+            // run there; the next question waits for it.
+            sink.state = state
+            sink.detached = true
+            backgroundSink = sink
+            backgroundJob = researchJob
+            researchJob = null
+            currentSink = null
+            mutableBackground.value = BackgroundAnswer(state.shownQuestion, state.startedAtNanos)
+        } else if (state.isRunning) {
+            // A question still waiting its turn has not started: it is dropped, and the one ahead of it goes on.
+            cancelResearch()
+        }
         beforeFollowUp = null
+        // A background answer already read its files' text; the new topic starts with none.
         attachmentSession.clear()
         stopRunning()
-        rawAnswer.clear()
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
         savedStateHandle[QUESTION_KEY] = ""
@@ -522,8 +598,6 @@ class ResearchViewModel(
             if (followed != null) {
                 // A stopped follow-up gives the page back to the answer it followed, with the follow-up back in the box
                 // to send again or change: nothing of the topic is lost.
-                rawAnswer.clear()
-                rawAnswer.append(followed.answer)
                 savedStateHandle[QUESTION_KEY] = followed.question
                 mutableUiState.value = followed.copy(attachments = attachmentSession.state.value)
                 mutableFollowUpDraft.value = state.asked

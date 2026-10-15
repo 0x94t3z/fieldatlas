@@ -145,7 +145,8 @@ class ResearchViewModelTest {
 
     @Test fun aNewRunWaitsForEveryCancelledRunToLetGo() {
         // The model takes a moment to stop after a cancel. A run started meanwhile must wait for it, even after
-        // "Ask another question" and even when a second run is cancelled while it is still waiting.
+        // "Ask another question" and even when a second run is cancelled while it is still waiting. (New topic alone
+        // no longer stops a run, see BackgroundAnswerTest; here the first run is stopped first.)
         val letGo = kotlinx.coroutines.CompletableDeferred<Unit>()
         var started = 0
         val prompts = mutableListOf<String>()
@@ -167,6 +168,7 @@ class ResearchViewModelTest {
         val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, gateway)
         viewModel.updateQuestion("Explain one")
         viewModel.submit()
+        viewModel.cancelResearch()
         viewModel.startNewQuestion()
         viewModel.updateQuestion("Explain two")
         viewModel.submit()

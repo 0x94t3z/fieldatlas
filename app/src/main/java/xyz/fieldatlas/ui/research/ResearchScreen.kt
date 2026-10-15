@@ -128,6 +128,9 @@ fun ResearchScreen(
     answersWithoutModel: (question: String, hasAttachments: Boolean) -> Boolean = { question, hasAttachments ->
         xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null
     },
+    background: BackgroundAnswer? = null,
+    onOpenBackground: () -> Unit = {},
+    onDismissBackground: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var attachmentMenuOpen by rememberSaveable { mutableStateOf(false) }
@@ -149,6 +152,13 @@ fun ResearchScreen(
         state = listState,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        // The answer New topic left running, or just saved: the only addition to this screen, and only then.
+        background?.let { answer ->
+            item(key = "background") {
+                BackgroundAnswerRow(answer, onOpen = onOpenBackground, onDismiss = onDismissBackground,
+                    modifier = Modifier.padding(top = 12.dp))
+            }
+        }
         item {
             if (state.isRunning) {
                 Column(Modifier.padding(top = 8.dp)) {
@@ -368,7 +378,10 @@ fun ResearchScreen(
             item {
                 ResearchAction(
                     state = state,
-                    inferenceState = inferenceState,
+                    // The model busy with an answer New topic left running is not this question's: it can be asked,
+                    // and waits its turn.
+                    inferenceState = if (background?.running == true && !state.isRunning &&
+                        inferenceState == InferenceState.Generating) InferenceState.Ready else inferenceState,
                     answersWithoutModel = answersWithoutModel,
                     onSubmit = onSubmit,
                     onStop = onStop,
@@ -661,7 +674,8 @@ private fun ResearchProgressCard(state: ResearchUiState, onStop: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             // A source lead arrives before the model writes; until then the model is still reading.
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
+                Text(if (state.waitingFor != null) "Waiting for your last question"
+                    else researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
                     drafting = modelWriting, checking = state.checking),
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
                         fontWeight = FontWeight(650)))

@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -80,6 +81,7 @@ internal fun researchStage(state: ResearchUiState): Int = when {
  * towards the answer only once the draft is being checked.
  */
 internal fun trailPosition(state: ResearchUiState, readFraction: Float?): Float {
+    if (state.waitingFor != null) return STOPS[0]
     val stage = researchStage(state)
     val within = when (stage) {
         0 -> state.retrievalProgress.toFloat()
@@ -91,7 +93,7 @@ internal fun trailPosition(state: ResearchUiState, readFraction: Float?): Float 
 }
 
 /** What the status line says is happening, in words a reader uses. */
-internal fun researchStatusTitle(state: ResearchUiState): String = when (researchStage(state)) {
+internal fun researchStatusTitle(state: ResearchUiState): String = if (state.waitingFor != null) "Waiting for your last question" else when (researchStage(state)) {
     0 -> if (state.phase == ResearchPhase.Planning) "Finding better search words"
         else if (state.attachments.isNotEmpty()) "Searching your files" else "Searching your collections"
     1 -> when (state.sources.size) {
@@ -147,12 +149,14 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
             delay(1_000)
         }
     }
-    val step by produceState(0, still) {
-        while (!still) { delay(DINO_STEP); value = 1 - value }
+    // The dino walks while work is done for this question, and stands while it waits its turn.
+    val walking = !still && state.waitingFor == null
+    val step by produceState(0, walking) {
+        while (walking) { delay(DINO_STEP); value = 1 - value }
     }
     val title = researchStatusTitle(state)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Trail(stage, position, if (still || step == 0) FieldAtlasIcons.DinoWalkA else FieldAtlasIcons.DinoWalkB,
+        Trail(stage, position, if (!walking || step == 0) FieldAtlasIcons.DinoWalkA else FieldAtlasIcons.DinoWalkB,
             Modifier.semantics {
                 contentDescription = "Research progress: step ${stage + 1} of 3, ${STAGES[stage]}"
                 progressBarRangeInfo = ProgressBarRangeInfo(position, 0f..1f)
@@ -186,7 +190,8 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
             right?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         Text(
-            typicalMillis?.let { "Usually about ${((it + 30_000) / 60_000).coerceAtLeast(1)} min on this phone · keeps going if you switch apps." }
+            state.waitingFor?.let { "One answer at a time on this phone: this starts when “$it” is saved to History." }
+                ?: typicalMillis?.let { "Usually about ${((it + 30_000) / 60_000).coerceAtLeast(1)} min on this phone · keeps going if you switch apps." }
                 ?: "Keeps going if you switch apps. On slower phones an answer takes 2 to 5 minutes.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -367,5 +372,71 @@ internal fun ReadingLine(label: String, reading: String, onEdit: (() -> Unit)?) 
                 .semantics { contentDescription = "Edit how this follow-up is read" },
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp),
         ) { Text("Edit", style = MaterialTheme.typography.labelLarge) }
+    }
+}
+
+/**
+ * One line on the Research home for the answer New topic left running: "Still answering …" with the time so far, which
+ * reopens its page, then "Saved to History …" or "No answer for …" once it ends.
+ */
+@Composable
+internal fun BackgroundAnswerRow(answer: BackgroundAnswer, onOpen: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    var elapsedMillis by remember(answer.startedAtNanos) { mutableLongStateOf(0L) }
+    LaunchedEffect(answer.startedAtNanos, answer.running) {
+        val start = answer.startedAtNanos ?: return@LaunchedEffect
+        while (answer.running) {
+            elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
+            delay(1_000)
+        }
+    }
+    val still = stillMotion()
+    val step by produceState(0, answer.running && !still) {
+        while (answer.running && !still) { delay(DINO_STEP); value = 1 - value }
+    }
+    val label = when {
+        answer.running -> "Still answering"
+        answer.done -> "Saved to History"
+        else -> "No answer for"
+    }
+    Surface(
+        onClick = onOpen,
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).semantics(mergeDescendants = true) {
+            liveRegion = LiveRegionMode.Polite
+        },
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+    ) {
+        Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(
+                when {
+                    !answer.running -> if (answer.done) FieldAtlasIcons.Check else FieldAtlasIcons.Info
+                    step == 0 -> FieldAtlasIcons.DinoWalkA
+                    else -> FieldAtlasIcons.DinoWalkB
+                },
+                contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp),
+            )
+            Text(
+                androidx.compose.ui.text.buildAnnotatedString {
+                    append("$label ")
+                    pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold))
+                    append(answer.question)
+                    pop()
+                    if (answer.running && answer.startedAtNanos != null) {
+                        pushStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant))
+                        append(" · " + formatResearchElapsed(elapsedMillis))
+                        pop()
+                    }
+                },
+                style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp, lineHeight = 18.sp),
+                maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(vertical = 10.dp),
+            )
+            if (answer.running) Icon(androidx.compose.material.icons.Icons.AutoMirrored.Outlined.KeyboardArrowRight, null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            else androidx.compose.material3.IconButton(onClick = onDismiss) {
+                Icon(FieldAtlasIcons.Close, "Dismiss", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }

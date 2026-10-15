@@ -146,6 +146,10 @@ fun FieldAtlasApp(
     onLeaveFollowUp: () -> Unit = {},
     /** Picks a History topic up again; false while an answer is being written. */
     onContinueTopic: (AnswerRecord) -> Boolean = { false },
+    /** The answer New topic left running in the background, or just saved from it. */
+    researchBackground: xyz.fieldatlas.ui.research.BackgroundAnswer? = null,
+    onReopenBackground: () -> Boolean = { false },
+    onClearBackground: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -454,6 +458,17 @@ fun FieldAtlasApp(
                         onAskAnotherQuestion = onAskAnotherQuestion,
                         onEditReadAs = onEditReadAs,
                         answersWithoutModel = answersWithoutModel,
+                        background = researchBackground,
+                        onOpenBackground = {
+                            val background = researchBackground
+                            when {
+                                background == null -> Unit
+                                // Saved: it is in History with the rest.
+                                !background.running -> { onClearBackground(); navigation.select(PrimaryDestination.History) }
+                                onReopenBackground() -> navigation.openAnswer()
+                            }
+                        },
+                        onDismissBackground = onClearBackground,
                     )
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,

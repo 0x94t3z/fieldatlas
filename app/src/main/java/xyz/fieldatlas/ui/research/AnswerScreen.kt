@@ -83,16 +83,6 @@ fun AnswerScreen(
     BackHandler(onBack = onBack)
     // The page opens as soon as research starts: the live status sits where the answer will appear.
     val running = state.isRunning
-    var confirmNewTopic by rememberSaveable { mutableStateOf(false) }
-    if (confirmNewTopic && running) {
-        xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
-            title = "Stop this research?",
-            message = "The answer being written stops and a new topic starts. What was written so far is kept in History.",
-            onKeep = { confirmNewTopic = false },
-            onDelete = { confirmNewTopic = false; onAskAnother() },
-            deleteLabel = "Stop and start new",
-        )
-    }
     // What follows reads the finished answer. While research runs it is skipped: the research rules it calls are being
     // loaded on a worker the first time, and waiting for them here would freeze the screen.
     val presentation = if (running) AnswerPresentation(emptyList(), emptySet(), emptySet()) else buildAnswerPresentation(state.answer, state.sources.size)
@@ -391,7 +381,8 @@ fun AnswerScreen(
                     draft = followUpDraft,
                     onDraftChange = onFollowUpDraftChange,
                     onSend = onFollowUp,
-                    onNewTopic = { if (running) confirmNewTopic = true else onAskAnother() },
+                    // New topic never stops an answer: it goes on in the background and is saved to History.
+                    onNewTopic = onAskAnother,
                     voice = voiceState,
                     onMic = onFollowUpMic,
                     attachments = state.attachments,

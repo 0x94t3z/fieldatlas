@@ -58,8 +58,11 @@ class MainActivity : ComponentActivity() {
         // the activity's whole life, not only while it is on screen, so a run that ends in the background
         // still lets the service go.
         lifecycleScope.launch {
-            researchViewModel.uiState
-                .map { it.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) }
+            // An answer New topic left running in the background counts as much as the one on screen.
+            kotlinx.coroutines.flow.combine(researchViewModel.uiState, researchViewModel.background) { state, background ->
+                state.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) ||
+                    background?.running == true
+            }
                 .distinctUntilChanged()
                 .collect { running ->
                     if (running) KeepAliveService.hold(this@MainActivity, "research")
@@ -80,6 +83,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
+            val researchBackground by researchViewModel.background.collectAsStateWithLifecycle()
             val historyRecords by container.answerHistory.records.collectAsStateWithLifecycle()
             val historyStorage by container.answerHistory.storage.collectAsStateWithLifecycle()
             LaunchedEffect(Unit) { container.answerHistory.ensureLoaded() }
@@ -328,6 +332,9 @@ class MainActivity : ComponentActivity() {
                 onSelectAttachmentTarget = researchViewModel::selectAttachmentTarget,
                 onLeaveFollowUp = researchViewModel::leaveFollowUp,
                 onContinueTopic = { record -> researchViewModel.continueTopic(record, historyRecords) },
+                researchBackground = researchBackground,
+                onReopenBackground = researchViewModel::reopenBackground,
+                onClearBackground = researchViewModel::clearBackground,
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {
