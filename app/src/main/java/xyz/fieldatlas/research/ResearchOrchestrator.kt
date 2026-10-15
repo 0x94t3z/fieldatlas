@@ -752,6 +752,8 @@ class ResearchOrchestrator(
                     }
                 }
             }
+            // The follow-up's earlier passages keep the front slots, ahead of subject overviews added above.
+            if (includeLibrary && !placesOnly) evidence = TopicEvidence.lead(evidence, topic)
             val retrievalFinishedAt = monotonicMillis()
             (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
@@ -799,7 +801,11 @@ class ResearchOrchestrator(
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question)
             } else {
-                PromptBuilder.buildKnowledge(question, evidence, subjects, depth, contextTokenBudget,
+                // Subject overviews are packed first; a follow-up's earlier passages go ahead of them, so a phone's
+                // short prompt keeps the passage the earlier answer read.
+                val leadingSubjects = if (subjects.isEmpty()) subjects
+                    else (TopicEvidence.leading(topic) + subjects).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                PromptBuilder.buildKnowledge(question, evidence, leadingSubjects, depth, contextTokenBudget,
                     prefillSpeed.tokensPerSecond)
             }
             onEvidencePacked(packed)

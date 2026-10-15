@@ -22,6 +22,24 @@ class TopicEvidenceTest {
         assertEquals(listOf(overview), TopicEvidence.merge(listOf(overview), TopicEvidence.Carried("is it free?", listOf(unrelated)), 1))
     }
 
+    @Test fun aMatchingEarlierPassageMovesAheadOfOverviewsAddedLater() {
+        val carried = TopicEvidence.Carried("when was it turned back into a mosque?", listOf(overview, details))
+        // Later stages put general overviews first; the earlier answer's matching passage still leads.
+        assertEquals(listOf(details, overview, other), TopicEvidence.lead(listOf(other, overview, details), carried).let {
+            listOf(it[0]) + it.drop(1).sortedBy { e -> e.title } })
+        assertEquals(details, TopicEvidence.lead(listOf(other, overview), carried).first())
+        assertEquals(listOf(other), TopicEvidence.lead(listOf(other), null))
+    }
+
+    @Test fun aFollowUpNamingSomethingNewReadsOnlyItsOwnSearch() {
+        val sun = ev("s", "Sun — Overview", "Light from the Sun takes about 8 minutes to reach Earth; the Moon reflects it.")
+        val carried = TopicEvidence.Carried("and from the moon?", listOf(sun))
+        assertEquals(listOf(other), TopicEvidence.merge(listOf(other), carried, 8))
+        assertEquals(listOf(other), TopicEvidence.lead(listOf(other), carried))
+        assertEquals(true, TopicEvidence.refersBack("which of those is open on sunday?"))
+        assertEquals(false, TopicEvidence.refersBack("why is the flour a problem?"))
+    }
+
     @Test fun nothingCarriedLeavesTheSearchAsItWas() {
         assertEquals(listOf(overview, other), TopicEvidence.merge(listOf(overview, other), null, 8))
         assertEquals(listOf(overview, other), TopicEvidence.merge(listOf(overview, other), TopicEvidence.Carried("why?", emptyList()), 8))

@@ -13,8 +13,33 @@ object TopicEvidence {
     /** At most this many earlier passages lead the prompt; the rest of the slots stay with the new search. */
     const val MAX_LEADING = 3
 
+    // Only a follow-up that points back at the earlier answer ("when was it…", "which of those…") reads its passages.
+    // One that names something new ("and from the moon?") is about that, and the earlier subject's passages mislead.
+    private val pointsBack = Regex("(?i)\\b(?:it|its|it's|that|those|these|this|they|them|their|theirs|there|which\\s+(?:one|ones|of))\\b")
+    fun refersBack(asked: String): Boolean = pointsBack.containsMatchIn(asked)
+
+    /** The earlier passages that share the follow-up's words, best first, at most [MAX_LEADING]. */
+    fun leading(carried: Carried?): List<Evidence> {
+        if (carried == null || carried.sources.isEmpty() || !refersBack(carried.asked)) return emptyList()
+        val terms = FtsQuery.from(carried.asked)?.terms.orEmpty().map { it.lowercase() }.filter { it.length > 2 }
+        return carried.sources.distinctBy { it.chunkId }
+            .map { it to terms.count { term -> term in it.text.lowercase() || term in it.title.lowercase() } }
+            .filter { it.second > 0 }.sortedByDescending { it.second }.take(MAX_LEADING).map { it.first }
+    }
+
+    /**
+     * Run last, after the subject overviews are put in front: those general passages ("Mosque — Overview") would
+     * otherwise push the earlier answer's own passage past what a phone's prompt can hold.
+     */
+    fun lead(evidence: List<Evidence>, carried: Carried?): List<Evidence> {
+        val first = leading(carried)
+        if (first.isEmpty()) return evidence
+        val ids = first.map { it.chunkId }.toHashSet()
+        return first + evidence.filter { it.chunkId !in ids }
+    }
+
     fun merge(found: List<Evidence>, carried: Carried?, limit: Int): List<Evidence> {
-        if (carried == null || carried.sources.isEmpty()) return found.take(limit)
+        if (carried == null || carried.sources.isEmpty() || !refersBack(carried.asked)) return found.take(limit)
         val seen = found.map { it.chunkId }.toHashSet()
         val terms = FtsQuery.from(carried.asked)?.terms.orEmpty().map { it.lowercase() }.filter { it.length > 2 }
         val earlier = carried.sources.distinctBy { it.chunkId }.filter { it.chunkId !in seen }

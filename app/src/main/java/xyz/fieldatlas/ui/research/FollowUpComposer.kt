@@ -122,11 +122,12 @@ internal fun FollowUpComposer(
                             Icon(FieldAtlasIcons.Plus, "Add a file to the follow-up", Modifier.size(20.dp))
                         }
                         Box(Modifier.weight(1f).padding(vertical = 12.dp)) {
+                            // A slim box under the answer: medium text, so the placeholder does not compete with the answer.
                             if (draft.isEmpty()) Text(if (recording) "Speak your follow-up" else "Ask a follow-up",
-                                style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             BasicTextField(
                                 value = draft, onValueChange = onDraftChange,
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                                 keyboardActions = KeyboardActions(onSend = { send() }),

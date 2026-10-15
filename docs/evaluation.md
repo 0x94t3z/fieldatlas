@@ -32,21 +32,27 @@ answered about free algebras, and "which ones got executed?" after Henry VIII's 
 prison escape. The level stays low: the model is the same, and a follow-up such as "which one is
 closest to the castle?" lists the places without measuring from the castle.
 
-A follow-up now also reads the passages behind the answer it follows. A fresh search for the combined
-question could miss them: on the phone, "when was it turned back into a mosque?" after Hagia Sophia
-found only the overview and answered 1453, while the first answer had read the passage with July
-2020. Up to three earlier passages that share the follow-up's words lead the prompt; the others only
-fill empty slots. On the same 30 pairs, each answered with and without the earlier passages by the
-same build, and graded blind in two rounds by six new graders
+A follow-up that points back at the answer ("when was it…", "which of those…") now also reads the
+passages that answer read. On the phone, "when was it turned back into a mosque?" after Hagia Sophia
+answered 1453: its own search found the 2020 passage, but subject overviews ("Hagia Sophia —
+Overview", "Mosque — Overview") filled the phone's short prompt first. Up to three of the earlier
+answer's passages that share the follow-up's words now go ahead of them, and the answer is July 2020.
+
+Measured on the same 30 pairs at the phone's reading speed, answered with and without the earlier
+passages by one build and graded blind in two rounds by six new graders
 ([answers and grades](fieldtest/results-1.4.2/followups-carried-sources.jsonl)):
 
-| Same 30 follow-ups | Without earlier passages | With earlier passages |
-| --- | ---: | ---: |
-| All 30 | 1.75 of 10 | 2.13 of 10 |
-| The 13 answers that changed | 1.88 | 2.54 |
+| Same 30 follow-ups, phone-sized prompts | Mean of 10 |
+| --- | ---: |
+| Without the earlier passages | 1.53 |
+| Carrying them for every follow-up (first version) | 1.52 |
+| Carrying them only when the follow-up points back | 1.63 |
 
-The 13 changed answers were better on 11, worse on 1 and the same on 1; both rounds agreed. These
-graders scored lower than the first six (1.75 here, 2.25 above, for the same reading).
+The first version helped 6 of the 11 answers it changed and hurt 3, one badly: "and from the moon?"
+after the Sun's light was given the Sun's passages and answered that moonlight never reaches Earth.
+Carrying only for follow-ups that point back changes 4 answers, the same texts the graders scored:
+3 better, 1 slightly worse. The gain is small; these graders scored lower than the first six (1.53
+here, 2.25 above, for the same reading).
 
 A follow-up can now also be spoken or asked about a file: the box under an answer has the same
 microphone and + as the question box. Checked on the Redmi: a dictated follow-up arrived word for
