@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
             // An answer New topic left running in the background counts as much as the one on screen.
             kotlinx.coroutines.flow.combine(researchViewModel.uiState, researchViewModel.background) { state, background ->
                 state.phase in setOf(ResearchPhase.Planning, ResearchPhase.Searching, ResearchPhase.Generating) ||
-                    background?.running == true
+                    background.any { it.running }
             }
                 .distinctUntilChanged()
                 .collect { running ->
@@ -333,8 +333,9 @@ class MainActivity : ComponentActivity() {
                 onLeaveFollowUp = researchViewModel::leaveFollowUp,
                 onContinueTopic = { record -> researchViewModel.continueTopic(record, historyRecords) },
                 researchBackground = researchBackground,
-                onReopenBackground = researchViewModel::reopenBackground,
-                onClearBackground = researchViewModel::clearBackground,
+                onOpenBackground = researchViewModel::openAside,
+                onDismissBackground = researchViewModel::dismissAside,
+                onParkAnswer = researchViewModel::parkFinished,
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {

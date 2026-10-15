@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -141,9 +142,9 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
     val position by animateFloatAsState(trailPosition(state, readFraction),
         animationSpec = tween(if (still) 0 else 700), label = "Trail")
     val stage = researchStage(state)
-    var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
-    LaunchedEffect(state.startedAtNanos) {
-        val start = state.startedAtNanos ?: return@LaunchedEffect
+    var elapsedMillis by remember(state.clockStartNanos) { mutableLongStateOf(0L) }
+    LaunchedEffect(state.clockStartNanos) {
+        val start = state.clockStartNanos ?: return@LaunchedEffect
         while (true) {
             elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
             delay(1_000)
@@ -376,42 +377,47 @@ internal fun ReadingLine(label: String, reading: String, onEdit: (() -> Unit)?) 
 }
 
 /**
- * One line on the Research home for the answer New topic left running: "Still answering …" with the time so far, which
- * reopens its page, then "Saved to History …" or "No answer for …" once it ends.
+ * One line on the Research home for an answer kept off the screen: "Still answering …" with the time so far (or
+ * "Waiting to start …"), "Answer ready …", or "No answer for …". A running or ready one opens its page; a finished
+ * row can be dismissed, its answer being in History.
  */
 @Composable
 internal fun BackgroundAnswerRow(answer: BackgroundAnswer, onOpen: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     var elapsedMillis by remember(answer.startedAtNanos) { mutableLongStateOf(0L) }
-    LaunchedEffect(answer.startedAtNanos, answer.running) {
+    val ticking = answer.running && !answer.waiting
+    LaunchedEffect(answer.startedAtNanos, ticking) {
         val start = answer.startedAtNanos ?: return@LaunchedEffect
-        while (answer.running) {
+        while (ticking) {
             elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
             delay(1_000)
         }
     }
     val still = stillMotion()
-    val step by produceState(0, answer.running && !still) {
-        while (answer.running && !still) { delay(DINO_STEP); value = 1 - value }
+    val step by produceState(0, ticking && !still) {
+        while (ticking && !still) { delay(DINO_STEP); value = 1 - value }
     }
     val label = when {
+        answer.waiting -> "Waiting to start"
         answer.running -> "Still answering"
-        answer.done -> "Saved to History"
+        answer.done -> "Answer ready"
         else -> "No answer for"
     }
     Surface(
-        onClick = onOpen,
+        onClick = if (answer.failed) onDismiss else onOpen,
         modifier = modifier.fillMaxWidth().heightIn(min = 52.dp).semantics(mergeDescendants = true) {
             liveRegion = LiveRegionMode.Polite
         },
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        border = BorderStroke(1.dp, if (answer.done) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
     ) {
         Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(
                 when {
-                    !answer.running -> if (answer.done) FieldAtlasIcons.Check else FieldAtlasIcons.Info
+                    answer.done -> FieldAtlasIcons.Document
+                    answer.failed -> FieldAtlasIcons.Info
                     step == 0 -> FieldAtlasIcons.DinoWalkA
                     else -> FieldAtlasIcons.DinoWalkB
                 },
@@ -423,7 +429,7 @@ internal fun BackgroundAnswerRow(answer: BackgroundAnswer, onOpen: () -> Unit, o
                     pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.SemiBold))
                     append(answer.question)
                     pop()
-                    if (answer.running && answer.startedAtNanos != null) {
+                    if (ticking && answer.startedAtNanos != null) {
                         pushStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant))
                         append(" · " + formatResearchElapsed(elapsedMillis))
                         pop()
@@ -436,6 +442,34 @@ internal fun BackgroundAnswerRow(answer: BackgroundAnswer, onOpen: () -> Unit, o
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
             else androidx.compose.material3.IconButton(onClick = onDismiss) {
                 Icon(FieldAtlasIcons.Close, "Dismiss", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** A short note, on any screen, that an answer researched off the screen is ready; Open shows its page. */
+@Composable
+internal fun ReadyNote(answer: BackgroundAnswer, onOpen: () -> Unit, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp).fillMaxWidth()
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.inverseSurface,
+        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        shadowElevation = 8.dp,
+    ) {
+        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(FieldAtlasIcons.Document, null, Modifier.size(20.dp))
+            Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
+                Text("Answer ready", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(answer.question, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            androidx.compose.material3.TextButton(onClick = onOpen,
+                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.inversePrimary)) { Text("Open") }
+            androidx.compose.material3.IconButton(onClick = onDismiss) {
+                Icon(FieldAtlasIcons.Close, "Dismiss", Modifier.size(18.dp))
             }
         }
     }

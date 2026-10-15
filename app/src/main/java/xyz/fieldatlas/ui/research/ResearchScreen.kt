@@ -128,9 +128,9 @@ fun ResearchScreen(
     answersWithoutModel: (question: String, hasAttachments: Boolean) -> Boolean = { question, hasAttachments ->
         xyz.fieldatlas.research.QuestionRequirements.response(question, hasAttachments) != null
     },
-    background: BackgroundAnswer? = null,
-    onOpenBackground: () -> Unit = {},
-    onDismissBackground: () -> Unit = {},
+    background: List<BackgroundAnswer> = emptyList(),
+    onOpenBackground: (Long) -> Unit = {},
+    onDismissBackground: (Long) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var attachmentMenuOpen by rememberSaveable { mutableStateOf(false) }
@@ -138,8 +138,6 @@ fun ResearchScreen(
         if (!state.canAddAttachment) attachmentMenuOpen = false
     }
     var questionFocused by remember { mutableStateOf(false) }
-    val hasReadyAnswer = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
-    var editReadyQuestion by rememberSaveable(hasReadyAnswer) { mutableStateOf(false) }
     // Research starters use saved reference articles; selecting one only fills the draft.
     val exampleQuestions = listOf(
         ExampleQuestion("Biology", "What role do chloroplasts play in photosynthesis?", FieldAtlasIcons.Knowledge, TileTone.Sage),
@@ -152,11 +150,15 @@ fun ResearchScreen(
         state = listState,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // The answer New topic left running, or just saved: the only addition to this screen, and only then.
-        background?.let { answer ->
-            item(key = "background") {
-                BackgroundAnswerRow(answer, onOpen = onOpenBackground, onDismiss = onDismissBackground,
-                    modifier = Modifier.padding(top = 12.dp))
+        // Answers kept off the screen, one row each: the only addition to this screen, and only while there are any.
+        if (background.isNotEmpty()) item(key = "background") {
+            Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                background.forEach { answer ->
+                    androidx.compose.runtime.key(answer.id) {
+                        BackgroundAnswerRow(answer, onOpen = { onOpenBackground(answer.id) },
+                            onDismiss = { onDismissBackground(answer.id) })
+                    }
+                }
             }
         }
         item {
@@ -175,18 +177,11 @@ fun ResearchScreen(
                     }
                 }
             } else FieldAtlasPageHeader(
-                title = when {
-                    hasReadyAnswer -> "Your research"
-                    else -> "What would you\nlike to know?"
-                },
-                subtitle = when {
-                    hasReadyAnswer -> "Your answer is ready to read."
-                    else -> "Research with what’s saved on your phone."
-                },
-                modifier = Modifier.padding(top = if (hasReadyAnswer) 16.dp else 22.dp),
-                titleStyle = if (hasReadyAnswer) MaterialTheme.typography.headlineLarge.copy(
-                    fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight(650), letterSpacing = (-0.8).sp)
-                    else MaterialTheme.typography.displaySmall,
+                // A finished answer is read on its own page and waits here as a row, so this is always the asking view.
+                title = "What would you\nlike to know?",
+                subtitle = "Research with what’s saved on your phone.",
+                modifier = Modifier.padding(top = 22.dp),
+                titleStyle = MaterialTheme.typography.displaySmall,
             )
         }
         // The design drops the status chips while research runs, keeping focus on progress.
@@ -203,7 +198,7 @@ fun ResearchScreen(
                 )
             }
         }
-        if (collectionCount == 0 && !hasReadyAnswer) {
+        if (collectionCount == 0) {
             item {
                 Text(
                     "Answers can come from your offline model. Add a knowledge pack in Library for source-backed answers.",
@@ -212,11 +207,11 @@ fun ResearchScreen(
                 )
             }
         }
-        if (state.isRunning || (hasReadyAnswer && !editReadyQuestion)) {
+        if (state.isRunning) {
             item {
                 ResearchQuestionPanel(
                     question = state.shownQuestion,
-                    onEdit = if (hasReadyAnswer && !state.isRunning) ({ editReadyQuestion = true }) else null,
+                    onEdit = null,
                     running = state.isRunning,
                     followsUp = state.earlier.firstOrNull()?.asked?.takeIf { state.asked.isNotBlank() },
                     readAs = state.question.takeIf { state.asked.isNotBlank() },
@@ -373,105 +368,20 @@ fun ResearchScreen(
                 )
             }
         }
-        // Editing a ready question can ask it again unchanged (after switching on a collection).
-        if (!hasReadyAnswer || editReadyQuestion) {
-            item {
-                ResearchAction(
-                    state = state,
-                    // The model busy with an answer New topic left running is not this question's: it can be asked,
-                    // and waits its turn.
-                    inferenceState = if (background?.running == true && !state.isRunning &&
-                        inferenceState == InferenceState.Generating) InferenceState.Ready else inferenceState,
-                    answersWithoutModel = answersWithoutModel,
-                    onSubmit = onSubmit,
-                    onStop = onStop,
-                    onPrepareModel = onPrepareModel,
-                )
-            }
+        item {
+            ResearchAction(
+                state = state,
+                // The model busy with an answer New topic left running is not this question's: it can be asked,
+                // and waits its turn.
+                inferenceState = if (background.any { it.running } && !state.isRunning &&
+                    inferenceState == InferenceState.Generating) InferenceState.Ready else inferenceState,
+                answersWithoutModel = answersWithoutModel,
+                onSubmit = onSubmit,
+                onStop = onStop,
+                onPrepareModel = onPrepareModel,
+            )
         }
-        if (hasReadyAnswer) {
-            item {
-                val citedSourceCount = citedSourceDocuments(state.answer, state.sources)
-                FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
-                    BoxWithConstraints(Modifier.fillMaxWidth()) {
-                    val stackTiming = maxWidth < 280.dp || androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
-                    val timing: @Composable () -> Unit = {
-                        state.metrics?.totalMillis?.let { duration ->
-                            Text("Took ${formatResearchElapsed(duration)}",
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.semantics { contentDescription = "Completed in ${formatResearchElapsed(duration)}" })
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Surface(
-                            modifier = Modifier.size(36.dp),
-                            shape = MaterialTheme.shapes.small,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(FieldAtlasIcons.Document, contentDescription = null, modifier = Modifier.size(20.dp))
-                            }
-                        }
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Answer ready", style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight(650), letterSpacing = (-0.3).sp))
-                            Text(
-                                if (state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
-                                    state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE) {
-                                    "No answer from your sources"
-                                } else if (state.answer == xyz.fieldatlas.research.QuestionRequirements.response(
-                                        state.question, state.attachments.isNotEmpty())) {
-                                    "Research notice · no model generation"
-                                } else if (citedSourceCount == 0 && state.metrics?.generatedTokenCount == 0) {
-                                    // Nothing cited and no model: a calculation, or the app's own "I couldn't…" reply.
-                                    if (state.answer.contains("_Calculated on this phone._")) "Calculated on this phone"
-                                    else "App reply · no model generation"
-                                } else if (citedSourceCount == 0 && state.metrics?.workedFromQuestion == true) {
-                                    "Worked out by the model · steps checked on this phone"
-                                } else if (citedSourceCount == 0) {
-                                    "Model-generated · no sources cited"
-                                } else {
-                                    "$citedSourceCount local " +
-                                        if (citedSourceCount == 1) "source cited." else "sources cited."
-                                },
-                                style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 18.sp),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            if (stackTiming) timing()
-                        }
-                        if (!stackTiming) timing()
-                    }
-                    }
-                    val preview = answerCardPreview(state.answer)
-                    if (preview.isNotEmpty()) {
-                        Text(preview, style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial, fontSize = 16.sp, lineHeight = 26.sp),
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    }
-                    FieldAtlasPrimaryButton(
-                        text = "Read answer",
-                        onClick = onOpenAnswer,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            }
-            item {
-                TextButton(shape = FieldAtlasButtonShape, onClick = {
-                    onAskAnotherQuestion()
-                    scope.launch { listState.animateScrollToItem(0) }
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Ask another question")
-                }
-            }
-        }
-        if (exampleQuestions.isNotEmpty() && !state.isRunning && !hasReadyAnswer) {
+        if (exampleQuestions.isNotEmpty() && !state.isRunning) {
             item {
                 Row(Modifier.fillMaxWidth().padding(top = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -660,9 +570,9 @@ private fun ResearchAction(
 /** The live status of a research run on the Research home: what it is doing, time so far, the steps, and Stop. */
 @Composable
 private fun ResearchProgressCard(state: ResearchUiState, onStop: () -> Unit) {
-    var elapsedMillis by remember(state.startedAtNanos) { mutableLongStateOf(0L) }
-    LaunchedEffect(state.startedAtNanos) {
-        val start = state.startedAtNanos ?: return@LaunchedEffect
+    var elapsedMillis by remember(state.clockStartNanos) { mutableLongStateOf(0L) }
+    LaunchedEffect(state.clockStartNanos) {
+        val start = state.clockStartNanos ?: return@LaunchedEffect
         while (true) {
             elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
             delay(1_000)

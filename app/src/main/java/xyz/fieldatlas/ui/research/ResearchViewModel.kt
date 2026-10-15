@@ -38,12 +38,17 @@ data class VoiceUiState(
     val forFollowUp: Boolean = false,
 )
 
-/** An answer still being researched after New topic, or just saved to History from the background. */
+/**
+ * An answer kept off the screen: still researched (or waiting its turn) after New topic, or finished while another was
+ * shown. The Research home lists each as one row, and opening it brings back its page with the follow-up box.
+ */
 data class BackgroundAnswer(
+    val id: Long,
     val question: String,
     val startedAtNanos: Long?,
     val done: Boolean = false,
     val failed: Boolean = false,
+    val waiting: Boolean = false,
 ) {
     val running: Boolean get() = !done && !failed
 }
@@ -75,7 +80,11 @@ data class ResearchUiState(
     val error: String? = null,
     /** Asked while another answer was still being researched in the background: that question, until it is done. */
     val waitingFor: String? = null,
+    /** When the work began, after any wait for the answer ahead; the clocks count from here. */
+    val workingSinceNanos: Long? = null,
 ) {
+    /** What the clocks count from: the work, not the wait before it. */
+    val clockStartNanos: Long? get() = workingSinceNanos ?: startedAtNanos
     /** What the person asked, as they typed it. */
     val shownQuestion: String get() = asked.ifBlank { question }
     val canAddAttachment: Boolean get() = !isRunning && attachments.size < AttachmentPolicy.MAX_COUNT
@@ -132,11 +141,14 @@ class ResearchViewModel(
         var state = ResearchUiState()
     }
     private var currentSink: RunSink? = null
-    private var backgroundSink: RunSink? = null
-    private var backgroundJob: Job? = null
-    private val mutableBackground = MutableStateFlow<BackgroundAnswer?>(null)
-    /** The answer New topic left running, for the Research home's row and to keep the app alive while it runs. */
-    val background: StateFlow<BackgroundAnswer?> = mutableBackground.asStateFlow()
+
+    /** An answer kept off the screen, with the run still writing to it, if any. */
+    private class Aside(val id: Long, val sink: RunSink, val job: Job?)
+    private val asides = mutableListOf<Aside>()
+    private var nextAsideId = 1L
+    private val mutableBackground = MutableStateFlow<List<BackgroundAnswer>>(emptyList())
+    /** Answers kept off the screen, oldest first, for the Research home's rows and to keep the app alive while one runs. */
+    val background: StateFlow<List<BackgroundAnswer>> = mutableBackground.asStateFlow()
     private val mutableVoiceState = MutableStateFlow(VoiceUiState())
     val voiceState: StateFlow<VoiceUiState> = mutableVoiceState.asStateFlow()
     private var activeTranscriber: SpeechTranscriber? = null
@@ -379,7 +391,7 @@ class ResearchViewModel(
                     carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null) {
         // One answer is researched at a time on the phone: a question asked while another runs in the background
         // waits for it, and says so.
-        val ahead = backgroundJob?.takeIf { it.isActive }
+        val ahead = asides.filter { it.sink.state.isRunning }.mapNotNull { aside -> aside.job?.takeIf { it.isActive } }
         mutableUiState.value = ResearchUiState(
             question = question,
             asked = asked,
@@ -388,7 +400,7 @@ class ResearchViewModel(
             attachments = attachmentSession.state.value,
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
-            waitingFor = ahead?.let { mutableBackground.value?.question },
+            waitingFor = asides.lastOrNull { it.sink.state.isRunning && it.job?.isActive == true }?.sink?.state?.shownQuestion,
         )
         // A run cancelled a moment ago may still be letting go of the model and search; start after it,
         // or the new run fails with "Another local research run is active".
@@ -398,10 +410,14 @@ class ResearchViewModel(
         val rawAnswer = StringBuilder()
         researchJob = scope.launch {
             // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
-            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join(); ahead?.join() }
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join(); ahead.forEach { it.join() } }
             // A run cancelled while it waited never touches the model.
             ensureActive()
-            if (ahead != null) mutableUiState.update { it.copy(waitingFor = null) }
+            if (ahead.isNotEmpty()) {
+                val now = System.nanoTime()
+                if (sink.detached) settleBackground(sink, sink.state.copy(waitingFor = null, workingSinceNanos = now))
+                else mutableUiState.update { it.copy(waitingFor = null, workingSinceNanos = now) }
+            }
             orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried)
                 .flowOn(researchContext).collect { event ->
                 // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
@@ -485,37 +501,89 @@ class ResearchViewModel(
         }
     }
 
-    /** A background answer's progress: kept with it, and its end (saved, or no answer) shown on the Research home. */
+    /** An answer's progress off the screen: kept with it, and its state (running, ready, no answer) shown on the home. */
     private fun settleBackground(sink: RunSink, state: ResearchUiState) {
         sink.state = state
-        if (backgroundSink !== sink) return
-        when (state.phase) {
-            ResearchPhase.Complete -> mutableBackground.update { it?.copy(done = true) }
-            ResearchPhase.Insufficient, ResearchPhase.Error -> mutableBackground.update { it?.copy(failed = true) }
-            else -> Unit
+        if (asides.any { it.sink === sink }) publishAsides()
+    }
+
+    private fun publishAsides() {
+        // Every running answer stays; of the finished ones only the latest few, the rest are in History.
+        val finished = asides.filter { !it.sink.state.isRunning }
+        if (finished.size > MAX_FINISHED_ASIDE) asides.removeAll(finished.take(finished.size - MAX_FINISHED_ASIDE).toSet())
+        mutableBackground.value = asides.map { aside ->
+            val state = aside.sink.state
+            val answered = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
+            BackgroundAnswer(aside.id, state.shownQuestion, state.clockStartNanos, done = answered,
+                failed = !state.isRunning && !answered, waiting = state.waitingFor != null)
         }
     }
 
-    /** Back to the page of the answer New topic left running, if nothing else is being researched. */
-    fun reopenBackground(): Boolean {
-        val sink = backgroundSink ?: return false
-        if (mutableUiState.value.isRunning || mutableBackground.value?.running != true) return false
-        sink.detached = false
-        mutableUiState.value = sink.state
-        savedStateHandle[QUESTION_KEY] = sink.state.question
-        currentSink = sink
-        researchJob = backgroundJob
-        backgroundJob = null
-        backgroundSink = null
-        mutableBackground.value = null
+    /** The answer on screen goes on off it, if it is still being researched. */
+    private fun detachForeground(): Boolean {
+        val state = mutableUiState.value
+        val sink = currentSink
+        if (!state.isRunning || sink == null || researchJob?.isActive != true) return false
+        sink.state = state
+        sink.detached = true
+        asides += Aside(nextAsideId++, sink, researchJob)
+        researchJob = null
+        currentSink = null
+        publishAsides()
         return true
     }
 
-    /** The Research home's row for a finished background answer was read or dismissed. */
-    fun clearBackground() {
-        if (mutableBackground.value?.running == true) return
-        backgroundSink = null
-        mutableBackground.value = null
+    /** The screen starts afresh, with nothing attached and nothing drafted. */
+    private fun clearForeground() {
+        beforeFollowUp = null
+        attachmentSession.clear()
+        stopRunning()
+        mutableFollowUpDraft.value = ""
+        attachForFollowUp = false
+        savedStateHandle[QUESTION_KEY] = ""
+        mutableUiState.value = ResearchUiState()
+    }
+
+    /**
+     * Leaving a finished answer for the Research home keeps it one tap away there ("Answer ready"), instead of a
+     * separate screen for it; the home itself starts afresh.
+     */
+    fun parkFinished() {
+        val state = mutableUiState.value
+        if (state.phase != ResearchPhase.Complete || state.answer.isBlank()) return
+        asides += Aside(nextAsideId++, RunSink().apply { detached = true; this.state = state }, null)
+        currentSink = null
+        clearForeground()
+        publishAsides()
+    }
+
+    /**
+     * Brings an answer kept off the screen back onto it: its page, with the follow-up box. What was on the screen is
+     * not lost: one still being researched goes on off it, and a finished one gets its own row. Returns false for an
+     * answer that ended without one, which is only dismissed.
+     */
+    fun openAside(id: Long): Boolean {
+        val aside = asides.firstOrNull { it.id == id } ?: return false
+        val state = aside.sink.state
+        val answered = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
+        if (!state.isRunning && !answered) return false
+        if (!detachForeground() && mutableUiState.value.isRunning) return false
+        asides.remove(aside)
+        parkFinished()
+        aside.sink.detached = false
+        currentSink = aside.sink
+        researchJob = aside.job?.takeIf { it.isActive }
+        beforeFollowUp = null
+        mutableFollowUpDraft.value = ""
+        savedStateHandle[QUESTION_KEY] = state.question
+        mutableUiState.value = state
+        publishAsides()
+        return true
+    }
+
+    /** A finished answer's row was dismissed; the answer itself is in History. */
+    fun dismissAside(id: Long) {
+        if (asides.removeAll { it.id == id && !it.sink.state.isRunning }) publishAsides()
     }
 
     /**
@@ -552,30 +620,11 @@ class ResearchViewModel(
 
     /** Clears the finished answer so the screen returns to a fresh-asking state. */
     fun startNewQuestion() {
-        val state = mutableUiState.value
-        val sink = currentSink
-        if (state.isRunning && state.waitingFor == null && sink != null && researchJob?.isActive == true) {
-            // Not stopped: the answer goes on in the background and is saved to History when it is done. Only one can
-            // run there; the next question waits for it.
-            sink.state = state
-            sink.detached = true
-            backgroundSink = sink
-            backgroundJob = researchJob
-            researchJob = null
-            currentSink = null
-            mutableBackground.value = BackgroundAnswer(state.shownQuestion, state.startedAtNanos)
-        } else if (state.isRunning) {
-            // A question still waiting its turn has not started: it is dropped, and the one ahead of it goes on.
-            cancelResearch()
-        }
-        beforeFollowUp = null
-        // A background answer already read its files' text; the new topic starts with none.
-        attachmentSession.clear()
-        stopRunning()
-        mutableFollowUpDraft.value = ""
-        attachForFollowUp = false
-        savedStateHandle[QUESTION_KEY] = ""
-        mutableUiState.value = ResearchUiState()
+        // Never stopped: an answer being researched, or waiting its turn, goes on off the screen and is saved to
+        // History when it is done. The phone researches one at a time; the next question waits for it.
+        if (!detachForeground() && mutableUiState.value.isRunning) cancelResearch()
+        // An answer sent off the screen already read its files' text; the new topic starts with none.
+        clearForeground()
     }
 
     fun cancelResearch() {
@@ -623,6 +672,8 @@ class ResearchViewModel(
     }
 
     private companion object {
+        /** Finished answers kept as rows on the Research home; older ones are in History. */
+        const val MAX_FINISHED_ASIDE = 2
         const val QUESTION_KEY = "research.question"
         const val ATTACHMENTS_KEY = "research.attachments"
     }

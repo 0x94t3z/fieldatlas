@@ -146,10 +146,11 @@ fun FieldAtlasApp(
     onLeaveFollowUp: () -> Unit = {},
     /** Picks a History topic up again; false while an answer is being written. */
     onContinueTopic: (AnswerRecord) -> Boolean = { false },
-    /** The answer New topic left running in the background, or just saved from it. */
-    researchBackground: xyz.fieldatlas.ui.research.BackgroundAnswer? = null,
-    onReopenBackground: () -> Boolean = { false },
-    onClearBackground: () -> Unit = {},
+    /** Answers kept off the screen: still being researched after New topic, or finished while another was shown. */
+    researchBackground: List<xyz.fieldatlas.ui.research.BackgroundAnswer> = emptyList(),
+    onOpenBackground: (Long) -> Boolean = { false },
+    onDismissBackground: (Long) -> Unit = {},
+    onParkAnswer: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -275,6 +276,18 @@ fun FieldAtlasApp(
         // The Research home as it was when Start research was tapped. The home changes to its running view at once;
         // while it fades out, this frame keeps its question box on screen to travel down into the answer page's.
         var launchFrame by remember { mutableStateOf<ResearchUiState?>(null) }
+        // When an answer finishes off the screen, a short note says so wherever the reader is, and opens its page.
+        var readyNote by remember { mutableStateOf<xyz.fieldatlas.ui.research.BackgroundAnswer?>(null) }
+        val runningAside = remember { mutableSetOf<Long>() }
+        LaunchedEffect(researchBackground) {
+            for (answer in researchBackground) {
+                if (answer.running) runningAside += answer.id
+                else if (runningAside.remove(answer.id) && answer.done) readyNote = answer
+            }
+            if (readyNote?.let { note -> researchBackground.none { it.id == note.id } } == true) readyNote = null
+        }
+        LaunchedEffect(readyNote) { if (readyNote != null) { kotlinx.coroutines.delay(READY_NOTE_MILLIS); readyNote = null } }
+        Box(Modifier.fillMaxSize()) {
         androidx.compose.animation.SharedTransitionLayout {
         androidx.compose.runtime.CompositionLocalProvider(LocalSharedTransition provides this) {
         androidx.compose.animation.AnimatedContent(
@@ -290,6 +303,10 @@ fun FieldAtlasApp(
                 // Start research opens this page in the same tap, but the run's first state reaches the screen a frame
                 // later: until then the page shows the question as starting, and goes back if it never starts.
                 DetailDestination.Answer -> {
+                // Leaving the page, it keeps showing what it showed: the screen behind it may already be starting afresh.
+                val answerFrame = remember { arrayOfNulls<ResearchUiState>(1) }
+                if (!leaving) answerFrame[0] = researchState
+                val shownState = if (leaving) answerFrame[0] ?: researchState else researchState
                 val pending = launchFrame
                 val starting = pending != null && !researchState.isRunning && researchState.phase != ResearchPhase.Complete &&
                     researchState.startedAtNanos == pending.startedAtNanos
@@ -299,13 +316,17 @@ fun FieldAtlasApp(
                 }
                 // Nothing running and nothing finished (stopped, an error, Edit on a follow-up's reading, or a restart
                 // that kept only the question): the Research home says what happened and holds the question.
-                if (!starting && !researchState.isRunning &&
+                if (!starting && !leaving && !researchState.isRunning &&
                     (researchState.phase != ResearchPhase.Complete || researchState.answer.isBlank())) {
                     LaunchedEffect(Unit) { navigation.back() }
                 } else AnswerScreen(
                     state = if (starting) ResearchUiState(question = pending!!.question, attachments = pending.attachments,
-                        phase = ResearchPhase.Searching) else researchState,
-                    onBack = closeDetail,
+                        phase = ResearchPhase.Searching) else shownState,
+                    // A finished answer stays one tap away on the Research home ("Answer ready"), which starts afresh.
+                    onBack = {
+                        if (researchState.phase == ResearchPhase.Complete && researchState.answer.isNotBlank()) onParkAnswer()
+                        navigation.back()
+                    },
                     onAskAnother = { onAskAnotherQuestion(); navigation.back() },
                     // The follow-up is researched on this page, under the answer it follows.
                     onFollowUp = onFollowUp,
@@ -459,16 +480,8 @@ fun FieldAtlasApp(
                         onEditReadAs = onEditReadAs,
                         answersWithoutModel = answersWithoutModel,
                         background = researchBackground,
-                        onOpenBackground = {
-                            val background = researchBackground
-                            when {
-                                background == null -> Unit
-                                // Saved: it is in History with the rest.
-                                !background.running -> { onClearBackground(); navigation.select(PrimaryDestination.History) }
-                                onReopenBackground() -> navigation.openAnswer()
-                            }
-                        },
-                        onDismissBackground = onClearBackground,
+                        onOpenBackground = { id -> if (onOpenBackground(id)) navigation.openAnswer() else onDismissBackground(id) },
+                        onDismissBackground = onDismissBackground,
                     )
                     PrimaryDestination.Library -> LibraryScreen(
                         packs, onImportPack, onToggleResearch, onActivateModel, onDeletePack,
@@ -528,6 +541,21 @@ fun FieldAtlasApp(
         }
         }
         }
+        }
+        }
+        readyNote?.let { note ->
+            xyz.fieldatlas.ui.research.ReadyNote(
+                note,
+                onOpen = {
+                    readyNote = null
+                    if (onOpenBackground(note.id)) {
+                        navigation.select(PrimaryDestination.Research)
+                        navigation.openAnswer()
+                    }
+                },
+                onDismiss = { readyNote = null },
+                modifier = Modifier.align(Alignment.TopCenter),
+            )
         }
         }
     }
@@ -602,3 +630,6 @@ internal fun opensAnswerOnStart(startedAtNanos: Long?, running: Boolean, openedF
 
 /** How long a just-opened answer page waits for its run to start before returning to the Research home. */
 private const val START_GRACE_MILLIS = 2_000L
+
+/** How long the note that an answer finished off the screen stays up. */
+private const val READY_NOTE_MILLIS = 8_000L

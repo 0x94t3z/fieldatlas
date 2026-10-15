@@ -133,15 +133,12 @@ class FieldAtlasAppTest {
         compose.onNodeWithContentDescription("Use Knowledge pack in research").assertIsEnabled()
     }
 
-    @Test fun finishedResearchShowsRealPreviewWithoutASecondStartButton() {
+    @Test fun aFinishedAnswerWaitsOnTheHomeAsARowThatOpensIt() {
+        var opened: Long? = null
         compose.setContent {
             FieldAtlasTheme {
                 ResearchScreen(
-                    state = ResearchUiState(
-                        question = "Why do seasons differ?",
-                        answer = "**Axial tilt** explains opposite seasons [S1].",
-                        phase = ResearchPhase.Complete,
-                    ),
+                    state = ResearchUiState(),
                     inferenceState = InferenceState.Ready,
                     collectionCount = 1,
                     onQuestionChange = {},
@@ -149,12 +146,16 @@ class FieldAtlasAppTest {
                     onStop = {},
                     onPrepareModel = {},
                     onOpenAnswer = {},
+                    background = listOf(xyz.fieldatlas.ui.research.BackgroundAnswer(7, "Why do seasons differ?", null, done = true)),
+                    onOpenBackground = { opened = it },
                 )
             }
         }
-        compose.onNodeWithText("Read answer").assertExists()
-        compose.onNodeWithText("Start research").assertDoesNotExist()
-        compose.onNodeWithText("Axial tilt explains opposite seasons.").assertExists()
+        // No separate ready screen: the asking view, with the answer one tap away.
+        compose.onNodeWithText("Read answer").assertDoesNotExist()
+        compose.onNodeWithText("What would you\nlike to know?").assertExists()
+        compose.onNodeWithText("Answer ready Why do seasons differ?").performClick()
+        assertEquals(7L, opened)
     }
 
     @Test fun runningResearchKeepsStopVisible() {

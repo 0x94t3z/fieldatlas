@@ -45,20 +45,21 @@ class BackgroundAnswerTest {
 
     private fun release() { holding = false; gate.complete(Unit) }
 
+    private fun aside() = viewModel.background.value.single()
+
     @Test fun newTopicKeepsTheAnswerGoingAndSavesItToHistory() {
         startFirst()
         viewModel.startNewQuestion()
         assertEquals(ResearchUiState(), viewModel.uiState.value)
-        assertEquals(BackgroundAnswer("tell me about the hagia sophia", viewModel.background.value?.startedAtNanos),
-            viewModel.background.value)
-        assertTrue(viewModel.background.value!!.running)
+        assertEquals("tell me about the hagia sophia", aside().question)
+        assertTrue(aside().running)
         release()
-        assertTrue(viewModel.background.value!!.done)
+        assertTrue(aside().done)
         assertEquals(listOf("tell me about the hagia sophia"), history.records.value.map { it.question })
-        // The answer that finished in the background never touched the new screen.
+        // The answer that finished off the screen never touched the new screen.
         assertEquals(ResearchUiState(), viewModel.uiState.value)
-        viewModel.clearBackground()
-        assertNull(viewModel.background.value)
+        viewModel.dismissAside(aside().id)
+        assertTrue(viewModel.background.value.isEmpty())
     }
 
     @Test fun aQuestionAskedMeanwhileWaitsItsTurnThenRuns() {
@@ -68,31 +69,36 @@ class BackgroundAnswerTest {
         viewModel.submit()
         assertEquals("tell me about the hagia sophia", viewModel.uiState.value.waitingFor)
         assertTrue(viewModel.uiState.value.isRunning)
+        val askedAt = viewModel.uiState.value.startedAtNanos!!
         release()
         val second = viewModel.uiState.value
         assertEquals(ResearchPhase.Complete, second.phase)
         assertNull(second.waitingFor)
+        // Its clock counts the work, from when its turn came, not the wait.
+        assertTrue(second.clockStartNanos!! > askedAt)
+        assertEquals(askedAt, second.startedAtNanos)
         assertEquals("when was it built?", second.shownQuestion)
         assertEquals(setOf("tell me about the hagia sophia", "when was it built?"), history.records.value.map { it.question }.toSet())
     }
 
-    @Test fun newTopicWhileAQuestionWaitsDropsOnlyThatQuestion() {
+    @Test fun newTopicWhileAQuestionWaitsKeepsThatOneToo() {
         startFirst()
         viewModel.startNewQuestion()
         viewModel.updateQuestion("when was it built?")
         viewModel.submit()
         viewModel.startNewQuestion()
         assertEquals(ResearchUiState(), viewModel.uiState.value)
-        assertTrue(viewModel.background.value!!.running)
+        assertEquals(listOf(false, true), viewModel.background.value.map { it.waiting })
         release()
-        assertEquals(listOf("tell me about the hagia sophia"), history.records.value.map { it.question })
+        assertTrue(viewModel.background.value.all { it.done })
+        assertEquals(setOf("tell me about the hagia sophia", "when was it built?"), history.records.value.map { it.question }.toSet())
     }
 
     @Test fun theHomeRowReopensTheAnswerStillRunning() {
         startFirst()
         viewModel.startNewQuestion()
-        assertTrue(viewModel.reopenBackground())
-        assertNull(viewModel.background.value)
+        assertTrue(viewModel.openAside(aside().id))
+        assertTrue(viewModel.background.value.isEmpty())
         assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
         assertTrue(viewModel.uiState.value.isRunning)
         release()
@@ -100,10 +106,47 @@ class BackgroundAnswerTest {
         assertFalse(viewModel.uiState.value.answer.isBlank())
     }
 
-    @Test fun aFinishedBackgroundAnswerIsNotReopenedOverANewOne() {
+    @Test fun aReadyAnswerOpensItsPageWithTheFollowUpBox() {
         startFirst()
         viewModel.startNewQuestion()
         release()
-        assertFalse("saved answers are opened from History", viewModel.reopenBackground())
+        assertTrue(viewModel.openAside(aside().id))
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+        assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
+        assertTrue(viewModel.background.value.isEmpty())
+        // A follow-up reads it like any other.
+        viewModel.submitFollowUp("when was it built?")
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+        assertEquals(1, viewModel.uiState.value.earlier.size)
+    }
+
+    @Test fun leavingAFinishedAnswerKeepsItOneTapAway() {
+        holding = false
+        viewModel.updateQuestion("tell me about the hagia sophia")
+        viewModel.submit()
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+        viewModel.parkFinished()
+        assertEquals(ResearchUiState(), viewModel.uiState.value)
+        assertTrue(aside().done)
+        assertTrue(viewModel.openAside(aside().id))
+        assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
+    }
+
+    @Test fun openingAReadyAnswerWhileAnotherRunsKeepsTheOtherGoing() {
+        holding = false
+        viewModel.updateQuestion("tell me about the hagia sophia")
+        viewModel.submit()
+        viewModel.parkFinished()
+        val ready = aside().id
+        holding = true
+        viewModel.updateQuestion("when was it built?")
+        viewModel.submit()
+        assertTrue(viewModel.uiState.value.isRunning)
+        assertTrue(viewModel.openAside(ready))
+        assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
+        assertEquals(listOf("when was it built?"), viewModel.background.value.map { it.question })
+        assertTrue(aside().running)
+        release()
+        assertTrue(aside().done)
     }
 }
