@@ -94,14 +94,10 @@ fun HistoryScreen(
     val today = LocalDate.now()
     val zone = ZoneId.systemDefault()
     var query by rememberSaveable { mutableStateOf("") }
-    val shown = remember(records, query) { records.filter { historyMatches(it, query) } }
-    // The first question of each topic, named above its follow-ups.
-    val topicRoots = remember(records) {
-        records.groupBy { it.topicKey }.filterValues { it.size > 1 }
-            .mapValues { (_, turns) -> turns.minBy(AnswerRecord::createdAtEpochMs) }
-    }
+    // One card per conversation: a question and its follow-ups, filed under the day of its latest turn.
+    val shown = remember(records, query) { historyTopics(records, query) }
     val days = remember(shown) {
-        shown.groupBy { Instant.ofEpochMilli(it.createdAtEpochMs).atZone(zone).toLocalDate() }.toList()
+        shown.groupBy { Instant.ofEpochMilli(it.last.createdAtEpochMs).atZone(zone).toLocalDate() }.toList()
     }
     // The header scrolls with the list so long histories are not clipped under a fixed title.
     LazyColumn(
@@ -138,7 +134,7 @@ fun HistoryScreen(
                 }
             }
         }
-        days.forEach { (day, dayRecords) ->
+        days.forEach { (day, dayTopics) ->
             item(key = "day:$day") {
                 FieldAtlasSectionLabel(
                     when (day) {
@@ -149,31 +145,57 @@ fun HistoryScreen(
                     Modifier.padding(top = 6.dp),
                 )
             }
-            dayRecords.forEach { record ->
-                item(key = record.createdAtEpochMs) {
-                    val root = topicRoots[record.topicKey]?.takeIf { it.createdAtEpochMs != record.createdAtEpochMs }
-                    HistoryCard(record, timeFormatter.format(Date(record.createdAtEpochMs)), onAskAgain, followUpOf = root?.question,
-                        onContinue = { onContinue(record) },
-                        onDelete = { onDelete(record.createdAtEpochMs) }) { index -> savedSource = record to index }
+            dayTopics.forEach { topic ->
+                item(key = topic.key) {
+                    HistoryCard(topic.turns, timeFormatter.format(Date(topic.last.createdAtEpochMs)), onAskAgain,
+                        onContinue = { onContinue(topic.last) },
+                        onDelete = { topic.turns.forEach { onDelete(it.createdAtEpochMs) } }) { record, index -> savedSource = record to index }
                 }
             }
         }
     }
 }
 
+/** A question and its follow-ups, oldest first: one card in History. */
+internal class HistoryTopic(val turns: List<AnswerRecord>) {
+    val first: AnswerRecord get() = turns.first()
+    val last: AnswerRecord get() = turns.last()
+    val key: Long get() = first.topicKey
+}
+
+/** Every conversation with a turn matching [query], the one with the latest turn first. */
+internal fun historyTopics(records: List<AnswerRecord>, query: String): List<HistoryTopic> =
+    records.groupBy { it.topicKey }.values
+        .map { turns -> HistoryTopic(turns.sortedBy(AnswerRecord::createdAtEpochMs)) }
+        .filter { topic -> topic.turns.any { historyMatches(it, query) } }
+        .sortedByDescending { it.last.createdAtEpochMs }
+
+/** The meta line under a card's question: its follow-ups, or the sources of a single answer. */
+internal fun historyMeta(time: String, turns: List<AnswerRecord>): String {
+    val followUps = turns.size - 1
+    return "$time · " + when {
+        followUps == 1 -> "1 follow-up"
+        followUps > 1 -> "$followUps follow-ups"
+        else -> when (turns.first().sources.size) {
+            0 -> "No sources"
+            1 -> "1 source"
+            else -> "${turns.first().sources.size} sources"
+        }
+    }
+}
+
 @Composable
 private fun HistoryCard(
-    record: AnswerRecord,
+    turns: List<AnswerRecord>,
     time: String,
     onAskAgain: (String) -> Unit,
-    followUpOf: String? = null,
     onContinue: (() -> Unit)? = null,
     onDelete: () -> Unit,
-    onOpenSource: (Int) -> Unit,
+    onOpenSource: (AnswerRecord, Int) -> Unit,
 ) {
-    var expanded by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
-    var confirmDelete by rememberSaveable(record.createdAtEpochMs) { mutableStateOf(false) }
-    val answerBlocks = remember(record.answer) { parseAnswerMarkdown(record.answer) }
+    val record = turns.first()
+    var expanded by rememberSaveable(record.topicKey) { mutableStateOf(false) }
+    var confirmDelete by rememberSaveable(record.topicKey) { mutableStateOf(false) }
     // Same excerpt as the Research card: section labels are not content, and an
     // unverified model answer keeps its label even when collapsed.
     val answerPreview = remember(record.answer) { answerCardPreview(record.answer) }
@@ -185,10 +207,6 @@ private fun HistoryCard(
         .clickable(onClickLabel = if (expanded) "Collapse answer" else "Expand answer") { expanded = !expanded },
         contentPadding = 18.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            followUpOf?.let {
-                Text("Follow-up to · $it", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top) {
                 Text(record.question, style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, lineHeight = 25.sp),
@@ -197,23 +215,20 @@ private fun HistoryCard(
                 FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                "$time · " + when (record.sources.size) {
-                    0 -> "No sources"
-                    1 -> "1 source"
-                    else -> "${record.sources.size} sources"
-                },
+                historyMeta(time, turns),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             if (expanded) {
-                AnswerMarkdownRenderer(
-                    blocks = answerBlocks,
-                    sourceCount = record.evidence.size,
-                    onCitation = { if (it in record.evidence.indices) onOpenSource(it) },
-                    modifier = Modifier.fillMaxWidth(),
-                    bodyStyle = FieldAtlasReadingStyle,
-                    sourceTitles = record.evidence.map { it.title },
-                )
+                // Every turn in the order it was asked, each with its own answer and sources.
+                turns.forEachIndexed { turn, entry ->
+                    if (turn > 0) {
+                        HorizontalDivider(Modifier.padding(top = 6.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                        Text("Follow-up", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(entry.question, style = MaterialTheme.typography.titleSmall)
+                    }
+                    HistoryTurn(entry) { index -> onOpenSource(entry, index) }
+                }
             } else {
                 Text(
                     answerPreview,
@@ -222,33 +237,51 @@ private fun HistoryCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (expanded && record.sources.isNotEmpty()) {
-                Text(if (record.evidence.isEmpty()) "Saved source titles" else "Saved sources", style = MaterialTheme.typography.titleSmall)
-                record.sources.forEachIndexed { index, source ->
-                    if (index < record.evidence.size) SavedSourceRow(index + 1, source,
-                        xyz.fieldatlas.ui.sourcePresentation(record.evidence[index]).isAttachment) { onOpenSource(index) }
-                    else Text("• $source", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
             if (expanded) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                 val context = androidx.compose.ui.platform.LocalContext.current
                 HistoryActions(onAskAgain = { onAskAgain(record.readAs ?: record.question) }, onContinue = onContinue,
                     onShare = {
-                        xyz.fieldatlas.ui.research.shareAnswer(context, record.question,
-                            xyz.fieldatlas.ui.research.answerWithSources(record.question, record.answer, record.evidence))
+                        // The whole conversation, each answer with the sources it cites.
+                        xyz.fieldatlas.ui.research.shareAnswer(context, record.question, turns.joinToString("\n\n") { entry ->
+                            xyz.fieldatlas.ui.research.answerWithSources(entry.question, entry.answer, entry.evidence)
+                        })
                     }, onDelete = { confirmDelete = true })
             }
         }
     }
     if (confirmDelete) {
+        val conversation = turns.size > 1
         xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
-            title = "Delete this answer?",
-            message = "It is removed from History on this phone. Your collections are not changed.",
+            title = if (conversation) "Delete this conversation?" else "Delete this answer?",
+            message = if (conversation) "Its ${turns.size} answers are removed from History on this phone. Your collections are not changed."
+                else "It is removed from History on this phone. Your collections are not changed.",
             onKeep = { confirmDelete = false },
             onDelete = { confirmDelete = false; onDelete() },
         )
+    }
+}
+
+/** One answer of a conversation, expanded: the answer itself, then the sources saved with it. */
+@Composable
+private fun HistoryTurn(record: AnswerRecord, onOpenSource: (Int) -> Unit) {
+    val answerBlocks = remember(record.answer) { parseAnswerMarkdown(record.answer) }
+    AnswerMarkdownRenderer(
+        blocks = answerBlocks,
+        sourceCount = record.evidence.size,
+        onCitation = { if (it in record.evidence.indices) onOpenSource(it) },
+        modifier = Modifier.fillMaxWidth(),
+        bodyStyle = FieldAtlasReadingStyle,
+        sourceTitles = record.evidence.map { it.title },
+    )
+    if (record.sources.isNotEmpty()) {
+        Text(if (record.evidence.isEmpty()) "Saved source titles" else "Saved sources", style = MaterialTheme.typography.titleSmall)
+        record.sources.forEachIndexed { index, source ->
+            if (index < record.evidence.size) SavedSourceRow(index + 1, source,
+                xyz.fieldatlas.ui.sourcePresentation(record.evidence[index]).isAttachment) { onOpenSource(index) }
+            else Text("• $source", style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
