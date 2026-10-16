@@ -419,7 +419,8 @@ object SubjectLookup {
      * when the question uses the qualifier's word, or when it is the only qualified title found.
      */
     fun overviewOf(phrase: String, found: List<Evidence>, question: String? = null): Evidence? {
-        fun plain(value: String) = value.replace(Regex("['’]s\\b"), "").replace("'", "").replace("’", "")
+        // "ha long bay" names "Hạ Long Bay", "reykjavik" names "Reykjavík": people rarely type the accents.
+        fun plain(value: String) = QuestionText.foldAccents(value).replace(Regex("['’]s\\b"), "").replace("'", "").replace("’", "")
             .replace('-', ' ').replace(Regex("\\s+"), " ").trim()
         val overviews = found.filter { it.title.endsWith(" — Overview") }
         overviews.firstOrNull { plain(it.title.removeSuffix(" — Overview")).equals(plain(phrase), ignoreCase = true) }?.let { return it }

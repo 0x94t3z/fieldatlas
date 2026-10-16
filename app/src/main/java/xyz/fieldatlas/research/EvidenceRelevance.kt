@@ -760,7 +760,7 @@ object EvidenceRelevance {
         ?.let { conceptPattern.matchEntire(it) }?.groupValues?.get(1)?.toDoubleOrNull()
         ?.let { it.isFinite() && it in HIGH_CONFIDENCE_CONCEPT..1.0 } == true
 
-    private fun tokens(value: String): Set<String> = tokenPattern.findAll(value.lowercase())
+    private fun tokens(value: String): Set<String> = tokenPattern.findAll(QuestionText.foldAccents(value.lowercase()))
         .map { it.value }
         .toSet()
 
@@ -771,7 +771,7 @@ object EvidenceRelevance {
     }
 
     private fun Set<String>.matches(term: String): Boolean {
-        val lower = term.lowercase()
+        val lower = QuestionText.foldAccents(term.lowercase())
         if (lower in contractionFragments) return false
         // As in FtsQuery: a short word or a number is not a stem. "mev" is not "mevalonate".
         if (lower.codePointCount(0, lower.length) <= 3) return FtsQuery.shortForms(lower).any(::contains)
