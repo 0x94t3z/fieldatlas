@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -98,19 +98,19 @@ internal fun ReadingControl(reading: ReadAloud.Reading, onStop: () -> Unit) {
     }
 }
 
-/** A quiet way to hear any answer, beside its sources and time. */
+/** A quiet way to hear any answer, beside its sources and time: built like those pills, outlined, in the accent colour. */
 @Composable
 internal fun ListenPill(onClick: () -> Unit) {
-    // The pill is drawn small; its touch area is the full 48dp.
-    Box(Modifier.heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = "Listen to this answer", onClick = onClick),
-        contentAlignment = Alignment.Center) {
-        Row(
-            Modifier.height(32.dp).border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp)).padding(start = 10.dp, end = 13.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
-            Text("Listen", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.primary)
-        }
+    // Drawn the height of the pills beside it; the touch area still reaches 48dp, and a press shows in the pill's shape.
+    Row(
+        Modifier.minimumInteractiveComponentSize().clip(xyz.fieldatlas.ui.theme.FieldAtlasChipShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, xyz.fieldatlas.ui.theme.FieldAtlasChipShape)
+            .clickable(role = Role.Button, onClickLabel = "Listen to this answer", onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+        Text("Listen", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
     }
 }
 
@@ -133,12 +133,19 @@ internal fun ListenPlayer(reading: ReadAloud.Reading, onPause: () -> Unit, onRes
                     reading.paused -> "Paused"
                     else -> "Reading the answer"
                 }, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
-                Text("${reading.index + 1} of ${reading.segments.size} · " + voiceName(reading.voice).lowercase(),
+                Text((if (reading.durationMs > 0) "${clock(reading.positionMs)} of ${clock(reading.durationMs)} · " else "") +
+                    voiceName(reading.voice).lowercase(),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                LinearProgressIndicator(
-                    progress = { if (reading.preparing) reading.prepared else (reading.index + 1f) / reading.segments.size.coerceAtLeast(1) },
-                    modifier = Modifier.fillMaxWidth().height(3.dp).padding(top = 2.dp),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                // One continuous track, as on the board: how far through the reading (or, while preparing, how ready).
+                xyz.fieldatlas.ui.theme.FieldAtlasProgressBar(
+                    progress = {
+                        when {
+                            reading.preparing -> reading.prepared
+                            reading.durationMs > 0 -> (reading.positionMs.toFloat() / reading.durationMs).coerceIn(0f, 1f)
+                            else -> (reading.index + 1f) / reading.segments.size.coerceAtLeast(1)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).height(3.dp),
                 )
             }
             Box(Modifier.size(48.dp).clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading",
@@ -171,6 +178,9 @@ private fun SoundBars(color: Color, playing: Boolean) {
         }
     }
 }
+
+/** "0:12", "1:05". */
+private fun clock(ms: Long): String = (ms.coerceAtLeast(0) / 1000).let { "%d:%02d".format(it / 60, it % 60) }
 
 private fun voiceName(voice: ReadAloud.Voice) = when (voice) {
     ReadAloud.Voice.Recorded -> "Recorded voice"

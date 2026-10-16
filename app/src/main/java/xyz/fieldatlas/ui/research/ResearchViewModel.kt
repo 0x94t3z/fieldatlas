@@ -86,6 +86,8 @@ data class ResearchUiState(
     val workingSinceNanos: Long? = null,
     /** The question was spoken into the microphone, so its answer may be read back aloud when it is done. */
     val askedByVoice: Boolean = false,
+    /** Opened again from History, not researched now: it is already saved, so leaving it adds nothing "ready". */
+    val reopened: Boolean = false,
 ) {
     /** What the clocks count from: the work, not the wait before it. */
     val clockStartNanos: Long? get() = workingSinceNanos ?: startedAtNanos
@@ -563,6 +565,8 @@ class ResearchViewModel(
     fun parkFinished() {
         val state = mutableUiState.value
         if (state.phase != ResearchPhase.Complete || state.answer.isBlank()) return
+        // An answer picked up from History and only read is already there; the home starts afresh without a row for it.
+        if (state.reopened) { clearForeground(); return }
         asides += Aside(nextAsideId++, RunSink().apply { detached = true; this.state = state }, null)
         currentSink = null
         clearForeground()
@@ -627,6 +631,7 @@ class ResearchViewModel(
             phase = ResearchPhase.Complete,
             completion = ResearchCompletion.Complete,
             savedMillis = last.durationMs,
+            reopened = true,
         )
         return true
     }

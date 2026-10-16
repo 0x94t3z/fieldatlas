@@ -44,6 +44,26 @@ class ContinueTopicTest {
         assertEquals("tell me about the hagia sophia", vm.uiState.value.earlier.first().asked)
     }
 
+    @Test fun goingBackFromAnAnswerOnlyReopenedFromHistoryMarksNothingReady() {
+        val history = store()
+        val first = viewModel(history)
+        first.updateQuestion("tell me about the hagia sophia")
+        first.submit()
+        first.startNewQuestion()
+
+        val vm = viewModel(history)
+        assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
+        vm.parkFinished()
+        assertTrue(vm.background.value.isEmpty())
+        assertEquals(ResearchPhase.Idle, vm.uiState.value.phase)
+
+        // A follow-up asked on it is new work: leaving that answer keeps it one tap away, as for any new answer.
+        assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
+        vm.submitFollowUp("is it free to visit?")
+        vm.parkFinished()
+        assertEquals(1, vm.background.value.size)
+    }
+
     @Test fun continuingFromHistoryReopensTheTopicAtItsLatestAnswer() {
         val history = store()
         val first = viewModel(history)

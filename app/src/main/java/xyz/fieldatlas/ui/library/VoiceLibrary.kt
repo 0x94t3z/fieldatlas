@@ -118,28 +118,51 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
                     .padding(horizontal = 9.dp, vertical = 3.dp)) {
                     Text("In use for answers", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onPrimaryContainer)
-                } else TextButton(onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) } },
-                    shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp)) { Text("Use for answers") }
+                }
             }
-            SampleButton(readAloud, reading)
+            // The same overflow menu as every pack card: rounded, on the card's colour, delete last and in red.
             Box {
-                xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton({ menu = true }, "More for the natural reading voice", FieldAtlasIcons.MoreOptions)
-                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                    DropdownMenuItem(text = { Text("Remove") }, onClick = { menu = false; confirmRemove = true })
+                androidx.compose.material3.IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
+                    Icon(FieldAtlasIcons.MoreOptions, contentDescription = "More options for ${DownloadItem.Voice.title}",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(22.dp))
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
+                    shape = RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surface) {
+                    val sampling = reading?.key == ReadAloud.SAMPLE_KEY
+                    DropdownMenuItem(
+                        text = { Text(if (sampling) "Stop the sample" else "Play a sample") },
+                        leadingIcon = { Icon(if (sampling) Icons.Filled.Stop else Icons.Filled.PlayArrow, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary) },
+                        onClick = { menu = false; if (sampling) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural) },
+                    )
+                    if (!inUse) {
+                        DropdownMenuItem(
+                            text = { Text("Use for answers") },
+                            leadingIcon = { Icon(FieldAtlasIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                            onClick = { menu = false; readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) } },
+                        )
+                    }
+                    androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                    DropdownMenuItem(
+                        text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                        onClick = { menu = false; confirmRemove = true },
+                    )
                 }
             }
         }
     }
-    if (confirmRemove) androidx.compose.material3.AlertDialog(
-        onDismissRequest = { confirmRemove = false },
-        title = { Text("Remove the natural voice?") },
-        text = { Text("Frees $voiceSize. Answers are then read by the phone's voice; emergency guides keep their recordings.") },
-        confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = {
+    if (confirmRemove) xyz.fieldatlas.ui.theme.FieldAtlasDeleteDialog(
+        title = "Delete ${DownloadItem.Voice.title}?",
+        message = "Frees $voiceSize. Answers are then read by the phone's voice; emergency guides keep their recordings. " +
+            "You can download it again later.",
+        onKeep = { confirmRemove = false },
+        onDelete = {
             confirmRemove = false
             readAloud.stop()
             scope.launch { readAloud.natural.remove() }
-        }) { Text("Remove") } },
-        dismissButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { confirmRemove = false }) { Text("Keep") } },
+        },
     )
 }
 

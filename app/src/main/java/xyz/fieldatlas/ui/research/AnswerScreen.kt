@@ -184,6 +184,7 @@ fun AnswerScreen(
                         if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
+                            itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
                             val cited = citedSourceGroups.size
                             if (cited > 0) {

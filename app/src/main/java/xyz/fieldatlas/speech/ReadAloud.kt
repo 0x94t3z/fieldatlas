@@ -321,6 +321,10 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                     madeChars += item.piece.text.length
                     madeAudioMs += item.sound.samples.size * 1000L / item.sound.sampleRate.coerceAtLeast(1)
                     makingMs += item.makingMs
+                    // The whole reading's length, exact once everything is made and estimated from the words until then.
+                    val totalMs = madeAudioMs + (totalChars - madeChars) * madeAudioMs / madeChars.coerceAtLeast(1) +
+                        segments.size * (PAUSE_MS)
+                    mutableState.value = mutableState.value?.copy(durationMs = totalMs)
                     if (output != null && held.isEmpty() && mutableState.value?.preparing == false) { put(item); continue }
                     held += item
                     val next = pieces.getOrNull(pieces.indexOf(item.piece) + 1)
@@ -397,11 +401,16 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     /** Moves the mark to the sentence being heard, from where the track has played to. */
     private fun follow(key: String, sink: AudioTrack, starts: LongArray) {
         scope.launch {
+            val rate = sink.sampleRate.coerceAtLeast(1)
             while (isActive && track === sink) {
                 val head = runCatching { sink.playbackHeadPosition.toLong() and 0xffffffffL }.getOrDefault(0)
                 var index = 0
                 while (index + 1 < starts.size && starts[index + 1] <= head) index++
-                mutableState.value?.let { current -> if (current.key == key && current.index != index) mutableState.value = current.copy(index = index) }
+                val at = head * 1000 / rate
+                mutableState.value?.let { current ->
+                    if (current.key == key && (current.index != index || current.positionMs / 500 != at / 500))
+                        mutableState.value = current.copy(index = index, positionMs = at)
+                }
                 delay(120)
             }
         }
@@ -415,8 +424,22 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
 
     private fun speakWithPhone(key: String, segments: List<SpeechText.Segment>, from: Int = 0) {
         if (segments.isEmpty() || !takeFocus()) return
-        mutableState.value = Reading(key, segments, from, Voice.Phone)
+        // The phone's voice tells when each sentence starts, not how long it is: the time shown is estimated from
+        // the words, and kept from running past the sentence being said.
+        val rate = mutableSettings.value.speed.coerceAtLeast(0.5f)
+        val lengths = segments.map { (it.spoken.length * PHONE_MS_PER_CHAR / rate).toLong() + PAUSE_MS }
+        val starts = lengths.runningFold(0L) { at, length -> at + length }
+        mutableState.value = Reading(key, segments, from, Voice.Phone, positionMs = starts[from], durationMs = starts.last())
         withVoice { speakFrom(from) }
+        work = scope.launch {
+            while (isActive) {
+                delay(250)
+                val current = mutableState.value ?: break
+                if (current.key != key || current.voice != Voice.Phone) break
+                if (!current.paused) mutableState.value = current.copy(positionMs = (current.positionMs + 250)
+                    .coerceIn(starts[current.index], starts[current.index + 1]))
+            }
+        }
     }
 
     private fun withVoice(action: () -> Unit) {
@@ -448,7 +471,9 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
             scope.launch {
                 val current = mutableState.value ?: return@launch
                 val (key, index) = utteranceId.substringBeforeLast('#') to utteranceId.substringAfterLast('#').toIntOrNull()
-                if (key == current.key && index != null && !current.paused) mutableState.value = current.copy(index = index)
+                if (key == current.key && index != null && !current.paused) mutableState.value = current.copy(index = index,
+                    positionMs = maxOf(current.positionMs, current.segments.take(index).sumOf {
+                        (it.spoken.length * PHONE_MS_PER_CHAR / mutableSettings.value.speed.coerceAtLeast(0.5f)).toLong() + PAUSE_MS }))
             }
         }
 
@@ -480,6 +505,9 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         private val json = Json { ignoreUnknownKeys = true }
 
         private const val LONG_SENTENCE_WORDS = 30
+        /** About how long the phone's voice takes per character at normal speed, for the time it shows. */
+        private const val PHONE_MS_PER_CHAR = 65f
+        private const val PAUSE_MS = 450L
         private const val HEAD_START_MARGIN_MS = 1_000L
 
         /**

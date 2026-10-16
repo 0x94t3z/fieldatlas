@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -62,15 +63,29 @@ import xyz.fieldatlas.ui.theme.TileTone
 
 private val naturalSize get() = formatAssetBytes(NaturalVoice.BYTES)
 
-/** Plays a few seconds of [choice]; while it plays, the same button stops it. */
+/** The rounded pill buttons of the reading-aloud board: tonal for the main choice, outlined for the rest. */
+@Composable
+private fun BoardPill(text: String, onClick: () -> Unit, tonal: Boolean = false, icon: androidx.compose.ui.graphics.vector.ImageVector? = null) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(50)
+    Row(
+        Modifier.minimumInteractiveComponentSize().heightIn(min = 40.dp).clip(shape)
+            .then(if (tonal) Modifier.background(colors.primaryContainer) else Modifier.border(1.dp, colors.outline, shape))
+            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        icon?.let { Icon(it, null, Modifier.size(18.dp), tint = if (tonal) colors.onPrimaryContainer else colors.primary) }
+        Text(text, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+            color = if (tonal) colors.onPrimaryContainer else colors.primary)
+    }
+}
+
+/** Plays a few seconds of [choice]; while it plays, the same pill stops it. */
 @Composable
 private fun SampleButton(readAloud: ReadAloud, reading: ReadAloud.Reading?, choice: ReadAloud.Choice, label: String = "Sample") {
     val playing = reading?.key == ReadAloud.SAMPLE_KEY && (reading.voice == ReadAloud.Voice.Phone) == (choice == ReadAloud.Choice.Phone)
-    OutlinedButton(shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp),
-        onClick = { if (playing) readAloud.stop() else readAloud.playSample(choice) }) {
-        Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, Modifier.size(18.dp))
-        Text(if (playing) "Stop" else label, Modifier.padding(start = 6.dp))
-    }
+    BoardPill(if (playing) "Stop" else label, onClick = { if (playing) readAloud.stop() else readAloud.playSample(choice) },
+        icon = if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow)
 }
 
 /**
@@ -88,29 +103,26 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
         val queue = xyz.fieldatlas.ui.library.LocalDownloads.current?.state?.collectAsState()?.value
         val fetching = queue != null && (queue.isActive(xyz.fieldatlas.assets.DownloadItem.Voice) ||
             queue.queuePosition(xyz.fieldatlas.assets.DownloadItem.Voice) >= 0)
-        VoiceOption(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, "Natural voice", when {
+        VoiceOption(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, "Natural voice", selected = true, detail = when {
             voice == NaturalVoice.State.Ready -> "Sounds like a person. On this phone; reads with no signal."
             fetching -> "Sounds like a person. Downloading now; the phone's voice reads until it is ready."
             else -> "Sounds like a person. $naturalSize, downloaded once, then works with no signal. The phone's voice reads until it is ready."
         }) {
             when {
-                voice == NaturalVoice.State.Ready || fetching -> FieldAtlasPrimaryButton(if (fetching) "Use it when ready" else "Use natural voice", onClick = {
+                voice == NaturalVoice.State.Ready || fetching -> BoardPill(if (fetching) "Use it when ready" else "Use natural voice", tonal = true, onClick = {
                     readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) }; onChosen()
                 })
-                else -> FieldAtlasPrimaryButton("Download · $naturalSize", onClick = { confirm = true }, leadingIcon = FieldAtlasIcons.Download)
+                else -> BoardPill("Download · $naturalSize", tonal = true, icon = FieldAtlasIcons.Download, onClick = { confirm = true })
             }
             SampleButton(readAloud, reading, ReadAloud.Choice.Natural)
         }
-        VoiceOption(Icons.Outlined.PhoneAndroid, TileTone.Paper, "Phone voice", "Ready now, no download. Sounds more synthetic.") {
-            OutlinedButton(shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp), onClick = {
-                readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen()
-            }) { Text("Use phone voice now") }
-            SampleButton(readAloud, reading, ReadAloud.Choice.Phone)
+        VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice", detail = "Ready now, no download. Sounds more synthetic.") {
+            BoardPill("Use phone voice now", onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen() })
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(FieldAtlasIcons.Info, null, Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("An emergency guide never waits for this: it plays its recording at once.", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("An emergency guide never waits for this: it reads with the best voice already on the phone.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
     if (confirm) xyz.fieldatlas.ui.library.VoiceDownloadConfirm(onDone = { confirm = false }, then = onChosen)
@@ -118,17 +130,22 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun VoiceOption(icon: androidx.compose.ui.graphics.vector.ImageVector, tone: TileTone, title: String, detail: String,
-                        actions: @Composable () -> Unit) {
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
+private fun VoiceOption(icon: androidx.compose.ui.graphics.vector.ImageVector, tone: TileTone, title: String, selected: Boolean = false,
+                        detail: String, actions: @Composable () -> Unit) {
+    // As on the board: the suggested choice outlined in the accent colour; the buttons sit under the text, beside each other.
+    androidx.compose.material3.Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(if (selected) 1.5.dp else 1.dp,
+            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant)) {
+        Row(Modifier.padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top) {
             FieldAtlasIconTile(icon, size = 40.dp, tone = tone)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+                Text(detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { actions() }
     }
 }
 
@@ -167,14 +184,13 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
                 settings.readGuidesAtOnce) { on -> readAloud.updateSettings { it.copy(readGuidesAtOnce = on) } }
         }
         SampleButton(readAloud, reading, settings.voice ?: ReadAloud.Choice.Phone, label = "Play a sample")
-        Note("Emergency guides always play their own recording in the natural voice, already on the phone.")
     }
     if (confirm) xyz.fieldatlas.ui.library.VoiceDownloadConfirm(onDone = { confirm = false })
 }
 
 @Composable
 private fun Label(text: String) {
-    Text(text, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(text, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
 }
 
 @Composable
@@ -185,16 +201,21 @@ private fun Note(text: String) {
 /** A row of choices that reads as one control; each part is a full-height 48dp target. */
 @Composable
 private fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    Row(Modifier.fillMaxWidth().clip(shape).border(1.dp, MaterialTheme.colorScheme.outline, shape).selectableGroup()) {
+    // As on the board (and Library's tabs): a soft track, the chosen part raised on the card colour.
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(4.dp)
+        .selectableGroup(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         options.forEachIndexed { index, option ->
             val on = index == selected
-            Box(Modifier.weight(1f).heightIn(min = 48.dp)
-                .background(if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
-                .selectable(on, role = Role.RadioButton) { onSelect(index) }
-                .padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
-                Text(option, style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal),
-                    color = if (on) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            androidx.compose.material3.Surface(
+                selected = on, onClick = { onSelect(index) }, modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                shape = RoundedCornerShape(11.dp),
+                color = if (on) MaterialTheme.colorScheme.surface else androidx.compose.ui.graphics.Color.Transparent,
+                shadowElevation = if (on) 1.dp else 0.dp,
+            ) {
+                Box(Modifier.padding(horizontal = 6.dp), contentAlignment = Alignment.Center) {
+                    Text(option, style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium),
+                        color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                }
             }
         }
     }
