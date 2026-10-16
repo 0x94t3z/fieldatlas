@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-05",
+  "generated": "2026-10-16",
   "guides": [
     {
       "category": "medical",
@@ -972,6 +972,61 @@
         "url": "https://medlineplus.gov/poisoning.html"
       },
       "title": "Poisoning",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "eye-injury",
+      "keywords": [
+        "eye injury",
+        "eye injuries",
+        "chemical in eye",
+        "chemical in my eye",
+        "chemicals in my eye",
+        "splashed in my eye",
+        "splashed in his eye",
+        "splashed in her eye",
+        "splashed in their eye",
+        "cleaner in my eye",
+        "bleach in my eye",
+        "something in my eye",
+        "something in his eye",
+        "something in her eye",
+        "sand in my eye",
+        "dust in my eye",
+        "grit in my eye",
+        "eye is burning",
+        "eyes are burning",
+        "my eye burns",
+        "scratched my eye",
+        "poked in the eye",
+        "poked my eye",
+        "eye wash",
+        "rinse my eye",
+        "flush my eye"
+      ],
+      "region": null,
+      "sections": [
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "The most common type of injury happens when something irritates the outer surface of your eye. Certain jobs such as industrial jobs or hobbies such as carpentry make this type of injury more likely. It's also more likely if you wear contact lenses.",
+            "Chemicals or heat can burn your eyes. With chemicals, the pain may cause you to close your eyes. This traps the irritant next to the eye and may cause more damage. You should wash out your eye right away while you wait for medical help."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "license": "Public domain (US federal government work)",
+        "publisher": "NIH/NLM (MedlinePlus health topic summary)",
+        "retrieved": "2026-10-16T05:13:06Z",
+        "revision": null,
+        "sha256": "b7575fca9a216aaaa7ea173afed19b38042e8996815234ed2450d787f4a524d9",
+        "title": "Eye Injuries",
+        "url": "https://medlineplus.gov/eyeinjuries.html"
+      },
+      "title": "Eye injuries",
       "urgent": true
     },
     {
@@ -3356,5 +3411,5 @@
       "urgent": false
     }
   ],
-  "version": "2026.10.05"
+  "version": "2026.10.16"
 }

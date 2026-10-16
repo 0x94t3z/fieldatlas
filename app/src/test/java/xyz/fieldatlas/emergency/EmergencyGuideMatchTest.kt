@@ -758,4 +758,12 @@ class EmergencyGuideMatchTest {
         // A bite guide needs the bite: swelling after a tablet is not a snakebite.
         assertNotEquals("snakebite", match("took a painkiller and now my lips are swelling and my throat feels tight"))
     }
+
+    @Test fun aChemicalInTheEyeOpensTheEyeInjuriesGuide() {
+        // MedlinePlus: wash out the eye right away while waiting for medical help.
+        assertEquals("eye-injury", match("bleach splashed in my eye and i can barely open it"))
+        assertEquals("eye-injury", match("got grit in my eye on the building site and it wont stop watering"))
+        // Blood running into an eye from a cut is still the bleeding.
+        assertNotEquals("eye-injury", match("cut above his eye and blood keeps running into it"))
+    }
 }
