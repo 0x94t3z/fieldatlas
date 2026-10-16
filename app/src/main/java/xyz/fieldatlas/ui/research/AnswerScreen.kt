@@ -165,7 +165,10 @@ fun AnswerScreen(
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
             // While a guide is read, Stop stays in reach here, and the guide scrolls to the sentence being read.
-            if (guideId != null && readingHere != null && readAloud != null) LiveReading(readAloud, readKey) { ReadingControl(it, onStop = readAloud::stop) }
+            // Guides and answers read the same way: Stop pinned under the bar while the page scrolls to the sentence read.
+            if (readingHere != null && readAloud != null) LiveReading(readAloud, readKey) {
+                ReadingControl(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop, showTime = guideId == null)
+            }
             androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.markdown.LocalSpokenSentence provides readingHere?.shown) {
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -218,10 +221,13 @@ fun AnswerScreen(
                                 )
                             }
                             (state.metrics?.totalMillis ?: state.savedMillis)?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
-                            if (listenable && readAloud != null && readingHere == null) ListenPill(listen)
                         }
                         if (guideId != null && readAloud != null && readingHere == null) {
                             ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }
+                        }
+                        if (listenable && readAloud != null && readingHere == null) {
+                            val millis = remember(state.answer) { readAloud.answerMillis(state.answer) }
+                            ReadAloudButton(millis, label = "Read this answer aloud", onClick = listen)
                         }
                     }
                 }
@@ -414,10 +420,7 @@ fun AnswerScreen(
                 )
             }
             }
-            if (guideId == null && readingHere != null && readAloud != null) {
-                LiveReading(readAloud, readKey) { ListenPlayer(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop) }
-            }
-            // Why Listen could not start (a phone without a speech voice), said where the player would be.
+            // Why Read aloud could not start (a phone without a speech voice), said where the player would be.
             readAloud?.problem?.collectAsState()?.value?.let { problem ->
                 androidx.compose.runtime.LaunchedEffect(problem) { kotlinx.coroutines.delay(8_000); readAloud.clearProblem() }
                 Surface(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),

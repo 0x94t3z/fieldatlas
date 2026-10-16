@@ -162,6 +162,17 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         } else guides().firstOrNull { it.id == guideId }?.let { read(key, SpeechText.guide(it)) }
     }
 
+    /**
+     * About how long [markdown] takes to read in the voice that would read it now, for the Read aloud button: the
+     * natural voice says about ten characters a second, the phone's about fifteen, both at the chosen speed.
+     */
+    fun answerMillis(markdown: String): Long {
+        val segments = SpeechText.answer(markdown)
+        val perChar = if (answerVoice == Voice.Natural) NATURAL_MS_PER_CHAR else PHONE_MS_PER_CHAR
+        return (segments.sumOf { it.spoken.length } * perChar / mutableSettings.value.speed.coerceAtLeast(0.5f)).toLong() +
+            segments.size * PAUSE_MS
+    }
+
     /** Reads an answer without its citations, labels or saved excerpts. */
     fun readAnswer(key: String, markdown: String) {
         stop()
@@ -555,6 +566,8 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         private const val LONG_SENTENCE_WORDS = 30
         /** About how long the phone's voice takes per character at normal speed, for the time it shows. */
         private const val PHONE_MS_PER_CHAR = 65f
+        /** Measured: 120 characters of an answer made 12.2 s of speech in the natural voice. */
+        private const val NATURAL_MS_PER_CHAR = 101f
         private const val PAUSE_MS = 450L
         /** A wait this long at a full stop reads as a pause, not a stall. */
         private const val PAUSE_TOLERANCE_MS = 500L

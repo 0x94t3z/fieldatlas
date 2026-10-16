@@ -49,13 +49,16 @@ import xyz.fieldatlas.speech.ReadAloud
 /** The app's reader, for any page that offers to read itself aloud. */
 val LocalReadAloud = compositionLocalOf<ReadAloud?> { null }
 
-/** One tap to hear an emergency guide: the first thing under the title, for someone who cannot read the screen now. */
+/**
+ * One tap to hear the page, the first thing under the title: an emergency guide for someone who cannot read the screen
+ * now, and any answer the same way.
+ */
 @Composable
-internal fun ReadAloudButton(seconds: Long?, onClick: () -> Unit) {
+internal fun ReadAloudButton(seconds: Long?, label: String = "Read this guide aloud", onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.primary)
-            .clickable(role = Role.Button, onClickLabel = "Read this guide aloud", onClick = onClick)
+            .clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
             .padding(start = 16.dp, end = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -67,94 +70,61 @@ internal fun ReadAloudButton(seconds: Long?, onClick: () -> Unit) {
     }
 }
 
-/** Shown pinned under the bar while a guide is read: Stop, and how far along it is. */
+/**
+ * Pinned under the bar while a page (a guide or an answer) is read. Tapping it pauses and resumes; Stop is its own
+ * button beside pause. It says how far along the reading is (sentences for a guide; time for an answer,
+ * [showTime]) and, while the natural voice prepares, fills as it gets ready.
+ */
 @Composable
-internal fun ReadingControl(reading: ReadAloud.Reading, onStop: () -> Unit) {
+internal fun ReadingControl(reading: ReadAloud.Reading, onPause: () -> Unit, onResume: () -> Unit, onStop: () -> Unit,
+                            showTime: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
+    val toggle = if (reading.paused) onResume else onPause
     Column(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().background(colors.background).padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .clickable(role = Role.Button, onClickLabel = "Stop reading", onClick = onStop)
-                .semantics { liveRegion = LiveRegionMode.Polite; stateDescription = "Sentence ${reading.index + 1} of ${reading.segments.size}" }
-                .padding(start = 16.dp, end = 18.dp),
+                .background(colors.primaryContainer)
+                .clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle)
+                .semantics { liveRegion = LiveRegionMode.Polite; stateDescription = if (reading.paused) "Paused" else "Reading" }
+                .padding(start = 16.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SoundBars(MaterialTheme.colorScheme.onPrimaryContainer, playing = !reading.paused)
-            Text("Stop reading", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Text("${reading.index + 1} of ${reading.segments.size}", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Icon(Icons.Filled.Stop, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.size(20.dp))
-        }
-        Text("${voiceName(reading.voice)} · keeps reading with the screen off",
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** A quiet way to hear any answer, beside its sources and time: built like those pills, outlined, in the accent colour. */
-@Composable
-internal fun ListenPill(onClick: () -> Unit) {
-    // Drawn the height of the pills beside it; the touch area still reaches 48dp, and a press shows in the pill's shape.
-    Row(
-        Modifier.minimumInteractiveComponentSize().clip(xyz.fieldatlas.ui.theme.FieldAtlasChipShape)
-            .border(1.dp, MaterialTheme.colorScheme.outline, xyz.fieldatlas.ui.theme.FieldAtlasChipShape)
-            .clickable(role = Role.Button, onClickLabel = "Listen to this answer", onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-        Text("Listen", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-/** The slim player above the question box while an answer is read. */
-@Composable
-internal fun ListenPlayer(reading: ReadAloud.Reading, onPause: () -> Unit, onResume: () -> Unit, onStop: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp)
-            .semantics { contentDescription = "Reading the answer aloud" },
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SoundBars(MaterialTheme.colorScheme.primary, playing = !reading.paused && !reading.preparing)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(when {
-                    reading.preparing -> "Getting ready" + if (reading.prepared > 0f) " · ${(reading.prepared * 100).toInt()}%" else "…"
+            SoundBars(colors.onPrimaryContainer, playing = !reading.paused && !reading.preparing)
+            Text(when {
+                    reading.preparing -> "Getting ready"
                     reading.paused -> "Paused"
-                    else -> "Reading the answer"
-                }, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
-                Text((if (reading.durationMs > 0) "${clock(reading.positionMs)} of ${clock(reading.durationMs)} · " else "") +
-                    voiceName(reading.voice).lowercase(),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                // One continuous track, as on the board: how far through the reading (or, while preparing, how ready).
-                xyz.fieldatlas.ui.theme.FieldAtlasProgressBar(
-                    progress = {
-                        when {
-                            reading.preparing -> reading.prepared
-                            reading.durationMs > 0 -> (reading.positionMs.toFloat() / reading.durationMs).coerceIn(0f, 1f)
-                            else -> (reading.index + 1f) / reading.segments.size.coerceAtLeast(1)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).height(3.dp),
-                )
+                    else -> "Reading aloud"
+                },
+                Modifier.weight(1f), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.onPrimaryContainer, maxLines = 1)
+            Text(
+                when {
+                    reading.preparing -> "${(reading.prepared * 100).toInt()}%"
+                    showTime && reading.durationMs > 0 -> "${clock(reading.positionMs)} of ${clock(reading.durationMs)}"
+                    else -> "${reading.index + 1} of ${reading.segments.size}"
+                },
+                style = MaterialTheme.typography.labelMedium, color = colors.onPrimaryContainer)
+            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle),
+                contentAlignment = Alignment.Center) {
+                Icon(if (reading.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = null,
+                    tint = colors.onPrimaryContainer, modifier = Modifier.size(24.dp))
             }
-            Box(Modifier.size(48.dp).clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading",
-                onClick = if (reading.paused) onResume else onPause), contentAlignment = Alignment.Center) {
-                Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-                    Icon(if (reading.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-                }
-            }
-            Box(Modifier.size(48.dp).clickable(role = Role.Button, onClickLabel = "Stop reading", onClick = onStop), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Close, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            Box(Modifier.size(48.dp).clip(RoundedCornerShape(12.dp))
+                .clickable(role = Role.Button, onClickLabel = "Stop reading", onClick = onStop)
+                .semantics { contentDescription = "Stop reading" }, contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Stop, contentDescription = null, tint = colors.onPrimaryContainer, modifier = Modifier.size(22.dp))
             }
         }
+        if (reading.preparing) xyz.fieldatlas.ui.theme.FieldAtlasProgressBar(progress = { reading.prepared },
+            modifier = Modifier.fillMaxWidth().height(3.dp))
+        Text(if (reading.preparing) "${voiceName(reading.voice)} · prepares first, then reads without pauses"
+            else "${voiceName(reading.voice)} · keeps reading with the screen off",
+            style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
     }
 }
 
