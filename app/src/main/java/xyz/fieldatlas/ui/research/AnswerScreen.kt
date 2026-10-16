@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.semantics.liveRegion
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.DisposableEffect
@@ -415,6 +416,21 @@ fun AnswerScreen(
             }
             if (guideId == null && readingHere != null && readAloud != null) {
                 LiveReading(readAloud, readKey) { ListenPlayer(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop) }
+            }
+            // Why Listen could not start (a phone without a speech voice), said where the player would be.
+            readAloud?.problem?.collectAsState()?.value?.let { problem ->
+                androidx.compose.runtime.LaunchedEffect(problem) { kotlinx.coroutines.delay(8_000); readAloud.clearProblem() }
+                Surface(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 6.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                    Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 6.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        androidx.compose.material3.Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Info, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(problem, Modifier.weight(1f).semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
+                            style = MaterialTheme.typography.bodySmall)
+                        xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(readAloud::clearProblem, "Dismiss", xyz.fieldatlas.ui.theme.FieldAtlasIcons.Close)
+                    }
+                }
             }
             if (choosingVoice && readAloud != null) ChooseVoiceSheet(readAloud,
                 onChosen = { choosingVoice = false; readAloud.readAnswer(readKey, state.answer) }, onDismiss = { choosingVoice = false })

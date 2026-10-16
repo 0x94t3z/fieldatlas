@@ -116,9 +116,12 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
             }
             SampleButton(readAloud, reading, ReadAloud.Choice.Natural)
         }
-        VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice", detail = "Ready now, no download. Sounds more synthetic.") {
-            BoardPill("Use phone voice now", onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen() })
-        }
+        if (readAloud.phoneVoiceAvailable) {
+            VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice", detail = "Ready now, no download. Sounds more synthetic.") {
+                BoardPill("Use phone voice now", onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen() })
+            }
+        } else VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice",
+            detail = "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or use the natural voice.") {}
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(FieldAtlasIcons.Info, null, Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("An emergency guide never waits for this: it reads with the best voice already on the phone.",
@@ -168,7 +171,8 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
                 Note("Natural voice is not on this phone yet; the phone's voice reads until it is.")
                 xyz.fieldatlas.ui.library.DownloadGroup(listOf { xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true }) })
             }
-            else -> Note("The phone's own voice: ready now, no download.")
+            readAloud.phoneVoiceAvailable -> Note("The phone's own voice: ready now, no download.")
+            else -> Note("This phone has no speech voice. Add one in Android settings (Text-to-speech output), or download the natural voice.")
         }
         Label("Speed")
         val speeds = listOf(0.8f, 1.0f, 1.25f, 1.5f)

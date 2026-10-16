@@ -95,7 +95,26 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     )
 
     /** Which voice an answer would be read in now. */
-    val answerVoice: Voice get() = if (mutableSettings.value.voice == Choice.Natural && natural.ready) Voice.Natural else Voice.Phone
+    val answerVoice: Voice get() = when {
+        mutableSettings.value.voice == Choice.Natural && natural.ready -> Voice.Natural
+        // A phone without a speech engine (some GrapheneOS installs) reads with the natural voice when it has it.
+        !phoneVoiceAvailable && natural.ready -> Voice.Natural
+        else -> Voice.Phone
+    }
+
+    /**
+     * Whether the phone has a speech engine: Google's, GrapheneOS Speech Services, or another. Most phones do, but one
+     * can be missing or switched off, and then the phone's voice cannot read.
+     */
+    val phoneVoiceAvailable: Boolean get() = runCatching {
+        context.packageManager.queryIntentServices(android.content.Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), 0).isNotEmpty()
+    }.getOrDefault(true)
+
+    private val mutableProblem = MutableStateFlow<String?>(null)
+    /** Why a reading could not start, for the page to say so; null when there is nothing to say. */
+    val problem: StateFlow<String?> = mutableProblem
+
+    fun clearProblem() { mutableProblem.value = null }
 
     private val audio = context.getSystemService(AudioManager::class.java)
     private val attributes = AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA)
@@ -429,7 +448,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         val lengths = segments.map { (it.spoken.length * PHONE_MS_PER_CHAR / rate).toLong() + PAUSE_MS }
         val starts = lengths.runningFold(0L) { at, length -> at + length }
         mutableState.value = Reading(key, segments, from, Voice.Phone, positionMs = starts[from], durationMs = starts.last())
-        withVoice { speakFrom(from) }
+        withVoice(onFail = { phoneVoiceFailed(key, segments) }) { speakFrom(from) }
         work = scope.launch {
             while (isActive) {
                 delay(250)
@@ -441,18 +460,46 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         }
     }
 
-    private fun withVoice(action: () -> Unit) {
+    private var pendingFail: (() -> Unit)? = null
+
+    private fun withVoice(onFail: () -> Unit, action: () -> Unit) {
         if (ttsReady) return action()
         pending = action
+        pendingFail = onFail
         if (tts != null) return
         tts = TextToSpeech(context) { status ->
             scope.launch {
-                ttsReady = status == TextToSpeech.SUCCESS
-                if (!ttsReady) { stop(); return@launch }
-                tts?.language = Locale.US
-                tts?.setOnUtteranceProgressListener(progress)
-                pending?.invoke(); pending = null
+                val engine = tts
+                if (engine == null || status != TextToSpeech.SUCCESS) {
+                    // Let go of the engine, so a later Listen tries again (after one is installed) instead of waiting forever.
+                    runCatching { engine?.shutdown() }
+                    tts = null
+                    ttsReady = false
+                    val fail = pendingFail
+                    pending = null; pendingFail = null
+                    fail?.invoke()
+                    return@launch
+                }
+                // English is what the app writes. Offline, an engine can report English as "missing data" and still read
+                // it well with its built-in voice (Google's does), so a refusal here is not a failure; only no engine is.
+                listOf(Locale.US, Locale.UK, Locale.ENGLISH).firstOrNull { engine.setLanguage(it) >= TextToSpeech.LANG_AVAILABLE }
+                    ?: engine.setLanguage(Locale.US)
+                ttsReady = true
+                engine.setOnUtteranceProgressListener(progress)
+                pending?.invoke(); pending = null; pendingFail = null
             }
+        }
+    }
+
+    /** The phone's voice could not read: the natural voice reads instead if it is here, otherwise the page says why. */
+    private fun phoneVoiceFailed(key: String, segments: List<SpeechText.Segment>) {
+        if (mutableState.value?.key != key) return
+        if (natural.ready && key != SAMPLE_KEY) {
+            stop()
+            speakNatural(key, segments)
+        } else {
+            stop()
+            mutableProblem.value = NO_PHONE_VOICE
         }
     }
 
@@ -491,6 +538,8 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
 
     companion object {
         const val SAMPLE_KEY = "sample"
+        const val NO_PHONE_VOICE = "This phone has no speech voice. Download the natural voice in Library, " +
+            "or add a text-to-speech voice in Android settings."
         const val SAMPLE_TEXT = "This is the natural voice. It reads your answers aloud on this phone, even with no signal."
         private const val VOICE = "voice"
         private const val SPEED = "speed"
