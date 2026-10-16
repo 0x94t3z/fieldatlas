@@ -76,6 +76,8 @@ data class ResearchUiState(
     /** The model's draft is being checked against the sources before it is shown. */
     val checking: Boolean = false,
     val metrics: ResearchMetrics? = null,
+    /** How long a reopened answer took when it was researched; a live run has [metrics] instead. */
+    val savedMillis: Long? = null,
     val completion: ResearchCompletion? = null,
     val error: String? = null,
     /** Asked while another answer was still being researched in the background: that question, until it is done. */
@@ -614,6 +616,7 @@ class ResearchViewModel(
             sources = last.evidence,
             phase = ResearchPhase.Complete,
             completion = ResearchCompletion.Complete,
+            savedMillis = last.durationMs,
         )
         return true
     }

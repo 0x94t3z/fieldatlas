@@ -89,4 +89,16 @@ class ContinueTopicTest {
         assertTrue(again.continueTopic(followUp, history.records.value))
         assertEquals(listOf("tell me about the hagia sophia"), again.uiState.value.earlier.map { it.asked })
     }
+
+    @Test fun aReopenedAnswerKeepsHowLongItTook() {
+        val history = store()
+        history.record("tell me about the hagia sophia", "Hagia Sophia is in Istanbul [S1].", listOf("Hagia Sophia — Overview"),
+            listOf(evidence), durationMs = 153_000)
+        val vm = viewModel(history)
+        assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
+        assertEquals(153_000L, vm.uiState.value.savedMillis)
+        vm.submitFollowUp("when was it turned back into a mosque?")
+        // The follow-up's own run replaces it: its time comes from its metrics.
+        assertEquals(null, vm.uiState.value.savedMillis)
+    }
 }
