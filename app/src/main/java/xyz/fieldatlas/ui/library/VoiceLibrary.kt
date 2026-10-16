@@ -49,6 +49,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.ui.semantics.heading
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.assets.DownloadItem
 import xyz.fieldatlas.speech.NaturalVoice
@@ -89,11 +95,12 @@ internal fun VoiceDiscoverRow(readAloud: ReadAloud, onGet: () -> Unit, onDetails
     val downloads = LocalDownloads.current ?: return
     val status by downloads.state.collectAsState()
     val voice by readAloud.natural.state.collectAsState()
+    val reading by readAloud.state.collectAsState()
     DownloadRow(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, DownloadItem.Voice.title,
         "English · female voice · reads answers offline",
         rowState(DownloadItem.Voice, status, installed = voice == NaturalVoice.State.Ready, saved = readAloud.natural.savedBytes()),
         voiceSize, rowActions(downloads, DownloadItem.Voice, onGet), onClick = onDetails,
-        note = "Tap to hear a sample first.".takeIf { voice != NaturalVoice.State.Ready && status.active?.key != DownloadItem.Voice.key })
+        extra = if (voice == NaturalVoice.State.Ready || status.isActive(DownloadItem.Voice)) null else ({ SampleLine(readAloud, reading) }))
 }
 
 /** On this phone: the voice is in use for answers (or can be), plays a sample, and can be removed. */
@@ -110,7 +117,8 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
             horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(Icons.AutoMirrored.Outlined.VolumeUp, size = 40.dp, tone = TileTone.Sage)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(DownloadItem.Voice.title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold))
+                // Wraps like the other pack titles ("Biology & longevity"), never cut short.
+                Text(DownloadItem.Voice.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 20.sp))
                 Text("$voiceSize · reads answers aloud", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (inUse) Box(Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer)
                     .padding(horizontal = 9.dp, vertical = 3.dp)) {
@@ -118,6 +126,7 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
                         color = MaterialTheme.colorScheme.onPrimaryContainer)
                 }
             }
+            SampleButton(readAloud, reading)
             // The same overflow menu as every pack card: rounded, on the card's colour, delete last and in red.
             Box {
                 androidx.compose.material3.IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
@@ -126,22 +135,15 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
                     shape = RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surface) {
-                    val sampling = reading?.key == ReadAloud.SAMPLE_KEY
-                    DropdownMenuItem(
-                        text = { Text(if (sampling) "Stop the sample" else "Play a sample") },
-                        leadingIcon = { Icon(if (sampling) Icons.Filled.Stop else Icons.Filled.PlayArrow, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary) },
-                        onClick = { menu = false; if (sampling) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural) },
-                    )
                     if (!inUse) {
                         DropdownMenuItem(
                             text = { Text("Use for answers") },
                             leadingIcon = { Icon(FieldAtlasIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                             onClick = { menu = false; readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) } },
                         )
+                        androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     }
-                    androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     DropdownMenuItem(
                         text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
@@ -165,46 +167,60 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
 }
 
 /** Hear it before spending the space: the sample with its words marked as they are spoken, and what it changes. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 internal fun VoiceDetailSheet(readAloud: ReadAloud, onDownload: () -> Unit, onDismiss: () -> Unit) {
     val reading by readAloud.state.collectAsState()
     val voice by readAloud.natural.state.collectAsState()
     val playing = reading?.key == ReadAloud.SAMPLE_KEY
     val colors = MaterialTheme.colorScheme
-    FieldAtlasInfoSheet(DownloadItem.Voice.title, onDismiss = { if (playing) readAloud.stop(); onDismiss() }) {
-        Text("English · female voice · $voiceSize", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-        FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
-                    if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
-                }, contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(42.dp).clip(CircleShape).background(colors.primary), contentAlignment = Alignment.Center) {
-                        Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, Modifier.size(20.dp), tint = colors.onPrimary)
-                    }
+    val dismiss = { if (playing) readAloud.stop(); onDismiss() }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = dismiss, shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
+        containerColor = colors.surface,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding()
+            .padding(horizontal = 22.dp).padding(bottom = 22.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            // As on the board: the voice's own tile and name head the sheet, its language, kind and size under it.
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                FieldAtlasIconTile(Icons.AutoMirrored.Outlined.VolumeUp, size = 48.dp, iconSize = 24.dp, tone = TileTone.Sage)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(DownloadItem.Voice.title, style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle,
+                        modifier = Modifier.semantics { heading() })
+                    Text("English · female voice · $voiceSize", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
-                SampleWave(playing && reading?.paused != true, Modifier.weight(1f))
-                Text(seconds(reading?.takeIf { playing }?.positionMs ?: 0), style = MaterialTheme.typography.labelMedium,
-                    color = colors.onSurfaceVariant)
             }
-            val spoken = reading?.takeIf { playing }?.shown
-            Text(buildAnnotatedString {
-                ReadAloud.SAMPLE_TEXT.split(". ").forEachIndexed { index, part ->
-                    val sentence = if (part.endsWith(".")) part else "$part."
-                    if (index > 0) append(" ")
-                    if (spoken == sentence) withStyle(SpanStyle(background = colors.secondaryContainer, color = colors.onSecondaryContainer)) { append(sentence) }
-                    else append(sentence)
+            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(48.dp).clip(CircleShape).background(colors.primary)
+                        .clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
+                            if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
+                        }, contentAlignment = Alignment.Center) {
+                        Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, Modifier.size(22.dp), tint = colors.onPrimary)
+                    }
+                    SampleWave(playing && reading?.paused != true)
+                    Text(seconds(reading?.takeIf { playing }?.positionMs ?: 0), style = MaterialTheme.typography.labelMedium,
+                        color = colors.onSurfaceVariant)
                 }
-            }, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Serif))
+                val spoken = reading?.takeIf { playing }?.shown
+                Text(buildAnnotatedString {
+                    ReadAloud.SAMPLE_TEXT.split(". ").forEachIndexed { index, part ->
+                        val sentence = if (part.endsWith(".")) part else "$part."
+                        if (index > 0) append(" ")
+                        if (spoken == sentence) withStyle(SpanStyle(background = colors.secondaryContainer, color = colors.onSecondaryContainer)) { append(sentence) }
+                        else append(sentence)
+                    }
+                }, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Serif))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Point(true, "Every answer can be listened to, offline")
+                Point(true, "Emergency guides already play in this voice")
+                Point(false, "On older phones it pauses briefly between sentences")
+            }
+            if (voice != NaturalVoice.State.Ready) FieldAtlasPrimaryButton("Download · $voiceSize", onClick = { if (playing) readAloud.stop(); onDownload() },
+                leadingIcon = FieldAtlasIcons.Download, modifier = Modifier.fillMaxWidth())
+            Text("Supertonic 3 · OpenRAIL-M · run by sherpa-onnx", Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
+                color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Point(true, "Every answer can be listened to, offline")
-            Point(true, "Emergency guides already play in this voice")
-            Point(false, "On older phones it pauses briefly between sentences")
-        }
-        if (voice != NaturalVoice.State.Ready) FieldAtlasPrimaryButton("Download · $voiceSize", onClick = { if (playing) readAloud.stop(); onDownload() },
-            leadingIcon = FieldAtlasIcons.Download, modifier = Modifier.fillMaxWidth())
-        Text("Supertonic 3 voice (OpenRAIL-M), run by sherpa-onnx. Licences are in More.", style = MaterialTheme.typography.bodySmall,
-            color = colors.onSurfaceVariant)
     }
 }
 
@@ -214,6 +230,31 @@ private fun Point(good: Boolean, text: String) {
         Icon(if (good) FieldAtlasIcons.Check else FieldAtlasIcons.Info, null, Modifier.size(18.dp),
             tint = if (good) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
+    val playing = reading?.key == ReadAloud.SAMPLE_KEY
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+        SampleButton(readAloud, reading)
+        SampleWave(playing && reading?.paused != true)
+        Text(if (playing) seconds(reading?.positionMs ?: 0) else "0:07 sample", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A round, outlined play button for the natural voice's sample; it stops the sample while it plays. */
+@Composable
+private fun SampleButton(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
+    val playing = reading?.key == ReadAloud.SAMPLE_KEY
+    val colors = MaterialTheme.colorScheme
+    Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
+        if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
+    }.semantics { contentDescription = if (playing) "Stop the sample" else "Play a sample of the natural voice" }, contentAlignment = Alignment.Center) {
+        Box(Modifier.size(36.dp).clip(CircleShape).border(1.dp, colors.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, Modifier.size(17.dp), tint = colors.primary)
+        }
     }
 }
 
