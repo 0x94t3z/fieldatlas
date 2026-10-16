@@ -181,11 +181,14 @@ internal fun DownloadRow(
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (allChips.isNotEmpty()) Text(allChips.joinToString(" · ") { it.text }, style = MaterialTheme.typography.bodySmall,
                         color = if (allChips.any { it.positive }) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    // What it holds, right under its size, not set apart below the row.
+                    note?.let { Text(it, Modifier.padding(top = 2.dp), style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 }
                 DownloadControl(state, getLabel, title, actions)
             }
             val foot = state is RowState.Running || state is RowState.Waiting || state is RowState.Failed || state is RowState.Queued ||
-                (state is RowState.Get && state.saved > 0 && actions.discardSaved != null) || note != null || extra != null
+                (state is RowState.Get && state.saved > 0 && actions.discardSaved != null) || extra != null
             if (foot) Column(Modifier.fillMaxWidth().padding(start = 64.dp, end = 14.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 when (state) {
@@ -205,8 +208,6 @@ internal fun DownloadRow(
                     is RowState.Get -> if (state.saved > 0) actions.discardSaved?.let { FootActions(listOf("Discard saved part" to it)) }
                     else -> Unit
                 }
-                note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 extra?.invoke(this)
             }
     }
