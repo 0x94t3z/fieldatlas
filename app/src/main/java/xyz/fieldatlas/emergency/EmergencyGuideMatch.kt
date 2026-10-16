@@ -22,9 +22,20 @@ object EmergencyGuideMatch {
     private val synonyms = mapOf(
         "cpr" to listOf("cardiopulmonary", "no pulse", "collapsed", "isn't breathing", "is not breathing", "stopped breathing",
             "not breathing", "no breathing", "doesn't breathe", "does not breathe", "won't wake up", "not responding"),
-        "choking" to listOf("choke", "something stuck in throat", "can't breathe", "cant breathe"),
-        "severe-bleeding" to listOf("bleed", "bleeding badly"),
-        "burns" to listOf("burned", "burnt", "scalded", "hot pan", "hot stove", "boiling water", "hot oil", "burned hand", "burned my", "burned her", "burned his"),
+        // How a choking person looks to the people around them: no voice, no cough, hands at the throat.
+        "choking" to listOf("choke", "chocking", "something stuck in throat", "can't breathe", "cant breathe", "can't breath", "cant breath",
+            "can't talk", "cant talk", "can't speak", "cant speak", "cannot speak", "can't cough", "cant cough", "cannot cough",
+            "grabbing his throat", "grabbing her throat", "grabbing their throat", "clutching his throat", "clutching her throat",
+            "stuck in his throat", "stuck in her throat", "stuck in my throat", "food stuck", "food is stuck", "piece of food"),
+        // Bleeding as it is seen: the amount and the flow, a part cut off, a tourniquet asked for.
+        "severe-bleeding" to listOf("bleed", "bleeding badly", "lots of blood", "so much blood", "blood everywhere", "blood spurting",
+            "spurting blood", "blood squirting", "squirting blood", "blood is pouring", "blood pouring", "pouring blood", "gushing blood",
+            "blood gushing", "blood soaking", "soaking through", "won't stop bleeding", "wont stop bleeding", "tourniquet",
+            "sliced off", "chopped off", "severed", "amputated", "fingertip off", "tip of his finger", "tip of her finger", "tip of my finger",
+            "deep cut", "deep gash", "gash"),
+        "burns" to listOf("burned", "burnt", "scalded", "hot pan", "hot stove", "boiling water", "hot oil", "burned hand", "burned my", "burned her", "burned his",
+            "caught fire", "clothes on fire", "red blister", "skin is peeling", "skin peeling", "white and leathery", "touched the oven",
+            "touched the stove", "hot iron", "chemical burn", "electrical burn", "burn mark"),
         "fractures-sprains" to listOf("broken leg", "broken arm", "broken ankle", "broken wrist", "sprained",
             "twisted ankle", "twisted my ankle", "rolled my ankle", "swollen ankle", "ankle is swollen",
             "can't put weight", "cant put weight", "cannot put weight", "twisted his ankle", "twisted her ankle",
@@ -32,26 +43,54 @@ object EmergencyGuideMatch {
             "arm is bent", "leg is bent", "looks broken", "might be broken", "may be broken", "think it's broken", "broken bone",
             // "I think my friend broke her ankle on the trail": the trail words alone pointed to the outdoors guide.
             "broke her ankle", "broke his ankle", "broke my ankle", "broke an ankle", "broke her leg", "broke his leg", "broke my leg",
-            "broke her arm", "broke his arm", "broke my arm", "broke her wrist", "broke his wrist", "broke my wrist", "broke a bone"),
-        "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike"),
+            "broke her arm", "broke his arm", "broke my arm", "broke her wrist", "broke his wrist", "broke my wrist", "broke a bone",
+            // Signs a bystander sees: the shape, the bone, a limb that will not move.
+            "bent the wrong way", "bone sticking out", "bone poking out", "sticking out of the skin", "odd angle",
+            "can't move it", "cant move it", "cannot move it", "can't move his arm", "can't move her arm", "can't move his leg", "can't move her leg",
+            "swollen and purple", "purple and swollen", "slammed in the car door", "slammed in the door", "rolled my ankel",
+            "twisted my knee", "twisted his knee", "twisted her knee", "hurt my ribs", "ribs hurt", "broken rib", "cracked rib", "broken ribs",
+            "hip really hurts", "hurt her hip", "hurt his hip"),
+        "lost" to listOf("i'm lost", "i am lost", "we're lost", "we are lost", "got lost", "lost in the woods", "lost hiking", "lost on a hike",
+            "no idea where i am", "don't know where i am", "dont know where i am", "wrong trail", "lost the trail", "separated from my group",
+            "separated from the group", "hasn't come back", "hasnt come back", "has not come back", "didn't come back", "didnt come back"),
         "safe-drinking-water" to listOf("drink", "drinkable", "stream water", "river water", "lake water", "purify water", "disinfect water", "boil water"),
         "signaling" to listOf("signal for help", "rescue signal", "attract rescuers", "call for help without signal"),
         "heat-illness" to listOf("heatstroke", "overheated", "stopped sweating", "not sweating"),
-        "stroke" to listOf("face is drooping", "drooping face", "face droops"),
-        "poisoning" to listOf("swallowed bleach", "swallowed some bleach", "drank bleach", "swallowed poison", "swallowed pills",
+        // The chest as people feel it, and the quieter signs (jaw, breath, sweat) that are easy to call indigestion.
+        "heart-attack" to listOf("chest is tight", "tight chest", "chest feels tight", "chest is heavy", "heavy chest", "chest feels heavy",
+            "chest hurts", "chest pain", "pain in his chest", "pain in her chest", "pain in my chest", "chest burns", "jaw aching", "aching jaw"),
+        "seizures" to listOf("shaking all over", "jerking all over", "jerking", "foaming at the mouth", "having a fit", "fitting"),
+        "shock" to listOf("pale and clammy", "cold and clammy", "cold clammy", "clammy skin", "pale sweaty clammy", "in shock"),
+        // BE FAST as people describe it: a drooping face, slurred or jumbled words, one weak side, a sudden worst headache.
+        "stroke" to listOf("face is drooping", "drooping face", "face droops", "face is droopy", "droopy face", "face droopin",
+            "drooping on one side", "droopin on one side", "slurred", "slured", "slurring", "speech is slurred", "words are jumbled", "jumbled words",
+            "coming out jumbled", "can't find his words", "can't find her words", "cant find his words", "cant find her words",
+            "one side weak", "one side is weak", "weak on one side", "arm keeps drifting", "arm drifting", "half my face", "half his face",
+            "half her face", "smile is crooked", "crooked smile", "worst headache", "sudden numbness"),
+        "poisoning" to listOf("empty pill bottle", "took too many pills", "took a lot of pills", "swallowed a lot of pills",
+            "drank too much", "alcohol poisoning", "drank way too much", "swallowed bleach", "swallowed some bleach", "drank bleach", "swallowed poison", "swallowed pills",
             "swallowed some pills", "swallowed medicine",
             "swallowed detergent", "swallowed antifreeze"),
         "anaphylaxis" to listOf("throat is swelling", "throat swelling", "swollen throat", "tongue is swelling", "lips are swelling"),
-        "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head"),
+        "head-injury" to listOf("hit his head", "hit her head", "hit my head", "hit their head", "banged his head", "banged her head", "bumped his head", "bumped her head",
+            "knocked out", "knocked unconscious", "fell on his head", "fell on her head", "landed on his head", "landed on her head",
+            "no helmet", "pupils", "one pupil", "same questions over and over", "asking the same questions"),
         // Falling through ice: the water rescue first (from safe ground), then warming the person.
-        "drowning" to listOf("fell through the ice", "fallen through the ice", "falls through the ice", "through the ice"),
+        "drowning" to listOf("fell through the ice", "fallen through the ice", "falls through the ice", "through the ice",
+            "was underwater", "under water", "face down in the water", "face down in the pool", "face down in the bath", "face down",
+            "can't swim", "cant swim", "fell overboard", "fell off the boat", "car went into the river", "car went into the water",
+            "car is sinking", "its sinking", "it's sinking", "swept away", "pulled him out of the water", "pulled her out of the water"),
         "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water",
             "icy water", "through the ice",
-            "body temperature", "shivering", "uncontrollable shivering"),
+            "body temperature", "shivering", "uncontrollable shivering", "shivering uncontrollably", "stopped shivering",
+            "cold to the touch", "cold sea", "capsized", "soaked to the skin", "speech is mumbled", "mumbling"),
         "altitude-sickness" to listOf("mountain sickness", "high altitude"),
         "animal-bites" to listOf("bitten by a dog", "monkey bite", "bat bite", "dog bit", "bit by a dog", "cat bit", "bit by a cat", "monkey bit", "bit by a monkey",
             "monkey scratched", "scratched by a monkey", "dog scratched", "scratched by a dog", "cat scratched", "scratched by a cat",
-            "bat scratched", "scratched by a bat", "animal scratch"),
+            "bat scratched", "scratched by a bat", "animal scratch",
+            "cat bite", "human bite", "raccoon bit", "fox bit", "bat in the bedroom", "bat in the room", "rabies shot", "rabies shots", "rabis"),
+        "earthquake" to listOf("ground is shaking", "ground shaking", "ground started shaking", "building is shaking", "house is shaking"),
+        "flood" to listOf("flooded", "flood water", "floodwater", "water is coming up", "water is rising", "water rising"),
         "snakebite" to listOf("bitten by a snake", "snake bit me", "snake bite", "snake bit", "bit by a snake"),
         // "Stung" is not "sting": "my friend was stung by a bee" named only "bee", too weak alone.
         // One plain word, so a swelling throat after a sting still outranks it (anaphylaxis).
@@ -62,13 +101,228 @@ object EmergencyGuideMatch {
             "remove the tick", "pull the tick", "pull a tick", "get the tick out", "tick's head", "tick head"),
         // The signs, not the word: "two of my fingers are white, hard and numb" after skiing.
         "frostbite" to listOf("frostnip", "white and numb", "hard and numb", "white hard and numb", "numb and white",
-            "fingers are white", "toes are white", "fingers are numb", "toes are numb", "numb fingers", "numb toes", "waxy skin"),
+            "fingers are white", "toes are white", "fingers are numb", "toes are numb", "numb fingers", "numb toes", "waxy skin",
+            "white and waxy", "numb and hard", "numb and grey", "numb and gray", "grey and numb", "frostbitten"),
         "carbon-monoxide" to listOf("gas heater", "space heater", "kerosene heater", "paraffin heater", "generator", "charcoal",
+            "engine running", "furnace", "boiler",
             "camp stove", "gas stove", "co alarm", "co detector", "carbon monoxide alarm", "carbon monoxide detector"),
         // An explicit rehydration request or diarrheal symptoms must not become an invented
         // home-mixing recipe. The saved guide describes fluid loss and when to seek care.
         "dehydration" to listOf("diarrhea", "diarrhoea", "rehydration drink", "rehydration solution", "rehydration mixture", "rehydration mix"),
     )
+
+    /**
+     * The synonyms above that describe what is happening to a person ("blood is pouring", "can't speak", "bent the
+     * wrong way"). Told in these words the signs are a situation in themselves; a thing named ("carbon monoxide
+     * detector", "boil water") is not.
+     */
+    private val signPhrases = setOf(
+        "can't talk",
+        "cant talk",
+        "can't speak",
+        "cant speak",
+        "cannot speak",
+        "can't cough",
+        "cant cough",
+        "cannot cough",
+        "grabbing his throat",
+        "grabbing her throat",
+        "grabbing their throat",
+        "clutching his throat",
+        "clutching her throat",
+        "stuck in his throat",
+        "stuck in her throat",
+        "stuck in my throat",
+        "food stuck",
+        "food is stuck",
+        "piece of food",
+        "lots of blood",
+        "so much blood",
+        "blood everywhere",
+        "blood spurting",
+        "spurting blood",
+        "blood squirting",
+        "squirting blood",
+        "blood is pouring",
+        "blood pouring",
+        "pouring blood",
+        "gushing blood",
+        "blood gushing",
+        "blood soaking",
+        "soaking through",
+        "won't stop bleeding",
+        "wont stop bleeding",
+        "sliced off",
+        "chopped off",
+        "fingertip off",
+        "tip of his finger",
+        "tip of her finger",
+        "tip of my finger",
+        "deep cut",
+        "deep gash",
+        "caught fire",
+        "clothes on fire",
+        "red blister",
+        "skin is peeling",
+        "skin peeling",
+        "white and leathery",
+        "touched the oven",
+        "touched the stove",
+        "hot iron",
+        "chemical burn",
+        "electrical burn",
+        "burn mark",
+        "bent the wrong way",
+        "bone sticking out",
+        "bone poking out",
+        "sticking out of the skin",
+        "odd angle",
+        "can't move it",
+        "cant move it",
+        "cannot move it",
+        "can't move his arm",
+        "can't move her arm",
+        "can't move his leg",
+        "can't move her leg",
+        "swollen and purple",
+        "purple and swollen",
+        "slammed in the car door",
+        "slammed in the door",
+        "rolled my ankel",
+        "twisted my knee",
+        "twisted his knee",
+        "twisted her knee",
+        "hurt my ribs",
+        "ribs hurt",
+        "broken rib",
+        "cracked rib",
+        "broken ribs",
+        "hip really hurts",
+        "hurt her hip",
+        "hurt his hip",
+        "no idea where i am",
+        "don't know where i am",
+        "dont know where i am",
+        "wrong trail",
+        "lost the trail",
+        "separated from my group",
+        "separated from the group",
+        "hasn't come back",
+        "hasnt come back",
+        "has not come back",
+        "didn't come back",
+        "didnt come back",
+        "chest is tight",
+        "tight chest",
+        "chest feels tight",
+        "chest is heavy",
+        "heavy chest",
+        "chest feels heavy",
+        "chest hurts",
+        "chest pain",
+        "pain in his chest",
+        "pain in her chest",
+        "pain in my chest",
+        "chest burns",
+        "jaw aching",
+        "aching jaw",
+        "shaking all over",
+        "jerking all over",
+        "foaming at the mouth",
+        "having a fit",
+        "pale and clammy",
+        "cold and clammy",
+        "cold clammy",
+        "clammy skin",
+        "pale sweaty clammy",
+        "in shock",
+        "face is droopy",
+        "droopy face",
+        "face droopin",
+        "drooping on one side",
+        "droopin on one side",
+        "speech is slurred",
+        "words are jumbled",
+        "jumbled words",
+        "coming out jumbled",
+        "can't find his words",
+        "can't find her words",
+        "cant find his words",
+        "cant find her words",
+        "one side weak",
+        "one side is weak",
+        "weak on one side",
+        "arm keeps drifting",
+        "arm drifting",
+        "half my face",
+        "half his face",
+        "half her face",
+        "smile is crooked",
+        "crooked smile",
+        "worst headache",
+        "sudden numbness",
+        "empty pill bottle",
+        "took too many pills",
+        "took a lot of pills",
+        "swallowed a lot of pills",
+        "drank too much",
+        "alcohol poisoning",
+        "drank way too much",
+        "knocked out",
+        "knocked unconscious",
+        "fell on his head",
+        "fell on her head",
+        "landed on his head",
+        "landed on her head",
+        "no helmet",
+        "one pupil",
+        "same questions over and over",
+        "asking the same questions",
+        "was underwater",
+        "under water",
+        "face down in the water",
+        "face down in the pool",
+        "face down in the bath",
+        "face down",
+        "can't swim",
+        "cant swim",
+        "fell overboard",
+        "fell off the boat",
+        "car went into the river",
+        "car went into the water",
+        "car is sinking",
+        "its sinking",
+        "it's sinking",
+        "swept away",
+        "pulled him out of the water",
+        "pulled her out of the water",
+        "shivering uncontrollably",
+        "stopped shivering",
+        "cold to the touch",
+        "cold sea",
+        "soaked to the skin",
+        "speech is mumbled",
+        "cat bite",
+        "human bite",
+        "raccoon bit",
+        "fox bit",
+        "bat in the bedroom",
+        "bat in the room",
+        "ground is shaking",
+        "ground shaking",
+        "ground started shaking",
+        "building is shaking",
+        "house is shaking",
+        "water is coming up",
+        "water is rising",
+        "water rising",
+        "white and waxy",
+        "numb and hard",
+        "numb and grey",
+        "numb and gray",
+        "grey and numb",
+        "engine running"
+    ).map(::normalize).toSet()
 
     /**
      * Guides that a shared symptom must not pick on its own: a headache and dizziness near a gas
@@ -141,7 +395,8 @@ object EmergencyGuideMatch {
         "(?i)\\b(what (should|do|can|must) (i|we) do|what to do now|" +
             "how (do|should|can) (i|we) (do|perform|give|start|treat|stop|help|survive|get|find|keep|warm|cool|remove|clean|care for)|" +
             // Their own body: "two of my fingers are white, hard and numb".
-            "my (fingers?|toes?|hands?|feet|foot|legs?|arms?|skin|face|ears?|nose|eyes?|knees?|ankles?|wrists?|lips?)|" +
+            "my (fingers?|toes?|hands?|feet|foot|legs?|arms?|skin|face|ears?|nose|eyes?|knees?|ankles?|wrists?|lips?|" +
+            "neck|back|head|chest|belly|stomach|shoulders?|hips?|ribs?|throat|mouth|tongue|cheeks?|palms?|thumbs?|elbows?|shins?|calf|calves)|" +
             // A bystander describing a stranger, in the present: "a man has collapsed and is not breathing".
             "(a|an|the|this) (man|woman|person|child|kid|boy|girl|baby|hiker|driver|player|swimmer|runner) (has|is|was|just)|" +
             "(has|have|just) collapsed|(is|isn't|is not|are not|aren't) (not )?(breathing|responding|conscious)|" +
@@ -231,6 +486,32 @@ object EmergencyGuideMatch {
 
     fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? = rank(question, guides).firstOrNull()?.first
 
+    /** A guide whose steps would be wrong for this question, whatever its words share with it. */
+    private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
+        // A place's tap water is that place's travel advice, not water to treat.
+        "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question)
+        "burns" -> !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
+            stingOrBite.containsMatchIn(question) && !namedBurn.containsMatchIn(question))
+        // "A fish bone is stuck, I can breathe and talk but it hurts": the airway is open. The choking steps (back
+        // blows, abdominal thrusts) are for someone who cannot breathe, speak or cough.
+        "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
+            airwayOpen.containsMatchIn(question)
+        // Bleeding in pregnancy or from the vagina is not a wound to press on: the bleeding guides would say so.
+        // The severe bleeding guide (tourniquets, packing a wound) is not for a nosebleed or a small cut.
+        "severe-bleeding" -> pregnancyBleeding.containsMatchIn(question) || noseBleed.containsMatchIn(question) ||
+            minorBleeding.containsMatchIn(question)
+        "bleeding-control" -> pregnancyBleeding.containsMatchIn(question) || minorBleeding.containsMatchIn(question)
+        // "She gets panic attacks and it's exactly like her usual ones": the person has named it; other chest pain still counts.
+        "heart-attack" -> panic.containsMatchIn(question) && usualEpisode.containsMatchIn(question)
+        else -> false
+    }
+
+    private val noseBleed = Regex("(?i)\\b(?:nose ?bleed\\w*|nose (?:is |started |keeps |won'?t stop |wont stop )?bleed\\w*|bleeding (?:from|out of) (?:my|his|her|the) nose)\\b")
+    private val minorBleeding = Regex("(?i)\\b(?:bleeding (?:a little|a bit|slightly|only a little)|small cut|tiny cut|little cut|paper cut|minor cut|" +
+        "(?:bit|bitten) (?:my|his|her|their) (?:tongue|lip|cheek)|graze|scrape)\\b")
+    private val pregnancyBleeding = Regex("(?i)\\b(pregnan\\w*|weeks? along|miscarr\\w*|vagina\\w*|down there|period|labou?r|contractions?|" +
+        "gave birth|after (?:the )?birth|postpartum)\\b")
+
     // Quoting a reference about safety is different from asking for immediate help.
     // A personal situation always takes priority, including mixed research/help requests.
     private val sourceResearch = Regex(
@@ -289,6 +570,8 @@ object EmergencyGuideMatch {
     // the throat: abdominal thrusts are wrong there. Choking stays when anything points to the airway.
     private val airwayObject = Regex("(?i)\\b(chok\\w*|heimlich|stuck|swallow\\w*|food|eat\\w*|ate|meal|throat|airway|windpipe|" +
         "cough\\w*|gag\\w*|piece|candy|sweet|grape|nut|toy|coin|bone|button|marble)\\b")
+    private val airwayOpen = Regex("(?i)\\b(?:can|is able to|are able to|still) (?:still )?(?:breathe|breath|talk|speak)\\b|" +
+        "\\b(?:breathing|talking|speaking)(?: and (?:breathing|talking|speaking|swallowing))? (?:fine|ok|okay|normally|normal|alright|all right)\\b")
     private val otherBreathingCause = Regex("(?i)\\b(chest|heart|altitude|elevation|trek\\w*|everest|summit|mountain|asthma\\w*|inhaler|" +
         "smoke|fumes|panic\\w*|stairs)\\b")
     // "Is choking", "swallowed a nut": something in the airway, said outright. It stays anaphylaxis when the
@@ -334,7 +617,22 @@ object EmergencyGuideMatch {
      */
     private val notHappeningNow = Regex("(?i)\\b(?:yesterday|last (?:night|week|month|year|summer|winter|spring|autumn|fall|time)|" +
         "years? ago|(?:19|20)\\d{2}|(?:movie|film|documentary|song|novel|book|podcast|series|report|essay|article|show)s? (?:about|on|called)|" +
-        "(?:band|game) called|lightning (?:cable|charger|port|connector|adapter))\\b")
+        "(?:band|game) called|lightning (?:cable|charger|port|connector|adapter)|" +
+        // "Lived through a typhoon in the 50s", "my band is called Heart Attack": a decade, or a name.
+        "in the (?:19|20)?\\d0'?s|(?:is|was|are) (?:called|named))\\b")
+
+    private val bodyPart = Regex("(?i)\\b(hands?|fingers?|thumbs?|palms?|wrists?|arms?|forearms?|elbows?|legs?|knees?|feet|foot|toes?|face|cheeks?|" +
+        "lips?|mouth|tongue|eyes?|ears?|neck|chest|back|belly|stomach|skin|blisters?|scald\\w*|bleed\\w*|blood|pain\\w*|hurts?|cut|burned (?:my|his|her)|" +
+        "burnt (?:my|his|her)|choking|breath\\w*|unconscious|collaps\\w*|faint\\w*|vomit\\w*|swallow\\w*)\\b")
+
+    /** "Clean the burnt bottom of my pan", "baking times at high altitude", "who invented CPR": cooking, cleaning, trivia. */
+    private val kitchenOrHousework = Regex("(?i)\\b(?:bak(?:e|es|ed|ing)|recipes?|cakes?|bread|dough|cocktails?|who (?:invented|discovered|founded|created)|(?:clean|scrub|wash)\\w* (?:the |my |a )?(?:burnt|burned|scorched)|" +
+        "(?:burnt|burned|scorched)(?: \\w+){0,4} (?:pans?|pots?|trays?|ovens?|stoves?|hobs?|kettles?|toast|rice|food|bottom|smell)|" +
+        "(?:pans?|pots?|trays?|ovens?|stoves?|hobs?)(?: \\w+){0,2} (?:burnt|burned|scorched))\\b")
+
+    /** "When a film shows someone foaming at the mouth": signs on a screen or a page, not in the room. */
+    private val onScreen = Regex("(?i)\\b(?:movie|film|documentary|novel|book|series|tv|video|cartoon|game)s? (?:\\w+ ){0,2}" +
+        "(?:shows?|showed|showing|where|in which|depicts?)\\b")
 
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
 
@@ -352,6 +650,9 @@ object EmergencyGuideMatch {
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
         if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return emptyList()
+        if (onScreen.containsMatchIn(question) && !personalSituation.containsMatchIn(question)) return emptyList()
+        // A burn while cooking still names the body ("burned my hand on the pan"); housework and recipes do not.
+        if (kitchenOrHousework.containsMatchIn(question) && !bodyPart.containsMatchIn(question)) return emptyList()
         val dangerous = danger.containsMatchIn(question)
         // A single explanation question about a thing, with no one in it and nothing dangerous happening.
         // "How does a squeeze filter make river water safe? Does it stop viruses?" asks how a thing
@@ -361,6 +662,8 @@ object EmergencyGuideMatch {
         if (explanation.containsMatchIn(question) && !dangerBeyondSafety && !personalSituation.containsMatchIn(question) &&
             !someoneInvolved.containsMatchIn(question)) return emptyList()
         val heat = heatCollapse.containsMatchIn(question) && someoneFainted.containsMatchIn(question)
+        // Guides named by a description of signs in several words ("grabbing his throat", "bone sticking out").
+        val describedBySigns = HashSet<String>()
         val scored = guides.map { guide ->
             val terms = (guide.keywords + guide.title + synonyms[guide.id].orEmpty())
                 .map(::normalize).filter(String::isNotBlank).distinct()
@@ -373,6 +676,7 @@ object EmergencyGuideMatch {
                 if (heat && term in heatTerms) continue
                 val phrase = ' ' in term
                 if (phrase || term in strongWords || term in own) specific = true
+                if (phrase && term in signPhrases) describedBySigns += guide.id
                 score += when {
                     phrase -> term.split(' ').size + 1
                     term in strongWords -> 2
@@ -380,15 +684,7 @@ object EmergencyGuideMatch {
                     else -> 0
                 } + if (term in own && (' ' in term || term in strongWords || dangerous)) 1 else 0
             }
-            // An explicit ingestion needs the saved poison-contact guidance, not a
-            // generated treatment. The answer must disclose that this is a general guide.
-            if (guide.id == "safe-drinking-water" && tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question))
-                return@map Triple(guide, 0, false)
-            if (guide.id == "burns" && !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
-                    stingOrBite.containsMatchIn(question) && !namedBurn.containsMatchIn(question)))
-                return@map Triple(guide, 0, false)
-            if (guide.id == "choking" && !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question))
-                return@map Triple(guide, 0, false)
+            if (ruledOut(guide, question)) return@map Triple(guide, 0, false)
             if (guide.id == "poisoning" && (batteryIngestion.containsMatchIn(question) ||
                     wildIngestion.containsMatchIn(question) && poisonSign.containsMatchIn(question))) {
                 score += 4
@@ -436,7 +732,7 @@ object EmergencyGuideMatch {
                 else -> score
             }
         }.filter { it.second > 0 }
-        if (ranked.isEmpty()) return emptyList()
+        if (ranked.isEmpty()) return byGuideText(question, guides)
         // A stable sort keeps the first of equal guides first, as the bundled order intends.
         val order = ranked.sortedWith(
             compareByDescending<Pair<EmergencyGuide, Int>> { it.first.id == revive }.thenByDescending { it.second }.thenByDescending { if (it.first.urgent) 1 else 0 },
@@ -447,11 +743,134 @@ object EmergencyGuideMatch {
         // message, is the help; the research and explanation gates above have already run.
         val namedForSomeone = scored.any { (guide, score, specific) -> guide.id == order.first().first.id && specific && score > 0 } &&
             inTheSituation.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
+        // "Man at the next table is grabbing his throat and can't speak": the signs, told in the words people use for
+        // them, are the situation itself, with or without "I" or "my son". The research and explanation gates above
+        // have already run, and a story from another time does not count.
+        val toldAsSigns = order.first().first.id in describedBySigns && !notHappeningNow.containsMatchIn(question) &&
+            !panic.containsMatchIn(question)
         // "I ate shellfish and now I have hives and my throat feels tight": an allergic reaction told as it happens.
         val reacting = allergic && inTheSituation.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
         return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) ||
-            personalSituation.containsMatchIn(question) || namedForSomeone || reacting) order else emptyList()
+            personalSituation.containsMatchIn(question) || namedForSomeone || reacting || toldAsSigns) order else byGuideText(question, guides)
     }
+
+    /**
+     * People describe an emergency in their own words, far more ways than any list of keywords holds: "blood pumping out
+     * of his forearm", "clutching his chest, says it feels like someone sitting on him". The medical guides describe the
+     * same signs in their own text. When no keyword names a guide, a message that puts a person in the situation and
+     * describes a body sign or injury is ranked against the medical guides' full text (BM25), and the best guide is
+     * shown only when it clearly leads the next ([TEXT_LEAD]) and scores well on its own ([TEXT_FLOOR]). The research,
+     * explanation and on-screen gates have already run, and the per-guide exclusions ([ruledOut]) still apply.
+     * Disasters and outdoor hazards are named outright ("flood", "lightning") and stay with the keywords; only the guides
+     * for what heat, cold and water loss do to a body join the medical ones.
+     */
+    private fun byGuideText(question: String, guides: List<EmergencyGuide>): List<Pair<EmergencyGuide, Int>> {
+        if (!aPerson.containsMatchIn(question) || !bodySign.containsMatchIn(question) || notFirstAid.containsMatchIn(question) ||
+            notHappeningNow.containsMatchIn(question)) return emptyList()
+        // "She gets panic attacks and this is exactly like her usual ones": no bundled guide is for panic, and the text
+        // ranking must not overrule the person with a heart attack guide.
+        if (panic.containsMatchIn(question)) return emptyList()
+        val medical = guides.filter { guide ->
+            (guide.category == "medical" || guide.id in bodyConditions) && !ruledOut(guide, question) &&
+                // A guide's required context still holds: numb fingers at a keyboard are not frostbite.
+                requiredContext[guide.id]?.let { it.containsMatchIn(question) || guide.id == "frostbite" && freezingTemperature(question) } != false &&
+                bodyConditionContext[guide.id]?.containsMatchIn(question) != false &&
+                // A bite or sting guide needs the bite or sting: facial swelling after a pill is not a snakebite.
+                biteContext[guide.id]?.containsMatchIn(question) != false &&
+                // The allergy guide needs an allergy in the message: a stuck fish bone also makes swallowing hurt.
+                (guide.id != "anaphylaxis" || allergyTrigger.containsMatchIn(question) || allergySign.containsMatchIn(question))
+        }
+        if (medical.size < 2) return emptyList()
+        val index = guideIndex(guides)
+        val query = textTerms(question).distinct()
+        val scored = medical.map { guide -> guide to index.score(guide.id, query) }.sortedByDescending { it.second }
+        val (best, top) = scored[0]
+        return if (top >= TEXT_FLOOR && top >= TEXT_LEAD * scored[1].second) listOf(best to 1) else emptyList()
+    }
+
+    /** What heat, cold and water loss do to a body, beside the medical guides; weather and terrain guides stay with keywords. */
+    private val bodyConditions = setOf("heat-illness", "hypothermia", "frostbite", "dehydration", "sunburn")
+    private val usualEpisode = Regex("(?i)\\b(?:usual|always|like (?:her|his|my|their|the) (?:usual|other|last|normal)|same as (?:always|before|usual|last time)|" +
+        "exactly like|(?:her|his|my|their) normal)\\b")
+    private val panic = Regex("(?i)\\b(?:panic\\w*|anxiety attacks?)\\b")
+    private val biteContext = mapOf(
+        "snakebite" to Regex("(?i)\\b(snakes?|adder|viper|cobra|rattle\\w*|copperhead|cottonmouth|mamba|krait)\\b"),
+        "spider-bites" to Regex("(?i)\\b(spiders?|black widow|recluse|redback|funnel[- ]web)\\b"),
+        "tick-bites" to Regex("(?i)\\b(ticks?|lyme)\\b"),
+        "animal-bites" to Regex("(?i)\\b(bit|bite|bitten|scratch\\w*|rabi\\w*)\\b"),
+        "insect-stings" to Regex("(?i)\\b(sting\\w*|stung|bees?|wasps?|hornets?|yellow ?jackets?|scorpions?|fire ants?|ants?)\\b"),
+        // Something in the airway, not a bug latched on the skin.
+        "choking" to Regex("(?i)\\b(chok\\w*|throat|swallow\\w*|food|eat\\w*|ate|piece|bite of|mouthful|went down wrong|wrong pipe|windpipe|airway|" +
+            "coin|marble|grape|nut|candy|sweet|toy|bone|button|bead|balloon|can'?t (?:breathe|breath|cough|talk|speak))\\b"),
+        // A burn's cause, not a fever that feels "burning hot".
+        "burns" to Regex("(?i)\\b(blister\\w*|scald\\w*|caught (?:fire|on)|on fire|flames?|singed|charred|boiling|steam|oil|grease|stove|oven|iron|" +
+            "kettle|candles?|grill|bbq|barbecue|chemical|acid|electric\\w*|welde?r?\\w*|sparks?|fireworks?|lighter|exhaust|radiator|" +
+            "burn(?:ed|t)? (?:my|his|her|their|on|from|by|with)|burn (?:mark|on)|burnt|burned)\\b"),
+    )
+    /** What each of them needs in the message besides a body sign: the sun, heat, cold or wet, fluid lost. */
+    private val bodyConditionContext = mapOf(
+        "sunburn" to Regex("(?i)\\b(sun\\w*|beach|uv|tann\\w*|outside all day|pool|lake|sea|ski\\w*)\\b"),
+        "heat-illness" to Regex("(?i)\\b(heat\\w*|hot|sun\\w*|summer|desert|temperature|degrees?|°|humid\\w*|sauna|marathon|march\\w*)\\b"),
+        "hypothermia" to Regex("(?i)\\b(cold\\w*|freez\\w*|froze\\w*|icy|ice|snow\\w*|wet|soaked|rain\\w*|water|winter|wind\\w*|shiver\\w*)\\b"),
+        "dehydration" to Regex("(?i)\\b(drink\\w*|drank|fluids?|water|diarrh\\w*|vomit\\w*|throwing up|pee\\w*|urin\\w*|wee|thirst\\w*|dry mouth|nappies|diapers?)\\b"),
+    )
+
+    private const val TEXT_FLOOR = 8.0
+    private const val TEXT_LEAD = 1.5
+
+    /** Someone in the message: the writer, a relative, a bystander. */
+    private val aPerson = Regex("(?i)\\b(i|i'm|im|we|we're|my|our|he|she|his|her|hes|shes|him|someone|somebody|toddler|baby|kid|kids|child|son|" +
+        "daughter|man|woman|guy|lady|boy|girl|friend|mate|wife|husband|mum|mom|dad|grandma|grandpa|uncle|aunt|sister|brother|teenager|student|" +
+        "coworker|neighbou?r|mother|father|partner|player|hiker|driver|passenger|patient|stranger)\\b")
+    /** A sign on the body or an injury, as people describe them. */
+    private val bodySign = Regex("(?i)\\b(pain\\w*|hurt\\w*|ache\\w*|aching|bleed\\w*|blood\\w*|swell\\w*|swollen|puffy|breath\\w*|cough\\w*|chok\\w*|" +
+        "vomit\\w*|puk\\w*|threw up|throwing up|dizz\\w*|faint\\w*|collaps\\w*|unconscious|passed out|wont wake|won't wake|can'?t wake|drows\\w*|" +
+        "confus\\w*|slurr\\w*|numb\\w*|tingl\\w*|burn\\w*|blister\\w*|scald\\w*|bit|bite|bitten|sting\\w*|stung|broke\\w*|broken|fractur\\w*|" +
+        "sprain\\w*|twist\\w*|bent|lump|bump|bruis\\w*|fell|fall|fallen|crash\\w*|hit|cut|gash|wound\\w*|stab\\w*|seiz\\w*|fit|shak\\w*|" +
+        "twitch\\w*|rigid|stiff|jerk\\w*|fever\\w*|chills|sweat\\w*|clammy|pale|grey|gray|blue|purple|white|waxy|rash|hives|itch\\w*|poison\\w*|" +
+        "swallow\\w*|overdos\\w*|pills?|pulse|heart|chest|can'?t (?:move|feel|see|talk|speak|walk|stand|lift)|" +
+        "cannot (?:move|feel|see|talk|speak|walk|stand)|not moving|not breathing|limp|quiet)\\b")
+    /** Research, trivia, shopping and planning: words that share a guide's vocabulary without anyone in danger. */
+    private val notFirstAid = Regex("(?i)\\b(who invented|history of|why do|why does|how does|what is a|what are|best brand|which brand|buy|kit|" +
+        "movie|film|book|recommend|price|cost|statistics|study|studies|research|invented|famous|documentary|trivia)\\b")
+
+    private class GuideIndex(val docs: Map<String, Map<String, Int>>, val lengths: Map<String, Int>, val df: Map<String, Int>, val avg: Double) {
+        fun score(id: String, query: List<String>): Double {
+            val counts = docs[id] ?: return 0.0
+            val length = lengths.getValue(id)
+            return query.sumOf { term ->
+                val tf = counts[term] ?: return@sumOf 0.0
+                val n = df.getValue(term)
+                val idf = kotlin.math.ln(1 + (docs.size - n + 0.5) / (n + 0.5))
+                idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * length / avg))
+            }
+        }
+    }
+
+    @Volatile private var indexed: Pair<List<EmergencyGuide>, GuideIndex>? = null
+
+    private fun guideIndex(guides: List<EmergencyGuide>): GuideIndex {
+        indexed?.let { (key, index) -> if (key === guides) return index }
+        val docs = guides.associate { guide ->
+            guide.id to textTerms(listOf(guide.title, guide.keywords.joinToString(" "), guide.plainText()).joinToString(" "))
+                .groupingBy { it }.eachCount()
+        }
+        val lengths = docs.mapValues { (_, counts) -> counts.values.sum() }
+        val df = HashMap<String, Int>()
+        docs.values.forEach { counts -> counts.keys.forEach { df[it] = (df[it] ?: 0) + 1 } }
+        return GuideIndex(docs, lengths, df, lengths.values.average().coerceAtLeast(1.0)).also { indexed = guides to it }
+    }
+
+    private val textStopwords = ("a an the and or but if of to in on at for with from by is are was were be been being it its this that these " +
+        "those i me my we our you your he him his she her they them their what how do does did can could should would will just now not no so " +
+        "very really then than there here as up down out over into about after before when where who which while because get got go going").split(' ').toSet()
+
+    /** Lower-case words of three letters or more, without common words, with plain suffixes cut ("swelling" -> "swell"). */
+    private fun textTerms(text: String): List<String> = Regex("[a-z]+").findAll(text.lowercase(Locale.ROOT)).map { it.value }
+        .filter { it.length > 2 && it !in textStopwords }
+        .map { word -> listOf("ing", "ed", "es", "s", "ly").firstOrNull { word.length > it.length + 3 && word.endsWith(it) }
+            ?.let { word.dropLast(it.length) } ?: word }
+        .toList()
 
     /** A guide this short, or with one section, leaves the model little to work from. */
     private const val SHORT_GUIDE_CHARS = 600

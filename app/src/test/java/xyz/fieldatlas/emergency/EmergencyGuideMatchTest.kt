@@ -714,4 +714,48 @@ class EmergencyGuideMatchTest {
         assertEquals("anaphylaxis", match("I ate shellfish and now I have hives and my throat feels tight"))
         assertEquals("anaphylaxis", match("we ate peanuts and now I have hives and my throat is closing"))
     }
+
+    @Test fun signsTypedTheWayPeopleSeeThemFindTheirGuide() {
+        assertEquals("severe-bleeding", match("the knife slipped and blood is pouring out of his hand"))
+        assertEquals("choking", match("old man at the cafe is clutching his throat and cant cough"))
+        assertEquals("stroke", match("her face is droopy on one side and the words are coming out jumbled"))
+        assertEquals("fractures-sprains", match("kid fell off the climbing frame and his forearm is bent the wrong way"))
+        assertEquals("head-injury", match("goalkeeper got knocked out for a moment and keeps asking the same questions"))
+        assertEquals("heart-attack", match("dad says his chest is tight and heavy, he looks grey"))
+        assertEquals("seizures", match("guy on the platform is jerking all over and foaming at the mouth"))
+    }
+
+    @Test fun anOpenAirwayIsNotChokingAndResearchStaysResearch() {
+        // Someone who can breathe and talk needs to keep coughing and see a doctor, not back blows.
+        assertEquals(null, match("a fish bone is stuck in my throat, i can breathe and talk but swallowing hurts"))
+        assertEquals(null, match("who invented the tourniquet"))
+        assertEquals(null, match("a bit of apple skin feels stuck in my throat, im breathing and talking fine"))
+        // Bleeding in pregnancy is not a wound to press on.
+        assertEquals(null, match("im 20 weeks pregnant and suddenly bleeding heavily"))
+        // "Swallowed it the wrong way" is about the airway, not a bent bone.
+        assertNotEquals("fractures-sprains", match("baby swallowed a bead the wrong way and cant breath"))
+        assertEquals(null, match("what does it mean when a film shows someone foaming at the mouth"))
+    }
+
+    @Test fun aNameADecadeOrHouseworkIsNotAnEmergency() {
+        assertEquals(null, match("my grandad got through a big earthquake in the 60s, which one was it"))
+        assertEquals(null, match("our band is called cardiac arrest, write us a bio"))
+        assertEquals(null, match("how do i get the burnt bits off my roasting pan"))
+        assertEquals(null, match("who invented the heimlich manoeuvre"))
+    }
+
+    @Test fun aNosebleedOrASmallCutIsNotSevereBleedingAndAUsualPanicAttackIsNotAHeartAttack() {
+        assertNotEquals("severe-bleeding", match("my nose started bleeding out of nowhere, been 10 minutes"))
+        assertEquals(null, match("cut my finger on paper, bleeding a little"))
+        assertNotEquals("heart-attack", match("she has panic attacks and this one is exactly like her usual ones, chest hurts and fast breathing"))
+        // Chest pain without that is still the heart attack guide.
+        assertEquals("heart-attack", match("my dad says his chest is tight and heavy, he looks grey"))
+    }
+
+    @Test fun guideTextFindsSignsNoKeywordNames() {
+        assertEquals("heart-attack", match("man at the bus stop clutching his chest, sweating and grey, says it feels like a weight on him"))
+        assertEquals("burns", match("hot fat splashed on my daughters arm, it is red and blistering"))
+        // A bite guide needs the bite: swelling after a tablet is not a snakebite.
+        assertNotEquals("snakebite", match("took a painkiller and now my lips are swelling and my throat feels tight"))
+    }
 }
