@@ -172,7 +172,7 @@ class ModernUiTest {
         capture("source-filename-light")
     }
 
-    @Test fun quoteAndInlineCitationsKeepTheirSourceIndicesAndLargeTargets() {
+    @Test fun quoteAndInlineCitationsKeepTheirSourceIndicesAndStayInTheLine() {
         val clicked = mutableListOf<Int>()
         compose.setContent { FieldAtlasTheme(darkTheme = true) {
             Box(Modifier.width(320.dp)) {
@@ -183,8 +183,11 @@ class ModernUiTest {
         val first = compose.onNodeWithContentDescription("Open source 1")
         val bounds = first.fetchSemanticsNode().boundsInRoot
         val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
-        assertTrue(bounds.width >= 48 * density - 1)
-        assertTrue(bounds.height >= 48 * density - 1)
+        // A mark inside a sentence keeps to the line it is on (WCAG 2.5.8's inline exception); the quote's source
+        // row below keeps its full-size target.
+        assertTrue(bounds.height <= 24 * density)
+        val quoteSource = compose.onNodeWithText("Pump manual.txt").fetchSemanticsNode().boundsInRoot
+        assertTrue(quoteSource.height >= 20 * density)
         first.performClick()
         compose.onNodeWithText("Pump manual.txt").performClick()
         compose.runOnIdle { assertEquals(listOf(0, 1), clicked) }

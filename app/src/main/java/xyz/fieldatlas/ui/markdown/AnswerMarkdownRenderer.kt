@@ -222,13 +222,14 @@ private fun InlineBlock(
     modifier: Modifier = Modifier,
 ) {
     val text = annotatedText(content, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.primary, sourceCount)
-    val citationTarget = with(LocalDensity.current) { 48.dp.toSp() }
+    // A citation is a small raised number beside its claim, not a button inside the line: a 48dp box there made every
+    // line with one taller and left gaps. Targets inside a sentence are the size of the text (WCAG 2.5.8's inline
+    // exception); each source also has a full-size card under the answer.
     val inlineCitations = content.citations().filter { it.number in 1..sourceCount }.distinctBy { it.number }
         .associate { citation ->
-            // The visible badge is compact, but its actual (non-overlapping) target is 48dp.
             "citation:${citation.number}" to InlineTextContent(
-                Placeholder(citationTarget, citationTarget, PlaceholderVerticalAlign.TextCenter),
-            ) { CitationChip(citation.number, onCitation) }
+                Placeholder((citation.number.toString().length * 6.5f + 12f).sp, 16.sp, PlaceholderVerticalAlign.TextTop),
+            ) { CitationMark(citation.number, onCitation) }
         }
     Column(modifier) {
         if (text.isNotBlank()) {
@@ -305,19 +306,22 @@ private fun QuoteSourceFooter(numbers: List<Int>, onCitation: (Int) -> Unit, sou
 }
 
 @Composable
-private fun CitationChip(number: Int, onCitation: (Int) -> Unit) {
+private fun CitationMark(number: Int, onCitation: (Int) -> Unit) {
     Box(Modifier.fillMaxSize().clickable(onClickLabel = "Open source $number") { onCitation(number - 1) }
-        .semantics { contentDescription = "Open source $number" }, contentAlignment = Alignment.Center) {
+        .semantics { contentDescription = "Open source $number" }, contentAlignment = Alignment.CenterEnd) {
         Surface(
-            modifier = Modifier.size(width = 36.dp, height = 30.dp),
+            // A little air before the mark, none after: it reads as part of the word it follows.
+            modifier = Modifier.padding(start = 3.dp).fillMaxSize(),
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            shape = RoundedCornerShape(9.dp),
+            shape = RoundedCornerShape(5.dp),
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Text(
-                    text = "[$number]",
+                    text = "$number",
                     style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
+                        lineHeight = 12.sp,
                         fontWeight = FontWeight.Bold,
                         fontFeatureSettings = "tnum",
                     ),
@@ -367,7 +371,8 @@ internal fun annotatedText(content: List<MarkdownInline>, codeBackground: Color,
                     ),
                 ) { inline.label.forEach(::appendInline) }
                 is MarkdownInline.Citation -> if (inline.number in 1..sourceCount) {
-                    appendInlineContent("citation:${inline.number}", "[${inline.number}]")
+                    // The word joiner keeps the mark on its word's line: "Middle Ages." never ends a line without it.
+                    appendInlineContent("citation:${inline.number}", "\u2060[${inline.number}]")
                 }
             }
         }
