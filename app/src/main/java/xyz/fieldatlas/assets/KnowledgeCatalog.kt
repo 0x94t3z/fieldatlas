@@ -61,3 +61,37 @@ fun KnowledgeCatalogEntry.downloadGrowthBytes(savedBytes: Long = 0): Long =
 
 fun KnowledgeCatalogEntry.downloadFreeBytes(savedBytes: Long = 0): Long =
     Math.addExact(downloadGrowthBytes(savedBytes), 512_000_000L)
+
+/**
+ * Orders two editions of one collection; null when nothing says which is later. The numbers decide first
+ * ("2026.11.01" after "2026.10.12"). With equal numbers, a pre-release ("2026.10.12-native-compressed-preview")
+ * comes before the plain edition, and a rebuild of the same data ("2026.09.1-leviathan", the same places with a
+ * new search index) comes after it: only words that mean "not final yet" make a suffix earlier. Two different
+ * rebuilds, or two different pre-releases, of the same numbers are not ordered.
+ */
+fun compareEditions(left: String, right: String): Int? {
+    val edition = Regex("([0-9]+(?:\\.[0-9]+)*)(?:[-+_](.*))?")
+    val l = edition.matchEntire(left) ?: return null
+    val r = edition.matchEntire(right) ?: return null
+    val a = l.groupValues[1].split('.').map { it.toBigInteger() }
+    val b = r.groupValues[1].split('.').map { it.toBigInteger() }
+    for (index in 0 until maxOf(a.size, b.size)) {
+        val difference = (a.getOrNull(index) ?: java.math.BigInteger.ZERO)
+            .compareTo(b.getOrNull(index) ?: java.math.BigInteger.ZERO)
+        if (difference != 0) return difference
+    }
+    fun rank(suffix: String) = when {
+        suffix.isEmpty() -> 1
+        PRE_RELEASE.containsMatchIn(suffix) -> 0
+        else -> 2
+    }
+    val (leftSuffix, rightSuffix) = l.groupValues[2] to r.groupValues[2]
+    val difference = rank(leftSuffix).compareTo(rank(rightSuffix))
+    return when {
+        difference != 0 -> difference
+        leftSuffix == rightSuffix -> 0
+        else -> null
+    }
+}
+
+private val PRE_RELEASE = Regex("(?i)(^|[-._])(preview|alpha|beta|rc[0-9]*|pre|dev|draft)([-._]|$)")

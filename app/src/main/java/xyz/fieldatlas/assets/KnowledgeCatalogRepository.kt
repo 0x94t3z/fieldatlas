@@ -117,7 +117,7 @@ class KnowledgeCatalogRepository(
             val groups = entries.values.groupBy { it.id }
             val editions = entries.values.filter { pack ->
                 groups.getValue(pack.id).none { other ->
-                    compareNumericEditions(other.version, pack.version)?.let { it > 0 } == true
+                    compareEditions(other.version, pack.version)?.let { it > 0 } == true
                 }
             }
             val replacedIds = editions.flatMap { it.replaces }.toSet()
@@ -129,31 +129,6 @@ class KnowledgeCatalogRepository(
             val result = editions.filterNot { it.id in replacedIds }
             require(result.size in 1..500) { "Invalid merged catalog entry count" }
             return result
-        }
-
-        /**
-         * Orders editions by their numbers ("2026.11.01" after "2026.10.12"). A suffix marks a pre-release
-         * of those numbers ("2026.10.12-native-compressed-preview" comes before "2026.10.12"), so a later
-         * numbered edition supersedes a preview. Versions without a leading number are not ordered.
-         */
-        private fun compareNumericEditions(left: String, right: String): Int? {
-            val edition = Regex("([0-9]+(?:\\.[0-9]+)*)(?:[-+_].*)?")
-            val l = edition.matchEntire(left) ?: return null
-            val r = edition.matchEntire(right) ?: return null
-            val a = l.groupValues[1].split('.').map { it.toBigInteger() }
-            val b = r.groupValues[1].split('.').map { it.toBigInteger() }
-            for (index in 0 until maxOf(a.size, b.size)) {
-                val difference = (a.getOrNull(index) ?: java.math.BigInteger.ZERO)
-                    .compareTo(b.getOrNull(index) ?: java.math.BigInteger.ZERO)
-                if (difference != 0) return difference
-            }
-            val leftSuffixed = left.length > l.groupValues[1].length
-            val rightSuffixed = right.length > r.groupValues[1].length
-            return when {
-                leftSuffixed == rightSuffixed -> if (leftSuffixed) null else 0
-                leftSuffixed -> -1
-                else -> 1
-            }
         }
 
         private fun parse(bytes: ByteArray): KnowledgeCatalog {

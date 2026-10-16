@@ -135,10 +135,11 @@ internal fun rowActions(downloads: AppDownloads, item: DownloadItem, onGet: () -
 internal data class RowChip(val text: String, val positive: Boolean = false)
 
 /**
- * One downloadable thing (a model, a collection, the voice): its tile and title, a line that always says where it
- * stands, and one control at the right edge that changes face with the state: a size pill to get it, a ring to
- * pause it, play to resume, a clock while it waits its turn, Wi-Fi while it waits for Wi-Fi, a shield while the
- * file is checked, retry after a failure, and a tick once it is on the phone.
+ * One downloadable thing (a model, a collection, the voice), as a row of a [DownloadGroup]: its tile and title, a line
+ * that always says where it stands, and one plain icon at the right edge that changes with the state: download to
+ * get it, a ring to pause it, play to resume, a clock while it waits its turn, Wi-Fi while it waits for Wi-Fi, a
+ * shield while the file is checked, retry after a failure, and a tick once it is on the phone. The whole row opens
+ * the download (or [onClick]); what an item brings is said in words under its title, not in badges.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -167,23 +168,25 @@ internal fun DownloadRow(
         RowState.Done -> "On this phone"
     }
     val allChips = chips + listOfNotNull((state as? RowState.Queued)?.let { RowChip(inLine(it.position)) })
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-        Column(Modifier.then(if (onClick != null) Modifier.clickable(onClickLabel = "More about $title", onClick = onClick) else Modifier)) {
-            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
+    val open = onClick ?: actions.get.takeIf { state == RowState.Get(0) }
+    Column(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth()
+                .then(if (open != null) Modifier.clickable(onClickLabel = if (onClick != null) "More about $title" else "$getLabel, $title", onClick = open) else Modifier)
+                .padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                FieldAtlasIconTile(icon, size = 40.dp, tone = if (state is RowState.Failed) TileTone.Clay else tone)
+                FieldAtlasIconTile(icon, size = 36.dp, iconSize = 20.dp, tone = if (state is RowState.Failed) TileTone.Clay else tone)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                    Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (allChips.isNotEmpty()) FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)) { allChips.forEach { MiniChip(it) } }
+                    if (allChips.isNotEmpty()) Text(allChips.joinToString(" · ") { it.text }, style = MaterialTheme.typography.bodySmall,
+                        color = if (allChips.any { it.positive }) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 DownloadControl(state, getLabel, title, actions)
             }
             val foot = state is RowState.Running || state is RowState.Waiting || state is RowState.Failed || state is RowState.Queued ||
                 (state is RowState.Get && state.saved > 0 && actions.discardSaved != null) || note != null || extra != null
-            if (foot) Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            if (foot) Column(Modifier.fillMaxWidth().padding(start = 64.dp, end = 14.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 when (state) {
                     is RowState.Running -> {
@@ -202,9 +205,22 @@ internal fun DownloadRow(
                     is RowState.Get -> if (state.saved > 0) actions.discardSaved?.let { FootActions(listOf("Discard saved part" to it)) }
                     else -> Unit
                 }
-                note?.let { FootNote(it) }
+                note?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 extra?.invoke(this)
             }
+    }
+}
+
+/** Download rows in one card, divided like a settings list, so a page of them reads as a list and not a stack of cards. */
+@Composable
+internal fun DownloadGroup(rows: List<@Composable () -> Unit>) {
+    if (rows.isEmpty()) return
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+        rows.forEachIndexed { index, row ->
+            if (index > 0) androidx.compose.material3.HorizontalDivider(Modifier.padding(start = 64.dp),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+            row()
         }
     }
 }
@@ -223,16 +239,6 @@ private fun FootActions(actions: List<Pair<String, () -> Unit>>) {
     }
 }
 
-@Composable
-private fun MiniChip(chip: RowChip) {
-    val colors = MaterialTheme.colorScheme
-    Box(Modifier.clip(RoundedCornerShape(12.dp)).background(if (chip.positive) colors.primaryContainer else colors.surfaceVariant)
-        .padding(horizontal = 9.dp, vertical = 3.dp)) {
-        Text(chip.text, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-            color = if (chip.positive) colors.onPrimaryContainer else colors.onSurfaceVariant)
-    }
-}
-
 /** The right edge of a download row. Its touch area is always 48dp, whatever it draws. */
 @Composable
 internal fun DownloadControl(state: RowState, getLabel: String, title: String, actions: RowActions) {
@@ -242,14 +248,10 @@ internal fun DownloadControl(state: RowState, getLabel: String, title: String, a
             RingButton("Resume $title", 0f, colors.outline, colors.surfaceVariant, actions.resume) {
                 Icon(Icons.Filled.PlayArrow, null, Modifier.size(20.dp), tint = colors.primary)
             }
-        } else Box(Modifier.heightIn(min = 48.dp).clip(CircleShape)
+        } else Box(Modifier.size(48.dp).clip(CircleShape)
             .clickable(role = Role.Button, onClickLabel = "$getLabel, $title", onClick = actions.get)
             .semantics { contentDescription = "$getLabel, $title" }, contentAlignment = Alignment.Center) {
-            Row(Modifier.height(36.dp).clip(CircleShape).background(colors.primaryContainer).padding(start = 11.dp, end = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Icon(FieldAtlasIcons.Download, null, Modifier.size(17.dp), tint = colors.onPrimaryContainer)
-                Text(getLabel, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), color = colors.onPrimaryContainer)
-            }
+            Icon(FieldAtlasIcons.Download, null, Modifier.size(22.dp), tint = colors.primary)
         }
         is RowState.Running -> RingButton("Pause $title", state.fraction, colors.primary, colors.primaryContainer, actions.pause) {
             Icon(Icons.Filled.Pause, null, Modifier.size(20.dp), tint = colors.primary)
@@ -487,22 +489,22 @@ internal fun DownloadsSheet(
         }
         status.active?.let { item ->
             SectionHead("Now")
-            SheetRow(downloads, item, status)
+            DownloadGroup(listOf { SheetRow(downloads, item, status) })
         }
         if (status.queued.isNotEmpty()) {
             SectionHead("Next")
-            status.queued.forEach { SheetRow(downloads, it, status) }
+            DownloadGroup(status.queued.map { item -> @Composable { SheetRow(downloads, item, status) } })
         }
         if (status.failures.isNotEmpty()) {
             SectionHead("Needs you")
-            status.failures.values.forEach { failure ->
+            DownloadGroup(status.failures.values.map { failure -> @Composable {
                 val space = "space" in failure.message.lowercase() && oldEditions.isNotEmpty()
                 SheetRow(downloads, failure.item, status, extra = if (!space) null else ({
                     TextButton(onClick = onRemoveOldEditions, shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp)) {
                         Text("Remove old editions · free ${formatAssetBytes(oldEditions.sumOf { it.installedBytes })}")
                     }
                 }))
-            }
+            } })
         }
     }
 }

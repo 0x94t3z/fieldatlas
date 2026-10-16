@@ -89,13 +89,11 @@ internal fun VoiceDiscoverRow(readAloud: ReadAloud, onGet: () -> Unit, onDetails
     val downloads = LocalDownloads.current ?: return
     val status by downloads.state.collectAsState()
     val voice by readAloud.natural.state.collectAsState()
-    val reading by readAloud.state.collectAsState()
     DownloadRow(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, DownloadItem.Voice.title,
         "English · female voice · reads answers offline",
         rowState(DownloadItem.Voice, status, installed = voice == NaturalVoice.State.Ready, saved = readAloud.natural.savedBytes()),
-        voiceSize, rowActions(downloads, DownloadItem.Voice, onGet), onClick = onDetails) {
-        SampleLine(readAloud, reading)
-    }
+        voiceSize, rowActions(downloads, DownloadItem.Voice, onGet), onClick = onDetails,
+        note = "Tap to hear a sample first.".takeIf { voice != NaturalVoice.State.Ready && status.active?.key != DownloadItem.Voice.key })
 }
 
 /** On this phone: the voice is in use for answers (or can be), plays a sample, and can be removed. */
@@ -216,31 +214,6 @@ private fun Point(good: Boolean, text: String) {
         Icon(if (good) FieldAtlasIcons.Check else FieldAtlasIcons.Info, null, Modifier.size(18.dp),
             tint = if (good) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text, style = MaterialTheme.typography.bodyMedium)
-    }
-}
-
-@Composable
-private fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
-    val playing = reading?.key == ReadAloud.SAMPLE_KEY
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        SampleButton(readAloud, reading)
-        SampleWave(playing && reading?.paused != true, Modifier.width(120.dp))
-        Text(if (playing) seconds(reading?.positionMs ?: 0) else "Sample", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** A round play button for the natural voice's sample; it stops the sample while it plays. */
-@Composable
-private fun SampleButton(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
-    val playing = reading?.key == ReadAloud.SAMPLE_KEY
-    val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
-        if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
-    }.semantics { contentDescription = if (playing) "Stop the sample" else "Play a sample of the natural voice" }, contentAlignment = Alignment.Center) {
-        Box(Modifier.size(36.dp).clip(CircleShape).border(1.dp, colors.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, Modifier.size(17.dp), tint = colors.primary)
-        }
     }
 }
 

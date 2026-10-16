@@ -152,8 +152,13 @@ fun LibraryScreen(
     val available = availableKnowledge
         .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
         .sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
-    // A collection whose older edition is on the phone is an update, not a new download.
-    val (updates, fresh) = available.partition { candidate -> knowledge.any { it.id == candidate.id } }
+    // A collection already on the phone is offered again only as an update, and only when the catalog's edition is
+    // later than every edition installed; an older or unordered edition of it is not offered at all.
+    val fresh = available.filter { candidate -> knowledge.none { it.id == candidate.id } }
+    val updates = available.filter { candidate ->
+        knowledge.any { it.id == candidate.id } &&
+            knowledge.filter { it.id == candidate.id }.all { installed -> (xyz.fieldatlas.assets.compareEditions(candidate.version, installed.version) ?: 0) > 0 }
+    }
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()
@@ -259,16 +264,17 @@ fun LibraryScreen(
             }
             if (discovering && modelDownloads.isNotEmpty()) {
             item { SectionLabel("Answer models") }
-            items(modelDownloads.size, key = { "model-offer:${modelDownloads[it].id}:${modelDownloads[it].version}" }) { index ->
-                val offer = modelDownloads[index]
-                val item = DownloadItem.Model(offer)
-                if (downloads != null && queue != null) DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
-                    "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
-                    rowState(item, queue, installed = false, saved = resumableModelBytes(offer)), formatAssetBytes(offer.bytes),
-                    rowActions(downloads, item, onGet = { confirming = item },
-                        discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }),
-                    note = offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
-                        " For phones with ${offer.minimumMemoryLabel} of memory or more.")
+            if (downloads != null && queue != null) item(key = "model-offers") {
+                DownloadGroup(modelDownloads.map { offer -> @Composable {
+                    val item = DownloadItem.Model(offer)
+                    DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
+                        "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
+                        rowState(item, queue, installed = false, saved = resumableModelBytes(offer)), formatAssetBytes(offer.bytes),
+                        rowActions(downloads, item, onGet = { confirming = item },
+                            discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }),
+                        note = offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
+                            " For phones with ${offer.minimumMemoryLabel} of memory or more.")
+                } })
             }
             }
             if (!discovering) {
@@ -334,28 +340,30 @@ fun LibraryScreen(
             }
             if (updates.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Updates") }
-                items(updates.size, key = { "update:${updates[it].id}:${updates[it].version}" }) { index ->
-                    val candidate = updates[index]
-                    KnowledgeRow(candidate, knowledge.filter { it.id == candidate.id }.maxByOrNull { it.installedBytes }, downloads, queue,
-                        resumableKnowledgeBytes(candidate), onGet = { confirming = it },
-                        onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
+                item(key = "updates") {
+                    DownloadGroup(updates.map { candidate -> @Composable {
+                        KnowledgeRow(candidate, knowledge.filter { it.id == candidate.id }.maxByOrNull { it.installedBytes }, downloads, queue,
+                            resumableKnowledgeBytes(candidate), onGet = { confirming = it },
+                            onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
+                    } })
                 }
             }
             if (readAloud != null && downloads != null && naturalVoice != xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
                 item { SectionLabel("Voice") }
-                item(key = "voice-offer") { VoiceDiscoverRow(readAloud, onGet = { voiceConfirm = true }, onDetails = { voiceDetails = true }) }
+                item(key = "voice-offer") { DownloadGroup(listOf { VoiceDiscoverRow(readAloud, onGet = { voiceConfirm = true }, onDetails = { voiceDetails = true }) }) }
             }
             if (fresh.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Available to download") }
-                items(fresh.size, key = { "available:${fresh[it].id}:${fresh[it].version}" }) { index ->
-                    val candidate = fresh[index]
-                    val category = knowledgeCategory(candidate.id, candidate.category)
-                    Column {
-                        if (index == 0 || knowledgeCategory(fresh[index - 1].id, fresh[index - 1].category) != category) {
-                            CategoryLabel(category, Modifier.padding(bottom = 8.dp))
+                // One card per category, its collections listed inside it.
+                fresh.groupBy { knowledgeCategory(it.id, it.category) }.forEach { (category, group) ->
+                    item(key = "available:${category.name}") {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            CategoryLabel(category)
+                            DownloadGroup(group.map { candidate -> @Composable {
+                                KnowledgeRow(candidate, null, downloads, queue, resumableKnowledgeBytes(candidate), onGet = { confirming = it },
+                                    onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
+                            } })
                         }
-                        KnowledgeRow(candidate, null, downloads, queue, resumableKnowledgeBytes(candidate), onGet = { confirming = it },
-                            onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
                     }
                 }
             }

@@ -166,7 +166,7 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
             natural && voice == NaturalVoice.State.Ready -> Note("Natural voice is on this phone. It reads with no signal.")
             natural -> {
                 Note("Natural voice is not on this phone yet; the phone's voice reads until it is.")
-                xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true })
+                xyz.fieldatlas.ui.library.DownloadGroup(listOf { xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true }) })
             }
             else -> Note("The phone's own voice: ready now, no download.")
         }

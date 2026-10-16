@@ -40,6 +40,29 @@ class KnowledgeCatalogRepositoryTest {
         assertEquals(listOf("2026.11.01"), repo.state.value.packs.filter { it.id == "encyclopedia" }.map { it.version })
     }
 
+    @Test fun aRebuildOfAnEditionSupersedesTheSavedPlainOne() = runBlocking {
+        // 14 Oct: the APK lists "2026.09.1-leviathan" (the same places with a new search index); a catalog saved before
+        // still listed "2026.09.1". The rebuild must win, or Discover offers the old pack to someone who has the new one.
+        val base = bundle.packs.single()
+        val plain = base.copy(id = "wikivoyage-places", version = "2026.09.1")
+        val rebuild = base.copy(id = "wikivoyage-places", version = "2026.09.1-leviathan", sha256 = "c".repeat(64))
+        cache.writeBytes(bytes(plain))
+        val repo = KnowledgeCatalogRepository(KnowledgeCatalog(1, listOf(rebuild)), cache, { bytes(plain) })
+        assertEquals(listOf("2026.09.1-leviathan"), repo.state.value.packs.filter { it.id == "wikivoyage-places" }.map { it.version })
+        repo.refresh()
+        assertEquals(listOf("2026.09.1-leviathan"), repo.state.value.packs.filter { it.id == "wikivoyage-places" }.map { it.version })
+    }
+
+    @Test fun editionsOrderByNumbersThenPreReleaseThenRebuild() {
+        assertEquals(1, compareEditions("2026.11.01", "2026.10.12"))
+        assertEquals(-1, compareEditions("2026.10.12-native-compressed-preview", "2026.10.12"))
+        assertEquals(1, compareEditions("2026.09.1-leviathan", "2026.09.1"))
+        assertEquals(1, compareEditions("2026.09.1-leviathan", "2026.09.1-rc2"))
+        assertEquals(0, compareEditions("2026.09.1-leviathan", "2026.09.1-leviathan"))
+        assertNull(compareEditions("2026.09.1-leviathan", "2026.09.1-dual"))
+        assertNull(compareEditions("latest", "2026.09.1"))
+    }
+
     @Test fun replacementCycleDoesNotDestroyCachedChoices() = runBlocking {
         val base = bundle.packs.single()
         val repo = KnowledgeCatalogRepository(bundle, cache, {
