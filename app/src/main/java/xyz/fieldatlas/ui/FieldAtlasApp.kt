@@ -25,6 +25,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.indication
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -590,11 +592,13 @@ private fun PrimaryNavigationItem(
         if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
         label = "Navigation selection",
     )
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Column(
         modifier.heightIn(min = 56.dp)
-            // The default indication shows keyboard focus; the tab is named once, here, and the label
-            // below is hidden from screen readers so it is not read twice.
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick)
+            // The whole tab is the touch target, but a press (or keyboard focus) shows only in the rounded pill
+            // behind the icon, as in Material's navigation bar, never as a grey block over the tab. The tab is
+            // named once, here, and the label below is hidden from screen readers so it is not read twice.
+            .selectable(selected = selected, role = Role.Tab, interactionSource = interaction, indication = null, onClick = onClick)
             .semantics { contentDescription = itemLabel }
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -602,7 +606,9 @@ private fun PrimaryNavigationItem(
     ) {
         Box(
             Modifier.size(width = 48.dp, height = 32.dp)
-                .background(indicatorColor, xyz.fieldatlas.ui.theme.FieldAtlasLayout.ControlShape),
+                .clip(xyz.fieldatlas.ui.theme.FieldAtlasLayout.ControlShape)
+                .background(indicatorColor)
+                .indication(interaction, androidx.compose.material3.ripple()),
             contentAlignment = Alignment.Center,
         ) {
             Icon(primaryIcon(item), contentDescription = null, modifier = Modifier.size(21.dp),
