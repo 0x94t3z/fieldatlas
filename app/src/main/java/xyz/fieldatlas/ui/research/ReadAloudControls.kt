@@ -1,10 +1,5 @@
 package xyz.fieldatlas.ui.research
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -129,7 +126,7 @@ internal fun ListenPlayer(reading: ReadAloud.Reading, onPause: () -> Unit, onRes
             SoundBars(MaterialTheme.colorScheme.primary, playing = !reading.paused && !reading.preparing)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(when {
-                    reading.preparing -> "Getting the voice ready" + if (reading.prepared > 0f) " · ${(reading.prepared * 100).toInt()}%" else "…"
+                    reading.preparing -> "Getting ready" + if (reading.prepared > 0f) " · ${(reading.prepared * 100).toInt()}%" else "…"
                     reading.paused -> "Paused"
                     else -> "Reading the answer"
                 }, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
@@ -161,7 +158,17 @@ internal fun ListenPlayer(reading: ReadAloud.Reading, onPause: () -> Unit, onRes
     }
 }
 
-/** Five bars that move while the voice speaks; still when paused or when the phone asks for less motion. */
+/** Shows [content] with the reading of page [key] while there is one, following its clock without the page around it. */
+@Composable
+internal fun LiveReading(readAloud: ReadAloud, key: String, content: @Composable (ReadAloud.Reading) -> Unit) {
+    val reading by readAloud.state.collectAsState()
+    reading?.takeIf { it.key == key }?.let { content(it) }
+}
+
+/**
+ * Five bars that move while the voice speaks; still when paused or when the phone asks for less motion. They move at
+ * draw time only, so a reading does not lay the player out again sixty times a second.
+ */
 @Composable
 private fun SoundBars(color: Color, playing: Boolean) {
     val context = LocalContext.current
@@ -169,15 +176,23 @@ private fun SoundBars(color: Color, playing: Boolean) {
         android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     }
     val heights = listOf(8f, 16f, 11f, 19f, 9f)
-    val motion = rememberInfiniteTransition(label = "voice")
-    val phase by motion.animateFloat(0f, 1f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "phase")
+    // Eight steps a second look the same at this size as sixty frames, and redraw the screen a fraction as often.
+    val phase = androidx.compose.runtime.produceState<Float?>(null, playing, still) {
+        if (!playing || still) { value = null; return@produceState }
+        var step = 0
+        while (true) { value = BAR_STEPS[step % BAR_STEPS.size]; step++; kotlinx.coroutines.delay(125) }
+    }
     Row(Modifier.height(22.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         heights.forEachIndexed { i, h ->
-            val scale = if (!playing || still) 0.6f else 0.45f + 0.55f * (if (i % 2 == 0) phase else 1f - phase)
-            Box(Modifier.width(3.dp).height((h * scale).dp).clip(RoundedCornerShape(2.dp)).background(color))
+            Box(Modifier.width(3.dp).height(h.dp).graphicsLayer {
+                val at = phase?.value
+                scaleY = if (at == null) 0.6f else 0.45f + 0.55f * (if (i % 2 == 0) at else 1f - at)
+            }.clip(RoundedCornerShape(2.dp)).background(color))
         }
     }
 }
+
+private val BAR_STEPS = listOf(0f, 0.35f, 0.7f, 1f, 0.7f, 0.35f)
 
 /** "0:12", "1:05". */
 private fun clock(ms: Long): String = (ms.coerceAtLeast(0) / 1000).let { "%d:%02d".format(it / 60, it % 60) }

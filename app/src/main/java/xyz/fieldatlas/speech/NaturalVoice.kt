@@ -156,14 +156,24 @@ class NaturalVoice internal constructor(
         android.util.Log.d(LOG_TAG, "loaded and warmed in ${android.os.SystemClock.elapsedRealtime() - began} ms")
     }
 
-    private fun loaded(): OfflineTts = tts ?: OfflineTts(config = OfflineTtsConfig(model = OfflineTtsModelConfig(
+    // Measured on a Redmi 13C (two A75 and six A55 cores): the voice ran at 2.4x real time on the little cores and
+    // 1.1x on the big ones, with as many threads as big cores (four threads on two cores ran at 2.8x).
+    private val fastCores = CpuAffinity.fastCoreMask()
+
+    private fun loaded(): OfflineTts = tts ?: run {
+        // On the voice's own thread, before the engine starts its threads: they inherit these cores.
+        val pinned = CpuAffinity.pin(fastCores)
+        android.util.Log.d(LOG_TAG, "fast cores ${java.lang.Long.toBinaryString(fastCores)}, pinned $pinned")
+        createEngine(if (pinned) java.lang.Long.bitCount(fastCores) else Runtime.getRuntime().availableProcessors().coerceIn(1, 4))
+    }
+
+    private fun createEngine(threads: Int): OfflineTts = OfflineTts(config = OfflineTtsConfig(model = OfflineTtsModelConfig(
         supertonic = OfflineTtsSupertonicModelConfig(
             durationPredictor = path("duration_predictor.int8.onnx"), textEncoder = path("text_encoder.int8.onnx"),
             vectorEstimator = path("vector_estimator.int8.onnx"), vocoder = path("vocoder.int8.onnx"),
             ttsJson = path("tts.json"), unicodeIndexer = path("unicode_indexer.bin"), voiceStyle = path("voice.bin"),
         ),
-        // Four threads were fastest on a Redmi 13C; more contend with the phone's own work.
-        numThreads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4),
+        numThreads = threads,
     ))).also { tts = it }
 
     /** Lets go of the loaded voice's memory (about 300 MB) when nothing is being read. */

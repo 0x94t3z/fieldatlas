@@ -1,8 +1,9 @@
-//! Read-only JNI boundary. No CLI, shell, network, writes or raw pointer handles.
+//! Read-only JNI boundary. No CLI, shell, network, writes or raw pointer handles. One addition outside search: the
+//! reading voice can keep its own thread on the phone's fast cores (`CpuAffinity.pinCurrentThread`).
 use jni::{
     JNIEnv,
     objects::{JObject, JString},
-    sys::{jint, jlong, jstring},
+    sys::{jboolean, jint, jlong, jstring},
 };
 use leviathan::{
     card::CardOptions,
@@ -194,6 +195,33 @@ pub extern "system" fn Java_xyz_fieldatlas_research_LeviathanNative_close(
     if let Err(e) = guarded(|| close(id)) {
         failure(&mut env, e);
     }
+}
+
+/// Keeps the calling thread (and the threads it starts afterwards, which inherit it) on the cores in `mask`.
+/// The reading voice's engine runs twice as fast on a big core as on a little one; left to the scheduler, its
+/// threads mostly land on little ones. Returns whether Android accepted the mask; nothing else is touched.
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_xyz_fieldatlas_speech_CpuAffinity_pinCurrentThread(_: JNIEnv, _: JObject, mask: jlong) -> jboolean {
+    pin_current_thread(mask as u64) as jboolean
+}
+
+#[cfg(target_os = "android")]
+fn pin_current_thread(mask: u64) -> bool {
+    unsafe extern "C" {
+        fn sched_setaffinity(pid: i32, set_size: usize, set: *const u64) -> i32;
+    }
+    if mask == 0 {
+        return false;
+    }
+    // Bionic's cpu_set_t on 64-bit Android holds 1024 bits; the first word covers the cores a phone has.
+    let mut set = [0u64; 16];
+    set[0] = mask;
+    unsafe { sched_setaffinity(0, std::mem::size_of_val(&set), set.as_ptr()) == 0 }
+}
+
+#[cfg(not(target_os = "android"))]
+fn pin_current_thread(_: u64) -> bool {
+    false
 }
 
 #[cfg(test)]

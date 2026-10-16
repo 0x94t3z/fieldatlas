@@ -34,6 +34,7 @@
 -keep class com.tom_roush.pdfbox.** { *; }
 -keep class com.tom_roush.fontbox.** { *; }
 -keep class xyz.fieldatlas.research.LeviathanNative { *; }
+-keep class xyz.fieldatlas.speech.CpuAffinity { *; }
 
 # sherpa-onnx's JNI reads the TTS config classes field by field and calls back into Kotlin by name.
 -keep class com.k2fsa.sherpa.onnx.** { *; }

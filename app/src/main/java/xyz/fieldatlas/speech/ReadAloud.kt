@@ -149,18 +149,17 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         read(key, SpeechText.answer(markdown))
     }
 
-    /** Lets the person hear [choice] before choosing it: the natural voice from its bundled clip until it is downloaded. */
+    /** Lets the person hear [choice] before choosing it; the natural voice plays its bundled clip. */
     fun playSample(choice: Choice) {
         stop()
         val recorded = sampleTimings
         val sample = recorded?.segments?.map { SpeechText.Segment(it.shown, it.shown) }
             ?: listOf(SpeechText.Segment(SAMPLE_TEXT, SAMPLE_TEXT))
-        when {
-            choice == Choice.Phone -> speakWithPhone(SAMPLE_KEY, sample)
-            natural.ready -> speakNatural(SAMPLE_KEY, sample)
-            else -> playRecording(SAMPLE_KEY, sample, recorded?.segments?.map { it.startMs } ?: listOf(0L),
-                "speech/natural-sample.ogg", recorded?.durationMs ?: 0)
-        }
+        // The natural voice's sample is always its recording, made in the same voice at build time: it plays at once,
+        // where making it live would keep the person waiting on a slower phone.
+        if (choice == Choice.Phone) speakWithPhone(SAMPLE_KEY, sample)
+        else playRecording(SAMPLE_KEY, sample, recorded?.segments?.map { it.startMs } ?: listOf(0L),
+            "speech/natural-sample.ogg", recorded?.durationMs ?: 0)
     }
 
     private fun read(key: String, segments: List<SpeechText.Segment>) {
@@ -329,7 +328,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                     held += item
                     val next = pieces.getOrNull(pieces.indexOf(item.piece) + 1)
                     val need = headStartMs(totalChars - madeChars, next?.text?.length ?: 0, madeChars, madeAudioMs, makingMs)
-                    val ready = held.sumOf { it.sound.samples.size * 1000L / it.sound.sampleRate.coerceAtLeast(1) }
+                    val ready = held.sumOf { it.sound.samples.size * 1000L / it.sound.sampleRate.coerceAtLeast(1) } + held.size * PAUSE_MS
                     if (ready >= need) begin()
                     else mutableState.value = mutableState.value?.copy(prepared = (ready.toFloat() / need).coerceIn(0f, 0.99f))
                 }
@@ -508,20 +507,27 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         /** About how long the phone's voice takes per character at normal speed, for the time it shows. */
         private const val PHONE_MS_PER_CHAR = 65f
         private const val PAUSE_MS = 450L
-        private const val HEAD_START_MARGIN_MS = 1_000L
+        /** A wait this long at a full stop reads as a pause, not a stall. */
+        private const val PAUSE_TOLERANCE_MS = 500L
+        /**
+         * A phone slows its fast cores once they are warm: on a Redmi 13C the first sentence was made at 1.1x its
+         * length and the next ones at 1.6x. What is still to make is planned at this much slower than seen so far.
+         */
+        private const val WARM_SLOWDOWN = 1.35
 
         /**
          * How much speech must be ready before playing starts so that the rest is made before it is needed, from how
          * fast this phone has made speech so far. With [remainingChars] still to make at the speed seen, making them
-         * takes P and saying them takes R; what is ready must cover the difference, and at least the time the next
-         * piece takes to make. A phone faster than speech needs only a second in hand.
+         * takes P (planned for a phone that slows as it warms) and saying them takes R; what is ready must cover the
+         * difference, and the time the next piece takes to make, less a pause at a full stop short enough to sound
+         * natural. A phone well ahead of speech starts as soon as its first sentence is made.
          */
         internal fun headStartMs(remainingChars: Int, nextChars: Int, madeChars: Int, madeAudioMs: Long, makingMs: Long): Long {
             if (remainingChars <= 0 || madeChars <= 0) return 0
-            val makingPerChar = makingMs.toDouble() / madeChars
+            val makingPerChar = makingMs.toDouble() / madeChars * WARM_SLOWDOWN
             val sayingPerChar = madeAudioMs.toDouble() / madeChars
             val shortfall = remainingChars * (makingPerChar - sayingPerChar)
-            return (maxOf(shortfall, nextChars * makingPerChar).toLong() + HEAD_START_MARGIN_MS)
+            return (maxOf(shortfall, nextChars * makingPerChar).toLong() - PAUSE_TOLERANCE_MS).coerceAtLeast(0)
         }
 
         /** The same pauses the guide recordings have: longer after a heading. */

@@ -38,10 +38,13 @@ class NaturalVoiceTest {
     }
 
     @Test fun playingStartsOnlyWhenTheRestWillArriveInTime() {
-        // A fast phone (speech made in a third of its length): the next sentence's making time is all it needs.
-        assertEquals(3_000L, ReadAloud.headStartMs(remainingChars = 100, nextChars = 50, madeChars = 50, madeAudioMs = 5_000, makingMs = 2_000))
-        // The Redmi 13C: 120 characters made in 15.4 s gave 12.2 s of speech; 178 characters remain, the next is 109.
-        assertEquals(15_022L, ReadAloud.headStartMs(178, 109, 120, 12_167, 15_438))
+        // A fast phone (speech made in a fifth of its length): its first sentence is enough.
+        assertTrue(ReadAloud.headStartMs(remainingChars = 100, nextChars = 50, madeChars = 50, madeAudioMs = 5_000, makingMs = 1_000) < 5_000)
+        // The Redmi 13C, 16 Oct: the first sentence (120 characters, 12.2 s of speech) took 13.3 s, the second
+        // 17.3 s once the cores were warm. One sentence is not enough in hand...
+        assertTrue(ReadAloud.headStartMs(178, 109, 120, 12_167, 13_260) > 12_167 + 450)
+        // ...two are: 229 characters, 22.9 s of speech, made in 30.6 s, with 69 characters left.
+        assertTrue(ReadAloud.headStartMs(69, 69, 229, 22_882, 30_558) < 22_882 + 900)
         // Nothing left to make: play at once.
         assertEquals(0L, ReadAloud.headStartMs(0, 0, 298, 29_000, 45_000))
     }

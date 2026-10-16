@@ -28,6 +28,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -127,9 +129,14 @@ fun AnswerScreen(
     val missingSubjects = if (running) emptyList() else xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
     // Reading aloud: an emergency guide plays its recording from a large button; any other finished answer can be listened to.
     val readAloud = LocalReadAloud.current
-    val reading = readAloud?.state?.collectAsState()?.value
     val readKey = "answer:${state.topic}:${state.shownQuestion}:${state.answer.hashCode()}"
-    val readingHere = reading?.takeIf { it.key == readKey }
+    // The page follows only which sentence is being read here; the player and the Stop bar follow the clock themselves,
+    // so the answer is not laid out again twice a second while it is read.
+    val readingHere by remember(readAloud, readKey) {
+        (readAloud?.state ?: kotlinx.coroutines.flow.MutableStateFlow(null))
+            .map { reading -> reading?.takeIf { it.key == readKey }?.let { ReadingHere(it.shown) } }
+            .distinctUntilChanged()
+    }.collectAsState(null)
     val guideId = if (running) null else state.sources.singleOrNull()?.documentId
         ?.takeIf { it.startsWith("emergency:") && state.answer.startsWith("**If this is an emergency") }?.removePrefix("emergency:")
     val listenable = !running && guideId == null && state.answer.isNotBlank() && !withheld && !isInputNotice
@@ -157,7 +164,7 @@ fun AnswerScreen(
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
             // While a guide is read, Stop stays in reach here, and the guide scrolls to the sentence being read.
-            if (guideId != null && readingHere != null) ReadingControl(readingHere, onStop = { readAloud?.stop() })
+            if (guideId != null && readingHere != null && readAloud != null) LiveReading(readAloud, readKey) { ReadingControl(it, onStop = readAloud::stop) }
             androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.markdown.LocalSpokenSentence provides readingHere?.shown) {
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -407,7 +414,7 @@ fun AnswerScreen(
             }
             }
             if (guideId == null && readingHere != null && readAloud != null) {
-                ListenPlayer(readingHere, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
+                LiveReading(readAloud, readKey) { ListenPlayer(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop) }
             }
             if (choosingVoice && readAloud != null) ChooseVoiceSheet(readAloud,
                 onChosen = { choosingVoice = false; readAloud.readAnswer(readKey, state.answer) }, onDismiss = { choosingVoice = false })
@@ -611,3 +618,6 @@ private fun otherSourceLabel(count: Int, expanded: Boolean): String {
     val noun = if (count == 1) "passage" else "passages"
     return if (expanded) "Hide $count other retrieved $noun" else "$count other retrieved $noun"
 }
+
+/** Which sentence of this page is being read aloud, if any: all the page itself needs to know. */
+private data class ReadingHere(val shown: String?)
