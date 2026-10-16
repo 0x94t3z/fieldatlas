@@ -24,6 +24,7 @@ import xyz.fieldatlas.ui.presentation.formatAssetBytes
 import xyz.fieldatlas.ui.theme.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 
 /** One tap to information; only the model's memory control expands inline. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -40,6 +41,9 @@ fun MoreScreen(
     var modelExpanded by rememberSaveable { mutableStateOf(false) }
     var includeQuestion by rememberSaveable { mutableStateOf(false) }
     val model = packs.firstOrNull { it.type == PackType.MODEL && it.active } ?: packs.firstOrNull { it.type == PackType.MODEL }
+    val readAloud = xyz.fieldatlas.ui.research.LocalReadAloud.current
+    val readingSettings = readAloud?.settings?.collectAsState()?.value
+    val naturalReady = readAloud?.natural?.state?.collectAsState()?.value == xyz.fieldatlas.speech.NaturalVoice.State.Ready
     val busy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating
     val loaded = inferenceState == InferenceState.Ready || inferenceState == InferenceState.Generating
     val status = when (inferenceState) {
@@ -71,6 +75,12 @@ fun MoreScreen(
                 }
             }
         }
+        if (readAloud != null && readingSettings != null) item {
+            MoreGroup("Reading aloud") {
+                SettingRow(Icons.AutoMirrored.Outlined.VolumeUp, "Voice and speed", xyz.fieldatlas.ui.research.readingSummary(readingSettings, naturalReady),
+                    onClick = { sheet = "reading" }, chevron = true)
+            }
+        }
         item {
             MoreGroup("On this phone") {
                 SettingRow(FieldAtlasIcons.Offline, "Offline readiness", "Model, collections and voice.", onClick = { sheet = "readiness" })
@@ -97,6 +107,7 @@ fun MoreScreen(
     }
     when (sheet) {
         "licences" -> LicenceSheet { sheet = null }
+        "reading" -> readAloud?.let { xyz.fieldatlas.ui.research.ReadingAloudSheet(it) { sheet = null } }
         "device" -> DeviceInfoSheet(proof, packs, onTechnical = { sheet = "technical" }, onDismiss = { sheet = null })
         "technical" -> TechnicalDetailsSheet(proof, onBack = { sheet = "device" }, onDismiss = { sheet = null })
         "support" -> SupportSheet(diagnosticsText, includeQuestion, { includeQuestion = it }, onClearDiagnostics,
@@ -113,6 +124,9 @@ fun MoreScreen(
                 ReadinessCheck("Collections", if (collections == 0) "None yet" else "$collections in research", collections > 0)
                 MoreDivider()
                 ReadinessCheck("Voice input", if (packs.any { it.type == PackType.AUDIO }) "Saved model" else "Built in", true)
+                MoreDivider()
+                // Guides always have their recordings; answers use the natural voice once it is downloaded.
+                ReadinessCheck("Reading aloud", if (naturalReady) "Natural voice" else "Phone voice", true)
             }
             MoreNote("Only downloads need internet.")
             OutlinedButton(onClick = { sheet = null; onOpenLibrary() }, shape = FieldAtlasButtonShape,

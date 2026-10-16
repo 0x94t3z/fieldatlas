@@ -29,6 +29,8 @@ data class AssetDownloadStatus(
     val errorKind: AssetDownloadKind? = null,
     /** Which model's download failed, when [errorKind] is MODEL. */
     val errorModel: ModelOffer? = null,
+    /** Which collection's download failed, when [errorKind] is KNOWLEDGE. */
+    val errorPack: KnowledgeCatalogEntry? = null,
     val error: String? = null,
     val offerKnowledge: Boolean = false,
 ) {
@@ -96,7 +98,7 @@ class BackgroundAssetDownloads(
         if (mutableState.value.active) return@synchronized false
         mutableState.value = mutableState.value.copy(
             kind = kind, pack = pack, model = model, downloadedBytes = 0, totalBytes = artifact.bytes,
-            errorKind = null, errorModel = null, error = null,
+            errorKind = null, errorModel = null, errorPack = null, error = null,
         )
         val downloadUrl: String
         try {
@@ -111,12 +113,13 @@ class BackgroundAssetDownloads(
                 .putString(PENDING_ARTIFACT, artifact.key).putString(PENDING_URL, downloadUrl).commit()) {
                 "Could not save download state"
             }
-            AssetDownloadService.start(context)
+            // The service may already be running for the download before this one; it carries on with this one.
+            if (!AssetDownloadService.running) AssetDownloadService.start(context)
         } catch (error: Exception) {
             clearPending()
             container.errorBus.report("Background download", error)
             mutableState.value = mutableState.value.copy(
-                kind = null, pack = null, model = null, errorKind = kind, errorModel = model,
+                kind = null, pack = null, model = null, errorKind = kind, errorModel = model, errorPack = pack,
                 error = "Could not start the background download. Reopen the app and try again.",
             )
             return@synchronized false
@@ -145,6 +148,7 @@ class BackgroundAssetDownloads(
                 mutableState.update { it.copy(
                     errorKind = kind,
                     errorModel = model,
+                    errorPack = pack,
                     error = assetSetupError(error, if (kind == AssetDownloadKind.MODEL)
                         AssetAction.MODEL_DOWNLOAD else AssetAction.COLLECTION_DOWNLOAD),
                 ) }

@@ -2,6 +2,8 @@ package xyz.fieldatlas.ui.library
 
 import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.assets.downloadFreeBytes
+import xyz.fieldatlas.assets.DownloadItem
+import androidx.compose.runtime.collectAsState
 
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
@@ -136,16 +138,33 @@ fun LibraryScreen(
     val recommended = availableKnowledge.filter { it.recommended }.map { it.id }.toSet()
     val installedOrder = xyz.fieldatlas.ui.presentation.knowledgeOrder<InstalledAsset>(
         { knowledgeCategory(it.id, declared[it.id].orEmpty()) }, { it.id in recommended }, { it.toAssetCardModel().title })
-    val knowledgeGroups = knowledge.sortedWith(installedOrder)
+    // One card per collection: the edition in use (or the catalog's, or the newest); older editions kept after an
+    // update are offered back as space under it instead of looking like a second collection.
+    val currentEdition = knowledge.groupBy { it.id }.mapValues { (_, editions) ->
+        editions.firstOrNull { it.enabled } ?: editions.firstOrNull { edition ->
+            availableKnowledge.any { it.id == edition.id && it.version == edition.version } } ?: editions.maxBy { it.version }
+    }
+    val shownKnowledge = knowledge.filter { currentEdition[it.id] == it }
+    val oldEditions = knowledge.filterNot { currentEdition[it.id] == it }
+    val knowledgeGroups = shownKnowledge.sortedWith(installedOrder)
         .groupBy { knowledgeCategory(it.id, declared[it.id].orEmpty()) }
         .toSortedMap(compareBy { it.ordinal })
     val available = availableKnowledge
         .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
         .sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
+    // A collection whose older edition is on the phone is an update, not a new download.
+    val (updates, fresh) = available.partition { candidate -> knowledge.any { it.id == candidate.id } }
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()
     val activeSpeech = speech.firstOrNull { it.active } ?: speech.firstOrNull()
+    val readAloud = xyz.fieldatlas.ui.research.LocalReadAloud.current
+    val downloads = LocalDownloads.current
+    val queue = downloads?.state?.collectAsState()?.value
+    val naturalVoice = readAloud?.natural?.state?.collectAsState()?.value
+    var confirming by remember { mutableStateOf<DownloadItem?>(null) }
+    var voiceDetails by rememberSaveable { mutableStateOf(false) }
+    var voiceConfirm by rememberSaveable { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
@@ -190,16 +209,22 @@ fun LibraryScreen(
                                 .semantics { role = Role.Tab; this.selected = selected },
                                 shape = FieldAtlasButtonShape,
                                 color = if (selected) MaterialTheme.colorScheme.surface else Color.Transparent) {
-                                Box(Modifier.padding(horizontal = 6.dp, vertical = 12.dp), contentAlignment = Alignment.Center) {
+                                Row(Modifier.padding(horizontal = 6.dp, vertical = 12.dp), horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically) {
                                     Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
+                                    // Updates waiting in Discover, counted where the person will look for them.
+                                    if (index == 1 && updates.isNotEmpty()) Box(Modifier.padding(start = 6.dp).size(20.dp)
+                                        .clip(CircleShape).background(MaterialTheme.colorScheme.primary)
+                                        .semantics { contentDescription = "${updates.size} update" + if (updates.size == 1) "" else "s" },
+                                        contentAlignment = Alignment.Center) {
+                                        Text("${updates.size}", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onPrimary)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
-            if (!discovering && (modelDownloading || knowledgeDownloadKey != null)) item {
-                EmptyLibraryNote("Your download continues in the background. View its progress in Discover.")
             }
             if (!discovering) {
             item { SectionLabel("Answer model") }
@@ -236,18 +261,14 @@ fun LibraryScreen(
             item { SectionLabel("Answer models") }
             items(modelDownloads.size, key = { "model-offer:${modelDownloads[it].id}:${modelDownloads[it].version}" }) { index ->
                 val offer = modelDownloads[index]
-                ModelDownloadCard(
-                    offer = offer,
-                    downloading = downloadingModelId == offer.id,
-                    busy = importing || modelDownloading || knowledgeDownloadKey != null,
-                    downloadedBytes = modelDownloadedBytes,
-                    resumableBytes = resumableModelBytes(offer),
-                    error = modelDownloadError?.takeIf { modelDownloadErrorId == offer.id },
-                    onDownload = { onDownloadModel(offer) },
-                    onCancel = onCancelModelDownload,
-                    onDiscard = onDiscardPausedDownload?.let { discard -> { discard(offer) } },
-                    downloadUrl = modelDownloadUrl(offer),
-                )
+                val item = DownloadItem.Model(offer)
+                if (downloads != null && queue != null) DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
+                    "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
+                    rowState(item, queue, installed = false, saved = resumableModelBytes(offer)), formatAssetBytes(offer.bytes),
+                    rowActions(downloads, item, onGet = { confirming = item },
+                        discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }),
+                    note = offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
+                        " For phones with ${offer.minimumMemoryLabel} of memory or more.")
             }
             }
             if (!discovering) {
@@ -274,15 +295,21 @@ fun LibraryScreen(
                 // archives are one installed bundle or hide their search/delete controls.
                 items(group.size, key = { "knowledge:${group[it].id}:${group[it].version}" }) { index ->
                     val asset = group[index]
-                    AssetCard(
-                        model = asset.toAssetCardModel(),
-                        visual = packVisual(asset),
-                        enabled = asset.enabled,
-                        onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
-                        onDelete = { onDeletePack(asset) },
-                        asset = asset,
-                        onAskExample = onAskExample,
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        AssetCard(
+                            model = asset.toAssetCardModel(),
+                            visual = packVisual(asset),
+                            enabled = asset.enabled,
+                            onToggleResearch = { enabled -> onToggleResearch(asset, enabled) },
+                            onDelete = { onDeletePack(asset) },
+                            asset = asset,
+                            onAskExample = onAskExample,
+                        )
+                        oldEditions.filter { it.id == asset.id }.forEach { old ->
+                            OldEditionNote(old, onRemove = { onDeletePack(old) },
+                                onSwitchBack = { onToggleResearch(old, true); onToggleResearch(asset, false) })
+                        }
+                    }
                 }
             }
             item { TextButton(shape = FieldAtlasButtonShape, onClick = { discovering = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Browse collections") } }
@@ -305,46 +332,44 @@ fun LibraryScreen(
                 catalogError?.let { Text(it, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error) }
             }
-            if (available.isNotEmpty()) {
+            if (updates.isNotEmpty() && downloads != null && queue != null) {
+                item { SectionLabel("Updates") }
+                items(updates.size, key = { "update:${updates[it].id}:${updates[it].version}" }) { index ->
+                    val candidate = updates[index]
+                    KnowledgeRow(candidate, knowledge.filter { it.id == candidate.id }.maxByOrNull { it.installedBytes }, downloads, queue,
+                        resumableKnowledgeBytes(candidate), onGet = { confirming = it },
+                        onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
+                }
+            }
+            if (readAloud != null && downloads != null && naturalVoice != xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
+                item { SectionLabel("Voice") }
+                item(key = "voice-offer") { VoiceDiscoverRow(readAloud, onGet = { voiceConfirm = true }, onDetails = { voiceDetails = true }) }
+            }
+            if (fresh.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Available to download") }
-                items(available.size, key = { "available:${available[it].id}:${available[it].version}" }) { index ->
-                    val candidate = available[index]
+                items(fresh.size, key = { "available:${fresh[it].id}:${fresh[it].version}" }) { index ->
+                    val candidate = fresh[index]
                     val category = knowledgeCategory(candidate.id, candidate.category)
                     Column {
-                        if (index == 0 || knowledgeCategory(available[index - 1].id, available[index - 1].category) != category) {
+                        if (index == 0 || knowledgeCategory(fresh[index - 1].id, fresh[index - 1].category) != category) {
                             CategoryLabel(category, Modifier.padding(bottom = 8.dp))
                         }
-                        KnowledgeDownloadCard(
-                            pack = candidate,
-                            downloading = knowledgeDownloadKey == "${candidate.id}:${candidate.version}",
-                            busy = importing || modelDownloading || knowledgeDownloadKey != null,
-                            downloadedBytes = knowledgeDownloadedBytes,
-                            resumableBytes = resumableKnowledgeBytes(candidate),
-                            onDownload = { onDownloadKnowledge(candidate) },
-                            onCancel = onCancelKnowledgeDownload,
-                            onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } },
-                            downloadUrl = knowledgeDownloadUrl(candidate),
-                        )
+                        KnowledgeRow(candidate, null, downloads, queue, resumableKnowledgeBytes(candidate), onGet = { confirming = it },
+                            onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
                     }
                 }
             }
             if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
             }
-            if (knowledgeDownloadError != null) {
-                item {
-                    FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        Text("Collection download did not finish", color = MaterialTheme.colorScheme.error,
-                            fontWeight = FontWeight.SemiBold)
-                        Text(knowledgeDownloadError, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            }
             if (!discovering) {
             item { SectionLabel("Voice") }
+            if (readAloud != null && naturalVoice == xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
+                item(key = "reading-voice") { VoiceInstalledRow(readAloud) }
+            }
             if (speech.isEmpty()) {
                 item {
                     EmptyLibraryNote(
-                        "Voice input uses the compact model built into the app. Nothing else to download.",
+                        "Voice input uses the compact model built into the app.",
                     )
                 }
             }
@@ -361,211 +386,80 @@ fun LibraryScreen(
             }
         }
     }
+    confirming?.let { item ->
+        when (item) {
+            is DownloadItem.Knowledge -> {
+                val pack = item.pack
+                val saved = resumableKnowledgeBytes(pack)
+                val replaces = knowledge.filter { it.id == pack.id && it.version != pack.version }.maxByOrNull { it.installedBytes }
+                DownloadConfirmSheet(item, if (replaces != null) "Update" else "Download",
+                    if (replaces != null) "Newer edition · ${formatAssetBytes(pack.bytes)}" + (updateNote(pack, replaces)?.let { " · $it" } ?: "")
+                    else pack.description,
+                    saved = saved, installMargin = (pack.downloadFreeBytes(saved) - (pack.bytes - saved)).coerceAtLeast(0),
+                    sourceUrl = knowledgeDownloadUrl(pack), replaces = replaces,
+                    onConfirm = { downloads?.queue?.enqueue(item) }, onDismiss = { confirming = null })
+            }
+            is DownloadItem.Model -> DownloadConfirmSheet(item, "Download", item.offer.description,
+                saved = resumableModelBytes(item.offer), installMargin = 512_000_000L, sourceUrl = modelDownloadUrl(item.offer),
+                onConfirm = { downloads?.queue?.enqueue(item) }, onDismiss = { confirming = null })
+            DownloadItem.Voice -> { confirming = null; voiceConfirm = true }
+        }
+    }
+    if (voiceDetails && readAloud != null) VoiceDetailSheet(readAloud, onDownload = { voiceDetails = false; voiceConfirm = true },
+        onDismiss = { voiceDetails = false })
+    if (voiceConfirm) VoiceDownloadConfirm(onDone = { voiceConfirm = false })
 }
 
+/** What an update brings, in a few words: "Smaller · faster search". Null when nothing simple can be said. */
+internal fun updateNote(pack: KnowledgeCatalogEntry, installed: InstalledAsset): String? = listOfNotNull(
+    "Smaller".takeIf { pack.bytes < installed.installedBytes * 9 / 10 },
+    "faster search".takeIf { pack.version.endsWith("-leviathan") && !installed.version.endsWith("-leviathan") },
+).joinToString(" · ").replaceFirstChar { it.uppercase() }.ifEmpty { null }
+
+/** A collection in Discover: new, or a newer edition of one on the phone ([replaces]). */
 @Composable
-internal fun KnowledgeDownloadCard(
+private fun KnowledgeRow(
     pack: KnowledgeCatalogEntry,
-    downloading: Boolean,
-    busy: Boolean,
-    downloadedBytes: Long,
-    resumableBytes: Long = 0,
-    onDownload: () -> Unit,
-    onCancel: () -> Unit,
-    /** Deletes a paused download's saved part; null hides the choice. */
-    onDiscard: (() -> Unit)? = null,
-    downloadUrl: String = pack.url,
+    replaces: InstalledAsset?,
+    downloads: xyz.fieldatlas.assets.AppDownloads,
+    queue: xyz.fieldatlas.assets.DownloadQueueState,
+    saved: Long,
+    onGet: (DownloadItem) -> Unit,
+    onDiscard: (() -> Unit)?,
 ) {
-    var confirmDownload by rememberSaveable(pack.id, pack.version) { mutableStateOf(false) }
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            val visual = subjectVisual(pack.id) ?: categoryVisual(knowledgeCategory(pack.id, pack.category))
-            FieldAtlasIconTile(visual.icon, size = 44.dp, tone = visual.tone)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(pack.title, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "${formatAssetBytes(pack.bytes)} · version ${xyz.fieldatlas.ui.presentation.displayVersion(pack.version)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-        Text(pack.description, style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (!downloading && resumableBytes > 0) {
-            Text("${formatAssetBytes(resumableBytes)} saved · ready to resume",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary)
-        }
-        if (pack.recommended) {
-            Text("Recommended", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary)
-        }
-        if (downloading) {
-            val installing = downloadedBytes >= pack.bytes
-            if (installing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            } else {
-                FieldAtlasProgressBar(
-                    progress = { (downloadedBytes.toFloat() / pack.bytes).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(if (installing) "Verifying and installing in background" else
-                    "${downloadedBytes / 1_000_000} / ${pack.bytes / 1_000_000} MB · continues in background",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!installing) TextButton(shape = FieldAtlasButtonShape, onClick = onCancel) { Text("Pause") }
-            }
-        } else {
-            FieldAtlasPrimaryButton(
-                text = if (resumableBytes > 0) "Resume download" else "Download collection",
-                onClick = { confirmDownload = true },
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = FieldAtlasIcons.Download,
-            )
-        }
-    }
-    if (confirmDownload) {
-        AlertDialog(
-            onDismissRequest = { confirmDownload = false },
-            title = { Text("${if (resumableBytes > 0) "Resume" else "Download"} ${pack.title}?") },
-            text = {
-                Text((if (resumableBytes > 0)
-                    "${formatAssetBytes(resumableBytes)} is saved. About ${formatAssetBytes(pack.bytes - resumableBytes.coerceIn(0, pack.bytes))} remains if the server supports resume; otherwise the full download may be needed. "
-                    else "Uses ${formatAssetBytes(pack.bytes)} of internet data. ") +
-                    "Installation needs about " +
-                    "${sizeGb(pack.downloadFreeBytes(resumableBytes))} GB free while installing. " +
-                    "Afterward, the collection works offline.\n\n" +
-                    xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl))
-            },
-            confirmButton = {
-                TextButton(shape = FieldAtlasButtonShape, onClick = {
-                    confirmDownload = false
-                    onDownload()
-                }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
-            },
-            dismissButton = {
-                Row {
-                    // A paused download holds its saved part until it finishes or is discarded here.
-                    if (resumableBytes > 0 && onDiscard != null) TextButton(shape = FieldAtlasButtonShape, enabled = !busy,
-                        onClick = { confirmDownload = false; onDiscard() }) { Text("Discard saved part") }
-                    TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") }
-                }
-            },
-        )
-    }
+    val visual = subjectVisual(pack.id) ?: categoryVisual(knowledgeCategory(pack.id, pack.category))
+    val item = DownloadItem.Knowledge(pack)
+    val state = rowState(item, queue, installed = false, saved = saved)
+    val chips = if (replaces != null) listOfNotNull(updateNote(pack, replaces)?.let { RowChip(it, positive = true) },
+        RowChip("You have ${formatAssetBytes(replaces.installedBytes)}"))
+    else listOfNotNull(RowChip("Recommended", positive = true).takeIf { pack.recommended })
+    DownloadRow(visual.icon, visual.tone, pack.title,
+        if (replaces != null) "${formatAssetBytes(pack.bytes)} · newer edition"
+        else "${formatAssetBytes(pack.bytes)} · version ${xyz.fieldatlas.ui.presentation.displayVersion(pack.version)}",
+        state, if (replaces != null) "Update" else formatAssetBytes(pack.bytes),
+        rowActions(downloads, item, onGet = { onGet(item) }, discardSaved = onDiscard), chips = chips,
+        note = pack.description.takeIf { replaces == null && state == RowState.Get(0) })
 }
 
-/** A model this phone can run but has not installed: download, progress, pause and resume. */
+/** Under a collection after an update: the old edition, kept switched off, whose space can be given back. */
 @Composable
-internal fun ModelDownloadCard(
-    offer: ModelOffer,
-    downloading: Boolean,
-    busy: Boolean,
-    downloadedBytes: Long,
-    resumableBytes: Long = 0,
-    error: String? = null,
-    onDownload: () -> Unit,
-    onCancel: () -> Unit,
-    /** Deletes a paused download's saved part; null hides the choice. */
-    onDiscard: (() -> Unit)? = null,
-    downloadUrl: String = offer.url,
-) {
-    var confirmDownload by rememberSaveable(offer.id, offer.version) { mutableStateOf(false) }
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(FieldAtlasIcons.Archive, size = 44.dp, tone = TileTone.Sage)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(offer.name, style = PackTitleStyle(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
-        }
-        Text(
-            offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
-                " For phones with ${offer.minimumMemoryLabel} of memory or more.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (!downloading && resumableBytes > 0) {
-            Text("${formatAssetBytes(resumableBytes)} saved · ready to resume",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary)
-        }
-        if (downloading) {
-            val installing = downloadedBytes >= offer.bytes
-            if (installing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            } else {
-                FieldAtlasProgressBar(
-                    progress = { (downloadedBytes.toFloat() / offer.bytes).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(if (installing) "Verifying and installing in background" else
-                    "${downloadedBytes / 1_000_000} / ${offer.bytes / 1_000_000} MB · continues in background",
-                    style = MaterialTheme.typography.bodySmall,
+private fun OldEditionNote(old: InstalledAsset, onRemove: () -> Unit, onSwitchBack: () -> Unit) {
+    Surface(shape = FieldAtlasButtonShape, color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)) {
+        Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(FieldAtlasIcons.Trash, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(if (old.enabled) "Older edition, also searched" else "Old edition kept, switched off",
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold))
+                Text("${formatAssetBytes(old.installedBytes)} you can free", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (!installing) TextButton(shape = FieldAtlasButtonShape, onClick = onCancel) { Text("Pause") }
             }
-        } else {
-            if (error != null) {
-                Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-            }
-            FieldAtlasPrimaryButton(
-                text = if (resumableBytes > 0) "Resume download" else "Download model",
-                onClick = { confirmDownload = true },
-                enabled = !busy,
-                modifier = Modifier.fillMaxWidth().semantics {
-                    // The spoken name starts with the visible label, so "tap Download model" finds it.
-                    contentDescription = "${if (resumableBytes > 0) "Resume download" else "Download model"}, ${offer.name}"
-                },
-                leadingIcon = FieldAtlasIcons.Download,
-            )
+            TextButton(onClick = onSwitchBack, shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp)) { Text("Use it") }
+            TextButton(onClick = onRemove, shape = FieldAtlasButtonShape, modifier = Modifier.heightIn(min = 48.dp)) { Text("Remove") }
         }
-    }
-    if (confirmDownload) {
-        AlertDialog(
-            onDismissRequest = { confirmDownload = false },
-            title = { Text("${if (resumableBytes > 0) "Resume" else "Download"} ${offer.name}?") },
-            text = {
-                Text((if (resumableBytes > 0)
-                    "${formatAssetBytes(resumableBytes)} is saved. About ${formatAssetBytes(offer.bytes - resumableBytes.coerceIn(0, offer.bytes))} remains if the server supports resume; otherwise the full download may be needed. "
-                    else "Uses ${formatAssetBytes(offer.bytes)} of internet data. ") +
-                    // The verified file is moved into place, not copied: what is left to fetch plus
-                    // Android's margin.
-                    "Installation needs about ${sizeGb(offer.bytes - resumableBytes.coerceIn(0, offer.bytes) + 512_000_000L)} GB free. " +
-                    "Afterward it works offline, and you can switch between models here.\n\n" +
-                    xyz.fieldatlas.ui.presentation.downloadSourceDisclosure(downloadUrl))
-            },
-            confirmButton = {
-                TextButton(shape = FieldAtlasButtonShape, enabled = !busy, onClick = {
-                    confirmDownload = false
-                    onDownload()
-                }) { Text(if (resumableBytes > 0) "Resume" else "Download") }
-            },
-            dismissButton = {
-                Row {
-                    // A paused download holds its saved part until it finishes or is discarded here.
-                    if (resumableBytes > 0 && onDiscard != null) TextButton(shape = FieldAtlasButtonShape, enabled = !busy,
-                        onClick = { confirmDownload = false; onDiscard() }) { Text("Discard saved part") }
-                    TextButton(shape = FieldAtlasButtonShape, onClick = { confirmDownload = false }) { Text("Not now") }
-                }
-            },
-        )
     }
 }
 
-private fun sizeGb(bytes: Long): String = String.format("%.1f", bytes / 1_000_000_000.0)
 
 @Composable
 private fun SectionLabel(text: String) {

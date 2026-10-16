@@ -84,6 +84,27 @@ class ResearchViewModelVoiceTest {
         assertEquals("", model.uiState.value.answer)
     }
 
+    @Test fun aQuestionSentWithTheDictatedWordsWasAskedByVoice() {
+        val (model, _) = viewModel(FakeTranscriber("is the water safe to drink"))
+        model.onMicClick(); model.onMicClick()
+        model.updateQuestion(model.uiState.value.question + "?")
+        model.submit()
+        assertTrue(model.uiState.value.askedByVoice)
+    }
+
+    @Test fun aTypedQuestionOrOneThatReplacedTheDictationWasNot() {
+        val (typed, _) = viewModel(FakeTranscriber("unused"))
+        typed.updateQuestion("is the water safe to drink")
+        typed.submit()
+        assertEquals(false, typed.uiState.value.askedByVoice)
+
+        val (replaced, _) = viewModel(FakeTranscriber("is the water safe"))
+        replaced.onMicClick(); replaced.onMicClick()
+        replaced.updateQuestion("how tall is the eiffel tower")
+        replaced.submit()
+        assertEquals(false, replaced.uiState.value.askedByVoice)
+    }
+
     @Test fun transcriptAppendsToExistingQuestion() {
         val (model, _) = viewModel(FakeTranscriber("and cubs"))
         model.updateQuestion("How heavy are tigers")

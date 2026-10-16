@@ -110,25 +110,26 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
     fun downloadRecommendedModel() = downloadModel(ModelOffers.recommended)
 
     fun downloadModel(offer: ModelOffer) {
-        if (mutableState.value.importing || container.backgroundDownloads.state.value.active ||
+        if (mutableState.value.importing ||
             mutableState.value.packs.any { it.id == offer.id && it.version == offer.version } ||
             !offer.fits(container.deviceMemoryBytes)
         ) return
         mutableState.value = mutableState.value.copy(error = null, modelError = null, modelErrorId = null)
-        container.backgroundDownloads.startModel(offer)
+        // Setup's own screens confirm the data use and show no "waiting for Wi-Fi", so a tap there means go now.
+        container.downloads.queue.enqueue(xyz.fieldatlas.assets.DownloadItem.Model(offer), allowMobileData = true)
     }
 
-    fun cancelDownload() { container.backgroundDownloads.cancel() }
+    fun cancelDownload() { container.downloads.queue.pause() }
 
     fun downloadKnowledge(pack: KnowledgeCatalogEntry) {
-        if (mutableState.value.importing || container.backgroundDownloads.state.value.active ||
+        if (mutableState.value.importing ||
             mutableState.value.packs.any { it.id == pack.id && it.version == pack.version }
         ) return
         mutableState.value = mutableState.value.copy(error = null, knowledgeError = null, modelError = null, modelErrorId = null)
-        container.backgroundDownloads.startKnowledge(pack)
+        container.downloads.queue.enqueue(xyz.fieldatlas.assets.DownloadItem.Knowledge(pack), allowMobileData = true)
     }
 
-    fun cancelKnowledgeDownload() { container.backgroundDownloads.cancel() }
+    fun cancelKnowledgeDownload() { container.downloads.queue.pause() }
 
     fun dismissKnowledgeOffer() {
         mutableState.value = mutableState.value.copy(offerKnowledge = false)

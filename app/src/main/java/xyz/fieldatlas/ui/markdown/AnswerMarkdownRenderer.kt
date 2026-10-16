@@ -1,5 +1,9 @@
 package xyz.fieldatlas.ui.markdown
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -231,10 +235,20 @@ private fun InlineBlock(
                 Placeholder((citation.number.toString().length * 6.5f + 12f).sp, 16.sp, PlaceholderVerticalAlign.TextTop),
             ) { CitationMark(citation.number, onCitation) }
         }
-    Column(modifier) {
+    // The sentence being read aloud is marked where it is shown, and its paragraph scrolls into view.
+    val spoken = LocalSpokenSentence.current
+    val range = remember(text, spoken) { spoken?.let { spokenRange(text.text, it) } }
+    val mark = MaterialTheme.colorScheme.secondaryContainer
+    val onMark = MaterialTheme.colorScheme.onSecondaryContainer
+    val shown = if (range == null) text else remember(text, range, mark) {
+        AnnotatedString.Builder(text).apply { addStyle(SpanStyle(background = mark, color = onMark), range.first, range.last + 1) }.toAnnotatedString()
+    }
+    val requester = remember { BringIntoViewRequester() }
+    LaunchedEffect(range) { if (range != null) requester.bringIntoView() }
+    Column(modifier.bringIntoViewRequester(requester)) {
         if (text.isNotBlank()) {
             SelectionContainer {
-                Text(text = text, inlineContent = inlineCitations, style = style.copy(
+                Text(text = shown, inlineContent = inlineCitations, style = style.copy(
                     lineBreak = LineBreak.Paragraph,
                     hyphens = Hyphens.None,
                 ))

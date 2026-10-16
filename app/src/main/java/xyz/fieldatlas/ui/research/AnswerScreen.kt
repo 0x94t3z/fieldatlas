@@ -27,6 +27,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -123,6 +125,28 @@ fun AnswerScreen(
         placeCardModels(presentation.blocks, state.sources)
     } else null
     val missingSubjects = if (running) emptyList() else xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
+    // Reading aloud: an emergency guide plays its recording from a large button; any other finished answer can be listened to.
+    val readAloud = LocalReadAloud.current
+    val reading = readAloud?.state?.collectAsState()?.value
+    val readKey = "answer:${state.topic}:${state.shownQuestion}:${state.answer.hashCode()}"
+    val readingHere = reading?.takeIf { it.key == readKey }
+    val guideId = if (running) null else state.sources.singleOrNull()?.documentId
+        ?.takeIf { it.startsWith("emergency:") && state.answer.startsWith("**If this is an emergency") }?.removePrefix("emergency:")
+    val listenable = !running && guideId == null && state.answer.isNotBlank() && !withheld && !isInputNotice
+    DisposableEffect(readKey) { onDispose { if (readAloud?.state?.value?.key == readKey) readAloud.stop() } }
+    // The natural voice takes a few seconds to load on an older phone: do it while the answer is being read.
+    androidx.compose.runtime.LaunchedEffect(readKey, listenable) { if (listenable) readAloud?.prepareNatural() }
+    // The first Listen asks which voice to use; after that it reads at once.
+    var choosingVoice by rememberSaveable { mutableStateOf(false) }
+    val listen = { if (readAloud?.settings?.value?.voice == null) choosingVoice = true else readAloud.readAnswer(readKey, state.answer) }
+    // Read without a tap when the person asked for it: a guide that opens (if chosen in More), or the answer to a
+    // question asked with the microphone. Keyed on the finished answer, so each is read once, not on every return.
+    androidx.compose.runtime.LaunchedEffect(readKey, guideId, listenable) {
+        val settings = readAloud?.settings?.value ?: return@LaunchedEffect
+        if (readAloud.state.value != null) return@LaunchedEffect
+        if (guideId != null && settings.readGuidesAtOnce) readAloud.readGuide(readKey, guideId)
+        else if (listenable && state.askedByVoice && settings.readVoiceAnswers) readAloud.readAnswer(readKey, state.answer)
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -132,6 +156,9 @@ fun AnswerScreen(
             FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank() || running) null else ({
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
+            // While a guide is read, Stop stays in reach here, and the guide scrolls to the sentence being read.
+            if (guideId != null && readingHere != null) ReadingControl(readingHere, onStop = { readAloud?.stop() })
+            androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.markdown.LocalSpokenSentence provides readingHere?.shown) {
             LazyColumn(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 20.dp),
@@ -182,6 +209,10 @@ fun AnswerScreen(
                                 )
                             }
                             (state.metrics?.totalMillis ?: state.savedMillis)?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
+                            if (listenable && readAloud != null && readingHere == null) ListenPill(listen)
+                        }
+                        if (guideId != null && readAloud != null && readingHere == null) {
+                            ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }
                         }
                     }
                 }
@@ -373,6 +404,12 @@ fun AnswerScreen(
                     appWritten = noModelReply,
                 )
             }
+            }
+            if (guideId == null && readingHere != null && readAloud != null) {
+                ListenPlayer(readingHere, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
+            }
+            if (choosingVoice && readAloud != null) ChooseVoiceSheet(readAloud,
+                onChosen = { choosingVoice = false; readAloud.readAnswer(readKey, state.answer) }, onDismiss = { choosingVoice = false })
             // Pinned, so a follow-up or a new topic is always one tap away. A follow-up is only sent once the
             // answer is finished: it is read together with this answer. While research runs the box's button is Stop.
             if (running || state.phase == ResearchPhase.Complete && state.answer.isNotBlank()) {

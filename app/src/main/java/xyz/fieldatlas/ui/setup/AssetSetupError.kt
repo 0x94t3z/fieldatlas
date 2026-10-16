@@ -9,7 +9,7 @@ import xyz.fieldatlas.assets.AssetImportException
 import xyz.fieldatlas.assets.BudgetDecision
 
 /** Actionable copy for setup and Library. Raw failures belong in diagnostics, not primary UI. */
-internal enum class AssetAction { MODEL_DOWNLOAD, COLLECTION_DOWNLOAD, PACK_IMPORT }
+internal enum class AssetAction { MODEL_DOWNLOAD, COLLECTION_DOWNLOAD, PACK_IMPORT, VOICE_DOWNLOAD }
 
 internal fun assetSetupError(error: Throwable, action: AssetAction): String {
     val causes = generateSequence(error) { it.cause }.take(8).toList()
@@ -46,5 +46,6 @@ internal fun assetSetupError(error: Throwable, action: AssetAction): String {
         AssetAction.MODEL_DOWNLOAD -> "The model couldn't be downloaded. Check your connection and free space, then try again. You can also import a model pack."
         AssetAction.COLLECTION_DOWNLOAD -> "The collection couldn't be downloaded. Check your connection and free space, then try again."
         AssetAction.PACK_IMPORT -> "This pack couldn't be added. Choose a compatible .fapack file and try again."
+        AssetAction.VOICE_DOWNLOAD -> "The voice couldn't be downloaded. Check your connection and free space, then try again; what was saved is kept."
     }
 }

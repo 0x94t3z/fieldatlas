@@ -19,6 +19,8 @@ class LicenceAssetsTest {
             "llama.cpp-LICENSE.txt" to "../third_party/llama.cpp/LICENSE",
             "bouncycastle-LICENSE.txt" to "../docs/licenses/bouncycastle-LICENSE.txt",
             "llvm-LICENSE.txt" to "../docs/licenses/llvm-LICENSE.txt",
+            "onnxruntime-LICENSE.txt" to "../docs/licenses/onnxruntime-LICENSE.txt",
+            "supertonic-3-OpenRAIL-M.txt" to "../docs/licenses/supertonic-3-OpenRAIL-M.txt",
         ).forEach { (asset, source) ->
             assertEquals("$asset differs from $source; copy it again", File(source).readText(), File(assets, asset).readText())
         }

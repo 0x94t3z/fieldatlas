@@ -49,7 +49,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // The queue is made first, so it sees a download resumed here from its start.
+        container.downloads
         container.backgroundDownloads.resumeInterrupted()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        container.appVisible = true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,6 +88,8 @@ class MainActivity : ComponentActivity() {
             }
         })
         setContent {
+            androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.research.LocalReadAloud provides container.readAloud,
+                xyz.fieldatlas.ui.library.LocalDownloads provides container.downloads) {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
             val researchBackground by researchViewModel.background.collectAsStateWithLifecycle()
@@ -220,7 +229,7 @@ class MainActivity : ComponentActivity() {
                         onBack = { benchmarkViewModel.stop(); benchmarkVisible.value = false },
                     )
                 }
-                return@setContent
+                return@CompositionLocalProvider
             }
 
             val catalogState by container.catalogState.collectAsStateWithLifecycle()
@@ -408,6 +417,7 @@ class MainActivity : ComponentActivity() {
                     onNameCity = { explainLocation = false },
                 )
             }
+                    }
         }
     }
 
@@ -416,6 +426,7 @@ class MainActivity : ComponentActivity() {
         // service (started while a run is active) keeps the process alive, the model stays
         // loaded, and the answer completes while the user does something else.
         if (benchmarkWasOpened) benchmarkViewModel.stop()
+        container.appVisible = false
         super.onStop()
     }
 

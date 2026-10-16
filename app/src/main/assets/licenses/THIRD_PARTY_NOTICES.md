@@ -2,7 +2,7 @@
 
 This list names the significant source and runtime components. It does not replace the licence texts and notices distributed by their copyright holders.
 
-The app shows this list and the full licence texts it ships (Apache-2.0, llama.cpp's MIT licence, Bouncy Castle, LLVM, the Source Serif 4 and Manrope font licences, the OCR components' licences and the Rust runtime notices of the native search) under **More → Licences**.
+The app shows this list and the full licence texts it ships (Apache-2.0, llama.cpp's MIT licence, Bouncy Castle, LLVM, ONNX Runtime's MIT licence, the Supertonic voice's OpenRAIL-M licence, the Source Serif 4 and Manrope font licences, the OCR components' licences and the Rust runtime notices of the native search) under **More → Licences**.
 
 | Component | Pinned version | License | Upstream license |
 | --- | --- | --- | --- |
@@ -33,6 +33,10 @@ The app shows this list and the full licence texts it ships (Apache-2.0, llama.c
 | SQLite (bundled by `androidx.sqlite:sqlite-bundled`, `libsqliteJni.so`) | as shipped in `2.7.1` | Public domain | [SQLite copyright](https://www.sqlite.org/copyright.html) |
 | LLVM OpenMP runtime (`libomp.so`, from the Android NDK, used by llama.cpp) | as shipped in the pinned NDK | Apache-2.0 WITH LLVM-exception | [LLVM licence](https://llvm.org/LICENSE.txt) |
 | Leptonica, libjpeg and libpng (`libleptonica.so`, `libjpeg.so`, `libpngx.so`, bundled by Tesseract4Android) | as shipped in `4.9.0` | Leptonica licence (BSD-2-Clause style), IJG licence, PNG Reference Library licence | [Tesseract4Android repository](https://github.com/adaptech-cz/Tesseract4Android) |
+| sherpa-onnx (`libsherpa-onnx-jni.so` and its Kotlin TTS API, for the reading voice) | `v1.13.8`, archive SHA-256 pinned in `tools/android/fetch_sherpa_onnx.py` | Apache-2.0 | [sherpa-onnx LICENSE](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.8/LICENSE) |
+| ONNX Runtime (`libonnxruntime.so`, bundled by sherpa-onnx) | `1.28.2`, as shipped in sherpa-onnx `v1.13.8` | MIT | [`docs/licenses/onnxruntime-LICENSE.txt`](docs/licenses/onnxruntime-LICENSE.txt) |
+| Supertonic 3 voice (int8, prepared for sherpa-onnx; downloaded on request, not in the APK) | Hugging Face `csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11` at `cca5a0e6c96e1d2c720986bf7e75fcc81dee3ae4`, file SHA-256s pinned in `NaturalVoice.kt` | Model weights: BigScience OpenRAIL-M; Supertone sample code: MIT | [`docs/licenses/supertonic-3-OpenRAIL-M.txt`](docs/licenses/supertonic-3-OpenRAIL-M.txt) and [Supertonic 3 model card](https://huggingface.co/Supertone/supertonic-3) |
+| Emergency guide recordings (`assets/emergency/audio`, `assets/speech/natural-sample.ogg`) | made with the Supertonic 3 voice F1 by `tools/packs/build_guide_audio.py` from the bundled guide texts | Speech output of the voice above; the guide texts keep their own sources and licences | [`tools/packs/build_guide_audio.py`](tools/packs/build_guide_audio.py) |
 
 Exact model file names, SHA-256 digests, quantization, sources, and build procedures are recorded in `MODELS.md`, the `models/*.example.json` registries, and vector-pack manifests. Answer-model weights are not committed to Git; the small offline Vosk speech model is bundled in the APK and carries its own provenance record.
 

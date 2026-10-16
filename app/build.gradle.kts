@@ -29,6 +29,16 @@ val buildLeviathanNative by tasks.registering(Exec::class) {
         "--assets", generatedLeviathanAssets.get().asFile.absolutePath)
 }
 
+// The reading voice's engine: two prebuilt ARM64 libraries from a pinned sherpa-onnx release, checked by SHA-256
+// before extraction (the same engine that recorded the bundled emergency guides).
+val generatedSherpaJni = layout.buildDirectory.dir("generated/sherpaJni")
+val fetchSherpaOnnx by tasks.registering(Exec::class) {
+    inputs.file(rootProject.file("tools/android/fetch_sherpa_onnx.py"))
+    outputs.dir(generatedSherpaJni)
+    commandLine(listOf("python3", rootProject.file("tools/android/fetch_sherpa_onnx.py").absolutePath,
+        "--output", generatedSherpaJni.get().asFile.absolutePath) + if (gradle.startParameter.isOffline) listOf("--offline") else emptyList())
+}
+
 val releaseSigningInputs = mapOf(
     "FIELDATLAS_KEYSTORE_PATH" to providers.environmentVariable("FIELDATLAS_KEYSTORE_PATH").orNull,
     "FIELDATLAS_STORE_PASSWORD" to providers.environmentVariable("FIELDATLAS_STORE_PASSWORD").orNull,
@@ -46,6 +56,7 @@ if (hasAnyReleaseSigningInput && !hasAllReleaseSigningInputs) {
 android {
     ndkVersion = "29.0.13113456"
     sourceSets.getByName("main").jniLibs.srcDir(generatedLeviathanJni)
+    sourceSets.getByName("main").jniLibs.srcDir(generatedSherpaJni)
     sourceSets.getByName("main").assets.srcDir(generatedLeviathanAssets)
     sourceSets.getByName("main").assets.srcDir(generatedBenchmarkAssets)
     namespace = "xyz.fieldatlas"
@@ -57,8 +68,8 @@ android {
         applicationId = "xyz.fieldatlas"
         minSdk = 33
         targetSdk = 36
-        versionCode = 20
-        versionName = "1.4.1"
+        versionCode = 21
+        versionName = "1.4.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
@@ -107,7 +118,7 @@ android {
     }
 }
 
-tasks.named("preBuild").configure { dependsOn(syncBenchmarkAssets, buildLeviathanNative) }
+tasks.named("preBuild").configure { dependsOn(syncBenchmarkAssets, buildLeviathanNative, fetchSherpaOnnx) }
 
 // Opt-in host runner uses the same SQLite version, with desktop JNI instead of Android JNI.
 // Nothing from this configuration is included in the APK or ordinary unit tests.

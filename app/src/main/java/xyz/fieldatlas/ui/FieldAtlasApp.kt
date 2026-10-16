@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.collectAsState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -402,15 +403,31 @@ fun FieldAtlasApp(
         val settled = transition.currentState == androidx.compose.animation.EnterExitState.Visible &&
             transition.targetState == androidx.compose.animation.EnterExitState.Visible
         LaunchedEffect(settled) { if (settled && navigation.detail == null) launchFrame = null }
+        val downloads = xyz.fieldatlas.ui.library.LocalDownloads.current
+        val downloadStatus = downloads?.state?.collectAsState()?.value
+        var showDownloads by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
+        if (showDownloads && downloads != null) {
+            // Older editions kept after an update, switched off: their space is what a failed download most often lacks.
+            val knowledge = packs.filter { it.type == xyz.fieldatlas.assets.PackType.KNOWLEDGE }
+            val oldEditions = knowledge.filter { old -> !old.enabled && knowledge.any { it.id == old.id && it.enabled } }
+            xyz.fieldatlas.ui.library.DownloadsSheet(downloads, oldEditions,
+                onRemoveOldEditions = { oldEditions.forEach(onDeletePack) }, onDismiss = { showDownloads = false })
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
-                Box(
+                Column(
                     Modifier.navigationBarTransition().fillMaxWidth()
                         .background(MaterialTheme.colorScheme.background)
                         .navigationBarsPadding()
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 ) {
+                    // Any download follows the person through the app, just above the tabs.
+                    downloads?.let { queue ->
+                        downloadStatus?.let { status ->
+                            xyz.fieldatlas.ui.library.DownloadsBar(status, onPause = queue.queue::pause, onOpen = { showDownloads = true })
+                        }
+                    }
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.CardShape,

@@ -84,6 +84,8 @@ data class ResearchUiState(
     val waitingFor: String? = null,
     /** When the work began, after any wait for the answer ahead; the clocks count from here. */
     val workingSinceNanos: Long? = null,
+    /** The question was spoken into the microphone, so its answer may be read back aloud when it is done. */
+    val askedByVoice: Boolean = false,
 ) {
     /** What the clocks count from: the work, not the wait before it. */
     val clockStartNanos: Long? get() = workingSinceNanos ?: startedAtNanos
@@ -300,6 +302,12 @@ class ResearchViewModel(
 
     private var voiceBaseQuestion = ""
 
+    /** The words the last recording put in a box; a question sent with them in it was asked by voice. */
+    private var lastDictated = ""
+
+    private fun askedByVoice(sent: String): Boolean =
+        lastDictated.isNotBlank() && sent.contains(lastDictated, ignoreCase = true).also { lastDictated = "" }
+
     private fun joinQuestion(base: String, spoken: String) = listOf(base, spoken.trim()).filter(String::isNotBlank).joinToString(" ")
 
     private fun stopVoiceCapture() {
@@ -314,6 +322,7 @@ class ResearchViewModel(
             activeTranscriber = null
             // The final pass can correct the live guess; if it returns nothing, keep what was shown.
             val transcript = result.getOrDefault("").ifBlank { live }
+            lastDictated = transcript.trim()
             writeDictation(joinQuestion(voiceBaseQuestion, transcript), forFollowUp)
             val failure = result.exceptionOrNull()
             mutableVoiceState.value = VoiceUiState(
@@ -352,7 +361,7 @@ class ResearchViewModel(
         val question = mutableUiState.value.question
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
         beforeFollowUp = null
-        run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis())
+        run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis(), byVoice = askedByVoice(question))
     }
 
     /**
@@ -369,7 +378,7 @@ class ResearchViewModel(
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
         beforeFollowUp = state
-        run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(),
+        run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(), byVoice = askedByVoice(text),
             // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
             // is no longer attached, and its words must not be quoted as the library's.
             carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(),
@@ -390,7 +399,7 @@ class ResearchViewModel(
     }
 
     private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long,
-                    carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null) {
+                    carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null, byVoice: Boolean = false) {
         // One answer is researched at a time on the phone: a question asked while another runs in the background
         // waits for it, and says so.
         val ahead = asides.filter { it.sink.state.isRunning }.mapNotNull { aside -> aside.job?.takeIf { it.isActive } }
@@ -403,6 +412,7 @@ class ResearchViewModel(
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
             waitingFor = asides.lastOrNull { it.sink.state.isRunning && it.job?.isActive == true }?.sink?.state?.shownQuestion,
+            askedByVoice = byVoice,
         )
         // A run cancelled a moment ago may still be letting go of the model and search; start after it,
         // or the new run fails with "Another local research run is active".

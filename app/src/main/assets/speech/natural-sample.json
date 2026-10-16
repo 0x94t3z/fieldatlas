@@ -1,0 +1,14 @@
+{
+ "text": "This is the natural voice. It reads your answers aloud on this phone, even with no signal.",
+ "durationMs": 7281,
+ "segments": [
+  {
+   "startMs": 0,
+   "shown": "This is the natural voice."
+  },
+  {
+   "startMs": 2641,
+   "shown": "It reads your answers aloud on this phone, even with no signal."
+  }
+ ]
+}

@@ -464,6 +464,24 @@ class AppContainer(context: Context) {
             xyz.fieldatlas.emergency.EmergencyData.guides(it.readText()).guides
         }
     }
+    /** Reads guides and answers aloud: the guides' recordings, or the phone's voice. */
+    val readAloud: xyz.fieldatlas.speech.ReadAloud by lazy { xyz.fieldatlas.speech.ReadAloud(appContext) { emergencyGuides } }
+
+    /** An activity of the app is on screen; a finished download then needs no notification. */
+    @Volatile var appVisible: Boolean = false
+
+    /** Every download Library offers (models, collections, the voice), one at a time and the rest in line. */
+    val downloads: xyz.fieldatlas.assets.AppDownloads by lazy {
+        xyz.fieldatlas.assets.AppDownloads(appContext, backgroundDownloads, readAloud.natural,
+            isInstalled = { item ->
+                when (item) {
+                    is xyz.fieldatlas.assets.DownloadItem.Model -> packs.value.any { it.id == item.offer.id && it.version == item.offer.version }
+                    is xyz.fieldatlas.assets.DownloadItem.Knowledge -> packs.value.any { it.id == item.pack.id && it.version == item.pack.version }
+                    xyz.fieldatlas.assets.DownloadItem.Voice -> readAloud.natural.ready
+                }
+            },
+            onFinished = { item -> if (!appVisible) xyz.fieldatlas.assets.AssetDownloadService.notifyReady(appContext, item) })
+    }
     /** The licence of a bundled emergency source ("emergency:<guide>" or "emergency:numbers-<country>"). */
     fun emergencyLicense(documentId: String): String? {
         val id = documentId.removePrefix("emergency:")
