@@ -149,16 +149,11 @@ fun LibraryScreen(
     val knowledgeGroups = shownKnowledge.sortedWith(installedOrder)
         .groupBy { knowledgeCategory(it.id, declared[it.id].orEmpty()) }
         .toSortedMap(compareBy { it.ordinal })
-    val available = availableKnowledge
-        .filterNot { candidate -> knowledge.any { it.id == candidate.id && it.version == candidate.version } }
-        .sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
-    // A collection already on the phone is offered again only as an update, and only when the catalog's edition is
-    // later than every edition installed; an older or unordered edition of it is not offered at all.
-    val fresh = available.filter { candidate -> knowledge.none { it.id == candidate.id } }
-    val updates = available.filter { candidate ->
-        knowledge.any { it.id == candidate.id } &&
-            knowledge.filter { it.id == candidate.id }.all { installed -> (xyz.fieldatlas.assets.compareEditions(candidate.version, installed.version) ?: 0) > 0 }
-    }
+    val offers = xyz.fieldatlas.assets.discoverOffers(availableKnowledge, knowledge)
+    val order = xyz.fieldatlas.ui.presentation.knowledgeOrder<KnowledgeCatalogEntry>({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title })
+    val fresh = offers.fresh.sortedWith(order)
+    val updates = offers.updates.sortedWith(order)
+    val available = fresh + updates
     // The app always keeps exactly one answer model and one speech model in service; with no
     // explicit choice the first installed pack of the type serves (mirrors the runtime fallback).
     val activeModel = models.firstOrNull { it.active } ?: models.firstOrNull()

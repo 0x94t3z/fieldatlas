@@ -95,3 +95,22 @@ fun compareEditions(left: String, right: String): Int? {
 }
 
 private val PRE_RELEASE = Regex("(?i)(^|[-._])(preview|alpha|beta|rc[0-9]*|pre|dev|draft)([-._]|$)")
+
+/** What Discover offers: collections not on the phone at all, and later editions of ones that are. */
+data class DiscoverOffers(val fresh: List<KnowledgeCatalogEntry>, val updates: List<KnowledgeCatalogEntry>)
+
+/**
+ * Splits the catalog into what Discover may offer. A collection already on the phone is offered again only as an
+ * update, and only when the catalog's edition is later than every edition installed. The same edition, an earlier
+ * one, or one that cannot be ordered against it (an old catalog saved on the phone, say) is never offered: someone
+ * who has the newest packs sees nothing to download.
+ */
+fun discoverOffers(catalog: List<KnowledgeCatalogEntry>, installed: List<InstalledAsset>): DiscoverOffers {
+    val knowledge = installed.filter { it.type == PackType.KNOWLEDGE }
+    val fresh = catalog.filter { candidate -> knowledge.none { it.id == candidate.id } }
+    val updates = catalog.filter { candidate ->
+        val editions = knowledge.filter { it.id == candidate.id }
+        editions.isNotEmpty() && editions.all { (compareEditions(candidate.version, it.version) ?: 0) > 0 }
+    }
+    return DiscoverOffers(fresh, updates)
+}
