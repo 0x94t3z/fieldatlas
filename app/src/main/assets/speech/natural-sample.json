@@ -1,13 +1,13 @@
 {
- "text": "This is the natural voice. It reads your answers aloud on this phone, even with no signal.",
- "durationMs": 7281,
+ "text": "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal.",
+ "durationMs": 8203,
  "segments": [
   {
    "startMs": 0,
-   "shown": "This is the natural voice."
+   "shown": "This is the natural voice of Field Atlas."
   },
   {
-   "startMs": 2641,
+   "startMs": 3563,
    "shown": "It reads your answers aloud on this phone, even with no signal."
   }
  ]

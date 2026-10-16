@@ -26,7 +26,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "app/src/main/assets/emergency/audio"
 SAMPLE = ROOT / "app/src/main/assets/speech/natural-sample.ogg"
-SAMPLE_TEXT = "This is the natural voice. It reads your answers aloud on this phone, even with no signal."
+SAMPLE_TEXT = "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal."
 VOICE = {"engine": "Supertonic 3 (int8, sherpa-onnx)", "style": "F1", "steps": 5, "speed": 1.0, "lang": "en"}
 PAUSE = 0.45          # between sentences
 LONG_PAUSE = 0.8      # after the call line and after a heading

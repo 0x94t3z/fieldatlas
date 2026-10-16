@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -103,7 +104,11 @@ internal fun VoiceDiscoverRow(readAloud: ReadAloud, onGet: () -> Unit, onDetails
         extra = if (voice == NaturalVoice.State.Ready || status.isActive(DownloadItem.Voice)) null else ({ SampleLine(readAloud, reading) }))
 }
 
-/** On this phone: the voice is in use for answers (or can be), plays a sample, and can be removed. */
+/**
+ * On this phone: the voice's card, built like every pack's. Its switch says whether answers are read in it (off: the
+ * phone's own voice); "In use" shows under its size the way the answer model's does; the overflow menu plays a
+ * sample or deletes it.
+ */
 @Composable
 internal fun VoiceInstalledRow(readAloud: ReadAloud) {
     val settings by readAloud.settings.collectAsState()
@@ -112,21 +117,23 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
     var menu by rememberSaveable { mutableStateOf(false) }
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val inUse = settings.voice == ReadAloud.Choice.Natural
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            FieldAtlasIconTile(Icons.AutoMirrored.Outlined.VolumeUp, size = 40.dp, tone = TileTone.Sage)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                // Wraps like the other pack titles ("Biology & longevity"), never cut short.
-                Text(DownloadItem.Voice.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp, lineHeight = 20.sp))
-                Text("$voiceSize · reads answers aloud", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (inUse) Box(Modifier.padding(top = 4.dp).clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.primaryContainer)
-                    .padding(horizontal = 9.dp, vertical = 3.dp)) {
-                    Text("In use for answers", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            FieldAtlasIconTile(Icons.AutoMirrored.Outlined.VolumeUp, size = 36.dp, tone = TileTone.Sage,
+                modifier = Modifier.alpha(if (inUse) 1f else 0.5f))
+            Column(Modifier.weight(1f).alpha(if (inUse) 1f else 0.6f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(DownloadItem.Voice.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 20.sp,
+                    fontWeight = FontWeight(650)), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                Text("$voiceSize · reads answers aloud" + if (inUse) "" else " · not used",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 18.sp),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (inUse) Text("In use", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
-            SampleButton(readAloud, reading)
+            xyz.fieldatlas.ui.theme.FieldAtlasSwitch(
+                checked = inUse,
+                onCheckedChange = { on -> readAloud.updateSettings { it.copy(voice = if (on) ReadAloud.Choice.Natural else ReadAloud.Choice.Phone) } },
+                modifier = Modifier.semantics { contentDescription = "Read answers in the natural voice" },
+            )
             // The same overflow menu as every pack card: rounded, on the card's colour, delete last and in red.
             Box {
                 androidx.compose.material3.IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
@@ -135,15 +142,15 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
                 }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false },
                     shape = RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surface) {
-                    if (!inUse) {
-                        DropdownMenuItem(
-                            text = { Text("Use for answers") },
-                            leadingIcon = { Icon(FieldAtlasIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                            onClick = { menu = false; readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) } },
-                        )
-                        androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                    }
+                    val sampling = reading?.key == ReadAloud.SAMPLE_KEY
+                    DropdownMenuItem(
+                        text = { Text(if (sampling) "Stop the sample" else "Play a sample") },
+                        leadingIcon = { Icon(if (sampling) Icons.Filled.Stop else Icons.Filled.PlayArrow, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary) },
+                        onClick = { menu = false; if (sampling) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural) },
+                    )
+                    androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     DropdownMenuItem(
                         text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
@@ -239,7 +246,7 @@ private fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         SampleButton(readAloud, reading)
         SampleWave(playing && reading?.paused != true)
-        Text(if (playing) seconds(reading?.positionMs ?: 0) else "0:07 sample", style = MaterialTheme.typography.labelMedium,
+        Text(if (playing) seconds(reading?.positionMs ?: 0) else "${seconds(readAloud.sampleMillis)} sample", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

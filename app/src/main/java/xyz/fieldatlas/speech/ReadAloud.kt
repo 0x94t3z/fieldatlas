@@ -147,6 +147,9 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         }.getOrNull()
     }
 
+    /** How long the natural voice's sample is. */
+    val sampleMillis: Long get() = sampleTimings?.durationMs ?: 8_000
+
     /** Whether [guideId] has a recording in the reading voice. */
     fun hasRecording(guideId: String): Boolean = manifest?.guides?.containsKey(guideId) == true
 
@@ -551,7 +554,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         const val SAMPLE_KEY = "sample"
         const val NO_PHONE_VOICE = "This phone has no speech voice. Download the natural voice in Library, " +
             "or add a text-to-speech voice in Android settings."
-        const val SAMPLE_TEXT = "This is the natural voice. It reads your answers aloud on this phone, even with no signal."
+        const val SAMPLE_TEXT = "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal."
         private const val VOICE = "voice"
         private const val SPEED = "speed"
         private const val READ_VOICE_ANSWERS = "read-voice-answers"
