@@ -115,7 +115,7 @@ object EvidenceRelevance {
         expandedTerms: List<String> = emptyList(),
         question: String? = null,
     ): List<Evidence> {
-        val ordinary = keepOrdinary(evidence, questionTerms, expandedTerms, question)
+        val ordinary = keepOrdinary(withoutUnaskedProposals(evidence, question), questionTerms, expandedTerms, question)
         if (question == null || MultipartEvidence.clauses(question).isEmpty()) return ordinary
         val partial = clauseGroups(evidence, question).flatten()
         val eligible = partial.map { Triple(it.documentId, it.chunkId, it.source) }.toSet()
@@ -125,6 +125,29 @@ object EvidenceRelevance {
         return (ordinary.filter { Triple(it.documentId, it.chunkId, it.source) in eligible } + partial)
             .distinctBy { Triple(it.documentId, it.chunkId, it.source) }
     }
+
+    /**
+     * Ethereum standards (EIPs and ERCs) answer only questions about crypto. Their specification prose shares
+     * everyday words with anything: "ERC-7802 … Minting/Burning" reached a question about drain cleaner burning an
+     * eye, "ERC-3005 … block number" one about a friend passed out at a hostel bar, and each took one of a phone's
+     * two or three passage slots. A question with any crypto word keeps them, so a missed word only keeps today's
+     * behaviour; it never hides a standard from a question that names one.
+     */
+    internal fun withoutUnaskedProposals(evidence: List<Evidence>, question: String?): List<Evidence> {
+        if (question == null || cryptoContext.containsMatchIn(question) || ProposalLookup.named(question) != null) return evidence
+        return evidence.filterNot { isProposal(it) }
+    }
+
+    private fun isProposal(item: Evidence) = item.documentId.startsWith("eip-") || item.documentId.startsWith("erc-")
+
+    private val cryptoContext = Regex("(?i)\\b(?:crypto\\w*|bitcoin\\w*|btc|ethereum|ether|eth|blockchains?|chains?|on-?chain|wallets?|tokens?|nfts?|" +
+        "defi|dao|daos|dapps?|smart contracts?|contracts?|solidity|vyper|evm|gas|gwei|wei|stak\\w*|validators?|rollups?|layer ?(?:1|2|one|two)|l[12]|" +
+        "eips?|ercs?|seed phrase|mnemonic|private keys?|public keys?|keys?|ledger|trezor|metamask|uniswap|swaps?|airdrops?|mining|miners?|" +
+        "hash\\w*|merkle|zk\\w*|zero[- ]knowledge|proof of (?:stake|work)|consensus|blobs?|calldata|account abstraction|multisig|" +
+        "signatures?|signing|vitalik|buterin|satoshi|stablecoins?|usdc|usdt|dai|addresses|address|transactions?|tx|txs|transfers?|" +
+        "blocks?|nodes?|forks?|finality|slashing|slashed|difficulty|mempool|bridges?|oracles?|liquidity|lending|flash loans?|" +
+        "exchanges?|custody|self-custody|hardware wallets?|cold storage|halving|sats|lightning network|taproot|segwit|utxo|" +
+        "nonce|opcodes?|bytecode|abi|erc-?\\d+|eip-?\\d+|web3|protocol|protocols|decentrali[sz]\\w*)\\b")
 
     /** Explicitly non-recursive: a clause uses exactly the pre-existing single-question gate. */
     internal fun clauseGroups(evidence: List<Evidence>, question: String): List<List<Evidence>> =
