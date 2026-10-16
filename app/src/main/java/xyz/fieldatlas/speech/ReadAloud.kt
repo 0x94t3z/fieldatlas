@@ -190,7 +190,8 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
             ?: listOf(SpeechText.Segment(SAMPLE_TEXT, SAMPLE_TEXT))
         // The natural voice's sample is always its recording, made in the same voice at build time: it plays at once,
         // where making it live would keep the person waiting on a slower phone.
-        if (choice == Choice.Phone) speakWithPhone(SAMPLE_KEY, sample)
+        // The phone's voice says what it is: the natural voice's line would be wrong in its mouth.
+        if (choice == Choice.Phone) speakWithPhone(SAMPLE_KEY, SpeechText.sentences(PHONE_SAMPLE_TEXT).map { SpeechText.Segment(it, it) })
         else playRecording(SAMPLE_KEY, sample, recorded?.segments?.map { it.startMs } ?: listOf(0L),
             "speech/natural-sample.ogg", recorded?.durationMs ?: 0)
     }
@@ -555,6 +556,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         const val NO_PHONE_VOICE = "This phone has no speech voice. Download the natural voice in Library, " +
             "or add a text-to-speech voice in Android settings."
         const val SAMPLE_TEXT = "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal."
+        const val PHONE_SAMPLE_TEXT = "This is your phone's own voice. Field Atlas can read your answers aloud with it, even with no signal."
         private const val VOICE = "voice"
         private const val SPEED = "speed"
         private const val READ_VOICE_ANSWERS = "read-voice-answers"
