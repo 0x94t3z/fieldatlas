@@ -636,13 +636,8 @@ private fun AssetCard(
                             leadingIcon = { Icon(FieldAtlasIcons.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                             onClick = { menuOpen = false; showAbout = true },
                         )
-                        if (onToggleResearch != null) DropdownMenuItem(
-                            text = { Text(if (enabled) "Don't use in research" else "Use in research") },
-                            leadingIcon = { Icon(if (enabled) FieldAtlasIcons.Close else FieldAtlasIcons.Check, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary) },
-                            onClick = { menuOpen = false; onToggleResearch(!enabled) },
-                        )
-                        if (asset != null || onToggleResearch != null) HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        // Using a collection in research is the switch on the card, so the menu does not repeat it.
+                        if (asset != null) HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         DropdownMenuItem(
                             text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
