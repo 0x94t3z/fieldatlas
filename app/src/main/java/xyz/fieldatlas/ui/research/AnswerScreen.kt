@@ -624,6 +624,10 @@ private fun AnswerSourceCard(
                     maxLines = if (source.isAttachment) 1 else 2,
                     overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
+                passageOpening(evidence.text)?.let { opening ->
+                    Text(opening, style = MaterialTheme.typography.bodySmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
                 Text(
                     (if (source.isAttachment) source.metadata else sourceDisplayName(evidence.source)) +
                         if (cited) " · cited" else "",
@@ -659,9 +663,19 @@ private data class AnswerSourceGroup(
     val entries: List<Pair<Int, Evidence>>,
 )
 
+// One row per passage, even when one article gave two: stacked numbers beside one title read as a half-empty row,
+// and each number in the answer should lead to its own passage.
 private fun groupAnswerSources(sources: List<Pair<Int, Evidence>>): List<AnswerSourceGroup> =
-    sources.groupBy { (_, evidence) -> Triple(evidence.documentId, evidence.title, evidence.source) }
-        .map { (key, entries) -> AnswerSourceGroup(key.toString(), entries) }
+    sources.map { entry -> AnswerSourceGroup("${entry.first}:${entry.second.chunkId}", listOf(entry)) }
+
+/** The first words of a passage, so two passages from the same article can be told apart before one is opened. */
+internal fun passageOpening(text: String): String? {
+    var words = xyz.fieldatlas.research.EvidenceRelevance.passageText(text).replace(Regex("\\s+"), " ").trim()
+    if (words.isEmpty()) return null
+    // A passage cut from the middle of a word ("e parts on site") opens at its first whole word instead.
+    if (words.first().isLowerCase() && ' ' in words) words = "\u2026" + words.substringAfter(' ')
+    return "\u201C" + (if (words.length > 90) words.take(89).trimEnd() + "\u2026" else words) + "\u201D"
+}
 
 private fun otherSourceLabel(count: Int, expanded: Boolean): String {
     val noun = if (count == 1) "passage" else "passages"
