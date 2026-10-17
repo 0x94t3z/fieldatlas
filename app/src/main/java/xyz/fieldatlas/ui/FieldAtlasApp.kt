@@ -153,7 +153,7 @@ fun FieldAtlasApp(
     researchBackground: List<xyz.fieldatlas.ui.research.BackgroundAnswer> = emptyList(),
     onOpenBackground: (Long) -> Boolean = { false },
     onDismissBackground: (Long) -> Unit = {},
-    onParkAnswer: () -> Unit = {},
+    onLeaveAnswer: () -> Unit = {},
     onStop: () -> Unit,
     inferenceState: InferenceState = InferenceState.Ready,
     onLoadModel: () -> Unit = {},
@@ -336,9 +336,10 @@ fun FieldAtlasApp(
                 } else AnswerScreen(
                     state = if (starting) ResearchUiState(question = pending!!.question, attachments = pending.attachments,
                         phase = ResearchPhase.Searching) else shownState,
-                    // A finished answer stays one tap away on the Research home ("Answer ready"), which starts afresh.
+                    // The Research home starts afresh: an answer still running goes on in the background and says when
+                    // it is ready; a finished one is in History.
                     onBack = {
-                        if (researchState.phase == ResearchPhase.Complete && researchState.answer.isNotBlank()) onParkAnswer()
+                        onLeaveAnswer()
                         navigation.back()
                     },
                     onAskAnother = { onAskAnotherQuestion(); navigation.keepInResearch(); navigation.back() },

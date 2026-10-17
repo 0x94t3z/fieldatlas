@@ -53,15 +53,15 @@ class ContinueTopicTest {
 
         val vm = viewModel(history)
         assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
-        vm.parkFinished()
+        vm.leaveAnswer()
         assertTrue(vm.background.value.isEmpty())
         assertEquals(ResearchPhase.Idle, vm.uiState.value.phase)
 
-        // A follow-up asked on it is new work: leaving that answer keeps it one tap away, as for any new answer.
+        // A follow-up answered while it was read is finished too: leaving it marks nothing ready either.
         assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
         vm.submitFollowUp("is it free to visit?")
-        vm.parkFinished()
-        assertEquals(1, vm.background.value.size)
+        vm.leaveAnswer()
+        assertTrue(vm.background.value.isEmpty())
     }
 
     @Test fun continuingFromHistoryReopensTheTopicAtItsLatestAnswer() {

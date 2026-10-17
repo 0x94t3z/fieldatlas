@@ -22,7 +22,7 @@ import xyz.fieldatlas.research.Retriever
 class BackgroundAnswerTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     private val evidence = Evidence("doc", "doc:0000", "Hagia Sophia — Overview", "Source", "Hagia Sophia is in Istanbul.", 1.0)
-    private val gate = CompletableDeferred<Unit>()
+    private var gate = CompletableDeferred<Unit>()
     private var holding = true
     private val history = AnswerHistoryStore(
         java.io.File(java.nio.file.Files.createTempDirectory("background").toFile(), "answers.json"), synchronousWrites = true)
@@ -120,25 +120,39 @@ class BackgroundAnswerTest {
         assertEquals(1, viewModel.uiState.value.earlier.size)
     }
 
-    @Test fun leavingAFinishedAnswerKeepsItOneTapAway() {
+    @Test fun leavingAFinishedAnswerStartsTheHomeAfreshWithoutARow() {
         holding = false
         viewModel.updateQuestion("tell me about the hagia sophia")
         viewModel.submit()
         assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
-        viewModel.parkFinished()
+        viewModel.leaveAnswer()
         assertEquals(ResearchUiState(), viewModel.uiState.value)
+        // Just read, and in History: an "Answer ready" row for it would only repeat it.
+        assertTrue(viewModel.background.value.isEmpty())
+    }
+
+    @Test fun leavingARunningAnswerKeepsItGoingAndMarksItReadyWhenDone() {
+        viewModel.updateQuestion("tell me about the hagia sophia")
+        viewModel.submit()
+        assertTrue(viewModel.uiState.value.isRunning)
+        viewModel.leaveAnswer()
+        assertEquals(ResearchUiState(), viewModel.uiState.value)
+        assertTrue(aside().running)
+        release()
         assertTrue(aside().done)
         assertTrue(viewModel.openAside(aside().id))
         assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
     }
 
     @Test fun openingAReadyAnswerWhileAnotherRunsKeepsTheOtherGoing() {
-        holding = false
         viewModel.updateQuestion("tell me about the hagia sophia")
         viewModel.submit()
-        viewModel.parkFinished()
+        viewModel.leaveAnswer()
+        release()
         val ready = aside().id
+        assertTrue(aside().done)
         holding = true
+        gate = CompletableDeferred()
         viewModel.updateQuestion("when was it built?")
         viewModel.submit()
         assertTrue(viewModel.uiState.value.isRunning)

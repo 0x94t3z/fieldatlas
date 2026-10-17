@@ -344,7 +344,7 @@ class MainActivity : ComponentActivity() {
                 researchBackground = researchBackground,
                 onOpenBackground = researchViewModel::openAside,
                 onDismissBackground = researchViewModel::dismissAside,
-                onParkAnswer = researchViewModel::parkFinished,
+                onLeaveAnswer = researchViewModel::leaveAnswer,
                 onStop = researchViewModel::cancelResearch,
                 onLoadModel = {
                     lifecycleScope.launch {

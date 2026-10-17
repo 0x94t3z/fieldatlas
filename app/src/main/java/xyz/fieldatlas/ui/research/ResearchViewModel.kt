@@ -560,18 +560,23 @@ class ResearchViewModel(
     }
 
     /**
-     * Leaving a finished answer for the Research home keeps it one tap away there ("Answer ready"), instead of a
-     * separate screen for it; the home itself starts afresh.
+     * Leaving the answer page for the Research home, which starts afresh. One still being researched goes on in the
+     * background, as with New topic, so the app can say when it is ready. A finished one was just read and is in
+     * History: an "Answer ready" row for it only repeated what the person had seen.
      */
-    fun parkFinished() {
+    fun leaveAnswer() {
+        if (mutableUiState.value.isRunning) {
+            if (detachForeground()) clearForeground()
+            return
+        }
+        leaveFinished()
+    }
+
+    private fun leaveFinished() {
         val state = mutableUiState.value
         if (state.phase != ResearchPhase.Complete || state.answer.isBlank()) return
-        // An answer picked up from History and only read is already there; the home starts afresh without a row for it.
-        if (state.reopened) { clearForeground(); return }
-        asides += Aside(nextAsideId++, RunSink().apply { detached = true; this.state = state }, null)
         currentSink = null
         clearForeground()
-        publishAsides()
     }
 
     /**
@@ -586,7 +591,7 @@ class ResearchViewModel(
         if (!state.isRunning && !answered) return false
         if (!detachForeground() && mutableUiState.value.isRunning) return false
         asides.remove(aside)
-        parkFinished()
+        leaveFinished()
         aside.sink.detached = false
         currentSink = aside.sink
         researchJob = aside.job?.takeIf { it.isActive }
