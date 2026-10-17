@@ -506,23 +506,25 @@ internal fun ReadyNote(answer: BackgroundAnswer, onOpen: () -> Unit, onDismiss: 
     Surface(
         modifier = modifier.statusBarsPadding().padding(horizontal = 14.dp, vertical = 8.dp).fillMaxWidth()
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        // The app's own card colours, as the "Answer ready" row on the Research home, so it follows the theme
+        // instead of turning dark on a light screen.
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.inverseSurface,
-        contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+        color = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
         shadowElevation = 8.dp,
     ) {
         Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(FieldAtlasIcons.Document, null, Modifier.size(20.dp))
+            Icon(FieldAtlasIcons.Document, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
             Column(Modifier.weight(1f).padding(vertical = 8.dp)) {
                 Text("Answer ready", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
-                Text(answer.question, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(answer.question, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            androidx.compose.material3.TextButton(onClick = onOpen,
-                colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.inversePrimary)) { Text("Open") }
+            androidx.compose.material3.TextButton(onClick = onOpen) { Text("Open") }
             androidx.compose.material3.IconButton(onClick = onDismiss) {
-                Icon(FieldAtlasIcons.Close, "Dismiss", Modifier.size(18.dp))
+                Icon(FieldAtlasIcons.Close, "Dismiss", Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

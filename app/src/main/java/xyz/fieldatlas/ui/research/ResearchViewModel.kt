@@ -621,6 +621,12 @@ class ResearchViewModel(
         val turns = history.filter { it.topicKey == key }
             .sortedBy { it.createdAtEpochMs }.ifEmpty { listOf(record) }
         val last = turns.last()
+        // Read again from History, an answer that finished off the screen has been seen: its "Answer ready" row goes.
+        val seen = asides.filter { aside ->
+            val state = aside.sink.state
+            !state.isRunning && turns.any { it.question == state.shownQuestion && it.answer == state.answer }
+        }
+        if (seen.isNotEmpty()) { asides.removeAll(seen.toSet()); publishAsides() }
         stopRunning()
         attachmentSession.clear()
         mutableFollowUpDraft.value = ""

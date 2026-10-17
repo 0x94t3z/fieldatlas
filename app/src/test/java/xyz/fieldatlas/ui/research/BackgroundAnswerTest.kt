@@ -144,6 +144,29 @@ class BackgroundAnswerTest {
         assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
     }
 
+    @Test fun readingAReadyAnswerFromHistoryTakesItsRowAway() {
+        startFirst()
+        viewModel.startNewQuestion()
+        release()
+        assertTrue(aside().done)
+        val record = history.records.value.single()
+        assertTrue(viewModel.continueTopic(record, history.records.value))
+        assertEquals("tell me about the hagia sophia", viewModel.uiState.value.shownQuestion)
+        // Seen now: back on the home, no "Answer ready" row repeats it.
+        assertTrue(viewModel.background.value.isEmpty())
+    }
+
+    @Test fun readingAnotherTopicFromHistoryKeepsTheReadyRow() {
+        history.record(question = "what is a heat pump", answer = "A heat pump moves heat.", sources = emptyList(), topic = 1L)
+        startFirst()
+        viewModel.startNewQuestion()
+        release()
+        val other = history.records.value.first { it.question == "what is a heat pump" }
+        assertTrue(viewModel.continueTopic(other, history.records.value))
+        assertEquals(listOf("tell me about the hagia sophia"), viewModel.background.value.map { it.question })
+        assertTrue(aside().done)
+    }
+
     @Test fun openingAReadyAnswerWhileAnotherRunsKeepsTheOtherGoing() {
         viewModel.updateQuestion("tell me about the hagia sophia")
         viewModel.submit()
