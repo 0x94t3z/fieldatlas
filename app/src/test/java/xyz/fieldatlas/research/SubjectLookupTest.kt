@@ -616,4 +616,44 @@ class SubjectLookupTest {
         // A what-is question keeps its definition.
         assertNotNull(SubjectLookup.lead("What is a sunset?", listOf(sunset), sources(sunset)))
     }
+
+    @Test fun withNothingFoundTheQuestionsOwnNamesAreTriedMostSpecificFirst() {
+        // A pair before single words; generic words and a compound's second word are never names on their own.
+        val bigBen = SubjectLookup.fallbackNames("how tall is big ben")
+        assertTrue(bigBen.indexOf("big ben") in 0 until bigBen.indexOf("ben").let { if (it < 0) bigBen.size else it })
+        val measles = SubjectLookup.fallbackNames("why is measles coming back")
+        assertTrue("measles" in measles)
+        assertFalse("a generic word alone is never a name", measles.any { it == "coming" || it == "back" })
+        assertTrue("the singular is tried too", "submarine" in SubjectLookup.fallbackNames("how do submarines dive and come back up"))
+        assertFalse("a compound's head is not the subject alone",
+            "populations" in SubjectLookup.fallbackNames("Why are honeybee populations declining?"))
+        assertFalse("a verb does not open a name", "stay upright" in SubjectLookup.fallbackNames("how does a bike stay upright when youre riding it"))
+    }
+
+    private fun overview(id: String, name: String, text: String) = Evidence(id, "$id:0", "$name — Overview", "fixture://$id", text, 0.0)
+
+    @Test fun anAlbumSharingACommonWordIsNotTheSubject() {
+        val album = overview("album", "Seasons", "Seasons is the fourth studio album by Sevendust. The album was released on October 7, 2003.")
+        val concept = overview("season", "Season", "A season is a division of the year based on changes in weather, ecology, and the number of daylight hours.")
+        assertEquals(concept, SubjectLookup.overviewOf("seasons", listOf(album, concept), "What causes the seasons on Earth?"))
+        assertEquals("asked about the album, the album it is", album,
+            SubjectLookup.overviewOf("seasons", listOf(album, concept), "who recorded the album seasons"))
+        assertFalse("a city is not a work", SubjectLookup.isUnaskedWork(
+            overview("city", "Avelton", "Avelton is the single largest city in Velland and plays host to a film festival."), "is avelton safe"))
+    }
+
+    @Test fun aNarrowerArticleTheSearchFoundTakesTheSubjectsPlace() {
+        val life = overview("life", "Life", "Life is a quality that distinguishes matter that has biological processes.")
+        val titan = overview("titan", "Life on Titan", "Whether there is life on Titan, the largest moon of Saturn, is an open question.")
+        assertTrue(SubjectLookup.supersededBy(life, titan, "Could there be life on Titan?"))
+        val bat = overview("bat", "Bat", "Bats are flying mammals of the order Chiroptera.")
+        val darkBat = overview("dark", "Dark long-tongued bat", "The dark long-tongued bat is a species of bat in Central America.")
+        assertFalse("a lead with words the question never used is not narrower", SubjectLookup.supersededBy(bat, darkBat, "how do bats find food in the dark"))
+        val tooth = overview("tooth", "Tooth", "A tooth is a hard, calcified structure found in the jaws of many vertebrates.")
+        val adult = overview("adult", "Adult", "An adult is a human or other animal that has reached full growth.")
+        assertFalse(SubjectLookup.supersededBy(tooth, adult, "how many teeth does an adult human have"))
+        val novel = overview("novel", "Don Quixote", "Don Quixote is a Spanish novel by Miguel de Cervantes.")
+        val film = overview("film", "The Man Who Killed Don Quixote", "The Man Who Killed Don Quixote is a 2018 film by Terry Gilliam.")
+        assertFalse("sharing a question word is not being narrower", SubjectLookup.supersededBy(novel, film, "who wrote don quixote"))
+    }
 }

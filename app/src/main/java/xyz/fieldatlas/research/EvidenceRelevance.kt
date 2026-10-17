@@ -97,7 +97,7 @@ object EvidenceRelevance {
         val terms = questionTerms.filterNot { it in lookupWrappers || it in genericTerms || it in contractionFragments }
         if (terms.size < 2) return false
         return isStrongConceptMatch(item) || isSupportedConceptMatch(item, terms) ||
-            termHits(topicalText(item.text), terms) == terms.size
+            termHits(topicalText(item.title.substringAfter(" — ", "") + "\n" + item.text), terms) == terms.size
     }
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
     private val metadataLine = Regex("^\\s*(?:PMID \\d+|(?:Year|Journal|Authors?|DOI|PMCID|Published|Publication types?|Keywords|MeSH):)")

@@ -51,18 +51,37 @@ object GuideScope {
         question: String,
         evidence: List<Evidence>,
         destinations: List<String> = emptyList(),
+        chosen: Collection<String> = emptyList(),
         sectionsOf: suspend (String) -> List<Evidence>,
     ): List<Evidence> {
         if (namesPlace(question, destinations)) return evidence
-        val articles = evidence.filter(::isGuideSection).map { it.title.substringBefore(" — ").trim() }.distinct().take(MAX_ARTICLES)
+        val guides = evidence.filter(::isGuideSection).map { it.title.substringBefore(" — ").trim() }.distinct()
+        // "best way to see ha long bay": typed in lowercase, the place is still named, and the guide the
+        // app chose for the question is the one it asked about.
+        val asked = (chosen.map { it.substringBefore('/').trim() } + guides.filter { namedLowercase(question, it) }).toSet()
+        val articles = guides.filterNot { it in asked }.take(MAX_ARTICLES)
         val destinations = articles.filter { article ->
             sectionsOf(article).any {
                 it.title.startsWith("$article — ") && it.title.substringAfter(" — ").substringBefore(" > ").trim().lowercase() in destinationHeadings
             }
         }.toSet()
         return evidence.filterNot { item ->
-            isListing(item) || (isGuideSection(item) && item.title.substringBefore(" — ").trim() in destinations)
+            isListing(item) && item.title.substringBefore(" — ").trim() !in asked ||
+                (isGuideSection(item) && item.title.substringBefore(" — ").trim() in destinations)
         }
+    }
+
+    /**
+     * Whether [question] names the guide [name] without a capital: "hoi an what food should i try". A
+     * name of one word counts only in a question typed all in lowercase, so "charge my mobile" in an
+     * otherwise capitalized question is not the city of Mobile.
+     */
+    internal fun namedLowercase(question: String, name: String): Boolean {
+        val plain = QuestionText.foldAccents(name.substringBefore('/').trim()).lowercase()
+        if (plain.length < 4) return false
+        val text = QuestionText.foldAccents(question).lowercase()
+        if (!Regex("(?<![\\p{L}\\p{N}])" + Regex.escape(plain) + "(?![\\p{L}\\p{N}])").containsMatchIn(text)) return false
+        return ' ' in plain || question == question.lowercase()
     }
 
     /**

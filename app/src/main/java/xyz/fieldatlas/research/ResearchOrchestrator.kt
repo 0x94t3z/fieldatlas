@@ -629,6 +629,11 @@ class ResearchOrchestrator(
                     break
                 }
             }
+            // The search's best passage, taken before any subject is read: it replaces a broader subject (below) and keeps a
+            // place after the first subject in the prompt (PromptBuilder.buildKnowledge). A map listing ("Stockholm — AM Cash &
+            // Carry") is never the passage a question is about, and a follow-up keeps its earlier passages' places.
+            val searchLead = evidence.firstOrNull { !it.documentId.startsWith("wv-place-") && !it.documentId.startsWith("wv-eat-") &&
+                !it.documentId.startsWith("osm-place-") }.takeIf { topic == null }
             // "How does a heat pump heat a house?" reads the article "Heat pump", found by its title;
             // a comparison reads both of its subjects.
             val subjects = ArrayList<Evidence>()
@@ -686,6 +691,9 @@ class ResearchOrchestrator(
                         foundRuns += candidate.run
                     }
                 }
+                // "could there be life on titan": the search's best passage opens a more specific article ("Life on Titan")
+                // than a subject the question's words named ("Life"), and is read in its place.
+                searchLead?.let { lead -> subjects.removeAll { SubjectLookup.supersededBy(it, lead, question) } }
                 if (articleDepth) subjects += ArticleDepth.supportingSubjects(question, evidence, subjects)
                 if (articleDepth) SubjectLookup.relatedWords(question)?.let { words ->
                     val related = subjects.toList().take(2).flatMap { subject ->
@@ -742,7 +750,8 @@ class ResearchOrchestrator(
             }
             // A question that names no place reads no one destination's guide or listings (see GuideScope).
             if (attachments.isEmpty() && !VenueLookup.isPlaceLookup(question)) {
-                evidence = GuideScope.withoutOtherPlaces(question, evidence, travelNames) { article ->
+                evidence = GuideScope.withoutOtherPlaces(question, evidence, travelNames,
+                    chosen = travelPicked.map { it.title.substringBefore(" — ") } + listOfNotNull(travelPlace)) { article ->
                     retriever.titled(article, GuideScope.HEADINGS, GuideScope.SECTION_CANDIDATES)
                 }
             }
@@ -791,6 +800,19 @@ class ResearchOrchestrator(
                 ))
                 return@flow
             }
+            // Nothing passed the relevance gate and no subject was found ("why is measles coming back"): an article named
+            // by the question's own noun ("Measles") still says what it asks about, which beats an answer from no passage.
+            if (includeLibrary && attachments.isEmpty() && evidence.isEmpty() && subjects.isEmpty() && technicalFocus == null &&
+                !placesOnly && phraseAsk == null) {
+                val found = ArrayList<Evidence>()
+                for (name in SubjectLookup.fallbackNames(question)) {
+                    if (found.size >= FALLBACK_OVERVIEWS) break
+                    SubjectLookup.overviewOf(name, retriever.titled(name, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES), question)
+                        ?.takeIf { overview -> found.none { it.documentId == overview.documentId } }
+                        ?.let { found += it }
+                }
+                evidence = found
+            }
             if (attachments.isEmpty() && technicalFocus == null && (EvidenceRelevance.missingRequestedIdentifier(question, evidence) ||
                 travelPlace == null && phrasePicked.isEmpty() && EvidenceRelevance.missingNamedMechanism(question, evidence + depth))) {
                 evidence = emptyList()
@@ -830,7 +852,8 @@ class ResearchOrchestrator(
                     else (if (carriedAhead) TopicEvidence.leading(topic) + subjects else subjects + TopicEvidence.leading(topic))
                         .distinctBy { Triple(it.documentId, it.chunkId, it.source) }
                 PromptBuilder.buildKnowledge(question, evidence, leadingSubjects, depth, contextTokenBudget,
-                    prefillSpeed.tokensPerSecond, framing)
+                    prefillSpeed.tokensPerSecond, framing,
+                    searchLead = searchLead?.takeIf { lead -> evidence.any { it.documentId == lead.documentId && it.chunkId == lead.chunkId } })
             }
             onEvidencePacked(packed)
             DeviceEvidenceGap.response(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })?.let { gap ->
@@ -1278,6 +1301,7 @@ class ResearchOrchestrator(
         const val TRAVEL_CANDIDATES = 50
         const val TRAVEL_SLOTS = 2
         const val SUBJECT_CANDIDATES = 10
+        const val FALLBACK_OVERVIEWS = 2
         const val TOPIC_CANDIDATES = 50
         const val TOPIC_NAMES = 12
         const val AIRPORT_CANDIDATES = 20

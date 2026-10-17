@@ -126,7 +126,7 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
      * All selected depth units remain whole; original viewer identities are unchanged.
      * File, guide and model-only paths do not use this selection. */
     fun buildKnowledge(question: String, evidence: List<Evidence>, subjects: List<Evidence>, depth: List<Evidence>,
-        contextTokenBudget: Int, tokensPerSecond: Double?, framing: Framing? = null): PackedPrompt {
+        contextTokenBudget: Int, tokensPerSecond: Double?, framing: Framing? = null, searchLead: Evidence? = null): PackedPrompt {
         if (StudyApplicability.asks(question)) {
             return build(question, (evidence + subjects + depth).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
                 .filter(StudyApplicability::supports), contextTokenBudget, framing = framing)
@@ -190,12 +190,17 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             if (selected.isNotEmpty()) return build(question, selected, contextTokenBudget, framing = framing)
         }
+        // The search's best passage takes a place only from a lookup's further subjects ("Road" in "which side of the road do
+        // they drive on in malta"), never from a subject's own passages or a comparison's other side.
+        val lead = searchLead?.takeIf {
+            subjects.map { it.documentId }.distinct().size >= 2 && !SubjectLookup.compares(question) && !SubjectLookup.isChoice(question)
+        }
         if (subjects.isEmpty() || depth.isEmpty()) {
-            return build(question, evidence, contextTokenBudget, framing = framing).let {
+            return build(question, afterFirst(evidence, lead), contextTokenBudget, framing = framing).let {
                 if (depth.isEmpty()) it else withDepth(question, it, depth, contextTokenBudget)
             }.let { forQuestionParts(question, it, tokensPerSecond, 0, 3) }
         }
-        val ordered = (subjects + depth + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+        val ordered = afterFirst((subjects + depth + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }, lead)
         // One-subject explanations need their overview and best explanatory unit,
         // not an obligatory third unrelated passage. Comparisons retain every
         // requested subject before depth. Generic packing keeps its three-unit floor.
@@ -203,6 +208,23 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
         val protected = (if (subjectCount == 1) 2 else subjectCount).coerceAtMost(3)
         return forQuestionParts(question,
             build(question, ordered, contextTokenBudget, framing = framing), tokensPerSecond, protected, protected)
+    }
+
+    /**
+     * [lead], the search's best passage, second after the first subject overview: a phone reads two or three
+     * passages, and a subject's further passages or other named subjects must not crowd out the one that
+     * matched the question ("Kraków — Overview" then "Kraków — Stay safe", not "Town" and "Night").
+     */
+    private fun afterFirst(ordered: List<Evidence>, lead: Evidence?): List<Evidence> {
+        if (lead == null || ordered.size < 3) return ordered
+        fun same(item: Evidence) = item.documentId == lead.documentId && item.chunkId == lead.chunkId && item.source == lead.source
+        val at = ordered.indexOfFirst(::same)
+        if (at <= 1) return ordered
+        // Another paragraph of the very section already leading adds less than the passages after it
+        // ("Penicillin — Details" holds the year Fleming found it).
+        if (ordered.first().title == lead.title) return ordered
+        val rest = ordered.filterIndexed { index, _ -> index != at }
+        return listOf(rest.first(), ordered[at]) + rest.drop(1)
     }
 
     /** Reserve reading opportunities for explicit clauses before redundant hits consume

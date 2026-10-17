@@ -74,4 +74,20 @@ class GuideScopeTest {
         assertEquals("a question naming the place keeps its guide and listings", named,
             GuideScope.withoutOtherPlaces("Can I pay by card in Avelton?", named) { sections[it].orEmpty() })
     }
+
+    @Test fun aPlaceTypedInLowercaseOrChosenByTheAppKeepsItsGuide() = runBlocking {
+        val sections = { article: String -> listOf(guide("$article — Get in")) }
+        // "hoi an what food should i try": two words in lowercase still name the place.
+        val own = guide("Hoi Vel — Eat > Where > Budget", "Try the local noodles at the central market.")
+        val other = guide("Corvin — Eat", "Corvin is known for its fish soup.")
+        assertEquals(listOf(own), GuideScope.withoutOtherPlaces("hoi vel what food should i try", listOf(own, other)) { sections(it) })
+        // The guide the app itself read for the question is the one it asked about.
+        val cruise = guide("Avel Bay — See and do > Cruise", "Day boats leave the harbour at 8:00; overnight cruises sleep on board.")
+        assertEquals(listOf(cruise), GuideScope.withoutOtherPlaces("best way to see it, day boat or overnight cruise?", listOf(cruise),
+            chosen = listOf("Avel Bay")) { sections(it) })
+        // One word counts only in a question typed all in lowercase: "mobile" is not the city of Mobile.
+        assertTrue(GuideScope.namedLowercase("is avelton old town safe at night", "Avelton"))
+        assertFalse(GuideScope.namedLowercase("How do I charge my mobile in Japan?", "Mobile"))
+        assertFalse(GuideScope.namedLowercase("is avelton safe", "Ave"))
+    }
 }

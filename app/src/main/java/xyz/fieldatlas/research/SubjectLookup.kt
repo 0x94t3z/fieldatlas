@@ -425,8 +425,13 @@ object SubjectLookup {
         fun plain(value: String) = QuestionText.foldAccents(value).replace(Regex("['’]s\\b"), "").replace("'", "").replace("’", "")
             .replace('-', ' ').replace(Regex("\\s+"), " ").trim()
         val overviews = found.filter { it.title.endsWith(" — Overview") }
-        overviews.firstOrNull { plain(it.title.removeSuffix(" — Overview")).equals(plain(phrase), ignoreCase = true) }?.let { return it }
+        val exact = overviews.firstOrNull { plain(it.title.removeSuffix(" — Overview")).equals(plain(phrase), ignoreCase = true) }
+        if (exact != null && (question == null || !isUnaskedWork(exact, question))) return exact
         if (question == null) return null
+        // "what causes the seasons": the album "Seasons" shares the name; the concept is titled in the singular.
+        if (exact != null) return singular(plain(phrase).lowercase())?.let { one ->
+            overviews.firstOrNull { plain(it.title.removeSuffix(" — Overview")).equals(one, ignoreCase = true) && !isUnaskedWork(it, question) }
+        }
         val qualifiedTitles = overviews.mapNotNull { item ->
             qualified.find(item.title.removeSuffix(" — Overview"))?.takeIf { plain(it.groupValues[1]).equals(plain(phrase), ignoreCase = true) }
                 ?.let { item to it.groupValues[2] }
@@ -435,6 +440,78 @@ object SubjectLookup {
         return qualifiedTitles.firstOrNull { (_, qualifier) -> word.findAll(qualifier.lowercase()).any { it.value.trim('.') in asked } }?.first
             ?: qualifiedTitles.singleOrNull()?.first
     }
+
+    /**
+     * Whether [lead], the search's best passage, is the overview of a more specific article than [subject]: its
+     * name holds the subject's and more of [question]'s words, every one of them asked ("Life on Titan" for "Life",
+     * "List of tallest buildings in Europe" for "Building").
+     */
+    internal fun supersededBy(subject: Evidence, lead: Evidence, question: String): Boolean {
+        if (!lead.title.endsWith(" — Overview") || subject.documentId == lead.documentId) return false
+        fun words(text: String) = word.findAll(QuestionText.foldAccents(text).lowercase()).map { it.value.trim('\'', '’') }
+            .filter { it.length > 1 }.toList()
+        fun bare(name: String) = name.substringBefore(" — ").replace(qualified, "$1")
+        val asked = words(question).flatMap { listOfNotNull(it, singular(it)) }.toSet()
+        val subjectWords = words(bare(subject.title))
+        val leadWords = words(bare(lead.title))
+        if (subjectWords.isEmpty() || leadWords.isEmpty() || subjectWords == leadWords) return false
+        fun inLead(w: String) = leadWords.any { it == w || singular(it) == w || it == w + "s" }
+        // Only content words count, and every one of the lead's must be the question's: "Dark long-tongued bat" is not
+        // narrower than "Bat" for "how do bats find food in the dark", nor "Ice cream float" than "Ice".
+        fun content(ws: List<String>) = ws.filterNot { it in leadFiller }
+        val leadContent = content(leadWords)
+        return subjectWords.all(::inLead) && leadContent.all { it in asked || singular(it) in asked } &&
+            leadContent.count { it in asked || singular(it) in asked } > content(subjectWords).count { it in asked }
+    }
+
+    private val leadFiller = determiners + setOf("of", "in", "on", "at", "to", "for", "and", "or", "by", "with", "from", "who", "what",
+        "which", "when", "where", "why", "how", "is", "are", "was", "were", "do", "does", "did", "list")
+
+    /**
+     * Whether [overview] defines a creative work ("Seasons is the fourth studio album by Sevendust") that
+     * [question] does not ask about: a common word's exact title is often an album, a film or a band.
+     */
+    internal fun isUnaskedWork(overview: Evidence, question: String): Boolean {
+        val first = overview.text.lineSequence().filterNot { it.startsWith("Also known as:") }.joinToString(" ").trim()
+            .split(Regex("(?<=[.!?])\\s")).first()
+        if (!definesWork.containsMatchIn(first)) return false
+        val asked = word.findAll(question.lowercase()).map { it.value.trim('.') }.toSet()
+        return asked.none { it in workWords }
+    }
+
+    private val definesWork = Regex("(?i)^[^.]{0,90}?\\b(?:is|was) (?:a|an|the)(?: [\\p{L}\\p{N}'’-]+){0,4} (?:album|song|film|movie|band|" +
+        "novel|(?:television|TV) (?:series|show|programme|program|film)|sitcom|video game|musical|soundtrack|mixtape)\\b")
+    private val workWords = setOf("album", "albums", "song", "songs", "single", "film", "films", "movie", "movies", "band", "bands",
+        "novel", "novels", "book", "books", "show", "series", "episode", "episodes", "game", "games", "music", "musical", "sing", "sang",
+        "sung", "singer", "track", "tracks", "lyrics", "record", "released", "release", "play", "opera", "soundtrack", "tv", "television")
+
+    /**
+     * The question's own names to look up as article titles when nothing else was found, most specific first: two
+     * adjacent words ("big ben"), then single words in the question's order, each also in the singular ("submarines" ->
+     * "submarine"). Question words, fillers and generic words ("coming", "back", "day") are not names.
+     */
+    fun fallbackNames(question: String): List<String> {
+        val words = word.findAll(QuestionText.foldAccents(discoveryQuestion(question)).lowercase()).map { it.value.trim('\'', '’') }.toList()
+        // A pair may hold a generic word ("big ben", "new york"); a single generic word is never a name.
+        val named = words.map { w -> w.takeIf { it.length >= 2 && it !in leadFiller && it !in fallbackPairFiller && it.none(Char::isDigit) } }
+        val pairs = named.zipWithNext().mapNotNull { (a, b) -> if (a != null && b != null) "$a $b" else null }
+        // The second word of a compound is not the subject alone: "honeybee populations" is not "Population".
+        val heads = named.zipWithNext().mapNotNull { (a, b) -> b.takeIf { a != null && b != null } }.toSet()
+        val singles = named.filterNotNull().filter { it.length >= 4 && it !in fallbackGeneric && it !in heads }.distinct()
+        return (pairs + singles.flatMap { listOfNotNull(it, singular(it)) }).distinct().take(8)
+    }
+
+    private val fallbackPairFiller = setOf("stay", "stays", "keep", "keeps", "come", "comes", "go", "goes", "get", "gets", "make",
+        "makes", "take", "takes", "can", "could", "would", "should", "will", "have", "has", "had", "you", "your", "they", "them",
+        "their", "there", "here", "this", "that", "these", "those", "some", "any", "all", "much", "many", "really", "actually")
+    private val fallbackGeneric = setOf("coming", "come", "comes", "going", "goes", "back", "really", "actually", "kind", "kinds", "type",
+        "types", "thing", "things", "people", "someone", "anyone", "much", "many", "make", "makes", "made", "work", "works", "happen",
+        "happens", "important", "difference", "different", "best", "good", "bad", "better", "worse", "long", "time", "times", "day",
+        "days", "year", "years", "week", "month", "today", "still", "ever", "even", "get", "gets", "got", "keep", "keeps", "stay",
+        "stays", "need", "needs", "want", "wants", "like", "can", "could", "would", "should", "will", "have", "has", "had", "your",
+        "you", "there", "here", "about", "into", "over", "under", "after", "before", "between", "they", "them", "their", "this",
+        "that", "these", "those", "some", "any", "all", "most", "more", "less", "very", "just", "also", "only", "tell", "explain",
+        "riding", "doing", "using", "use", "used", "big", "small", "high", "low", "old", "new", "hot", "cold")
 
     /**
      * The kinds of thing the question says its subject is ("country", "state"), to look a title

@@ -131,6 +131,17 @@ class LargeLibraryMergeTest {
     }
 
     @Test
+    fun `a section heading says what its passage covers`() {
+        // "Season — Causes and effects > Axial tilt" answers "what causes the seasons" without the word "causes" in its text.
+        val section = Evidence("season", "season:0", "Season — Causes and effects > Axial tilt", "fixture://season",
+            "The seasons result from the Earth's axis of rotation being tilted with respect to its orbital plane.", 0.0)
+        val seasonTerms = FtsQuery.from("What causes the seasons on Earth?")!!.terms
+        assertTrue(EvidenceRelevance.coversQuestionForMerge(section, seasonTerms))
+        assertFalse("the article's own name is not its heading",
+            EvidenceRelevance.coversQuestionForMerge(section.copy(title = "Causes — Overview"), FtsQuery.from("what causes rain on Earth?")!!.terms))
+    }
+
+    @Test
     fun `accepted concept matches retain priority when they use different wording`() {
         val question = "Explain myocardial infarction treatment"
         val terms = FtsQuery.from(question)!!.terms
