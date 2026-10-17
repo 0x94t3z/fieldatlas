@@ -347,10 +347,6 @@ fun FieldAtlasApp(
                     // Research's, so a stopped or edited follow-up is held on the Research home.
                     onFollowUp = { navigation.keepInResearch(); onFollowUp(it) },
                     typicalAnswerMillis = remember(historyRecords) { xyz.fieldatlas.ui.research.typicalAnswerMillis(historyRecords) },
-                    collectionIcons = remember(enabledKnowledge) {
-                        enabledKnowledge.map { pack -> (xyz.fieldatlas.ui.library.subjectVisual(pack.id)
-                            ?: xyz.fieldatlas.ui.library.categoryVisual(xyz.fieldatlas.ui.presentation.knowledgeCategory(pack.id))).icon }.distinct()
-                    },
                     onStop = onStop,
                     onEditReadAs = onEditReadAs,
                     onCitation = navigation::openSource,

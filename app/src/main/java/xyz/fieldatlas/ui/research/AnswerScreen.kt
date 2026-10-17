@@ -85,8 +85,6 @@ fun AnswerScreen(
     onEditReadAs: () -> Unit = {},
     /** How long this phone's recent answers took, for the status line while one is researched. */
     typicalAnswerMillis: Long? = null,
-    /** The Library icons of the collections switched on for research, which cross the dino's path while it walks. */
-    collectionIcons: List<androidx.compose.ui.graphics.vector.ImageVector> = emptyList(),
 ) {
     BackHandler(onBack = onBack)
     // The page opens as soon as research starts: the live status sits where the answer will appear.
@@ -261,7 +259,7 @@ fun AnswerScreen(
                 }
                 if (running) {
                     // A follow-up shows how it is searched, with Edit, then the live status where its answer will appear.
-                    item(key = "progress") { ResearchTrailStatus(state, typicalAnswerMillis, collectionIcons) }
+                    item(key = "progress") { ResearchTrailStatus(state, typicalAnswerMillis) }
                     item(key = "forthcoming") { ForthcomingAnswer(state) }
                     item(key = "sourcesSoFar") { SourcesSoFar(state) }
                 } else {
