@@ -381,7 +381,8 @@ private fun TopicCard(
 @Composable
 private fun ContinueStrip() {
     val colors = MaterialTheme.colorScheme
-    Row(Modifier.fillMaxWidth().background(colors.primaryContainer).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+    // The same warm fill as the collections chip on the Research home, so the strip sits with the card, not apart.
+    Row(Modifier.fillMaxWidth().background(colors.surfaceContainerHighest).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text("Continue", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.primary)
         Icon(FieldAtlasIcons.ChevronRight, null, tint = colors.primary, modifier = Modifier.size(16.dp))
