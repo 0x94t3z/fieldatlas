@@ -534,7 +534,7 @@ fun FieldAtlasApp(
                         knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },
                         onAskExample = { question -> askAnew(question) },
                     )
-                    PrimaryDestination.History -> HistoryScreen(historyRecords, onAskAgain = { question -> askAnew(question) },
+                    PrimaryDestination.History -> HistoryScreen(historyRecords,
                         onDelete = onDeleteHistory, storage = historyStorage,
                         onContinue = { record ->
                             // While an answer is being written it is never interrupted: show it instead.

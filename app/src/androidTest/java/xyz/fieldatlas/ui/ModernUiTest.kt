@@ -255,38 +255,30 @@ class ModernUiTest {
         capture("navigation-double-text")
     }
 
-    @Test fun historyExpansionRetainsAskAgainAndDeleteConfirmation() {
+    @Test fun historyTopicMenuOffersPinShareCopyAndDeleteWithFullTapTargets() {
         val question = "Which filter applies to serial 2345?"
-        var asked: String? = null
+        var continued = false
         var deleted = false
         val evidence = Evidence("attachment:pump", "chunk", "Helios_Pump_Revision_B.txt", "Attached file · text", "Use filter K-9.", 1.0)
         compose.setContent { FieldAtlasTheme {
             HistoryScreen(listOf(AnswerRecord(question, "For serial **2345**, use Revision B: filter K-9. [S1]",
-                System.currentTimeMillis(), listOf(evidence.title), listOf(evidence))), { asked = it }, { deleted = true })
+                System.currentTimeMillis(), listOf(evidence.title), listOf(evidence))), onDelete = { deleted = true }, onContinue = { continued = true })
         } }
-        compose.onNodeWithText(question).performClick()
-        compose.onNodeWithText("Ask again").assertExists()
-        compose.onNodeWithText(question).performScrollTo().performClick()
-        compose.onNodeWithText("Ask again").assertDoesNotExist()
-        compose.onNodeWithText(question).performClick()
-        compose.onNodeWithText("Ask again").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(question, asked) }
-        capture("history-expanded-light")
         val density = InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
-        listOf("Share answer", "Delete from History").forEach { label ->
-            val action = compose.onNodeWithContentDescription(label).assertHasClickAction()
-            val bounds = action.fetchSemanticsNode().boundsInRoot
-            assertTrue(bounds.width >= 48 * density - 1)
-            assertTrue(bounds.height >= 48 * density - 1)
-        }
-        compose.onNodeWithContentDescription("Delete from History").performClick()
-        compose.runOnIdle { assertFalse(deleted) }
-        compose.onNodeWithText("Delete this answer?").assertIsDisplayed()
-        compose.onNodeWithText("Keep").performClick()
-        compose.runOnIdle { assertFalse(deleted) }
+        val more = compose.onNodeWithContentDescription("More for $question").assertHasClickAction()
+        val bounds = more.fetchSemanticsNode().boundsInRoot
+        assertTrue(bounds.width >= 40 * density - 1)
+        more.performClick()
+        listOf("Pin to top", "Share topic", "Copy as text", "Delete topic").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        capture("history-menu-light")
+        compose.onNodeWithText("Delete topic").performClick()
+        compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertFalse(deleted); assertFalse(continued) }
+        compose.onNodeWithText(question).performClick()
+        compose.runOnIdle { assertTrue(continued) }
     }
 
-    @Test fun historyPressedFeedbackStaysInsideRoundedCornersInBothStates() {
+    @Test fun historyPressedFeedbackStaysInsideRoundedCorners() {
         val question = "Check rounded History feedback"
         var background = 0
         compose.setContent { FieldAtlasTheme {
@@ -297,33 +289,24 @@ class ModernUiTest {
                     System.currentTimeMillis(), emptyList(), emptyList())))
             }
         } }
-        for (state in listOf("Collapsed", "Expanded")) {
-            val card = compose.onNode(SemanticsMatcher.expectValue(
-                androidx.compose.ui.semantics.SemanticsProperties.StateDescription, state) and hasClickAction())
-            card.performScrollTo()
-            val bounds = card.fetchSemanticsNode().boundsInRoot
-            compose.mainClock.autoAdvance = false
-            try {
-                // Press the common header, not selectable answer text or the utility
-                // buttons that appear in the expanded card.
-                card.performTouchInput { down(androidx.compose.ui.geometry.Offset(center.x, 24.dp.toPx())) }
-                compose.mainClock.advanceTimeBy(400)
-                val root = compose.onNode(isRoot() and hasAnyDescendant(hasText(question)))
-                val rootBounds = root.fetchSemanticsNode().boundsInRoot
-                val pixels = root.captureToImage().toPixelMap()
-                val left = (bounds.left - rootBounds.left).toInt() + 2
-                val right = (bounds.right - rootBounds.left).toInt() - 3
-                val top = (bounds.top - rootBounds.top).toInt() + 2
-                assertEquals("$state upper-left press highlight must be clipped", background, pixels[left, top].toArgb())
-                assertEquals("$state upper-right press highlight must be clipped", background, pixels[right, top].toArgb())
-            } finally {
-                card.performTouchInput { up() }
-                compose.mainClock.autoAdvance = true
-            }
-            compose.waitForIdle()
+        val card = compose.onNode(hasClickAction() and hasAnyDescendant(hasText(question)))
+        val bounds = card.fetchSemanticsNode().boundsInRoot
+        compose.mainClock.autoAdvance = false
+        try {
+            card.performTouchInput { down(androidx.compose.ui.geometry.Offset(center.x, 24.dp.toPx())) }
+            compose.mainClock.advanceTimeBy(400)
+            val root = compose.onNode(isRoot() and hasAnyDescendant(hasText(question)))
+            val rootBounds = root.fetchSemanticsNode().boundsInRoot
+            val pixels = root.captureToImage().toPixelMap()
+            val left = (bounds.left - rootBounds.left).toInt() + 2
+            val right = (bounds.right - rootBounds.left).toInt() - 3
+            val top = (bounds.top - rootBounds.top).toInt() + 2
+            assertEquals("upper-left press highlight must be clipped", background, pixels[left, top].toArgb())
+            assertEquals("upper-right press highlight must be clipped", background, pixels[right, top].toArgb())
+        } finally {
+            card.performTouchInput { up() }
+            compose.mainClock.autoAdvance = true
         }
-        compose.onNode(SemanticsMatcher.expectValue(
-            androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "Collapsed")).assertExists()
     }
 
     @Test fun researchProgressKeepsLivePhasesRestoredTimelineAndStopCallback() {

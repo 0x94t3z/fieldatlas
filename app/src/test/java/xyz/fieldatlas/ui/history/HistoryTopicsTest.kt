@@ -3,6 +3,7 @@ package xyz.fieldatlas.ui.history
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import xyz.fieldatlas.research.AnswerRecord
+import xyz.fieldatlas.research.Evidence
 
 class HistoryTopicsTest {
     private val hagia = AnswerRecord("tell me about the hagia sophia", "Hagia Sophia is in Istanbul [S1].", 1_000,
@@ -28,10 +29,38 @@ class HistoryTopicsTest {
         assertEquals(emptyList<HistoryTopic>(), historyTopics(listOf(free, laos, mosque, hagia), "tokyo"))
     }
 
-    @Test fun theMetaLineCountsFollowUpsOrASingleAnswersSources() {
-        assertEquals("6:37 AM · 2 follow-ups", historyMeta("6:37 AM", listOf(hagia, mosque, free)))
-        assertEquals("6:37 AM · 1 follow-up", historyMeta("6:37 AM", listOf(hagia, mosque)))
-        assertEquals("6:37 AM · 1 source", historyMeta("6:37 AM", listOf(laos)))
-        assertEquals("6:37 AM · No sources", historyMeta("6:37 AM", listOf(old)))
+    @Test fun theMetaLineCountsQuestionsSourcesAndTime() {
+        val topic = historyTopics(listOf(hagia, mosque, free), "").single()
+        assertEquals("3 questions · 1 source · 6:37 AM", historyMeta("6:37 AM", topic))
+        assertEquals("1 source · 6:37 AM", historyMeta("6:37 AM", HistoryTopic(listOf(laos))))
+        assertEquals("No sources · 6:37 AM", historyMeta("6:37 AM", HistoryTopic(listOf(old))))
+        val guide = AnswerRecord("a snake bit my friend", "Call for help [S1].", 9_000, sources = listOf("Snakebite"),
+            evidence = listOf(Evidence("emergency:snakebite", "emergency:snakebite:0", "Snakebite", "https://www.cdc.gov", "Call for help.", 0.0)))
+        assertEquals("1 guide · 6:37 AM", historyMeta("6:37 AM", HistoryTopic(listOf(guide))))
+    }
+
+    @Test fun aTopicsKindComesFromWhereItsAnswersCameFrom() {
+        fun record(id: String, question: String = "q") = AnswerRecord(question, "a", 1, evidence = listOf(Evidence(id, "$id:0", "t", "s", "x", 0.0)))
+        assertEquals(TopicKind.FirstAid, topicKind(HistoryTopic(listOf(record("emergency:burns"), record("wp-1")))))
+        assertEquals(TopicKind.Travel, topicKind(HistoryTopic(listOf(record("wvs-36215-0007")))))
+        assertEquals(TopicKind.Travel, topicKind(HistoryTopic(listOf(record("osm-place-n1")))))
+        assertEquals(TopicKind.Crypto, topicKind(HistoryTopic(listOf(record("eip-4844")))))
+        assertEquals(TopicKind.Crypto, topicKind(HistoryTopic(listOf(record("wp-9", "what is a DAO in crypto")))))
+        assertEquals(TopicKind.Knowledge, topicKind(HistoryTopic(listOf(record("swp-4329-0000", "what is the capital of japan")))))
+    }
+
+    @Test fun aSearchSaysWhereItMatched() {
+        val topic = historyTopics(listOf(hagia, mosque, free), "").single()
+        val match = historyMatch(topic, "july")!!
+        assertEquals("In question 2 of 3", match.where)
+        assertEquals("when was it turned back into a mosque?", match.lead)
+        assertEquals("July", match.hit)
+        assertEquals("In ", match.before)
+        // The citation goes without leaving "2020 ." behind.
+        assertEquals(" 2020.", match.after)
+        val single = historyMatch(HistoryTopic(listOf(laos)), "vientiane")!!
+        assertEquals("In the answer", single.where)
+        assertEquals("Source · Laos — Overview", historyMatch(HistoryTopic(listOf(laos)), "overview")!!.where)
+        assertEquals(null, historyMatch(topic, ""))
     }
 }
