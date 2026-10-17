@@ -96,7 +96,8 @@ class AssetImporter private constructor(
         input.use { import(it, storageRoot.usableSpace) }
     }
 
-    /** Caller owns the source; never delete it. Count it conservatively even outside app storage. */
+    /** Caller owns the source; never delete it. It stays in the caller's storage (Downloads, a card), so only the
+     * installed pack counts against the 50 GB limit: counting the source too refused a 24 GB pack that fits. */
     internal suspend fun importSeekable(channel: SeekableByteChannel, archiveBytes: Long, freeBytes: Long): InstalledAsset =
         withContext(Dispatchers.IO) {
             importMutex.withLock {
@@ -104,7 +105,7 @@ class AssetImporter private constructor(
                     "Invalid seekable archive size")
                 val session = createSession()
                 try {
-                    processArchive(null, session, freeBytes, externalArchiveBytes = archiveBytes,
+                    processArchive(null, session, freeBytes,
                         openZip = { ZipFile.builder().setSeekableByteChannel(channel).get() })
                 } finally { session.deleteRecursively() }
             }
@@ -167,7 +168,6 @@ class AssetImporter private constructor(
         freeBytesForExtraction: Long,
         expected: Triple<String, String, PackType>? = null,
         expectedInstalledBytes: Long? = null,
-        externalArchiveBytes: Long = 0,
         openZip: (() -> ZipFile)? = null,
     ): InstalledAsset {
         try {
@@ -198,7 +198,7 @@ class AssetImporter private constructor(
                 requireImport(expected == null || manifest.schemaVersion == 1 || expectedInstalledBytes != null,
                     "Compressed download requires installed size in catalog")
                 val decision = StorageBudget.evaluate(
-                    Math.addExact(maxOf(footprint.bytes(), registry.totalInstalledBytes()), externalArchiveBytes),
+                    maxOf(footprint.bytes(), registry.totalInstalledBytes()),
                     Math.addExact(incomingBytes, StorageBudget.METADATA_RESERVE_BYTES),
                     freeBytesForExtraction,
                 )
@@ -229,7 +229,7 @@ class AssetImporter private constructor(
                 // may have grown since admission. Reserve only the pending registry metadata,
                 // not another copy of the payload, before the atomic move publishes the pack.
                 val finalDecision = StorageBudget.evaluate(
-                    Math.addExact(maxOf(footprint.bytes(), registry.totalInstalledBytes()), externalArchiveBytes),
+                    maxOf(footprint.bytes(), registry.totalInstalledBytes()),
                     StorageBudget.METADATA_RESERVE_BYTES,
                     storageRoot.usableSpace,
                 )

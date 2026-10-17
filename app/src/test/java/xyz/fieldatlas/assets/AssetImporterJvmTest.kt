@@ -63,25 +63,33 @@ class AssetImporterJvmTest {
         assertTrue(unlisted.exists())
     }
 
-    @Test fun seekableImportCountsExternalArchiveAgainstGlobalLimit() = runBlocking {
-        val root = temporaryFolder.newFolder("seekable-budget")
-        val source = temporaryFolder.newFile("external-budget.fapack")
+    @Test fun seekableImportCountsOnlyTheInstalledPackAgainstGlobalLimit() = runBlocking {
+        // The source stays in the caller's storage, so a pack that fits once installed is admitted even
+        // though the source and the installed copy together pass 50 GB (a 24 GB encyclopedia file did).
+        val fits = budgetImport("seekable-fits", excess = 0)
+        assertEquals(1, fits.second.list().size)
+        val over = budgetImport("seekable-over", excess = 1)
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, (over.first as AssetImportException).budgetDecision)
+        assertTrue(over.second.list().isEmpty())
+    }
+
+    /** Fills the budget so that installing the incoming pack would end [excess] bytes past the limit, then imports it. */
+    private fun budgetImport(name: String, excess: Long): Pair<Any, AssetRegistry> = runBlocking {
+        val root = temporaryFolder.newFolder(name)
+        val source = temporaryFolder.newFile("$name.fapack")
         val payload = ByteArray(4096) { 5 }
         source.writeBytes(pack(payload, schemaVersion = 2, storedPayload = false))
         java.io.RandomAccessFile(File(root, "existing"), "rw").use {
-            it.setLength(StorageBudget.MAX_TOTAL_BYTES - payload.size - StorageBudget.METADATA_RESERVE_BYTES - source.length() + 1)
+            it.setLength(StorageBudget.MAX_TOTAL_BYTES - payload.size - StorageBudget.METADATA_RESERVE_BYTES + excess)
         }
         val registry = AssetRegistry(root)
-        val error = assertThrows(AssetImportException::class.java) {
-            runBlocking {
-                java.nio.file.Files.newByteChannel(source.toPath()).use {
-                    AssetImporter(root, registry).importSeekable(it, source.length(), Long.MAX_VALUE)
-                }
+        val result: Any = try {
+            java.nio.file.Files.newByteChannel(source.toPath()).use {
+                AssetImporter(root, registry).importSeekable(it, source.length(), Long.MAX_VALUE)
             }
-        }
-        assertEquals(BudgetDecision.ExceedsGlobalLimit, error.budgetDecision)
+        } catch (error: AssetImportException) { error }
         assertTrue(source.exists())
-        assertTrue(registry.list().isEmpty())
+        result to registry
     }
 
     @Test fun invalidSeekableArchiveLeavesSourceAndPriorPackIntact() = runBlocking {
