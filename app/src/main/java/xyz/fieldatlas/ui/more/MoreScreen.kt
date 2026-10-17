@@ -78,7 +78,7 @@ fun MoreScreen(
         if (readAloud != null && readingSettings != null) item {
             MoreGroup("Reading aloud") {
                 SettingRow(Icons.AutoMirrored.Outlined.VolumeUp, "Voice and speed", xyz.fieldatlas.ui.research.readingSummary(readingSettings, naturalReady),
-                    onClick = { sheet = "reading" }, chevron = true)
+                    onClick = { sheet = "reading" })
             }
         }
         item {
