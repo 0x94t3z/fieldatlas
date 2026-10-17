@@ -44,7 +44,16 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.research.FollowUp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.theme.FieldAtlasExpandIcon
@@ -106,7 +115,7 @@ internal fun FollowUpComposer(
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onNewTopic) { Text("New topic", style = MaterialTheme.typography.labelLarge) }
+                NewTopicChip(onNewTopic)
             }
             if (recording) Row(Modifier.padding(start = 4.dp, bottom = 2.dp).semantics(mergeDescendants = true) {},
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -213,38 +222,125 @@ internal fun FollowUpComposer(
     }
 }
 
-/** An earlier question of the topic, folded to one line above the answer that followed it. */
+/**
+ * The earlier questions of the topic, in one card above the answer that followed them: a short row each, opened in
+ * place to its answer and its source. Past three, the middle ones fold into one row, so the newest answer stays in view.
+ */
 @Composable
-internal fun EarlierTurnCard(number: Int, turn: FollowUp.Turn) {
-    var expanded by rememberSaveable(turn.readAs) { mutableStateOf(false) }
-    val blocks = remember(turn.answer) { parseAnswerMarkdown(turn.answer) }
-    Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-        modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)
-            .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
-            .clickable(onClickLabel = if (expanded) "Fold answer" else "Show answer") { expanded = !expanded },
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(Modifier.size(30.dp), shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.primary) {
-                    Box(contentAlignment = Alignment.Center) { Text("$number", style = MaterialTheme.typography.labelLarge) }
+internal fun EarlierTopicList(turns: List<FollowUp.Turn>, onOpenSource: (List<Evidence>, Int) -> Unit) {
+    if (turns.isEmpty()) return
+    var open by rememberSaveable(turns.size) { mutableStateOf(-1) }
+    var showMiddle by rememberSaveable(turns.size) { mutableStateOf(false) }
+    val folded = turns.size > MAX_EARLIER_ROWS && !showMiddle
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(FieldAtlasIcons.History, null, Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Earlier in this topic · ${turns.size}", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Surface(
+            shape = MaterialTheme.shapes.medium,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)) {
+                val shown = if (folded) listOf(0, turns.lastIndex) else turns.indices.toList()
+                shown.forEachIndexed { position, index ->
+                    if (position > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    if (folded && position == 1) {
+                        Row(Modifier.fillMaxWidth().clickable(onClickLabel = "Show the earlier questions") { showMiddle = true }
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)).heightIn(min = 44.dp),
+                            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            FieldAtlasExpandIcon(false, tint = MaterialTheme.colorScheme.primary)
+                            Text("${turns.size - 2} more earlier question" + (if (turns.size - 2 == 1) "" else "s"),
+                                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    }
+                    EarlierTurnRow(index + 1, turns[index], open == index, onToggle = { open = if (open == index) -1 else index }, onOpenSource)
                 }
-                Column(Modifier.weight(1f)) {
-                    Text(turn.asked, style = MaterialTheme.typography.titleSmall, maxLines = if (expanded) 4 else 1,
-                        overflow = TextOverflow.Ellipsis)
-                    Text(if (expanded) "Tap to fold" else "Tap to see this answer", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (expanded) {
-                // Citations stay plain here: their sources belong to that earlier answer, not this one.
+        }
+    }
+}
+
+private const val MAX_EARLIER_ROWS = 3
+/** Past this many characters an opened earlier answer is shown in part, with Show all. */
+private const val LONG_EARLIER_ANSWER = 320
+
+@Composable
+private fun EarlierTurnRow(number: Int, turn: FollowUp.Turn, expanded: Boolean, onToggle: () -> Unit,
+                           onOpenSource: (List<Evidence>, Int) -> Unit) {
+    val blocks = remember(turn.answer) { parseAnswerMarkdown(turn.answer) }
+    val cited = remember(turn.answer, turn.sources) {
+        xyz.fieldatlas.research.AnswerText.citationAudit(turn.answer, turn.sources.size).citedSourceIds
+            .mapNotNull { it.removePrefix("S").toIntOrNull() }.sorted()
+    }
+    val meta = listOfNotNull(
+        cited.size.takeIf { it > 0 }?.let { if (it == 1) "1 cited source" else "$it cited sources" },
+        turn.millis?.let { if (it < 1_000) "under 1s" else formatResearchElapsed(it) },
+    ).joinToString(" · ").ifBlank { if (expanded) "" else "Tap to see this answer" }
+    var showAll by rememberSaveable(turn.readAs) { mutableStateOf(false) }
+    val long = turn.answer.length > LONG_EARLIER_ANSWER
+    Column(Modifier.fillMaxWidth().semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }) {
+        Row(Modifier.fillMaxWidth().clickable(onClickLabel = if (expanded) "Fold answer" else "Show answer", onClick = onToggle)
+            .heightIn(min = 52.dp).padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Surface(Modifier.size(28.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(9.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.primary) {
+                Box(contentAlignment = Alignment.Center) { Text("$number", style = MaterialTheme.typography.labelMedium) }
+            }
+            Column(Modifier.weight(1f)) {
+                Text(turn.asked, style = MaterialTheme.typography.titleSmall, maxLines = if (expanded) 3 else 1, overflow = TextOverflow.Ellipsis)
+                if (meta.isNotBlank()) Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (expanded) Column(Modifier.fillMaxWidth().padding(start = 48.dp, end = 14.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            val capped = long && !showAll
+            Box(Modifier.fillMaxWidth().then(if (capped) Modifier.heightIn(max = 140.dp).clip(RoundedCornerShape(0.dp)) else Modifier)) {
+                // Citations stay plain here: the source line below says where this earlier answer came from.
                 AnswerMarkdownRenderer(blocks = blocks, sourceCount = 0, onCitation = {}, modifier = Modifier.fillMaxWidth(),
                     bodyStyle = FieldAtlasReadingStyle)
+                if (capped) Box(Modifier.matchParentSize()) {
+                    Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(36.dp).background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(listOf(Color.Transparent, MaterialTheme.colorScheme.surface))))
+                }
             }
+            if (long) Text(if (showAll) "Show less" else "Show all", style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button) { showAll = !showAll }
+                    .padding(vertical = 4.dp))
+            cited.firstOrNull()?.let { number -> turn.sources.getOrNull(number - 1)?.let { source ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .clickable(role = Role.Button, onClickLabel = "Open source") { onOpenSource(turn.sources, number - 1) }
+                    .heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Surface(Modifier.size(20.dp), shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
+                        Box(contentAlignment = Alignment.Center) { Text("$number", style = MaterialTheme.typography.labelSmall) }
+                    }
+                    Text(source.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f))
+                    Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+            } }
+        }
+    }
+}
+
+/** Starts a topic of its own: small, beside what the next question follows. */
+@Composable
+private fun NewTopicChip(onClick: () -> Unit) {
+    Box(Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(16.dp)).clickable(role = Role.Button, onClickLabel = "New topic", onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Row(Modifier.heightIn(min = 30.dp).border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(15.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(15.dp)).padding(start = 8.dp, end = 11.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(androidx.compose.material.icons.Icons.Outlined.Add, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+            Text("New topic", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

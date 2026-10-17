@@ -8,8 +8,12 @@ package xyz.fieldatlas.research
  * and "he" mean what they meant to the person.
  */
 object FollowUp {
-    /** One answered question of a topic: what was typed, what was searched, what was shown. */
-    data class Turn(val asked: String, val readAs: String, val answer: String)
+    /**
+     * One answered question of a topic: what was typed, what was searched, what was shown, the passages it was shown
+     * with, and how long it took.
+     */
+    data class Turn(val asked: String, val readAs: String, val answer: String,
+                    val sources: List<Evidence> = emptyList(), val millis: Long? = null)
 
     /** Past this length a chain of follow-ups starts again from the first question of the topic. */
     private const val MAX_CONTEXT = 200

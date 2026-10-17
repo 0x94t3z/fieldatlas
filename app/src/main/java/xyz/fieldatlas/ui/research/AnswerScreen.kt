@@ -35,6 +35,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.background
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -156,6 +157,19 @@ fun AnswerScreen(
         else if (listenable && state.askedByVoice && settings.readVoiceAnswers) readAloud.readAnswer(readKey, state.answer)
     }
 
+    // An earlier answer's source opens in the same preview, from that answer's own passages.
+    var earlierPreview by remember { mutableStateOf<Pair<List<Evidence>, Int>?>(null) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val headerIndex = if (state.earlier.isEmpty()) 0 else 1
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    // An answer's player sits where Read aloud was; once that has scrolled away it pins under the bar.
+    val playerScrolledAway by remember(headerIndex, density) {
+        androidx.compose.runtime.derivedStateOf {
+            val header = listState.layoutInfo.visibleItemsInfo.firstOrNull { it.index == headerIndex }
+            if (header == null) listState.firstVisibleItemIndex > headerIndex
+            else header.offset + header.size < with(density) { 26.dp.roundToPx() }
+        }
+    }
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -166,18 +180,26 @@ fun AnswerScreen(
             }))
             // While a guide is read, Stop stays in reach here, and the guide scrolls to the sentence being read.
             // Guides and answers read the same way: Stop pinned under the bar while the page scrolls to the sentence read.
-            if (readingHere != null && readAloud != null) LiveReading(readAloud, readKey) {
-                ReadingControl(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop, showTime = guideId == null)
+            if (readingHere != null && readAloud != null && guideId != null) LiveReading(readAloud, readKey) {
+                ReadingControl(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
+            }
+            if (readingHere != null && readAloud != null && guideId == null && playerScrolledAway) LiveReading(readAloud, readKey) {
+                Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+                    AnswerPlayerBar(it, onBack = readAloud::back, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop,
+                        modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 8.dp))
+                    androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                }
             }
             androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.markdown.LocalSpokenSentence provides readingHere?.shown) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                // Earlier questions of this topic, folded to one line each.
-                state.earlier.forEachIndexed { index, turn ->
-                    item(key = "earlier:$index") { EarlierTurnCard(index + 1, turn) }
+                // Earlier questions of this topic, one short list above the newest answer.
+                if (state.earlier.isNotEmpty()) item(key = "earlier") {
+                    EarlierTopicList(state.earlier, onOpenSource = { sources, index -> earlierPreview = sources to index })
                 }
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -225,9 +247,13 @@ fun AnswerScreen(
                         if (guideId != null && readAloud != null && readingHere == null) {
                             ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }
                         }
-                        if (listenable && readAloud != null && readingHere == null) {
-                            val millis = remember(state.answer) { readAloud.answerMillis(state.answer) }
-                            ReadAloudButton(millis, label = "Read this answer aloud", onClick = listen)
+                        if (listenable && readAloud != null) {
+                            if (readingHere == null) {
+                                val millis = remember(state.answer) { readAloud.answerMillis(state.answer) }
+                                ReadAloudButton(millis, label = "Read this answer aloud", compact = true, onClick = listen)
+                            } else LiveReading(readAloud, readKey) {
+                                AnswerPlayerBar(it, onBack = readAloud::back, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
+                            }
                         }
                     }
                 }
@@ -406,6 +432,10 @@ fun AnswerScreen(
                     }
                 }
                 }
+            }
+            earlierPreview?.let { (sources, index) ->
+                SourcePreviewSheet(sources = sources, index = index, cited = true, nextIndex = null,
+                    onDismiss = { earlierPreview = null }, onOpenFull = null, onNext = {})
             }
             previewIndex?.let { index ->
                 SourcePreviewSheet(

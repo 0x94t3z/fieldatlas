@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
@@ -54,20 +56,90 @@ val LocalReadAloud = compositionLocalOf<ReadAloud?> { null }
  * now, and any answer the same way.
  */
 @Composable
-internal fun ReadAloudButton(seconds: Long?, label: String = "Read this guide aloud", onClick: () -> Unit) {
+internal fun ReadAloudButton(seconds: Long?, label: String = "Read this guide aloud", compact: Boolean = false, onClick: () -> Unit) {
+    // A guide keeps the large button, for someone who cannot read the screen now; an answer's is smaller, so the answer leads.
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().heightIn(min = if (compact) 44.dp else 56.dp).clip(RoundedCornerShape(if (compact) 12.dp else 14.dp))
             .background(MaterialTheme.colorScheme.primary)
             .clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
-            .padding(start = 16.dp, end = 18.dp),
+            .padding(start = if (compact) 12.dp else 16.dp, end = if (compact) 14.dp else 18.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 12.dp),
     ) {
-        Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
-        Text("Read aloud", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onPrimary)
-        seconds?.let { Text("about ${roundedSeconds(it)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)) }
+        Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary,
+            modifier = Modifier.size(if (compact) 20.dp else 24.dp))
+        Text("Read aloud", Modifier.weight(1f), style = (if (compact) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium)
+            .copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onPrimary)
+        seconds?.let { Text("about ${roundedSeconds(it)}", style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)) }
     }
+}
+
+/**
+ * An answer's Read aloud bar once tapped: the same dark bar becomes the player, in place. It fills as the voice gets
+ * ready and then as it reads; back one sentence, pause or play, and stop each have their own button.
+ */
+@Composable
+internal fun AnswerPlayerBar(reading: ReadAloud.Reading, onBack: () -> Unit, onPause: () -> Unit, onResume: () -> Unit, onStop: () -> Unit,
+                             modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    val toggle = if (reading.paused) onResume else onPause
+    val fraction = when {
+        reading.preparing -> reading.prepared
+        reading.durationMs > 0 -> reading.positionMs.toFloat() / reading.durationMs
+        reading.segments.isNotEmpty() -> (reading.index + 1).toFloat() / reading.segments.size
+        else -> 0f
+    }.coerceIn(0f, 1f)
+    Box(modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(12.dp)).background(colors.primary)
+        .semantics { liveRegion = LiveRegionMode.Polite; stateDescription = when {
+            reading.preparing -> "Getting ready"; reading.paused -> "Paused"; else -> "Reading" } }) {
+        Box(Modifier.matchParentSize()) {
+            Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).background(colors.onPrimary.copy(alpha = 0.13f)))
+        }
+        Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 4.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (reading.preparing) {
+                Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(20.dp))
+                }
+            } else {
+                PlayerIconButton("Back one sentence", onBack) {
+                    Icon(Icons.Filled.SkipPrevious, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(22.dp))
+                }
+                Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp))
+                    .clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle),
+                    contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(colors.onPrimary), contentAlignment = Alignment.Center) {
+                        Icon(if (reading.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = null,
+                            tint = colors.primary, modifier = Modifier.size(20.dp))
+                    }
+                }
+            }
+            Column(Modifier.weight(1f).padding(start = 4.dp)
+                .clickable(enabled = !reading.preparing, role = Role.Button,
+                    onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle)) {
+                Text(when {
+                        reading.preparing -> "Getting ready · ${(reading.prepared * 100).toInt()}%"
+                        reading.paused -> "Paused"
+                        else -> "Reading aloud"
+                    }, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold), color = colors.onPrimary, maxLines = 1)
+                Text(if (reading.preparing) "${voiceName(reading.voice)} · then reads without pauses"
+                    else (if (reading.durationMs > 0) "${clock(reading.positionMs)} of ${clock(reading.durationMs)}"
+                        else "${reading.index + 1} of ${reading.segments.size}") + " · " + voiceName(reading.voice).lowercase(),
+                    style = MaterialTheme.typography.labelSmall, color = colors.onPrimary.copy(alpha = 0.8f), maxLines = 1)
+            }
+            PlayerIconButton(if (reading.preparing) "Cancel reading" else "Stop reading", onStop) {
+                if (reading.preparing) Icon(Icons.Outlined.Close, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(20.dp))
+                else Icon(Icons.Filled.Stop, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlayerIconButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
+    Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+        .semantics { contentDescription = label }, contentAlignment = Alignment.Center) { icon() }
 }
 
 /**

@@ -223,6 +223,35 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         }
     }
 
+    /**
+     * Back to the sentence before the one being heard, and on from there; on the first sentence, its start again.
+     * A recording seeks, the phone's voice says it again, and the natural voice replays the speech it already made.
+     */
+    fun back() {
+        val current = mutableState.value ?: return
+        if (current.preparing) return
+        val target = (current.index - 1).coerceAtLeast(0)
+        when (current.voice) {
+            Voice.Recorded -> {
+                val media = player ?: return
+                val at = recordingStarts.getOrNull(target) ?: 0L
+                runCatching { media.seekTo(at.toInt()) }
+                mutableState.value = current.copy(index = target, positionMs = at, paused = false)
+                if (current.paused && takeFocus()) runCatching { media.start() }
+            }
+            Voice.Phone -> {
+                work?.cancel(); work = null
+                tts?.stop()
+                speakWithPhone(current.key, current.segments, target)
+            }
+            Voice.Natural -> {
+                work?.cancel(); work = null
+                track?.let { runCatching { it.pause(); it.flush() } }; track = null
+                speakNatural(current.key, current.segments, target)
+            }
+        }
+    }
+
     fun stop() {
         work?.cancel(); work = null
         player?.run { runCatching { stop() }; release() }; player = null
@@ -231,6 +260,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         tts?.stop()
         if (wakeLock.isHeld) wakeLock.release()
         mutableState.value = null
+        madeFor = null; madeSpeech.clear(); madeSegmentMs.clear()
         audio.abandonAudioFocusRequest(focus)
         // The loaded voice holds a few hundred MB; it is let go after a quiet spell, not after every sentence.
         unloadLater?.cancel()
@@ -245,6 +275,8 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     // ---------- recordings ----------
 
     private var player: MediaPlayer? = null
+    /** Where each sentence of the recording being played starts, so Back can go to one. */
+    private var recordingStarts: List<Long> = emptyList()
 
     private fun playRecording(key: String, segments: List<SpeechText.Segment>, starts: List<Long>, asset: String, durationMs: Long) {
         if (!takeFocus()) return
@@ -260,6 +292,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
             }
         }.getOrNull() ?: return
         player = media
+        recordingStarts = starts
         mutableState.value = Reading(key, segments, 0, Voice.Recorded, durationMs = durationMs.takeIf { it > 0 } ?: media.duration.toLong())
         media.setOnCompletionListener { scope.launch { if (player === media) stop() } }
         // Android keeps the pitch while it changes the pace, so a faster guide still sounds like the same person.
@@ -281,6 +314,11 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     // ---------- the natural voice ----------
 
     private var track: AudioTrack? = null
+    /** The speech already made for the reading [madeFor], by piece of text, so Back replays it without making it again. */
+    private var madeFor: String? = null
+    private val madeSpeech = HashMap<String, NaturalVoice.Audio>()
+    /** How long each sentence of that reading lasts once made, pauses included, to keep the clock right after Back. */
+    private val madeSegmentMs = HashMap<Int, Long>()
 
     /**
      * Makes the speech on the voice's own thread and streams it to one AudioTrack, noting where each sentence starts so
@@ -290,15 +328,19 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
      * arrives before it is needed: one wait at the start ([Reading.prepared] says how far along), then a reading
      * without long silences between sentences. On a fast phone that is the first sentence.
      */
-    private fun speakNatural(key: String, segments: List<SpeechText.Segment>) {
+    private fun speakNatural(key: String, segments: List<SpeechText.Segment>, from: Int = 0) {
         if (!takeFocus()) return
         unloadLater?.cancel()
         val speed = mutableSettings.value.speed
-        mutableState.value = Reading(key, segments, 0, Voice.Natural, preparing = true)
+        if (madeFor != key) { madeFor = key; madeSpeech.clear(); madeSegmentMs.clear() }
+        // The time already heard before [from], so the clock after Back reads from the start of the answer.
+        val offsetMs = (0 until from).sumOf { madeSegmentMs[it] ?: 0L }
+        mutableState.value = Reading(key, segments, from, Voice.Natural, preparing = true)
         wakeLock.acquire(WAKE_LIMIT_MS)
         work = scope.launch {
             // A very long sentence is cut at its clauses, so no single piece holds up the start for too long.
             val pieces = segments.flatMapIndexed { index, segment ->
+                if (index < from) return@flatMapIndexed emptyList()
                 val parts = if (segment.spoken.split(' ').size > LONG_SENTENCE_WORDS) SpeechText.clauses(segment.spoken) else listOf(segment.spoken)
                 parts.mapIndexed { at, text -> Piece(index, text, at == parts.lastIndex) }
             }
@@ -308,7 +350,10 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                 try {
                     pieces.forEach { piece ->
                         val began = android.os.SystemClock.elapsedRealtime()
-                        val sound = natural.speak(piece.text, speed)
+                        val sound = madeSpeech["$speed|${piece.text}"] ?: natural.speak(piece.text, speed).also {
+                            madeSpeech["$speed|${piece.text}"] = it
+                            madeSegmentMs.merge(piece.segment, it.samples.size * 1000L / it.sampleRate.coerceAtLeast(1) + PAUSE_MS, Long::plus)
+                        }
                         made.send(Made(piece, sound, android.os.SystemClock.elapsedRealtime() - began))
                     }
                     made.close()
@@ -345,7 +390,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                 val sink = output ?: openTrack(first.sound.sampleRate).also { output = it; track = it }
                 if (mutableState.value?.paused != true) sink.play()
                 mutableState.value = mutableState.value?.copy(preparing = false, prepared = 1f)
-                follow(key, sink, starts)
+                follow(key, sink, starts, from, offsetMs)
                 while (held.isNotEmpty()) put(held.removeFirst())
             }
 
@@ -357,7 +402,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                     // The whole reading's length, exact once everything is made and estimated from the words until then.
                     val totalMs = madeAudioMs + (totalChars - madeChars) * madeAudioMs / madeChars.coerceAtLeast(1) +
                         segments.size * (PAUSE_MS)
-                    mutableState.value = mutableState.value?.copy(durationMs = totalMs)
+                    mutableState.value = mutableState.value?.copy(durationMs = offsetMs + totalMs)
                     if (output != null && held.isEmpty() && mutableState.value?.preparing == false) { put(item); continue }
                     held += item
                     val next = pieces.getOrNull(pieces.indexOf(item.piece) + 1)
@@ -432,14 +477,14 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     }
 
     /** Moves the mark to the sentence being heard, from where the track has played to. */
-    private fun follow(key: String, sink: AudioTrack, starts: LongArray) {
+    private fun follow(key: String, sink: AudioTrack, starts: LongArray, from: Int = 0, offsetMs: Long = 0) {
         scope.launch {
             val rate = sink.sampleRate.coerceAtLeast(1)
             while (isActive && track === sink) {
                 val head = runCatching { sink.playbackHeadPosition.toLong() and 0xffffffffL }.getOrDefault(0)
-                var index = 0
+                var index = from
                 while (index + 1 < starts.size && starts[index + 1] <= head) index++
-                val at = head * 1000 / rate
+                val at = offsetMs + head * 1000 / rate
                 mutableState.value?.let { current ->
                     if (current.key == key && (current.index != index || current.positionMs / 500 != at / 500))
                         mutableState.value = current.copy(index = index, positionMs = at)

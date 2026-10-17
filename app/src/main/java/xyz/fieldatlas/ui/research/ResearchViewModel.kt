@@ -374,7 +374,8 @@ class ResearchViewModel(
         val state = mutableUiState.value
         if (text.isBlank() || state.answer.isBlank() || state.isRunning || !attachmentSession.ready ||
             researchJob?.isActive == true) return
-        val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer)
+        val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer,
+            state.sources, state.metrics?.totalMillis ?: state.savedMillis)
         val readAs = xyz.fieldatlas.research.FollowUp.readAs(state.question, text, root = earlier.first().readAs, answer = state.answer)
         savedStateHandle[QUESTION_KEY] = readAs
         mutableFollowUpDraft.value = ""
@@ -624,7 +625,8 @@ class ResearchViewModel(
         mutableUiState.value = ResearchUiState(
             question = readAs,
             asked = if (last.readAs != null) last.question else "",
-            earlier = turns.dropLast(1).map { xyz.fieldatlas.research.FollowUp.Turn(it.question, it.readAs ?: it.question, it.answer) },
+            earlier = turns.dropLast(1).map { xyz.fieldatlas.research.FollowUp.Turn(it.question, it.readAs ?: it.question, it.answer,
+                it.evidence, it.durationMs) },
             topic = last.topic ?: last.createdAtEpochMs,
             answer = last.answer,
             sources = last.evidence,
