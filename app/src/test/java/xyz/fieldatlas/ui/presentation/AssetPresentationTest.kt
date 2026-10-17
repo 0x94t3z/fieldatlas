@@ -102,6 +102,24 @@ class AssetPresentationTest {
         assertEquals("MIT OR Apache-2.0", displayLicence("MIT OR Apache-2.0"))
     }
 
+    @Test fun aboutReadsTheSameForEveryCollection() {
+        val encyclopedia = asset("wikipedia-encyclopedia", PackType.KNOWLEDGE, null)
+        val listing = "English and Simple English Wikipedia in one offline collection. 8.39 million passages; " +
+            "10.64 GB download, 24.35 GB installed. Dated snapshots, not live information."
+        // A pack without a summary takes the catalog's listing, without the sizes the sheet already shows.
+        assertEquals("English and Simple English Wikipedia in one offline collection. 8.39 million passages. " +
+            "Dated snapshots, not live information.", encyclopedia.aboutDescription(listing))
+        assertEquals("Four project-authored notes", knowledge(CoverageLevel.DEMO).aboutDescription(listing))
+        assertNull(asset("other", PackType.KNOWLEDGE, null).aboutDescription(null))
+        // The encyclopedia has questions to try even though its pack carries none.
+        assertEquals(3, encyclopedia.aboutExamples().size)
+        assertEquals(listOf("Why do seasons change?"), knowledge(CoverageLevel.DEMO).aboutExamples())
+        assertEquals(emptyList<String>(), model().aboutExamples())
+        assertEquals("24.35 GB · v2026.10.12", aboutSubtitle("Encyclopedia", "Encyclopedia", "24.35 GB", "2026.10.12-native"))
+        assertEquals("Places · 3.62 GB · v2026.10.05", aboutSubtitle("Essentials", "Places", "3.62 GB", "2026.10.05"))
+        assertEquals("1.4 GB · v1.0.0", aboutSubtitle("Qwen3.5 2B", null, "1.4 GB", "1.0.0"))
+    }
+
     private fun model() = asset("model", PackType.MODEL, null)
 
     private fun knowledge(level: CoverageLevel) = asset(

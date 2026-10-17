@@ -305,6 +305,8 @@ fun LibraryScreen(
                             onDelete = { onDeletePack(asset) },
                             asset = asset,
                             onAskExample = onAskExample,
+                            catalogDescription = availableKnowledge.firstOrNull { it.id == asset.id }?.description,
+                            category = knowledgeCategory(asset.id, declared[asset.id].orEmpty()).label,
                         )
                         oldEditions.filter { it.id == asset.id }.forEach { old ->
                             OldEditionNote(old, onRemove = { onDeletePack(old) },
@@ -580,6 +582,9 @@ private fun AssetCard(
     onModelOptions: (() -> Unit)? = null,
     /** The phone's only answer model: deleting it returns the app to setup. */
     onlyModel: Boolean = false,
+    /** For a collection: the catalog's listing, shown in About when the pack has no summary of its own. */
+    catalogDescription: String? = null,
+    category: String? = null,
 ) {
     var confirmDelete by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     var showAbout by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
@@ -670,7 +675,8 @@ private fun AssetCard(
         )
     }
     if (showAbout && asset != null) {
-        PackAboutSheet(asset, model.title, visual, onDismiss = { showAbout = false }, onAskExample = onAskExample)
+        PackAboutSheet(asset, model.title, visual, onDismiss = { showAbout = false }, onAskExample = onAskExample,
+            catalogDescription = catalogDescription, category = category)
     }
 }
 

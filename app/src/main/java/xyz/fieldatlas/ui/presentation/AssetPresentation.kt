@@ -76,6 +76,29 @@ internal fun InstalledAsset.collectionDescription(): String? =
             "Only switched-on collections are searched."
     } else null
 
+/** What About says a collection holds: the pack's own summary, else the catalog's listing without its sizes, which
+ * the sheet already shows. Packs published before summaries existed (the encyclopedia) have only the listing. */
+internal fun InstalledAsset.aboutDescription(catalogDescription: String?): String? =
+    collectionDescription() ?: catalogDescription?.replace(catalogSizes, "")?.replace(Regex("\\s+"), " ")?.trim()
+        ?.takeIf(String::isNotBlank)
+
+private val catalogSizes = Regex(";?\\s*[0-9][0-9.,]*\\s*[KMGT]B download(?:,\\s*[0-9][0-9.,]*\\s*[KMGT]B installed)?")
+
+/** Questions About offers to try: the pack's own, else a few the encyclopedia answers from its overviews. Each was
+ * asked on a phone first; "What causes the seasons?" and "How does a volcano form?" read the wrong articles. */
+internal fun InstalledAsset.aboutExamples(): List<String> =
+    discovery?.exampleQuestions.orEmpty().ifEmpty {
+        if (type == PackType.KNOWLEDGE && knowledgeCategory(id) == KnowledgeCategory.Encyclopedia) ENCYCLOPEDIA_EXAMPLES
+        else emptyList()
+    }
+
+private val ENCYCLOPEDIA_EXAMPLES = listOf("Who was Ada Lovelace?", "Who was Marie Curie?", "What is the Great Barrier Reef?")
+
+/** The line under a pack's name in About: its kind when that is not its name, then size and version. */
+internal fun aboutSubtitle(title: String, category: String?, size: String, version: String): String =
+    listOfNotNull(category?.takeUnless { it.equals(title, ignoreCase = true) }, size, "v${displayVersion(version)}")
+        .joinToString(" · ")
+
 internal fun knowledgeSelectionSummary(packs: List<InstalledAsset>): String? {
     val knowledge = packs.filter { it.type == PackType.KNOWLEDGE }
     val enabled = knowledge.filter { it.enabled }
