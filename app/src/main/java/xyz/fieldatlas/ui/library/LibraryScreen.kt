@@ -632,7 +632,7 @@ private fun AssetCard(
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
                         shape = RoundedCornerShape(16.dp), containerColor = MaterialTheme.colorScheme.surface) {
                         if (asset != null) DropdownMenuItem(
-                            text = { Text(if (asset.type == xyz.fieldatlas.assets.PackType.KNOWLEDGE) "About this collection" else "About this pack") },
+                            text = { Text("About") },
                             leadingIcon = { Icon(FieldAtlasIcons.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                             onClick = { menuOpen = false; showAbout = true },
                         )
@@ -640,7 +640,7 @@ private fun AssetCard(
                         if (asset != null) HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                         DropdownMenuItem(
-                            text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
+                            text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                             leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                             onClick = { menuOpen = false; confirmDelete = true },
                         )

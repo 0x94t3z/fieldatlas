@@ -152,7 +152,7 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
                     androidx.compose.material3.HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                     DropdownMenuItem(
-                        text = { Text("Delete…", color = MaterialTheme.colorScheme.error) },
+                        text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
                         leadingIcon = { Icon(FieldAtlasIcons.Trash, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
                         onClick = { menu = false; confirmRemove = true },
                     )

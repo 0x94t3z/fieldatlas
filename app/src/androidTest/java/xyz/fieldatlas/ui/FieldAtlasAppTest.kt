@@ -279,7 +279,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("1.5 KB · v1", substring = true).assertExists()
         compose.onNodeWithText("2.5 KB · v1", substring = true).assertExists()
         compose.onNodeWithContentDescription("More options for Knowledge pack").performClick()
-        compose.onNodeWithText("About this collection").performClick()
+        compose.onNodeWithText("About").performClick()
         compose.onNodeWithText("CC0 1.0").assertExists()
         compose.onNodeWithText("${"b".repeat(12)}… verified at install").assertExists()
     }
