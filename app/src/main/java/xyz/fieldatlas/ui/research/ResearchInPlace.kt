@@ -1,7 +1,7 @@
 package xyz.fieldatlas.ui.research
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -139,8 +139,9 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
     val readFraction = estimate?.fraction ?: state.promptRead?.takeIf { it.second > 0 }
         ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) }
     val still = stillMotion()
-    val position by animateFloatAsState(trailPosition(state, readFraction),
-        animationSpec = tween(if (still) 0 else 700), label = "Trail")
+    // Steps straight to each new place, like the dino's walk, rather than gliding: the estimate moves it five times a
+    // second, so a glide redrew the trail every frame for the whole read and took CPU from the model reading.
+    val position by animateFloatAsState(trailPosition(state, readFraction), animationSpec = snap(), label = "Trail")
     val stage = researchStage(state)
     var elapsedMillis by remember(state.clockStartNanos) { mutableLongStateOf(0L) }
     LaunchedEffect(state.clockStartNanos) {
@@ -257,9 +258,9 @@ private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphic
 @Composable
 internal fun ForthcomingAnswer(state: ResearchUiState) {
     val stage = researchStage(state)
-    val still = stillMotion()
+    // Filled as each word arrives, without a glide that redrew the card every frame while the model wrote.
     val written by animateFloatAsState(if (stage == 2) state.tokensWritten / TOKENS_PER_LINE else 0f,
-        animationSpec = tween(if (still) 0 else 600), label = "Written")
+        animationSpec = snap(), label = "Written")
     val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
     val sources = state.sources.size
     val caption = when {
