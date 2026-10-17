@@ -123,6 +123,33 @@ private const val MIN_RESEARCHED_MILLIS = 15_000L
 private const val TOKENS_PER_LINE = 40f
 private const val DINO_STEP = 220L
 
+/*
+ * While the dino walks, the collections being searched cross its path one at a time, each in its Library icon, and it
+ * hops each one. They only decorate: the dino's place is still the measured progress, and with animations off, or
+ * while it waits its turn, nothing crosses.
+ */
+private const val OBSTACLE_CROSS_MS = 3_200L
+private const val OBSTACLE_GAP_MS = 600L
+private const val OBSTACLE_FROM = 1.02f
+private const val OBSTACLE_TO = -0.04f
+private const val HOP_REACH = 0.07f
+
+/** Which collection is crossing at [clockMs] and where it is along the trail (0..1), or null between two. */
+internal fun obstacleAt(clockMs: Long, count: Int): Pair<Int, Float>? {
+    if (count <= 0 || clockMs < 0) return null
+    val cycle = OBSTACLE_CROSS_MS + OBSTACLE_GAP_MS
+    val within = clockMs % cycle
+    if (within >= OBSTACLE_CROSS_MS) return null
+    val index = ((clockMs / cycle) % count).toInt()
+    return index to (OBSTACLE_FROM + (OBSTACLE_TO - OBSTACLE_FROM) * within / OBSTACLE_CROSS_MS)
+}
+
+/** How far up the dino is (0..1 of a full hop) when an obstacle at [obstacle] passes it at [dino]. */
+internal fun hopHeight(obstacle: Float, dino: Float): Float {
+    val d = (obstacle - dino) / HOP_REACH
+    return if (kotlin.math.abs(d) >= 1f) 0f else 1f - d * d
+}
+
 @Composable
 private fun stillMotion(): Boolean {
     val context = LocalContext.current
@@ -134,7 +161,8 @@ private fun stillMotion(): Boolean {
 
 /** The trail, the status line and what to expect. */
 @Composable
-internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
+internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?,
+    collectionIcons: List<androidx.compose.ui.graphics.vector.ImageVector> = emptyList()) {
     val estimate = rememberPrefillEstimate(state)
     val readFraction = estimate?.fraction ?: state.promptRead?.takeIf { it.second > 0 }
         ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) }
@@ -158,7 +186,8 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
     val title = researchStatusTitle(state)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Trail(stage, position, if (!walking || step == 0) FieldAtlasIcons.DinoWalkA else FieldAtlasIcons.DinoWalkB,
-            Modifier.semantics {
+            obstacles = if (walking) collectionIcons else emptyList(),
+            modifier = Modifier.semantics {
                 contentDescription = "Research progress: step ${stage + 1} of 3, ${STAGES[stage]}"
                 progressBarRangeInfo = ProgressBarRangeInfo(position, 0f..1f)
             })
@@ -200,8 +229,16 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
 }
 
 @Composable
-private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
+private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphics.vector.ImageVector,
+                  obstacles: List<androidx.compose.ui.graphics.vector.ImageVector>, modifier: Modifier) {
     val primary = MaterialTheme.colorScheme.primary
+    // A frame clock while collections cross; read only inside offsets below, so a frame moves them without recomposing.
+    val clock = remember { androidx.compose.runtime.mutableLongStateOf(-1L) }
+    LaunchedEffect(obstacles.isNotEmpty()) {
+        if (obstacles.isEmpty()) { clock.longValue = -1L; return@LaunchedEffect }
+        val start = androidx.compose.runtime.withFrameMillis { it }
+        while (true) androidx.compose.runtime.withFrameMillis { clock.longValue = it - start }
+    }
     val track = MaterialTheme.colorScheme.outlineVariant
     BoxWithConstraints(modifier.fillMaxWidth().height(72.dp)) {
         val inset = 10.dp
@@ -245,8 +282,24 @@ private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphic
                 Icon(FieldAtlasIcons.Document, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        // The crossing collection stands on the dino's ground (its feet, 28 dp down), above the circles.
+        // Only which collection is crossing is read here (it changes every few seconds); where it is, each frame, is read
+        // in the offset, so a frame moves it without recomposing the trail.
+        val crossingIndex by remember(obstacles.size) {
+            androidx.compose.runtime.derivedStateOf { obstacleAt(clock.longValue, obstacles.size)?.first }
+        }
+        if (obstacles.isNotEmpty()) {
+            crossingIndex?.let { index -> Icon(obstacles[index], contentDescription = null, tint = primary.copy(alpha = 0.85f),
+                modifier = Modifier.offset {
+                    val now = obstacleAt(clock.longValue, obstacles.size)?.second ?: -1f
+                    androidx.compose.ui.unit.IntOffset((x(now.coerceIn(-0.02f, 1f)) - 8.dp).roundToPx(), 12.dp.roundToPx())
+                }.size(16.dp)) }
+        }
         Icon(dino, contentDescription = null, tint = primary,
-            modifier = Modifier.offset(x = x(position) - 16.dp, y = 0.dp).size(32.dp))
+            modifier = Modifier.offset {
+                val lift = obstacleAt(clock.longValue, obstacles.size)?.let { (_, at) -> hopHeight(at, position) } ?: 0f
+                androidx.compose.ui.unit.IntOffset((x(position) - 16.dp).roundToPx(), -(20.dp * lift).roundToPx())
+            }.size(32.dp))
     }
 }
 
