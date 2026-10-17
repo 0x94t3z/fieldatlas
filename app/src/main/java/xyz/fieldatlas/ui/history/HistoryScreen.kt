@@ -76,7 +76,6 @@ import xyz.fieldatlas.research.HistoryStorage
 import xyz.fieldatlas.text.MarkdownLiteral
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
-import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
 import xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel
 
 /**
@@ -173,11 +172,10 @@ fun HistoryScreen(
             item(key = "header") {
                 if (selecting) SelectionBar(selected.size, onClose = { selected = emptySet() },
                     onSelectAll = { selected = shown.map { it.key }.toSet() })
-                else FieldAtlasPageHeader(
-                    title = "Your notebook",
-                    subtitle = if (records.isEmpty()) "Past questions, kept on this phone."
-                        else "${allTopics.size} topic${if (allTopics.size == 1) "" else "s"} · " +
-                            "${records.size - pending.sumOf { it.turns.size }} answers · on this phone only",
+                else NotebookHeader(
+                    if (records.isEmpty()) "Past questions, kept on this phone."
+                    else "${allTopics.size} topic${if (allTopics.size == 1) "" else "s"} · " +
+                        "${records.size - pending.sumOf { it.turns.size }} answers · on this phone only",
                 )
             }
             // History keeps every answer; when the phone runs short of space, say so before answers stop being saved.
@@ -208,7 +206,7 @@ fun HistoryScreen(
                 }
             }
             if (pinned.isNotEmpty()) {
-                item(key = "pinned") { FieldAtlasSectionLabel("Pinned", Modifier.padding(top = 4.dp)) }
+                item(key = "pinned") { PinnedLabel(pinned.size, Modifier.padding(top = 4.dp)) }
                 pinned.forEach { topic -> item(key = "p:${topic.key}") { Entry(topic) } }
             }
             days.forEach { (day, dayTopics) ->
@@ -237,7 +235,31 @@ fun HistoryScreen(
 
 private const val UNDO_MS = 8_000L
 
-/** One topic: its question, what kind and how much, the latest question or where a search matched, and Continue. */
+/** The page title, and how much History holds with a lock, since none of it leaves the phone. */
+@Composable
+private fun NotebookHeader(summary: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("Your notebook", style = MaterialTheme.typography.headlineLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(FieldAtlasIcons.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
+            Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun PinnedLabel(count: Int, modifier: Modifier = Modifier) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(androidx.compose.material.icons.Icons.Outlined.PushPin, null, tint = muted, modifier = Modifier.size(15.dp))
+        Text(buildAnnotatedString {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append("Pinned") }
+            append(" · $count")
+        }, style = MaterialTheme.typography.labelLarge, color = muted)
+    }
+}
+
+/** One topic: its question, what kind and how much, where a search matched, and a strip to continue it. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TopicEntry(
@@ -291,65 +313,80 @@ private fun TopicCard(
                 onClick = if (selecting) onToggleSelect else onOpen,
             ),
     ) {
-        Row(Modifier.padding(start = if (selecting) 12.dp else 16.dp, end = 4.dp, top = 12.dp, bottom = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (selecting) SelectBox(isSelected, Modifier.padding(top = 2.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(topic.first.question, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp),
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(buildAnnotatedString {
-                    if (kind == TopicKind.FirstAid) {
-                        withStyle(SpanStyle(color = colors.error, fontWeight = FontWeight.SemiBold)) { append("First aid") }
-                        append(" · ")
-                    }
-                    append(historyMeta(time, topic, kind))
-                    if (pinned) {
-                        append(" · ")
-                        withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.SemiBold)) { append("Pinned") }
-                    }
-                }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-                when {
-                    match != null -> {
-                        Text(match.where, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                        Text(buildAnnotatedString {
-                            match.lead?.let { withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.onSurface)) { append(it) }; if (match.hit.isNotEmpty()) append(" · ") }
-                            append(match.before)
-                            withStyle(SpanStyle(background = Color(0xFFF1E2B9), color = Color(0xFF30250C))) { append(match.hit) }
-                            append(match.after)
-                        }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
-                    }
-                    topic.turns.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("LATEST", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.4.sp), color = colors.onSurfaceVariant)
-                        Text(topic.last.question, style = MaterialTheme.typography.bodySmall, color = colors.onSurface,
-                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // The strip says what tapping does and where the topic picks up; a search result shows its match instead.
+        val strip = !selecting && match == null
+        Column {
+            Row(Modifier.padding(start = if (selecting) 12.dp else 16.dp, end = 4.dp, top = 12.dp, bottom = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (selecting) SelectBox(isSelected, Modifier.padding(top = 2.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(topic.first.question, style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp),
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(buildAnnotatedString {
+                        if (kind == TopicKind.FirstAid) {
+                            withStyle(SpanStyle(color = colors.error, fontWeight = FontWeight.SemiBold)) { append("First aid") }
+                            append(" · ")
+                        }
+                        append(historyMeta(time, topic, kind))
+                        if (pinned) {
+                            append(" · ")
+                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.SemiBold)) { append("Pinned") }
+                        }
+                    }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    when {
+                        match != null -> {
+                            Text(match.where, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                            Text(buildAnnotatedString {
+                                match.lead?.let { withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.onSurface)) { append(it) }; if (match.hit.isNotEmpty()) append(" · ") }
+                                append(match.before)
+                                withStyle(SpanStyle(background = Color(0xFFF1E2B9), color = Color(0xFF30250C))) { append(match.hit) }
+                                append(match.after)
+                            }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        }
+                        !strip && topic.turns.size > 1 -> Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("LATEST", style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 0.4.sp), color = colors.onSurfaceVariant)
+                            Text(topic.last.question, style = MaterialTheme.typography.bodySmall, color = colors.onSurface,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
                     }
                 }
-                if (!selecting) Text("Continue ›", style = MaterialTheme.typography.labelLarge, color = colors.primary,
-                    modifier = Modifier.align(Alignment.End).padding(end = 8.dp, top = 2.dp))
+                if (!selecting) Box {
+                    IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
+                        Icon(FieldAtlasIcons.MoreOptions, contentDescription = "More for ${topic.first.question}",
+                            tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                    }
+                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
+                        shape = RoundedCornerShape(16.dp), containerColor = colors.surface) {
+                        DropdownMenuItem(text = { Text(if (pinned) "Unpin" else "Pin to top") },
+                            leadingIcon = { Icon(androidx.compose.material.icons.Icons.Outlined.PushPin, null, tint = colors.primary) },
+                            onClick = { menuOpen = false; onPin() })
+                        DropdownMenuItem(text = { Text("Share topic") },
+                            leadingIcon = { Icon(FieldAtlasIcons.Share, null, tint = colors.primary) },
+                            onClick = { menuOpen = false; onShare() })
+                        DropdownMenuItem(text = { Text("Copy as text") },
+                            leadingIcon = { Icon(FieldAtlasIcons.Copy, null, tint = colors.primary) },
+                            onClick = { menuOpen = false; onCopy() })
+                        HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), color = colors.outlineVariant.copy(alpha = 0.6f))
+                        DropdownMenuItem(text = { Text("Delete topic", color = colors.error) },
+                            leadingIcon = { Icon(FieldAtlasIcons.Trash, null, tint = colors.error) },
+                            onClick = { menuOpen = false; onDelete() })
+                    }
+                }
             }
-            if (!selecting) Box {
-                IconButton(onClick = { menuOpen = true }, modifier = Modifier.size(40.dp)) {
-                    Icon(FieldAtlasIcons.MoreOptions, contentDescription = "More for ${topic.first.question}",
-                        tint = colors.onSurfaceVariant, modifier = Modifier.size(20.dp))
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
-                    shape = RoundedCornerShape(16.dp), containerColor = colors.surface) {
-                    DropdownMenuItem(text = { Text(if (pinned) "Unpin" else "Pin to top") },
-                        leadingIcon = { Icon(androidx.compose.material.icons.Icons.Outlined.PushPin, null, tint = colors.primary) },
-                        onClick = { menuOpen = false; onPin() })
-                    DropdownMenuItem(text = { Text("Share topic") },
-                        leadingIcon = { Icon(FieldAtlasIcons.Share, null, tint = colors.primary) },
-                        onClick = { menuOpen = false; onShare() })
-                    DropdownMenuItem(text = { Text("Copy as text") },
-                        leadingIcon = { Icon(FieldAtlasIcons.Copy, null, tint = colors.primary) },
-                        onClick = { menuOpen = false; onCopy() })
-                    HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), color = colors.outlineVariant.copy(alpha = 0.6f))
-                    DropdownMenuItem(text = { Text("Delete topic", color = colors.error) },
-                        leadingIcon = { Icon(FieldAtlasIcons.Trash, null, tint = colors.error) },
-                        onClick = { menuOpen = false; onDelete() })
-                }
-            }
+            if (strip) ContinueStrip(if (topic.turns.size > 1) topic.last.question else null)
         }
+    }
+}
+
+@Composable
+private fun ContinueStrip(latest: String?) {
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth().background(colors.primaryContainer).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Continue", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.primary)
+        Text(latest ?: "Ask a follow-up", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+            color = colors.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Icon(FieldAtlasIcons.ChevronRight, null, tint = colors.primary, modifier = Modifier.size(16.dp))
     }
 }
 
