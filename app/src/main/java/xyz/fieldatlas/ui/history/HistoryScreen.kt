@@ -259,7 +259,7 @@ private fun PinnedLabel(count: Int, modifier: Modifier = Modifier) {
     }
 }
 
-/** One topic: its question, what kind and how much, where a search matched, and a strip to continue it. */
+/** One topic: its question, what kind and how much, where a search matched, and a Continue strip. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TopicEntry(
@@ -313,7 +313,7 @@ private fun TopicCard(
                 onClick = if (selecting) onToggleSelect else onOpen,
             ),
     ) {
-        // The strip says what tapping does and where the topic picks up; a search result shows its match instead.
+        // The strip says what tapping does; a search result shows its match instead.
         val strip = !selecting && match == null
         Column {
             Row(Modifier.padding(start = if (selecting) 12.dp else 16.dp, end = 4.dp, top = 12.dp, bottom = 10.dp),
@@ -373,19 +373,17 @@ private fun TopicCard(
                     }
                 }
             }
-            if (strip) ContinueStrip(if (topic.turns.size > 1) topic.last.question else null)
+            if (strip) ContinueStrip()
         }
     }
 }
 
 @Composable
-private fun ContinueStrip(latest: String?) {
+private fun ContinueStrip() {
     val colors = MaterialTheme.colorScheme
     Row(Modifier.fillMaxWidth().background(colors.primaryContainer).padding(start = 16.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text("Continue", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = colors.primary)
-        Text(latest ?: "Ask a follow-up", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
-            color = colors.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Icon(FieldAtlasIcons.ChevronRight, null, tint = colors.primary, modifier = Modifier.size(16.dp))
     }
 }
