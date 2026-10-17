@@ -269,17 +269,40 @@ class PromptBuilderTest {
         val first = PromptBuilder.build("Why do rivers flood?", listOf(source(1)), 2048)
         val second = PromptBuilder.build("How do tides work in estuaries?", listOf(source(2), source(3)), 2048)
         val opening = first.prompt.take(first.savedPrefixChars)
-        assertTrue(opening, opening.endsWith("absent from the full source."))
+        assertTrue(opening, opening.startsWith("/no_think\n") && opening.endsWith("absent from the full source."))
         assertEquals(opening, second.prompt.take(second.savedPrefixChars))
         assertFalse("the evidence is not part of the fixed opening", opening.contains("Passage number"))
         val strict = PromptBuilder.build("Summarize my saved notes about rivers", listOf(source(1)), 2048)
         assertTrue(strict.prompt.take(strict.savedPrefixChars).endsWith("absent from the full source."))
         assertTrue(opening != strict.prompt.take(strict.savedPrefixChars))
+        // A cited draft's opening runs through its evidence, so its repair turn restores it instead of reading again.
+        val explanation = PromptBuilder.explain("Why do rivers flood?", first)
+        val draftOpening = explanation.prompt.take(explanation.savedPrefixChars)
+        assertTrue(draftOpening, draftOpening.startsWith("Use only the evidence") && draftOpening.endsWith("Passage number 1 about rivers and tides."))
+        assertTrue(explanation.prompt.substring(explanation.savedPrefixChars).startsWith("\n\nQUESTION:"))
         val guide = PromptBuilder.buildGuide("Someone is bleeding", listOf(source(1)))
         assertFalse(guide.prompt.take(guide.savedPrefixChars).contains("EVIDENCE:"))
         assertTrue(guide.prompt.substring(guide.savedPrefixChars).startsWith("\n\nEVIDENCE:"))
         val alone = PromptBuilder.buildModelOnly("What is a rainbow?")
+        assertTrue(alone.prompt.startsWith("/no_think\n"))
         assertTrue(alone.prompt.substring(alone.savedPrefixChars).startsWith("\n\nQUESTION:"))
+    }
+
+    @Test fun aFollowUpIsAskedAsTypedUnderItsConversation() {
+        val source = Evidence("wp-tokyo", "wp-tokyo:0", "Tokyo — Overview", "local", "Tokyo has about 14 million people.", 0.0)
+        val framing = PromptBuilder.Framing("how many people live there",
+            "EARLIER IN THIS CONVERSATION:\nQ: What is the capital of Japan\nA: The capital of Japan is Tokyo.")
+        val packed = PromptBuilder.buildKnowledge("Tokyo: how many people live there", listOf(source), emptyList(), emptyList(), 2048, null, framing)
+        assertTrue(packed.prompt, packed.prompt.endsWith("EARLIER IN THIS CONVERSATION:\nQ: What is the capital of Japan\nA: The capital of Japan is Tokyo.\n\nQUESTION:\nhow many people live there\n\nANSWER:"))
+        assertFalse(packed.prompt.contains("Tokyo: how many"))
+        val explanation = PromptBuilder.explain("Tokyo: how many people live there", packed)
+        assertTrue(explanation.prompt, explanation.prompt.endsWith("\n\nQUESTION: how many people live there\n\nANSWER:"))
+        assertTrue(explanation.prompt.contains("EARLIER IN THIS CONVERSATION:"))
+        val alone = PromptBuilder.buildModelOnly("Tokyo: how many people live there", framing)
+        assertTrue(alone.prompt.endsWith("QUESTION:\nhow many people live there\n\nANSWER:"))
+        // Without a conversation the question stands as it was asked.
+        assertTrue(PromptBuilder.buildKnowledge("Why do rivers flood?", listOf(source), emptyList(), emptyList(), 2048, null).prompt
+            .endsWith("QUESTION:\nWhy do rivers flood?\n\nANSWER:"))
     }
 
 

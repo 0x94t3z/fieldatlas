@@ -107,8 +107,33 @@ class DesktopResearchTest {
         var failures = 0
         val seeds = config["seeds"]?.jsonArray?.map { it.jsonPrimitive.int } ?: listOf(17)
         val temperature = config["temperature"]?.jsonPrimitive?.double ?: 0.3
+        // A chained follow-up ("@c01.1") is read when its turn comes, from the reading and the answer it follows, as on the phone.
+        val readings = mutableMapOf<Pair<Int, String>, String>()
+        val shown = mutableMapOf<Pair<Int, String>, String>()
+        val turns = mutableMapOf<Pair<Int, String>, List<FollowUp.Turn>>()
         for (seed in seeds) for (item in config.getValue("questions").jsonArray) {
-            val question = item.jsonPrimitive.content
+            val listed = item.jsonPrimitive.content
+            val chained = followUps?.get(listed)?.jsonObject?.takeIf { listed.startsWith("@") }
+            val question = chained?.let { link ->
+                val after = link.getValue("after").jsonPrimitive.content
+                val previous = readings[seed to after] ?: after
+                FollowUp.readAs(previous, link.getValue("asked").jsonPrimitive.content,
+                    root = link["root"]?.jsonPrimitive?.content ?: previous, answer = shown[seed to previous].orEmpty())
+            } ?: listed
+            readings[seed to listed] = question
+            // The conversation so far, as the phone carries it: each earlier question as typed, its reading and its answer.
+            val earlierTurns = chained?.let { link ->
+                val after = link.getValue("after").jsonPrimitive.content
+                val previous = readings[seed to after] ?: after
+                // The turn before: a chained key's own typed follow-up, or the first question as typed.
+                val askedBefore = followUps[after]?.jsonObject?.get("asked")?.jsonPrimitive?.content ?: after
+                turns[seed to after].orEmpty() + FollowUp.Turn(askedBefore, previous, shown[seed to previous].orEmpty())
+            } ?: followUps?.get(listed)?.jsonObject?.get("earlier")?.jsonArray?.map { turn ->
+                // A follow-up given with its conversation written out, for tracing one reading on its own.
+                val t = turn.jsonObject
+                FollowUp.Turn(t.getValue("asked").jsonPrimitive.content, t.getValue("readAs").jsonPrimitive.content, t.getValue("answer").jsonPrimitive.content)
+            }.orEmpty()
+            turns[seed to listed] = earlierTurns
             // Read the existing private constant instead of keeping another prompt copy.
             val system = AppContainer::class.java.getDeclaredField("SYSTEM_PROMPT").apply { isAccessible = true }.get(null) as String
             val gateway = DesktopGateway(config.getValue("endpoint").jsonPrimitive.content, system,
@@ -207,9 +232,10 @@ class DesktopResearchTest {
                 // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
                 articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
-                topic = followUps?.get(question)?.jsonObject?.let { link ->
+                topic = (followUps?.get(listed) ?: followUps?.get(question))?.jsonObject?.let { link ->
                     TopicEvidence.Carried(link.getValue("asked").jsonPrimitive.content,
-                        answeredSources[seed to link.getValue("after").jsonPrimitive.content].orEmpty())
+                        answeredSources[seed to link.getValue("after").jsonPrimitive.content.let { readings[seed to it] ?: it }].orEmpty(),
+                        earlierTurns)
                 }).collect { event ->
                 when (event) {
                     is ResearchEvent.Sources -> sources = event.evidence
@@ -222,9 +248,11 @@ class DesktopResearchTest {
                 }
             }
             answeredSources[seed to question] = sources
+            shown[seed to question] = AnswerText.finalized(answer.toString(), sources.size)
             if (metrics == null || error != null) failures++
             rows += buildJsonObject {
                 put("question", question)
+                if (listed != question) put("listed", listed)
                 put("seed", seed)
                 put("attachments", JsonArray(attachments.map { JsonPrimitive(it.displayName) }))
                 put("status", if (metrics != null && error == null) "COMPLETED_UNSCORED" else "ERROR")

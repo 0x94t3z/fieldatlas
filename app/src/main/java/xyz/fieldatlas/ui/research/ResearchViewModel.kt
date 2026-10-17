@@ -375,7 +375,7 @@ class ResearchViewModel(
         if (text.isBlank() || state.answer.isBlank() || state.isRunning || !attachmentSession.ready ||
             researchJob?.isActive == true) return
         val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer)
-        val readAs = xyz.fieldatlas.research.FollowUp.readAs(state.question, text, root = earlier.first().readAs)
+        val readAs = xyz.fieldatlas.research.FollowUp.readAs(state.question, text, root = earlier.first().readAs, answer = state.answer)
         savedStateHandle[QUESTION_KEY] = readAs
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
@@ -384,7 +384,7 @@ class ResearchViewModel(
             // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
             // is no longer attached, and its words must not be quoted as the library's.
             carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(),
-                state.sources.filterNot { it.documentId.startsWith("attachment:") }))
+                state.sources.filterNot { it.documentId.startsWith("attachment:") }, earlier))
     }
 
     /**

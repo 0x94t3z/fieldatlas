@@ -28,7 +28,7 @@ interface InferenceGateway {
 
     /** Separate support-review turn. Production uses the same local engine;
      * test gateways can supply independent review outcomes. */
-    fun reviewEvidence(prompt: String): Flow<String> = generate(prompt, maxTokens = 32)
+    fun reviewEvidence(prompt: String, savedPrefixChars: Int = 0): Flow<String> = generate(prompt, maxTokens = 32, savedPrefixChars = savedPrefixChars)
 
     /** Prompt tokens the last generation restored instead of reading; 0 when it read them all. */
     val reusedPromptTokens: Int get() = 0

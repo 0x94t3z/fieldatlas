@@ -107,6 +107,13 @@ object EvidenceRelevance {
         "study", "studies", "report", "reports", "result", "results", "outcome", "outcomes",
         "different", "difference", "differences", "example", "practical", "two", "one", "new",
         "information", "data", "know", "fresh", "important", "evidence", "claim", "claims",
+        // The way a question is put, not what it is about: "what kind of tree", "how do submarines come back up",
+        // "why are some people colour blind", "is it true they're drunk".
+        "kind", "kinds", "type", "types", "sort", "sorts", "come", "comes", "came", "back", "ever", "really", "actually",
+        "exactly", "get", "gets", "got", "getting", "make", "makes", "made", "thing", "things", "way", "ways", "lot", "lots",
+        "much", "many", "still", "even", "true", "called", "mean", "means", "tell", "give", "need", "want", "like", "say",
+        "people", "someone", "anyone", "somebody", "use", "used", "using", "work", "works", "happen", "happens", "actually",
+        "around", "there", "here", "world", "please", "something", "anything",
     )
 
     fun keep(
@@ -644,7 +651,16 @@ object EvidenceRelevance {
         val destination = item.text.lineSequence().firstOrNull()?.takeIf { it.startsWith("Destination: ") }
             ?.removePrefix("Destination: ")?.trim()?.takeIf(String::isNotEmpty)
         if (destination != null && listOf(destination, destination.substringBefore('/'), destination.substringBefore(" (")).distinct()
-            .any { name -> containsPhrase(question, name) }) return true
+            .any { name -> containsPhrase(question, name) }) {
+            // The town is every listing's. "Tokyo: how many people live there" asks about the city, and its hostels
+            // only share a word by accident ("THE LIVELY AZABUJUBAN TOKYO" for "live"); a listing the town's question
+            // did not ask for by kind must name one of its words whole ("Kopermolen Vaals concerts").
+            if (VenueLookup.isPlaceLookup(question) || placeRequest.containsMatchIn(question)) return true
+            val fields = tokens(listingFields.mapNotNull { field -> listingValue(item.text, field) }.joinToString(" "))
+            val town = tokens(destination)
+            return FtsQuery.from(question)?.terms.orEmpty().map { QuestionText.foldSpelling(QuestionText.foldAccents(it.lowercase())) }
+                .any { term -> term.length >= 4 && term !in genericTerms && term !in lookupWrappers && term !in town && term in fields }
+        }
         // A venue named in the question answers a lookup or a question about its hours ("Is the
         // Louvre open on Mondays?"), not one about who or what it is named after: "who was Ibn
         // Battuta?" packed the Dubai metro station, "Taj Mahal" a restaurant in Graz.
@@ -761,7 +777,7 @@ object EvidenceRelevance {
         ?.let { it.isFinite() && it in HIGH_CONFIDENCE_CONCEPT..1.0 } == true
 
     private fun tokens(value: String): Set<String> = tokenPattern.findAll(QuestionText.foldAccents(value.lowercase()))
-        .map { it.value }
+        .map { QuestionText.foldSpelling(it.value) }
         .toSet()
 
     /** Keep excerpt ranking consistent with the word variants accepted by retrieval. */
@@ -771,7 +787,7 @@ object EvidenceRelevance {
     }
 
     private fun Set<String>.matches(term: String): Boolean {
-        val lower = QuestionText.foldAccents(term.lowercase())
+        val lower = QuestionText.foldSpelling(QuestionText.foldAccents(term.lowercase()))
         if (lower in contractionFragments) return false
         // As in FtsQuery: a short word or a number is not a stem. "mev" is not "mevalonate".
         if (lower.codePointCount(0, lower.length) <= 3) return FtsQuery.shortForms(lower).any(::contains)

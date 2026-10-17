@@ -40,6 +40,16 @@ class TopicEvidenceTest {
         assertEquals(false, TopicEvidence.refersBack("why is the flour a problem?"))
     }
 
+    @Test fun aReadingThatNamesANewSubjectLetsTheSearchLead() {
+        val tokyo = ev("t", "Tokyo — Overview", "Tokyo is the capital of Japan; about 14 million people live there.")
+        val japan = ev("j", "Japan — Overview", "Japan is an island country; about 125 million people live there.")
+        val carried = TopicEvidence.Carried("how many people live there", listOf(japan))
+        // "Tokyo: how many people live there": the earlier answer's passage about Japan follows the new search.
+        assertEquals(listOf(tokyo, japan), TopicEvidence.merge(listOf(tokyo), carried, 8, ahead = false))
+        assertEquals(listOf(tokyo, japan), TopicEvidence.lead(listOf(tokyo, japan), carried, ahead = false))
+        assertEquals(listOf(japan, tokyo), TopicEvidence.merge(listOf(tokyo), carried, 8))
+    }
+
     @Test fun nothingCarriedLeavesTheSearchAsItWas() {
         assertEquals(listOf(overview, other), TopicEvidence.merge(listOf(overview, other), null, 8))
         assertEquals(listOf(overview, other), TopicEvidence.merge(listOf(overview, other), TopicEvidence.Carried("why?", emptyList()), 8))

@@ -8,7 +8,7 @@ package xyz.fieldatlas.research
  */
 object TopicEvidence {
     /** The answer a follow-up builds on: what was asked as the follow-up, and the sources shown with that answer. */
-    data class Carried(val asked: String, val sources: List<Evidence>)
+    data class Carried(val asked: String, val sources: List<Evidence>, val earlier: List<FollowUp.Turn> = emptyList())
 
     /** At most this many earlier passages lead the prompt; the rest of the slots stay with the new search. */
     const val MAX_LEADING = 3
@@ -31,14 +31,17 @@ object TopicEvidence {
      * Run last, after the subject overviews are put in front: those general passages ("Mosque — Overview") would
      * otherwise push the earlier answer's own passage past what a phone's prompt can hold.
      */
-    fun lead(evidence: List<Evidence>, carried: Carried?): List<Evidence> {
+    fun lead(evidence: List<Evidence>, carried: Carried?, ahead: Boolean = true): List<Evidence> {
+        // The reading names what the earlier answer gave ("Tokyo: how many people live there"): that subject's own
+        // article answers, and the passages behind "the capital of Japan" would only crowd it out of a short prompt.
+        if (!ahead) return evidence
         val first = leading(carried)
         if (first.isEmpty()) return evidence
         val ids = first.map { it.chunkId }.toHashSet()
         return first + evidence.filter { it.chunkId !in ids }
     }
 
-    fun merge(found: List<Evidence>, carried: Carried?, limit: Int): List<Evidence> {
+    fun merge(found: List<Evidence>, carried: Carried?, limit: Int, ahead: Boolean = true): List<Evidence> {
         if (carried == null || carried.sources.isEmpty() || !refersBack(carried.asked)) return found.take(limit)
         val seen = found.map { it.chunkId }.toHashSet()
         val terms = FtsQuery.from(carried.asked)?.terms.orEmpty().map { it.lowercase() }.filter { it.length > 2 }
@@ -47,6 +50,6 @@ object TopicEvidence {
         // Earlier passages that share the follow-up's words go first. One sharing none of them would only stand in for
         // a search that found nothing, and be quoted as if it answered the follow-up.
         val leading = earlier.filter { it.second > 0 }.sortedByDescending { it.second }.take(MAX_LEADING).map { it.first }
-        return (leading + found).take(limit)
+        return (if (ahead) leading + found else found + leading).take(limit)
     }
 }

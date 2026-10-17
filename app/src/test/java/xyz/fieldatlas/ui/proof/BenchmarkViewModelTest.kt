@@ -65,7 +65,7 @@ class BenchmarkViewModelTest {
 
     @Test fun exportedBenchmarkAnswerOmitsModelThinkingMarkers() {
         val gateway = object : InferenceGateway {
-            override fun reviewEvidence(prompt: String): Flow<String> = flow { emit("SUPPORTED") }
+            override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow { emit("SUPPORTED") }
             override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
             override suspend fun load(modelPath: String, systemPrompt: String) = Unit
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {

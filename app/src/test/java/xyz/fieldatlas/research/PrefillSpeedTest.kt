@@ -30,7 +30,7 @@ class PrefillSpeedTest {
             override suspend fun unload() = Unit
             // Measure the answer's evidence budget, not the smaller cited-only
             // support-review prompt that follows generation.
-            override fun reviewEvidence(prompt: String) = kotlinx.coroutines.flow.flow { emit("SUPPORTED") }
+            override fun reviewEvidence(prompt: String, savedPrefixChars: Int) = kotlinx.coroutines.flow.flow { emit("SUPPORTED") }
             override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) = kotlinx.coroutines.flow.flow {
                 captured = prompt; emit("Answer [S1]")
             }

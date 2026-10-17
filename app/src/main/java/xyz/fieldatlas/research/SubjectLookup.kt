@@ -31,6 +31,8 @@ object SubjectLookup {
         "work", "works", "working", "happen", "happens", "mean", "means", "cause", "causes", "caused", "make", "makes", "use",
         "uses", "used", "my", "your", "our", "their", "its", "it", "this", "that", "these", "those", "can", "could", "should",
         "would", "will", "may", "might", "must", "shall", "i", "we", "you", "they", "there", "so", "than", "into", "really", "actually", "exactly", "kind", "type",
+        // A person pointed at is not an article: "where was he from" is not about the pronoun "He".
+        "he", "him", "his", "she", "her", "hers", "them", "itself", "himself", "herself", "themselves",
         "types", "main", "between", "each", "when", "if", "without", "have", "has", "get", "gets", "turn", "turns",
         "keep", "keeps", "kept", "help", "helps", "protect", "protects", "need", "needs", "know",
         // An aspect asked about is not the subject: "the advantages and drawbacks of electric cars".

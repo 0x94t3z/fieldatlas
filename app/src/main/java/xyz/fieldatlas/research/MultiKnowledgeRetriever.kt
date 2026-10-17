@@ -131,13 +131,17 @@ class MultiKnowledgeRetriever(
                             // none lists arbitrary records, so it takes the keyword path instead.
                             val terms = FtsQuery.from(query)!!.terms
                             val nativeTerms = terms.filter { it.lowercase() !in LEVIATHAN_STOPWORDS }
+                                // "colour" also searches "color": the packs are written in both spellings.
+                                .flatMap { term -> listOfNotNull(term, QuestionText.foldSpelling(term.lowercase()).takeIf { it != term.lowercase() }) }
+                                // "how many people live there" also searches "population".
+                                .plus(QueryExpansion.figureTerms(question)).distinct()
                             val destinations = if (database.isPlaceListing()) {
                                 DestinationScope.resolve(destinationCandidates, database::holdsDestination)
                             } else emptyList()
                             val candidates = when {
                                 nativeTerms.isEmpty() -> null
                                 database.isPlaceListing() -> placeCandidates(database, terms, destinations, limit)
-                                else -> database.leviathanCandidates(terms.joinToString(" "), limit)
+                                else -> database.leviathanCandidates(nativeTerms.joinToString(" "), limit)
                             }
                             // A pack of whole articles by section is read only through article(), for the
                             // subject of an explanation: its million passages would crowd every other

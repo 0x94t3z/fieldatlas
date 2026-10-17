@@ -13,6 +13,24 @@ import java.util.Locale
  * question.
  */
 internal object QueryExpansion {
+    // The words a question uses for a figure and the words an article states it with: "how many people live
+    // there" is answered by a sentence about population. Added to the search, never to the question itself.
+    private val figureWords = listOf(
+        Regex("(?i)\\bhow many (?:people|inhabitants|residents)\\b|\\bpeople (?:live|living)\\b|\\binhabitants\\b") to listOf("population"),
+        Regex("(?i)\\bhow (?:tall|high)\\b") to listOf("height", "metres"),
+        Regex("(?i)\\bhow (?:big|large)\\b") to listOf("area", "size"),
+        Regex("(?i)\\bhow deep\\b") to listOf("depth"),
+        Regex("(?i)\\bhow far\\b") to listOf("distance", "kilometres"),
+        Regex("(?i)\\bhow old\\b|\\bwhen was (?:it|he|she|that) (?:built|made|founded|born|completed|opened)\\b") to listOf("built", "founded", "born"),
+        Regex("(?i)\\bhow (?:much|expensive)\\b|\\bdoes it cost\\b|\\bhow much (?:is|are)\\b") to listOf("price", "cost"),
+        Regex("(?i)\\bhow long (?:is|are)\\b") to listOf("length"),
+        Regex("(?i)\\bwhat (?:do|does) (?:it|they|he|she) eat\\b|\\bfeed on\\b") to listOf("diet", "feeds"),
+    )
+
+    /** Words an article would use for the figure [question] asks for, or none. */
+    fun figureTerms(question: String): List<String> =
+        figureWords.filter { (pattern, _) -> pattern.containsMatchIn(question) }.flatMap { it.second }.distinct()
+
     /** Hard token cap for the keyword turn — it must never eat into the answer budget. */
     const val GENERATION_BUDGET = 48
     const val MAX_TERMS = 6

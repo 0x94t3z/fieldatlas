@@ -641,6 +641,15 @@ class EvidenceRelevanceTest {
         assertEquals(listOf(furniture, article), EvidenceRelevance.keep(listOf(furniture, article), FtsQuery.from(summary)!!.terms, question = summary))
     }
 
+    @Test fun aListingAnswersOnlyAQuestionThatAsksForPlaces() {
+        val hostel = Evidence("osm-place-1", "osm-place-1:0", "Tokyo — THE LIVELY AZABUJUBAN TOKYO", "https://www.openstreetmap.org",
+            "Destination: Tokyo\nCategory: Sleep\nPlace: THE LIVELY AZABUJUBAN TOKYO\nType: hostel\nAddress: Azabujuban", -9.0)
+        val population = "Tokyo: how many people live there"
+        assertEquals(emptyList<Evidence>(), EvidenceRelevance.keep(listOf(hostel), FtsQuery.from(population)!!.terms, question = population))
+        val stay = "cheap hostels in Tokyo"
+        assertEquals(listOf(hostel), EvidenceRelevance.keep(listOf(hostel), FtsQuery.from(stay)!!.terms, question = stay))
+    }
+
     @Test fun aOneWordTitleMustBeTheQuestionsSubjectNotTheEndOfItsCompound() {
         val leather = Evidence("swp-8608-0000", "swp-8608-0000:0000", "Wallet — Overview", "https://simple.wikipedia.org",
             "A wallet is a small flat container, mostly of leather or fabric, that a person uses to hold cash, credit cards, identification cards, etc. " +

@@ -35,8 +35,10 @@ class SavedPrefixTest {
         val prompt = selected.prompt
         val fixed = selected.savedPrefixChars
         val opening = prompt.take(fixed)
-        assertTrue(opening, fixed > 0 && opening.contains("own words"))
+        // The opening runs from the instructions through the evidence; the repair turn restores it.
+        assertTrue(opening, fixed > 0 && opening.contains("own words") && opening.contains(article.text))
         assertEquals(selected.savedPrefixChars, model.prompts.last().second)
+        assertTrue(model.prompts.all { it.first.startsWith(opening) && it.second == fixed })
         assertEquals(2, model.generateCalls)
         assertFalse(events.filterIsInstance<ResearchEvent.Token>().any { it.text.contains("Unsupported extra") })
     }

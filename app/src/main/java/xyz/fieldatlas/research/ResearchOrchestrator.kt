@@ -409,6 +409,9 @@ class ResearchOrchestrator(
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
             val includeLibrary = (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
+            // A follow-up read as a name the earlier answer gave is about that name; the earlier answer's own
+            // passages then follow the new search instead of leading it.
+            val carriedAhead = topic == null || !FollowUp.namesSubject(question, topic.earlier)
             val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
             val technicalFocus = if (attachments.isEmpty()) TechnicalRuleFocus.from(question) else null
             val destinations = if (includeLibrary && attachments.isEmpty()) retriever.destinations(question) else emptyList()
@@ -435,7 +438,7 @@ class ResearchOrchestrator(
             }
             // A follow-up also reads the passages behind the answer it follows (library questions only; files and
             // place lookups keep their own sources).
-            if (includeLibrary && !placesOnly) evidence = TopicEvidence.merge(evidence, topic, resultLimit)
+            if (includeLibrary && !placesOnly) evidence = TopicEvidence.merge(evidence, topic, resultLimit, carriedAhead)
 
             // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
             // answer immediately; only a weak first pass spends one short model turn finding
@@ -701,6 +704,23 @@ class ResearchOrchestrator(
                 }
                 if (subjects.isNotEmpty()) evidence = (subjects + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
+            // A follow-up read as a name the earlier answer gave ("Tokyo: how many people live there") reads that
+            // name's own article whatever else the question looks like: a city's travel guide has no population,
+            // and "how many people live there" names no article of its own.
+            if (attachments.isEmpty() && !carriedAhead) topic?.let { FollowUp.namedSubject(question, it.earlier) }?.let { named ->
+                if (subjects.none { it.title.substringBefore(" — ").equals(named, ignoreCase = true) }) {
+                    // The short Simple English overview and the fuller English one: the first says what the name is,
+                    // the second holds its figures (a city's population, a mountain's height).
+                    val titled = retriever.titled(named, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES)
+                    val overview = SubjectLookup.overviewOf(named, titled, question)
+                    val fuller = if (articleDepth) SubjectLookup.overviewOf(named, titled.filter { it.documentId.startsWith("enw-") }, question) else null
+                    val read = listOfNotNull(overview, fuller).distinctBy { it.documentId }
+                    if (read.isNotEmpty()) {
+                        subjects.addAll(0, read)
+                        evidence = (read + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    }
+                }
+            }
             // A traveller's practical question that names no place ("pay in euros or my home currency?")
             // and has no article of its own is answered by the travel topic guides for its topic
             // ("Money"), which no title word names.
@@ -753,7 +773,7 @@ class ResearchOrchestrator(
                 }
             }
             // The follow-up's earlier passages keep the front slots, ahead of subject overviews added above.
-            if (includeLibrary && !placesOnly) evidence = TopicEvidence.lead(evidence, topic)
+            if (includeLibrary && !placesOnly) evidence = TopicEvidence.lead(evidence, topic, carriedAhead)
             val retrievalFinishedAt = monotonicMillis()
             (if (attachments.isEmpty()) VenueLookup.answer(question, evidence) else null)?.let { venue ->
                 emit(ResearchEvent.Sources(venue.sources))
@@ -792,6 +812,9 @@ class ResearchOrchestrator(
                 return@flow
             }
             val outputBudget = if (attachments.isEmpty()) maxOutputTokens else minOf(maxOutputTokens, inference.contextWindowTokens / 4).coerceAtLeast(1)
+            // A follow-up is asked as typed, under the conversation it continues; the joined reading only searched.
+            val framing = topic?.takeIf { it.earlier.isNotEmpty() && it.asked.isNotBlank() && attachments.isEmpty() }
+                ?.let { PromptBuilder.Framing(it.asked, FollowUp.conversation(it.earlier)) }
             // Ranked candidates beyond what fits are cheap; packing keeps only what the budget allows.
             val selection = if (attachments.isNotEmpty()) AttachmentEvidence.select(question, attachments, maxOf(ATTACHMENT_CANDIDATES, attachments.size)) else null
             val packed = if (selection != null) {
@@ -799,14 +822,15 @@ class ResearchOrchestrator(
                     minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
                     evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond))
             } else if (evidence.isEmpty()) {
-                PromptBuilder.buildModelOnly(question)
+                PromptBuilder.buildModelOnly(question, framing)
             } else {
                 // Subject overviews are packed first; a follow-up's earlier passages go ahead of them, so a phone's
                 // short prompt keeps the passage the earlier answer read.
                 val leadingSubjects = if (subjects.isEmpty()) subjects
-                    else (TopicEvidence.leading(topic) + subjects).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    else (if (carriedAhead) TopicEvidence.leading(topic) + subjects else subjects + TopicEvidence.leading(topic))
+                        .distinctBy { Triple(it.documentId, it.chunkId, it.source) }
                 PromptBuilder.buildKnowledge(question, evidence, leadingSubjects, depth, contextTokenBudget,
-                    prefillSpeed.tokensPerSecond)
+                    prefillSpeed.tokensPerSecond, framing)
             }
             onEvidencePacked(packed)
             DeviceEvidenceGap.response(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })?.let { gap ->
@@ -899,8 +923,11 @@ class ResearchOrchestrator(
                     draft.append(token)
                     emit(ResearchEvent.Drafting(tokens))
                 }
-                first?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond,
-                    TokenEstimate.of(explanation.prompt), at - generationStart) }
+                // Only the part of the prompt the engine read counts: a restored evidence block costs no reading time.
+                first?.let { at ->
+                    val read = if (inference.reusedPromptTokens > 0) explanation.prompt.substring(explanation.savedPrefixChars) else explanation.prompt
+                    prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(read), at - generationStart)
+                }
                 val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
                 val dosed = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)

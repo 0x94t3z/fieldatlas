@@ -7,6 +7,35 @@ package xyz.fieldatlas.research
  * as it was asked.
  */
 object QuestionText {
+    // Endings a British writer spells one way and an American writer another, with the inflections that follow
+    // them, so "colours" and "colored" fold like "colour" and "color" do.
+    private val britishEndings = listOf(
+        Regex("our(s|ed|ing|ite|ites|ful|hood|al|ally)?$") to "or$1",  // colour, harbours, favourite, neighbourhood
+        Regex("(t|b)re(s)?$") to "$1er$2",                              // centre, metres, fibre
+        Regex("ogue(s)?$") to "og$1",                                   // catalogue, dialogues
+        Regex("^(def|lic|off|pret)ence(s)?$") to "$1ense$2",           // defence, licence, offence, pretence
+    )
+    private val shortSpellings = setOf("hour", "four", "tour", "your", "pour", "sour", "flour", "dour", "scour", "velour", "detour", "contour",
+        "hours", "tours", "yours", "pours", "flours", "detours", "contours", "glamour", "glamours", "amour", "troubadour", "tambour")
+
+    /**
+     * A word in one spelling for a British and an American writer: "colour" and "color", "centre" and "center",
+     * "anaemia" and "anemia" compare equal. Applied to both the question and the passage, so a wrong guess still
+     * matches itself; only rules that leave a word's stem findable from both sides are used. Short words that
+     * merely look like the pattern keep their spelling.
+     */
+    fun foldSpelling(word: String): String {
+        if (word.length < 6 || word in shortSpellings || word.any { !it.isLetter() }) return word
+        var out = word
+        for ((pattern, replacement) in britishEndings) {
+            val folded = pattern.replace(out, replacement)
+            if (folded != out) { out = folded; break }
+        }
+        // "anaemia", "paediatric", "oesophagus", "diarrhoea": the digraph is written as one letter.
+        if (out.length >= 7) out = out.replace("ae", "e").replace("oe", "e")
+        return out
+    }
+
     /**
      * Text without its accents, for comparing names people type plainly with the names saved with them:
      * "Hạ Long Bay", "Reykjavík" and "Đà Nẵng" read as "Ha Long Bay", "Reykjavik" and "Da Nang". Letters

@@ -20,6 +20,15 @@ class SubjectLookupTest {
         assertTrue(SubjectLookup.looksUp("how big is australia compared to europe?"))
     }
 
+    @Test fun aPronounIsNeverTheSubject() {
+        for (question in listOf("who composed the four seasons: where was he from", "Who is Satoshi Nakamoto: how many bitcoins does he have",
+                                "my grandmas face drooped: should i give her aspirin")) {
+            val texts = SubjectLookup.candidates(question, lookup = true).map { it.text.lowercase() } +
+                SubjectLookup.candidates(question).map { it.text.lowercase() }
+            assertTrue(question, texts.none { it in setOf("he", "her", "him", "his", "she") })
+        }
+    }
+
     @Test fun aCompoundWordMentionsTheWordItHolds() {
         // "phone touchscreen": the article "Touchscreen" says "smartphones", which mentions the phone.
         val article = Evidence("enw-touch", "enw-touch:0000", "Touchscreen — Overview", "https://en.wikipedia.org/wiki/Touchscreen",

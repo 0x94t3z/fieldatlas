@@ -17,7 +17,7 @@ class FakeInferenceGateway(private val tokens: List<String> = emptyList(), priva
 
     // Transport/routing fixtures assume support unless the test supplies a verdict.
     // This is not a semantic-evaluation implementation.
-    override fun reviewEvidence(prompt: String): Flow<String> = flow {
+    override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow {
         reviewPrompts += prompt
         emit(reviewVerdict)
     }
