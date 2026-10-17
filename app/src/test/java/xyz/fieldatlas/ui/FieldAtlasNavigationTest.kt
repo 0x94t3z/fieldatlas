@@ -47,4 +47,48 @@ class FieldAtlasNavigationTest {
         assertFalse(state.openSource(-1))
         assertEquals(DetailDestination.Answer, state.detail)
     }
+
+    @Test
+    fun anAnswerOpenedFromHistoryGoesBackToHistory() {
+        val state = FieldAtlasNavigationState(PrimaryDestination.History)
+        state.select(PrimaryDestination.Research)
+        state.openAnswer(from = PrimaryDestination.History)
+        // The restored answer finishing opens the page again, without saying where from.
+        state.openAnswer()
+        assertTrue(state.openSource(0))
+
+        assertTrue(state.back())
+        assertEquals(DetailDestination.Answer, state.detail)
+        assertTrue(state.back())
+        assertEquals(PrimaryDestination.History, state.primary)
+        assertNull(state.detail)
+        // Once back, a later answer opened on Research goes home again.
+        state.select(PrimaryDestination.Research)
+        state.openAnswer()
+        assertTrue(state.back())
+        assertEquals(PrimaryDestination.Research, state.primary)
+    }
+
+    @Test
+    fun aFollowUpOnAContinuedTopicKeepsTheAnswerInResearch() {
+        val state = FieldAtlasNavigationState(PrimaryDestination.Research)
+        state.openAnswer(from = PrimaryDestination.History)
+        state.keepInResearch()
+
+        assertTrue(state.back())
+        assertEquals(PrimaryDestination.Research, state.primary)
+    }
+
+    @Test
+    fun theReturnToHistorySurvivesARestore() {
+        val state = FieldAtlasNavigationState(PrimaryDestination.Research)
+        state.openAnswer(from = PrimaryDestination.History)
+        val restored = with(FieldAtlasNavigationState.Saver) {
+            val saved = androidx.compose.runtime.saveable.SaverScope { true }.save(state)!!
+            restore(saved)!!
+        }
+
+        assertTrue(restored.back())
+        assertEquals(PrimaryDestination.History, restored.primary)
+    }
 }

@@ -276,6 +276,8 @@ fun FieldAtlasApp(
         }
 
         val closeDetail = { navigation.back(); Unit }
+        // History keeps its scroll, filter and search while a topic it opened is on screen, so Back lands where it was.
+        val historyState = androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         // The Research home as it was when Start research was tapped. The home changes to its running view at once;
         // while it fades out, this frame keeps its question box on screen to travel down into the answer page's.
         var launchFrame by remember { mutableStateOf<ResearchUiState?>(null) }
@@ -330,9 +332,10 @@ fun FieldAtlasApp(
                         if (researchState.phase == ResearchPhase.Complete && researchState.answer.isNotBlank()) onParkAnswer()
                         navigation.back()
                     },
-                    onAskAnother = { onAskAnotherQuestion(); navigation.back() },
-                    // The follow-up is researched on this page, under the answer it follows.
-                    onFollowUp = onFollowUp,
+                    onAskAnother = { onAskAnotherQuestion(); navigation.keepInResearch(); navigation.back() },
+                    // The follow-up is researched on this page, under the answer it follows; from then on the page is
+                    // Research's, so a stopped or edited follow-up is held on the Research home.
+                    onFollowUp = { navigation.keepInResearch(); onFollowUp(it) },
                     typicalAnswerMillis = remember(historyRecords) { xyz.fieldatlas.ui.research.typicalAnswerMillis(historyRecords) },
                     onStop = onStop,
                     onEditReadAs = onEditReadAs,
@@ -534,13 +537,15 @@ fun FieldAtlasApp(
                         knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },
                         onAskExample = { question -> askAnew(question) },
                     )
-                    PrimaryDestination.History -> HistoryScreen(historyRecords,
-                        onDelete = onDeleteHistory, storage = historyStorage,
-                        onContinue = { record ->
-                            // While an answer is being written it is never interrupted: show it instead.
-                            navigation.select(PrimaryDestination.Research)
-                            if (onContinueTopic(record)) navigation.openAnswer()
-                        })
+                    PrimaryDestination.History -> historyState.SaveableStateProvider("history") {
+                        HistoryScreen(historyRecords,
+                            onDelete = onDeleteHistory, storage = historyStorage,
+                            onContinue = { record ->
+                                // While an answer is being written it is never interrupted: show it instead.
+                                navigation.select(PrimaryDestination.Research)
+                                if (onContinueTopic(record)) navigation.openAnswer(from = PrimaryDestination.History)
+                            })
+                    }
                     PrimaryDestination.More -> MoreScreen(
                         packs = packs,
                         onOpenLibrary = { navigation.select(PrimaryDestination.Library) },
