@@ -15,6 +15,7 @@ class ModelOffersTest {
     @Test fun everyOfferMatchesItsRegistryFile() {
         for ((offer, file) in listOf(
             ModelOffers.recommended to "compact-qwen3.5-2b.example.json",
+            ModelOffers.larger to "compact-qwen3.5-4b.example.json",
         )) {
             val spec = Json.parseToJsonElement(File("../models/$file").readText()).jsonObject
             val text = { key: String -> spec.getValue(key).jsonPrimitive.content }
@@ -33,11 +34,14 @@ class ModelOffersTest {
         assertTrue(ModelOffers.recommended.fits(0))
     }
 
-    @Test fun qwenIsTheOnlyDownload() {
-        assertEquals(listOf("Qwen3.5 2B"), ModelOffers.all.map { it.name })
-        // Neither the 4B nor Gemma 4 E2B is offered; a phone that already has one keeps it.
-        assertNull(ModelOffers.byId("qwen3.5-4b-q4-k-m"))
+    @Test fun theFourBillionModelIsOfferedOnlyWhereItFits() {
+        assertEquals(listOf("Qwen3.5 2B", "Qwen3.5 4B"), ModelOffers.all.map { it.name })
         assertNull(ModelOffers.byId("gemma-4-e2b-q4-0"))
+        // A Pixel 8a (8 GB) reports about 7.5e9 bytes: the 4B first, the 2B as the faster choice.
+        assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(7_500_000_000L))
+        // A 6 GB Redmi 13C reports under 6.1e9: the 2B only.
+        assertEquals(listOf(ModelOffers.recommended), ModelOffers.forDevice(5_870_000_000L))
+        assertEquals(listOf(ModelOffers.recommended), ModelOffers.forDevice(6_999_999_999L))
     }
 
     @Test fun offersAreFoundById() {

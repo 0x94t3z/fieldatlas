@@ -238,8 +238,10 @@ fun FieldAtlasApp(
             )
         }
         if (!ready || offerKnowledge) {
-            val recommendedDownloading = downloadingModelId == null ||
-                downloadingModelId == xyz.fieldatlas.assets.ModelOffers.recommended.id
+            // The models setup offers this phone, best first: the 4B where it fits, then the 2B.
+            val setupModels = modelOffers.sortedByDescending { it.bytes }.ifEmpty { listOf(xyz.fieldatlas.assets.ModelOffers.recommended) }
+            val setupIds = setupModels.map { it.id }
+            val recommendedDownloading = (downloadingModelId ?: xyz.fieldatlas.assets.ModelOffers.recommended.id) in setupIds
             SetupScreen(
                 packs = packs,
                 importing = importing,
@@ -249,7 +251,7 @@ fun FieldAtlasApp(
                 otherModelDownloading = downloading && !recommendedDownloading,
                 downloadedBytes = downloadedBytes,
                 error = setupError ?: modelError?.takeIf {
-                    modelErrorId == null || modelErrorId == xyz.fieldatlas.assets.ModelOffers.recommended.id
+                    (modelErrorId ?: xyz.fieldatlas.assets.ModelOffers.recommended.id) in setupIds
                 },
                 onImportPack = onImportPack,
                 onDownloadModel = onDownloadModel,
@@ -272,6 +274,12 @@ fun FieldAtlasApp(
                 modelDownloadError = modelError?.takeIf {
                     modelErrorId == null || modelErrorId == xyz.fieldatlas.assets.ModelOffers.recommended.id
                 },
+                modelChoices = setupModels,
+                downloadingModelId = downloadingModelId,
+                resumableOfferBytes = resumableOfferBytes,
+                onDownloadModelOffer = onDownloadModelOffer,
+                modelDownloadUrlFor = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.model(it)) },
+                modelErrorFor = { offer -> modelError?.takeIf { (modelErrorId ?: xyz.fieldatlas.assets.ModelOffers.recommended.id) == offer.id } },
             )
             return@FieldAtlasTheme
         }

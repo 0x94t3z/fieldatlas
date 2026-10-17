@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
@@ -56,8 +57,16 @@ fun SetupScreen(
     modelDownloadUrl: String = ModelOffers.recommended.url,
     knowledgeDownloadUrl: (KnowledgeCatalogEntry) -> String = { it.url },
     modelDownloadError: String? = null,
+    /** The models offered this phone, best first ([ModelOffers.forDevice]); one row each when there is a choice. */
+    modelChoices: List<xyz.fieldatlas.assets.ModelOffer> = listOf(ModelOffers.recommended),
+    downloadingModelId: String? = null,
+    resumableOfferBytes: (xyz.fieldatlas.assets.ModelOffer) -> Long = { 0 },
+    onDownloadModelOffer: (xyz.fieldatlas.assets.ModelOffer) -> Unit = {},
+    modelDownloadUrlFor: (xyz.fieldatlas.assets.ModelOffer) -> String = { it.url },
+    modelErrorFor: (xyz.fieldatlas.assets.ModelOffer) -> String? = { null },
 ) {
     val recommended = ModelOffers.recommended
+    val downloadingOffer = modelChoices.firstOrNull { it.id == (downloadingModelId ?: recommended.id) } ?: recommended
     val model = packs.firstOrNull { it.type == PackType.MODEL }
     val busy = importing || downloading || otherModelDownloading || knowledgeDownloadKey != null
     val blockedReason = when {
@@ -134,6 +143,24 @@ fun SetupScreen(
                     if (importing && importingPack?.type == PackType.MODEL) {
                         SetupImportCard(if (importingPack.id == recommended.id) recommended.name else importingPack.title,
                             importingName, "Importing model", FieldAtlasIcons.Model)
+                    } else if (model == null && modelChoices.size > 1) FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        // A phone with the memory for the 4B gets it first; the 2B stays one tap away as the faster choice.
+                        Column { modelChoices.forEachIndexed { index, offer ->
+                            if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                            val saved = resumableOfferBytes(offer)
+                            SetupDownloadRow(offer.name, FieldAtlasIcons.Model, offer.bytes, installed = false,
+                                downloading = downloading && downloadingOffer.id == offer.id, busy = busy || !online,
+                                downloadedBytes = downloadedBytes, resumableBytes = saved,
+                                details = "${if (index == 0) "Best for this phone" else "Faster choice"} · Apache 2.0\n\n${offer.description}",
+                                onDownload = { onDownloadModelOffer(offer) }, onCancel = onCancelDownload,
+                                subtitle = "Q4_K_M", blockedReason = blockedReason, inGroup = true,
+                                freeBytesNeeded = offer.bytes - saved.coerceIn(0, offer.bytes) + 512_000_000L,
+                                downloadUrl = modelDownloadUrlFor(offer), downloadError = modelErrorFor(offer), online = online,
+                                badge = "Best for this phone".takeIf { index == 0 },
+                                note = if (index == 0) "More accurate, about half the factual errors. Slower to answer."
+                                    else "Faster, a little less accurate.")
+                        } }
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == recommended.id) recommended.name else model.title,
                         icon = FieldAtlasIcons.Model,
@@ -226,7 +253,7 @@ fun SetupScreen(
                 val waitingMessage = when {
                     importing && importingPack?.type == PackType.MODEL -> "Your model is importing. Research will be ready when it finishes."
                     importing -> "Your pack is importing. Please wait before starting research."
-                    downloading && downloadedBytes >= recommended.bytes -> "Your model is being checked and installed. Please wait."
+                    downloading && downloadedBytes >= downloadingOffer.bytes -> "Your model is being checked and installed. Please wait."
                     downloading || otherModelDownloading -> "Your model is downloading. Research will be ready after installation."
                     else -> null
                 }
@@ -333,6 +360,10 @@ private fun SetupDownloadRow(
     downloadUrl: String,
     downloadError: String? = null,
     online: Boolean = true,
+    /** A short accent after the size: "Best for this phone". */
+    badge: String? = null,
+    /** One line under the size on what sets this choice apart. */
+    note: String? = null,
 ) {
     var confirm by rememberSaveable(title, bytes) { mutableStateOf(false) }
     val installing = downloading && downloadedBytes >= bytes
@@ -378,8 +409,15 @@ private fun SetupDownloadRow(
                     else MaterialTheme.typography.titleMedium)
                 val status = if (installed) "Installed" else if (!downloading && resumableBytes > 0)
                     "${downloadSize(resumableBytes)} saved · resume" else downloadSize(bytes)
-                Text(listOfNotNull(subtitle, status).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall,
+                val accent = MaterialTheme.colorScheme.primary
+                Text(androidx.compose.ui.text.buildAnnotatedString {
+                    append(listOfNotNull(subtitle, status).joinToString(" · "))
+                    if (badge != null && !installed) {
+                        append(" · ")
+                        withStyle(androidx.compose.ui.text.SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) { append(badge) }
+                    }
+                }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (note != null && !installed && !downloading) Text(note, style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (!installed && !downloading && blockedReason != null) Text(blockedReason,
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
