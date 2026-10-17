@@ -4,6 +4,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.assets.downloadFreeBytes
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -199,6 +200,10 @@ fun SetupScreen(
                         }
                     }
                 } } }
+                // The voice is the other optional thing that runs on the phone itself; offered here so a first
+                // run can fetch it with the rest instead of finding it later in Library.
+                item(key = "setup-voice-header") { SetupSection(3, "Voice", "Optional · reads answers aloud with no signal") }
+                item(key = "setup-voice") { SetupVoiceCard(busy = busy, blockedReason = blockedReason, online = online) }
                 (knowledgeError ?: error?.takeUnless { it == modelDownloadError })?.let { message -> item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
                         Text("Setup couldn’t finish", style = MaterialTheme.typography.titleSmall,
@@ -211,7 +216,7 @@ fun SetupScreen(
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!importing && !downloading && !otherModelDownloading && model == null) Text(
-                    "Add a model to start. Knowledge can come later.",
+                    "Add a model to start. Knowledge and the voice can come later.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -252,6 +257,45 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
                 trackColor = MaterialTheme.colorScheme.primaryContainer)
             Text("Please wait while this pack is checked and installed.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Setup's row for the natural reading voice: the same row and confirm dialog as a collection, fed by the download
+ * queue Library uses, with Library's sample below so it can be heard before it is fetched. Getting it also makes it
+ * the voice answers are read in, as it does from Library.
+ */
+@Composable
+private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolean) {
+    val readAloud = xyz.fieldatlas.ui.research.LocalReadAloud.current ?: return
+    val downloads = xyz.fieldatlas.ui.library.LocalDownloads.current ?: return
+    val status by downloads.state.collectAsState()
+    val voice by readAloud.natural.state.collectAsState()
+    val reading by readAloud.state.collectAsState()
+    val item = xyz.fieldatlas.assets.DownloadItem.Voice
+    val installed = voice == xyz.fieldatlas.speech.NaturalVoice.State.Ready
+    val downloading = status.isActive(item)
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+        Column {
+            SetupDownloadRow(item.title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.VolumeUp, item.bytes,
+                installed = installed, downloading = downloading, busy = busy || !online,
+                downloadedBytes = if (downloading) status.bytes else 0,
+                resumableBytes = if (installed) 0 else readAloud.natural.savedBytes(),
+                details = "English · female voice. Afterward every answer can be read aloud with no signal.\n\nSupertonic 3 · OpenRAIL-M",
+                onDownload = {
+                    readAloud.updateSettings { it.copy(voice = xyz.fieldatlas.speech.ReadAloud.Choice.Natural) }
+                    downloads.queue.enqueue(item, allowMobileData = true)
+                },
+                onCancel = downloads.queue::pause,
+                subtitle = "English", blockedReason = blockedReason, inGroup = true,
+                freeBytesNeeded = item.bytes + 200_000_000L,
+                downloadUrl = xyz.fieldatlas.ui.library.VOICE_SOURCE,
+                downloadError = status.failures[item.key]?.message,
+                online = online)
+            if (!installed && !downloading) Box(Modifier.padding(start = 60.dp, end = 14.dp, bottom = 10.dp)) {
+                xyz.fieldatlas.ui.library.SampleLine(readAloud, reading)
+            }
         }
     }
 }

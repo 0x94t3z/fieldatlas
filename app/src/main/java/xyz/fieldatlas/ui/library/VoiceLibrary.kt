@@ -70,7 +70,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.TileTone
 
 internal val voiceSize get() = formatAssetBytes(NaturalVoice.BYTES)
-private const val VOICE_SOURCE = "https://huggingface.co/csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11"
+internal const val VOICE_SOURCE = "https://huggingface.co/csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11"
 
 /**
  * The step before the voice downloads, from wherever it is asked for (Library, the voice choice, More): the same
@@ -241,7 +241,7 @@ private fun Point(good: Boolean, text: String) {
 }
 
 @Composable
-private fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
+internal fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
     val playing = reading?.key == ReadAloud.SAMPLE_KEY
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         SampleButton(readAloud, reading)
