@@ -35,6 +35,21 @@ class DownloadSourcesTest {
         }
     }
 
+    @Test fun theVoiceIsAFolderSourceWithItsOwnFingerprint() {
+        val voice = DownloadArtifact.voice()
+        val sources = DownloadSources(emptyMap()) { true }
+        // Its default is the pinned folder the seven files come from, read as the folder plus each file name.
+        assertEquals(xyz.fieldatlas.speech.NaturalVoice.DEFAULT_SOURCE, sources.urlFor(voice))
+        assertTrue(voice.defaultUrl.startsWith("https://huggingface.co/") && voice.defaultUrl.endsWith("/"))
+        assertEquals(xyz.fieldatlas.speech.NaturalVoice.BYTES, voice.bytes)
+        assertTrue(voice.sha256.matches(Regex("[0-9a-f]{64}")))
+        // A mirror must be a folder: a single file's address cannot serve seven parts.
+        assertThrows(IllegalArgumentException::class.java) { sources.save(voice, "https://mirror.test/voice.fapack") }
+        sources.save(voice, "https://mirror.test/supertonic/")
+        assertEquals("https://mirror.test/supertonic/", sources.urlFor(voice))
+        assertEquals(pack.defaultUrl, sources.urlFor(pack))
+    }
+
     @Test fun resetAndSavingDefaultRemoveOnlyThatOverride() {
         var disk = emptyMap<String, String>()
         val sources = DownloadSources(disk) { disk = it; true }

@@ -13,6 +13,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.net.URI
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import xyz.fieldatlas.assets.AssetDownloadKind
 import xyz.fieldatlas.assets.DownloadArtifact
 import xyz.fieldatlas.assets.validatedDownloadUrl
 import xyz.fieldatlas.ui.theme.*
@@ -39,7 +42,11 @@ fun DownloadSourcesSheet(
                         selectedKey = artifact.key
                     }.heightIn(min = 64.dp).padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(if (artifact.extension == ".gguf") FieldAtlasIcons.Model else FieldAtlasIcons.Database,
+                        Icon(when (artifact.kind) {
+                            AssetDownloadKind.MODEL -> FieldAtlasIcons.Model
+                            AssetDownloadKind.VOICE -> Icons.AutoMirrored.Outlined.VolumeUp
+                            AssetDownloadKind.KNOWLEDGE -> FieldAtlasIcons.Database
+                        },
                             null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
                         Column(Modifier.weight(1f)) {
                             Text(artifact.title, style = MaterialTheme.typography.bodyMedium)
@@ -55,11 +62,12 @@ fun DownloadSourcesSheet(
             } else {
                 Text(selected.title, style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(value = address, onValueChange = { address = it; error = null },
-                    modifier = Modifier.fillMaxWidth(), label = { Text("HTTPS file URL") },
+                    modifier = Modifier.fillMaxWidth(), label = { Text(if (selected.kind == AssetDownloadKind.VOICE) "HTTPS folder URL" else "HTTPS file URL") },
                     textStyle = MaterialTheme.typography.bodyMedium,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                     shape = FieldAtlasButtonShape, minLines = 2, maxLines = 3, isError = error != null)
-                Text("The file must match the original size and checksum. Saving does not start a download or change one in progress.",
+                Text((if (selected.kind == AssetDownloadKind.VOICE) "The folder must hold the voice's files, each matching its original size and checksum. "
+                    else "The file must match the original size and checksum. ") + "Saving does not start a download or change one in progress.",
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 val valid = runCatching { validatedDownloadUrl(address, selected.extension) }
                 if (valid.isSuccess) {

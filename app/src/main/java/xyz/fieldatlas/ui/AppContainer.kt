@@ -480,7 +480,8 @@ class AppContainer(context: Context) {
                     xyz.fieldatlas.assets.DownloadItem.Voice -> readAloud.natural.ready
                 }
             },
-            onFinished = { item -> if (!appVisible) xyz.fieldatlas.assets.AssetDownloadService.notifyReady(appContext, item) })
+            onFinished = { item -> if (!appVisible) xyz.fieldatlas.assets.AssetDownloadService.notifyReady(appContext, item) },
+            voiceSource = { downloadSources.urlFor(xyz.fieldatlas.assets.DownloadArtifact.voice()) })
     }
     /** The licence of a bundled emergency source ("emergency:<guide>" or "emergency:numbers-<country>"). */
     fun emergencyLicense(documentId: String): String? {

@@ -23,6 +23,8 @@ class AppDownloads(
     private val voice: NaturalVoice,
     private val isInstalled: (DownloadItem) -> Boolean,
     onFinished: (DownloadItem) -> Unit,
+    /** The folder the voice's files come from: the default, or a mirror saved in Download sources. */
+    private val voiceSource: () -> String = { NaturalVoice.DEFAULT_SOURCE },
 ) {
     private val preferences = context.getSharedPreferences("downloads", Context.MODE_PRIVATE)
     // Main, not Main.immediate: a state change the queue makes while handling one event is seen after it, never inside it.
@@ -35,7 +37,7 @@ class AppDownloads(
             DownloadItem.Voice -> {
                 // Already whole (finished while the queue was not looking): report it rather than wait for a change.
                 if (voice.ready) scope.launch { queue.onEnded(DownloadItem.Voice, DownloadOutcome.Done) }
-                voice.download()
+                voice.download(voiceSource())
                 // The voice has no resume after process death of its own, but the service keeps the process (and its
                 // notification) alive while it downloads. Started from the background it can be refused; the transfer
                 // still runs while the app does.
@@ -57,6 +59,9 @@ class AppDownloads(
         onFinished = { item -> preferences.edit().putLong(LAST_SPEED, queueSpeed()).apply(); onFinished(item) })
 
     val state: StateFlow<DownloadQueueState> get() = queue.state
+
+    /** Where the voice will be fetched from, for the confirm step and the source line. */
+    fun voiceSourceUrl(): String = voiceSource()
 
     /** Bytes per second the last download reached, for the wait shown before the next one starts. */
     val knownSpeed: Long? get() = queue.lastSpeed ?: preferences.getLong(LAST_SPEED, 0).takeIf { it > 0 }

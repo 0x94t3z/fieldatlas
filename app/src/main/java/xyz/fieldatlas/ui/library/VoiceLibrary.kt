@@ -70,7 +70,6 @@ import xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton
 import xyz.fieldatlas.ui.theme.TileTone
 
 internal val voiceSize get() = formatAssetBytes(NaturalVoice.BYTES)
-internal const val VOICE_SOURCE = "https://huggingface.co/csukuangfj2/sherpa-onnx-supertonic-3-tts-int8-2026-05-11"
 
 /**
  * The step before the voice downloads, from wherever it is asked for (Library, the voice choice, More): the same
@@ -82,7 +81,7 @@ fun VoiceDownloadConfirm(onDone: () -> Unit, then: () -> Unit = {}) {
     val readAloud = xyz.fieldatlas.ui.research.LocalReadAloud.current
     val saved = readAloud?.natural?.savedBytes() ?: 0
     DownloadConfirmSheet(DownloadItem.Voice, "Download", "English · female voice · $voiceSize. Afterward every answer can be read aloud with no signal.",
-        saved = saved, installMargin = 200_000_000L, sourceUrl = VOICE_SOURCE,
+        saved = saved, installMargin = 200_000_000L, sourceUrl = downloads.voiceSourceUrl(),
         onConfirm = {
             readAloud?.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) }
             downloads.queue.enqueue(DownloadItem.Voice)

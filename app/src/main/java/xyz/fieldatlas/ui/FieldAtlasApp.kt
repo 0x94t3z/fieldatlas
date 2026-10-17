@@ -231,7 +231,8 @@ fun FieldAtlasApp(
             xyz.fieldatlas.ui.setup.DownloadSourcesSheet(
                 artifacts = (modelOffers.ifEmpty { listOf(xyz.fieldatlas.assets.ModelOffers.recommended) }
                     .map(xyz.fieldatlas.assets.DownloadArtifact::model) +
-                    availableKnowledge.map(xyz.fieldatlas.assets.DownloadArtifact::knowledge)).distinctBy { it.key },
+                    availableKnowledge.map(xyz.fieldatlas.assets.DownloadArtifact::knowledge) +
+                    xyz.fieldatlas.assets.DownloadArtifact.voice()).distinctBy { it.key },
                 sources = downloadSources, onSave = onSaveDownloadSource, onReset = onResetDownloadSource,
                 onDismiss = { showDownloadSources = false },
             )

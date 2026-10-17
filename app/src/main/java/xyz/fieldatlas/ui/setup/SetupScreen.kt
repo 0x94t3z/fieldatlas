@@ -276,6 +276,7 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
     val item = xyz.fieldatlas.assets.DownloadItem.Voice
     val installed = voice == xyz.fieldatlas.speech.NaturalVoice.State.Ready
     val downloading = status.isActive(item)
+    val source = downloads.voiceSourceUrl()
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
         Column {
             SetupDownloadRow(item.title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.VolumeUp, item.bytes,
@@ -290,9 +291,13 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                 onCancel = downloads.queue::pause,
                 subtitle = "English", blockedReason = blockedReason, inGroup = true,
                 freeBytesNeeded = item.bytes + 200_000_000L,
-                downloadUrl = xyz.fieldatlas.ui.library.VOICE_SOURCE,
+                downloadUrl = source,
                 downloadError = status.failures[item.key]?.message,
                 online = online)
+            // Who made the voice, its licence and where it comes from, like a collection's credits.
+            Text("Supertonic 3 · OpenRAIL-M · " + (runCatching { java.net.URI(source).host }.getOrNull() ?: ""),
+                Modifier.padding(start = 60.dp, end = 14.dp, bottom = if (installed || downloading) 12.dp else 0.dp),
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!installed && !downloading) Box(Modifier.padding(start = 60.dp, end = 14.dp, bottom = 10.dp)) {
                 xyz.fieldatlas.ui.library.SampleLine(readAloud, reading)
             }

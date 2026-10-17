@@ -17,11 +17,19 @@ data class DownloadArtifact(
 ) {
     // A changed edition, size or checksum must not inherit an earlier mirror.
     val key: String get() = "${kind.name}:$id:$version:$bytes:$sha256"
-    val extension: String get() = if (kind == AssetDownloadKind.MODEL) ".gguf" else ".fapack"
+    /** What a source address must end in. The voice is several files, so its source is the folder holding them. */
+    val extension: String get() = when (kind) {
+        AssetDownloadKind.MODEL -> ".gguf"
+        AssetDownloadKind.KNOWLEDGE -> ".fapack"
+        AssetDownloadKind.VOICE -> "/"
+    }
 
     companion object {
         fun model(offer: ModelOffer) = DownloadArtifact(AssetDownloadKind.MODEL, offer.id, offer.version,
             offer.name, offer.bytes, offer.sha256, offer.url)
+        fun voice() = DownloadArtifact(AssetDownloadKind.VOICE, xyz.fieldatlas.speech.NaturalVoice.ID,
+            xyz.fieldatlas.speech.NaturalVoice.REVISION, DownloadItem.Voice.title, xyz.fieldatlas.speech.NaturalVoice.BYTES,
+            xyz.fieldatlas.speech.NaturalVoice.FINGERPRINT, xyz.fieldatlas.speech.NaturalVoice.DEFAULT_SOURCE)
         fun knowledge(pack: KnowledgeCatalogEntry) = DownloadArtifact(AssetDownloadKind.KNOWLEDGE, pack.id,
             pack.version, pack.title, pack.bytes, pack.sha256, pack.url)
     }
@@ -37,7 +45,8 @@ fun validatedDownloadUrl(value: String, extension: String): String {
     require(uri != null && uri.scheme == "https" && !uri.host.isNullOrBlank() &&
         uri.userInfo == null && uri.fragment == null && (uri.port == -1 || uri.port in 1..65535) &&
         uri.path?.endsWith(extension, ignoreCase = true) == true) {
-        "Use an HTTPS URL ending in $extension, without a username, password or fragment."
+        if (extension == "/") "Use an HTTPS folder URL ending in /, without a username, password or fragment."
+        else "Use an HTTPS URL ending in $extension, without a username, password or fragment."
     }
     return address
 }

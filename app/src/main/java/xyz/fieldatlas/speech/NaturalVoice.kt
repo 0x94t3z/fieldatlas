@@ -62,7 +62,8 @@ class NaturalVoice internal constructor(
         File(dir, part.name).takeIf { it.length() == part.bytes }?.length() ?: File(staging, "${part.name}.part").length().coerceAtMost(part.bytes)
     }
 
-    fun download() {
+    /** [source] is the folder holding the parts, ending in "/"; every part is still checked against its size and SHA-256. */
+    fun download(source: String = DEFAULT_SOURCE) {
         if (job?.isActive == true || ready) return
         val previous = job
         mutableState.value = State.Downloading(savedBytes())
@@ -82,7 +83,7 @@ class NaturalVoice internal constructor(
                         val target = File(dir, part.name)
                         if (target.length() != part.bytes) {
                             val partial = File(staging, "${part.name}.part")
-                            downloader.download("$BASE_URL/${part.name}", part.bytes, part.sha256, partial) { bytes ->
+                            downloader.download(source + part.name, part.bytes, part.sha256, partial) { bytes ->
                                 // A read already under way when Pause was tapped must not bring the progress back.
                                 if (self.isActive) mutableState.value = State.Downloading(done + bytes)
                             }
@@ -202,5 +203,10 @@ class NaturalVoice internal constructor(
             Part("vector_estimator.int8.onnx", 78_400_833, "20cd86fa5c6effedfda0e7cffe5b0569ca401c440a0c3a1d72bf39286c0db3fd"),
         )
         val BYTES: Long = PARTS.sumOf { it.bytes }
+        const val DEFAULT_SOURCE = "$BASE_URL/"
+        /** One fingerprint for the whole voice, so a saved mirror is dropped when any part changes. */
+        val FINGERPRINT: String = java.security.MessageDigest.getInstance("SHA-256")
+            .digest(PARTS.joinToString("\n") { "${it.name} ${it.bytes} ${it.sha256}" }.encodeToByteArray())
+            .joinToString("") { "%02x".format(it) }
     }
 }

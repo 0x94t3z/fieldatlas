@@ -17,7 +17,8 @@ import xyz.fieldatlas.ui.AppContainer
 import xyz.fieldatlas.ui.setup.AssetAction
 import xyz.fieldatlas.ui.setup.assetSetupError
 
-enum class AssetDownloadKind { MODEL, KNOWLEDGE }
+// VOICE is only a download source: the voice downloads through NaturalVoice, never through this class.
+enum class AssetDownloadKind { MODEL, KNOWLEDGE, VOICE }
 
 data class AssetDownloadStatus(
     val kind: AssetDownloadKind? = null,
