@@ -138,6 +138,50 @@ internal fun PackAboutSheet(
     }
 }
 
+/**
+ * A collection not yet on the phone, opened by tapping its row in Discover: the same order as About (name, size and
+ * version; what it holds; one card of facts), ending in its Download, so the list itself can stay two short lines.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CatalogPackSheet(
+    pack: xyz.fieldatlas.assets.KnowledgeCatalogEntry,
+    visual: PackVisual,
+    sourceUrl: String,
+    onDownload: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = xyz.fieldatlas.ui.theme.FieldAtlasLayout.SheetShape,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+                .padding(start = 22.dp, end = 22.dp, bottom = 22.dp).navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                FieldAtlasIconTile(visual.icon, size = 40.dp, tone = visual.tone, iconSize = 22.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(pack.title, style = xyz.fieldatlas.ui.theme.FieldAtlasSheetTitleStyle)
+                    Text(aboutSubtitle(pack.title, knowledgeCategory(pack.id, pack.category).label, formatAssetBytes(pack.bytes), pack.version),
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close")
+            }
+            xyz.fieldatlas.ui.presentation.catalogText(pack.description)?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
+            AboutFacts {
+                AboutFact("Licence", divider = false) { AboutValue(xyz.fieldatlas.ui.presentation.displayLicence(pack.license)) }
+                AboutFact("Source") { AboutValue(runCatching { java.net.URI(sourceUrl).host }.getOrNull() ?: sourceUrl) }
+            }
+            xyz.fieldatlas.ui.theme.FieldAtlasPrimaryButton("Download · ${formatAssetBytes(pack.bytes)}", onClick = { onDismiss(); onDownload() },
+                leadingIcon = FieldAtlasIcons.Download, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
+
 /** The facts as one card, a row each, so every pack's facts sit in the same place. */
 @Composable
 private fun AboutFacts(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {

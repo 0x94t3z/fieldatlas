@@ -79,8 +79,29 @@ internal fun InstalledAsset.collectionDescription(): String? =
 /** What About says a collection holds: the pack's own summary, else the catalog's listing without its sizes, which
  * the sheet already shows. Packs published before summaries existed (the encyclopedia) have only the listing. */
 internal fun InstalledAsset.aboutDescription(catalogDescription: String?): String? =
-    collectionDescription() ?: catalogDescription?.replace(catalogSizes, "")?.replace(Regex("\\s+"), " ")?.trim()
+    collectionDescription() ?: catalogDescription?.let(::catalogText)
         ?.takeIf(String::isNotBlank)
+
+/** A catalogue description as people read it: the download sizes it repeats are already shown beside it. */
+internal fun catalogText(description: String): String? =
+    description.replace(catalogSizes, "").replace(Regex("\\s+"), " ").trim().takeIf(String::isNotBlank)
+
+/**
+ * The few words under a collection's name in Discover, after its size: what is inside, readable at a glance. The
+ * catalogue's full text is one tap away in the collection's sheet. A collection without its own words gets the first
+ * clause of its description.
+ */
+internal fun discoverLine(packId: String, description: String): String = when (packId.lowercase()) {
+    "wikipedia-encyclopedia" -> "Wikipedia in English"
+    "wikivoyage-places" -> "Food, hotels, sights"
+    "osm-vegan-places" -> "Vegan food and shops"
+    "osm-essentials" -> "Pharmacies, hospitals, ATMs"
+    "wikivoyage-guides" -> "Getting around, money, safety"
+    "world-knowledge-biology" -> "Biology, health, ageing"
+    "crypto-ethereum" -> "Ethereum and cryptography"
+    else -> catalogText(description).orEmpty().split(Regex("[.;:·]")).first().trim()
+        .let { if (it.length > 40) it.take(39).trimEnd() + "…" else it }
+}
 
 private val catalogSizes = Regex(";?\\s*[0-9][0-9.,]*\\s*[KMGT]B download(?:,\\s*[0-9][0-9.,]*\\s*[KMGT]B installed)?")
 

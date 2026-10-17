@@ -164,6 +164,7 @@ fun LibraryScreen(
     val naturalVoice = readAloud?.natural?.state?.collectAsState()?.value
     var confirming by remember { mutableStateOf<DownloadItem?>(null) }
     var voiceDetails by rememberSaveable { mutableStateOf(false) }
+    var catalogDetails by remember { mutableStateOf<KnowledgeCatalogEntry?>(null) }
     var voiceConfirm by rememberSaveable { mutableStateOf(false) }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
@@ -358,7 +359,8 @@ fun LibraryScreen(
                             CategoryLabel(category)
                             DownloadGroup(group.map { candidate -> @Composable {
                                 KnowledgeRow(candidate, null, downloads, queue, resumableKnowledgeBytes(candidate), onGet = { confirming = it },
-                                    onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
+                                    onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } },
+                                    onDetails = { catalogDetails = candidate })
                             } })
                         }
                     }
@@ -410,6 +412,11 @@ fun LibraryScreen(
             DownloadItem.Voice -> { confirming = null; voiceConfirm = true }
         }
     }
+    catalogDetails?.let { pack ->
+        CatalogPackSheet(pack, subjectVisual(pack.id) ?: categoryVisual(knowledgeCategory(pack.id, pack.category)),
+            sourceUrl = knowledgeDownloadUrl(pack), onDownload = { confirming = DownloadItem.Knowledge(pack) },
+            onDismiss = { catalogDetails = null })
+    }
     if (voiceDetails && readAloud != null) VoiceDetailSheet(readAloud, onDownload = { voiceDetails = false; voiceConfirm = true },
         onDismiss = { voiceDetails = false })
     if (voiceConfirm) VoiceDownloadConfirm(onDone = { voiceConfirm = false })
@@ -431,19 +438,21 @@ private fun KnowledgeRow(
     saved: Long,
     onGet: (DownloadItem) -> Unit,
     onDiscard: (() -> Unit)?,
+    onDetails: (() -> Unit)? = null,
 ) {
     val visual = subjectVisual(pack.id) ?: categoryVisual(knowledgeCategory(pack.id, pack.category))
     val item = DownloadItem.Knowledge(pack)
     val state = rowState(item, queue, installed = false, saved = saved)
     val chips = if (replaces != null) listOfNotNull(updateNote(pack, replaces)?.let { RowChip(it, positive = true) },
         RowChip("You have ${formatAssetBytes(replaces.installedBytes)}"))
-    else listOfNotNull(RowChip("Recommended", positive = true).takeIf { pack.recommended })
+    // Every listed collection is recommended, so the chip said nothing; the version and full text are in its sheet.
+    else emptyList()
     DownloadRow(visual.icon, visual.tone, pack.title,
         if (replaces != null) "${formatAssetBytes(pack.bytes)} · newer edition"
-        else "${formatAssetBytes(pack.bytes)} · version ${xyz.fieldatlas.ui.presentation.displayVersion(pack.version)}",
+        else "${formatAssetBytes(pack.bytes)} · ${xyz.fieldatlas.ui.presentation.discoverLine(pack.id, pack.description)}",
         state, if (replaces != null) "Update" else formatAssetBytes(pack.bytes),
         rowActions(downloads, item, onGet = { onGet(item) }, discardSaved = onDiscard), chips = chips,
-        note = pack.description.takeIf { replaces == null && state == RowState.Get(0) })
+        onClick = onDetails.takeIf { replaces == null })
 }
 
 /** Under a collection after an update: the old edition, kept switched off, whose space can be given back. */

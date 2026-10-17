@@ -97,7 +97,7 @@ internal fun VoiceDiscoverRow(readAloud: ReadAloud, onGet: () -> Unit, onDetails
     val voice by readAloud.natural.state.collectAsState()
     val reading by readAloud.state.collectAsState()
     DownloadRow(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, DownloadItem.Voice.title,
-        "English · female voice · reads answers offline",
+        "$voiceSize · Reads answers aloud",
         rowState(DownloadItem.Voice, status, installed = voice == NaturalVoice.State.Ready, saved = readAloud.natural.savedBytes()),
         voiceSize, rowActions(downloads, DownloadItem.Voice, onGet), onClick = onDetails,
         extra = if (voice == NaturalVoice.State.Ready || status.isActive(DownloadItem.Voice)) null else ({ SampleLine(readAloud, reading) }))
