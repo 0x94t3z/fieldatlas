@@ -3,6 +3,7 @@ package xyz.fieldatlas.ui.setup
 import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.assets.downloadFreeBytes
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.foundation.lazy.LazyColumn
@@ -73,6 +74,17 @@ fun SetupScreen(
         importing || !online -> null // The single import/offline notice explains unavailable actions.
         busy -> "Another download is in progress."
         else -> null
+    }
+    // A collection tapped in the list: its About sheet, as in Library's Discover; Download there hands back to the row.
+    var aboutPack by remember { mutableStateOf<KnowledgeCatalogEntry?>(null) }
+    var confirmPack by remember { mutableStateOf<String?>(null) }
+    aboutPack?.let { pack ->
+        xyz.fieldatlas.ui.library.CatalogPackSheet(pack,
+            xyz.fieldatlas.ui.library.subjectVisual(pack.id)
+                ?: xyz.fieldatlas.ui.library.categoryVisual(xyz.fieldatlas.ui.presentation.knowledgeCategory(pack.id, pack.category)),
+            sourceUrl = knowledgeDownloadUrl(pack),
+            onDownload = { if (online && !busy) confirmPack = "${pack.id}:${pack.version}" },
+            onDismiss = { aboutPack = null })
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -219,6 +231,10 @@ fun SetupScreen(
                                     resumableKnowledgeBytes(pack),
                                     "${pack.description}\n\nVersion ${pack.version} · ${xyz.fieldatlas.ui.presentation.displayLicence(pack.license)}",
                                     { onDownloadKnowledge(pack) }, onCancelKnowledgeDownload,
+                                    // The same short line as the collection's row in Library's Discover, and its About sheet on a tap.
+                                    subtitle = xyz.fieldatlas.ui.presentation.discoverLine(pack.id, pack.description),
+                                    onDetails = { aboutPack = pack },
+                                    askToConfirm = confirmPack == "${pack.id}:${pack.version}", onAsked = { confirmPack = null },
                                     blockedReason = blockedReason, inGroup = true, tone = visual?.tone,
                                     freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),
                                     downloadUrl = knowledgeDownloadUrl(pack))
@@ -303,6 +319,11 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
     val installed = voice == xyz.fieldatlas.speech.NaturalVoice.State.Ready
     val downloading = status.isActive(item)
     val source = downloads.voiceSourceUrl()
+    // Tapped, the voice opens its About sheet as in Library; Download there hands back to the row's confirmation.
+    var about by remember { mutableStateOf(false) }
+    var askConfirm by remember { mutableStateOf(false) }
+    if (about) xyz.fieldatlas.ui.library.VoiceDetailSheet(readAloud,
+        onDownload = { about = false; if (online && !busy) askConfirm = true }, onDismiss = { about = false })
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
         Column {
             SetupDownloadRow(item.title, androidx.compose.material.icons.Icons.AutoMirrored.Outlined.VolumeUp, item.bytes,
@@ -315,11 +336,13 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                     downloads.queue.enqueue(item, allowMobileData = true)
                 },
                 onCancel = downloads.queue::pause,
-                subtitle = "Supertonic 3", blockedReason = blockedReason, inGroup = true,
+                subtitle = "Supertonic 3 · " + (runCatching { java.net.URI(source).host }.getOrNull() ?: ""),
+                blockedReason = blockedReason, inGroup = true,
                 freeBytesNeeded = item.bytes + 200_000_000L,
                 downloadUrl = source,
                 downloadError = status.failures[item.key]?.message,
-                online = online)
+                online = online,
+                onDetails = { about = true }, askToConfirm = askConfirm, onAsked = { askConfirm = false })
             if (!installed && !downloading) Box(Modifier.padding(start = 60.dp, end = 14.dp, bottom = 10.dp)) {
                 xyz.fieldatlas.ui.library.SampleLine(readAloud, reading)
             }
@@ -359,8 +382,14 @@ private fun SetupDownloadRow(
     badge: String? = null,
     /** One line under the size on what sets this choice apart. */
     note: String? = null,
+    /** Opens what Library's Discover shows for the same thing when the row is tapped. */
+    onDetails: (() -> Unit)? = null,
+    /** Set by that sheet's Download: the row asks to confirm, as its own button does. */
+    askToConfirm: Boolean = false,
+    onAsked: () -> Unit = {},
 ) {
     var confirm by rememberSaveable(title, bytes) { mutableStateOf(false) }
+    LaunchedEffect(askToConfirm) { if (askToConfirm) { confirm = true; onAsked() } }
     val installing = downloading && downloadedBytes >= bytes
     // Keep full names readable: with large text, the action gets its own line instead of
     // competing with the name. Installed rows need only one textual status, not two pills.
@@ -395,7 +424,7 @@ private fun SetupDownloadRow(
         }
         }
     }
-    SetupRowSurface(inGroup) {
+    SetupRowSurface(inGroup, onClick = onDetails?.takeIf { !downloading && !installed }, clickLabel = "About $title") {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically) {
             FieldAtlasIconTile(icon, size = 36.dp, tone = tone ?: TileTone.Sage)
@@ -465,8 +494,11 @@ private fun SetupDownloadRow(
 }
 
 @Composable
-private fun SetupRowSurface(inGroup: Boolean, content: @Composable ColumnScope.() -> Unit) {
-    if (inGroup) Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+private fun SetupRowSurface(inGroup: Boolean, onClick: (() -> Unit)? = null, clickLabel: String? = null,
+                            content: @Composable ColumnScope.() -> Unit) {
+    if (inGroup) Column(Modifier.fillMaxWidth()
+        .then(if (onClick == null) Modifier else Modifier.clickable(onClickLabel = clickLabel, onClick = onClick))
+        .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
     else FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp, content = content)
 }

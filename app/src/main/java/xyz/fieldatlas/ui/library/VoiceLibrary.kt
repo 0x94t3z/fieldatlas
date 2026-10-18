@@ -245,7 +245,7 @@ internal fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         SampleButton(readAloud, reading)
         SampleWave(playing && reading?.paused != true)
-        Text(if (playing) seconds(reading?.positionMs ?: 0) else "${seconds(readAloud.sampleMillis)} sample", style = MaterialTheme.typography.labelMedium,
+        Text(if (playing) seconds(reading?.positionMs ?: 0) else "Hear it · ${seconds(readAloud.sampleMillis)}", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
