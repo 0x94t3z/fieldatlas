@@ -134,23 +134,44 @@ set the location to central Berlin, and asked 8 everyday questions with each mod
 | The app itself | 173 MB |
 | **Total** | **37.0 GB of the 50 GB allowed** |
 
-No temporary download files were left behind. This is measured again after the Biology & longevity
-collection grew to 2.86 GB installed (the October 13 edition, 27 MB, gave 34.2 GB). The earlier
-edition, which Library keeps until it is removed, is not counted.
+Android's own figure agrees: Settings › Apps › Field Atlas › Storage shows 37.06 GB in total (app
+173 MB, user data 36.88 GB, cache 57 kB), which also counts the October 13 Biology edition (27 MB)
+that Library keeps after the update until it is removed. The table adds up the app's folders on the
+emulator, without that edition. Sizes here are decimal (1 GB = 1,000,000,000 bytes), as Android
+shows them; 37.0 GB is 34.5 GiB. No temporary download files were left behind. This was measured
+again after the Biology & longevity collection grew to 2.86 GB installed (the October 13 edition
+gave 34.2 GB). Installing the Encyclopedia last briefly needs its 10.64 GB download beside its
+installed copy, so the highest point while setting up is about 47.7 GB with everything, worked out
+from the file sizes rather than measured.
 
-**Memory while answering:**
+**Memory while answering.** The bounty asks for a "12GB RAM environment", so what matters is that the
+app answers on a 12 GB device without running it out of memory. On the same emulator, with every
+collection (the October 18 Biology edition included) and airplane mode on, each model answered a
+research question, a follow-up under it, a longevity question and a places question, and for each
+answer we recorded
+([measurements](fieldtest/results-1.4.2/emulator-memory.jsonl), measured with
+[scripts/measure_answer_memory.py](../scripts/measure_answer_memory.py)):
 
-| Model (20 answers each, the research run below included) | Most memory the app used | Least memory left on the phone |
-| --- | ---: | ---: |
-| Qwen3.5 2B | 3.3 GB | 8.7 GB |
-| Qwen3.5 4B | 6.5 GB | 6.9 GB |
+- the app's **peak resident memory**, from the kernel's own high-water mark (VmHWM), reset before each
+  answer, so no peak between samples is missed. It counts every shared page in full: the worst case;
+- Android's **PSS**, its measure of "how much memory this app is responsible for", read every second
+  (Android adds the app's share of memory moved to swap; here that stayed under 1 MB);
+- the **least memory the whole emulator had available** while the answer was written.
 
-The app's memory is Android's PSS figure, which also counts memory the system had moved to swap.
+| Model (4 answers each) | Peak resident memory | Peak PSS | Least memory available on the 12 GB device |
+| --- | ---: | ---: | ---: |
+| Qwen3.5 2B | 3.45 GB | 3.30 GB | 9.19 GB |
+| Qwen3.5 4B | 6.83 GB | 6.67 GB | 7.37 GB |
 
-These answers used the October 13 Biology edition. With the October 18 edition installed, a
-longevity question ("what do senolytic drugs do in ageing", answered with the 4B in 2 min 21 s
-and citing two PubMed Central papers) took the app to at most 6.3 GB, with at least 7.1 GB left on
-the phone, inside the figures above.
+All 8 answers finished offline in the same app process, and Android's record of why the app last
+stopped (`dumpsys activity exit-info`) shows no stop for low memory, only our own installs and
+restarts. Most of the figure is the model file, which is memory-mapped: Android can drop those
+pages and read them again from storage, so these figures overstate what the app strictly needs.
+Sizes are decimal GB, converted from the kilobytes (1,024 bytes) the kernel reports.
+
+The 20-answer runs below were measured earlier with PSS alone, read every 2 seconds, and reported
+as 3.3 GB and 6.5 GB. Those figures mixed units: corrected, they are 3.4 GB and 6.8 GB, the same as
+the measurement above.
 
 **Offline:** with airplane mode on, all 16 answers finished, with no connection. Places near you
 and the fuel word problem came from saved data in seconds, and with the 2B so did the wallet answer,

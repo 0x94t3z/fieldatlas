@@ -99,7 +99,7 @@ method, including two changes that were tried and not adopted.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with both models, every collection and the voice installed, the app
-  takes 37.0 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.5 GB of
+  takes 37.0 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.8 GB of
   memory while answering ([details](docs/evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
 - Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
   GrapheneOS or on a real 8 GB phone.

@@ -85,7 +85,7 @@ Every question, answer and grade is published in
   download and installed copy at once: about 44.3 GB at the peak, inside the 50 GB budget.
 - **Within the bounty's limits.** On an Android emulator with 12 GB of memory, everything the app
   offers (both models, all seven collections and the voice) takes 37.0 GB of the 50 GB allowed.
-  Answering in airplane mode, the app used at most 3.3 GB of memory with the 2B and 6.5 GB with the
+  Answering in airplane mode, the app used at most 3.5 GB of memory with the 2B and 6.8 GB with the
   4B, and all 40 test answers finished offline, including 6 research questions with a follow-up
   under each, per model
   ([details](../evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
