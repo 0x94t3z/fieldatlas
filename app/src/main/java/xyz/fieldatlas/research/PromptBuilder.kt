@@ -273,6 +273,9 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
                 "\n\nTASK: Explain the term to a non-specialist in 2-3 short sentences. Use plain language rather than copying the source's sentences. Keep important technical terms. Focus on what it is and what it does, not a list of research findings." else "") +
             (if (packed.sources.size > 1 && EvidenceRelevance.conceptualComparisonSubjects(question).size == 2)
                 "\n\nTASK: Explain each side of the comparison in its own short sentence. Cite each side's actual supporting passage; do not cite one subject's passage for both subjects." else "") +
+            (if (packed.sources.any { it.evidence.documentId.startsWith("attachment:") } &&
+                    packed.sources.any { !it.evidence.documentId.startsWith("attachment:") })
+                "\n\nTASK: Sources whose Source line begins \"Attached file\" are the user's own file. Answer from them first; use the other sources only to explain terms or add context the file lacks, and make clear which comes from the file." else "") +
             (if (packed.prompt.contains("Some retrieved passages could not fit"))
                 "\n\nCOVERAGE LIMIT: Some retrieved passages could not fit. Do not claim a complete synthesis of all sources." else "") +
             (if (missing.isEmpty()) "" else "\n\nCOVERAGE LIMIT: Selected excerpts do not mention ${missing.joinToString(", ")}. Do not invent the missing side of the comparison.") +

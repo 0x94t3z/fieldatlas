@@ -84,6 +84,8 @@ class ResearchOrchestrator(
         attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment> = emptyList(),
         /** For a follow-up: the answer it builds on, whose passages can be read again. */
         topic: TopicEvidence.Carried? = null,
+        /** With files attached, also search the collections (the user's switch); the files' passages still lead. */
+        libraryWithFiles: Boolean = false,
     ): Flow<ResearchEvent> {
         val phrase = phraseRequest(question, attachments.isNotEmpty())
         val guide = if (attachments.isEmpty() && phrase == null) guideFor(question, topic) else null
@@ -122,7 +124,8 @@ class ResearchOrchestrator(
             return arithmetic(question, calculation?.text, maxOutputTokens)
         }
         if (calculation == null) {
-            val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments, topic = topic)
+            val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments, topic = topic,
+                libraryWithFiles = libraryWithFiles)
             val numbers = guide?.let { emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) } }
             return if (numbers == null) core else leading(numbers + "\n\n", core)
         }
@@ -160,7 +163,8 @@ class ResearchOrchestrator(
             }
         }
         return leading(calculation.text + "\n\n",
-            researchCore(calculation.followUp, resultLimit, contextTokenBudget, maxOutputTokens, attachments, calculation.guideId))
+            researchCore(calculation.followUp, resultLimit, contextTokenBudget, maxOutputTokens, attachments, calculation.guideId,
+                libraryWithFiles = libraryWithFiles))
     }
 
     /** The model works a self-contained sum from the question's own numbers, each step checked. */
@@ -255,6 +259,7 @@ class ResearchOrchestrator(
         attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment>,
         preferredGuideId: String? = null,
         topic: TopicEvidence.Carried? = null,
+        libraryWithFiles: Boolean = false,
     ): Flow<ResearchEvent> = flow {
         if (question.isBlank()) {
             emit(ResearchEvent.Failed("Question must not be blank"))
@@ -408,7 +413,7 @@ class ResearchOrchestrator(
             // passage; the prompt still receives at most resultLimit sources.
             val candidateLimit = minOf(50, resultLimit * 3)
             emit(ResearchEvent.Searching(question))
-            val includeLibrary = (attachments.isEmpty() || AttachmentScope.includesLibrary(question))
+            val includeLibrary = (attachments.isEmpty() || AttachmentScope.includesLibrary(question, byDefault = libraryWithFiles))
             // A follow-up read as a name the earlier answer gave is about that name; the earlier answer's own
             // passages then follow the new search instead of leading it.
             val carriedAhead = topic == null || !FollowUp.namesSubject(question, topic.earlier)
@@ -842,7 +847,7 @@ class ResearchOrchestrator(
             val packed = if (selection != null) {
                 AttachmentEvidence.pack(question, selection, evidence,
                     minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
-                    evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond))
+                    evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond), includeLibrary = includeLibrary)
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question, framing)
             } else {

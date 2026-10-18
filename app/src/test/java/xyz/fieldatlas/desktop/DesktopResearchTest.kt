@@ -232,6 +232,8 @@ class DesktopResearchTest {
                 // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
                 articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
+                // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
+                libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",
                 topic = (followUps?.get(listed) ?: followUps?.get(question))?.jsonObject?.let { link ->
                     TopicEvidence.Carried(link.getValue("asked").jsonPrimitive.content,
                         answeredSources[seed to link.getValue("after").jsonPrimitive.content.let { readings[seed to it] ?: it }].orEmpty(),

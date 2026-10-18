@@ -36,6 +36,36 @@ class AttachmentScopeTest {
         }
     }
 
+    @Test fun theSwitchAddsTheLibraryBehindTheFileUnlessTheQuestionSaysFilesOnly() = runBlocking {
+        // "Also use my collections" on: the library is searched and its record follows the file's.
+        for (question in listOf("Which restaurant in the notes is vegan, and what is vegan food?", "Summarize these files")) {
+            var searches = 0
+            val events = ResearchOrchestrator(Retriever { _, _, _ -> searches++; listOf(library) },
+                FakeInferenceGateway(listOf("Green Lantern is vegan [S1]; Pop Vegan Food is too [S2].")))
+                .research(question, attachments = listOf(file), libraryWithFiles = true).toList()
+            assertTrue(question, events.last() is ResearchEvent.Complete)
+            assertEquals(question, 1, searches)
+            assertEquals(question, "attachment:notes", events.filterIsInstance<ResearchEvent.Sources>().last().evidence.first().documentId)
+        }
+        // The question still overrides the switch.
+        for (question in listOf("Only use these files: which restaurant is vegan?", "Don't use my library; summarize the notes")) {
+            var searches = 0
+            ResearchOrchestrator(Retriever { _, _, _ -> searches++; listOf(library) }, FakeInferenceGateway(listOf("Green Lantern [S1].")))
+                .research(question, attachments = listOf(file), libraryWithFiles = true).toList()
+            assertEquals(question, 0, searches)
+        }
+    }
+
+    @Test fun aMixedAnswerIsToldTheFileLeads() {
+        val question = "Which restaurant in the notes is vegan?"
+        val packed = AttachmentEvidence.pack(question, AttachmentEvidence.select(question, listOf(file), 8), listOf(library), 8000,
+            includeLibrary = true)
+        assertEquals(listOf("attachment:notes", "library-venue"), packed.sources.map { it.evidence.documentId })
+        assertTrue(PromptBuilder.explain(question, packed).prompt.contains("are the user's own file. Answer from them first"))
+        val fileOnly = AttachmentEvidence.pack(question, AttachmentEvidence.select(question, listOf(file), 8), listOf(library), 8000)
+        assertFalse(PromptBuilder.explain(question, fileOnly).prompt.contains("user's own file"))
+    }
+
     @Test fun packCannotAccidentallyAddLibraryToFileOnlyQuestion() {
         val question = "Which fictional restaurant is vegan?"
         val packed = AttachmentEvidence.pack(question, AttachmentEvidence.select(question, listOf(file), 8), listOf(library), 8000)

@@ -145,8 +145,8 @@ object AttachmentEvidence {
     private fun pageOf(evidence: Evidence) = Regex(":p(\\d+):").find(evidence.chunkId)?.groupValues?.get(1)?.toIntOrNull()
 
     /** Packs records until [maxTokens] (estimated, see [TokenEstimate]) or the evidence cap. */
-    fun pack(question: String, selection: AttachmentSelection, library: List<Evidence>, maxTokens: Int, evidenceTokens: Int = EVIDENCE_TOKENS): PackedPrompt {
-        val includeLibrary = AttachmentScope.includesLibrary(question)
+    fun pack(question: String, selection: AttachmentSelection, library: List<Evidence>, maxTokens: Int, evidenceTokens: Int = EVIDENCE_TOKENS,
+             includeLibrary: Boolean = AttachmentScope.includesLibrary(question)): PackedPrompt {
         val scope = if (includeLibrary) "Use the attached files and relevant library records. Distinguish what each source says."
             else "Use ONLY the attached files. Do not add library facts or facts from memory."
         // Each rule costs prompt-reading time on a slow phone, so rules that cannot apply to this
