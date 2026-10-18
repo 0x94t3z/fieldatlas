@@ -211,7 +211,8 @@ private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphic
         Canvas(Modifier.fillMaxWidth().height(72.dp)) {
             val y = lineY.toPx()
             val start = inset.toPx()
-            val end = start + usable.toPx()
+            // The trail ends in the answer's circle; drawn to the edge, a stub of it stuck out past that circle.
+            val end = start + usable.toPx() * STOPS[3]
             drawLine(track, Offset(start, y), Offset(end, y), strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
             drawLine(primary, Offset(start, y), Offset(start + usable.toPx() * position, y), strokeWidth = 4.dp.toPx(),
