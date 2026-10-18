@@ -165,6 +165,27 @@ fun LibraryScreen(
     var voiceDetails by rememberSaveable { mutableStateOf(false) }
     var catalogDetails by remember { mutableStateOf<KnowledgeCatalogEntry?>(null) }
     var voiceConfirm by rememberSaveable { mutableStateOf(false) }
+    // Search and kind chips over Discover, for a catalogue longer than a screen.
+    var discoverQuery by rememberSaveable { mutableStateOf("") }
+    var discoverType by rememberSaveable { mutableStateOf(DiscoverType.All) }
+    var discoverOpen by rememberSaveable { mutableStateOf(setOf<String>().joinToString()) }
+    val voiceOffered = readAloud != null && downloads != null && naturalVoice != xyz.fieldatlas.speech.NaturalVoice.State.Ready
+    fun knowledgeMatches(entry: KnowledgeCatalogEntry) = DiscoverSearch.matches(discoverQuery, entry.title, entry.description,
+        xyz.fieldatlas.ui.presentation.discoverLine(entry.id, entry.description), knowledgeCategory(entry.id, entry.category).label)
+    val modelsFound = modelDownloads.filter { DiscoverSearch.matches(discoverQuery, it.name, it.line, "model") }
+    val updatesFound = updates.filter(::knowledgeMatches)
+    val freshFound = fresh.filter(::knowledgeMatches)
+    val voiceFound = voiceOffered && DiscoverSearch.matches(discoverQuery, "Natural reading voice", "Supertonic 3 English voice reads answers aloud")
+    val discoverCounts = mapOf(DiscoverType.Models to modelsFound.size, DiscoverType.Knowledge to updatesFound.size + freshFound.size,
+        DiscoverType.Voices to if (voiceFound) 1 else 0).let { it + (DiscoverType.All to it.values.sum()) }
+    val discoverOffered = modelDownloads.size + updates.size + fresh.size + if (voiceOffered) 1 else 0
+    fun shows(kind: DiscoverType) = discoverType == DiscoverType.All || discoverType == kind
+    // With nothing typed and every kind listed, each kind shows its first rows and "See all"; a chip or a query shows all.
+    fun folded(kind: DiscoverType) = discoverQuery.isBlank() && discoverType == DiscoverType.All && kind.name !in discoverOpen.split(", ")
+    fun toggleOpen(kind: DiscoverType) {
+        val open = discoverOpen.split(", ").filter { it.isNotEmpty() }.toSet()
+        discoverOpen = (if (kind.name in open) open - kind.name else open + kind.name).joinToString()
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
@@ -257,10 +278,37 @@ fun LibraryScreen(
                 )
             }
             }
-            if (discovering && modelDownloads.isNotEmpty()) {
+            if (discovering) {
+            item {
+                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    itemVerticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onOpenDownloadSources, shape = FieldAtlasButtonShape,
+                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(0.dp)) {
+                        Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
+                        Text("Download sources", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelMedium)
+                    }
+                    TextButton(onClick = onRefreshCatalog, enabled = !catalogRefreshing, shape = FieldAtlasButtonShape,
+                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(start = 12.dp)) {
+                        Text(if (catalogRefreshing) "Refreshing…" else "Refresh", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                catalogError?.let { Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error) }
+            }
+            if (discoverOffered > 0) item(key = "discover-search") {
+                DiscoverSearchBar(discoverQuery, { discoverQuery = it }, discoverType, { discoverType = it }, discoverCounts)
+            }
+            if (discoverQuery.isNotBlank() && discoverCounts[DiscoverType.All] == 0) item(key = "discover-nothing") {
+                DiscoverNothingFound(discoverQuery, catalogRefreshing, onRefreshCatalog, onImportPack)
+            }
+            }
+            if (discovering && shows(DiscoverType.Models) && modelsFound.isNotEmpty()) {
             item { SectionLabel("Answer models") }
             if (downloads != null && queue != null) item(key = "model-offers") {
-                DownloadGroup(modelDownloads.map { offer -> @Composable {
+                val fold = folded(DiscoverType.Models) && modelsFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL
+                Column {
+                DownloadGroup((if (fold) modelsFound.take(DiscoverSearch.ROWS_BEFORE_SEE_ALL) else modelsFound).map { offer -> @Composable {
                     val item = DownloadItem.Model(offer)
                     // Two short lines like a collection in Discover; the download sheet says the rest.
                     DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
@@ -269,6 +317,9 @@ fun LibraryScreen(
                         rowActions(downloads, item, onGet = { confirming = item },
                             discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }))
                 } })
+                if (modelsFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL && discoverQuery.isBlank() && discoverType == DiscoverType.All)
+                    DiscoverSeeAll(modelsFound.size, open = !fold) { toggleOpen(DiscoverType.Models) }
+                }
             }
             }
             if (!discovering) {
@@ -317,41 +368,26 @@ fun LibraryScreen(
             item { TextButton(shape = FieldAtlasButtonShape, onClick = { discovering = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Browse collections") } }
             }
             if (discovering) {
-            item {
-                androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    itemVerticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onOpenDownloadSources, shape = FieldAtlasButtonShape,
-                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(0.dp)) {
-                        Icon(FieldAtlasIcons.Storage, null, Modifier.size(18.dp))
-                        Text("Download sources", Modifier.padding(start = 7.dp), style = MaterialTheme.typography.labelMedium)
-                    }
-                    TextButton(onClick = onRefreshCatalog, enabled = !catalogRefreshing, shape = FieldAtlasButtonShape,
-                        modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(start = 12.dp)) {
-                        Text(if (catalogRefreshing) "Refreshing…" else "Refresh", style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                catalogError?.let { Text(it, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error) }
-            }
-            if (updates.isNotEmpty() && downloads != null && queue != null) {
+            if (shows(DiscoverType.Knowledge) && updatesFound.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Updates") }
                 item(key = "updates") {
-                    DownloadGroup(updates.map { candidate -> @Composable {
+                    DownloadGroup(updatesFound.map { candidate -> @Composable {
                         KnowledgeRow(candidate, knowledge.filter { it.id == candidate.id }.maxByOrNull { it.installedBytes }, downloads, queue,
                             resumableKnowledgeBytes(candidate), onGet = { confirming = it },
                             onDiscard = onDiscardPausedDownload?.let { discard -> { discard(candidate) } })
                     } })
                 }
             }
-            if (readAloud != null && downloads != null && naturalVoice != xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
+            if (readAloud != null && downloads != null && shows(DiscoverType.Voices) && voiceFound) {
                 item { SectionLabel("Voice") }
                 item(key = "voice-offer") { DownloadGroup(listOf { VoiceDiscoverRow(readAloud, onGet = { voiceConfirm = true }, onDetails = { voiceDetails = true }) }) }
             }
-            if (fresh.isNotEmpty() && downloads != null && queue != null) {
+            if (shows(DiscoverType.Knowledge) && freshFound.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Available to download") }
+                val fold = folded(DiscoverType.Knowledge) && freshFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL
                 // One card per category, its collections listed inside it.
-                fresh.groupBy { knowledgeCategory(it.id, it.category) }.forEach { (category, group) ->
+                (if (fold) freshFound.take(DiscoverSearch.ROWS_BEFORE_SEE_ALL) else freshFound)
+                    .groupBy { knowledgeCategory(it.id, it.category) }.forEach { (category, group) ->
                     item(key = "available:${category.name}") {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             CategoryLabel(category)
@@ -363,8 +399,10 @@ fun LibraryScreen(
                         }
                     }
                 }
+                if (freshFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL && discoverQuery.isBlank() && discoverType == DiscoverType.All)
+                    item(key = "available-see-all") { DiscoverSeeAll(freshFound.size, open = !fold) { toggleOpen(DiscoverType.Knowledge) } }
             }
-            if (available.isEmpty() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
+            if (available.isEmpty() && discoverQuery.isBlank() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
             }
             if (!discovering) {
             item { SectionLabel("Voice") }

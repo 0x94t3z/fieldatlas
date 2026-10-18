@@ -50,7 +50,9 @@ on the phone, with no account and nothing sent anywhere.
 - **Sources numbered as the answer cites them.** The first source an answer cites is 1, so a
   cited "2" no longer sits above an uncited "1". Each passage has its own row with its opening words.
 - **Library and setup.** Discover lists each collection and model in two short lines, with an
-  About sheet for each, and a green bar above the tabs shows what is downloading. Importing a
+  About sheet for each, and a search field with All, Models, Knowledge and Voices to find one as the
+  catalogue grows. Setup lists three collections A to Z, with "See all" and "Show fewer". A green bar
+  above the tabs shows what is downloading. Importing a
   collection from a file counts only installed collections against the 50 GB limit, so a 24 GB
   Encyclopedia file is no longer refused. Download sources include the voice.
 - **Fixes:** places named without their accents are found, Ethereum standards stay out of

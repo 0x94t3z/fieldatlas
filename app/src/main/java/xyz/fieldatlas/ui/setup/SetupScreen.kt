@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -238,16 +239,18 @@ fun SetupScreen(
                                     freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),
                                     downloadUrl = knowledgeDownloadUrl(pack))
                             }
-                            if (shown.size < sortedKnowledge.size) {
+                            // "See all" opens the list in place; "Show fewer" at its end folds it back to three.
+                            val folds = sortedKnowledge.size > SETUP_KNOWLEDGE_ROWS
+                            if (shown.size < sortedKnowledge.size || (showAllKnowledge && folds)) {
                                 HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showAllKnowledge = true }
+                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showAllKnowledge = !showAllKnowledge }
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
-                                    Text("See all ${sortedKnowledge.size} collections", Modifier.weight(1f),
+                                    Text(if (showAllKnowledge) "Show fewer" else "See all ${sortedKnowledge.size} collections", Modifier.weight(1f),
                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                                         color = MaterialTheme.colorScheme.primary)
-                                    Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(18.dp),
+                                    Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(18.dp).rotate(if (showAllKnowledge) -90f else 0f),
                                         tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
