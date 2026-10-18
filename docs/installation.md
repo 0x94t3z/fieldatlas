@@ -19,7 +19,7 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
 3. In setup, download the model it offers first (Qwen3.5 4B on a phone with 8 GB of memory, Qwen3.5 2B otherwise), or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md). A raw `.gguf` is not a model pack.
-4. Optionally download or import a knowledge collection, and the natural reading voice (about 145 MB). A model is required; collections provide saved passages for their covered topics.
+4. Optionally download or import a knowledge collection, and the natural reading voice (about 146 MB). A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 

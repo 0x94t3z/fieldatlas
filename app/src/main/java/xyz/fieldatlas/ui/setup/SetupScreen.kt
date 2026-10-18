@@ -154,12 +154,11 @@ fun SetupScreen(
                                 downloadedBytes = downloadedBytes, resumableBytes = saved,
                                 details = "${if (index == 0) "Best for this phone" else "Faster choice"} · Apache 2.0\n\n${offer.description}",
                                 onDownload = { onDownloadModelOffer(offer) }, onCancel = onCancelDownload,
-                                subtitle = "Q4_K_M", blockedReason = blockedReason, inGroup = true,
+                                blockedReason = blockedReason, inGroup = true,
                                 freeBytesNeeded = offer.bytes - saved.coerceIn(0, offer.bytes) + 512_000_000L,
                                 downloadUrl = modelDownloadUrlFor(offer), downloadError = modelErrorFor(offer), online = online,
                                 badge = "Best for this phone".takeIf { index == 0 },
-                                note = if (index == 0) "More accurate, about half the factual errors. Slower to answer."
-                                    else "Faster, a little less accurate.")
+                                note = if (index == 0) "Fewer mistakes. Slower answers." else "Faster answers. A few more mistakes.")
                         } }
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == recommended.id) recommended.name else model.title,
@@ -168,7 +167,6 @@ fun SetupScreen(
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
                         details = "Recommended model · Apache 2.0", onDownload = onDownloadModel, onCancel = onCancelDownload,
-                        subtitle = if (model == null || model.id == recommended.id) "Q4_K_M" else null,
                         blockedReason = blockedReason,
                         // The verified model is moved into place, not unpacked from a copy.
                         freeBytesNeeded = recommended.bytes - resumableModelBytes.coerceIn(0, recommended.bytes) + 512_000_000L,
@@ -316,15 +314,11 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                     downloads.queue.enqueue(item, allowMobileData = true)
                 },
                 onCancel = downloads.queue::pause,
-                subtitle = "English", blockedReason = blockedReason, inGroup = true,
+                subtitle = "Supertonic 3", blockedReason = blockedReason, inGroup = true,
                 freeBytesNeeded = item.bytes + 200_000_000L,
                 downloadUrl = source,
                 downloadError = status.failures[item.key]?.message,
                 online = online)
-            // Who made the voice, its licence and where it comes from, like a collection's credits.
-            Text("Supertonic 3 · OpenRAIL-M · " + (runCatching { java.net.URI(source).host }.getOrNull() ?: ""),
-                Modifier.padding(start = 60.dp, end = 14.dp, bottom = if (installed || downloading) 12.dp else 0.dp),
-                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (!installed && !downloading) Box(Modifier.padding(start = 60.dp, end = 14.dp, bottom = 10.dp)) {
                 xyz.fieldatlas.ui.library.SampleLine(readAloud, reading)
             }
@@ -411,7 +405,8 @@ private fun SetupDownloadRow(
                     "${downloadSize(resumableBytes)} saved · resume" else downloadSize(bytes)
                 val accent = MaterialTheme.colorScheme.primary
                 Text(androidx.compose.ui.text.buildAnnotatedString {
-                    append(listOfNotNull(subtitle, status).joinToString(" · "))
+                    // The size first, as in Library: "146 MB · Supertonic 3", "3.01 GB · Best for this phone".
+                    append(listOfNotNull(status, subtitle).joinToString(" · "))
                     if (badge != null && !installed) {
                         append(" · ")
                         withStyle(androidx.compose.ui.text.SpanStyle(color = accent, fontWeight = FontWeight.SemiBold)) { append(badge) }
