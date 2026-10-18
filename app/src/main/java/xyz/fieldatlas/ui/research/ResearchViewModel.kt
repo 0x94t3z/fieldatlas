@@ -147,8 +147,9 @@ class ResearchViewModel(
         attachmentSession.add(name, load)
     }
     fun removeAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.remove(id) }
-    /** "Also use my collections" under attached files: on, a file question also searches the collections. */
-    val libraryWithFiles = LibraryWithFiles(savedStateHandle[LIBRARY_WITH_FILES_KEY] ?: true) { savedStateHandle[LIBRARY_WITH_FILES_KEY] = it }
+    /** "Also use my collections" under attached files: on, a file question also searches the collections. Off by
+     * default: on 24 sealed file questions (set 31, graded blind) answers with it on were worse, 8 to none. */
+    val libraryWithFiles = LibraryWithFiles(savedStateHandle[LIBRARY_WITH_FILES_KEY] ?: false) { savedStateHandle[LIBRARY_WITH_FILES_KEY] = it }
     fun retryAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.retry(id) }
     val uiState: StateFlow<ResearchUiState> = mutableUiState.asStateFlow()
     private var researchJob: Job? = null
