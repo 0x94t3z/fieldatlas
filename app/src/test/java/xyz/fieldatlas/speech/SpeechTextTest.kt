@@ -64,6 +64,16 @@ class SpeechTextTest {
         assertFalse(read.any { "Saved" in it.spoken || "wrought" in it.spoken })
     }
 
+    @Test fun anAnswerMadeOfQuotedPassagesReadsThePassages() {
+        // As GroundedKnowledgeAnswer writes it: the label, each passage as character references, then a note.
+        val passage = xyz.fieldatlas.text.MarkdownLiteral.encode("… The Roman Republic was a phase in history, before 27 BC. It ended in civil wars …")
+        val answer = "## From your saved sources\n\n> $passage [S1]\n\n_Original excerpts, not a generated explanation._"
+        val read = SpeechText.answer(answer)
+        assertEquals(listOf("The Roman Republic was a phase in history, before 27 BC.", "It ended in civil wars",
+            "Original excerpts, not a generated explanation."), read.map { it.shown })
+        assertFalse(read.any { "&#" in it.spoken || "saved sources" in it.spoken })
+    }
+
     @Test fun aGuideOpensWithTheCallLineAndKeepsItsOrder() {
         val guide = EmergencyGuide("eye", "Eye injuries", "medical", sections = listOf(
             GuideSection(heading = "Summary", paragraphs = listOf("Chemicals can burn your eyes. Wash out your eye right away.")),

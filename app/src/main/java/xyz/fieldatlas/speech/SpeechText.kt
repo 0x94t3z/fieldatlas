@@ -1,12 +1,13 @@
 package xyz.fieldatlas.speech
 
 import xyz.fieldatlas.emergency.EmergencyGuide
+import xyz.fieldatlas.text.MarkdownLiteral
 
 /**
  * What reading aloud says, sentence by sentence. Each [Segment] keeps the sentence as it is shown, so the screen can
  * mark it while it is read, and the words the voice says: a voice reads "112" as "one hundred twelve" and skips "€",
  * so numbers people dial are said digit by digit and symbols are said as words. Citation marks, Markdown and the
- * excerpts saved under an answer are never read.
+ * excerpts saved under an answer are never read; an answer made of quoted passages has them read, since they are it.
  */
 object SpeechText {
     data class Segment(val shown: String, val spoken: String)
@@ -25,12 +26,20 @@ object SpeechText {
         return out.filter { it.spoken.isNotBlank() }
     }
 
-    /** An answer as read aloud: its text without the saved excerpts, app labels, citation marks or Markdown. */
+    /** An answer as read aloud: its text and quoted passages, without the saved excerpts listed under it, app labels,
+     * citation marks or Markdown. */
     fun answer(markdown: String): List<Segment> {
         val out = mutableListOf<Segment>()
         for (raw in markdown.lines()) {
             val line = raw.trim()
-            if (line.isEmpty() || line.startsWith(">") || line.startsWith("|") || line.startsWith("```") || line == "---") continue
+            if (line.isEmpty() || line.startsWith("|") || line.startsWith("```") || line == "---") continue
+            if (line.startsWith(">")) {
+                // A passage quoted as the answer keeps its wording as character references; read it as the screen
+                // shows it, without the ellipses that mark where the excerpt was cut.
+                val quote = MarkdownLiteral.decode(plain(line.trimStart('>').trim())).trim().trim('…').trim()
+                sentences(quote).forEach { out += segment(it) }
+                continue
+            }
             if (line.startsWith("#")) {
                 val heading = plain(line.trimStart('#').trim())
                 // Below these, the answer only lists what it read; above them, app labels say how it was made.
@@ -46,7 +55,7 @@ object SpeechText {
     }
 
     private val excerptHeading = Regex("(?i)^(saved (excerpts|passages|sources)|sources|other sources)\\b")
-    private val labelHeading = Regex("(?i)^(model explanation|from the saved|quoted from|source excerpt|shown as published)")
+    private val labelHeading = Regex("(?i)^(model explanation|from (the |your )?saved|(matching|selected) passages from|quoted from|source excerpt|shown as published)")
     private val listMarker = Regex("^(?:[-*+•]|\\d+[.)])\\s+")
 
     /** Text as the screen shows it: no Markdown markers, links read as their words, citation marks gone. */
