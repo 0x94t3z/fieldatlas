@@ -43,7 +43,8 @@ class EmergencyDehydrationRoutingTest {
 
     @Test fun batteryIngestionUsesGeneralPoisonReferenceWithAnExplicitCoverageLimit() = runBlocking {
         for (question in listOf("My child swallowed a button battery. What do I do?",
-            "My toddler ingested a coin battery. What should we do?", "I swallowed a battery. Help!")) {
+            "My toddler ingested a coin battery. What should we do?", "I swallowed a battery. Help!",
+            "my 3 year old swallowed one of those small round watch batteries maybe 10 min ago. she seems totally fine, is it ok to just wait and see?")) {
             assertEquals("poisoning", EmergencyGuideMatch.match(question, guides)?.id)
             val model = FakeInferenceGateway(listOf("Invent treatment"))
             val events = ResearchOrchestrator(Retriever { _, _, _ -> error("Use the official reference") }, model,

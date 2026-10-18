@@ -381,6 +381,8 @@ object EmergencyGuideMatch {
             "(he|she|they|i|we|and|friend|son|daughter|child|kid|wife|husband|partner|dad|mom|mother|father|baby|brother|sister) " +
             "(is|'s|seems|looks|became|got|getting) confused|shivering|stopped sweating|" +
             "(accidentally|just) swallowed|swallowed (some |a |the )?(bleach|poison|pills?|medicine|tablets?|batter(y|ies)|chemicals?|cleaner|detergent|antifreeze|mushrooms?)|" +
+            // "Swallowed a watch battery", "swallowed one of those small round batteries".
+            "swallowed (?:(?:a|an|the|one|of|those|these|small|tiny|little|round|flat|watch|button|coin|disc|disk|lithium) )*batter(?:y|ies)|" +
             "hit (his|her|my|their|your|the) head|caught (in|out) (in |by )?(a |the )?(lightning|thunder|storm|thunderstorm|flood|fire|wildfire|blizzard|snowstorm|avalanche|current|rip current)|" +
             // "What's the safest thing to do?" asks for the safety steps.
             "can'?t walk|won'?t stop|safest|what(?:'s| is) the (?:safest|best|right) thing to do)\\b",
@@ -652,7 +654,11 @@ object EmergencyGuideMatch {
     private val onScreen = Regex("(?i)\\b(?:movie|film|documentary|novel|book|series|tv|video|cartoon|game)s? (?:\\w+ ){0,2}" +
         "(?:shows?|showed|showing|where|in which|depicts?)\\b")
 
-    private val batteryIngestion = Regex("(?i)\\b(?:swallowed|ingested)\\s+(?:(?:a|the|one|small|tiny)\\s+)?(?:(?:button|coin|disc|disk)\\s+)?batter(?:y|ies)\\b")
+    // "Swallowed one of those small round watch batteries", "ate a battery from the remote": only words that describe the
+    // battery may sit between, so "ate lunch and my phone battery died" is not a swallowed battery.
+    private val batteryIngestion = Regex("(?i)\\b(?:swallowed|swallowing|ingested|ate|eaten)" +
+        "(?:\\s+(?:a|an|the|one|two|some|of|those|these|that|this|small|tiny|little|round|flat|shiny|silver|watch|button|coin|" +
+        "disc|disk|lithium|hearing[- ]aid|remote|toy|key|fob|cr\\d{4}|lr\\d{2}|ag\\d{1,2}))*\\s+batter(?:y|ies)\\b")
 
     /**
      * Every guide the question names, best first with its score, or nothing when the question is
