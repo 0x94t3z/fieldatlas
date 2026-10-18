@@ -1,7 +1,6 @@
 package xyz.fieldatlas.ui.library
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -439,8 +438,8 @@ private fun SheetLine(icon: ImageVector, title: String, detail: String) {
 }
 
 /**
- * The bar above the tabs while anything downloads: what, how far, Pause, and the way to the whole list. It takes the
- * card colours of the theme, as the "Answer ready" note does, rather than turning dark on a light screen.
+ * The bar above the tabs while anything downloads: what, how far, Pause, and the way to the whole list. It is filled
+ * with the brand green of the selected tab and Read aloud, so something running stands apart from the cards.
  */
 @Composable
 internal fun DownloadsBar(status: DownloadQueueState, onPause: () -> Unit, onOpen: () -> Unit) {
@@ -449,25 +448,24 @@ internal fun DownloadsBar(status: DownloadQueueState, onPause: () -> Unit, onOpe
     val fraction = (status.bytes.toFloat() / item.bytes.coerceAtLeast(1)).coerceIn(0f, 1f)
     // The name alone on top, so it is not cut short; where it stands below, in the same words as its row.
     val line = if (status.waitingForWifi || status.checking) downloadLine(status, item) else "${(fraction * 100).toInt()}% · ${downloadLine(status, item)}"
-    Surface(color = colors.surface, contentColor = colors.onSurface, shape = RoundedCornerShape(18.dp),
-        border = BorderStroke(1.dp, colors.primary.copy(alpha = 0.45f)),
+    Surface(color = colors.primary, contentColor = colors.onPrimary, shape = RoundedCornerShape(18.dp),
         shadowElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Row(Modifier.fillMaxWidth().clickable(onClickLabel = "Show downloads", onClick = onOpen).heightIn(min = 64.dp)
             .padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
-                Ring(fraction, colors.primary, colors.primary.copy(alpha = 0.16f), 36.dp)
-                Icon(FieldAtlasIcons.Download, null, Modifier.size(17.dp), tint = colors.primary)
+                Ring(fraction, colors.inversePrimary, colors.onPrimary.copy(alpha = 0.22f), 36.dp)
+                Icon(FieldAtlasIcons.Download, null, Modifier.size(17.dp))
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(item.title, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(line, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant,
+                Text(line, style = MaterialTheme.typography.bodySmall, color = colors.onPrimary.copy(alpha = 0.8f),
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             if (!status.checking) Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = "Pause ${item.title}", onClick = onPause)
                 .semantics { contentDescription = "Pause ${item.title}" }, contentAlignment = Alignment.Center) {
-                Icon(Icons.Filled.Pause, null, Modifier.size(22.dp), tint = colors.primary)
+                Icon(Icons.Filled.Pause, null, Modifier.size(22.dp))
             }
-            Icon(FieldAtlasIcons.ChevronRight, null, Modifier.padding(end = 8.dp).size(20.dp), tint = colors.onSurfaceVariant)
+            Icon(FieldAtlasIcons.ChevronRight, null, Modifier.padding(end = 8.dp).size(20.dp))
         }
     }
 }
