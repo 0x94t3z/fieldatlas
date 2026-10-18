@@ -67,10 +67,11 @@ class KnowledgeCatalogTest {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val pack = catalog.packs.single { it.id == "world-knowledge-biology" }
         assertEquals("world-knowledge-biology", pack.id)
-        assertEquals("2026.10.13", pack.version)
-        assertEquals(8_183_535L, pack.bytes)
-        assertEquals(27_291_455L, pack.installedBytes)
-        assertEquals("06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376", pack.sha256)
+        assertEquals("2026.10.18", pack.version)
+        assertEquals(1_075_685_456L, pack.bytes)
+        assertEquals(2_855_220_193L, pack.installedBytes)
+        assertEquals("e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66", pack.sha256)
+        assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18/world-knowledge-biology-2026.10.18.fapack", pack.url)
         assertTrue(pack.recommended)
     }
 
