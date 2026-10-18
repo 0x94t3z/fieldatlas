@@ -1,6 +1,7 @@
 package xyz.fieldatlas.assets
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertThrows
@@ -85,5 +86,16 @@ class ModelChoiceTest {
 
     @Test fun noModelIsAnError() {
         assertThrows(IllegalStateException::class.java) { chooseModel(emptyList(), eightGb, null) }
+    }
+
+    @Test fun aLargerModelThatFitsTakesOverOnceDownloaded() {
+        assertTrue(takesOver(ModelOffers.larger, ModelOffers.recommended.id, eightGb))
+        // Nothing in use yet: the download is the model.
+        assertTrue(takesOver(ModelOffers.recommended, null, eightGb))
+        // The 2B fetched as a fallback while the 4B answers waits in Library.
+        assertFalse(takesOver(ModelOffers.recommended, ModelOffers.larger.id, eightGb))
+        // Too big for a 6 GB phone, and a model the app does not offer is left alone.
+        assertFalse(takesOver(ModelOffers.larger, ModelOffers.recommended.id, sixGb))
+        assertFalse(takesOver(ModelOffers.larger, "imported-model", eightGb))
     }
 }

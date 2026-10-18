@@ -12,6 +12,7 @@ import java.security.MessageDigest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -205,6 +206,18 @@ class AppContainer(context: Context) {
 
     suspend fun downloadModel(offer: ModelOffer, downloadUrl: String = offer.url, onProgress: (Long) -> Unit): InstalledAsset =
         provisioningMutex.withLock { modelDownload.install(offer, downloadUrl, onProgress).also { refreshPacks() } }
+            .also { installed ->
+                val active = packs.value.firstOrNull { it.type == PackType.MODEL && it.active }?.id
+                if (xyz.fieldatlas.assets.takesOver(offer, active, deviceMemoryBytes)) switchWhenIdle(installed)
+            }
+
+    // Never pulled from under an answer being written or a model being loaded: the swap waits for them to finish.
+    private fun switchWhenIdle(installed: InstalledAsset) {
+        modelScope.launch {
+            inference.state.first { it != InferenceState.Generating && it != InferenceState.Loading }
+            setActiveModel(installed)
+        }
+    }
 
     // Screens read saved sizes while drawing; reading this state makes them redraw after a discard.
     private val discardedParts = androidx.compose.runtime.mutableIntStateOf(0)

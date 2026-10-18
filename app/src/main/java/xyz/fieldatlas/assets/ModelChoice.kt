@@ -43,3 +43,16 @@ fun chooseModel(
         "Field Atlas closed while loading $name last time, so ${recommended.name} answers instead."
     })
 }
+
+/**
+ * Whether a model just downloaded is used from then on: when it fits this phone and is larger than the one in use
+ * ([activeId], null when none is), as the 4B fetched on an 8 GB phone that answered with the 2B. A smaller one, kept
+ * as a fallback, waits in Library; a model the app does not offer is never replaced.
+ */
+fun takesOver(offer: ModelOffer, activeId: String?, deviceMemoryBytes: Long, offerFor: (String) -> ModelOffer? = ModelOffers::byId): Boolean {
+    if (!offer.fits(deviceMemoryBytes)) return false
+    if (activeId == null) return true
+    if (activeId == offer.id) return false
+    val active = offerFor(activeId) ?: return false
+    return offer.bytes > active.bytes
+}
