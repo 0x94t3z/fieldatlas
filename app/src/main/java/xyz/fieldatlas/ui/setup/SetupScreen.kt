@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.KnowledgeCatalogEntry
-import xyz.fieldatlas.ui.presentation.knowledgeCategory
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.assets.ModelOffers
 import xyz.fieldatlas.assets.PackImportInfo
@@ -78,6 +77,7 @@ fun SetupScreen(
     // A collection tapped in the list: its About sheet, as in Library's Discover; Download there hands back to the row.
     var aboutPack by remember { mutableStateOf<KnowledgeCatalogEntry?>(null) }
     var confirmPack by remember { mutableStateOf<String?>(null) }
+    var showAllKnowledge by rememberSaveable { mutableStateOf(false) }
     aboutPack?.let { pack ->
         xyz.fieldatlas.ui.library.CatalogPackSheet(pack,
             xyz.fieldatlas.ui.library.subjectVisual(pack.id)
@@ -207,18 +207,17 @@ fun SetupScreen(
                 if (importing && importingPack?.type == PackType.KNOWLEDGE && availableKnowledge.none { it.id == importingPack.id }) item {
                     SetupImportCard(importingPack.title, importingName, "Importing knowledge")
                 }
-                availableKnowledge
-                    .groupBy { knowledgeCategory(it.id, it.category) }
-                    .toSortedMap(compareBy { it.ordinal })
-                    .forEach { (category, group) -> item(key = "setup-category:${category.name}") { Column {
-                    // One grouped card per category of optional collections, as in the design.
-                    Text(category.label, style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
+                // One card, A to Z by name. Three rows show until "See all" is tapped, so the step stays short however
+                // many collections the catalog grows to; a collection downloading or importing always keeps its row.
+                val sortedKnowledge = availableKnowledge.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
+                if (sortedKnowledge.isNotEmpty()) item(key = "setup-knowledge") {
+                    val active = { pack: KnowledgeCatalogEntry -> knowledgeDownloadKey == "${pack.id}:${pack.version}" ||
+                        (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) }
+                    val shown = if (showAllKnowledge || sortedKnowledge.size <= SETUP_KNOWLEDGE_ROWS) sortedKnowledge
+                        else sortedKnowledge.filterIndexed { index, pack -> index < SETUP_KNOWLEDGE_ROWS || active(pack) }
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                         Column {
-                            group.sortedWith(xyz.fieldatlas.ui.presentation.knowledgeOrder({ category }, { it.recommended }, { it.title }))
-                                .forEachIndexed { index, pack ->
+                            shown.forEachIndexed { index, pack ->
                                 if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
                                 // The same subject icon and tint the collection gets in Library.
@@ -239,9 +238,22 @@ fun SetupScreen(
                                     freeBytesNeeded = pack.downloadFreeBytes(resumableKnowledgeBytes(pack)),
                                     downloadUrl = knowledgeDownloadUrl(pack))
                             }
+                            if (shown.size < sortedKnowledge.size) {
+                                HorizontalDivider(Modifier.padding(horizontal = 14.dp),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showAllKnowledge = true }
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Text("See all ${sortedKnowledge.size} collections", Modifier.weight(1f),
+                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                        color = MaterialTheme.colorScheme.primary)
+                                    Icon(FieldAtlasIcons.ChevronRight, null, Modifier.size(18.dp),
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
                         }
                     }
-                } } }
+                }
                 // The voice is the other optional thing that runs on the phone itself; offered here so a first
                 // run can fetch it with the rest instead of finding it later in Library.
                 item(key = "setup-voice-header") { SetupSection(3, "Voice", "Optional · reads answers aloud with no signal") }
@@ -281,6 +293,9 @@ fun SetupScreen(
         }
     }
 }
+
+/** Collections setup lists before "See all". */
+private const val SETUP_KNOWLEDGE_ROWS = 3
 
 @Composable
 private fun SetupImportCard(title: String, filename: String?, status: String, icon: ImageVector = FieldAtlasIcons.Document) {

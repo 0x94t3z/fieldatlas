@@ -135,9 +135,8 @@ fun LibraryScreen(
     val speech = packs.filter { it.type == PackType.AUDIO }
     // Installed packs carry no category of their own; the catalog's label wins when it lists the pack.
     val declared = availableKnowledge.associate { it.id to it.category }
-    val recommended = availableKnowledge.filter { it.recommended }.map { it.id }.toSet()
     val installedOrder = xyz.fieldatlas.ui.presentation.knowledgeOrder<InstalledAsset>(
-        { knowledgeCategory(it.id, declared[it.id].orEmpty()) }, { it.id in recommended }, { it.toAssetCardModel().title })
+        { knowledgeCategory(it.id, declared[it.id].orEmpty()) }, { it.toAssetCardModel().title })
     // One card per collection: the edition in use (or the catalog's, or the newest); older editions kept after an
     // update are offered back as space under it instead of looking like a second collection.
     val currentEdition = knowledge.groupBy { it.id }.mapValues { (_, editions) ->
@@ -150,7 +149,7 @@ fun LibraryScreen(
         .groupBy { knowledgeCategory(it.id, declared[it.id].orEmpty()) }
         .toSortedMap(compareBy { it.ordinal })
     val offers = xyz.fieldatlas.assets.discoverOffers(availableKnowledge, knowledge)
-    val order = xyz.fieldatlas.ui.presentation.knowledgeOrder<KnowledgeCatalogEntry>({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title })
+    val order = xyz.fieldatlas.ui.presentation.knowledgeOrder<KnowledgeCatalogEntry>({ knowledgeCategory(it.id, it.category) }, { it.title })
     val fresh = offers.fresh.sortedWith(order)
     val updates = offers.updates.sortedWith(order)
     val available = fresh + updates

@@ -97,17 +97,16 @@ class UiPolishTest {
         assertEquals("Nearest saved places to your current location: Apotek Sehat, 27 km north-east", preview)
     }
 
-    @Test fun setupAndLibraryListCollectionsInTheSameOrder() {
+    @Test fun discoverAndLibraryListCollectionsByCategoryThenAToZ() {
         val catalog = KnowledgeCatalog.parse(java.io.File("src/main/assets/knowledge/catalog.json").readText()).packs
-        val setup = catalog.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.recommended }, { it.title }))
+        val discover = catalog.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, it.category) }, { it.title }))
             .map { it.id }
-        val recommended = catalog.filter { it.recommended }.map { it.id }.toSet()
         val declared = catalog.associate { it.id to it.category }
         val installed = catalog.reversed().map { InstalledAsset(it.id, it.version, PackType.KNOWLEDGE, it.title, it.license, 1, "a", "/x") }
         val library = installed.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, declared[it.id].orEmpty()) },
-            { it.id in recommended }, { it.toAssetCardModel().title })).map { it.id }
-        assertEquals(setup, library)
-        assertEquals(listOf("wikipedia-encyclopedia", "wikivoyage-places", "osm-vegan-places", "osm-essentials",
-            "wikivoyage-guides", "world-knowledge-biology", "crypto-ethereum"), setup)
+            { it.toAssetCardModel().title })).map { it.id }
+        assertEquals(discover, library)
+        assertEquals(listOf("wikipedia-encyclopedia", "osm-essentials", "wikivoyage-places", "osm-vegan-places",
+            "wikivoyage-guides", "world-knowledge-biology", "crypto-ethereum"), discover)
     }
 }

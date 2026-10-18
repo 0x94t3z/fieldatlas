@@ -173,11 +173,10 @@ internal fun formatAssetBytes(bytes: Long): String {
     }
 }
 
-/** How knowledge packs are grouped in Library and setup, in display order. */
-/** One order for collections in setup, Library and Discover: category, then the catalog's
- * recommended collections, then title. Installed packs look "recommended" up in the catalog. */
-internal fun <T> knowledgeOrder(category: (T) -> KnowledgeCategory, recommended: (T) -> Boolean, title: (T) -> String): Comparator<T> =
-    compareBy<T> { category(it).ordinal }.thenByDescending { recommended(it) }.thenBy(String.CASE_INSENSITIVE_ORDER) { title(it) }
+/** One order for collections in Library and Discover: category, then A to Z by name, so a name is found where the
+ * alphabet puts it. Setup lists the same names A to Z in one card, without the categories. */
+internal fun <T> knowledgeOrder(category: (T) -> KnowledgeCategory, title: (T) -> String): Comparator<T> =
+    compareBy<T> { category(it).ordinal }.thenBy(String.CASE_INSENSITIVE_ORDER) { title(it) }
 
 enum class KnowledgeCategory(val label: String) {
     Encyclopedia("Encyclopedia"),
