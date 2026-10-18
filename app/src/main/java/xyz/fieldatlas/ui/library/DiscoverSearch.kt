@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,12 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,6 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -61,23 +64,26 @@ object DiscoverSearch {
 @Composable
 internal fun DiscoverSearchBar(query: String, onQuery: (String) -> Unit, type: DiscoverType, onType: (DiscoverType) -> Unit,
                                counts: Map<DiscoverType, Int>) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedTextField(
-            value = query, onValueChange = onQuery, singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            placeholder = { Text("Search models, collections, voices") },
-            leadingIcon = { Icon(FieldAtlasIcons.Research, null, Modifier.size(20.dp)) },
-            trailingIcon = if (query.isEmpty()) null else ({
-                IconButton(onClick = { onQuery("") }) { Icon(FieldAtlasIcons.Close, "Clear search", Modifier.size(18.dp)) }
-            }),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-            ),
-        )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // A slim field, the height of a row of text: the catalogue is the point of the screen, not the search.
+        Surface(Modifier.fillMaxWidth().heightIn(min = 44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+            Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(FieldAtlasIcons.Research, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(Modifier.weight(1f).heightIn(min = 44.dp), contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) Text("Search models, collections, voices", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                    BasicTextField(query, onQuery, Modifier.fillMaxWidth().semantics { contentDescription = "Search Discover" },
+                        singleLine = true, textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search))
+                }
+                if (query.isNotEmpty()) IconButton(onClick = { onQuery("") }, Modifier.size(40.dp)) {
+                    Icon(FieldAtlasIcons.Close, "Clear search", Modifier.size(16.dp))
+                }
+            }
+        }
         // The chips count what the current search finds, so they also say where the matches are.
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DiscoverType.entries.forEach { kind ->
@@ -88,12 +94,11 @@ internal fun DiscoverSearchBar(query: String, onQuery: (String) -> Unit, type: D
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
                     contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier.heightIn(min = 36.dp),
                 ) {
-                    Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
-                        Text(kind.label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
-                        Text("${counts[kind] ?: 0}", style = MaterialTheme.typography.labelMedium,
+                        Text(kind.label, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold))
+                        Text("${counts[kind] ?: 0}", style = MaterialTheme.typography.labelSmall,
                             color = (if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant).copy(alpha = 0.8f))
                     }
                 }
