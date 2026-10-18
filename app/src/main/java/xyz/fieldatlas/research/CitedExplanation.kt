@@ -197,9 +197,24 @@ EVIDENCE:
         return false
     }
 
+    /**
+     * [text] without a paragraph whose every sentence was already said above it (case, spacing and citation marks
+     * aside): the model's second go at the same answer, whole or shortened.
+     */
+    internal fun withoutEcho(text: String): String {
+        val said = mutableSetOf<String>()
+        return text.split(Regex("\\n\\s*\\n")).filter { paragraph ->
+            val sentences = paragraph.split(Regex("(?<=[.!?])\\s+|\\n")).map { sentence ->
+                sentence.lowercase().replace(Regex("\\[S[0-9]+]"), "").replace(Regex("\\s+"), " ").trim().trimEnd('.', '!', '?').trim()
+            }.filter { it.isNotEmpty() }
+            if (sentences.isNotEmpty() && sentences.all { it in said }) false else { said += sentences; true }
+        }.joinToString("\n\n").trim()
+    }
+
     fun finish(raw: String, count: Int): String {
-        // The prompt ends "ANSWER:", and a small model sometimes echoes that label first.
-        val text = AnswerText.finalized(raw, count).trim().replace(Regex("^ANSWER:\\s*"), "")
+        // The prompt ends "ANSWER:", and a small model sometimes echoes that label first, or writes the answer and
+        // then "ANSWER:" and the same answer again; the label goes and a paragraph said before is said once.
+        val text = withoutEcho(AnswerText.finalized(raw, count).trim().replace(Regex("(?m)^ANSWER:[ \\t]*"), ""))
         if (text == "INSUFFICIENT_EVIDENCE") return GAP
         val audit = AnswerText.citationAudit(raw, count)
         if (text.isBlank() || audit.hasUnmappedCitation || audit.citedSourceIds.isEmpty()) return UNAVAILABLE

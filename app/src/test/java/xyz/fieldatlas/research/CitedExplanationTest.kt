@@ -51,6 +51,17 @@ class CitedExplanationTest {
         assertEquals("INSUFFICIENT_EVIDENCE" to true, CitedExplanation.withoutGapStatements(
             "The provided evidence does not mention the Zelthar purifier. [S1] and [S3] discuss space suit requirements."))
         assertEquals("An IPv6 address has 128 bits [S1].", CitedExplanation.finish("ANSWER: An IPv6 address has 128 bits [S1].", 1))
+        // The answer, then the label and the same answer again (seen on the emulator, 18 October 2026): said once.
+        val said = "P waves travel faster than S waves and pass through liquids, whereas S waves cannot [S1][S2]."
+        assertEquals(said, CitedExplanation.finish("$said\n\nANSWER: $said", 2))
+        // A shortened second go (seen on set 26): only sentences already given, so it goes too.
+        val first = "Philadelphia was the capital from 1790 to 1800 [S1]. Famous places include the Liberty Bell [S1]. " +
+            "Benjamin Franklin started a library there [S2]."
+        assertEquals(first, CitedExplanation.finish("$first\n\nANSWER: Philadelphia was the capital from 1790 to 1800 [S1]. " +
+            "Famous places include the Liberty Bell [S1].", 2))
+        // Two different paragraphs both stay.
+        assertEquals("P waves arrive first [S1].\n\nS waves arrive second [S2].",
+            CitedExplanation.finish("P waves arrive first [S1].\n\nANSWER: S waves arrive second [S2].", 2))
         // Findings about what a study did not show are answers, not gaps.
         val finding = "The test does not prove the battery lasts 9 hours below zero, because it was run at 20 °C [S1]."
         assertEquals(finding to false, CitedExplanation.withoutGapStatements(finding))
