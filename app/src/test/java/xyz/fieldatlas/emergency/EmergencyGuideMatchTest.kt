@@ -86,6 +86,16 @@ class EmergencyGuideMatchTest {
         assertNotEquals("frostbite", match("my fingers are numb when I type, what should I do"))
     }
 
+    @Test fun askingWhatUsuallyCausesSomethingIsAnExplanation() {
+        // A follow-up under a seizure guide asking why they happen wants an answer, not the guide again.
+        for (question in listOf("what usually causes seizures", "What typically causes a nosebleed?",
+            "what can cause a seizure", "What might trigger an asthma attack?")) {
+            assertEquals(question, null, match(question))
+        }
+        // Someone in it is still an emergency, however the question starts.
+        assertEquals("seizures", match("my friend is having a seizure, what usually causes this and what do I do"))
+    }
+
     @Test fun howAThingWorksIsAnExplanationEvenWhenItMentionsSafety() {
         assertNull(match("How does a squeeze water filter like a Sawyer make river water safe to drink? Does it stop viruses?"))
         assertEquals("safe-drinking-water", match("how do I make stream water safe to drink on a hike?"))

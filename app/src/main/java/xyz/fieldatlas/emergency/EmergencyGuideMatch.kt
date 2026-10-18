@@ -490,7 +490,10 @@ object EmergencyGuideMatch {
      * way to stop a seizure?" asks for the steps.
      */
     private val explanation = Regex(
-        "(?i)^\\s*(?:what (?:causes|caused|is|are|was|were)\\b(?! the (?:\\w+ ){0,2}(?:ways?|things?) to\\b)|" +
+        // "What usually causes seizures?" and "what can cause a seizure?" ask for an explanation as much as "what causes".
+        "(?i)^\\s*(?:what (?:(?:usually|typically|commonly|normally|generally|mainly|mostly|actually|really|exactly) )?" +
+            "(?:causes|caused|is|are|was|were)\\b(?! the (?:\\w+ ){0,2}(?:ways?|things?) to\\b)|" +
+            "what (?:can|could|might|may|would) (?:cause|trigger|lead to)\\b|" +
             "why (?:do|does|did|is|are|was|were)\\b|" +
             "how (?:do|does|did|is|are) (?!i\\b|we\\b|you\\b|my\\b|our\\b|someone\\b|somebody\\b)[\\p{L}' -]{2,40}? " +
             "(?:form|forms|formed|work|works|happen|happens|occur|occurs|start|starts|spread|spreads|develop|develops|differ|differs|get made|made|" +
