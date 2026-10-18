@@ -13,6 +13,8 @@ data class ModelOffer(
     val sha256: String,
     val url: String,
     val description: String,
+    /** A few words beside the size in Library's list: what sets it apart. */
+    val line: String = "",
     /** Phones reporting less total memory are not offered this model and do not load it. */
     val minimumMemoryBytes: Long = 0,
     /** The memory a buyer would see on the box, for messages: "6 GB". */
@@ -33,6 +35,7 @@ object ModelOffers {
         sha256 = "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8",
         url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/resolve/7d26695454df6de5fbcce2e58681e62dae06ce43/Qwen_Qwen3.5-2B-Q4_K_M.gguf",
         description = "The default model. It answers sooner and runs on phones with 4 GB of memory.",
+        line = "Faster, smaller",
     )
 
     /**
@@ -52,6 +55,7 @@ object ModelOffers {
         sha256 = "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
         url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/4168f45a16a1290d65a4ec0fa312ae917a4c15d6/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
         description = "More accurate: about half the factual errors of Qwen3.5 2B. Slower to answer.",
+        line = "Fewer mistakes, slower",
         minimumMemoryBytes = 7_000_000_000L,
         minimumMemoryLabel = "8 GB",
     )

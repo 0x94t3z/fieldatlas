@@ -263,13 +263,12 @@ fun LibraryScreen(
             if (downloads != null && queue != null) item(key = "model-offers") {
                 DownloadGroup(modelDownloads.map { offer -> @Composable {
                     val item = DownloadItem.Model(offer)
+                    // Two short lines like a collection in Discover; the download sheet says the rest.
                     DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
-                        "${formatAssetBytes(offer.bytes)} · ${xyz.fieldatlas.ui.presentation.displayLicence(offer.license)}",
+                        "${formatAssetBytes(offer.bytes)} · ${offer.line.ifEmpty { xyz.fieldatlas.ui.presentation.displayLicence(offer.license) }}",
                         rowState(item, queue, installed = false, saved = resumableModelBytes(offer)), formatAssetBytes(offer.bytes),
                         rowActions(downloads, item, onGet = { confirming = item },
-                            discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }),
-                        note = offer.description + if (offer.minimumMemoryLabel.isEmpty()) "" else
-                            " For phones with ${offer.minimumMemoryLabel} of memory or more.")
+                            discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }))
                 } })
             }
             }
