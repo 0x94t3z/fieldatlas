@@ -91,15 +91,17 @@ internal fun AnswerPlayerBar(reading: ReadAloud.Reading, onBack: () -> Unit, onP
         Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(start = 4.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             if (reading.preparing) {
-                Box(Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                     Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(20.dp))
                 }
             } else {
                 PlayerIconButton("Back one sentence", onBack) {
                     Icon(Icons.Filled.SkipPrevious, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(22.dp))
                 }
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp))
-                    .clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle),
+                // 48 dp, as an emergency guide is read with this player too: hands may be shaking or gloved.
+                Box(Modifier.size(48.dp).clip(RoundedCornerShape(24.dp))
+                    .clickable(role = Role.Button, onClickLabel = if (reading.paused) "Resume reading" else "Pause reading", onClick = toggle)
+                    .semantics { contentDescription = if (reading.paused) "Resume reading" else "Pause reading" },
                     contentAlignment = Alignment.Center) {
                     Box(Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)).background(colors.onPrimary), contentAlignment = Alignment.Center) {
                         Icon(if (reading.paused) Icons.Filled.PlayArrow else Icons.Filled.Pause, contentDescription = null,
@@ -130,7 +132,7 @@ internal fun AnswerPlayerBar(reading: ReadAloud.Reading, onBack: () -> Unit, onP
 
 @Composable
 private fun PlayerIconButton(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
-    Box(Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
+    Box(Modifier.size(48.dp).clip(RoundedCornerShape(24.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick)
         .semantics { contentDescription = label }, contentAlignment = Alignment.Center) { icon() }
 }
 

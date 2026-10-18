@@ -299,8 +299,10 @@ fun LibraryScreen(
             if (discoverOffered > 0) item(key = "discover-search") {
                 DiscoverSearchBar(discoverQuery, { discoverQuery = it }, discoverType, { discoverType = it }, discoverCounts)
             }
-            if (discoverQuery.isNotBlank() && discoverCounts[DiscoverType.All] == 0) item(key = "discover-nothing") {
-                DiscoverNothingFound(discoverQuery, catalogRefreshing, onRefreshCatalog, onImportPack)
+            // Only beside the search bar, so a query left from before the last download can never strand this card.
+            if (discoverOffered > 0 && discoverCounts[discoverType] == 0) item(key = "discover-nothing") {
+                if (discoverQuery.isNotBlank()) DiscoverNothingFound(discoverQuery, catalogRefreshing, onRefreshCatalog, onImportPack)
+                else EmptyLibraryNote("No ${discoverType.label.lowercase()} to download right now.")
             }
             }
             if (discovering && shows(DiscoverType.Models) && modelsFound.isNotEmpty()) {
@@ -402,7 +404,8 @@ fun LibraryScreen(
                 if (DiscoverSearch.folds(freshFound.size) && discoverQuery.isBlank() && discoverType == DiscoverType.All)
                     item(key = "available-see-all") { DiscoverSeeAll(freshFound.size, open = !fold) { toggleOpen(DiscoverType.Knowledge) } }
             }
-            if (available.isEmpty() && discoverQuery.isBlank() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
+            if (available.isEmpty() && ((discoverQuery.isBlank() && discoverType == DiscoverType.All) || discoverOffered == 0) &&
+                !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
             }
             if (!discovering) {
             item { SectionLabel("Voice") }

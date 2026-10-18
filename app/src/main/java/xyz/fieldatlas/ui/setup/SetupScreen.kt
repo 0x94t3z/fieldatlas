@@ -244,7 +244,7 @@ fun SetupScreen(
                             if (shown.size < sortedKnowledge.size || (showAllKnowledge && folds)) {
                                 HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { showAllKnowledge = !showAllKnowledge }
+                                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { showAllKnowledge = !showAllKnowledge }
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
                                     Text(if (showAllKnowledge) "Show fewer" else "See all ${sortedKnowledge.size} collections", Modifier.weight(1f),

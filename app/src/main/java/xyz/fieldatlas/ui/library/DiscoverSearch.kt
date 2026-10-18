@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
@@ -70,6 +73,7 @@ object DiscoverSearch {
 @Composable
 internal fun DiscoverSearchBar(query: String, onQuery: (String) -> Unit, type: DiscoverType, onType: (DiscoverType) -> Unit,
                                counts: Map<DiscoverType, Int>) {
+    val keyboard = LocalSoftwareKeyboardController.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // A slim field, the height of a row of text: the catalogue is the point of the screen, not the search.
         Surface(Modifier.fillMaxWidth().heightIn(min = 44.dp), shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface,
@@ -79,11 +83,13 @@ internal fun DiscoverSearchBar(query: String, onQuery: (String) -> Unit, type: D
                 Icon(FieldAtlasIcons.Research, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(Modifier.weight(1f).heightIn(min = 44.dp), contentAlignment = Alignment.CenterStart) {
                     if (query.isEmpty()) Text("Search models, collections, voices", style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, modifier = Modifier.clearAndSetSemantics {})
                     BasicTextField(query, onQuery, Modifier.fillMaxWidth().semantics { contentDescription = "Search Discover" },
                         singleLine = true, textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search))
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        // Results follow each letter, so Search only puts the keyboard away.
+                        keyboardActions = KeyboardActions(onSearch = { keyboard?.hide() }))
                 }
                 if (query.isNotEmpty()) IconButton(onClick = { onQuery("") }, Modifier.size(40.dp)) {
                     Icon(FieldAtlasIcons.Close, "Clear search", Modifier.size(16.dp))
@@ -95,6 +101,7 @@ internal fun DiscoverSearchBar(query: String, onQuery: (String) -> Unit, type: D
             DiscoverType.entries.forEach { kind ->
                 val selected = kind == type
                 Surface(
+                    selected = selected,
                     onClick = { onType(kind) },
                     shape = RoundedCornerShape(999.dp),
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
