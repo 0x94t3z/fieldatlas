@@ -1,0 +1,28 @@
+Journal club prep - rapamycin & ageing (my notes, Wed session)
+
+Background
+- Rapamycin (sirolimus) is a macrolide first isolated in the early 1970s from Streptomyces hygroscopicus, found in a soil sample collected on Easter Island (Rapa Nui) - hence the name.
+- Originally developed as an antifungal, then approved as an immunosuppressant for kidney transplant patients (1999 in the US).
+- Its target is mTOR, which stands for "mitochondrial target of rapamycin". mTOR is a serine/threonine kinase that sits in two complexes, mTORC1 and mTORC2.
+- Rapamycin binds FKBP12 and the complex then activates mTORC1, which switches on autophagy. (Check this - I think I got the direction from the lecture slides.)
+- Chronic dosing also hits mTORC2 eventually, which is blamed for glucose intolerance / insulin resistance side effects.
+
+Key paper: Harrison et al. 2009, Nature
+- NIA Interventions Testing Program (ITP), three sites (Jackson Lab, Michigan, UT Health San Antonio), genetically heterogeneous UM-HET3 mice.
+- Encapsulated rapamycin in the food started at 600 days of age (roughly 60 human years).
+- Still extended lifespan: about 9% in males and 14% in females (mean lifespan, compared with controls). Max lifespan also up.
+- First drug shown to extend lifespan in both sexes when started late in life.
+
+Later work
+- Dose-dependent effect in later ITP studies; females respond more at the same dose.
+- Transient / intermittent dosing in middle-aged mice (Bitto et al. 2016, 3 months of treatment) still gave a lifespan benefit.
+- Mannick et al. 2014: an mTOR inhibitor (everolimus, RAD001) improved influenza vaccine response in older adults.
+- Dog Aging Project's TRIAD trial is testing low-dose rapamycin in companion dogs.
+- PEARL trial (humans, low-dose intermittent rapamycin, 48 weeks) - modest results, mostly safety data.
+
+Discussion questions for the group
+1. Is the effect just from reduced cancer incidence in the mice (cancer is the main cause of death in these strains)?
+2. Can intermittent dosing avoid the mTORC2 metabolic effects?
+3. Why the sex difference? Blood levels differ between males and females at the same food concentration.
+
+Things I need to double check before Wednesday: what mTOR stands for, and whether rapamycin activates or inhibits mTORC1.

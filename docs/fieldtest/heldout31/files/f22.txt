@@ -1,0 +1,37 @@
+Training plan from the sports science lab (I'm 58, trying to get back into running after 12 years off)
+
+Assessment done 12 October at the university lab, treadmill ramp test to exhaustion with gas analysis and finger-prick lactates.
+
+Results they gave me
+- VO2max 31.4 mL/kg/min. They said that is "fair" for my age and sex, roughly 45th percentile.
+- Max HR measured 171 bpm. (Note: the 220-minus-age formula says 162, so the formula was wrong for me by 9 beats. They said that is normal, the formula has a standard deviation of about 10-12 beats.)
+- Ventilatory threshold (VT1) at 128 bpm, respiratory compensation point (VT2 / second threshold) at 152 bpm.
+- Lactate at VT2 was 3.9 mmol/L. Resting lactate 1.1.
+- Running economy 215 mL/kg/km.
+- Body comp: 24.1% fat, estimated fat-free mass 61 kg.
+- Blood pressure response normal, no ECG abnormalities, cleared for vigorous exercise.
+
+Zones they prescribed (5-zone, based on the thresholds not on max HR)
+Z1 recovery      < 118
+Z2 easy          118-128
+Z3 tempo         129-144
+Z4 threshold     145-152
+Z5 VO2max work   153+
+
+Weekly plan, weeks 1-6
+Mon rest or 30 min walk
+Tue 40 min Z2 with 6 x 20 s hill strides at the end
+Wed strength: squat, hinge, single-leg, calf raises, 2 sets each, progressive
+Thu 45 min Z2
+Fri rest
+Sat long run, start 50 min Z2 and add 5-8 min a week up to 90 min
+Sun 30 min easy bike or swim
+Rule they emphasised: about 80% of weekly minutes in Z1-Z2, 20% hard. Do not let the easy runs drift into Z3.
+
+Re-test in 12 weeks. They predicted VO2max up 10-15% and said that at my age the bigger win is pushing VT2 up rather than chasing max.
+
+Things nobody explained properly
+- What VO2max actually measures and why mL/kg/min.
+- What a "threshold" is and why there are two of them.
+- Why running economy matters if VO2max is the headline number.
+- They mentioned "VO2max declines about 10% per decade after 30 but stays higher in trained people" - is that right, and does training change the slope or just the starting point?

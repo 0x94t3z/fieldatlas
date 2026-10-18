@@ -1,0 +1,46 @@
+DEXA BONE DENSITY REPORT - copied out of the hospital letter so I have it on my phone
+
+Patient: Jennifer Okonkwo, 64 years
+Scan date: 25 September 2026
+Site: Queen's Park Hospital, Radiology, Hologic Horizon scanner
+Referred by: Dr A. Bannerjee (rheumatology) - history of wrist fracture after a low fall, March 2026; mother had a hip fracture at 72
+
+RESULTS
+
+Lumbar spine L1-L4
+BMD 0.821 g/cm2
+T-score -2.4
+Z-score -1.1
+
+Left femoral neck
+BMD 0.598 g/cm2
+T-score -2.7
+Z-score -1.4
+
+Total left hip
+BMD 0.682 g/cm2
+T-score -2.2
+
+Right femoral neck
+T-score -2.6
+
+Lowest T-score used for classification: -2.7 (left femoral neck)
+
+Comparison with previous scan (June 2022, same scanner)
+Lumbar spine BMD 0.864 (change -5.0%)
+Left femoral neck BMD 0.631 (change -5.2%)
+Least significant change for this scanner quoted as 0.03 g/cm2, so both changes are considered real.
+
+FRAX (UK, with BMD)
+10-year probability of major osteoporotic fracture: 21%
+10-year probability of hip fracture: 4.8%
+
+Reporting clinician comment
+"Densitometric osteoporosis at the left femoral neck with a prior fragility fracture. FRAX above the NOGG intervention threshold for her age. Recommend oral alendronate 70 mg weekly, with calcium and vitamin D if dietary intake is inadequate, and a review in 3 years or sooner if a further fracture occurs. Check vitamin D and calcium, correct deficiency before starting. Dental review advised before treatment. Falls prevention referral made."
+
+My notes after the appointment
+- Vitamin D came back 38 nmol/L, so they started me on colecalciferol 800 units first for 4 weeks before the alendronate.
+- Was told to take the tablet sitting upright with a full glass of water, 30 minutes before food, and to stay upright.
+- Next appointment: 6 January 2027, 11:15, rheumatology clinic B.
+- Dentist booked 2 November.
+- Questions I forgot to ask: what the difference between the T-score and the Z-score is, and why the hip number is the one that counts.

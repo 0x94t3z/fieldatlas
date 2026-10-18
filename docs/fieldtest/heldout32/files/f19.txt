@@ -1,0 +1,51 @@
+# greenhouse-node
+
+Battery-powered temperature / humidity / soil-moisture node for the allotment greenhouse. Sends readings over WiFi to the Home Assistant box in the shed via MQTT.
+
+## Hardware
+
+- Board: FireBeetle ESP32-E (chosen for its low deep-sleep current; the regulator on the old DevKit drew ~8 mA even in sleep)
+- Sensors: SHT31 (temp + humidity, I2C, addr 0x44) and a capacitive soil moisture probe v2.0 on GPIO 34 (ADC1)
+- Power: 2x AA lithium (Energizer Ultimate, 3000 mAh each) in series -> 3.0-3.6 V straight into the 3V3 pin, no regulator
+- Soil probe is powered from GPIO 25 so it is only on while measuring (it draws 5 mA continuously otherwise)
+
+## How it works
+
+1. Wake from deep sleep (RTC timer).
+2. Power the soil probe, wait 300 ms, read ADC (average of 10 samples), read SHT31.
+3. Connect to WiFi (static IP 192.168.4.37 to skip DHCP - saves ~1 s), publish JSON to `greenhouse/node1/state`, disconnect.
+4. Deep sleep until the next interval.
+
+The interval is set by `SLEEP_MINUTES` in `config.h` (default 15).
+
+## Power budget (measured with the Nordic PPK2, 12 Sept 2026)
+
+| State | Current | Time |
+|-------|---------|------|
+| Awake (sensors + WiFi + MQTT publish) | 120 mA average | 4 s per wake |
+| Deep sleep | 25 uA (0.025 mA) | rest of the time |
+
+Usable capacity: assume 80% of 3000 mAh = 2400 mAh (cold greenhouse in winter, and the voltage cut-off at about 2.9 V).
+Note: two AA cells in series give 3000 mAh at ~3 V, not 6000 mAh - capacity only adds in parallel.
+
+Worked example at the default 15-minute interval:
+- 96 wakes per day x 4 s = 384 s = 0.107 h awake
+- Awake: 0.107 h x 120 mA = 12.8 mAh/day
+- Sleep: about 24 h x 0.025 mA = 0.6 mAh/day
+- Total: about 13.4 mAh/day -> 2400 / 13.4 = about 179 days (roughly 6 months)
+
+If WiFi takes longer to connect (weak signal at the far end of the greenhouse), awake time can go up to 7-8 s and battery life drops accordingly. Keep the node within ~15 m of the shed access point.
+
+## Calibration
+
+Soil probe raw ADC values (12-bit): dry air ~3150, glass of water ~1350. `config.h` maps these to 0-100%. Recalibrate if you change the probe or cable length.
+
+## Known issues
+
+- SHT31 reads ~0.8 C high if the node is in direct sun; the 3D-printed radiation shield (stl/shield_v3.stl) fixes this.
+- After a brown-out the RTC memory is lost and the boot counter resets - harmless.
+- MQTT broker must allow retained messages, otherwise Home Assistant shows "unknown" until the next wake.
+
+## Licence
+
+MIT. Do what you like, no warranty.

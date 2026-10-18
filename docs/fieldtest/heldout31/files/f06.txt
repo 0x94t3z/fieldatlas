@@ -1,0 +1,27 @@
+Rollup infra team - retro on DA costs (internal, draft)
+Author: P. Lindqvist   Reviewed: J. Osei
+
+Summary
+Since we migrated our batch poster from calldata to blobs after Dencun, our L1 data-availability cost per transaction has dropped by roughly 90-95% on most days. This note records what changed, what went wrong, and what we expect after Fusaka.
+
+Timeline
+- Mar 2024: Dencun live on mainnet (EIP-4844 "proto-danksharding"). We shipped blob posting two weeks later.
+- May 2025: Pectra. EIP-7691 raised blob target/max from 3/6 to 6/9 per block. Blob base fee stayed near the 1 wei floor for most of the summer.
+- Fusaka: PeerDAS (EIP-7594) plus blob-parameter-only (BPO) forks to raise limits step by step. Need to re-tune our posting strategy.
+
+How we post
+- Each blob = 4096 field elements x 32 bytes = 128 KiB. We compress batches with brotli and pack ~5-6 blobs per type-3 tx when the queue is full.
+- Each blob is committed with a KZG commitment; the tx only carries the versioned hash (0x01 + sha256(commitment)[1:]). The point-evaluation precompile (0x0A) lets contracts verify an opening against the commitment.
+- Blobs are kept by consensus clients for 4096 epochs (~18 days), then pruned. Our fault-proof window is 7 days, so we're fine, but the archiver must store raw blobs ourselves (we use a blob archiver pointing at S3).
+- Blob gas is a separate EIP-1559-style market from execution gas. When usage stays above target, blob base fee rises ~12.5% per block.
+
+Incidents
+1. Nov 2024 blobscription spam - blob base fee spiked; our poster kept submitting at the old fee cap and got stuck for 40 min. Fix: dynamic fee cap + fallback to calldata above threshold.
+2. Archiver gap after a beacon node resync - 3 hours of blobs missing from S3; recovered from a public blob explorer. Added alert on missing slots.
+
+Open questions
+- With PeerDAS, nodes only sample columns instead of downloading full blobs. Does this change anything for our archiver?
+- Should we post less frequently and fill blobs completely, or keep 2-minute cadence for faster L2 finality?
+- Do we still need the calldata fallback at all?
+
+Glossary to add for new hires (TODO someone): blob, KZG, versioned hash, DAS, BPO.

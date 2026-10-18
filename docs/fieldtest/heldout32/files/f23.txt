@@ -1,0 +1,40 @@
+solo staking - my notes (keep OFFLINE, no seed words in here obvs)
+last edit 16 Oct 2026
+
+STATUS
+- deposited 32 ETH via the official Launchpad on Sat 3 Oct 2026, tx confirmed block ~23.5M
+- validator index 2,104,887 - went active Tue 13 Oct (queue was ~9 days)
+- first attestations fine, effectiveness 99%+ so far. first proposal: none yet (expect roughly every few months w/ 1 validator)
+
+HARDWARE (total GBP 1,114)
+- ASUS NUC 14 Pro, i5, barebones - GBP 489
+- 64 GB DDR5 SO-DIMM - GBP 155
+- 4 TB NVMe, WD Black SN850X (TLC + DRAM, dont cheap out w/ QLC) - GBP 245
+- APC 700VA UPS - GBP 129
+- 2nd 2TB SSD for backups/era files - GBP 96
+- power draw ~18 W idle -> ~GBP 4/month electricity
+
+SOFTWARE
+- EL: Nethermind (picked over Geth for client diversity - Geth still way over 33% of nodes, a bug there could hurt everyone on it)
+- CL: Lighthouse v7 + Lighthouse validator client (Rust, low RAM, good docs; avoided Prysm for the same diversity reason)
+- MEV-boost w/ relays: Flashbots, Ultra Sound, Aestus, Titan. min-bid 0.05 ETH (below that build locally)
+- checkpoint sync from a public endpoint, compared state root w/ 2nd endpoint before trusting it
+- doppelganger protection ON (--enable-doppelganger-protection), costs ~2-3 epochs of missed attestations on restart but worth it
+- Ubuntu 24.04 LTS, unattended-upgrades for security only, NOT auto client updates - update clients manually after reading release notes
+- ports 30303 (EL) and 9000 (CL) forwarded on router, TCP+UDP
+
+KEYS / WITHDRAWALS
+- withdrawal credentials 0x01 -> my Ledger address (ends ...7c3E). rewards above 32 auto-swept roughly every ~9-10 days at current validator count
+- think about converting to 0x02 (compounding) after Pectra changes -> rewards compound up to 2048 ETH effective balance instead of being swept. downside: no auto partial withdrawals below the cap, have to request them. decision: stay 0x01 for now, revisit Jan
+- fee recipient = same Ledger address
+- keystore pw in password manager, mnemonic on steel plate in the safe + 2nd copy at mum's
+- NEVER run the same keys on two machines at once = slashing. if migrating: stop old, wait 2+ epochs, delete keys from old box, check slashing protection db exported/imported
+
+MONITORING
+- beaconcha.in mobile app alerts for missed attestations
+- Grafana dashboards from the Lighthouse metrics repo
+- Uptime Kuma pings, Telegram bot if node offline > 10 min
+
+TODO
+- test UPS shutdown script (nut) - not done
+- write "if I'm hit by a bus" doc for Sam w/ exit instructions

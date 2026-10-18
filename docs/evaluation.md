@@ -86,6 +86,50 @@ each on its own, they went from 1.90 to 3.93 of 10 on average: 18 better, 5 wors
 gained most; questions reaching the model with no passage went from 3 to 0. On the untailored set
 26 the same change moved little, as the table above shows.
 
+## Questions about your own files (October 18)
+
+Field Atlas answers questions about a file the person attaches (a note, a letter, a results sheet,
+a contract). To measure that, AI models that read no repository file wrote two sealed sets of 24
+text files, each with one question: set 31 ([questions and files](fieldtest/heldout31/), SHA-256
+`09288c123cdf80a4399e65a32b2e79ac4322b7043e86e6da470b57a32830d73e`) and set 32
+([questions and files](fieldtest/heldout32/), SHA-256
+`1bc21b4fc994cd493126b5e98fe5c2a0719c6a362b50f882107066802b4def34`). They ask for facts in the
+file, sums and deadlines worked from it, summaries, and explanations of terms it uses. Qwen3.5 2B
+answered them on the desktop pipeline at the Redmi 13C's reading speed; graders saw each answer on
+its own beside the file and a web-and-AI reference answer, without knowing which was which, in two
+rounds.
+
+**What was wrong.** Set 31 showed that 13 of 24 answers said the excerpts were not enough. A slow
+phone's evidence budget, sized for a quick first word, let in about a third of a one-page file, so
+the line asked about was often left out; and the model's review of each draft rejected most
+correct ones ("your T-score is -2.7 [S1]"), with no other route for a file question. Two changes:
+a question with files now reads at least 900 tokens of them, and an answer from the files alone
+skips the model's review (its citation, scope and dose checks still apply). The review took about
+as long as the extra reading.
+
+| Share of the reference answers | Before | After | Answers better / worse |
+| --- | ---: | ---: | --- |
+| Set 31 (used to find the problem) | 11.6% | 31.9% | 15 / 2 (p = 0.002) |
+| Set 32 (fresh, sealed before the change was tested) | 32.1% | 41.4% | 15 / 5 (p = 0.04) |
+
+Answers that said the excerpts were not enough went from 13 to 3 on set 31 and from 7 to 1 on set
+32. Summaries gained most on set 32 (1.6 to 5.4 of 10); sums and deadlines worked from a file
+stayed weak (0.5 of 10 either way).
+
+**The cost.** More answers means more wrong details: on set 32 the graders found 1.15 errors per
+answer given, against 0.65 before. On the 14 questions about health care (a discharge letter, a
+drug sheet, blood results), answers went from 11% to 35% of the reference, but they included a
+methotrexate answer that missed that the drug is taken weekly and called a MoCA of 23/30 "not
+bad". Keeping the review for health files was tried and scored 17%, with errors of its own, so it
+was not kept. The answer cites the file it read; check it there.
+
+**Collections as well as the file.** An "Also use my collections" switch under attached files
+searches the collections too. On set 31 it lowered answers from 11.0% to 2.7% of the reference (8
+worse, none better): unrelated passages crowded out the file. It is off unless turned on.
+
+Every question, answer and grade: [set 31](fieldtest/results-1.4.2/heldout31-files.jsonl),
+[set 32](fieldtest/results-1.4.2/heldout32-files.jsonl).
+
 ## Biology & longevity on 40 longevity questions (October 18)
 
 Field Atlas is a research tool, and ageing and longevity are among the topics it is most likely to

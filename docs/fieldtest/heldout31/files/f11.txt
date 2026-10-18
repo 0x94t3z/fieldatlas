@@ -1,0 +1,15 @@
+Excerpt from a review article draft (section 3) - shared by my supervisor for comments
+
+3. Targeting senescent cells: from mice to early clinical trials
+
+Senescent cells accumulate in many tissues with age and at sites of age-related pathology, including osteoarthritic joints, atherosclerotic plaques, fibrotic lung and adipose tissue. Although they comprise a small fraction of total cells, they exert disproportionate effects through the SASP, which includes IL-6, IL-8, MCP-1, PAI-1 and matrix metalloproteinases. Senescent cells are commonly identified by elevated p16INK4a and p21CIP1 expression, SA-beta-gal activity and loss of lamin B1, although no single marker is specific.
+
+Proof of principle came from the INK-ATTAC transgenic mouse, in which p16INK4a-positive cells can be eliminated on demand by administering AP20187. Clearance from mid-life delayed several age-related phenotypes and extended median lifespan in both progeroid (BubR1 hypomorphic) and naturally aged mice (Baker et al., 2011; 2016).
+
+Pharmacological senolytics were subsequently identified using a hypothesis-driven approach: senescent cells resist apoptosis by upregulating senescent cell anti-apoptotic pathways (SCAPs). Dasatinib, a tyrosine kinase inhibitor approved for chronic myeloid leukaemia, and quercetin, a plant flavonol, were found to clear different senescent cell types, with the combination (D+Q) being more effective than either alone (Zhu et al., 2015). Navitoclax (ABT-263), an inhibitor of BCL-2 family proteins, is potent but causes thrombocytopenia. Fisetin has shown senolytic activity in mice and is being tested in several trials.
+
+Senolytics are typically given intermittently ("hit-and-run"), since senescent cells take weeks to re-accumulate. In a first-in-human open-label pilot in idiopathic pulmonary fibrosis (n=14), three weeks of intermittent D+Q improved 6-minute walk distance, although pulmonary function was unchanged. A small trial in diabetic kidney disease reported reduced senescent cell burden in adipose tissue. A Phase 2 trial of UBX0101 for knee osteoarthritis failed to meet its primary endpoint.
+
+Open questions include biomarkers of senescent cell burden in humans, off-target effects, and whether clearing senescent cells could impair wound healing, in which transient senescence plays a beneficial role.
+
+[Comment from supervisor: "Rewrite para 1 for a general audience - assume reader doesn't know SASP or why D+Q would work. 150 words max."]

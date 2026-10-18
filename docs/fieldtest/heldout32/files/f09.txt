@@ -1,0 +1,40 @@
+Tillworth Ltd - "Pantry" app team - weekly sync
+Minutes, Wednesday 14 October 2026, 10:00-10:50, Room 2B + Teams
+
+Present: Nadia Haddad (Product Lead, chair), Ollie Brennan (Engineering Manager), Sun-hee Park (Design), Marcus Adeyemi (QA), Bea Lindqvist (Marketing), Tom Rees (Finance, items 3 only)
+Apologies: Kwame Asante (Customer Support)
+Minutes: Sun-hee
+
+1. Actions from last week
+- Ollie to confirm payment provider certification date: DONE - see item 2.
+- Bea to brief the app store screenshot agency: DONE, drafts due 21 Oct.
+- Marcus to finish Android regression suite: still in progress (about 70%). Carried over.
+
+2. Launch date
+Stripe Connect certification for the new marketplace payments will not be complete until 6 November, so the planned 3 November launch is not possible. Ollie proposed 17 November, which leaves a week for a final regression pass after certification.
+DECISION: public launch moves from 3 November to Tuesday 17 November 2026. Nadia to tell the leadership team today.
+The beta group (around 400 users) stays on the current build; no new beta release until 9 November.
+
+3. Budget
+Tom confirmed that GBP 12,000 is available from the Q4 contingency for a contract iOS developer for 6 weeks to clear the accessibility backlog (VoiceOver labels, dynamic type).
+DECISION: approved. Ollie to sign the contractor (preferred agency: Brightbyte) by 20 October.
+The paid social campaign (GBP 8,500) will be moved to start on launch day rather than 3 November; Bea to rebook.
+
+4. Design
+Sun-hee showed the new onboarding flow (3 screens instead of 5). General support. Concern from Marcus that the "skip" button is too easy to tap by accident.
+DECISION: keep 3 screens; move "skip" to the top right and test with 5 users before 28 October.
+
+5. Risks
+- The French translation is incomplete (about 60%). If not complete by 10 November, launch in English and Spanish only and add French in the first update.
+- Only one person (Marcus) can run the release checklist. Ollie to pair a second engineer with him.
+
+Action items
+- Nadia: inform leadership of new launch date - 14 Oct
+- Ollie: sign contract iOS developer via Brightbyte - 20 Oct
+- Ollie: pair second engineer with Marcus on release checklist - 23 Oct
+- Bea: rebook paid social campaign to start 17 Nov - 21 Oct
+- Sun-hee: usability test of onboarding with 5 users - 28 Oct
+- Marcus: complete Android regression suite - 30 Oct
+- Kwame (in absence): prepare support FAQ for launch - 10 Nov
+
+Next meeting: Wednesday 21 October 2026, 10:00.

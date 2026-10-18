@@ -1,0 +1,33 @@
+Blood results - copied from the patient app, 3 Sept 2026
+Practice: Holloway Road Medical Centre, requested by Dr N. Okafor (annual review)
+
+Fasting sample, taken 08:10
+
+HbA1c ............ 47 mmol/mol   (ref 20-41)   H
+Fasting glucose .. 6.6 mmol/L    (ref 3.0-6.0) H
+Total cholesterol  6.1 mmol/L
+LDL-C (calc) ..... 3.9 mmol/L
+HDL-C ............ 1.1 mmol/L
+Non-HDL .......... 5.0 mmol/L
+Triglycerides .... 2.2 mmol/L    H
+Creatinine ....... 98 umol/L     (ref 60-110)
+eGFR (CKD-EPI) ... 68 mL/min/1.73m2
+Urine ACR ........ 2.1 mg/mmol   (ref <3)
+ALT .............. 41 U/L        (ref <40)   H
+TSH .............. 2.1 mU/L
+Ferritin ......... 35 ug/L
+Vitamin D (25-OH)  42 nmol/L     (insufficient 25-50)
+BP at nurse check  138/86
+
+Clinician comment (Dr Okafor):
+"HbA1c in non-diabetic hyperglycaemia range. Refer to NDPP (healthier you programme). Repeat HbA1c in 3/12. QRISK3 calculated at 12.4% - discussed statin, pt wants to try lifestyle first, review at next appt. Kidney function stable vs last year (eGFR 71). ALT marginally raised, likely fatty liver, ?USS abdo if persists. Vit D - OTC 1000 IU daily advised."
+
+My own notes:
+- Last year HbA1c was 44. So it's going up.
+- Dad had type 2 diabetes from about 55 and a heart attack at 63. I'm 51.
+- Weight 92 kg, height 1.78 m. Waist 104 cm (nurse measured).
+- Walking about 4k steps a day, desk job. Two pints most Fridays and Saturdays.
+- Not sure what "non-diabetic hyperglycaemia" means - is that diabetes or not??
+- The eGFR went from 71 to 68, should I worry about my kidneys?
+- Need to ask: what does QRISK3 actually measure, and is 12.4% high?
+- Book follow-up for early December. Ask about the NDPP referral letter, haven't heard anything yet.

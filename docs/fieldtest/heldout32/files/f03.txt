@@ -1,0 +1,32 @@
+NORTHGATE MEDICAL PRACTICE - BLOOD TEST RESULTS
+
+Patient: Mr Tomasz WIERZBICKI    DOB: 02/07/1961 (65 y)
+Sample taken: 06/10/2026 08:45 (fasting)
+Requested by: Dr L. Ahmed - annual chronic disease review (hypertension)
+
+Test                    Result   Units          Reference range   Flag
+Sodium                  139      mmol/L         133 - 146
+Potassium               4.6      mmol/L         3.5 - 5.3
+Creatinine              112      umol/L         59 - 104          H
+eGFR                    58       mL/min/1.73m2  > 90              L
+Urine ACR               2.1      mg/mmol        < 3.0
+HbA1c                   44       mmol/mol       20 - 41           H
+Total cholesterol       5.9      mmol/L
+HDL cholesterol         1.1      mmol/L
+LDL cholesterol         3.9      mmol/L
+Non-HDL cholesterol     4.8      mmol/L
+Triglycerides           1.9      mmol/L
+ALT                     28       U/L            0 - 41
+TSH                     2.3      mU/L           0.27 - 4.2
+Haemoglobin             141      g/L            130 - 170
+
+Clinician comments (Dr L. Ahmed, 09/10/2026)
+eGFR 58, previously 66 (September 2025). Urine ACR normal. Repeat U&E and eGFR in 3 months; avoid ibuprofen and naproxen in the meantime and keep well hydrated before the repeat test. Avoid a large meat meal or heavy exercise in the 24 hours before.
+
+HbA1c 44 - in the non-diabetic hyperglycaemia range (42-47). Refer to the NHS Diabetes Prevention Programme; repeat HbA1c in 12 months.
+
+QRISK3 13.8%. Discuss atorvastatin 20 mg at review appointment.
+
+Clinic blood pressure 138/84 on amlodipine 10 mg - at target, continue.
+
+Action for patient: please book a routine telephone appointment with Dr Ahmed within 4 weeks to discuss these results. No urgent action needed.

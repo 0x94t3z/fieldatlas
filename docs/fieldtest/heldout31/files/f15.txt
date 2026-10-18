@@ -1,0 +1,26 @@
+Observing log - Dob 8" f/6 (Alun's notebook)
+
+Site: field behind the reservoir, Bortle 4. Eyepieces: 25 mm (48x), 10 mm (120x), 6 mm (200x), plus 2x barlow I never use.
+
+--- Sat 3 Oct 2026, 21:10 - 00:40 ---
+Transparency 4/5, seeing 2/5 (wobbly), no moon until 01:00. Dew heavy by midnight.
+- Saturn, 120x. Rings wide open-ish, Cassini division only glimpsed in brief steady moments. Titan clear to the east. Three more moons suspected.
+- M13 in Hercules, 48x then 120x. Resolved to the core at 120x, propeller feature not seen tonight.
+- M57 Ring Nebula. Obvious smoke ring at 120x. Central star not seen (never have).
+- Albireo - gold and blue, best double in the sky, no argument.
+- NGC 7331 faint smudge, Stephan's Quintet attempted and failed. Too low in transparency.
+Collimation drifted after transport again. Need to redo the primary with the laser before every session.
+
+--- Fri 9 Oct 2026, 20:30 - 23:15 ---
+Seeing 4/5, best night of the year so far. Transparency only 3/5, high haze.
+- Jupiter at 200x. GRS on the meridian at 21:40, salmon coloured, clearly in a notch in the South Equatorial Belt. Festoons across the Equatorial Zone. Io emerged from behind the limb around 22:05.
+- Double-double in Lyra split cleanly at 200x, all four.
+- M31 at 48x with the 2" wide field - dust lane hinted, M32 easy, M110 needed averted vision.
+- Tried the Veil Nebula with the UHC filter, got the eastern arc NGC 6992 as a long grey streak.
+- Logged limiting magnitude at zenith as about 6.1 naked eye using the Little Dipper method.
+
+--- Sun 18 Oct 2026, 19:40 ---
+Clouded out after 20 minutes. Only the Moon, terminator through Clavius and Tycho. Rays from Tycho obvious. Packed up.
+
+Targets still owed: Orion Nebula with the OIII filter once it is up before midnight (late Nov), Uranus, M1, and the Horsehead which I suspect is hopeless from here.
+Kit wanted: dew heater band, telrad, a proper observing chair.

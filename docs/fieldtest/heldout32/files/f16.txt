@@ -1,0 +1,29 @@
+Code review - PR #482 "Add order history endpoint" (orders-service)
+Author: @dmitri.v    Reviewer: @abena.k    Status: CHANGES REQUESTED    15 Oct 2026
+
+Summary
+Nice work overall, the endpoint shape matches the API spec and the serializer is clean. A few things need fixing before merge, mostly around performance and safety. Blocking items are marked [BLOCKING].
+
+1. [BLOCKING] orders/views.py, OrderHistoryView.get_queryset (line 41-58)
+We fetch the customer's orders and then, inside the serializer, each order calls `order.items.all()` and each item calls `item.product.name`. On my test account with 120 orders that produced 1 + 120 + 1,450 queries for a single request (Django debug toolbar screenshot attached). This is the classic N+1 problem. Please use `prefetch_related("items__product")` on the queryset. With that change I got it down to 3 queries locally.
+
+2. [BLOCKING] orders/views.py line 63
+The `sort` query param is interpolated straight into `.extra(order_by=...)`. That is a SQL injection risk. Please whitelist allowed values (`created_at`, `-created_at`, `total`, `-total`) and reject anything else with a 400.
+
+3. [BLOCKING] No pagination
+The endpoint returns every order the customer has ever made. Our biggest B2B customer has 38,000 orders. Use the existing `CursorPagination` class from `common/pagination.py`, page size 50.
+
+4. orders/serializers.py line 22
+`total` is computed in Python by summing line items. The `orders` table already has `total_pence` (integer). Use that - it is the figure finance reconciles against, and summing floats can give rounding differences.
+
+5. Tests
+- Missing test for a customer with zero orders (should return an empty list with 200, not 404).
+- Missing test for another customer's order IDs not being visible (authorisation).
+- Please add an assertNumQueries test so the N+1 doesn't come back.
+
+6. Nits (non-blocking)
+- `get_queryset` docstring says "returns last 30 days" but there's no date filter. Either add the filter or fix the docstring - product said all history is fine.
+- Rename `ord` variable, it shadows the builtin.
+- Feature flag name `ORDER_HIST_V1` - our convention is `orders.history_endpoint`.
+
+Once 1-3 are fixed and tests added I'm happy to approve. Target is to merge before the code freeze on Thursday 22 October so it goes out in release 4.18.

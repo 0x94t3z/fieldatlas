@@ -1,0 +1,42 @@
+POSTMORTEM: Checkout failures caused by expired internal TLS certificate
+Incident ID: INC-2026-1009-01    Severity: SEV-1
+Date of incident: Friday 9 October 2026
+Author: Priyanka Desai (SRE)    Status: Final, reviewed 14 Oct 2026
+Blameless format.
+
+Summary
+Between 14:12 and 15:47 UTC (95 minutes), around 38% of checkout requests on web and mobile failed with HTTP 502 errors. The cause was an expired TLS certificate on the internal API gateway (gw-internal) that sits between the checkout service and the payments service. Automatic renewal had silently been failing for 21 days.
+
+Impact
+- About 11,400 failed checkout attempts; estimated lost revenue GBP 41,000 (Finance estimate, assuming 60% of customers did not retry).
+- Customer support received 640 contacts.
+- No data was lost or exposed. No payments were double-charged.
+- Only about 38% of requests failed because the expired certificate was used only by the gateway pods in the eu-west-2a zone, which carry roughly that share of traffic. The other two zones use a separately issued certificate valid until January 2027.
+
+Timeline (UTC)
+- 18 Sep: DNS provider API credentials rotated as part of quarterly security rotation. The secret used by cert-manager for DNS-01 challenges was not updated.
+- 18 Sep - 9 Oct: cert-manager renewal attempts fail daily. Errors logged but no alert configured.
+- 9 Oct 14:12: certificate expires; gateway pods in eu-west-2a start rejecting connections.
+- 14:19: checkout error-rate alert fires; on-call (Luis) paged.
+- 14:41: payments team ruled out; investigation moves to gateway.
+- 15:22: root cause identified via TLS handshake errors in gateway logs.
+- 15:31: secret updated, certificate reissued manually.
+- 15:47: all pods restarted; error rate back to normal.
+
+Root cause
+The DNS provider credentials were rotated without updating the Kubernetes secret that cert-manager uses. Renewal therefore failed for 21 days. We had no alert on certificate expiry or on cert-manager failures.
+
+What went well
+- Alert fired within 7 minutes.
+- Rollback was not needed; the fix was a configuration change.
+
+What went poorly
+- 63 minutes from page to root cause; the gateway was not in the checkout runbook.
+- The rotation checklist did not list cert-manager as a consumer of the DNS credentials.
+
+Action items
+1. Alert when any certificate is within 14 days of expiry - owner Luis, due 23 Oct. (P1)
+2. Alert on cert-manager "Ready=False" for more than 1 hour - owner Luis, due 23 Oct. (P1)
+3. Add cert-manager and all DNS credential consumers to the rotation checklist - owner Ana (Security), due 30 Oct. (P1)
+4. Add gw-internal to checkout runbook with TLS troubleshooting steps - owner Priyanka, due 6 Nov. (P2)
+5. Investigate moving internal certificates to the service mesh's automatic mTLS - owner Platform team, spike by end of Q4. (P3)

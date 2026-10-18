@@ -1,0 +1,43 @@
+GRC-14: Treasury rebalancing, Rocket Pool staking and Safe signer rotation
+
+Author: tanuki.eth (Treasury Working Group)
+Status: Snapshot vote, 20 October 2026 12:00 UTC to 27 October 2026 12:00 UTC
+Discussion: forum thread #318, open since 8 October 2026
+
+Summary
+The Greenroot Collective treasury Safe (Ethereum mainnet, currently 3-of-5) holds 412 ETH, 610,000 USDC and 18,000,000 GRT. Monthly operating spend is about 85,000 USDC, so our stablecoin runway is only about 7.2 months, while ETH makes up most of the treasury's value. This proposal does four things.
+
+1. Diversify: swap 100 ETH to USDC
+Use a CoW Swap TWAP order split into 20 parts over 5 days, with a maximum slippage of 0.5% per part. At an assumed ETH price of USD 3,000 this would add about 300,000 USDC. If the ETH price falls below USD 2,400 during the TWAP, the remaining parts are cancelled.
+
+2. Stake 150 ETH through Rocket Pool
+Deposit 150 ETH into Rocket Pool and hold the resulting rETH in the Safe. rETH earns staking rewards through a rising exchange rate, and the Safe keeps it liquid. The remaining 162 ETH stays unstaked as a buffer. We chose Rocket Pool over a larger liquid staking provider to support validator decentralisation.
+
+3. Q1 2027 grants round: 120,000 USDC
+Ring-fence 120,000 USDC for the Q1 2027 community grants round (maximum 15,000 USDC per grant). This budget is NOT spent by this proposal; each grant still needs approval by the Grants Committee.
+
+4. Safe signer rotation
+- Remove kestrel.eth (has not signed a transaction since March 2026).
+- Add mira.eth, oduya.eth and lin-wei.eth.
+- Change the threshold from 3-of-5 to 4-of-7.
+The other four current signers (tanuki.eth, rhubarb.eth, delacroix.eth, 0x8f3...b21) remain.
+
+Effect on runway
+After the swap and after setting aside the grants budget, stablecoin runway rises from about 7.2 months to about 9.3 months ((610,000 + 300,000 - 120,000) / 85,000).
+
+Voting
+- Snapshot, 1 GRT = 1 vote, delegated votes count.
+- Quorum: 4% of circulating GRT (2,400,000 of 60,000,000).
+- Passes with a simple majority of For over Against. Abstain counts toward quorum only.
+- Each of the four parts can be voted on separately (approval voting); parts that fail are simply not executed.
+
+Execution
+If passed, the transactions are queued in the Safe through the Zodiac Delay module with a 48-hour timelock, during which any 2 signers can veto. Signer rotation (part 4) is executed last, so that the current signers sign the treasury transactions.
+
+Risks
+- Smart contract risk in CoW Swap, Rocket Pool and the Delay module.
+- rETH can trade at a discount to the underlying ETH during market stress.
+- Selling ETH may look poor in hindsight if the price rises.
+
+Costs
+Gas for all transactions is estimated below 0.15 ETH, paid from the treasury.

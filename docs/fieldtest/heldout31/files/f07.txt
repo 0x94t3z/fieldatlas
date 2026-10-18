@@ -1,0 +1,32 @@
+Wallet UX workshop - notes from Dana (shared doc)
+
+Why smart accounts?
+- Today most users have an EOA (externally owned account): one private key, derived from a 12 or 24 word BIP-39 seed phrase. 12 words = 128 bits of entropy + checksum. Lose the phrase = lose the funds. Leak it = lose the funds.
+- ERC-4337 ("account abstraction") lets the wallet be a smart contract instead, so rules like social recovery, spending limits, session keys and passkey signing live in code.
+
+How 4337 works (my understanding)
+- The user signs a UserOperation instead of a normal transaction.
+- UserOps go into a separate alt-mempool. Bundlers collect them and submit one normal transaction calling the singleton EntryPoint contract.
+- EntryPoint calls validateUserOp on each account, then executes the call.
+- Paymasters can sponsor gas, or let users pay in USDC instead of ETH.
+- Accounts are usually deployed counterfactually: address is known before deployment (CREATE2), deployed with the first UserOp via initCode.
+- ERC-4337 needed a hard fork to go live (the "account abstraction fork" in March 2023), which is why it took so long.
+
+EIP-7702
+- Shipped in Pectra (May 2025). An EOA signs an authorization that sets a "delegation designator" so its address runs code from a chosen contract.
+- Means existing EOA users can get batching + sponsorship without moving funds to a new address.
+- BUT the original private key still has full control, so 7702 does not remove seed-phrase risk on its own.
+- Phishing risk: a malicious delegation = drained wallet. Wallets must whitelist delegate contracts.
+
+Product decisions
+1. New users: passkey-based smart account (P-256 signatures, verified via the RIP-7212 precompile on L2s that support it).
+2. Existing users: offer 7702 upgrade, keep EOA address.
+3. Recovery: 2-of-3 guardians (device, email-based guardian service, trusted contact).
+4. Gas: sponsor first 20 transactions via our paymaster.
+
+Claims to verify before we put them in the pitch deck
+- "4337 required a hard fork" (Dana)
+- "with smart accounts users never need a seed phrase"
+- "bundlers can't steal funds"
+
+Next meeting: Tuesday, bring cost estimates for paymaster per tx on Base and Arbitrum.

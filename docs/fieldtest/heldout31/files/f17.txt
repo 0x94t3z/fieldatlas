@@ -1,0 +1,21 @@
+Notes I typed while listening to the longevity podcast (ep 212, guest was some biotech founder)
+
+Main pitch: "ageing is driven by a collapse in NAD+ levels, and if you top NAD+ back up you reverse ageing."
+
+Claims he made, roughly in order:
+1. NAD+ falls by about 50% between age 40 and 60 in every tissue, and this is the single root cause of ageing.
+2. Sirtuins (SIRT1-SIRT7) need NAD+ to work. They are "the longevity genes". Resveratrol activates SIRT1 directly, which is why red wine is good for you.
+3. CD38 goes up with age and eats NAD+, so an anti-CD38 drug would be the real fix.
+4. NMN (nicotinamide mononucleotide) and NR (nicotinamide riboside) are precursors - the body converts them to NAD+ via NAMPT in the salvage pathway.
+5. He said NMN is "proven to extend human lifespan" and that trials show it reverses biological age by 12 years.
+6. NAD+ IV drips at a clinic are better than oral because oral NMN "doesn't survive the gut".
+7. Niacin (vitamin B3) is a cheaper NAD+ precursor but causes flushing, so nobody uses it. He said flushing means it is working.
+8. Sinclair's horizontal information theory of ageing: epigenetic noise, not DNA damage, is what ages us; partial reprogramming with OSK factors reversed eyesight in mice (Lu et al. 2020, optic nerve crush).
+9. He claimed the FDA "banned NMN to protect pharma" in 2022.
+
+My own notes
+- He is selling an NMN product, 1 g per day, $89/month. Obvious conflict of interest.
+- Mouse data vs human data got blurred constantly. He kept saying "we showed" about mouse studies and then switched to humans.
+- My mum is 74 and wants to buy this. Need to know which of these claims are actually supported, which are overstated, and which are just wrong before I say anything to her.
+- Also: what does "biological age" even mean here? He mentioned Horvath clocks and "DunedinPACE" without explaining either.
+- He never mentioned side effects at all, which seems off for anything taken daily for years.

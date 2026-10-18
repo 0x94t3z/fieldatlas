@@ -1,0 +1,36 @@
+QUOTATION - Air source heat pump installation
+Northgate Renewables Ltd, MCS cert no. NG-114822
+Customer: Mr & Mrs D. Owusu, 14 Fernhill Close, Chesterfield
+Quote ref: NR-2026-0913   Valid 60 days   Date: 29 September 2026
+
+Property survey summary
+Semi-detached, built 1976, 118 m2, cavity walls (filled 2011), loft insulation topped to 300 mm in 2019, uPVC double glazing. Current heating: 2008 non-condensing gas boiler, 15 radiators.
+Heat loss calculation (MCS / BS EN 12831): 7.4 kW at a design external temperature of -2.3 C and internal 21 C. Hot water demand for 4 occupants: 180 L/day.
+
+Proposed system
+- 8 kW monobloc air source heat pump, R290 refrigerant, outdoor unit to the side elevation on anti-vibration feet.
+- 210 L unvented cylinder with a 3.0 m2 coil, in the airing cupboard.
+- Weather compensation controls, flow temperature 45 C at design condition.
+- Radiator upgrades: 6 radiators to be replaced with larger K2/K3 panels to work at the lower flow temperature. Living room to have a fan-assisted convector.
+- New 22 mm primary pipework from the outdoor unit, magnetic filter, and system flush (BS 7593).
+- Volumiser 40 L to protect against short cycling during defrost.
+
+Performance
+- Quoted SCOP 3.6 (at 45 C flow, per manufacturer EN 14825 data).
+- Estimated annual electricity use for heating and hot water: 4,400 kWh.
+- Estimated noise at nearest neighbour boundary: 38 dB(A), within permitted development limits.
+
+Costs
+Supply and installation ................ 12,450.00
+Boiler Upgrade Scheme grant ............ -7,500.00
+Net payable ............................   4,950.00
+VAT at 0% on energy saving materials (zero rated to 31 March 2027)
+Deposit 20% on order, balance on commissioning. MCS certificate and 7 year workmanship warranty included. Manufacturer warranty 7 years subject to annual service.
+
+Notes / exclusions
+- Electrical supply: existing 100 A head is adequate; no DNO application needed for an 8 kW unit on this supply.
+- Making good to decoration not included.
+- Asbestos survey not required (no suspect materials identified).
+
+Customer questions written on the back of the survey sheet:
+"How can a heat pump get heat out of air that is below freezing? And is SCOP 3.6 any good? Our installer said it means we pay a third of what we pay now, is that right given electricity is about 4x the price of gas per unit?"

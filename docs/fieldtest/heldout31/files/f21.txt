@@ -1,0 +1,36 @@
+INCIDENT REVIEW - INC-4471 - Checkout unavailable 47 minutes
+Status: draft, for review at Thursday's ops meeting
+Author: M. Keane (on-call primary)   Severity: SEV-2
+
+Impact
+- 2026-10-09 14:12 to 14:59 UTC. Checkout API returned 503 for 61% of requests. 8,400 failed checkouts, estimated 94k GBP of deferred revenue, 213 support tickets.
+- Browse and search unaffected. Payments already authorised were not double-charged.
+
+Timeline (UTC)
+14:08 Routine deploy of checkout-svc v412 completes (canary 10% green for 6 min, then full rollout).
+14:12 Error rate alert fires. Pager to primary.
+14:14 Primary acknowledges. Dashboards show connection pool saturation on the Postgres primary: active connections 500/500.
+14:19 Attempted rollback to v411 via the pipeline. Rollback job queues behind a nightly migration job and does not start.
+14:26 Secondary paged. Decision to scale checkout-svc down from 40 to 12 pods to shed connections.
+14:31 Connections fall to 180/500. Error rate drops to 20% but latency p99 is 9 s.
+14:38 Root cause identified: v412 removed the per-request transaction wrapper, so a code path in the discount lookup opened a new connection per discount rule and never returned it to the pool. Leak only triggers for carts with more than one promo code, about 7% of carts.
+14:44 Rollback job cancelled and re-run with priority. v411 deploying.
+14:52 v411 at 100%. Connections stable at 60/500.
+14:59 Error rate normal. Incident closed at 15:20 after monitoring.
+
+Contributing factors
+1. Canary ran 6 minutes; the leak needs roughly 15 minutes of real traffic to exhaust the pool, so the canary could never have caught it.
+2. No alert on connection pool utilisation, only on error rate. We found out from the symptom, not the cause.
+3. Rollback shares a worker queue with batch jobs and has no priority lane.
+4. The PR that removed the transaction wrapper was approved by one reviewer with no database owner on the review.
+5. PgBouncer sits in session pooling mode, so a leaked client connection holds a server connection for its whole life.
+
+Actions
+- A1 Alert on pool utilisation above 70% for 2 min (M. Keane, 16 Oct) DONE
+- A2 Canary bake minimum 30 min for checkout-svc (R. Nwosu, 23 Oct)
+- A3 Dedicated rollback worker queue (platform, 30 Oct)
+- A4 CODEOWNERS entry requiring a db-owner review for anything touching db/ (M. Keane, 17 Oct) DONE
+- A5 Evaluate transaction pooling mode in staging (R. Nwosu, Nov)
+- A6 Load test with multi-promo carts added to the nightly suite (QA, Nov)
+
+No customer data was exposed. No postmortem blame: the reviewer and author both followed existing process, which is what we are changing.

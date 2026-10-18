@@ -1,0 +1,44 @@
+SOP-MB-014  Colony PCR for 16S rRNA gene (bacterial isolates)
+Version 3.2 - effective 1 September 2026 - Microbiology teaching lab, Room L2.17
+Approved by: Dr Ifeoma Uche (Lab Manager)
+
+Purpose
+Amplify the ~1,500 bp 16S rRNA gene directly from single bacterial colonies for Sanger sequencing.
+
+Safety
+Lab coat, gloves and safety glasses. Work with isolates at Containment Level 2 in the class II cabinet. Dispose of tips into Virkon pots.
+
+Materials
+- 2x Taq master mix (blue lid, freezer box C3, -20 C)
+- Primers 27F and 1492R, 10 uM working stocks (box C3)
+- Nuclease-free water
+- 0.2 mL PCR strip tubes, filter tips
+- Overnight colonies on LB agar (no older than 48 h)
+
+Procedure
+1. Thaw master mix and primers on ice. Vortex briefly and spin down. Keep everything on ice.
+2. Prepare a master mix in a 1.5 mL tube for (number of samples + 2) reactions. Per 25 uL reaction:
+   - 12.5 uL 2x Taq master mix
+   - 1.0 uL primer 27F (10 uM)
+   - 1.0 uL primer 1492R (10 uM)
+   - 8.5 uL nuclease-free water
+   (= 23 uL per reaction)
+3. Mix by pipetting, spin down, and aliquot 23 uL into each PCR tube.
+4. Template: touch a single colony with a sterile 10 uL tip and swirl it in 50 uL nuclease-free water in a separate tube. Heat at 95 C for 5 minutes, spin at 13,000 x g for 1 minute, and use the supernatant.
+5. Add 2 uL of template supernatant to each tube LAST, after the master mix has been aliquoted. Change tips between every sample.
+6. Controls: include one no-template control (NTC) with 2 uL nuclease-free water instead of template, and one positive control (E. coli K-12 lysate, tube labelled POS, box C3).
+7. Cap, flick, spin down and transfer to the thermocycler (program "16S-COL").
+
+Cycling conditions (program 16S-COL)
+- Initial denaturation: 95 C, 5 min
+- 30 cycles of: 95 C 30 s / 55 C 30 s / 72 C 90 s
+- Final extension: 72 C, 7 min
+- Hold: 4 C
+
+Analysis
+Run 5 uL of each product on a 1% agarose gel with SYBR Safe, 100 V for 35 min, alongside 5 uL of the 1 kb ladder. Expect a single band at about 1.5 kb. The NTC must show no band; if it does, discard the run and repeat with fresh water and primer aliquots.
+
+Notes
+- Do not use more colony than fits on the tip end - too much cell material inhibits the PCR.
+- Products can be stored at -20 C for up to 4 weeks before clean-up.
+- Record the master mix lot number in the lab book.
