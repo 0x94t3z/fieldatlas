@@ -123,6 +123,12 @@ methotrexate answer that missed that the drug is taken weekly and called a MoCA 
 bad". Keeping the review for health files was tried and scored 17%, with errors of its own, so it
 was not kept. The answer cites the file it read; check it there.
 
+**On the phone.** On the Redmi 13C with Qwen3.5 2B, in airplane mode, a one-page invoicing note
+from set 32 was attached through the app. "What is the hourly rate" was answered in 1 min 17 s
+(the rate right, with a wrong condition added) and "summarise the key points of these notes" in
+2 min 12 s from four passages of the note (useful, with two details wrong: who is not VAT-registered,
+and the hours of a site visit).
+
 **Collections as well as the file.** An "Also use my collections" switch under attached files
 searches the collections too. On set 31 it lowered answers from 11.0% to 2.7% of the reference (8
 worse, none better): unrelated passages crowded out the file. It is off unless turned on.
