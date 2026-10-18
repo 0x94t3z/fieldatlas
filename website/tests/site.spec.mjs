@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
 const release = 'https://github.com/0x94t3z/fieldatlas/releases';
-const apk = `${release}/download/v1.4.1/fieldatlas.apk`;
+const apk = `${release}/download/v1.4.2/fieldatlas.apk`;
 const token = '0xb462a5039a540883508ee37b5cf3999647557ba3';
 const home = process.env.SITE_URL || 'http://127.0.0.1:4173';
 const csp = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8'))
@@ -36,8 +36,8 @@ test('clear introduction and consistent release download path', async ({ page })
   await expect(downloads).toHaveCount(2);
   for (const link of await downloads.all()) await expect(link).toHaveAttribute('href', apk);
   await expect(page.locator('a', { hasText: 'Verify checksum' })).toHaveAttribute('href', `${apk}.sha256`);
-  await expect(page.locator('.download-links a', { hasText: 'Release notes' })).toHaveAttribute('href', `${release}/tag/v1.4.1`);
-  await expect(page.locator('#download')).toContainText('Release · v1.4.1');
+  await expect(page.locator('.download-links a', { hasText: 'Release notes' })).toHaveAttribute('href', `${release}/tag/v1.4.2`);
+  await expect(page.locator('#download')).toContainText('Release · v1.4.2');
   await expect(page.locator('#download')).toContainText('Android 13+');
 });
 

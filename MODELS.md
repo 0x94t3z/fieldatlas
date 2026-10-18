@@ -7,8 +7,8 @@ A **model pack** is the large local file that lets Field Atlas generate answers.
 | App | Model to use | Where to get instructions |
 | --- | --- | --- |
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
-| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
-| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0), on a phone with 8 GB of memory or more | Qwen3.5 4B, optional | Download in Library; see the [notes below](#qwen35-4b-in-v140) |
+| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
+| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2), on a phone with 8 GB of memory or more | Qwen3.5 4B, optional in 1.4.0, offered first in 1.4.2 setup | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. Building a `.fapack` for manual import still needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
@@ -57,12 +57,18 @@ after 1.4.0 and was never released.
   saved passages did not state every part of the answer, it often replied that the excerpts do
   not contain it, or gave one line, while Qwen3.5 2B explained.
 
-Qwen3.5 2B therefore stays the only download.
+Gemma 4 E2B is therefore not offered.
 
-## Qwen3.5 4B in v1.4.0
+## Qwen3.5 4B in v1.4.0 and v1.4.2
 
-Version 1.4.0 also offered Qwen3.5 4B on phones with 8 GB of memory. Later versions no longer
-offer it; a phone that already has it keeps it and can still choose it in Library. Its pinned
+Version 1.4.0 offered Qwen3.5 4B on phones with 8 GB of memory, and 1.4.1 did not. Version 1.4.2
+offers it again on those phones, first in setup, with Qwen3.5 2B still listed below it; on a
+phone with less memory only the 2B is offered. On 120 new questions graded blind, the 4B made
+half the factual errors of the 2B (0.30 against 0.62 per answer) and scored 38.2% of the
+web-and-AI reference against 36.9%
+([details](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)). It has not
+been timed on an 8 GB phone; on a 6 GB Redmi 13C one answer took 8.5 minutes against 2.3 for the
+2B. A phone that already has it keeps it and can choose it in Library. Its pinned
 file and pack are described in
 [`models/compact-qwen3.5-4b.example.json`](models/compact-qwen3.5-4b.example.json) and in the
 [1.4.0 model notes](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/MODELS.md#optional-larger-model).

@@ -2,32 +2,32 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.4.1**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, or Qwen3.5 4B on a phone with 8 GB of memory, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
 | If you want to… | Use this | Important difference |
 | --- | --- | --- |
-| Use the current release | [Signed v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Qwen3.5 2B; optional collections are separate. Read the [known limitations](releases/current.md). |
-| Use the previous stable release | [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/docs/installation.md). |
+| Use the current release | [Signed v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, or 4B on an 8 GB phone; optional collections and voice are separate. Read the [known limitations](releases/current.md). |
+| Use the previous stable release | [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/docs/installation.md). |
 | Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
 Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.
 
 ## Current release: phone setup
 
-1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1). Verify the checksum if possible.
+1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the recommended Qwen3.5 2B model, or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/MODELS.md). A raw `.gguf` is not a model pack.
-4. Optionally download or import a knowledge collection. A model is required; collections provide saved passages for their covered topics.
+3. In setup, download the model it offers first (Qwen3.5 4B on a phone with 8 GB of memory, Qwen3.5 2B otherwise), or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md). A raw `.gguf` is not a model pack.
+4. Optionally download or import a knowledge collection, and the natural reading voice (about 145 MB). A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
-After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for this release; network traffic during research has not been captured.
+After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for 1.4.1; network traffic during research has not been captured.
 
-## What setup offers in 1.4.1
+## What setup offers in 1.4.2
 
-The app needs **only an installed model** to answer questions. The 42 emergency guides and the
+The app needs **only an installed model** to answer questions. The 43 emergency guides and the
 emergency-number table for 242 countries ship inside the app and work before any download. Setup
 shows the model and the optional collections together, grouped by category, straight from the
 download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-app-offers)):
@@ -51,7 +51,7 @@ connection, save a `.fapack` from there on another device and import it in setup
 1.3.0 and older downloaded collections from GitHub releases, which are retired; update the app.
 
 
-Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download was checked on a Redmi 13C for this release (1.40 GB in about 11 minutes); the pack import remains the way to set up a phone that cannot download.
+Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download was checked on a Redmi 13C for 1.4.1 (1.40 GB in about 11 minutes); the pack import remains the way to set up a phone that cannot download.
 
 You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Every collection downloads from Hugging Face at a pinned revision. The manual import path accepts `.fapack`, not raw `.gguf` files.
 

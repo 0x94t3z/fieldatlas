@@ -1,5 +1,139 @@
 # Evaluation
 
+## 1.4.2 release candidate on fresh questions (October 17-18)
+
+Two new sets of 60 questions each (set 28, [questions](fieldtest/heldout28.jsonl), SHA-256
+`a8ff18fa32e8075f3853ee153b050e5055831b58d9d18e3dc14c7f721298d3e5`; set 29,
+[questions](fieldtest/heldout29.jsonl), SHA-256
+`44da8fe3074ccba62a2700a4d359ce9a9d370b5d6dd5d422174376187ce1b74c`) were written by AI models that
+read no repository file and avoided every earlier topic, and sealed before any run. The 1.4.2 answer
+code (4db1e6b; the commits after it change screens, not answers, except dropping a repeated copy
+of an answer, which none of these 240 answers had) answered them on the desktop pipeline at the
+phone's reading speed, with the seven collections and their Leviathan indexes, once with Qwen3.5 2B
+and once with Qwen3.5 4B. Web-researched frontier-model references and two blind grading rounds of
+eight graders followed for each set, each answer graded on its own
+([set 28](fieldtest/results-1.4.2/heldout28.jsonl), [set 29](fieldtest/results-1.4.2/heldout29.jsonl):
+every answer, reference and grade).
+
+| 120 questions, 4 grading rounds | Share of the reference | Per round | Factual errors per answer |
+| --- | --- | --- | --- |
+| 1.4.2 with Qwen3.5 2B (phones under 8 GB) | 36.9% | 35.3, 35.1, 38.3, 38.8 | 0.62 |
+| 1.4.2 with Qwen3.5 4B (offered first on 8 GB phones) | 38.2% | 37.9, 38.7, 38.3, 37.9 | 0.30 |
+| Reference | | | 0.10 |
+
+By category, both sets and both rounds:
+
+| Category | Questions | 2B (mean /10) | 2B share | 4B (mean /10) | 4B share |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Lookups | 24 | 5.3 | 55% | 5.2 | 54% |
+| Emergencies | 10 | 5.0 | 54% | 5.1 | 54% |
+| Comparisons | 12 | 3.9 | 41% | 3.9 | 41% |
+| Travel | 16 | 3.7 | 41% | 3.9 | 43% |
+| Reasoning with numbers | 10 | 4.0 | 40% | 4.8 | 48% |
+| Explanations | 20 | 2.2 | 23% | 2.6 | 27% |
+| Synthesis | 8 | 2.0 | 23% | 2.1 | 24% |
+| Cryptography | 8 | 2.1 | 22% | 1.9 | 20% |
+| Places | 12 | 1.2 | 14% | 1.0 | 12% |
+
+These scores are higher than 1.4.1's 29% on set 9, but sets differ: the same 1.4.1 build scored
+37.3% on set 26. Compared on the same questions, the two versions answer single questions about
+equally well. Set 26 ([questions](fieldtest/heldout26.jsonl)) was answered by 1.4.1 and by the 1.4.2
+code with Qwen3.5 2B and graded blind in two rounds
+([both builds' answers and grades](fieldtest/results-1.4.2/heldout26-141-vs-142.jsonl)):
+
+| Set 26, same graders | Share of the reference | Per round | Factual errors per answer |
+| --- | --- | --- | --- |
+| 1.4.1 | 37.3% | 37.6, 36.9 | 0.75 |
+| 1.4.2 code | 36.3% | 36.0, 36.5 | 0.72 |
+
+15 of the 60 answers differ; 1.4.2 scored higher on 3, lower on 6 and the same on 6. What 1.4.2
+improves is measured in the sections below: follow-up questions, emergencies told as statements,
+word problems, and the passage that reaches the model. The 4B makes half the factual errors of the
+2B, and scored higher on three of the four sets it was tried on (sets 26 and 27 by 5.3 and
+3.3 points, set 28 by 3.1), lower on set 29 by 0.5.
+
+Two changes were measured on these sets and not adopted:
+
+- **Every edition of an article.** The Encyclopedia holds an English and a Simple English edition
+  of many articles; search reads the first one found. Reading both raised set 28 (2B 35.2% to 37.9%,
+  4B 38.3% to 41.8%) but not set 29 (2B 38.6% to 37.8%, 4B 38.1% to 37.7%). Over the answers it
+  changed, 28 got better and 19 worse, a split that could be chance (p = 0.24). The second edition's
+  extra passages pushed out the one asked about: a second "Sculpture" overview pushed out the Statue
+  of Liberty's, so the dedication year was lost, and the English article's 1950-present section
+  made the 2B answer that Hillary and Fuchs were first at the South Pole, in 1958. Its answers are in
+  the result files as `rejected_edition_fix`.
+- **Answering from general knowledge when the passages miss** (a prompt change, set 27): the 2B fell
+  from 40.5% to 39.2% and the 4B rose from 43.8% to 45.5%, 17 better and 11 worse, p = 0.35.
+
+Sets 26 to 29 are now development data. References and graders are frontier AI models of one
+family, and a grader scores the same text differently from run to run.
+
+### The passage that reaches the model (set 25)
+
+A yardstick over 456 development questions, each labelled with the passage that answers it, found
+the right passage among search's candidates 77.6% of the time but in the phone's prompt only 36.9%.
+Subject overviews named by a generic word in the question ("Town", "Night", "Adult") filled the
+prompt's two or three places ahead of search's best hit, a place typed in lowercase ("hoi an") did
+not count as a place, and some questions reached the model with no passage at all. 1.4.2 keeps a
+lowercase place, lets a narrower article that search found ("Life on Titan") replace a generic
+subject, and looks up the question's own nouns when nothing else is found.
+
+On 80 questions written for these failures after the change and sealed (set 25,
+[questions](fieldtest/heldout25.jsonl), SHA-256
+`ecea5e0ced68fd158cdd043344dd5376eaaae3e446e6fde4edffe6fbbf666333`), 30 answers changed. Graded blind,
+each on its own, they went from 1.90 to 3.93 of 10 on average: 18 better, 5 worse, p = 0.01
+([answers and grades](fieldtest/results-1.4.2/heldout25-passages.jsonl)). Casual travel questions
+gained most; questions reaching the model with no passage went from 3 to 0. On the untailored set
+26 the same change moved little, as the table above shows.
+
+## 1.4.2 at the bounty's limits on an Android emulator (October 18)
+
+The bounty allows up to 12 GB of memory and 50 GB of assets. We set up an Android 15 arm64 emulator
+with exactly 12 GB of memory, 8 cores and 64 GB of storage, installed a 1.4.2 build (the release
+code, signed with our test key), and downloaded everything the app offers through the app itself:
+both answer models, all seven collections and the natural voice. Then we turned on airplane mode,
+set the location to central Berlin, and asked 8 everyday questions with each model
+([questions, answers and measurements](fieldtest/results-1.4.2/emulator-bounty-limits.jsonl)).
+
+**Storage, everything installed:**
+
+| What | Size |
+| --- | ---: |
+| Qwen3.5 2B and Qwen3.5 4B | 4.41 GB |
+| Seven collections | 29.47 GB |
+| Natural voice | 145 MB |
+| The app itself | 172 MB |
+| **Total** | **34.2 GB of the 50 GB allowed** |
+
+No temporary download files were left behind.
+
+**Memory while answering:**
+
+| Model | Most memory the app used | Least memory left on the phone |
+| --- | ---: | ---: |
+| Qwen3.5 2B | 3.2 GB | 8.7 GB |
+| Qwen3.5 4B | 6.4 GB | 6.9 GB |
+
+The app's memory is Android's PSS figure, which also counts memory the system had moved to swap.
+
+**Offline:** with airplane mode on, all 16 answers finished, with no connection. Places near you
+and the fuel word problem came from saved data in seconds, and with the 2B so did the wallet answer,
+quoted from a saved passage. The rest were written by the model from the collections and cite them.
+
+**Timings on the emulator are not phone timings.** The emulator runs on a Mac's processor: an
+answer written by the model took 17 to 29 seconds with the 2B and 24 to 63 seconds with the 4B,
+which is much faster than a phone. The phone timings are in the release notes.
+
+**What went wrong:**
+
+- "My friend fainted and is breathing but not waking up" got a passage about fainting from the
+  Biology collection, and both models said to keep the person lying down for 10 to 15 minutes.
+  Neither said to call the emergency number or put the person on their side. The app has no guide
+  for someone unconscious but breathing; set 28 asked nearly the same question and it scored 2 of
+  10 with both models.
+- "How do I get from Narita airport to central Tokyo?" read the guide for the city of Narita, so
+  the answers describe the local train to Narita town (¥250) before the Narita Express.
+
 ## 1.4.2: follow-up questions, emergencies told as statements, word problems (October 15)
 
 Every number below compares 1.4.1 with the 1.4.2 code on questions written after the changes by

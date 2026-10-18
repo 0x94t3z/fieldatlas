@@ -25,7 +25,7 @@ def product_copy() -> str:
         kotlin_literals.extend(
             literal for literal in re.findall(r'"(?:\\.|[^"\\])*"', source)
             # This is punctuation-normalizing regex syntax, not visible product copy.
-            if literal != r'"\\s+([.,;:!?])"'
+            if literal not in (r'"\\s+([.,;:!?])"', r'" ([.,;:!?])"')
         )
     resources = (ROOT / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8")
     return "\n".join(kotlin_literals) + "\n" + resources
@@ -53,8 +53,8 @@ class ProductCopyTest(unittest.TestCase):
 
     def test_public_candidate_has_release_version(self):
         gradle = (ROOT / "app/build.gradle.kts").read_text(encoding="utf-8")
-        self.assertIn("versionCode = 20", gradle)
-        self.assertIn('versionName = "1.4.1"', gradle)
+        self.assertIn("versionCode = 21", gradle)
+        self.assertIn('versionName = "1.4.2"', gradle)
 
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

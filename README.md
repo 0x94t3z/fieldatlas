@@ -7,7 +7,7 @@
 <p align="center">Research, explore, and question the knowledge on your phone—even offline.</p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -20,7 +20,7 @@
   <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1">v1.4.1 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2">v1.4.2 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -40,22 +40,26 @@ The app only goes online when you start a download or refresh the list of collec
   app.
 - **Show its sources.** When a collection covers your question, the answer cites the passages it
   used, and you can open each one.
-- **Help in an emergency.** 42 first-aid and safety guides and the emergency numbers of 242
+- **Keep a conversation going.** Ask a follow-up under an answer, by typing, speaking or adding a
+  file, and pick a topic up again later from History.
+- **Read answers aloud** with the phone's voice or a natural voice you can download once.
+- **Help in an emergency.** 43 first-aid and safety guides and the emergency numbers of 242
   countries are built in and work without any download.
 - **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
-  group, when the question is worded the way its calculators expect. Other word problems go to the
-  model, which often gets them wrong (5 of 6 in the latest test).
+  group, when the question is worded the way its calculators expect. A word problem that gives its
+  own figures is worked from them; the model still gets some of these wrong.
 - **Show phrases** from Wikivoyage phrasebooks, in the local script with pronunciation.
 
 ## Get started
 
 You need an Android 13 or later phone with an arm64 processor.
 
-1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk)
-   (about 73 MB). You can check it against its
-   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.1/fieldatlas.apk.sha256).
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk)
+   (about 100 MB). You can check it against its
+   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk.sha256).
 2. Open the file and follow Android's prompts to install it.
-3. In setup, download the answer model (1.4 GB).
+3. In setup, download the answer model it offers: Qwen3.5 2B (1.4 GB), or Qwen3.5 4B (3.0 GB) on a
+   phone with 8 GB of memory.
 4. Add any collections you want. You can add more later in **Library**.
 5. Turn on airplane mode and ask a question in **Research**.
 
@@ -68,35 +72,37 @@ file copied from another device: collections from Hugging Face
 ## How good is it?
 
 The bounty asks for an offline tool that is more than half as good as a web search plus a
-frontier AI model. We tested Field Atlas 1.4.1 on 60 new questions written after it was released,
-by an AI model that had never seen the app's code, so the questions could not be tailored to what
-the app already handles well. Other AI models then scored each answer blind, on its own, and scored
-an answer researched on the web the same way. The result is Field Atlas's total as a share of the
-web answer's.
+frontier AI model. We tested Field Atlas 1.4.2 on 120 new questions, in two sets written after the
+changes by AI models that had never seen the app's code, so the questions could not be tailored to
+what the app already handles well. Other AI models then scored each answer blind, on its own, and
+scored an answer researched on the web the same way. The result is Field Atlas's total as a share
+of the web answer's.
 
-- **29%** of the web-and-AI answers with the default model. **Not there yet.** 1.4.0 scored 34% on
-  an earlier set of questions. On these questions 1.4.0 scores 28.6% and 1.4.1 29.7%, so the two
-  versions are about even.
-- **Strongest:** vegan restaurants in the city you are in (83%, 2 questions) and quick facts (58%,
-  8 questions).
-- **Weakest:** emergencies (10%), synthesis (11%), comparisons
-  (13%) and reasoning with numbers (19%).
+- **36.9%** of the web-and-AI answers with Qwen3.5 2B and **38.2%** with Qwen3.5 4B. **Not there
+  yet.** The 4B makes half the factual errors of the 2B (0.30 against 0.62 per answer).
+- **Single questions are about where 1.4.1 left them.** On the same 60 questions 1.4.1 scores 37.3%
+  and 1.4.2 36.3%. (1.4.1's published 29% came from a harder set.) What 1.4.2 improves is
+  follow-up questions, emergencies told as statements, word problems and the 4B on 8 GB phones.
+- **Strongest:** quick facts (55%) and emergencies (54%).
+- **Weakest:** places in a named city (14%), cryptography (22%), explanations and synthesis (23%).
 
 The graders and the reference answers come from AI models of one family, so treat these numbers as
 our own measurement, not an independent score. Every question, answer and grade is published in
-[docs/fieldtest/results-1.4.1](docs/fieldtest/results-1.4.1/heldout9.jsonl) (1.4.0's in
-[docs/fieldtest/results-1.4.0](docs/fieldtest/results-1.4.0/)), and the
-[evaluation](docs/evaluation.md#141-release-build-on-fresh-questions-october-15) explains the method
-and the failures.
+[docs/fieldtest/results-1.4.2](docs/fieldtest/results-1.4.2/), and the
+[evaluation](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18) explains the
+method, including two changes that were tried and not adopted.
 
 ## Good to know
 
-- Answers that use the model take **under a minute to about 4 minutes** on a 6 GB phone. Answers
+- Answers that use the model take **about 2 to 6 minutes** on a 6 GB phone with Qwen3.5 2B. Answers
   built from saved data take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
-- Tested on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16). Not yet tested
-  on a Pixel, on GrapheneOS or on an 8 GB phone.
+- **Within the bounty's limits:** with both models, every collection and the voice installed, the app
+  takes 34.2 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.4 GB of
+  memory while answering ([details](docs/evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
+- Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
+  GrapheneOS or on a real 8 GB phone.
 
 ## Collections
 
@@ -133,7 +139,8 @@ on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns s
 
 | Version | What changed |
 | --- | --- |
-| [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) (latest) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Release notes](docs/releases/current.md) |
+| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, more emergencies found, Qwen3.5 4B on 8 GB phones. [Release notes](docs/releases/current.md) |
+| [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Notes](docs/releases/field-atlas-1.4.1.md) |
 | [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Notes](docs/releases/field-atlas-1.4.0.md) |
 | [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |
 | [1.2.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.1) | Fixes for Xiaomi phones, the Essentials collection. [Notes](docs/releases/field-atlas-1.2.1.md) |

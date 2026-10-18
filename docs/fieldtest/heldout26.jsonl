@@ -1,0 +1,60 @@
+{"id": "h26-01", "cat": "reasoning", "q": "jacket costs 230 euros, 1 usd = 0.92 eur. i get a 12% tax refund on the euro price at the airport. how much did i actually pay in dollars"}
+{"id": "h26-02", "cat": "comparison", "q": "Ibuprofen or paracetamol for a fever, which is better, and is it safe to take both?"}
+{"id": "h26-03", "cat": "lookup", "q": "What is the deepest lake in the world and how deep is it?"}
+{"id": "h26-04", "cat": "explanation", "q": "why is the sky blue but sunsets are red"}
+{"id": "h26-05", "cat": "comparison", "q": "is canada bigger than the usa"}
+{"id": "h26-06", "cat": "travel", "q": "is tap water safe to drink in mexico city or should i only buy bottled"}
+{"id": "h26-07", "cat": "lookup", "q": "how many bones does an adult human have"}
+{"id": "h26-08", "cat": "reasoning", "q": "hotel is 120 euros a night plus 10% tax, and theres a city tax of 3.50 per person per night. 2 people, 4 nights. how much total"}
+{"id": "h26-09", "cat": "crypto", "q": "How is an Ethereum address derived from a private key? Explain the steps."}
+{"id": "h26-10", "cat": "reasoning", "q": "My flight leaves London at 9:40 am and lands in New York at 12:55 pm local time on a day in July. How long is the flight actually?"}
+{"id": "h26-11", "cat": "lookup", "q": "how tall is the burj khalifa"}
+{"id": "h26-12", "cat": "places", "q": "best places to see the northern lights around tromso, do i need a tour or can i just go myself"}
+{"id": "h26-13", "cat": "crypto", "q": "what is a seed phrase and how many words does it usually have"}
+{"id": "h26-14", "cat": "comparison", "q": "whats the difference between AC and DC electricity and why do houses use AC"}
+{"id": "h26-15", "cat": "emergency", "q": "my dad suddenly cant get his words out right and one side of his face is drooping, what is happening and what do i do"}
+{"id": "h26-16", "cat": "explanation", "q": "how do noise cancelling headphones actually work"}
+{"id": "h26-17", "cat": "travel", "q": "Do UK citizens need a visa for Turkey for a 10 day holiday?"}
+{"id": "h26-18", "cat": "travel", "q": "How long is the train from Edinburgh to London, which station does it arrive at, and is it cheaper if I book in advance?"}
+{"id": "h26-19", "cat": "places", "q": "Which museum has the Mona Lisa, and which entrance should I use to avoid the long queue at the pyramid?"}
+{"id": "h26-20", "cat": "lookup", "q": "how long is the golden gate bridge and when was it finished"}
+{"id": "h26-21", "cat": "emergency", "q": "my 2 year old just swallowed a button battery from the tv remote what do i do right now"}
+{"id": "h26-22", "cat": "lookup", "q": "Who wrote One Hundred Years of Solitude and what year was it first published?"}
+{"id": "h26-23", "cat": "places", "q": "Where in Seoul can I watch the royal guard changing ceremony and is it free?"}
+{"id": "h26-24", "cat": "places", "q": "where do i buy a tourist sim card at bangkok suvarnabhumi airport, which floor"}
+{"id": "h26-25", "cat": "places", "q": "where to get a proper philly cheesesteak in philadelphia, which places are famous"}
+{"id": "h26-26", "cat": "reasoning", "q": "I want to call my family in Sydney at 7 pm their time on 15 January. I'm in Los Angeles. What time and date is that for me?"}
+{"id": "h26-27", "cat": "synthesis", "q": "Can I take a 20000 mAh power bank and a spare e-bike battery on a plane from Amsterdam? Do they go in hand luggage or checked luggage, and what are the limits?"}
+{"id": "h26-28", "cat": "emergency", "q": "my friend just got stung by a jellyfish at the beach and its really burning, what do i do?? should i pee on it"}
+{"id": "h26-29", "cat": "reasoning", "q": "I'm hiking a 14 km trail. The first 10 km is flat and I walk 4 km/h, the last 4 km is uphill at 2.5 km/h, and I take a 30 minute lunch break. If I start at 8:15 am, what time do I finish?"}
+{"id": "h26-30", "cat": "comparison", "q": "how do you tell a crocodile from an alligator"}
+{"id": "h26-31", "cat": "travel", "q": "how much am i supposed to tip at restaurants in new york, and do i tip on the amount before or after tax"}
+{"id": "h26-32", "cat": "synthesis", "q": "going on safari in kenya, which vaccines do i need, do i need malaria tablets, and do they check for a yellow fever certificate at the border"}
+{"id": "h26-33", "cat": "lookup", "q": "whats the capital of australia, isnt it sydney"}
+{"id": "h26-34", "cat": "explanation", "q": "How does GPS work out where my phone is without using mobile data?"}
+{"id": "h26-35", "cat": "synthesis", "q": "im type 1 diabetic and flying london to bangkok, how do i get my insulin and pump through security and how do i adjust my doses for the time difference"}
+{"id": "h26-36", "cat": "travel", "q": "what currency do they use in montenegro and can i pay by card in kotor or do i need cash"}
+{"id": "h26-37", "cat": "crypto", "q": "what is gas on ethereum and what did eip 1559 change about fees"}
+{"id": "h26-38", "cat": "places", "q": "Where in Barcelona can I see Gaudí buildings apart from the Sagrada Família?"}
+{"id": "h26-39", "cat": "synthesis", "q": "im 31 weeks pregnant and want to fly dubai to paris on emirates, what are their rules for pregnant passengers and what should i do to stay safe on a long flight"}
+{"id": "h26-40", "cat": "places", "q": "whats the name of the bun cha place in hanoi where obama and anthony bourdain ate and what street is it on"}
+{"id": "h26-41", "cat": "lookup", "q": "when did the channel tunnel open"}
+{"id": "h26-42", "cat": "emergency", "q": "a street dog just bit my friend on the leg in bali and it broke the skin, how serious is this and what do we do now"}
+{"id": "h26-43", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [43.6532, -79.3832]}
+{"id": "h26-44", "cat": "emergency", "q": "someone in our trekking group at about 4000 m has a bad headache, is throwing up and is dizzy. what should we do"}
+{"id": "h26-45", "cat": "reasoning", "q": "my rental car uses 6.5 litres per 100 km and the road trip is 840 km. fuel is 1.85 a litre. how much will fuel cost"}
+{"id": "h26-46", "cat": "comparison", "q": "What's the difference between a hurricane, a typhoon and a cyclone?"}
+{"id": "h26-47", "cat": "travel", "q": "do i need to book alhambra tickets in advance? how far ahead do they sell out"}
+{"id": "h26-48", "cat": "explanation", "q": "Why do we always see the same side of the Moon from Earth?"}
+{"id": "h26-49", "cat": "explanation", "q": "why do planes leave white lines in the sky and why do some dissapear fast and some stay for ages"}
+{"id": "h26-50", "cat": "places", "q": "where should i stay in buenos aires if i want nightlife and good restaurants, which neighbourhood"}
+{"id": "h26-51", "cat": "travel", "q": "I'm flying into Singapore next week and I have a few packs of chewing gum and my vape in my bag. Is either of those illegal to bring in, and what's the penalty if I get caught?"}
+{"id": "h26-52", "cat": "explanation", "q": "why did the roman empire split into a western and eastern half"}
+{"id": "h26-53", "cat": "synthesis", "q": "I have a 10 hour layover in Doha on a German passport. Can I leave the airport, how long does it take to get into the city, and what could I realistically see before my next flight?"}
+{"id": "h26-54", "cat": "travel", "q": "which side of the road do they drive on in thailand and can i rent a scooter in chiang mai with just my US drivers licence"}
+{"id": "h26-55", "cat": "crypto", "q": "When did Ethereum switch to proof of stake, and why did they do it?"}
+{"id": "h26-56", "cat": "vitalik", "q": "Tell me the best vegan restaurants in the city I am currently in", "gps": [51.5074, -0.1278]}
+{"id": "h26-57", "cat": "comparison", "q": "esim vs physical sim card for travelling, whats the difference and which is better"}
+{"id": "h26-58", "cat": "travel", "q": "whats the cheapest way to get from budapest airport to the city centre, is there a direct bus"}
+{"id": "h26-59", "cat": "emergency", "q": "A man just collapsed in our hotel lobby and he isn't breathing. How do I do CPR until the ambulance comes?"}
+{"id": "h26-60", "cat": "lookup", "q": "Who invented the World Wide Web and in what year did he propose it?"}

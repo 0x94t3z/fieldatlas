@@ -1,0 +1,60 @@
+{"id": "h29-01", "cat": "emergency", "q": "my friend fell through ice into a lake while we were hiking, we got him out but hes shivering like crazy and slurring words, were 2 hours from the car. what do we do"}
+{"id": "h29-02", "cat": "crypto", "q": "How does a 2-of-3 multisig wallet like Safe work, and what happens if I lose one of the three keys?"}
+{"id": "h29-03", "cat": "comparison", "q": "Which is older, Oxford or Cambridge university, and how did the younger one start?"}
+{"id": "h29-04", "cat": "synthesis", "q": "Going snorkelling in Hawaii. Which sunscreen ingredients are banned there and why, and what else should I do so I don't damage the coral?"}
+{"id": "h29-05", "cat": "lookup", "q": "Who was the first person to reach the South Pole, and in what year?"}
+{"id": "h29-06", "cat": "lookup", "q": "How many time zones does Russia span?"}
+{"id": "h29-07", "cat": "travel", "q": "whats the emergency number in australia for police ambulance fire"}
+{"id": "h29-08", "cat": "lookup", "q": "what is the speed of sound in air at sea level in km/h"}
+{"id": "h29-09", "cat": "explanation", "q": "how does a qr code store info and why does it still scan if part of it is damaged"}
+{"id": "h29-10", "cat": "comparison", "q": "oled vs lcd screen on a phone, which is better for battery and why"}
+{"id": "h29-11", "cat": "travel", "q": "is tap water safe to drink in norway"}
+{"id": "h29-12", "cat": "lookup", "q": "how old is the universe roughly"}
+{"id": "h29-13", "cat": "travel", "q": "Do US citizens need a visa to visit Egypt, and can I get one on arrival at Cairo airport?"}
+{"id": "h29-14", "cat": "comparison", "q": "which is taller the shard or the empire state building and by how much"}
+{"id": "h29-15", "cat": "travel", "q": "what plugs do they use in south africa, will my uk adapter work"}
+{"id": "h29-16", "cat": "reasoning", "q": "Shop A sells a 1.5 litre bottle of water for 1.20 euros. Shop B sells a 6-pack of 500 ml bottles for 2.70 euros. Which is cheaper per litre, and by how much per litre?"}
+{"id": "h29-17", "cat": "reasoning", "q": "my flight leaves dubai at 08:15 local time (UTC+4) and lands in london at 12:35 local time in summer (UTC+1). how long is the flight actually"}
+{"id": "h29-18", "cat": "places", "q": "Where in Munich is the Hofbräuhaus and which U-Bahn stop is closest?"}
+{"id": "h29-19", "cat": "lookup", "q": "How many bones does an adult human have?"}
+{"id": "h29-20", "cat": "reasoning", "q": "9 day trip. option 1: an esim with 10 GB for 25 dollars. option 2: my carriers day pass, 3 dollars a day for 1 GB a day. i use about 0.8 GB a day. which is cheaper and by how much"}
+{"id": "h29-21", "cat": "synthesis", "q": "I take Adderall for ADHD and sometimes Sudafed for colds. Can I bring them into Japan, and if not, what are my options?"}
+{"id": "h29-22", "cat": "explanation", "q": "why does a curveball curve in baseball"}
+{"id": "h29-23", "cat": "crypto", "q": "optimistic rollups vs zk rollups, why does withdrawing from arbitrum or optimism back to mainnet take about 7 days"}
+{"id": "h29-24", "cat": "explanation", "q": "Why does ice float on water when most solids sink in their own liquid?"}
+{"id": "h29-25", "cat": "emergency", "q": "someone collapsed in the street and isnt breathing, i called the ambulance, how do i do cpr until they come"}
+{"id": "h29-26", "cat": "comparison", "q": "What's the difference between a diesel and a petrol engine, and why are diesels more fuel efficient?"}
+{"id": "h29-27", "cat": "explanation", "q": "how do cats purr? like whats physically making the sound"}
+{"id": "h29-28", "cat": "explanation", "q": "how does a compass know where north is, and is magnetic north the same as the north pole"}
+{"id": "h29-29", "cat": "crypto", "q": "Why can't you reverse a SHA-256 hash to get the original input, and what would it take to find a collision?"}
+{"id": "h29-30", "cat": "lookup", "q": "How tall is the Matterhorn?"}
+{"id": "h29-31", "cat": "lookup", "q": "How big is Central Park in New York, in acres and hectares?"}
+{"id": "h29-32", "cat": "places", "q": "Where's the best spot in Washington DC to see the cherry blossoms, and when do they usually peak?"}
+{"id": "h29-33", "cat": "explanation", "q": "How did the Rosetta Stone help people finally read Egyptian hieroglyphs, and who cracked it?"}
+{"id": "h29-34", "cat": "places", "q": "where can i see the crown jewels in london"}
+{"id": "h29-35", "cat": "lookup", "q": "who was the first human in space and what was his spacecraft called"}
+{"id": "h29-36", "cat": "emergency", "q": "My dad's face just started drooping on one side and he can't lift his left arm properly. We're in a hotel room. What do I do right now?"}
+{"id": "h29-37", "cat": "lookup", "q": "who sculpted the statue of liberty and what year was it dedicated"}
+{"id": "h29-38", "cat": "places", "q": "In Montreal, where are the two famous bagel shops everyone argues about, and are they open 24 hours?"}
+{"id": "h29-39", "cat": "places", "q": "where do i watch the symphony of lights in hong kong and what time does it start"}
+{"id": "h29-40", "cat": "reasoning", "q": "It's 18°C at the trailhead and I'm hiking up 1,200 metres. If the temperature drops about 6.5°C per 1,000 m of altitude, what should I expect at the top?"}
+{"id": "h29-41", "cat": "lookup", "q": "whats the captial of australia, is it sydney"}
+{"id": "h29-42", "cat": "synthesis", "q": "going on safari in the serengeti in july. where will the great migration be then, do i need a yellow fever jab, and should i take malaria pills"}
+{"id": "h29-43", "cat": "explanation", "q": "how do chameleons change colour, is it really for camouflage"}
+{"id": "h29-44", "cat": "explanation", "q": "What killed off the dinosaurs and how do scientists know?"}
+{"id": "h29-45", "cat": "explanation", "q": "How does a hot air balloon go up and come down, and how does the pilot steer it?"}
+{"id": "h29-46", "cat": "travel", "q": "how do i get from kl airport to kuala lumpur city centre, is the klia ekspres worth it and how long does it take"}
+{"id": "h29-47", "cat": "emergency", "q": "my sons nose has been bleeding for 10 minutes on the plane and wont stop, should he tilt his head back?"}
+{"id": "h29-48", "cat": "lookup", "q": "who wrote the communist manifesto and when was it publshed"}
+{"id": "h29-49", "cat": "travel", "q": "how do i get from venice marco polo airport to st marks square by water bus and how long does it take"}
+{"id": "h29-50", "cat": "travel", "q": "What currency is used in Georgia (the country), and can I pay by card in Tbilisi or should I carry cash?"}
+{"id": "h29-51", "cat": "crypto", "q": "what is the nonce in an ethereum transaction and what happens if i send 2 transactions with the same nonce"}
+{"id": "h29-52", "cat": "reasoning", "q": "dinner bill is 186.40 and we want to leave 18% tip then split it between 4 people. how much each"}
+{"id": "h29-53", "cat": "comparison", "q": "whats the differnce between a monkey and an ape"}
+{"id": "h29-54", "cat": "explanation", "q": "How do solar panels turn sunlight into electricity, and why do they produce less on very hot days?"}
+{"id": "h29-55", "cat": "comparison", "q": "Is SPF 50 sunscreen much better than SPF 30? How much more UVB does it actually block?"}
+{"id": "h29-56", "cat": "synthesis", "q": "I'm flying from sea level to Quito next week. How high is the city, what altitude sickness symptoms should I watch for, and what can I do to prevent it?"}
+{"id": "h29-57", "cat": "travel", "q": "In Dubai, can an unmarried couple share a hotel room, and is it legal to drink alcohol in public or on the beach?"}
+{"id": "h29-58", "cat": "lookup", "q": "when did chernobyl happen and which reactor blew up"}
+{"id": "h29-59", "cat": "places", "q": "which museum in madrid has picassos guernica"}
+{"id": "h29-60", "cat": "emergency", "q": "a man just collapsed on the train platform and is jerking all over, people are trying to hold him down, what should i do"}

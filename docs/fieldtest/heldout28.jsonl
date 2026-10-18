@@ -1,0 +1,60 @@
+{"id": "h28-01", "cat": "travel", "q": "how do i get from charles de gaulle airport into central paris by train and how much is the ticket"}
+{"id": "h28-02", "cat": "lookup", "q": "how tall is the burj khalifa"}
+{"id": "h28-03", "cat": "emergency", "q": "my friend just fainted in the museum queue, hes breathing but not waking up, what do i do right now"}
+{"id": "h28-04", "cat": "explanation", "q": "why does bread go stale even when its in a sealed bag"}
+{"id": "h28-05", "cat": "crypto", "q": "On Ethereum, what is the difference between the gas limit and the gas price, and what happens to my fee if a transaction runs out of gas?"}
+{"id": "h28-06", "cat": "places", "q": "where in dublin can i see the book of kells and do i need to book tickets ahead"}
+{"id": "h28-07", "cat": "reasoning", "q": "I'm renting a car for 4 days at 38 euros a day plus a one-off 25 euro cleaning fee. Fuel is 1.85 euros per litre and I expect to use 52 litres. What's the total cost of the trip?"}
+{"id": "h28-08", "cat": "comparison", "q": "whats the diffrence between a tortoise and a turtle"}
+{"id": "h28-09", "cat": "lookup", "q": "When did the Panama Canal open?"}
+{"id": "h28-10", "cat": "synthesis", "q": "I'm planning to hike in Torres del Paine in Patagonia in March. What weather should I expect, how windy does it get, and what should I pack?"}
+{"id": "h28-11", "cat": "explanation", "q": "why do onions make you cry when you cut them"}
+{"id": "h28-12", "cat": "travel", "q": "Do I need a visa to visit Vietnam as a UK citizen, and how many days can I stay without one?"}
+{"id": "h28-13", "cat": "lookup", "q": "who painted girl with a pearl earing"}
+{"id": "h28-14", "cat": "places", "q": "Where in Amsterdam can I see Van Gogh's Sunflowers?"}
+{"id": "h28-15", "cat": "emergency", "q": "i just cut my hand deep on broken glass and its bleeding a lot, whats the first thing i should do"}
+{"id": "h28-16", "cat": "explanation", "q": "How does a refrigerator actually keep the inside cold?"}
+{"id": "h28-17", "cat": "comparison", "q": "brown rice vs white rice, which one is actually healthier and why"}
+{"id": "h28-18", "cat": "lookup", "q": "When was the Golden Gate Bridge completed and how long is its main span?"}
+{"id": "h28-19", "cat": "reasoning", "q": "my flight leaves at 14:40 and i need to be at the airport 2 hours before. the train to the airport takes 55 min and i want 15 min to walk to the station. what time should i leave the hotel"}
+{"id": "h28-20", "cat": "travel", "q": "what currency do they use in croatia now and can i pay by card most places"}
+{"id": "h28-21", "cat": "crypto", "q": "how does a hardware wallet keep my keys safe if i plug it into a laptop that has malware on it"}
+{"id": "h28-22", "cat": "lookup", "q": "whats the population of new zealand"}
+{"id": "h28-23", "cat": "explanation", "q": "How does a phone touchscreen detect where my finger is, and why doesn't it work with normal gloves?"}
+{"id": "h28-24", "cat": "places", "q": "in kyoto where is that famous path with all the orange torii gates and when is it least crowded"}
+{"id": "h28-25", "cat": "synthesis", "q": "I'm flying overnight from New York to Paris for a 5-day trip. How many hours ahead is Paris, and what should I do before, during and after the flight to cut down jet lag?"}
+{"id": "h28-26", "cat": "comparison", "q": "wifi 6 vs wifi 5 whats the real difference"}
+{"id": "h28-27", "cat": "lookup", "q": "Who wrote One Hundred Years of Solitude and what year was it published?"}
+{"id": "h28-28", "cat": "travel", "q": "which side of the road do they drive on in kenya"}
+{"id": "h28-29", "cat": "emergency", "q": "someone at our table is having a peanut reaction, her lips are swelling and she has an epipen in her bag. how do i use it, quick"}
+{"id": "h28-30", "cat": "explanation", "q": "why is the ocean salty but rivers arent"}
+{"id": "h28-31", "cat": "reasoning", "q": "A hotel is 120 dollars a night plus 14% tax. I'm staying 5 nights and have a 10% off coupon that applies before tax. How much do I pay in total?"}
+{"id": "h28-32", "cat": "lookup", "q": "how high is table mountain in cape town"}
+{"id": "h28-33", "cat": "places", "q": "Where should I eat Peking duck in Beijing? Which restaurant is the oldest or original one?"}
+{"id": "h28-34", "cat": "crypto", "q": "What did EIP-1559 change about how Ethereum transaction fees work?"}
+{"id": "h28-35", "cat": "comparison", "q": "What's the difference between AC and DC electricity, and why do homes use AC?"}
+{"id": "h28-36", "cat": "explanation", "q": "is it true camels store water in their humps? how does the hump actually help them in the desert"}
+{"id": "h28-37", "cat": "travel", "q": "Can I rent a car in Italy with just my US driver's license, or do I need an International Driving Permit?"}
+{"id": "h28-38", "cat": "lookup", "q": "what year did nelson mandela become president of south africa"}
+{"id": "h28-39", "cat": "synthesis", "q": "I want to see wild orangutans. Which countries and specific parks or centres are best for it, and what time of year should I go?"}
+{"id": "h28-40", "cat": "emergency", "q": "i think my 3 year old just swallowed a button battery from the tv remote, hes acting fine. what do i do right now"}
+{"id": "h28-41", "cat": "explanation", "q": "Why did the Black Death spread so fast across Europe in the 1340s?"}
+{"id": "h28-42", "cat": "places", "q": "where is the spice market in istanbul and whats it called"}
+{"id": "h28-43", "cat": "lookup", "q": "What is the smallest country in South America by area?"}
+{"id": "h28-44", "cat": "reasoning", "q": "im driving 420 km averaging 90 km/h and i stop for 20 minutes after every 2 hours of driving. how long does the whole trip take"}
+{"id": "h28-45", "cat": "comparison", "q": "Which is bigger by total area, Canada or the United States, and by how much?"}
+{"id": "h28-46", "cat": "travel", "q": "best way to get from dubrovnik to split, bus or ferry? how long does each take"}
+{"id": "h28-47", "cat": "explanation", "q": "how does an induction hob heat the pan without getting hot itself, and why do some pans not work on it"}
+{"id": "h28-48", "cat": "crypto", "q": "whats the difference between proof of work and proof of stake, and when did ethereum switch over"}
+{"id": "h28-49", "cat": "lookup", "q": "how tall is angel falls in venezuela"}
+{"id": "h28-50", "cat": "emergency", "q": "My friend just got bitten on the ankle by a rattlesnake on a trail in Arizona. What should we do and what should we NOT do?"}
+{"id": "h28-51", "cat": "places", "q": "where do you get the famous beignets in new orleans"}
+{"id": "h28-52", "cat": "explanation", "q": "How does a lithium-ion battery store and release energy, and why does it wear out over time?"}
+{"id": "h28-53", "cat": "travel", "q": "visiting temples in sri lanka next week, do i need to cover shoulders and knees and take my shoes off? anything else i should know"}
+{"id": "h28-54", "cat": "synthesis", "q": "My dad has a pacemaker and is travelling with me. Can he go through airport security scanners, and does he need to be careful with his phone or with induction cooktops at the hotel?"}
+{"id": "h28-55", "cat": "lookup", "q": "who was the first woman to fly solo across the atlantic and when"}
+{"id": "h28-56", "cat": "comparison", "q": "What's the difference between a virus and a bacterium, and why don't antibiotics work against viruses?"}
+{"id": "h28-57", "cat": "reasoning", "q": "if 1 USD = 0.92 EUR and i change 750 dollars at a booth that takes 3% commission, how many euros do i get"}
+{"id": "h28-58", "cat": "explanation", "q": "why do my ears pop when the plane is landing and how do i make it stop"}
+{"id": "h28-59", "cat": "travel", "q": "How much should I tip at restaurants in Germany, and do I leave it on the table or tell the server?"}
+{"id": "h28-60", "cat": "lookup", "q": "When was the Taj Mahal built and who had it built?"}
