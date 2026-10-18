@@ -126,6 +126,25 @@ class EmergencyRoutingTest {
         assertTrue(events.filterIsInstance<ResearchEvent.Sources>().none { sources -> sources.evidence.any { it.documentId == "emergency:sunburn" } })
     }
 
+    @Test fun aLaterFollowUpIsNotAnsweredWithTheGuideTheTopicAlreadyShowed() = runBlocking {
+        // Guide, then a researched follow-up, then another: the joined reading still names the sunburn, but the topic
+        // showed its guide two answers ago, so this one is researched too.
+        val sunburn = EmergencyGuideMatch.evidence(guides.first { it.id == "sunburn" })
+        val passage = xyz.fieldatlas.research.Evidence("Coconut oil — Uses", "c:1", "Coconut oil", "https://en.wikipedia.org", "Text.", 1.0)
+        val first = "my son has a bad sunburn, what should we do"
+        val earlier = listOf(
+            xyz.fieldatlas.research.FollowUp.Turn(first, first, "**If this is an emergency…", listOf(sunburn)),
+            xyz.fieldatlas.research.FollowUp.Turn("is it ok to use coconut oil on it?", "$first: is it ok to use coconut oil on it?",
+                "Coconut oil does not treat a sunburn [S1].", listOf(passage)))
+        var searched = false
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> searched = true; emptyList() }, Recording("Aloe may soothe the skin [S1]."),
+            emergencyGuides = { guides })
+            .research("$first: does aloe vera help it heal faster?",
+                topic = xyz.fieldatlas.research.TopicEvidence.Carried("does aloe vera help it heal faster?", listOf(passage), earlier)).toList()
+        assertTrue("the second follow-up is researched, not answered with the guide again", searched)
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().none { sources -> sources.evidence.any { it.documentId == "emergency:sunburn" } })
+    }
+
     @Test fun anEmergencyToldAsAFollowUpGetsItsGuide() = runBlocking {
         val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Recording("unused"), emergencyGuides = { guides })
             .research("What are the best things to see in Oklahoma City over a long weekend with kids who like museums and parks: " +

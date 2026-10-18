@@ -1276,15 +1276,16 @@ class ResearchOrchestrator(
      * The saved guide for [question], read as the follow-up it may be. A follow-up is first matched as typed: "tornado on
      * the ground and we're in a trailer" after a long question about Oklahoma City is its own emergency, though the
      * joined reading is too long to count as one. Otherwise the joined reading still matches the earlier emergency, and
-     * that guide is shown again only if the answer it follows did not already show it: "is it ok to use coconut oil on
-     * it?" after the sunburn guide asks something the guide does not say.
+     * that guide is shown again only if no answer in the topic already showed it: "is it ok to use coconut oil on it?"
+     * after the sunburn guide asks something the guide does not say, and so does "does aloe help?" after that answer,
+     * though the joined reading of every later follow-up still starts with the sunburn.
      */
     private fun guideFor(question: String, topic: TopicEvidence.Carried?): xyz.fieldatlas.emergency.EmergencyGuide? {
         val guides = emergencyGuides()
         if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let { return it }
         val guide = xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides) ?: return null
         val shown = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide).documentId
-        return guide.takeIf { topic == null || topic.sources.none { it.documentId == shown } }
+        return guide.takeIf { topic == null || (topic.sources + topic.earlier.flatMap { it.sources }).none { it.documentId == shown } }
     }
 
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
