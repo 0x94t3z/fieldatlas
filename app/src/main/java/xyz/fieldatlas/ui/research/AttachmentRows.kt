@@ -30,6 +30,8 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
     var previewId by remember { mutableStateOf<String?>(null) }
     var imagePreviewId by remember { mutableStateOf<String?>(null) }
     var errorId by remember { mutableStateOf<String?>(null) }
+    // One column of its own: the follow-up box places these inside a Box, where the switch would sit on the files.
+    Column(Modifier.fillMaxWidth()) {
     if (items.isNotEmpty()) LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp),
@@ -151,6 +153,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
             }
             Switch(checked = on, onCheckedChange = null, enabled = enabled)
         }
+    }
     }
     items.firstOrNull { it.id == errorId && it.phase == AttachmentPhase.Error }?.let { item ->
         AlertDialog(onDismissRequest = { errorId = null }, title = { Text("Couldn’t read attachment") },
