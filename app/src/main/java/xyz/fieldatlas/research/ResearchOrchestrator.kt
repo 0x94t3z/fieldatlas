@@ -1221,6 +1221,38 @@ class ResearchOrchestrator(
                 if (lead == null) throw error
                 generationFailed = true
             }
+            // The labelled explanation keeps to the excerpts. When none of them is about the question, the model says so
+            // and stops: a swallowed button battery got "No excerpt supports …" above a stock-car race report. Asked again
+            // without them, it answers from its own knowledge, still labelled unverified, and the unrelated excerpts are
+            // no longer listed as the answer's sources.
+            var answerPacked = packed
+            var answerEvidence = attributionEvidence
+            if (packed.mixedAnswer && packed.sources.isNotEmpty() && lead == null && !generationFailed && attachments.isEmpty() &&
+                ExcerptRefusal.opensWith(output.toString())) {
+                val knowledge = PromptBuilder.buildModelOnly(question, framing)
+                val again = StringBuilder()
+                try {
+                    emit(ResearchEvent.Token("", replace = true))
+                    inference.generate(knowledge.prompt, outputBudget, savedPrefixChars = knowledge.savedPrefixChars).collect { token ->
+                        generatedTokenCount++
+                        again.append(token)
+                        emit(ResearchEvent.Token(AnswerText.mixed(AnswerChecks.removeDoses(
+                            AnswerChecks.removeOnlineAdvice(again.toString(), question), question, emptyList()), emptyList()), replace = true))
+                    }
+                } catch (error: CancellationException) {
+                    throw error
+                } catch (error: Exception) {
+                    // The refusal is still shown: a failed second attempt must not leave the screen empty.
+                    again.setLength(0)
+                }
+                if (again.isNotBlank() && !ExcerptRefusal.opensWith(again.toString())) {
+                    output.setLength(0)
+                    output.append(again)
+                    answerPacked = knowledge
+                    answerEvidence = emptyList()
+                    emit(ResearchEvent.Sources(emptyList()))
+                }
+            }
             val finishedAt = monotonicMillis()
             // Learn this phone's reading speed from the wait before the first token, counting only the
             // part of the prompt the engine read: restored instructions cost no reading time.
@@ -1234,15 +1266,15 @@ class ResearchOrchestrator(
             // The person is offline: advice to search the web, visit a site or use an app is removed.
             val raw = AnswerChecks.removeOfflineNarration(AnswerChecks.removeOnlineAdvice(output.toString(), question), question)
                 // The model's own explanation never carries an amount of medicine (see removeDoses).
-                .let { if (packed.mixedAnswer) AnswerChecks.removeDoses(it, question, attributionEvidence) else it }
+                .let { if (packed.mixedAnswer) AnswerChecks.removeDoses(it, question, answerEvidence) else it }
             val checked = if (packed.mixedAnswer) raw
                 else AnswerChecks.addTwelveHour(
-                    AnswerChecks.repairTimes(AnswerChecks.repairCitations(raw, attributionEvidence), attributionEvidence),
+                    AnswerChecks.repairTimes(AnswerChecks.repairCitations(raw, answerEvidence), answerEvidence),
                     question,
                 )
                 .let { text ->
                     if (packed.mixedAnswer || generationFailed) text
-                    else AnswerChecks.exceptionNote(question, attributionEvidence)?.let { "$text\n\n_${it}_" } ?: text
+                    else AnswerChecks.exceptionNote(question, answerEvidence)?.let { "$text\n\n_${it}_" } ?: text
                 }
                 .let { text ->
                     // Written by the app, not the model, so a partial read is always disclosed.
@@ -1250,16 +1282,16 @@ class ResearchOrchestrator(
                     if (coverage == null || generationFailed) text else "$text\n\n_${coverage}_"
                 }
             // The final checked text, under its lead.
-            emit(ResearchEvent.Token(compose(if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked), replace = true))
-            val modelText = if (packed.mixedAnswer) AnswerText.mixed(raw, attributionEvidence) else checked
+            emit(ResearchEvent.Token(compose(if (packed.mixedAnswer) AnswerText.mixed(raw, answerEvidence) else checked), replace = true))
+            val modelText = if (packed.mixedAnswer) AnswerText.mixed(raw, answerEvidence) else checked
             val composed = when {
                 generationFailed -> compose(modelText) + "\n\n_The model explanation could not be completed._"
                 else -> compose(modelText)
             }
-            val attributed = SavedEvidenceAppendix.append(composed, packed)
+            val attributed = SavedEvidenceAppendix.append(composed, answerPacked)
             if (generationFailed || attributed != composed) emit(ResearchEvent.Token(attributed, replace = true))
-            val citations = AnswerText.citationAudit(attributed, packed.sources.size)
-            val rawCitations = AnswerText.citationAudit(output.toString(), packed.sources.size)
+            val citations = AnswerText.citationAudit(attributed, answerPacked.sources.size)
+            val rawCitations = AnswerText.citationAudit(output.toString(), answerPacked.sources.size)
             emit(
                 ResearchEvent.Complete(
                     ResearchMetrics(

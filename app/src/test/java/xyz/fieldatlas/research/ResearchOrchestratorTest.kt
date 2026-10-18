@@ -378,4 +378,52 @@ class ResearchOrchestratorTest {
         assertEquals("Another local research run is active", (second.single() as ResearchEvent.Failed).message)
         first.cancel()
     }
+
+    @Test fun explanationThatOnlySaysTheExcerptsMissIsAskedAgainWithoutThem() = runBlocking {
+        val unrelated = Evidence("boat", "boat:0", "Boat — History", "Local",
+            "Boats float on rivers and seas. The first boats were dugout canoes, and boats have carried goods for thousands of years.", -1.0)
+        val refusal = "The provided excerpts do not explain why boats float."
+        val knowledge = "Yes. A boat floats because the water it pushes aside weighs as much as the boat."
+        val prompts = mutableListOf<String>()
+        val model = object : InferenceGateway {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override suspend fun unload() = Unit
+            override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow { emit("UNSUPPORTED") }
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+                prompts += prompt
+                emit(when { "EVIDENCE:" in prompt -> refusal; "offline knowledge only" in prompt -> knowledge; else -> "boats, float" })
+            }
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(unrelated) }, model)
+            .research("Do boats float?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertTrue(prompts.toString(), prompts.any { "EVIDENCE:" in it })
+        assertTrue(answer, answer.contains(knowledge))
+        assertFalse(answer, answer.contains(refusal))
+        assertFalse(answer, answer.contains("Saved excerpts"))
+        assertTrue(answer, answer.startsWith("## " + AnswerText.MODEL_LABEL))
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().last().evidence.isEmpty())
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
+    @Test fun aSecondRefusalKeepsTheFirstReplyAndItsExcerpts() = runBlocking {
+        val unrelated = Evidence("boat", "boat:0", "Boat — History", "Local",
+            "Boats float on rivers and seas. The first boats were dugout canoes, and boats have carried goods for thousands of years.", -1.0)
+        val refusal = "The provided excerpts do not explain why boats float."
+        val model = object : InferenceGateway {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override suspend fun unload() = Unit
+            override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow { emit("UNSUPPORTED") }
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+                emit(when { "EVIDENCE:" in prompt -> refusal; "offline knowledge only" in prompt -> "No sources cover this, so I cannot answer from the provided text."; else -> "boats, float" })
+            }
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(unrelated) }, model)
+            .research("Do boats float?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertTrue(answer, answer.contains(refusal))
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().last().evidence.isNotEmpty())
+    }
 }
