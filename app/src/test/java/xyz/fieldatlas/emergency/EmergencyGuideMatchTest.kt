@@ -766,4 +766,18 @@ class EmergencyGuideMatchTest {
         // Blood running into an eye from a cut is still the bleeding.
         assertNotEquals("eye-injury", match("cut above his eye and blood keeps running into it"))
     }
+
+    @Test fun someoneOutButBreathingIsPutOnTheirSide() {
+        // Breathing but not waking: the recovery position (and the call for help every urgent guide opens with), not CPR.
+        assertEquals("recovery-position", match("my friend fainted and is breathing but not waking up, what do I do"))
+        assertEquals("recovery-position", match("my 16 yr old drank half a bottle of vodka, puked and now passed out cold breathing slow"))
+        // Not breathing, or only gasping, is still CPR.
+        assertEquals("cpr", match("my dad collapsed and is not breathing and wont wake up"))
+        assertEquals("cpr", match("she wont wake up and is just gasping every few seconds"))
+        // Someone who fainted and came round needs no side position.
+        assertNotEquals("recovery-position", match("my husband fainted at the doctors when he saw the needle, came round in seconds and is chatting now"))
+        // Out after drink and breathing: on their side first, ahead of the poisoning guide.
+        assertEquals("recovery-position", match("My mate drank way too much at the beach party and is passed out on his back, " +
+            "snoring strangely. We can't properly wake him and he threw up a bit earlier."))
+    }
 }

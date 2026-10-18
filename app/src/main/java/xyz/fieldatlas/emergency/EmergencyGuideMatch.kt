@@ -455,6 +455,21 @@ object EmergencyGuideMatch {
         "(?i)\\b((?:not|isn['’]?t|wasn['’]?t|stopped|no longer) breathing|(?:doesn['’]?t|does not) breathe|no pulse|no heartbeat|" +
             "unresponsive|not responding|won['’]?t wake up|(?:$PERSON)\\b(?:[^.?!]{0,60}? and)? (?:isn['’]?t|wasn['’]?t) responding)\\b(?! to\\b)",
     )
+    /**
+     * Out but breathing: "breathing but not waking up", "passed out on his back snoring, we can't wake him". The person
+     * goes on their side (the recovery position guide), not into CPR, which is for someone who is not breathing.
+     */
+    private val outSigns = Regex(
+        "(?i)\\b(?:won['’]?t|wont|will not|can['’]?t|cant|cannot|couldn['’]?t|not) (?:properly |fully |really )?(?:wake|waking|rouse)|" +
+            "\\bnot waking\\b|\\bunconscious\\b|\\bunresponsive\\b|\\bnot responding\\b|\\bout cold\\b",
+    )
+    private fun outButBreathing(question: String) = outSigns.containsMatchIn(question) && stillBreathing.containsMatchIn(question) &&
+        !noBreath.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
+    private val stillBreathing = Regex("(?i)\\b(?:breathing|breathes|snoring|snores)\\b")
+    private val noBreath = Regex(
+        "(?i)\\b(?:not|isn['’]?t|isnt|wasn['’]?t|stopped|no longer|no|barely|hardly|can['’]?t feel (?:any |his |her |their )?|" +
+            "cant feel (?:any |his |her |their )?|can['’]?t see (?:any |him |her |them )?)\\s*(?:breathing|breath)|\\bgasp\\w*|no pulse|no heartbeat",
+    )
     /** In or out of the water: the drowning guide starts with rescue breaths. */
     private val inWater = Regex(
         "(?i)\\b(drown\\w*|swimm\\w*|underwater|(?:in|into|under|out of) (?:the |a |an |our |my |his |her |their )?(?:\\w+ )?" +
@@ -647,9 +662,11 @@ object EmergencyGuideMatch {
         if ((sourceResearch.containsMatchIn(question) || evidenceResearch.containsMatchIn(question.replace(carefulRequest, " "))) &&
             !personalSituation.containsMatchIn(question) &&
             !someoneInvolved.containsMatchIn(question)) return emptyList()
+        // Someone out but breathing is happening now, however long the message that tells it.
+        val sideways = outButBreathing(question)
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
-        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question)) return emptyList()
+        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways) return emptyList()
         if (onScreen.containsMatchIn(question) && !personalSituation.containsMatchIn(question)) return emptyList()
         // A burn while cooking still names the body ("burned my hand on the pan"); housework and recipes do not.
         if (kitchenOrHousework.containsMatchIn(question) && !bodyPart.containsMatchIn(question)) return emptyList()
@@ -702,7 +719,7 @@ object EmergencyGuideMatch {
         // main sign, its own guide stays: those steps are for a person who cannot breathe.
         val top = scored.maxOfOrNull { it.second } ?: 0
         val revive = when {
-            !noSignsOfLife.containsMatchIn(question) -> null
+            !noSignsOfLife.containsMatchIn(question) || sideways -> null
             scored.any { (guide, score, specific) -> guide.id in airwayGuides && specific && score > 0 && score == top } -> null
             inWater.containsMatchIn(question) -> "drowning"
             else -> "cpr"
@@ -726,6 +743,8 @@ object EmergencyGuideMatch {
             guide to when {
                 guide.id == revive -> maxOf(score, 1)
                 allergic && guide.id == "anaphylaxis" -> top + 1
+                // On their side first: an airway blocked by the tongue or vomit kills faster than most causes of being out.
+                sideways && guide.id == "recovery-position" -> top + 1
                 numbOnly && guide.id == "frostbite" && score > 0 -> 1
                 heatOnly && guide.id == "heat-illness" -> maxOf(score, 1) + HEAT_BONUS
                 outdoors && guide.id == "lightning-backcountry" && score > 0 -> score + LIGHTNING_BONUS
@@ -751,7 +770,7 @@ object EmergencyGuideMatch {
         // "I ate shellfish and now I have hives and my throat feels tight": an allergic reaction told as it happens.
         val reacting = allergic && inTheSituation.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
         return if (words.size <= 4 || dangerous || revive != null || intent.containsMatchIn(question) ||
-            personalSituation.containsMatchIn(question) || namedForSomeone || reacting || toldAsSigns) order else byGuideText(question, guides)
+            personalSituation.containsMatchIn(question) || namedForSomeone || reacting || toldAsSigns || sideways) order else byGuideText(question, guides)
     }
 
     /**
@@ -771,7 +790,7 @@ object EmergencyGuideMatch {
         // ranking must not overrule the person with a heart attack guide.
         if (panic.containsMatchIn(question)) return emptyList()
         val medical = guides.filter { guide ->
-            (guide.category == "medical" || guide.id in bodyConditions) && !ruledOut(guide, question) &&
+            (guide.category == "medical" || guide.id in bodyConditions) && guide.id !in keywordOnly && !ruledOut(guide, question) &&
                 // A guide's required context still holds: numb fingers at a keyboard are not frostbite.
                 requiredContext[guide.id]?.let { it.containsMatchIn(question) || guide.id == "frostbite" && freezingTemperature(question) } != false &&
                 bodyConditionContext[guide.id]?.containsMatchIn(question) != false &&
@@ -788,6 +807,11 @@ object EmergencyGuideMatch {
         return if (top >= TEXT_FLOOR && top >= TEXT_LEAD * scored[1].second) listOf(best to 1) else emptyList()
     }
 
+    /**
+     * Guides only their keywords or their own rule choose, kept out of the text ranking and its word weights: the recovery
+     * position's article is about airways and positions, words a cold, smoke or stroke message also uses.
+     */
+    private val keywordOnly = setOf("recovery-position")
     /** What heat, cold and water loss do to a body, beside the medical guides; weather and terrain guides stay with keywords. */
     private val bodyConditions = setOf("heat-illness", "hypothermia", "frostbite", "dehydration", "sunburn")
     private val usualEpisode = Regex("(?i)\\b(?:usual|always|like (?:her|his|my|their|the) (?:usual|other|last|normal)|same as (?:always|before|usual|last time)|" +
@@ -851,7 +875,7 @@ object EmergencyGuideMatch {
 
     private fun guideIndex(guides: List<EmergencyGuide>): GuideIndex {
         indexed?.let { (key, index) -> if (key === guides) return index }
-        val docs = guides.associate { guide ->
+        val docs = guides.filterNot { it.id in keywordOnly }.associate { guide ->
             guide.id to textTerms(listOf(guide.title, guide.keywords.joinToString(" "), guide.plainText()).joinToString(" "))
                 .groupingBy { it }.eachCount()
         }

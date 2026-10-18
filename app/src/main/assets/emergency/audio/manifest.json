@@ -6,7 +6,7 @@
   "speed": 1.0,
   "lang": "en"
  },
- "scriptSha256": "e60f879ccdfeffa272ba558fbea0782e3467ebbc5cfff0930e58f1bb44f854a7",
+ "scriptSha256": "7e96aaf7ecfbede2c1c3aebd9208b974cf26afbd40f6400fb5218a1500a6d803",
  "guides": {
   "altitude-sickness": {
    "file": "altitude-sickness.ogg",
@@ -3775,6 +3775,112 @@
     {
      "startMs": 145643,
      "shown": "Consult your doctor or pharmacist immediately for a new supply."
+    }
+   ]
+  },
+  "recovery-position": {
+   "file": "recovery-position.ogg",
+   "durationMs": 230288,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "In first aid, the recovery position (also called semi-prone) is one of a series of variations on a lateral recumbent or three-quarters prone position of the body, often used for unconscious but breathing casualties."
+    },
+    {
+     "startMs": 24455,
+     "shown": "An unconscious person, a person who is assessed on the Glasgow Coma Scale (GCS) at eight or below, in a supine position (on the back) may not be able to maintain an open airway as a conscious person would."
+    },
+    {
+     "startMs": 39636,
+     "shown": "This can lead to an obstruction of the airway, restricting the flow of air and preventing gaseous exchange, which then causes hypoxia, which is life-threatening."
+    },
+    {
+     "startMs": 51046,
+     "shown": "Thousands of fatalities occur every year in casualties where the cause of unconsciousness was not fatal, but where airway obstruction caused the patient to suffocate."
+    },
+    {
+     "startMs": 63014,
+     "shown": "This is especially true for unconscious pregnant women; once turned on to their left side, pressure is relieved on the inferior vena cava, and venous return is not restricted."
+    },
+    {
+     "startMs": 75470,
+     "shown": "The cause of unconsciousness can be any reason from trauma to intoxication from alcohol."
+    },
+    {
+     "startMs": 82535,
+     "shown": "Purpose"
+    },
+    {
+     "startMs": 84703,
+     "shown": "The recovery position is designed to prevent suffocation through obstruction of the airway, which can occur in unconscious supine patients."
+    },
+    {
+     "startMs": 94957,
+     "shown": "The supine patient is at risk of airway obstruction from two routes:"
+    },
+    {
+     "startMs": 100717,
+     "shown": "Mechanical obstruction: In this instance, a physical object obstructs the airway of the patient."
+    },
+    {
+     "startMs": 108438,
+     "shown": "In most cases this is the patient's own tongue, as the unconsciousness leads to a loss of control and muscle tone, causing the tongue to fall to the back of the pharynx, creating an obstruction."
+    },
+    {
+     "startMs": 121648,
+     "shown": "This can be controlled (to an extent) by a trained person using airway management techniques."
+    },
+    {
+     "startMs": 128677,
+     "shown": "Fluid obstruction: Fluids, usually vomit, can collect in the pharynx, effectively causing the person to drown."
+    },
+    {
+     "startMs": 137650,
+     "shown": "The loss of muscular control which causes the tongue to block the throat can also lead to the stomach contents flowing into the throat, called passive regurgitation."
+    },
+    {
+     "startMs": 148757,
+     "shown": "Fluid which collects in the back of the throat can also flow down into the lungs."
+    },
+    {
+     "startMs": 154529,
+     "shown": "Another complication can be stomach acid burning the inner lining of the lungs, causing aspiration pneumonia."
+    },
+    {
+     "startMs": 162410,
+     "shown": "Placing a patient in the recovery position gives gravity assistance to the clearance of physical obstruction of the airway by the tongue, and also gives a clear route by which fluid can drain from the airway."
+    },
+    {
+     "startMs": 177098,
+     "shown": "The International Liaison Committee on Resuscitation (ILCOR) does not recommend one specific recovery position, but advises on six key principles to be followed:"
+    },
+    {
+     "startMs": 189982,
+     "shown": "The casualty should be in as near a true lateral position as possible with the head dependent to allow free drainage of fluid."
+    },
+    {
+     "startMs": 198953,
+     "shown": "The position should be stable."
+    },
+    {
+     "startMs": 201789,
+     "shown": "Any pressure of the chest that impairs breathing should be avoided."
+    },
+    {
+     "startMs": 207088,
+     "shown": "It should be possible to turn the victim onto the side and return to the back easily and safely, having particular regard to the possibility of cervical spine injury."
+    },
+    {
+     "startMs": 219224,
+     "shown": "Good observation of and access to the airway should be possible."
+    },
+    {
+     "startMs": 224583,
+     "shown": "The position itself should not give rise to any injury to the casualty."
     }
    ]
   },
