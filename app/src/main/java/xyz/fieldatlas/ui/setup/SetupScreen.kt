@@ -128,7 +128,8 @@ fun SetupScreen(
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.Top) {
-                        Icon(FieldAtlasIcons.Offline, null, Modifier.size(18.dp),
+                        // A plain note marker: the dino is the Offline chip's, a few lines above.
+                        Icon(FieldAtlasIcons.Info, null, Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.primary)
                         Text("You’re offline. Import saved packs, or reconnect to download.",
                             style = MaterialTheme.typography.bodySmall,
