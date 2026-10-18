@@ -178,12 +178,9 @@ fun AnswerScreen(
             FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank() || running) null else ({
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
-            // While a guide is read, Stop stays in reach here, and the guide scrolls to the sentence being read.
-            // Guides and answers read the same way: Stop pinned under the bar while the page scrolls to the sentence read.
-            if (readingHere != null && readAloud != null && guideId != null) LiveReading(readAloud, readKey) {
-                ReadingControl(it, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
-            }
-            if (readingHere != null && readAloud != null && guideId == null && playerScrolledAway) LiveReading(readAloud, readKey) {
+            // Guides and answers read the same way: the player sits where Read aloud was and pins here once scrolled away,
+            // so Stop stays in reach while a guide scrolls to the sentence being read.
+            if (readingHere != null && readAloud != null && playerScrolledAway) LiveReading(readAloud, readKey) {
                 Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
                     AnswerPlayerBar(it, onBack = readAloud::back, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop,
                         modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 8.dp))
@@ -244,8 +241,11 @@ fun AnswerScreen(
                             }
                             (state.metrics?.totalMillis ?: state.savedMillis)?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
                         }
-                        if (guideId != null && readAloud != null && readingHere == null) {
-                            ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }
+                        if (guideId != null && readAloud != null) {
+                            if (readingHere == null) ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }
+                            else LiveReading(readAloud, readKey) {
+                                AnswerPlayerBar(it, onBack = readAloud::back, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
+                            }
                         }
                         if (listenable && readAloud != null) {
                             if (readingHere == null) {
