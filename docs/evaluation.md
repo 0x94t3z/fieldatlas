@@ -86,6 +86,40 @@ each on its own, they went from 1.90 to 3.93 of 10 on average: 18 better, 5 wors
 gained most; questions reaching the model with no passage went from 3 to 0. On the untailored set
 26 the same change moved little, as the table above shows.
 
+## Answering when the excerpts miss the question (October 19)
+
+When the cited answer fails its review, Field Atlas writes a model explanation labelled as
+unverified. That prompt keeps the model to the retrieved excerpts, so when none of them is about the
+question the model said so and stopped, above unrelated saved excerpts: "No excerpt supports
+information about swallowed batteries" over a stock-car race report. On set 33 (24 questions and 8
+follow-ups, asked on the 12 GB emulator), 7 of 32 answers were such refusals, among them a swallowed
+button battery, Mexico City's tap water, high blood pressure and muscle loss with age.
+
+Such a reply is now asked again without the excerpts and shown under the same unverified label,
+with no excerpt list. A second refusal keeps the first reply. Answers under a quoted passage, from
+files, or limited to saved sources are unchanged.
+
+Qwen3.5 4B answered set 33 and a new sealed set of 40 (set 34,
+[questions](fieldtest/heldout34.jsonl), SHA-256
+`1176dd52d76db3e61561cda8c950c4778ddde4b893ad5d90d694a440392cfa78`, written by an AI model that read
+no repository file) on the desktop pipeline, before and after. The change altered 7 answers of set 33
+and 1 of set 34 ("does cracking your knuckles give you arthritis"). Graders scored those 8 answers,
+before and after, beside a web-and-AI reference, without knowing which was which, in two rounds:
+
+| The 8 answers that changed | Before | After |
+| --- | ---: | ---: |
+| Share of the reference answers | 10.2% | 67.3% |
+| Better / worse | | 7 / 0 (p = 0.016) |
+| Factual errors per answer | 0.38 | 0.88 |
+
+**The cost.** A refusal cannot be wrong; an answer can. "9 am Monday in New York is what time in
+Tokyo" was answered "6 hours ahead" (it is 14), and the battery answer added a step no first-aid
+guide gives. A swallowed battery now opens the poisoning guide instead: the emergency check knew
+"swallowed a button battery" but not "swallowed one of those small round watch batteries", and now
+lets words that describe the battery sit between.
+
+Every answer and grade: [the 8 changed answers](fieldtest/results-1.4.2/excerpt-refusals.jsonl).
+
 ## Questions about your own files (October 18)
 
 Field Atlas answers questions about a file the person attaches (a note, a letter, a results sheet,

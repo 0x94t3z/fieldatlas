@@ -38,6 +38,12 @@ on the phone, with no account and nothing sent anywhere.
   graded blind, answers went from 32% to 41% of web-and-AI answers, and refusals from 7 to 1
   ([details](../evaluation.md#questions-about-your-own-files-october-18)). Asking to "use my library"
   in the question adds the downloaded collections as before.
+- **An answer instead of "the excerpts do not say".** When none of the passages found is about the
+  question, the model now answers from what it knows, still labelled unverified, instead of saying
+  the passages miss it. On the 8 answers this changed, graded blind, they went from 10% to 67% of
+  web-and-AI answers, with more wrong details to check
+  ([details](../evaluation.md#answering-when-the-excerpts-miss-the-question-october-19)). A
+  swallowed battery, however it is described, opens the poisoning guide.
 - **Word problems that name places** ("leaves Tokyo at 17:05 … UTC+9") are worked from their own
   figures.
 - **Better passages for the model.** A place typed in lowercase counts as a place, a narrower
