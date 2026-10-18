@@ -86,6 +86,35 @@ each on its own, they went from 1.90 to 3.93 of 10 on average: 18 better, 5 wors
 gained most; questions reaching the model with no passage went from 3 to 0. On the untailored set
 26 the same change moved little, as the table above shows.
 
+## Biology & longevity on 40 longevity questions (October 18)
+
+Field Atlas is a research tool, and ageing and longevity are among the topics it is most likely to
+be asked about, so the Biology & longevity collection was rebuilt around 48,286 open-access
+ageing and longevity papers ([DATASETS.md](../DATASETS.md#biology--longevity-october-18)). To
+measure it, 40 new longevity questions were written by AI models that read no repository file
+and sealed before any run (set 30, [questions](fieldtest/heldout30.jsonl), SHA-256
+`690c867ab93dfd90bf8ddb7303bafd1f428a714a7e2fb711f9fda242798d6cf0`): evidence for an
+intervention (metformin, rapamycin, NAD+ boosters, senolytics), mechanisms, genes, comparisons
+and numbers such as the longest-lived animals. The 1.4.2 answer code answered each one on the
+desktop pipeline with all seven collections, once with the October 13 Biology edition and once
+with the October 18 one, with each model. Graders saw the four Field Atlas answers and a
+web-and-AI reference answer in random order, without knowing which was which, and scored them in
+two independent rounds of 8 graders.
+
+| Model | October 13 edition | October 18 edition |
+| --- | ---: | ---: |
+| Qwen3.5 2B | 23.0% | **35.6%** |
+| Qwen3.5 4B | 22.3% | **35.9%** |
+
+Scores are the share of the reference answers' total score. Of the answers that changed, 16 got
+better and 6 worse with the 2B (sign test p = 0.05), and 20 better and 3 worse with the 4B
+(p < 0.001). The gains were largest where the earlier edition had nothing to quote: questions
+about genes went from 8-14% to 37-40%, and questions asking for a number from 28-36% to 54-55%.
+Questions weighing human evidence gained least (12-17% to 23-24%): the papers often describe mouse
+results, and the models do not always say that the human evidence is thinner. Every question,
+answer and grade is in
+[heldout30-biology.jsonl](fieldtest/results-1.4.2/heldout30-biology.jsonl).
+
 ## 1.4.2 at the bounty's limits on an Android emulator (October 18)
 
 The bounty allows up to 12 GB of memory and 50 GB of assets. We set up an Android 15 arm64 emulator
@@ -100,12 +129,14 @@ set the location to central Berlin, and asked 8 everyday questions with each mod
 | What | Size |
 | --- | ---: |
 | Qwen3.5 2B and Qwen3.5 4B | 4.41 GB |
-| Seven collections | 29.47 GB |
+| Seven collections | 32.30 GB |
 | Natural voice | 145 MB |
-| The app itself | 172 MB |
-| **Total** | **34.2 GB of the 50 GB allowed** |
+| The app itself | 173 MB |
+| **Total** | **37.0 GB of the 50 GB allowed** |
 
-No temporary download files were left behind.
+No temporary download files were left behind. This is measured again after the Biology & longevity
+collection grew to 2.86 GB installed (the October 13 edition, 27 MB, gave 34.2 GB). The earlier
+edition, which Library keeps until it is removed, is not counted.
 
 **Memory while answering:**
 
@@ -115,6 +146,11 @@ No temporary download files were left behind.
 | Qwen3.5 4B | 6.5 GB | 6.9 GB |
 
 The app's memory is Android's PSS figure, which also counts memory the system had moved to swap.
+
+These answers used the October 13 Biology edition. With the October 18 edition installed, a
+longevity question ("what do senolytic drugs do in ageing", answered with the 4B in 2 min 21 s
+and citing two PubMed Central papers) took the app to at most 6.3 GB, with at least 7.1 GB left on
+the phone, inside the figures above.
 
 **Offline:** with airplane mode on, all 16 answers finished, with no connection. Places near you
 and the fuel word problem came from saved data in seconds, and with the 2B so did the wallet answer,

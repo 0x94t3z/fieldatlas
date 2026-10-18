@@ -82,14 +82,14 @@
     },
     {
       "id": "world-knowledge-biology",
-      "version": "2026.10.13",
+      "version": "2026.10.18",
       "title": "Biology & longevity",
-      "description": "9,260 passages from the OpenStax Biology 2e textbook, MedlinePlus health topics, ageing gene records and six open-access ageing reviews · October 2026. Not medical advice.",
-      "license": "CC-BY-4.0 AND CC-BY-3.0 AND LicenseRef-US-Government-Work",
-      "bytes": 8183535,
-      "installedBytes": 27291455,
-      "sha256": "06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376",
-      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13/world-knowledge-biology-2026.10.13.fapack",
+      "description": "900,714 passages from 48,286 open-access ageing and longevity papers, the OpenStax Biology 2e textbook, MedlinePlus health and genetics summaries and the Human Ageing Genomic Resources databases · October 2026. Not medical advice.",
+      "license": "CC-BY-4.0 AND CC-BY-3.0 AND CC0-1.0 AND LicenseRef-US-Government-Work",
+      "bytes": 1075685456,
+      "installedBytes": 2855220193,
+      "sha256": "e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18/world-knowledge-biology-2026.10.18.fapack",
       "recommended": true,
       "category": "Science"
     }

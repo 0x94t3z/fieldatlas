@@ -40,7 +40,7 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 | Vegan places | about 24 MB (77 MB installed) | OpenStreetMap places tagged fully vegan or with vegan options, worldwide |
 | Essentials | about 986 MB (3.62 GB installed) | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
 | Cryptography & Ethereum | about 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
-| Biology & longevity | about 8 MB (27 MB installed) | OpenStax Biology 2e, MedlinePlus health topics, ageing gene records and six open-access ageing reviews; not medical advice |
+| Biology & longevity | about 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers from PubMed Central, OpenStax Biology 2e, MedlinePlus health and genetics summaries and ageing databases; not medical advice |
 
 A collection installed in a newer version takes over from the older one, which stays installed
 and switched off until you delete it in Library.

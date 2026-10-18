@@ -1,0 +1,40 @@
+{"id": "h30-01", "cat": "evidence", "q": "does metformin actually extend lifespan or is that just from diabetes observational data? what did the mouse Interventions Testing Program find when it tested metformin?"}
+{"id": "h30-02", "cat": "mechanism", "q": "What is the senescence-associated secretory phenotype (SASP), and how do senescent cells damage the tissue around them?"}
+{"id": "h30-03", "cat": "numbers", "q": "who holds the record for the longest verified human lifespan and exactly how old were they when they died"}
+{"id": "h30-04", "cat": "genes", "q": "Which FOXO3 variants have been linked to exceptional longevity in humans, and in which cohort was the association first reported?"}
+{"id": "h30-05", "cat": "comparison", "q": "disposable soma theory vs antagonistic pleiotropy - what's the actual difference between these two evolutionary theories of ageing?"}
+{"id": "h30-06", "cat": "evidence", "q": "How strong is the evidence that rapamycin extends lifespan in mice, and did it still work in the 2009 Interventions Testing Program study when treatment started late in life?"}
+{"id": "h30-07", "cat": "mechanism", "q": "why do telomeres get shorter every time a cell divides, and how does telomerase counteract that"}
+{"id": "h30-08", "cat": "evidence", "q": "What did the CALERIE 2 trial find about moderate calorie restriction in healthy non-obese adults, including its effect on the pace of biological ageing?"}
+{"id": "h30-09", "cat": "numbers", "q": "how long can greenland sharks live? what was the age estimate from the radiocarbon eye lens study"}
+{"id": "h30-10", "cat": "mechanism", "q": "how does inhibiting mTORC1 switch on autophagy at the molecular level?"}
+{"id": "h30-11", "cat": "genes", "q": "is APOE4 bad for longevity and APOE2 good? how do the APOE alleles differ in frequency between centenarians and the general population"}
+{"id": "h30-12", "cat": "comparison", "q": "Which is a better biomarker of biological age: leukocyte telomere length or DNA methylation (epigenetic) clocks, in terms of predicting mortality and age-related disease?"}
+{"id": "h30-13", "cat": "evidence", "q": "is there any real human evidence that NMN or nicotinamide riboside supplements slow ageing, or is it mostly mouse data?"}
+{"id": "h30-14", "cat": "mechanism", "q": "Why do NAD+ levels decline with age, and what role does the enzyme CD38 play in that decline?"}
+{"id": "h30-15", "cat": "evidence", "q": "resveratrol was supposed to activate sirtuins and mimic calorie restriction. does it actually extend lifespan in mice fed a normal diet?"}
+{"id": "h30-16", "cat": "genes", "q": "What happens to mice that lack the klotho gene, and what happens to lifespan when klotho is overexpressed?"}
+{"id": "h30-17", "cat": "numbers", "q": "By how much did the daf-2 mutation extend lifespan in C. elegans in Cynthia Kenyon's 1993 paper, and which other gene did that extension depend on?"}
+{"id": "h30-18", "cat": "comparison", "q": "in mice, is the lifespan benefit of calorie restriction from eating fewer calories or from the fasting period between meals? what did the recent studies separating the two find"}
+{"id": "h30-19", "cat": "mechanism", "q": "what is inflammaging and what drives chronic low grade inflammation as people get older"}
+{"id": "h30-20", "cat": "evidence", "q": "What clinical evidence exists for the senolytic combination dasatinib plus quercetin in humans, and which conditions have the early trials looked at?"}
+{"id": "h30-21", "cat": "comparison", "q": "naked mole-rat vs mouse: they're similar sized rodents, so why does the naked mole-rat live roughly ten times longer and almost never get cancer?"}
+{"id": "h30-22", "cat": "genes", "q": "what did studies of the Ecuadorian Laron syndrome cohort (growth hormone receptor deficiency) find about their rates of cancer and diabetes"}
+{"id": "h30-23", "cat": "mechanism", "q": "How does clonal hematopoiesis of indeterminate potential (CHIP) arise, which genes are most often mutated, and why does it raise cardiovascular risk?"}
+{"id": "h30-24", "cat": "evidence", "q": "how strongly does cardiorespiratory fitness (VO2max) predict all-cause mortality? is low fitness really as bad as smoking"}
+{"id": "h30-25", "cat": "numbers", "q": "What is the maximum recorded lifespan of a naked mole-rat?"}
+{"id": "h30-26", "cat": "evidence", "q": "Does a daily low-dose aspirin help healthy older people live longer without disability? What did the ASPREE trial conclude?"}
+{"id": "h30-27", "cat": "mechanism", "q": "what is mitohormesis and how can mild mitochondrial stress make worms live longer?"}
+{"id": "h30-28", "cat": "comparison", "q": "Horvath's original clock vs GrimAge: how were they built differently, and which one predicts time to death better?"}
+{"id": "h30-29", "cat": "genes", "q": "Elephants rarely get cancer despite their size. How many copies of the TP53 gene do they have compared with humans, and how does that help explain Peto's paradox?"}
+{"id": "h30-30", "cat": "evidence", "q": "does young blood or young plasma rejuvenate old people? what did heterochronic parabiosis in mice show, and what's the human evidence"}
+{"id": "h30-31", "cat": "numbers", "q": "In the Interventions Testing Program, how much did acarbose increase median lifespan in male mice compared with female mice?"}
+{"id": "h30-32", "cat": "mechanism", "q": "how does partial reprogramming with the Yamanaka factors reverse signs of ageing in mice without turning cells into tumours"}
+{"id": "h30-33", "cat": "genes", "q": "Which gene variants did the Longevity Genes Project find enriched in Ashkenazi Jewish centenarians, and what do they do to cholesterol particles?"}
+{"id": "h30-34", "cat": "comparison", "q": "aerobic exercise vs strength training for longevity - which is linked to lower all-cause mortality, and is doing both better than either alone?"}
+{"id": "h30-35", "cat": "evidence", "q": "Is there good evidence that alpha-ketoglutarate extends lifespan? What did the mouse study with calcium alpha-ketoglutarate find, and has it been shown in humans?"}
+{"id": "h30-36", "cat": "mechanism", "q": "What does loss of proteostasis mean in ageing, and how do chaperones, the proteasome and autophagy normally keep proteins from aggregating?"}
+{"id": "h30-37", "cat": "numbers", "q": "how many CpG sites does horvath's 2013 pan-tissue epigenetic clock use"}
+{"id": "h30-38", "cat": "evidence", "q": "Does time-restricted eating help with weight loss more than ordinary eating when calories aren't controlled? What did the 2020 TREAT randomized trial find?"}
+{"id": "h30-39", "cat": "mechanism", "q": "how do epigenetic clocks actually work, and is the methylation change a cause of ageing or just a marker of it?"}
+{"id": "h30-40", "cat": "evidence", "q": "is sleeping under 6 hours or over 9 hours a night linked to higher mortality, and how strong is the case that it's causal?"}

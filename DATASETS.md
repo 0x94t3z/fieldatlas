@@ -14,7 +14,7 @@ The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-bui
 | Vegan places (`osm-vegan-places`) | 2026.10.05-leviathan | 24,183,118 | `ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan) |
 | Essentials (`osm-essentials`) | 2026.10.05-leviathan | 986,143,236 | `f41811ed8fe4aa1883adb98a57cd75b60aaf30f918358eb3a5c391fc85f7e2d2` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/osm-essentials/2026.10.05-leviathan) |
 | Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05-leviathan | 59,453,558 | `3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan) |
-| Biology & longevity (`world-knowledge-biology`) | 2026.10.13 | 8,183,535 | `06e49130ad80d75a83275b7c0c09ac1ba47fb6ea2e3f6c5786b0426caed2b376` | OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026; Human Ageing Genomic Resources, 13 October 2026; six PubMed Central reviews | CC BY 4.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/ba93877fc414e271b6299f09aec26d916a2e8707/world-knowledge-biology/2026.10.13) |
+| Biology & longevity (`world-knowledge-biology`) | 2026.10.18 | 1,075,685,456 | `e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66` | 48,286 open-access ageing and longevity papers from PubMed Central, read 18 October 2026; OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026, and Genetics summaries, 18 October 2026; Human Ageing Genomic Resources, 13 and 18 October 2026 | CC BY 4.0, CC0 1.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18) |
 
 **Where to download.** Every collection is hosted on Hugging Face, in
 [Field Atlas Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) and
@@ -334,6 +334,45 @@ SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its 
 the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
+
+## Biology & longevity (October 18)
+
+The October 13 collection grown into a research library on ageing and longevity. It keeps every
+source of the October 13 edition (below) and adds:
+
+- **48,286 ageing and longevity papers from PubMed Central's open-access collection.** Selected
+  with one PubMed Central search (the ageing, longevity, cellular senescence and calorie
+  restriction subject headings, and lifespan, healthspan, senolytic, geroscience, biological age
+  and epigenetic clock in titles and abstracts), limited to papers under CC BY or CC0. Each
+  paper's licence and retraction status were read again from PubMed Central's open-access copy on
+  18 October 2026; papers under any other licence, or marked retracted, were left out. From a
+  research article the collection keeps the abstract, introduction, discussion and conclusions;
+  from a review, every topic section. Methods, results tables, figures and reference lists are
+  left out. Every passage names its paper, and `ARTICLES.tsv` beside the pack lists every paper
+  with its authors, journal, year, DOI, licence and link.
+- **MedlinePlus Genetics summaries** (US government work, public domain in the United States):
+  2,830 genes and conditions.
+- **Three more Human Ageing Genomic Resources databases** (CC BY 3.0): AnAge (4,645 animal
+  species with their lifespans), DrugAge (3,423 lifespan results for compounds in model
+  organisms) and GenDR (215 genes linked to dietary restriction).
+
+That is 900,714 passages from 303,085 documents, searched by Leviathan on the phone. The
+`.fapack` (`world-knowledge-biology`, version `2026.10.18`, schema 2) is 1,075,685,456 bytes and
+installs to 2,855,220,193 bytes; SHA-256
+`e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66`; licence field
+`CC-BY-4.0 AND CC-BY-3.0 AND CC0-1.0 AND LicenseRef-US-Government-Work`. `ATTRIBUTION.txt`, inside
+the pack and beside it on Hugging Face, carries the credits and licences of every source. Two
+OpenStax books considered for it, Anatomy and Physiology 2e and Microbiology, were left out: their
+pinned revisions are CC BY-NC-SA, which does not allow this use.
+
+On 40 new longevity questions, sealed before the collection was used and graded blind, answers
+went from 23% to 36% of web-and-AI answers with either model
+([details](docs/evaluation.md#biology--longevity-on-40-longevity-questions-october-18)).
+Nothing in this collection is clinical guidance, and a finding in mice or worms is not evidence
+that the same works in people.
+
+Phones with the October 13 edition keep it until they update in Library, which offers the
+October 18 edition as an update and switches over once it is installed.
 
 ## Biology & longevity (October 13)
 

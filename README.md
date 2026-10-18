@@ -99,7 +99,7 @@ method, including two changes that were tried and not adopted.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with both models, every collection and the voice installed, the app
-  takes 34.2 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.5 GB of
+  takes 37.0 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.5 GB of
   memory while answering ([details](docs/evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
 - Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
   GrapheneOS or on a real 8 GB phone.
@@ -118,10 +118,10 @@ All collections are optional and download inside the app from Hugging Face
 | Vegan places | 24 MB (77 MB installed) | OpenStreetMap places tagged vegan or with vegan options |
 | Essentials | 986 MB (3.62 GB installed) | Pharmacies, hospitals, ATMs, toilets, water, stations and more from OpenStreetMap |
 | Cryptography & Ethereum | 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards |
-| Biology & longevity | 8 MB (27 MB installed) | A biology textbook, health topics, ageing gene data, six research reviews |
+| Biology & longevity | 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers, a biology textbook, health and genetics summaries, ageing databases |
 
 Sources, checksums and licences for each one are in [DATASETS.md](DATASETS.md#collections-the-app-offers).
-The default model and every collection together take about 30.9 GB.
+The default model and every collection together take about 33.7 GB.
 
 ## Watch it work
 

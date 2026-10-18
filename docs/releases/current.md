@@ -28,6 +28,11 @@ on the phone, with no account and nothing sent anywhere.
   against 9 in 1.4.1, with no unsafe guide. Two guides are new: a chemical or object in the eye,
   and someone unconscious but breathing, who is now put on their side (the recovery position)
   instead of left lying down or sent to CPR, which stays for anyone not breathing.
+- **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
+  longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
+  more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new
+  longevity questions graded blind, answers went from 23% to 36% of web-and-AI answers with
+  either model. Phones with the earlier edition are offered it as an update in Library.
 - **Word problems that name places** ("leaves Tokyo at 17:05 … UTC+9") are worked from their own
   figures.
 - **Better passages for the model.** A place typed in lowercase counts as a place, a narrower
@@ -56,6 +61,9 @@ on the phone, with no account and nothing sent anywhere.
 - **Single questions are where 1.4.1 left them.** 1.4.1 scored 29% on an earlier, harder set. On
   the same 60 questions, 1.4.1 scores 37.3% and 1.4.2 36.3%. The gains above are in follow-ups,
   emergencies, word problems and the 4B.
+- **Longevity research** with the new Biology collection: 35.6% with the 2B and 35.9% with the 4B
+  on 40 new longevity questions, against 23.0% and 22.3% with the earlier edition
+  ([details](../evaluation.md#biology--longevity-on-40-longevity-questions-october-18)).
 - **Strongest:** quick facts (55%) and emergencies (54%). **Weakest:** places in a named city
   (14%), cryptography (22%), explanations and synthesis (23%).
 
@@ -72,11 +80,11 @@ Every question, answer and grade is published in
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   The emergency guides are information, not training, and many were written for the United States.
 - **Map data and opening hours can be out of date.**
-- **Storage.** The 2B model and every collection take about 30.9 GB, or 32.5 GB with the 4B
-  instead; the natural voice adds 145 MB. Installing the Encyclopedia last needs room for its download and installed
-  copy at once: about 41.5 GB at the peak, inside the 50 GB budget.
+- **Storage.** The 2B model and every collection take about 33.7 GB, or 35.3 GB with the 4B
+  instead; the natural voice adds 145 MB. Installing the Encyclopedia last needs room for its
+  download and installed copy at once: about 44.3 GB at the peak, inside the 50 GB budget.
 - **Within the bounty's limits.** On an Android emulator with 12 GB of memory, everything the app
-  offers (both models, all seven collections and the voice) takes 34.2 GB of the 50 GB allowed.
+  offers (both models, all seven collections and the voice) takes 37.0 GB of the 50 GB allowed.
   Answering in airplane mode, the app used at most 3.3 GB of memory with the 2B and 6.5 GB with the
   4B, and all 40 test answers finished offline, including 6 research questions with a follow-up
   under each, per model
