@@ -16,6 +16,12 @@ class DiscoverSearchTest {
         assertTrue(DiscoverSearch.matches("café", "Travel places", "Cafe, hotels, sights"))
     }
 
+    @Test fun todaysCatalogueIsNeverFoldedSoANewEditionShows() {
+        assertFalse(DiscoverSearch.folds(7))
+        assertFalse(DiscoverSearch.folds(DiscoverSearch.FOLD_OVER))
+        assertTrue(DiscoverSearch.folds(DiscoverSearch.FOLD_OVER + 1))
+    }
+
     @Test fun nothingTypedMatchesEverything() {
         assertTrue(DiscoverSearch.matches("  ", "Encyclopedia"))
         assertTrue(DiscoverSearch.matches("", null))

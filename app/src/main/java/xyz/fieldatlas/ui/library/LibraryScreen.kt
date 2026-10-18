@@ -306,7 +306,7 @@ fun LibraryScreen(
             if (discovering && shows(DiscoverType.Models) && modelsFound.isNotEmpty()) {
             item { SectionLabel("Answer models") }
             if (downloads != null && queue != null) item(key = "model-offers") {
-                val fold = folded(DiscoverType.Models) && modelsFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL
+                val fold = folded(DiscoverType.Models) && DiscoverSearch.folds(modelsFound.size)
                 Column {
                 DownloadGroup((if (fold) modelsFound.take(DiscoverSearch.ROWS_BEFORE_SEE_ALL) else modelsFound).map { offer -> @Composable {
                     val item = DownloadItem.Model(offer)
@@ -317,7 +317,7 @@ fun LibraryScreen(
                         rowActions(downloads, item, onGet = { confirming = item },
                             discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }))
                 } })
-                if (modelsFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL && discoverQuery.isBlank() && discoverType == DiscoverType.All)
+                if (DiscoverSearch.folds(modelsFound.size) && discoverQuery.isBlank() && discoverType == DiscoverType.All)
                     DiscoverSeeAll(modelsFound.size, open = !fold) { toggleOpen(DiscoverType.Models) }
                 }
             }
@@ -384,7 +384,7 @@ fun LibraryScreen(
             }
             if (shows(DiscoverType.Knowledge) && freshFound.isNotEmpty() && downloads != null && queue != null) {
                 item { SectionLabel("Available to download") }
-                val fold = folded(DiscoverType.Knowledge) && freshFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL
+                val fold = folded(DiscoverType.Knowledge) && DiscoverSearch.folds(freshFound.size)
                 // One card per category, its collections listed inside it.
                 (if (fold) freshFound.take(DiscoverSearch.ROWS_BEFORE_SEE_ALL) else freshFound)
                     .groupBy { knowledgeCategory(it.id, it.category) }.forEach { (category, group) ->
@@ -399,7 +399,7 @@ fun LibraryScreen(
                         }
                     }
                 }
-                if (freshFound.size > DiscoverSearch.ROWS_BEFORE_SEE_ALL && discoverQuery.isBlank() && discoverType == DiscoverType.All)
+                if (DiscoverSearch.folds(freshFound.size) && discoverQuery.isBlank() && discoverType == DiscoverType.All)
                     item(key = "available-see-all") { DiscoverSeeAll(freshFound.size, open = !fold) { toggleOpen(DiscoverType.Knowledge) } }
             }
             if (available.isEmpty() && discoverQuery.isBlank() && !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }

@@ -50,6 +50,12 @@ object DiscoverSearch {
     /** Rows a kind shows before "See all", when nothing is typed and every kind is listed. */
     const val ROWS_BEFORE_SEE_ALL = 3
 
+    /** A kind folds to [ROWS_BEFORE_SEE_ALL] rows only past this many offers: today's seven collections all show, so
+     * a new edition is never behind "See all"; a catalogue that grows past a screen folds. */
+    const val FOLD_OVER = 10
+
+    fun folds(count: Int) = count > FOLD_OVER
+
     fun matches(query: String, vararg texts: String?): Boolean {
         val words = fold(query).split(Regex("\\s+")).filter { it.isNotEmpty() }
         if (words.isEmpty()) return true
