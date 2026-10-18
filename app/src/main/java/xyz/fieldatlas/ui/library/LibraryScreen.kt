@@ -199,8 +199,6 @@ fun LibraryScreen(
                         title = "Your library",
                         subtitle = "Choose what you carry offline.",
                         modifier = Modifier.weight(1f),
-                        titleStyle = MaterialTheme.typography.headlineLarge.copy(fontSize = 30.sp,
-                            lineHeight = 36.sp, fontWeight = FontWeight(650), letterSpacing = (-0.8).sp),
                     )
                     xyz.fieldatlas.ui.theme.FieldAtlasBareIconButton(
                         onClick = onImportPack,

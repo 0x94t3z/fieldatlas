@@ -126,7 +126,7 @@ fun FieldAtlasPageHeader(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
-    titleStyle: androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge,
+    titleStyle: androidx.compose.ui.text.TextStyle = fieldAtlasPageTitle(),
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, style = titleStyle)
@@ -362,6 +362,11 @@ fun FieldAtlasDisclosureRow(
         FieldAtlasExpandIcon(expanded, tint = MaterialTheme.colorScheme.primary)
     }
 }
+
+/** The title every tab opens with (Research, Library, History, More), so the four read as one app. */
+@Composable
+fun fieldAtlasPageTitle(): androidx.compose.ui.text.TextStyle = MaterialTheme.typography.headlineLarge.copy(
+    fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight(650), letterSpacing = (-0.8).sp)
 
 /**
  * Small label that opens a group of rows or cards. Sentence case on purpose: screen readers

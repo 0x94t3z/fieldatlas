@@ -239,7 +239,7 @@ private const val UNDO_MS = 8_000L
 @Composable
 private fun NotebookHeader(summary: String) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Your notebook", style = MaterialTheme.typography.headlineLarge)
+        Text("Your notebook", style = xyz.fieldatlas.ui.theme.fieldAtlasPageTitle())
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(FieldAtlasIcons.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(14.dp))
             Text(summary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

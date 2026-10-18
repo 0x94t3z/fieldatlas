@@ -53,8 +53,7 @@ fun MoreScreen(
     }
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 22.dp),
         contentPadding = PaddingValues(top = 20.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        item { FieldAtlasPageHeader("More", "Settings and app details.", titleStyle = MaterialTheme.typography.headlineLarge.copy(
-            fontSize = 30.sp, lineHeight = 36.sp, fontWeight = FontWeight(650))) }
+        item { FieldAtlasPageHeader("More", "Settings and app details.") }
         item {
             // Settings rows, always visible: the model (opens Library) and the one setting it has.
             MoreGroup("Answer model") {
@@ -189,7 +188,7 @@ private fun SettingRow(icon: ImageVector, title: String, detail: String?, expand
 @Composable
 private fun MoreGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel(title)
         FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) { Column(content = content) }
     }
 }
