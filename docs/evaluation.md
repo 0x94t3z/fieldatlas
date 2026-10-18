@@ -109,16 +109,43 @@ No temporary download files were left behind.
 
 **Memory while answering:**
 
-| Model | Most memory the app used | Least memory left on the phone |
+| Model (20 answers each, the research run below included) | Most memory the app used | Least memory left on the phone |
 | --- | ---: | ---: |
-| Qwen3.5 2B | 3.2 GB | 8.7 GB |
-| Qwen3.5 4B | 6.4 GB | 6.9 GB |
+| Qwen3.5 2B | 3.3 GB | 8.7 GB |
+| Qwen3.5 4B | 6.5 GB | 6.9 GB |
 
 The app's memory is Android's PSS figure, which also counts memory the system had moved to swap.
 
 **Offline:** with airplane mode on, all 16 answers finished, with no connection. Places near you
 and the fuel word problem came from saved data in seconds, and with the 2B so did the wallet answer,
 quoted from a saved passage. The rest were written by the model from the collections and cite them.
+
+**Research questions with follow-ups.** Field Atlas is an offline research tool, so on the same
+emulator, still in airplane mode, we asked 6 research questions (explain, compare, check a claim)
+and one follow-up under each, with each model: 24 answers
+([questions and answers](fieldtest/results-1.4.2/emulator-research-followups.jsonl)).
+
+- All 24 answers finished offline, and every follow-up was read as part of its topic: "what happens
+  to a validator that cheats?" under a question about proof of stake was answered with slashing,
+  and "how did governments respond?" under the 2008 financial crisis with the bailouts and stimulus.
+- Good answers: how CRISPR works and, with the 4B, that the FDA approved the first CRISPR treatments
+  (Casgevy and Lyfgenia) in December 2023; the causes of the 2008 crisis; how proof of stake
+  secures Ethereum.
+- Weak answers: "Compare nuclear fission and fusion" found only a passage about fission, so neither
+  model compared them, and the follow-up about radioactive waste quoted the same passage. "Is it
+  true we only use 10 percent of our brains?" found general passages about the brain; the 4B said
+  they do not cover the claim, and the 2B said it is false with a weak reason, then gave a wrong
+  origin for the myth (a passage about the inner ear). Under calorie restriction and ageing, "does
+  it work in humans or only in animals?" was not answered directly.
+
+These are the same limits the scores above show: when search finds the right passage the answer is
+usually right, and when it does not, the models say so (the 4B more often) or get it wrong.
+
+The 4B answers above were asked with the app's animations on. During the 2B research run the
+emulator slowed to about 9 prompt tokens a second with animations on, against about 220 with them
+off, because it draws every frame of the research page's animation on the Mac's processor, so the
+2B research run was asked with animations off. On a real phone the screen is drawn by its graphics
+chip; on the Redmi 13C the animations cost about a tenth of the reading speed.
 
 **Timings on the emulator are not phone timings.** The emulator runs on a Mac's processor: an
 answer written by the model took 17 to 29 seconds with the 2B and 24 to 63 seconds with the 4B,
@@ -128,9 +155,14 @@ which is much faster than a phone. The phone timings are in the release notes.
 
 - "My friend fainted and is breathing but not waking up" got a passage about fainting from the
   Biology collection, and both models said to keep the person lying down for 10 to 15 minutes.
-  Neither said to call the emergency number or put the person on their side. The app has no guide
-  for someone unconscious but breathing; set 28 asked nearly the same question and it scored 2 of
-  10 with both models.
+  Neither said to call the emergency number or put the person on their side; set 28 asked nearly
+  the same question and it scored 2 of 10 with both models. Fixed after this run: a 44th guide,
+  the recovery position from English Wikipedia (revision 1316139441), now answers someone breathing
+  but not waking, opening with the call to the local emergency number like every urgent guide, and
+  "not breathing" still opens CPR. Over the 1,207 emergency and look-alike questions kept for these
+  checks, three answers change, all to the new guide (passed out drunk on his back and snoring,
+  vodka and breathing slow, snoring after a seizure), and none of the 320 labelled questions
+  changes. On the emulator the fainting question now shows the guide in 4 seconds.
 - "How do I get from Narita airport to central Tokyo?" read the guide for the city of Narita, so
   the answers describe the local train to Narita town (¥250) before the Narita Express.
 

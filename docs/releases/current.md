@@ -25,7 +25,9 @@ on the phone, with no account and nothing sent anywhere.
   with no signal.
 - **More emergencies found.** An emergency told as a statement ("tornado siren going off and we're
   in a motel room") now gets its guide. On 45 new emergencies the right guide was shown for 14,
-  against 9 in 1.4.1, with no unsafe guide. A guide for a chemical or object in the eye is new.
+  against 9 in 1.4.1, with no unsafe guide. Two guides are new: a chemical or object in the eye,
+  and someone unconscious but breathing, who is now put on their side (the recovery position)
+  instead of left lying down or sent to CPR, which stays for anyone not breathing.
 - **Word problems that name places** ("leaves Tokyo at 17:05 … UTC+9") are worked from their own
   figures.
 - **Better passages for the model.** A place typed in lowercase counts as a place, a narrower
@@ -75,13 +77,10 @@ Every question, answer and grade is published in
   copy at once: about 41.5 GB at the peak, inside the 50 GB budget.
 - **Within the bounty's limits.** On an Android emulator with 12 GB of memory, everything the app
   offers (both models, all seven collections and the voice) takes 34.2 GB of the 50 GB allowed.
-  Answering in airplane mode, the app used at most 3.2 GB of memory with the 2B and 6.4 GB with the
-  4B, and all 16 test answers finished offline
+  Answering in airplane mode, the app used at most 3.3 GB of memory with the 2B and 6.5 GB with the
+  4B, and all 40 test answers finished offline, including 6 research questions with a follow-up
+  under each, per model
   ([details](../evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
-- **Known gap:** there is no emergency guide yet for someone unconscious but breathing. Asked about
-  a friend who fainted and is not waking up, the app only says to keep them lying down; it does not
-  say to call for help or to put them on their side. If someone does not wake up, call your local
-  emergency number.
 - **Tested on** a Redmi 13C (6 GB, Android 13) and the emulator above. Not yet tested on a Pixel,
   on GrapheneOS or on a real 8 GB phone.
 

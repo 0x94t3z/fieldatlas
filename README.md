@@ -43,7 +43,7 @@ The app only goes online when you start a download or refresh the list of collec
 - **Keep a conversation going.** Ask a follow-up under an answer, by typing, speaking or adding a
   file, and pick a topic up again later from History.
 - **Read answers aloud** with the phone's voice or a natural voice you can download once.
-- **Help in an emergency.** 43 first-aid and safety guides and the emergency numbers of 242
+- **Help in an emergency.** 44 first-aid and safety guides and the emergency numbers of 242
   countries are built in and work without any download.
 - **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
   group, when the question is worded the way its calculators expect. A word problem that gives its
@@ -99,7 +99,7 @@ method, including two changes that were tried and not adopted.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with both models, every collection and the voice installed, the app
-  takes 34.2 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.4 GB of
+  takes 34.2 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.5 GB of
   memory while answering ([details](docs/evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
 - Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
   GrapheneOS or on a real 8 GB phone.

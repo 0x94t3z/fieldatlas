@@ -27,7 +27,7 @@ After setup, turn on airplane mode and turn Wi-Fi off to try offline research. T
 
 ## What setup offers in 1.4.2
 
-The app needs **only an installed model** to answer questions. The 43 emergency guides and the
+The app needs **only an installed model** to answer questions. The 44 emergency guides and the
 emergency-number table for 242 countries ship inside the app and work before any download. Setup
 shows the model and the optional collections together, grouped by category, straight from the
 download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-app-offers)):
