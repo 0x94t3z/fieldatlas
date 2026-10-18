@@ -147,6 +147,14 @@ off, because it draws every frame of the research page's animation on the Mac's 
 2B research run was asked with animations off. On a real phone the screen is drawn by its graphics
 chip; on the Redmi 13C the animations cost about a tenth of the reading speed.
 
+**The 4B takes over after it is downloaded.** With the 2B in use, we deleted the 4B and downloaded
+it again in Library: once it was installed, Library showed the 4B in use without being asked. The
+research questions above were then asked again with it, animations on: 11 of 12 finished as before,
+in about the same time. The twelfth was cut short by the emulator's text input ("What does research
+say about") and was still being written after 10 minutes. During that answer the emulator read the
+prompt at about 5 tokens a second instead of about 55, and then recovered by itself; the same
+slowdown came and went earlier in the day with the 2B, so we do not treat these minutes as the app's.
+
 **Timings on the emulator are not phone timings.** The emulator runs on a Mac's processor: an
 answer written by the model took 17 to 29 seconds with the 2B and 24 to 63 seconds with the 4B,
 which is much faster than a phone. The phone timings are in the release notes.
