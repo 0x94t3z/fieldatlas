@@ -483,9 +483,13 @@ class ResearchViewModel(
                         checking = event.checking,
                     )
                     is ResearchEvent.Complete -> {
-                        val finalAnswer = AnswerText.finalized(rawAnswer.toString(), current.sources.size)
+                        // Numbered as the answer cites them, here once, so the page, a source's own screen, History
+                        // and a shared copy all give a passage the same number.
+                        val (finalAnswer, finalSources) = xyz.fieldatlas.research.SourceOrder.citedFirst(
+                            AnswerText.finalized(rawAnswer.toString(), current.sources.size), current.sources)
                         current.copy(
                             answer = finalAnswer,
+                            sources = finalSources,
                             phase = ResearchPhase.Complete,
                             metrics = event.metrics,
                             completion = ResearchCompletion.Complete,
@@ -631,6 +635,8 @@ class ResearchViewModel(
         attachmentSession.clear()
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
+        // Saved before sources were numbered as cited, an answer is numbered that way when it is opened again.
+        val shown = xyz.fieldatlas.research.SourceOrder.citedFirst(last.answer, last.evidence)
         val readAs = last.readAs ?: last.question
         savedStateHandle[QUESTION_KEY] = readAs
         mutableUiState.value = ResearchUiState(
@@ -639,8 +645,8 @@ class ResearchViewModel(
             earlier = turns.dropLast(1).map { xyz.fieldatlas.research.FollowUp.Turn(it.question, it.readAs ?: it.question, it.answer,
                 it.evidence, it.durationMs) },
             topic = last.topic ?: last.createdAtEpochMs,
-            answer = last.answer,
-            sources = last.evidence,
+            answer = shown.first,
+            sources = shown.second,
             phase = ResearchPhase.Complete,
             completion = ResearchCompletion.Complete,
             savedMillis = last.durationMs,
