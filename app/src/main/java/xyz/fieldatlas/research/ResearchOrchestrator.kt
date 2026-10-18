@@ -847,7 +847,7 @@ class ResearchOrchestrator(
             val packed = if (selection != null) {
                 AttachmentEvidence.pack(question, selection, evidence,
                     minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
-                    evidenceTokens = PrefillSpeed.evidenceTokens(prefillSpeed.tokensPerSecond), includeLibrary = includeLibrary)
+                    evidenceTokens = PrefillSpeed.fileEvidenceTokens(prefillSpeed.tokensPerSecond), includeLibrary = includeLibrary)
             } else if (evidence.isEmpty()) {
                 PromptBuilder.buildModelOnly(question, framing)
             } else {
@@ -972,7 +972,11 @@ class ResearchOrchestrator(
                 partial = draftGap
                 if (CitedExplanation.hasScopeRisk(finished, packed) ||
                     CitedExplanation.hasWrongComparisonCitation(finished, question, packed)) finished = CitedExplanation.UNAVAILABLE
-                if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
+                // An answer from the person's own files is not sent to the model's review: on 24 sealed file questions
+                // (set 31) the review rejected most correct drafts ("your T-score is -2.7 [S1]"), and the file is in
+                // front of the person to check. The citation, scope and dose checks above still apply.
+                val reviewed = attachments.isEmpty() || includeLibrary
+                if (reviewed && finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
                     val review = StringBuilder()
                     emit(ResearchEvent.Drafting(tokens, checking = true))
                     inference.reviewEvidence(CitedExplanation.reviewPrompt(finished, packed)).collect { review.append(it) }
@@ -999,9 +1003,11 @@ class ResearchOrchestrator(
                     else if (repaired != CitedExplanation.UNAVAILABLE && !CitedExplanation.hasScopeRisk(repaired, packed) &&
                         !CitedExplanation.hasWrongComparisonCitation(repaired, question, packed)) {
                         val review = StringBuilder()
-                        emit(ResearchEvent.Drafting(tokens, checking = true))
-                        inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
-                        if (CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap; notes = retryNotes }
+                        if (reviewed) {
+                            emit(ResearchEvent.Drafting(tokens, checking = true))
+                            inference.reviewEvidence(CitedExplanation.reviewPrompt(repaired, packed)).collect { review.append(it) }
+                        }
+                        if (!reviewed || CitedExplanation.reviewPassed(review.toString())) { finished = repaired; partial = repairGap; notes = retryNotes }
                     }
                 }
                 if (finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP && notes.isNotEmpty())

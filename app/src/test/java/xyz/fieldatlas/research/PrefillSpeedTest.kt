@@ -11,6 +11,11 @@ class PrefillSpeedTest {
         assertEquals(1150, PrefillSpeed.evidenceTokens(40.0))
         assertEquals(AttachmentEvidence.EVIDENCE_TOKENS, PrefillSpeed.evidenceTokens(150.0))
     }
+    @Test fun aQuestionAboutFilesReadsAtLeastAPageOfThemOnASlowPhone() {
+        assertEquals(PrefillSpeed.FILE_MIN_EVIDENCE, PrefillSpeed.fileEvidenceTokens(17.0))
+        assertEquals(PrefillSpeed.FILE_MIN_EVIDENCE, PrefillSpeed.fileEvidenceTokens(null))
+        assertEquals(1150, PrefillSpeed.fileEvidenceTokens(40.0))
+    }
     @Test fun measurementsAreBlendedAndTinyPromptsIgnored() {
         assertEquals(20.0, PrefillSpeed.update(null, 2000, 100_000)!!, 1e-9)
         assertEquals(20.0 * 0.6 + 40.0 * 0.4, PrefillSpeed.update(20.0, 2000, 50_000)!!, 1e-9)

@@ -56,6 +56,21 @@ class AttachmentScopeTest {
         }
     }
 
+    @Test fun anAnswerFromTheFilesAloneIsNotRejectedByTheModelReview() = runBlocking {
+        // The review would reject this draft; a file-only answer is shown with its citation instead.
+        val question = "Which restaurant in the notes is vegan and what does it cost?"
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() },
+            FakeInferenceGateway(listOf("Green Lantern is vegan and costs 18 euros [S1]."), reviewVerdict = "UNSUPPORTED"))
+            .research(question, attachments = listOf(file)).toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertTrue(answer, answer.startsWith("Green Lantern is vegan and costs 18 euros [S1]."))
+        // With the library added, the review still decides.
+        val mixed = ResearchOrchestrator(Retriever { _, _, _ -> listOf(library) },
+            FakeInferenceGateway(listOf("Green Lantern is vegan and costs 18 euros [S1]."), reviewVerdict = "UNSUPPORTED"))
+            .research(question, attachments = listOf(file), libraryWithFiles = true).toList()
+        assertFalse(mixed.filterIsInstance<ResearchEvent.Token>().last().text.startsWith("Green Lantern is vegan"))
+    }
+
     @Test fun aMixedAnswerIsToldTheFileLeads() {
         val question = "Which restaurant in the notes is vegan?"
         val packed = AttachmentEvidence.pack(question, AttachmentEvidence.select(question, listOf(file), 8), listOf(library), 8000,

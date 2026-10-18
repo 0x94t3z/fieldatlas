@@ -16,6 +16,16 @@ interface PrefillSpeed {
         const val MIN_EVIDENCE = 350
         const val UNKNOWN_EVIDENCE = 700
 
+        /**
+         * A question about the person's own files reads at least this much of them, however slow the phone: sized
+         * for the first word, a slow phone got about a third of a one-page note and answered "not enough evidence"
+         * from the part it missed. File answers skip the model's review, so the wait is about the same.
+         */
+        const val FILE_MIN_EVIDENCE = 900
+
+        /** Evidence tokens for a question asked with files: [evidenceTokens], but never under [FILE_MIN_EVIDENCE]. */
+        fun fileEvidenceTokens(rate: Double?): Int = maxOf(FILE_MIN_EVIDENCE, evidenceTokens(rate))
+
         /** Evidence tokens for the next answer; the top passage always fits. */
         fun evidenceTokens(rate: Double?): Int {
             if (rate == null || !rate.isFinite() || rate <= 0) return UNKNOWN_EVIDENCE
