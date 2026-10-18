@@ -129,9 +129,10 @@ from set 32 was attached through the app. "What is the hourly rate" was answered
 2 min 12 s from four passages of the note (useful, with two details wrong: who is not VAT-registered,
 and the hours of a site visit).
 
-**Collections as well as the file.** An "Also use my collections" switch under attached files
-searches the collections too. On set 31 it lowered answers from 11.0% to 2.7% of the reference (8
-worse, none better): unrelated passages crowded out the file. It is off unless turned on.
+**Collections as well as the file.** A switch under attached files that searched the collections
+too was tried. On set 31 it lowered answers from 11.0% to 2.7% of the reference (8 worse, none
+better): unrelated passages crowded out the file. It was removed; a question that asks to "use my
+library" still adds the collections.
 
 Every question, answer and grade: [set 31](fieldtest/results-1.4.2/heldout31-files.jsonl),
 [set 32](fieldtest/results-1.4.2/heldout32-files.jsonl).

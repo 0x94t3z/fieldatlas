@@ -3,7 +3,6 @@ package xyz.fieldatlas.ui.research
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -30,8 +29,6 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
     var previewId by remember { mutableStateOf<String?>(null) }
     var imagePreviewId by remember { mutableStateOf<String?>(null) }
     var errorId by remember { mutableStateOf<String?>(null) }
-    // One column of its own: the follow-up box places these inside a Box, where the switch would sit on the files.
-    Column(Modifier.fillMaxWidth()) {
     if (items.isNotEmpty()) LazyRow(
         modifier = Modifier.fillMaxWidth(),
         contentPadding = PaddingValues(start = 14.dp, end = 14.dp, top = 12.dp),
@@ -136,24 +133,6 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                 }
             }
         }
-    }
-    // Answers lead with the files; the switch adds the downloaded collections behind them, to explain terms or add
-    // context. "Only my files" or "use my library" in the question still wins either way.
-    val library = LocalLibraryWithFiles.current
-    if (items.isNotEmpty() && library != null) {
-        val on by library.state.collectAsState()
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
-            .toggleable(value = on, enabled = enabled, role = androidx.compose.ui.semantics.Role.Switch) { library.set(it) }
-            .padding(start = 16.dp, end = 14.dp, top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Also use my collections", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Text(if (on) "Your files first, then what you downloaded" else "Answers use your files only",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Switch(checked = on, onCheckedChange = null, enabled = enabled)
-        }
-    }
     }
     items.firstOrNull { it.id == errorId && it.phase == AttachmentPhase.Error }?.let { item ->
         AlertDialog(onDismissRequest = { errorId = null }, title = { Text("Couldn’t read attachment") },

@@ -36,9 +36,8 @@ on the phone, with no account and nothing sent anywhere.
 - **Questions about your own files answer far more often.** A question asked with a file reads more of
   it, and a correct answer is no longer withheld by the model's own review. On 24 new file questions
   graded blind, answers went from 32% to 41% of web-and-AI answers, and refusals from 7 to 1
-  ([details](../evaluation.md#questions-about-your-own-files-october-18)). A switch under the file,
-  "Also use my collections", adds the downloaded collections; it is off by default because it made
-  answers worse in testing.
+  ([details](../evaluation.md#questions-about-your-own-files-october-18)). Asking to "use my library"
+  in the question adds the downloaded collections as before.
 - **Word problems that name places** ("leaves Tokyo at 17:05 … UTC+9") are worked from their own
   figures.
 - **Better passages for the model.** A place typed in lowercase counts as a place, a narrower

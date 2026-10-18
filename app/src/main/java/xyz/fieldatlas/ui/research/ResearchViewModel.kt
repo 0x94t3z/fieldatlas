@@ -53,16 +53,6 @@ data class BackgroundAnswer(
     val running: Boolean get() = !done && !failed
 }
 
-/** Whether a question asked with files also searches the downloaded collections; the files' passages come first. */
-class LibraryWithFiles(initial: Boolean, private val save: (Boolean) -> Unit) {
-    private val on = kotlinx.coroutines.flow.MutableStateFlow(initial)
-    val state: kotlinx.coroutines.flow.StateFlow<Boolean> = on
-    fun set(value: Boolean) { on.value = value; save(value) }
-}
-
-/** The switch under attached files, for the question box and the follow-up box alike. */
-val LocalLibraryWithFiles = androidx.compose.runtime.compositionLocalOf<LibraryWithFiles?> { null }
-
 data class ResearchUiState(
     val attachments: List<AttachmentUiState> = emptyList(),
     /** The standalone question research runs on; for a follow-up, the reading built from the topic. */
@@ -147,9 +137,6 @@ class ResearchViewModel(
         attachmentSession.add(name, load)
     }
     fun removeAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.remove(id) }
-    /** "Also use my collections" under attached files: on, a file question also searches the collections. Off by
-     * default: on 24 sealed file questions (set 31, graded blind) answers with it on were worse, 8 to none. */
-    val libraryWithFiles = LibraryWithFiles(savedStateHandle[LIBRARY_WITH_FILES_KEY] ?: false) { savedStateHandle[LIBRARY_WITH_FILES_KEY] = it }
     fun retryAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.retry(id) }
     val uiState: StateFlow<ResearchUiState> = mutableUiState.asStateFlow()
     private var researchJob: Job? = null
@@ -446,8 +433,7 @@ class ResearchViewModel(
                 if (sink.detached) settleBackground(sink, sink.state.copy(waitingFor = null, workingSinceNanos = now))
                 else mutableUiState.update { it.copy(waitingFor = null, workingSinceNanos = now) }
             }
-            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried,
-                libraryWithFiles = libraryWithFiles.state.value)
+            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried)
                 .flowOn(researchContext).collect { event ->
                 // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
                 ensureActive()
@@ -727,7 +713,6 @@ class ResearchViewModel(
         const val MAX_FINISHED_ASIDE = 2
         const val QUESTION_KEY = "research.question"
         const val ATTACHMENTS_KEY = "research.attachments"
-        const val LIBRARY_WITH_FILES_KEY = "research.libraryWithFiles"
     }
 }
 

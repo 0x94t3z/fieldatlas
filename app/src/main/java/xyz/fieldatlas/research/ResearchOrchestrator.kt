@@ -84,7 +84,8 @@ class ResearchOrchestrator(
         attachments: List<xyz.fieldatlas.attachments.ExtractedAttachment> = emptyList(),
         /** For a follow-up: the answer it builds on, whose passages can be read again. */
         topic: TopicEvidence.Carried? = null,
-        /** With files attached, also search the collections (the user's switch); the files' passages still lead. */
+        /** With files attached, also search the collections unless the question says files only; the files' passages
+         * still lead. The app leaves it off: on set 31 it made answers worse. The desktop harness can turn it on. */
         libraryWithFiles: Boolean = false,
     ): Flow<ResearchEvent> {
         val phrase = phraseRequest(question, attachments.isNotEmpty())

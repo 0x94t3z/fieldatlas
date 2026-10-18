@@ -89,8 +89,7 @@ class MainActivity : ComponentActivity() {
         })
         setContent {
             androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.research.LocalReadAloud provides container.readAloud,
-                xyz.fieldatlas.ui.library.LocalDownloads provides container.downloads,
-                xyz.fieldatlas.ui.research.LocalLibraryWithFiles provides researchViewModel.libraryWithFiles) {
+                xyz.fieldatlas.ui.library.LocalDownloads provides container.downloads) {
             val setupState by setupViewModel.state.collectAsStateWithLifecycle()
             val researchState by researchViewModel.uiState.collectAsStateWithLifecycle()
             val researchBackground by researchViewModel.background.collectAsStateWithLifecycle()
