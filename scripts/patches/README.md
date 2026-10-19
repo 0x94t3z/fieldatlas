@@ -32,8 +32,11 @@ The current patch also removes native prompt/token text logging, so private atta
   that opens with the same tokens (see below).
 * **InferenceEngine.kt** — public surface additions: `promptProgress`
   ("x/y tokens read" prefill progress), `resetConversation`, `setSamplerSeed`
-  (dual-seed keyword planning), the encoder functions, and `sendUserPrompt`'s `savedPrefix`
-  with `reusedPromptTokens()`.
+  (dual-seed keyword planning), `setThinking` (whether the chat template opens the model's
+  thinking turn, used only for a model chosen to reason before it answers), `setRepack`
+  (whether a load copies the weights into llama.cpp's repacked layouts; off keeps a large
+  model mapped from its file, which Android can reclaim), the encoder
+  functions, and `sendUserPrompt`'s `savedPrefix` with `reusedPromptTokens()`.
 * **InferenceEngineImpl.kt** — JNI externals and Kotlin plumbing for the above.
 
 Evidence paraphrases use `setSampler(seed, 1.0f)` so technical terms and quantities

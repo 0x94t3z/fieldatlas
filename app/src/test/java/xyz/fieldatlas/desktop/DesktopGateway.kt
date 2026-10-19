@@ -61,10 +61,16 @@ internal class DesktopGateway(
     override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
         request(prompt, maxTokens, systemPrompt, seed, 1.10)
 
+    // Experiment: FIELDATLAS_DESKTOP_THINK=N gives the model the app's thinking route with N tokens to reason.
+    override val thinkingBudget: Int = thinkBudget ?: 0
+
+    override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
+        request(prompt, maxTokens, null, -1, 1.10, thinking = true)
+
     override fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
         request(prompt, maxTokens, null, -1, 1.0)
 
-    private fun request(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, repeatPenalty: Double): Flow<String> = flow {
+    private fun request(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, repeatPenalty: Double, thinking: Boolean = false): Flow<String> = flow {
         if (retrievalOnly && maxTokens > RETRIEVAL_ONLY_MAX_TOKENS) { emit("INSUFFICIENT_EVIDENCE"); return@flow }
         val request = buildJsonObject {
             put("messages", buildJsonArray {
@@ -78,14 +84,14 @@ internal class DesktopGateway(
             put("repeat_penalty", repeatPenalty); put("repeat_last_n", 128)
             put("stream", false)
             put("cache_prompt", false)
-            put("chat_template_kwargs", buildJsonObject { put("enable_thinking", false) })
+            put("chat_template_kwargs", buildJsonObject { put("enable_thinking", thinking) })
         }
         val started = System.nanoTime()
         val connection = base.resolve("/v1/chat/completions").toURL().openConnection() as HttpURLConnection
         try {
             connection.instanceFollowRedirects = false
             connection.connectTimeout = 5_000
-            connection.readTimeout = 180_000
+            connection.readTimeout = if (thinking) 900_000 else 180_000
             connection.requestMethod = "POST"
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
@@ -108,3 +114,4 @@ internal class DesktopGateway(
 }
 
 private const val RETRIEVAL_ONLY_MAX_TOKENS = 64
+private val thinkBudget = System.getenv("FIELDATLAS_DESKTOP_THINK")?.toIntOrNull()?.takeIf { it > 0 }

@@ -272,4 +272,18 @@ class VenueLookupTest {
         assertTrue(VenueLookup.isPlaceLookup("Where can I find an ATM near the station in Fez?"))
         assertTrue(VenueLookup.isPlaceLookup("Find an ATM near me"))
     }
+
+    @Test fun businessesAreTheLookupsAModelMayNotNameFromMemory() {
+        // Sights and things to do are well known for years; a model's answer may name them.
+        val iceland = "Im going to Iceland in December for a week and want to rent a car. What are the must-see things and what should I watch out for driving there in winter?"
+        assertTrue(VenueLookup.isPlaceLookup(iceland))
+        assertFalse(VenueLookup.asksForBusinesses(iceland))
+        assertFalse(VenueLookup.asksForBusinesses("What are the best museums in Vienna?"))
+        // Where to eat, sleep, drink or shop, and everyday essentials, change: only saved listings answer them.
+        assertTrue(VenueLookup.asksForBusinesses("Any good vegan restaurants in Valencia?"))
+        assertTrue(VenueLookup.asksForBusinesses("Which hostels in Porto are near the river?"))
+        assertTrue(VenueLookup.asksForBusinesses("Where can I find an ATM near the station in Fez?"))
+        assertTrue(VenueLookup.asksForBusinesses("Where is a good sushi bar in Lima?"))
+        assertFalse(VenueLookup.asksForBusinesses("Why do onions make you cry?"))
+    }
 }

@@ -157,4 +157,12 @@ class AnswerTextTest {
         val out = AnswerText.finalized("> Trains leave every hour [S1].", 0)
         org.junit.Assert.assertFalse(out, "[S1]" in out)
     }
+
+    @Test fun gemmasThoughtChannelIsNotPartOfTheAnswer() {
+        assertEquals("November 9, 1989.", AnswerText.visible("<|channel>thought\nThe wall fell in 1989.<channel|>November 9, 1989."))
+        // While the reasoning streams nothing shows, and a mark still arriving is held back.
+        assertEquals("", AnswerText.visible("<|channel>thought\nThe wall"))
+        assertEquals("Answer", AnswerText.visible("Answer<|chan"))
+        assertEquals("Answer", AnswerText.visible("Answer<thi"))
+    }
 }

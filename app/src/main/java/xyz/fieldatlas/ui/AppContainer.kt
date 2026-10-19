@@ -304,8 +304,15 @@ class AppContainer(context: Context) {
             }.commit()
         }
         var loaded = false
+        (inference as? xyz.fieldatlas.inference.LlamaInferenceGateway)?.repackWeights =
+            ModelOffers.byId(modelPack.id)?.repacksOn(deviceMemoryBytes) ?: true
         try {
             inference.load(modelFile.absolutePath, SYSTEM_PROMPT)
+            (inference as? xyz.fieldatlas.inference.LlamaInferenceGateway)?.let { gateway ->
+                val offer = ModelOffers.byId(modelPack.id)
+                gateway.thinkingBudget = offer?.thinkingBudget ?: 0
+                gateway.knowledgeFirst = offer?.knowledgeFirst ?: false
+            }
             loaded = true
         } finally {
             if (guarded && loaded) {
@@ -532,6 +539,7 @@ class AppContainer(context: Context) {
     // Article depth read more of a subject's article: graded blind it raised the fork's lookup
     // questions from 45% to 55% of the reference and our own from 57% to 59%, for about 20 s more
     // reading on a slow phone when the English collection is installed.
+    // Whether answers come from the model's own knowledge is decided per model when it loads (ModelOffer.knowledgeFirst).
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
         emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
         articleDepth = true)

@@ -30,6 +30,19 @@ interface InferenceGateway {
      * test gateways can supply independent review outcomes. */
     fun reviewEvidence(prompt: String, savedPrefixChars: Int = 0): Flow<String> = generate(prompt, maxTokens = 32, savedPrefixChars = savedPrefixChars)
 
+    /**
+     * Tokens the loaded model may spend reasoning before an answer from its own knowledge; 0: it answers straight
+     * away. Only a model chosen for it reasons (see ModelOffer.thinkingBudget).
+     */
+    val thinkingBudget: Int get() = 0
+
+    /** Whether the loaded model answers ordinary questions from its own knowledge (see ModelOffer.knowledgeFirst). */
+    val knowledgeFirst: Boolean get() = false
+
+    /** Like [generate], with the model's thinking turn open: its reasoning streams first, between the template's marks. */
+    fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int = 0): Flow<String> =
+        generate(prompt, maxTokens, savedPrefixChars = savedPrefixChars)
+
     /** Prompt tokens the last generation restored instead of reading; 0 when it read them all. */
     val reusedPromptTokens: Int get() = 0
 

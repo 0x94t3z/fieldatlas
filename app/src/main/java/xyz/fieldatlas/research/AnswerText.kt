@@ -65,8 +65,8 @@ object AnswerText {
     }
 
     private fun normalizeQuote(value: String): String = value.replace(Regex("\\s+"), " ").trim()
-    private const val THINK_OPEN = "<think>"
-    private const val THINK_CLOSE = "</think>"
+    // A model's reasoning, never part of the answer: Qwen writes it in <think>, Gemma 4 in its "thought" channel.
+    private val reasoningMarks = listOf("<think>" to "</think>", "<|channel>" to "<channel|>")
     private val citationPattern = Regex("\\[(?:S)?([+-]?\\p{Nd}+)]", RegexOption.IGNORE_CASE)
     private val placeholderPattern = Regex("\\[S#]", RegexOption.IGNORE_CASE)
     private val parenthesizedReferences = Regex(
@@ -98,19 +98,22 @@ object AnswerText {
         val visible = StringBuilder()
         var cursor = 0
         while (cursor < raw.length) {
-            val opening = raw.indexOf(THINK_OPEN, cursor)
-            if (opening < 0) {
+            val opening = reasoningMarks.mapNotNull { (open, close) -> raw.indexOf(open, cursor).takeIf { it >= 0 }?.let { Triple(it, open, close) } }
+                .minByOrNull { it.first }
+            if (opening == null) {
                 val remainder = raw.substring(cursor)
-                val held = (THINK_OPEN.length - 1 downTo 1).firstOrNull { length ->
-                    remainder.endsWith(THINK_OPEN.take(length))
-                } ?: 0
+                // While streaming, the start of a reasoning mark is held back until it is complete.
+                val held = reasoningMarks.maxOf { (open, _) ->
+                    (open.length - 1 downTo 1).firstOrNull { length -> remainder.endsWith(open.take(length)) } ?: 0
+                }
                 visible.append(remainder.dropLast(held))
                 break
             }
-            visible.append(raw, cursor, opening)
-            val closing = raw.indexOf(THINK_CLOSE, opening + THINK_OPEN.length)
+            val (at, open, close) = opening
+            visible.append(raw, cursor, at)
+            val closing = raw.indexOf(close, at + open.length)
             if (closing < 0) break
-            cursor = closing + THINK_CLOSE.length
+            cursor = closing + close.length
         }
         // The answer is shown as Markdown, never typeset: math the model writes in LaTeX is turned into plain symbols.
         return MathText.readable(visible.toString().trimStart())

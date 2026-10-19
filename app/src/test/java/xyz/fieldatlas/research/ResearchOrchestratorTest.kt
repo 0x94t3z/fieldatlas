@@ -379,6 +379,93 @@ class ResearchOrchestratorTest {
         first.cancel()
     }
 
+    private fun knowledgeModel(prompts: MutableList<String>, reviews: MutableList<String>, reply: String, knows: Boolean = false) = object : InferenceGateway {
+        override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+        override val knowledgeFirst = knows
+        override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+        override suspend fun unload() = Unit
+        override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow { reviews += prompt; emit("SUPPORTED") }
+        override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+            prompts += prompt
+            emit(reply)
+        }
+    }
+
+    @Test fun knowledgeFirstAnswersFromTheModelInOnePassAndListsThePassages() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val knowledge = "A boat floats because the water it pushes aside weighs as much as the boat does."
+        val prompts = mutableListOf<String>(); val reviews = mutableListOf<String>()
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, knowledgeModel(prompts, reviews, knowledge), modelFirstNotes = 0)
+            .research("Why do boats float?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        // One generation from what the model knows: no cited draft, no review, and no passage in the prompt.
+        assertEquals(prompts.toString(), 1, prompts.size)
+        assertTrue(prompts.single(), "from what you know" in prompts.single() && "displaces a weight" !in prompts.single())
+        assertTrue(reviews.isEmpty())
+        assertTrue(answer, answer.startsWith("## " + AnswerText.MODEL_LABEL) && knowledge in answer)
+        // The passages found stay under the answer for checking.
+        assertTrue(answer, "Saved excerpts" in answer && "displaces a weight" in answer)
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().last().evidence.isNotEmpty())
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
+    @Test fun aModelChosenToReasonThinksBeforeAKnowledgeFirstAnswer() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val thoughts = mutableListOf<Pair<String, Int>>(); val plain = mutableListOf<String>()
+        val model = object : InferenceGateway {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override val thinkingBudget = 2048
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override suspend fun unload() = Unit
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+                flow { plain += prompt; emit("unused") }
+            override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> = flow {
+                thoughts += prompt to maxTokens
+                emit("<|channel>thought\nWater pushed aside weighs as much as the boat.<channel|>")
+                emit("A boat floats because the water it displaces weighs as much as it does.")
+            }
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, model, modelFirstNotes = 0)
+            .research("Why do boats float?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertEquals(1, thoughts.size)
+        assertTrue(plain.toString(), plain.isEmpty())
+        // The reasoning gets its own budget on top of the answer's, and the prompt does not switch thinking off.
+        assertTrue(thoughts.single().second > 2048)
+        assertFalse(thoughts.single().first, "/no_think" in thoughts.single().first)
+        assertTrue(answer, "the water it displaces" in answer && "pushed aside" !in answer)
+    }
+
+    @Test fun theLoadedModelDecidesWhetherAnswersComeFromItsKnowledge() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val knowing = mutableListOf<String>()
+        ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, knowledgeModel(knowing, mutableListOf(), "It floats.", knows = true))
+            .research("Why do boats float?").toList()
+        assertTrue(knowing.toString(), knowing.size == 1 && "from what you know" in knowing.single())
+        // A model that knows too little (the 2B) keeps answering from the passages.
+        val reading = mutableListOf<String>()
+        ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, knowledgeModel(reading, mutableListOf(), "It floats [S1]."))
+            .research("Why do boats float?").toList()
+        assertTrue(reading.toString(), reading.isNotEmpty() && reading.none { "from what you know" in it })
+    }
+
+    @Test fun knowledgeFirstLeavesBusinessesAndCalculationsToTheirOwnRoutes() = runBlocking {
+        val prompts = mutableListOf<String>(); val reviews = mutableListOf<String>()
+        val model = knowledgeModel(prompts, reviews, "Try Café Vegano on the main square.")
+        val listing = Evidence("osm-place-n1", "osm-place-n1:0000", "Valencia — Green Leaf", "https://www.openstreetmap.org/node/1",
+            "Destination: Valencia\nCategory: Eat\nPlace: Green Leaf\nType: restaurant\nVegan: vegan options", -1.0)
+        ResearchOrchestrator(Retriever { _, _, _ -> listOf(listing) }, model, modelFirstNotes = 0)
+            .research("Any good vegan restaurants in Valencia?").toList()
+        assertTrue(prompts.toString(), prompts.none { "from what you know" in it })
+        val calc = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, modelFirstNotes = 0)
+            .research("My car does 30 mpg (US). What is that in L/100 km?").toList()
+        assertTrue(calc.filterIsInstance<ResearchEvent.Token>().last().text.contains("7.8"))
+        assertTrue(prompts.toString(), prompts.none { "from what you know" in it })
+    }
+
     @Test fun explanationThatOnlySaysTheExcerptsMissIsAskedAgainWithoutThem() = runBlocking {
         val unrelated = Evidence("boat", "boat:0", "Boat — History", "Local",
             "Boats float on rivers and seas. The first boats were dugout canoes, and boats have carried goods for thousands of years.", -1.0)

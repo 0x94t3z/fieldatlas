@@ -72,6 +72,8 @@ object VenueLookup {
     )
 
     private val venueWords = Regex("(?i)\\b(?:" + KINDS.joinToString("|") { it.wordPattern } + "|" + foodBar.pattern.removePrefix("(?i)\\b").removeSuffix("\\b") + ")\\b")
+    private val businessWords = Regex("(?i)\\b(?:" + KINDS.filter { k -> k.categories.any { it in setOf("Eat", "Drink", "Sleep", "Buy") } }
+        .joinToString("|") { it.wordPattern } + ")\\b")
     private val lookupWords = Regex("(?i)\\b(best|good|recommend|suggest|find|list|which|where|any|need|is there|are there|nearest|closest)\\b")
 
     /**
@@ -184,6 +186,14 @@ object VenueLookup {
 
     /** A request for places to go, answerable from place listings alone. */
     fun isPlaceLookup(question: String) = isLookup(question)
+
+    /**
+     * A place lookup for businesses (somewhere to eat, drink, sleep or shop, or an everyday essential such as a
+     * pharmacy): which of them exist and open changes, so a model's memory of them is no answer. Sights,
+     * museums, beaches and things to do are well known for years, and a model may name them.
+     */
+    fun asksForBusinesses(question: String) = isLookup(question) &&
+        (businessWords.containsMatchIn(question) || foodBar.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question))
 
     /** A kind of place to go ("museums", "hostels"), which a city's listings answer rather than a general article. */
     fun isVenueKind(name: String) = venueWords.matches(name.trim())

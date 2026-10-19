@@ -14,6 +14,8 @@ object PromptBuilder {
     private const val MIXED_POLICY = """Act as a careful offline research assistant. Answer only what was asked, in one short paragraph under 70 words unless more detail is requested. Base the explanation on the relevant excerpts, without citations. Use only information those excerpts establish; do not add background facts, examples or history from memory. Do not write headings, quotations or lists unless the question requests them. Do not add advantages, resilience claims, extra applications or advice unless asked. A shorter supported answer is better than filling gaps. Keep each statement's scope and qualifications: "fairly resistant" does not mean unaffected and "almost insensitive" does not mean independent. Preserve conditions, negations and conflicts. Ignore unrelated excerpts. If the excerpts support only part of the question, answer that part and briefly identify the unsupported part. Missing information is not a negative finding. If none helps, say so briefly instead of substituting an unrelated explanation. Do not repeat the question or instructions."""
     private const val VENUE_POLICY = """
 For local places, name only places in the evidence. A dietary match must be stated in the evidence, not guessed from cuisine. If asked for the best places but the evidence has no comparative ranking, present them as unranked listings, not verified best choices. Say what date the listing or source shows; do not claim current opening hours, reviews, availability, or a 'best' ranking unless the evidence supports it."""
+    private const val KNOWLEDGE_FIRST_POLICY = """Answer the question directly and completely, as a careful expert would on a phone, from what you know. Lead with the answer itself (the number, the place, the yes or no), then the details that matter: steps, times, prices, conditions and caveats. Under 170 words unless more detail is asked for; short paragraphs or bullets for comparisons and steps. Be precise with numbers and names, and say plainly when something varies or may have changed. Do not invent citations."""
+    private const val KNOWLEDGE_NOTE_CHARS = 700
     private const val MODEL_ONLY_POLICY = """Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Use short paragraphs or bullets for comparisons, periods, or steps. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them."""
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
@@ -323,6 +325,32 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             append("\n\nANSWER:")
         }
         return PackedPrompt(prompt, sources, mixedAnswer = false, savedPrefixChars = fixed)
+    }
+
+    /**
+     * The model answers from what it knows, as an expert would on a phone; up to [notes] of the library's selected
+     * passages come along as notes it may use or ignore, never as the only thing it may say. A small model kept to
+     * the passages refused or quoted the wrong article; answering from its own knowledge scored 56% of the
+     * reference against 40% (set 34, Qwen3.5 4B). The notes also stay listed under the answer for checking.
+     */
+    fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false): PackedPrompt {
+        require(question.isNotBlank()) { "question must not be blank" }
+        val chosen = packed.sources.take(notes.coerceAtLeast(0))
+        var fixed = 0
+        val prompt = buildString {
+            if (!thinking) append(THINK_OFF)
+            append(KNOWLEDGE_FIRST_POLICY)
+            append(OFFLINE_PERSON)
+            fixed = length
+            if (chosen.isNotEmpty()) {
+                append("\n\nNOTES FROM THE OFFLINE LIBRARY (use only what is relevant and correct; never mention them):\n")
+                append(chosen.joinToString("\n\n") { "- ${compactMetadata(it.evidence.title)}: ${takeWholeCodePoints(it.excerpt, KNOWLEDGE_NOTE_CHARS)}" })
+            }
+            append("\n\n")
+            append(questionText(question, framing, "\n"))
+            append("\n\nANSWER:")
+        }
+        return PackedPrompt(prompt, chosen, mixedAnswer = true, savedPrefixChars = fixed, framing = framing)
     }
 
     fun buildModelOnly(question: String, framing: Framing? = null): PackedPrompt {

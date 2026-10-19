@@ -231,6 +231,8 @@ class DesktopResearchTest {
                 prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull()),
                 // On by default, as in the app; FIELDATLAS_DESKTOP_ARTICLE_DEPTH=0 measures without it.
                 articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
+                // Model-first answering with this many notes (0 for none); unset keeps the cited route.
+                modelFirstNotes = System.getenv("FIELDATLAS_DESKTOP_MODEL_FIRST")?.toIntOrNull(),
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
                 // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
                 libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",

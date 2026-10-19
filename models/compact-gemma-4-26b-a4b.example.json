@@ -1,0 +1,17 @@
+{
+  "converter": "UD-Q2_K_XL artifact published by unsloth (commit c099eb48e663fd284577b04978a94ffccb261841, last modified 2026-07-17) from google/gemma-4-26B-A4B-it, whose revision 4d7ae4984b7db7de8f8457170b3f1a419ee76d52 is the latest before that upload",
+  "expectedSha256": "2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658",
+  "id": "gemma-4-26b-a4b-ud-q2-k-xl",
+  "license": "Apache-2.0",
+  "llamaCppCommit": "60081bb2b5b3294165a4d67c5cbeebe74c868014",
+  "profile": "Optional model for phones with 12 GB of memory: a mixture of experts with 26B parameters that reads about 4B of them for each token, on the pinned runtime's 8192-token context; gemma4 architecture with its own chat template, which opens a thinking turn when the app asks the model to reason first; 10.5 GB artifact, mapped from storage rather than copied. Answering from its own knowledge and reasoning first, it scored 82.5% of web-and-AI answers on 24 sealed questions (set 33, two blind rounds) against 62.0% for Qwen3.5 4B, with 0.23 factual errors per answer",
+  "quantizer": "UD-Q2_K_XL (Unsloth Dynamic 2-bit, important layers kept at higher precision) published by unsloth; expected upstream SHA-256 2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658",
+  "sourceUrls": [
+    "https://huggingface.co/google/gemma-4-26B-A4B-it",
+    "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/blob/c099eb48e663fd284577b04978a94ffccb261841/gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
+    "https://github.com/ggml-org/llama.cpp/tree/60081bb2b5b3294165a4d67c5cbeebe74c868014"
+  ],
+  "title": "Gemma 4 26B-A4B — UD-Q2_K_XL",
+  "upstreamModel": "google/gemma-4-26B-A4B-it",
+  "version": "1.0.0"
+}

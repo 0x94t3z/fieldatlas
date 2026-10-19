@@ -66,6 +66,7 @@ class LlamaInferenceGateway internal constructor(
             // Native model loading and system-prompt prefill are CPU-heavy synchronous calls.
             // Keep them off the UI thread even when load() is launched from a ViewModel scope.
             withContext(NonCancellable + Dispatchers.Default) {
+                engine.setRepack(repackWeights)
                 engine.loadModel(modelPath)
                 contextWindowTokens = runCatching {
                     java.io.File(modelPath).inputStream().use {
@@ -90,6 +91,18 @@ class LlamaInferenceGateway internal constructor(
 
     override val reusedPromptTokens: Int get() = engine.reusedPromptTokens()
 
+    /** Set by the app for the loaded model (see ModelOffer.thinkingBudget). */
+    override var thinkingBudget: Int = 0
+
+    /** Set by the app for the loaded model (see ModelOffer.knowledgeFirst). */
+    override var knowledgeFirst: Boolean = false
+
+    /** Set by the app before a load (see ModelOffer.repackWeights). */
+    var repackWeights: Boolean = true
+
+    override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
+        generateWithSampling(prompt, maxTokens, null, -1, savedPrefixChars, 1.10f, thinking = true)
+
     override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
         generateWithSampling(prompt, maxTokens, systemPrompt, seed, savedPrefixChars, 1.10f)
 
@@ -97,7 +110,7 @@ class LlamaInferenceGateway internal constructor(
         generateWithSampling(prompt, maxTokens, null, -1, savedPrefixChars, 1.0f)
 
     private fun generateWithSampling(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int,
-        savedPrefixChars: Int, repeatPenalty: Float): Flow<String> = flow {
+        savedPrefixChars: Int, repeatPenalty: Float, thinking: Boolean = false): Flow<String> = flow {
         require(prompt.isNotBlank()) { "prompt must not be blank" }
         require(maxTokens > 0) { "maxTokens must be positive" }
         lifecycleMutex.withLock {
@@ -109,6 +122,8 @@ class LlamaInferenceGateway internal constructor(
                 // expansion turn into the real answer and bleed earlier questions into later
                 // benchmark runs. A caller-supplied systemPrompt (e.g. the search-planner persona
                 // for the keyword turn) replaces the research persona for this turn only.
+                // Set on every turn, before the reset renders the system turn, so no turn inherits another's.
+                engine.setThinking(thinking)
                 engine.resetConversation(systemPrompt ?: loadedSystemPrompt ?: DEFAULT_RESET_PROMPT)
                 engine.setSampler(if (seed >= 0) seed else -1, repeatPenalty)
                 val generated = StringBuilder()

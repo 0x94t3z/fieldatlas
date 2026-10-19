@@ -59,6 +59,19 @@ class LlamaGatewayJvmTest {
         assertEquals(InferenceState.Idle, gateway.state.value)
     }
 
+    @Test fun theRepackChoiceReachesTheEngineBeforeTheModelLoads() = runBlocking {
+        val engine = FakeEngine()
+        val gateway = LlamaInferenceGateway(engine)
+        gateway.repackWeights = false
+        gateway.load("/verified/model.gguf", "system")
+        assertEquals(listOf(false), engine.repacks)
+        assertTrue(engine.repackSetBeforeLoad)
+        // The upstream default stays for every other model.
+        val plain = FakeEngine()
+        LlamaInferenceGateway(plain).load("/verified/model.gguf", "system")
+        assertEquals(listOf(true), plain.repacks)
+    }
+
     @Test fun downstreamCancellationReturnsGatewayToReady() = runBlocking {
         val gateway = LlamaInferenceGateway(FakeEngine(waitAfterTokens = true))
         gateway.load("/verified/model.gguf", "system")
@@ -122,6 +135,8 @@ class LlamaGatewayJvmTest {
         val calls = mutableListOf<String>()
         val penalties = mutableListOf<Float>()
         var cleanUpCalls = 0
+        val repacks = mutableListOf<Boolean>()
+        var repackSetBeforeLoad = false
         var loadThread = -1L
         var resetThread = -1L
 
@@ -155,6 +170,11 @@ class LlamaGatewayJvmTest {
 
         override fun setSamplerSeed(seed: Int) {
             calls += "seed:$seed"
+        }
+
+        override fun setRepack(enabled: Boolean) {
+            repacks += enabled
+            repackSetBeforeLoad = calls.none { it.startsWith("load:") }
         }
 
         override fun setSampler(seed: Int, repeatPenalty: Float) {

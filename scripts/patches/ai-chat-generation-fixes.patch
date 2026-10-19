@@ -1,5 +1,5 @@
 diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-index 03ab96cfd..51c5ea9b4 100644
+index 03ab96cfd..48e3b520a 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 @@ -1,5 +1,6 @@
@@ -64,7 +64,7 @@ index 03ab96cfd..51c5ea9b4 100644
      // Set llama log handler to Android
      llama_log_set(aichat_android_log_callback, nullptr);
  
-@@ -53,6 +76,15 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
+@@ -53,13 +76,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
  
      // Initialize backends
      llama_backend_init();
@@ -80,7 +80,26 @@ index 03ab96cfd..51c5ea9b4 100644
      LOGi("Backend initiated; Log handler set.");
  }
  
-@@ -104,9 +136,18 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
++// Field Atlas: whether the next model load copies weights into llama.cpp's faster in-memory layouts ("repack").
++// The copy is anonymous memory Android cannot reclaim: for a 10.5 GB model on a 12 GB phone it got the app killed
++// while loading, and without it the weights stay mapped from the file at the same writing speed.
++static bool g_use_extra_bufts = true;
++
++extern "C"
++JNIEXPORT void JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_setRepackNative(JNIEnv * /*env*/, jobject /*unused*/, jboolean enabled) {
++    g_use_extra_bufts = enabled == JNI_TRUE;
++}
++
+ extern "C"
+ JNIEXPORT jint JNICALL
+ Java_com_arm_aichat_internal_InferenceEngineImpl_load(JNIEnv *env, jobject, jstring jmodel_path) {
+     llama_model_params model_params = llama_model_default_params();
++    model_params.use_extra_bufts = g_use_extra_bufts;
+ 
+     const auto *model_path = env->GetStringUTFChars(jmodel_path, 0);
+     LOGd("%s: Loading model from: \n%s\n", __func__, model_path);
+@@ -104,9 +148,18 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
      return context;
  }
  
@@ -100,7 +119,7 @@ index 03ab96cfd..51c5ea9b4 100644
      return common_sampler_init(g_model, sparams);
  }
  
-@@ -116,12 +157,26 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
+@@ -116,12 +169,38 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
      auto *context = init_context(g_model);
      if (!context) { return 1; }
      g_context = context;
@@ -125,10 +144,22 @@ index 03ab96cfd..51c5ea9b4 100644
 +        std::isfinite(repeat_penalty) && repeat_penalty >= 1.0f && repeat_penalty <= 1.2f ? repeat_penalty : 1.10f);
 +}
 +
++// Field Atlas: whether the chat template opens the model's thinking turn. Off by default; set between turns,
++// before the conversation is reset, so the system turn and the user turn are rendered alike.
++static bool g_enable_thinking = false;
++
++// Field Atlas: a large model answering from its own knowledge reasons first; its reasoning streams between the
++// template's thinking markers, which the app keeps out of the answer.
++extern "C"
++JNIEXPORT void JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_setThinkingNative(JNIEnv * /*env*/, jobject /*unused*/, jboolean enabled) {
++    g_enable_thinking = enabled == JNI_TRUE;
++}
++
  static std::string get_backend() {
      std::vector<std::string> backends;
      for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
-@@ -257,11 +312,14 @@ constexpr const char *ROLE_USER         = "user";
+@@ -257,11 +336,14 @@ constexpr const char *ROLE_USER         = "user";
  constexpr const char *ROLE_ASSISTANT    = "assistant";
  
  static std::vector<common_chat_msg> chat_msgs;
@@ -143,7 +174,7 @@ index 03ab96cfd..51c5ea9b4 100644
      system_prompt_position = 0;
      current_position = 0;
  
-@@ -290,10 +348,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
+@@ -290,10 +372,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
      common_chat_msg new_msg;
      new_msg.role = role;
      new_msg.content = content;
@@ -166,7 +197,7 @@ index 03ab96cfd..51c5ea9b4 100644
 +        inputs.messages              = next_msgs;
 +        inputs.use_jinja             = true;
 +        inputs.add_generation_prompt = role == ROLE_USER;
-+        inputs.enable_thinking       = false;
++        inputs.enable_thinking       = g_enable_thinking;
 +        full = common_chat_templates_apply(g_chat_templates.get(), inputs).prompt;
 +    } catch (const std::exception & error) {
 +        LOGe("%s: chat template formatting failed for role %s: %s", __func__, role.c_str(), error.what());
@@ -197,7 +228,7 @@ index 03ab96cfd..51c5ea9b4 100644
      return formatted;
  }
  
-@@ -318,7 +416,10 @@ static int decode_tokens_in_batches(
+@@ -318,7 +440,10 @@ static int decode_tokens_in_batches(
          llama_batch &batch,
          const llama_tokens &tokens,
          const llama_pos start_pos,
@@ -209,7 +240,7 @@ index 03ab96cfd..51c5ea9b4 100644
      // Process tokens in batches using the global batch
      LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
      for (int i = 0; i < (int) tokens.size(); i += BATCH_SIZE) {
-@@ -346,39 +447,44 @@ static int decode_tokens_in_batches(
+@@ -346,39 +471,44 @@ static int decode_tokens_in_batches(
              LOGe("%s: llama_decode failed w/ %d", __func__, decode_result);
              return 1;
          }
@@ -270,7 +301,7 @@ index 03ab96cfd..51c5ea9b4 100644
  
      // Handle context overflow
      const int max_batch_size = DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM;
-@@ -399,20 +505,52 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
+@@ -399,20 +529,52 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
      return 0;
  }
  
@@ -325,7 +356,7 @@ index 03ab96cfd..51c5ea9b4 100644
      std::string formatted_user_prompt(user_prompt);
  
      // Format user prompt if applicable
-@@ -424,9 +562,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -424,9 +586,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
  
      // Decode formatted user prompts
      auto user_tokens = common_tokenize(g_context, formatted_user_prompt, has_chat_template, has_chat_template);
@@ -335,7 +366,7 @@ index 03ab96cfd..51c5ea9b4 100644
  
      // Ensure user prompt doesn't exceed the context size by truncating if necessary.
      const int user_prompt_size = (int) user_tokens.size();
-@@ -437,15 +572,72 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -437,15 +596,72 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
          LOGw("%s: User prompt too long! Skipped %d tokens!", __func__, skipped_tokens);
      }
  
@@ -411,7 +442,7 @@ index 03ab96cfd..51c5ea9b4 100644
      return 0;
  }
  
-@@ -531,7 +723,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
+@@ -531,7 +747,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
      jstring result = nullptr;
      if (is_valid_utf8(cached_token_chars.c_str())) {
          result = env->NewStringUTF(cached_token_chars.c_str());
@@ -419,7 +450,7 @@ index 03ab96cfd..51c5ea9b4 100644
  
          assistant_ss << cached_token_chars;
          cached_token_chars.clear();
-@@ -549,6 +740,7 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
+@@ -549,6 +764,7 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
      // Reset long-term & short-term states
      reset_long_term_states();
      reset_short_term_states();
@@ -427,7 +458,7 @@ index 03ab96cfd..51c5ea9b4 100644
  
      // Free up resources
      common_sampler_free(g_sampler);
-@@ -558,8 +750,132 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
+@@ -558,8 +774,132 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
      llama_model_free(g_model);
  }
  
@@ -561,7 +592,7 @@ index 03ab96cfd..51c5ea9b4 100644
 +    return result;
 +}
 diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
-index 26c166872..a175e736f 100644
+index 26c166872..728d22f77 100644
 --- a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
 +++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
 @@ -4,6 +4,9 @@ import com.arm.aichat.InferenceEngine.State
@@ -574,7 +605,7 @@ index 26c166872..a175e736f 100644
  /**
   * Interface defining the core LLM inference operations.
   */
-@@ -27,8 +30,55 @@ interface InferenceEngine {
+@@ -27,8 +30,68 @@ interface InferenceEngine {
  
      /**
       * Sends a user prompt to the loaded model and returns a Flow of generated tokens.
@@ -606,6 +637,19 @@ index 26c166872..a175e736f 100644
 +     */
 +    fun setSamplerSeed(seed: Int)
 +
++    /**
++     * Field Atlas addition: whether the chat template opens the model's thinking turn for the conversations that
++     * follow. Its reasoning then streams between the template's thinking markers. Call between turns, before
++     * [resetConversation]. Off unless set.
++     */
++    fun setThinking(enabled: Boolean) {}
++
++    /**
++     * Field Atlas addition: whether the next [loadModel] copies the weights into llama.cpp's repacked layouts. Off keeps
++     * them mapped from the file, which Android can reclaim; on is the upstream default. Call before loading.
++     */
++    fun setRepack(enabled: Boolean) {}
++
 +    /** Per-turn repetition policy; no setting should leak into a later turn. */
 +    fun setSampler(seed: Int, repeatPenalty: Float) {
 +        require(repeatPenalty.isFinite() && repeatPenalty in 1.0f..1.2f)
@@ -632,7 +676,7 @@ index 26c166872..a175e736f 100644
      /**
       * Runs a benchmark with the specified parameters.
 diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
-index a293796f9..1409734db 100644
+index a293796f9..961a1a04b 100644
 --- a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
 +++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
 @@ -3,9 +3,10 @@ package com.arm.aichat.internal
@@ -647,7 +691,7 @@ index a293796f9..1409734db 100644
  import kotlinx.coroutines.CancellationException
  import kotlinx.coroutines.CoroutineScope
  import kotlinx.coroutines.Dispatchers
-@@ -75,40 +76,58 @@ internal class InferenceEngineImpl private constructor(
+@@ -75,40 +76,62 @@ internal class InferenceEngineImpl private constructor(
              }
      }
  
@@ -696,6 +740,10 @@ index a293796f9..1409734db 100644
 +    private external fun resetConversationNative(systemPrompt: String): Int
 +
 +    private external fun setSamplerNative(seed: Int, repeatPenalty: Float)
++
++    private external fun setThinkingNative(enabled: Boolean)
++
++    private external fun setRepackNative(enabled: Boolean)
  
 -    @FastNative
      private external fun generateNextToken(): String?
@@ -717,7 +765,7 @@ index a293796f9..1409734db 100644
      private val _state =
          MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
      override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
-@@ -214,9 +233,34 @@ internal class InferenceEngineImpl private constructor(
+@@ -214,9 +237,43 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
       */
@@ -733,6 +781,15 @@ index a293796f9..1409734db 100644
 +    }
 +
 +    override fun setSamplerSeed(seed: Int) = setSampler(seed, 1.10f)
++
++    override fun setRepack(enabled: Boolean) = setRepackNative(enabled)
++
++    override fun setThinking(enabled: Boolean) {
++        check(_state.value is InferenceEngine.State.ModelReady) {
++            "Thinking can change only between turns of a ready model"
++        }
++        setThinkingNative(enabled)
++    }
 +
 +    override fun setSampler(seed: Int, repeatPenalty: Float) {
 +        require(repeatPenalty.isFinite() && repeatPenalty in 1.0f..1.2f)
@@ -752,7 +809,7 @@ index a293796f9..1409734db 100644
      ): Flow<String> = flow {
          require(message.isNotEmpty()) { "User prompt discarded due to being empty!" }
          check(_state.value is InferenceEngine.State.ModelReady) {
-@@ -227,8 +271,9 @@ internal class InferenceEngineImpl private constructor(
+@@ -227,8 +284,9 @@ internal class InferenceEngineImpl private constructor(
              Log.i(TAG, "Sending user prompt...")
              _readyForSystemPrompt = false
              _state.value = InferenceEngine.State.ProcessingUserPrompt
@@ -763,7 +820,7 @@ index a293796f9..1409734db 100644
                  if (result != 0) {
                      Log.e(TAG, "Failed to process user prompt: $result")
                      return@flow
-@@ -262,6 +307,17 @@ internal class InferenceEngineImpl private constructor(
+@@ -262,6 +320,17 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Benchmark the model
       */

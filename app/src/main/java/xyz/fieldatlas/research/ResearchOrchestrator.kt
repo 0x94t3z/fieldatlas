@@ -30,6 +30,11 @@ class ResearchOrchestrator(
     private val articleDepth: Boolean = false,
     /** Optional in-process diagnostic observer. Nothing is logged by the app by default. */
     private val onEvidencePacked: (PackedPrompt) -> Unit = {},
+    /**
+     * Model-first answering: an ordinary question is answered from the model's own knowledge with up to this many of
+     * the selected passages as notes (0: none), the passages listed under the answer. Null keeps the cited route.
+     */
+    private val modelFirstNotes: Int? = null,
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -917,6 +922,53 @@ class ResearchOrchestrator(
                     )))
                     return@flow
                 }
+            }
+            // Model-first: the model answers what it knows, labelled unverified, with the selected passages listed below
+            // it. Emergencies, places, files, phrases, calculations and source-only requests keep their own routes.
+            // The loaded model may answer from its own knowledge (ModelOffer.knowledgeFirst); a fixed note count overrides it.
+            val knowledgeNotes: Int? = when {
+                modelFirstNotes != null -> modelFirstNotes
+                inference.knowledgeFirst -> 0
+                else -> null
+            }
+            if (knowledgeNotes != null && attachments.isEmpty() && phraseAsk == null && !VenueLookup.asksForBusinesses(question) &&
+                !CitedExplanation.explicitlyRequestsQuotes(question) && !PromptBuilder.requiresSavedSources(question)) {
+                // A model chosen for it reasons first: Gemma 4 26B got a time-zone sum wrong straight out and right
+                // after reasoning, and scored 82.5% against 77.5% of web-and-AI answers on set 33 (two blind rounds).
+                val thinking = inference.thinkingBudget.coerceAtLeast(0)
+                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0)
+                onEvidencePacked(first)
+                if (packed.sources.isNotEmpty()) emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
+                emit(ResearchEvent.Token(""))
+                val written = StringBuilder()
+                var tokens = 0
+                var firstAt: Long? = null
+                val generationStart = monotonicMillis()
+                val answer = if (thinking > 0) inference.think(first.prompt, outputBudget + thinking, savedPrefixChars = first.savedPrefixChars)
+                    else inference.generate(first.prompt, outputBudget, savedPrefixChars = first.savedPrefixChars)
+                answer.collect { token ->
+                    if (firstAt == null) firstAt = monotonicMillis()
+                    tokens++
+                    written.append(token)
+                    emit(ResearchEvent.Token(AnswerText.mixed(AnswerChecks.removeDoses(
+                        AnswerChecks.removeOnlineAdvice(written.toString(), question), question, emptyList()), emptyList()), replace = true))
+                }
+                firstAt?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(first.prompt), at - generationStart) }
+                val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    AnswerChecks.removeOnlineAdvice(written.toString(), question), question), question, emptyList())
+                val shown = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed)
+                emit(ResearchEvent.Token(shown, replace = true))
+                val audit = AnswerText.citationAudit(shown, packed.sources.size)
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = firstAt?.let { elapsed(startedAt, it) },
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = tokens,
+                    citedSourceIds = audit.citedSourceIds,
+                    hasUnmappedCitation = audit.hasUnmappedCitation,
+                    promptMillis = firstAt?.let { it - generationStart },
+                )))
+                return@flow
             }
             if (packed.sources.isEmpty()) {
                 if (evidence.isNotEmpty()) {
