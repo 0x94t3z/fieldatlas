@@ -1,12 +1,11 @@
 package xyz.fieldatlas.ui.library
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -41,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -100,7 +97,8 @@ internal fun VoiceDiscoverRow(readAloud: ReadAloud, onGet: () -> Unit, onDetails
         "$voiceSize · Reads answers aloud",
         rowState(DownloadItem.Voice, status, installed = voice == NaturalVoice.State.Ready, saved = readAloud.natural.savedBytes()),
         voiceSize, rowActions(downloads, DownloadItem.Voice, onGet), onClick = onDetails,
-        extra = if (voice == NaturalVoice.State.Ready || status.isActive(DownloadItem.Voice)) null else ({ SampleLine(readAloud, reading) }))
+        extra = if (voice == NaturalVoice.State.Ready || status.isActive(DownloadItem.Voice)) null else ({ SampleLine(readAloud, reading) }),
+        extraFullWidth = true)
 }
 
 /**
@@ -196,17 +194,7 @@ internal fun VoiceDetailSheet(readAloud: ReadAloud, onDownload: () -> Unit, onDi
                 }
             }
             FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(48.dp).clip(CircleShape).background(colors.primary)
-                        .clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
-                            if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
-                        }, contentAlignment = Alignment.Center) {
-                        Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, Modifier.size(22.dp), tint = colors.onPrimary)
-                    }
-                    SampleWave(playing && reading?.paused != true)
-                    Text(seconds(reading?.takeIf { playing }?.positionMs ?: 0), style = MaterialTheme.typography.labelMedium,
-                        color = colors.onSurfaceVariant)
-                }
+                SampleLine(readAloud, reading)
                 val spoken = reading?.takeIf { playing }?.shown
                 Text(buildAnnotatedString {
                     ReadAloud.SAMPLE_TEXT.split(". ").forEachIndexed { index, part ->
@@ -239,45 +227,40 @@ private fun Point(good: Boolean, text: String) {
     }
 }
 
+/**
+ * The natural voice's sample as one sage pill: play or pause in a green circle, what it is, and its time. While it
+ * plays, the pill fills from the left as the recording goes, as the answer's Read aloud bar does.
+ */
 @Composable
 internal fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
-    val playing = reading?.key == ReadAloud.SAMPLE_KEY
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        SampleButton(readAloud, reading)
-        SampleWave(playing && reading?.paused != true)
-        Text(if (playing) seconds(reading?.positionMs ?: 0) else "Hear it · ${seconds(readAloud.sampleMillis)}", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
-/** A round, outlined play button for the natural voice's sample; it stops the sample while it plays. */
-@Composable
-private fun SampleButton(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
-    val playing = reading?.key == ReadAloud.SAMPLE_KEY
     val colors = MaterialTheme.colorScheme
-    Box(Modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClickLabel = if (playing) "Stop the sample" else "Play a sample") {
-        if (playing) readAloud.stop() else readAloud.playSample(ReadAloud.Choice.Natural)
-    }.semantics { contentDescription = if (playing) "Stop the sample" else "Play a sample of the natural voice" }, contentAlignment = Alignment.Center) {
-        Box(Modifier.size(36.dp).clip(CircleShape).border(1.dp, colors.outlineVariant, CircleShape), contentAlignment = Alignment.Center) {
-            Icon(if (playing) Icons.Filled.Stop else Icons.Filled.PlayArrow, null, Modifier.size(17.dp), tint = colors.primary)
-        }
-    }
-}
-
-/** Bars standing for the voice: still and pale until it plays, then moving; still when the phone asks for less motion. */
-@Composable
-private fun SampleWave(playing: Boolean, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    val still = androidx.compose.runtime.remember(context) {
-        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-    }
-    val heights = listOf(6, 12, 18, 10, 22, 14, 8, 16, 20, 9, 13, 6, 11, 17, 7)
-    val phase by rememberInfiniteTransition(label = "sample").animateFloat(0f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "phase")
-    val color = if (playing) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
-    Row(modifier.height(26.dp), horizontalArrangement = Arrangement.spacedBy(2.5.dp), verticalAlignment = Alignment.CenterVertically) {
-        heights.forEachIndexed { index, h ->
-            val scale = if (!playing || still) 1f else 0.5f + 0.5f * (if (index % 2 == 0) phase else 1f - phase)
-            Box(Modifier.width(3.dp).height((h * scale).dp).clip(RoundedCornerShape(2.dp)).background(color))
+    val active = reading?.key == ReadAloud.SAMPLE_KEY
+    val paused = active && reading?.paused == true
+    val playing = active && !paused
+    val total = readAloud.sampleMillis.coerceAtLeast(1)
+    val position = if (active) reading?.positionMs ?: 0 else 0
+    // The position moves in half-second steps; the fill glides between them, and empties at once when it ends.
+    val fraction by animateFloatAsState(if (active) (position.toFloat() / total).coerceIn(0f, 1f) else 0f,
+        tween(if (active) 500 else 0, easing = LinearEasing), label = "sample")
+    val label = when { playing -> "Playing the sample"; paused -> "Sample paused"; else -> "Play a sample" }
+    Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(26.dp)).background(colors.primaryContainer)
+        .clickable(role = Role.Button, onClickLabel = when { playing -> "Pause the sample"; paused -> "Resume the sample"; else -> "Play a sample" }) {
+            when {
+                playing -> readAloud.pause()
+                paused -> readAloud.resume()
+                else -> readAloud.playSample(ReadAloud.Choice.Natural)
+            }
+        }.semantics { contentDescription = if (active) label else "Play a sample of the natural voice" }) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).background(colors.primary.copy(alpha = 0.12f)))
+        Row(Modifier.fillMaxSize().padding(start = 8.dp, end = 18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(CircleShape).background(colors.primary), contentAlignment = Alignment.Center) {
+                Icon(if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, Modifier.size(20.dp), tint = colors.onPrimary)
+            }
+            Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = colors.primary)
+            Text(if (active) "${seconds(position)} / ${seconds(total)}" else seconds(total), style = MaterialTheme.typography.labelMedium,
+                color = colors.onSurfaceVariant)
         }
     }
 }

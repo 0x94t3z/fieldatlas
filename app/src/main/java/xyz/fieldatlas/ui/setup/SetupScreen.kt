@@ -361,7 +361,7 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                 downloadError = status.failures[item.key]?.message,
                 online = online,
                 onDetails = { about = true }, askToConfirm = askConfirm, onAsked = { askConfirm = false })
-            if (!installed && !downloading) Box(Modifier.padding(start = 60.dp, end = 14.dp, bottom = 10.dp)) {
+            if (!installed && !downloading) Box(Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
                 xyz.fieldatlas.ui.library.SampleLine(readAloud, reading)
             }
         }

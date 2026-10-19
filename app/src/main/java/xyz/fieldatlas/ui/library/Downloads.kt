@@ -157,6 +157,8 @@ internal fun DownloadRow(
     onClick: (() -> Unit)? = null,
     note: String? = null,
     extra: (@Composable ColumnScope.() -> Unit)? = null,
+    /** The extra content spans the card from the icon's edge instead of lining up with the title. */
+    extraFullWidth: Boolean = false,
 ) {
     val meta = when (state) {
         is RowState.Get -> if (state.saved > 0) "Paused · ${formatAssetBytes(state.saved)} saved" else idleMeta
@@ -188,7 +190,7 @@ internal fun DownloadRow(
                 DownloadControl(state, getLabel, title, actions)
             }
             val foot = state is RowState.Running || state is RowState.Waiting || state is RowState.Failed || state is RowState.Queued ||
-                (state is RowState.Get && state.saved > 0 && actions.discardSaved != null) || extra != null
+                (state is RowState.Get && state.saved > 0 && actions.discardSaved != null) || (extra != null && !extraFullWidth)
             if (foot) Column(Modifier.fillMaxWidth().padding(start = 64.dp, end = 14.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 when (state) {
@@ -208,7 +210,10 @@ internal fun DownloadRow(
                     is RowState.Get -> if (state.saved > 0) actions.discardSaved?.let { FootActions(listOf("Discard saved part" to it)) }
                     else -> Unit
                 }
-                extra?.invoke(this)
+                if (!extraFullWidth) extra?.invoke(this)
+            }
+            if (extraFullWidth && extra != null) Column(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, bottom = 14.dp)) {
+                extra()
             }
     }
 }
