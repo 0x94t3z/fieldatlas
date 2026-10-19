@@ -201,7 +201,8 @@ object Calculators {
         "efficient", "efficiency")
     private val TEMPERATURE = setOf("outside", "outdoors", "today", "weather", "temperature", "degrees", "celsius", "fahrenheit",
         "centigrade")
-    private val CLOCK = setOf("time", "when", "now", "am", "pm", "there", "here", "o'clock", "difference")
+    private val CLOCK = setOf("time", "when", "now", "am", "pm", "there", "here", "o'clock", "difference", "day", "morning",
+        "afternoon", "evening", "night", "local")
     private val UTC_WORDS = setOf("utc", "gmt", "that", "is", "in", "and", "set", "for", "call", "meeting", "video")
     private val RECIPE = setOf("recipe", "people", "persons", "servings", "portions", "guests", "serves", "feeds", "makes", "cups",
         "cup", "grams", "tablespoons", "teaspoons", "ounces", "pounds", "ml", "kg", "scale", "instead")
@@ -1355,34 +1356,90 @@ object Calculators {
             used = listOf(t.range) + offsets.map { it.range }) to emptySet()
     }
 
+    // "9 in the morning", "7 o'clock in the evening": the part of the day says am or pm.
+    private val dayPartTime = Regex("(?i)\\b(\\d{1,2})(?:[.:](\\d{2}))?\\s*(?:o'?clock\\s+)?(in the morning|in the afternoon|in the evening|at night)\\b")
+    private val monthNames = listOf("january", "february", "march", "april", "may", "june", "july", "august", "september",
+        "october", "november", "december")
+    // "May" only with its capital: "it may be 9 am" names no month.
+    private val monthWord = Regex("\\b(?i:(january|february|march|april|june|july|august|september|october|november|december))\\b|\\b(May)\\b")
+    private val monthDay = Regex("(?i)\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:january|february|march|april|may|june|july|august|september|october|november|december)\\b|" +
+        "\\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?!\\s*(?::|am|pm|a\\.m|p\\.m))")
+    private val weekdayWord = Regex("(?i)\\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\\b")
+
+    /** Minutes after midnight for a clock time read by [clockTime] or [dayPartTime], or null when it is not a time of day. */
+    private fun minutesOfDay(t: MatchResult, dayPart: Boolean): Int? {
+        if (!dayPart && t.groupValues[4].isNotEmpty()) return t.groupValues[4].toInt() * 60 + t.groupValues[5].toInt()
+        val h = t.groupValues[1].toIntOrNull() ?: return null; val m = t.groupValues[2].ifBlank { "0" }.toInt()
+        if (m > 59) return null
+        if (dayPart) {
+            val hour = when (t.groupValues[3].lowercase()) {
+                "in the morning" -> h.takeIf { it in 1..11 }
+                "in the afternoon" -> when (h) { 12 -> 12; in 1..6 -> h + 12; else -> null }
+                "in the evening" -> h.takeIf { it in 5..11 }?.plus(12)
+                else -> when (h) { 12 -> 0; in 1..4 -> h; in 8..11 -> h + 12; else -> null }
+            } ?: return null
+            return hour * 60 + m
+        }
+        if (t.groupValues[3].isNotEmpty()) {
+            if (h !in 1..12) return null
+            return ((h % 12) + if (t.groupValues[3].lowercase().startsWith("p")) 12 else 0) * 60 + m
+        }
+        return null
+    }
+
     private fun clock(q: String, today: LocalDate): Pair<Result, Set<String>>? {
         if (!Regex("(?i)\\bwhat (?:local )?time\\b|\\b(?:what|which) day\\b|\\btime (?:is it|there|difference)\\b").containsMatchIn(q)) return null
         // An arrival time needs the flight's length, which a clock conversion would silently leave out.
         if (Regex("(?i)\\b(fly|flying|flight|land|lands|landing|arrive|arrives|arrival|depart\\w*|leave|leaves|take off|takes off)\\b").containsMatchIn(q)) return null
-        val t = clockTime.find(q) ?: return null
+        val dayPart = dayPartTime.find(q)
+        val t = dayPart ?: clockTime.find(q) ?: return null
+        val minutes = minutesOfDay(t, dayPart != null) ?: return null
+        // The month the question names decides daylight saving: 9 am in New York is 11 pm in Tokyo in January
+        // but 10 pm in July. Without one, today's offsets are used and said to be today's.
+        val months = monthWord.findAll(q).map { (it.groupValues[1].ifEmpty { it.groupValues[2] }).lowercase() }.distinct().toList()
+        if (months.size > 1) return null
+        val month = months.singleOrNull()?.let { monthNames.indexOf(it) + 1 }
+        val dayOfMonth = monthDay.find(q)
+        val dayNumber = dayOfMonth?.let { (it.groupValues[1].ifEmpty { it.groupValues[2] }).toInt() }
+        val date = when {
+            month == null -> today
+            else -> runCatching { LocalDate.of(today.year, month, dayNumber ?: 15) }.getOrNull() ?: return null
+        }
+        val weekdays = weekdayWord.findAll(q).map { it.groupValues[1].lowercase() }.distinct().toList()
+        if (weekdays.size > 1) return null
+        val weekday = weekdays.singleOrNull()?.let { java.time.DayOfWeek.valueOf(it.uppercase(Locale.ROOT)) }
         val mentions = cityAfterIn.findAll(q).mapNotNull { m -> zoneFor(m.groupValues[1])?.let { m.range.first to it } }
             .distinctBy { it.second.second }.toList()
         if (mentions.size != 2) return null
         // The stated time belongs to the city named nearest it: "9:00 in Paris", "in London it is 3 pm".
         val source = mentions.minBy { kotlin.math.abs(it.first - t.range.first) }
         val (fromName, from) = source.second; val (toName, to) = mentions.first { it !== source }.second
-        val time = if (t.groupValues[3].isNotEmpty()) {
-            val h = t.groupValues[1].toInt(); val m = t.groupValues[2].ifBlank { "0" }.toInt()
-            if (h !in 1..12 || m > 59) return null
-            val pm = t.groupValues[3].lowercase().startsWith("p")
-            LocalTime.of((h % 12) + (if (pm) 12 else 0), m)
-        } else LocalTime.of(t.groupValues[4].toInt(), t.groupValues[5].toInt())
-        val start = ZonedDateTime.of(today, time, from); val there = start.withZoneSameInstant(to)
+        val time = LocalTime.of(minutes / 60, minutes % 60)
+        val start = ZonedDateTime.of(date, time, from); val there = start.withZoneSameInstant(to)
         fun show(z: ZonedDateTime) = String.format(Locale.US, "%d:%02d %s", (z.hour + 11) % 12 + 1, z.minute, if (z.hour < 12) "am" else "pm")
         fun utc(z: ZonedDateTime): String {
             val minutes = z.offset.totalSeconds / 60
             val sign = if (minutes < 0) "−" else "+"
             return "UTC$sign${kotlin.math.abs(minutes) / 60}" + (kotlin.math.abs(minutes) % 60).let { if (it == 0) "" else ":%02d".format(it) }
         }
-        val day = when (there.toLocalDate().compareTo(start.toLocalDate())) { 1 -> " the next day"; -1 -> " the previous day"; else -> "" }
-        val text = "${show(start)} in $fromName is **${show(there)} in $toName**$day.\n\n" +
-            "Today $fromName is on ${utc(start)} and $toName on ${utc(there)}. The difference changes by an hour when either place starts or ends daylight saving time."
-        return Result(text, true, "${show(start)} in $fromName = ${show(there)}$day in $toName.", used = listOf(t.range)) to emptySet()
+        val shift = java.time.temporal.ChronoUnit.DAYS.between(start.toLocalDate(), there.toLocalDate()).toInt()
+        fun dayName(d: java.time.DayOfWeek) = d.getDisplayName(java.time.format.TextStyle.FULL, Locale.US)
+        // A weekday named with the time is carried across: 9 am Monday in New York is 11 pm Monday in Tokyo.
+        val (fromDay, toDay) = if (weekday != null) " ${dayName(weekday)}" to " ${dayName(weekday.plus(shift.toLong()))}" else "" to ""
+        val day = if (weekday != null) "" else when (shift) { 1 -> " the next day"; -1 -> " the previous day"; else -> "" }
+        val monthName = month?.let { java.time.Month.of(it).getDisplayName(java.time.format.TextStyle.FULL, Locale.US) }
+        val offsets = if (monthName == null) "Today $fromName is on ${utc(start)} and $toName on ${utc(there)}."
+            else "In $monthName $fromName is on ${utc(start)} and $toName on ${utc(there)}."
+        // A month in which either place starts or ends daylight saving has two answers an hour apart.
+        val changes = month != null && dayNumber == null && listOf(from, to).any { z ->
+            val first = LocalDate.of(date.year, month, 1); val last = first.withDayOfMonth(first.lengthOfMonth())
+            z.rules.getOffset(first.atStartOfDay(z).toInstant()) != z.rules.getOffset(last.atStartOfDay(z).toInstant())
+        }
+        val note = if (changes) " Daylight saving starts or ends during $monthName, so part of the month is an hour different."
+            else if (month == null) " The difference changes by an hour when either place starts or ends daylight saving time." else ""
+        val text = "${show(start)}$fromDay in $fromName is **${show(there)}$toDay in $toName**$day.\n\n$offsets$note"
+        val used = listOfNotNull(t.range, dayOfMonth?.range)
+        return Result(text, true, "${show(start)}$fromDay in $fromName = ${show(there)}$toDay$day in $toName.", used = used) to emptySet()
     }
 
     /* ---------- the time between two clock times ---------- */

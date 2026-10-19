@@ -313,6 +313,28 @@ class CalculatorsTest {
         assertTrue(text("Walking 10 km at 5 km/h with 4 hours of daylight left, will I make it?").contains("**yes**: even with breaks you have 1 h 40 min to spare"))
     }
 
+    @Test fun theTimeInAnotherCityUsesTheMonthAndWeekdayTheQuestionNames() {
+        val october = java.time.LocalDate.of(2026, 10, 5)
+        // New York is on UTC−5 in January, not October's UTC−4: 14 hours behind Tokyo, not 13.
+        val january = Calculators.solve("It's 9 in the morning on a Monday in New York in January. What time and day is it in Tokyo?", october)!!
+        assertTrue(january.text, january.text.startsWith("9:00 am Monday in New York is **11:00 pm Monday in Tokyo**.\n\nIn January New York is on UTC−5 and Tokyo on UTC+9."))
+        assertTrue(january.complete)
+        assertTrue(Calculators.solve("It's 9 am in New York in July. What time is it in Tokyo?", october)!!.text
+            .startsWith("9:00 am in New York is **10:00 pm in Tokyo**."))
+        // Sydney is a day ahead: Friday evening in London is Saturday morning there.
+        assertTrue(Calculators.solve("It's 8 in the evening on Friday in London. What time and day is it in Sydney?", october)!!.text
+            .startsWith("8:00 pm Friday in London is **6:00 am Saturday in Sydney**."))
+        // Daylight saving starts in March on both sides of the Atlantic, on different Sundays.
+        assertTrue(Calculators.solve("It is 10 am in London in March. What time is it in New York?", october)!!.text
+            .contains("Daylight saving starts or ends during March"))
+        // A day of the month is read with it, not left over as a stray number.
+        assertTrue(Calculators.solve("On 2 July it is 9 am in London. What time is it in Tokyo?", october)!!.text
+            .startsWith("9:00 am in London is **5:00 pm in Tokyo**.\n\nIn July London is on UTC+1 and Tokyo on UTC+9."))
+        // "may" in lower case is not the month.
+        assertTrue(Calculators.solve("It may be 9 am in London. What time is it in Tokyo?", october)!!.text.contains("Today London is on UTC+1"))
+        assertNull(Calculators.solve("It's 9 am in London on Monday or Tuesday. What time is it in Tokyo?", october)?.takeIf { "Tokyo" in it.text })
+    }
+
     @Test fun theTimeInAnotherCityUsesThatDaysOffsets() {
         val october = java.time.LocalDate.of(2026, 10, 5)
         assertTrue(Calculators.solve("It is 8:30 am in Nairobi. What time is it in Lima?", october)!!.text
