@@ -26,7 +26,7 @@ class DownloadRowsTest {
         val running = rowState(item, idle.copy(active = item, bytes = 107_538_939, queued = listOf(other)), false, 0) as RowState.Running
         assertEquals("107 of 216 MB", running.line)  // "then 1 more" belongs to the bar, not the row
         assertEquals(0.5f, running.fraction, 0.01f)
-        assertEquals(RowState.Queued(0, "Natural reading voice"), rowState(item, idle.copy(active = other, queued = listOf(item)), false, 0))
+        assertEquals(RowState.Queued(0, "Supertonic 3"), rowState(item, idle.copy(active = other, queued = listOf(item)), false, 0))
         assertEquals(RowState.Failed("No connection", 3), rowState(item,
             idle.copy(failures = mapOf(item.key to DownloadFailure(item, "No connection"))), false, 3))
     }

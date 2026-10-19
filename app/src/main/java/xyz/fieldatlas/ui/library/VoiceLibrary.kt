@@ -212,7 +212,7 @@ internal fun VoiceDetailSheet(readAloud: ReadAloud, onDownload: () -> Unit, onDi
             }
             if (voice != NaturalVoice.State.Ready) FieldAtlasPrimaryButton("Download · $voiceSize", onClick = { if (playing) readAloud.stop(); onDownload() },
                 leadingIcon = FieldAtlasIcons.Download, modifier = Modifier.fillMaxWidth())
-            Text("Supertonic 3 · OpenRAIL-M · run by sherpa-onnx", Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
+            Text("OpenRAIL-M licence · run by sherpa-onnx", Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }

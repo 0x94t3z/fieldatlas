@@ -24,7 +24,8 @@ sealed interface DownloadItem {
 
     data object Voice : DownloadItem {
         override val key: String get() = "voice:${NaturalVoice.ID}"
-        override val title: String get() = "Natural reading voice"
+        // Named by its model, as the answer models are; what it does is said beside it.
+        override val title: String get() = "Supertonic 3"
         override val bytes: Long get() = NaturalVoice.BYTES
     }
 }

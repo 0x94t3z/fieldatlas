@@ -348,7 +348,7 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                 installed = installed, downloading = downloading, busy = busy || !online,
                 downloadedBytes = if (downloading) status.bytes else 0,
                 resumableBytes = if (installed) 0 else readAloud.natural.savedBytes(),
-                details = "English · female voice. Afterward every answer can be read aloud with no signal.\n\nSupertonic 3 · OpenRAIL-M",
+                details = "English · female voice. Afterward every answer can be read aloud with no signal.\n\nOpenRAIL-M licence",
                 onDownload = {
                     readAloud.updateSettings { it.copy(voice = xyz.fieldatlas.speech.ReadAloud.Choice.Natural) }
                     downloads.queue.enqueue(item, allowMobileData = true)
