@@ -178,8 +178,8 @@ fun ResearchScreen(
                 }
             } else FieldAtlasPageHeader(
                 // A finished answer is read on its own page and waits here as a row, so this is always the asking view.
-                title = "What would you\nlike to know?",
-                subtitle = "Research with what’s saved on your phone.",
+                title = "Ask the atlas.",
+                subtitle = "Answered on this phone, from what’s saved here.",
                 modifier = Modifier.padding(top = 22.dp),
                 titleStyle = MaterialTheme.typography.displaySmall,
             )

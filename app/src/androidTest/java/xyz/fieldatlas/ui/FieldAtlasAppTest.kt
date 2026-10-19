@@ -153,7 +153,7 @@ class FieldAtlasAppTest {
         }
         // No separate ready screen: the asking view, with the answer one tap away.
         compose.onNodeWithText("Read answer").assertDoesNotExist()
-        compose.onNodeWithText("What would you\nlike to know?").assertExists()
+        compose.onNodeWithText("Ask the atlas.").assertExists()
         compose.onNodeWithText("Answer ready Why do seasons differ?").performClick()
         assertEquals(7L, opened)
     }
