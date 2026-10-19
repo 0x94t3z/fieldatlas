@@ -50,9 +50,21 @@ on the phone, with no account and nothing sent anywhere.
   article that search found ("Life on Titan") replaces a generic one ("Life"), and no question
   reaches the model without a passage. On 80 questions written for these cases, the 30 answers that
   changed went from 1.9 to 3.9 of 10.
-- **Qwen3.5 4B on phones with 8 GB of memory.** Setup offers it first there, and Qwen3.5 2B
-  everywhere else; downloading the 4B on a phone that used the 2B switches to it. On 120 new
-  questions the 4B made half the factual errors of the 2B (0.30 against 0.62 per answer).
+- **Answers from the model's own knowledge.** With Qwen3.5 4B or Gemma 4 26B, an ordinary question
+  is answered from what the model knows, labelled unverified, with the passages found listed under
+  it to check. On 40 new questions graded blind, the 4B went from 33.7% to 41.8% of web-and-AI
+  answers, and Gemma 4 26B, which reasons before it answers, reached 70.2%
+  ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
+  These answers have more wrong details than cited ones, so check the passages. Qwen3.5 2B still
+  answers from the passages, with citations. Emergencies, places, files, phrases and calculations
+  keep their own answers.
+- **Gemma 4 26B for phones with 12 GB of memory** (10.5 GB download). Setup offers it first there.
+  On a 12 GB Android emulator it answered in a median of 100 seconds and left 9.4 GB of memory free.
+- **Qwen3.5 4B from 6 GB of memory.** Setup offers it first on 6 and 8 GB phones, and Qwen3.5 2B on
+  4 GB phones. Below 8 GB it is read straight from its file, which leaves memory free: on a 6 GB
+  Redmi 13C answers took 3 to 8 minutes.
+- **Time across cities** reads "9 in the morning", the month (for daylight saving) and the weekday:
+  9 am on a Monday in New York in January is 11 pm Monday in Tokyo.
 - **Sources numbered as the answer cites them.** The first source an answer cites is 1, so a
   cited "2" no longer sits above an uncited "1". Each passage has its own row with its opening words.
 - **Library and setup.** Discover lists each collection and model in two short lines, with an
@@ -62,11 +74,15 @@ on the phone, with no account and nothing sent anywhere.
   collection from a file counts only installed collections against the 50 GB limit, so a 24 GB
   Encyclopedia file is no longer refused. Download sources include the voice.
 - **Fixes:** places named without their accents are found, Ethereum standards stay out of
-  questions that are not about crypto, an answer the model wrote twice is shown once, and the
-  "Answer ready" note follows the light theme.
+  questions that are not about crypto, an answer the model wrote twice is shown once, the
+  "Answer ready" note follows the light theme, and the research page opens with "Ask the atlas."
 
 ## How good is it?
 
+- **With the new answer models:** on 40 new questions graded blind (set 37), Gemma 4 26B scores
+  **70.2%** of web-and-AI answers and Qwen3.5 4B **41.8%**, against 33.7% for the 4B and 26.0% for
+  the 2B answering from the passages
+  ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
 - **Against web-and-AI answers:** on 120 new questions (two sets written after the changes and
   graded blind twice), 1.4.2 scores **36.9%** of the web-and-AI answers with Qwen3.5 2B and
   **38.2%** with Qwen3.5 4B. That is below the bounty's bar
@@ -86,20 +102,22 @@ Every question, answer and grade is published in
 ## Good to know
 
 - **Answers that use the model take about 2 to 6 minutes** on a 6 GB phone with Qwen3.5 2B; most
-  of that is the model reading the passages and checking its answer. Answers built from saved data
-  (places, guides, phrases, calculations) take seconds. The 4B has not been timed on an 8 GB phone
-  yet; on the 6 GB Redmi 13C one answer took 8.5 minutes against 2.3 for the 2B, which is why it
-  is not offered there.
+  of that is the model reading the passages and checking its answer. With the 4B on the same phone
+  they take about 3 to 8 minutes (median 4.6), and with Gemma 4 26B on a 12 GB emulator about 1 to
+  3 minutes. Answers built from saved data (places, guides, phrases, calculations) take seconds. The
+  4B has not been timed on a real 8 GB phone, nor Gemma on a real 12 GB phone.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   Answers about a medical letter or drug sheet you attach can get details wrong: read the file itself
   before acting on a dose or a result.
   The emergency guides are information, not training, and many were written for the United States.
 - **Map data and opening hours can be out of date.**
 - **Storage.** The 2B model and every collection take about 33.7 GB, or 35.3 GB with the 4B
-  instead; the natural voice adds 145 MB. Installing the Encyclopedia last needs room for its
-  download and installed copy at once: about 44.3 GB at the peak, inside the 50 GB budget.
-- **Within the bounty's limits.** On an Android emulator with 12 GB of memory, everything the app
-  offers (both models, all seven collections and the voice) takes 37.0 GB of the 50 GB allowed.
+  instead and about 43 GB with Gemma 4 26B; the natural voice adds 145 MB. Installing the
+  Encyclopedia last needs room for its download and installed copy at once: about 44.3 GB at the
+  peak, inside the 50 GB budget. With Gemma, install the Encyclopedia first.
+- **Within the bounty's limits.** On an Android emulator with 12 GB of memory, the two Qwen models,
+  all seven collections and the voice take 37.0 GB of the 50 GB allowed, or about 47.5 GB with
+  Gemma 4 26B as well; a 12 GB phone needs only Gemma, about 43 GB.
   Answering in airplane mode, the app used at most 3.5 GB of memory with the 2B and 6.8 GB with the
   4B, and all 40 test answers finished offline, including 6 research questions with a follow-up
   under each, per model
@@ -112,8 +130,9 @@ Every question, answer and grade is published in
 1. Download `fieldatlas.apk` (and `fieldatlas.apk.sha256` if you want to check it) below.
    Requires Android 13 or later on an arm64 phone.
 2. Open the APK and allow the installation. It installs over 1.4.1 and keeps your data.
-3. In setup, download the model it offers (Qwen3.5 2B, 1.4 GB, or Qwen3.5 4B, 3.0 GB, on an 8 GB
-   phone), and later any collections you want and, if you like, the voice.
+3. In setup, download the model it offers (Qwen3.5 2B, 1.4 GB, on a 4 GB phone; Qwen3.5 4B, 3.0 GB,
+   on a 6 or 8 GB phone; Gemma 4 26B, 10.5 GB, on a 12 GB phone), and later any collections you
+   want and, if you like, the voice.
 4. Turn on airplane mode and start asking.
 
 A phone running a build signed with a different (test) key cannot be updated with this APK.

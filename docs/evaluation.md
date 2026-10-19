@@ -1,5 +1,63 @@
 # Evaluation
 
+## Answers from the model's own knowledge, and a model for 12 GB phones (October 19-20)
+
+Kept to the retrieved passages, a small model often refused, quoted the wrong article ("Mountain"
+for Africa's tallest mountain), or wrote a short cited answer that missed most of the question, and
+reading the passages is what makes a slow phone wait minutes. With the 4B or Gemma 4 26B, an
+ordinary question is now answered from the model's own knowledge in one pass, labelled as unverified,
+with the passages found listed under it. Emergencies, calculations, files, phrasebooks, source-only
+requests and places to eat, sleep, drink or shop keep their own routes.
+
+Each answer model has its setting, chosen by the result below:
+
+| Phone memory | Model | Answers from | Reasons first | Weights |
+| --- | --- | --- | --- | --- |
+| 4 GB | Qwen3.5 2B | the passages, cited | no | repacked |
+| 6 GB | Qwen3.5 4B | its own knowledge | no | mapped from the file |
+| 8 GB | Qwen3.5 4B | its own knowledge | no | repacked |
+| 12 GB | Gemma 4 26B-A4B (UD-Q2_K_XL, 10.5 GB, Apache-2.0) | its own knowledge | yes | mapped from the file |
+
+An AI model that read only earlier question files wrote a sealed set of 40 new questions (set 37,
+[questions](fieldtest/heldout37.jsonl), SHA-256
+`7038683e668d4ed3f6a494ed397d2335ea2e2607cfaf110bb03735c463a328fd`). Each setup answered on the
+desktop pipeline, and graders scored every answer beside a web-and-AI reference without knowing
+which setup wrote it, in two rounds of eight graders:
+
+| Set 37, 40 questions | Share of the reference | Better / worse than today's model on that phone | Factual errors per answer |
+| --- | ---: | ---: | ---: |
+| Qwen3.5 2B, cited (1.4.2) | 26.0% | | 0.71 |
+| Qwen3.5 2B, own knowledge (not adopted) | 20.6% | 12 / 17 | 2.77 |
+| Qwen3.5 4B, cited (1.4.2) | 33.7% | | 0.64 |
+| Qwen3.5 4B, own knowledge | 41.8% | 20 / 14 (p = 0.39) | 1.94 |
+| Gemma 4 26B, own knowledge | 66.5% | 29 / 6 against the 4B | 0.65 |
+| Gemma 4 26B, reasoning first | **70.2%** | 33 / 5 against the 4B | **0.44** |
+
+Reasoning first beat answering straight away 20 to 8 (p = 0.036); it helped most with word problems
+(50% to 87%), comparisons and travel. The 2B knows too little to answer on its own and keeps citing
+the passages. On an earlier sealed set of 40 (set 34), the 4B went from 39.8% to 56-58% answering
+from its own knowledge and Gemma reached 71-72%; giving either model three of the passages as notes
+made its answers worse (4B 53.2%, Gemma 64.1%).
+
+**The cost.** An answer from memory has more wrong details than a cited one: 1.94 per answer for the
+4B against 0.64, which is why it is labelled unverified and the passages stay under it. The 4B also
+did worse on travel (12% against 35%). Emergencies still open the published guides word for word,
+so they stay near 40% with every model. Every answer and grade:
+[set 37](fieldtest/results-1.4.2/heldout37-knowledge.jsonl).
+
+**Speed and memory.** llama.cpp copies a model's weights into faster layouts when it loads them, and
+Android cannot reclaim that copy. On a 12 GB Android emulator Gemma's copy took 5.9 GB and the app
+was killed while loading; mapped from the file instead, it needed 0.56 GB and wrote as fast (13.6
+against 13.8 tokens a second). In the app with the Encyclopedia installed, 8 answers took a median
+99.5 s, with 9.4 GB of memory still free. On a Redmi 13C (6 GB) the 4B's copy left 0.43 GB free;
+mapped, it left 3.2 GB, read 3.3 and wrote 2.2 tokens a second (8.0 and 2.6 with the copy), and 5
+answers in the app took 170 to 480 s, median 277 s.
+
+**Storage.** Gemma is a 10.5 GB download. With every collection and the voice, a 12 GB phone that
+installs Gemma uses about 43 GB, or 47.5 GB with the 2B and 4B kept too, within the 50 GB budget.
+Installing the Encyclopedia needs room for its download and its unpacked copy at once, so on a phone
+with Gemma it goes in before the model.
+
 ## 1.4.2 release candidate on fresh questions (October 17-18)
 
 Two new sets of 60 questions each (set 28, [questions](fieldtest/heldout28.jsonl), SHA-256
