@@ -184,7 +184,7 @@ internal fun CatalogPackSheet(
 
 /** The facts as one card, a row each, so every pack's facts sit in the same place. */
 @Composable
-private fun AboutFacts(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+internal fun AboutFacts(content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
     androidx.compose.material3.Surface(
         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.7f)),
@@ -193,7 +193,7 @@ private fun AboutFacts(content: @Composable androidx.compose.foundation.layout.C
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.ColumnScope.AboutFact(
+internal fun androidx.compose.foundation.layout.ColumnScope.AboutFact(
     label: String,
     divider: Boolean = true,
     onClick: (() -> Unit)? = null,
@@ -217,6 +217,6 @@ private fun androidx.compose.foundation.layout.ColumnScope.AboutFact(
 }
 
 @Composable
-private fun AboutValue(text: String) {
+internal fun AboutValue(text: String) {
     Text(text, style = MaterialTheme.typography.bodyMedium)
 }

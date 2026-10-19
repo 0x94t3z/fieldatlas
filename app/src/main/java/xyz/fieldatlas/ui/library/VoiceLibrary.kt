@@ -1,6 +1,11 @@
 package xyz.fieldatlas.ui.library
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.font.FontStyle
+import xyz.fieldatlas.ui.theme.FieldAtlasReadingStyle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.animation.core.LinearEasing
@@ -193,37 +198,42 @@ internal fun VoiceDetailSheet(readAloud: ReadAloud, onDownload: () -> Unit, onDi
                     Text("English · female voice · $voiceSize", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
-            FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
+            // The same pill as on the Discover card, unboxed, with the recording's words under it as a quote.
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SampleLine(readAloud, reading)
-                val spoken = reading?.takeIf { playing }?.shown
-                Text(buildAnnotatedString {
-                    ReadAloud.SAMPLE_TEXT.split(". ").forEachIndexed { index, part ->
-                        val sentence = if (part.endsWith(".")) part else "$part."
-                        if (index > 0) append(" ")
-                        if (spoken == sentence) withStyle(SpanStyle(background = colors.secondaryContainer, color = colors.onSecondaryContainer)) { append(sentence) }
-                        else append(sentence)
-                    }
-                }, style = MaterialTheme.typography.bodyLarge.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Serif))
+                SampleQuote(reading?.takeIf { playing }?.shown)
             }
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Point(true, "Every answer can be listened to, offline")
-                Point(true, "Emergency guides already play in this voice")
-                Point(false, "On older phones it pauses briefly between sentences")
+            // The facts card the pack sheets use, so the voice's facts read like any other download's.
+            AboutFacts {
+                AboutFact("Reads", divider = false) { AboutValue("Every answer, aloud and offline") }
+                AboutFact("Emergency") { AboutValue("The guides already play in it") }
+                AboutFact("Speed") { AboutValue("Brief pauses on older phones") }
+                AboutFact("Licence") { AboutValue("OpenRAIL-M · run by sherpa-onnx") }
             }
             if (voice != NaturalVoice.State.Ready) FieldAtlasPrimaryButton("Download · $voiceSize", onClick = { if (playing) readAloud.stop(); onDownload() },
                 leadingIcon = FieldAtlasIcons.Download, modifier = Modifier.fillMaxWidth())
-            Text("OpenRAIL-M licence · run by sherpa-onnx", Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall,
-                color = colors.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
 
+/**
+ * The sample's words in the answers' reading face, set as a quote. While it plays, the sentence being spoken comes up
+ * in full ink and its rule turns green; the rest stays quiet, so the eye follows the voice without a block behind it.
+ */
 @Composable
-private fun Point(good: Boolean, text: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(if (good) FieldAtlasIcons.Check else FieldAtlasIcons.Info, null, Modifier.size(18.dp),
-            tint = if (good) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+private fun SampleQuote(spoken: String?) {
+    val colors = MaterialTheme.colorScheme
+    val rule by animateColorAsState(if (spoken != null) colors.primary else colors.outlineVariant, label = "rule")
+    val quiet = if (spoken != null) colors.onSurfaceVariant.copy(alpha = 0.6f) else colors.onSurfaceVariant
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(start = 2.dp), horizontalArrangement = Arrangement.spacedBy(11.dp)) {
+        Box(Modifier.width(3.dp).fillMaxHeight().clip(RoundedCornerShape(2.dp)).background(rule))
+        Text(buildAnnotatedString {
+            ReadAloud.SAMPLE_TEXT.split(". ").forEachIndexed { index, part ->
+                val sentence = if (part.endsWith(".")) part else "$part."
+                if (index > 0) append(" ")
+                withStyle(SpanStyle(color = if (sentence == spoken) colors.onSurface else quiet)) { append(sentence) }
+            }
+        }, Modifier.weight(1f).padding(vertical = 2.dp), style = FieldAtlasReadingStyle.copy(fontStyle = FontStyle.Italic))
     }
 }
 
