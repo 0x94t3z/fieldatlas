@@ -357,17 +357,17 @@ private fun TopicCard(
                     }
                     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false },
                         shape = RoundedCornerShape(16.dp), containerColor = colors.surface) {
-                        DropdownMenuItem(text = { Text(if (pinned) "Unpin" else "Pin to top") },
+                        DropdownMenuItem(text = { Text(if (pinned) "Unpin" else "Pin") },
                             leadingIcon = { Icon(androidx.compose.material.icons.Icons.Outlined.PushPin, null, tint = colors.primary) },
                             onClick = { menuOpen = false; onPin() })
-                        DropdownMenuItem(text = { Text("Share topic") },
+                        DropdownMenuItem(text = { Text("Share") },
                             leadingIcon = { Icon(FieldAtlasIcons.Share, null, tint = colors.primary) },
                             onClick = { menuOpen = false; onShare() })
-                        DropdownMenuItem(text = { Text("Copy as text") },
+                        DropdownMenuItem(text = { Text("Copy") },
                             leadingIcon = { Icon(FieldAtlasIcons.Copy, null, tint = colors.primary) },
                             onClick = { menuOpen = false; onCopy() })
                         HorizontalDivider(Modifier.padding(horizontal = 12.dp, vertical = 4.dp), color = colors.outlineVariant.copy(alpha = 0.6f))
-                        DropdownMenuItem(text = { Text("Delete topic", color = colors.error) },
+                        DropdownMenuItem(text = { Text("Delete", color = colors.error) },
                             leadingIcon = { Icon(FieldAtlasIcons.Trash, null, tint = colors.error) },
                             onClick = { menuOpen = false; onDelete() })
                     }

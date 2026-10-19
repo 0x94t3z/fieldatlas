@@ -34,7 +34,7 @@ class HistoryActionsUiTest {
             HistoryScreen(listOf(record), onDelete = { deleted = it })
         } } }
         compose.onNodeWithContentDescription("More for $question").performClick()
-        compose.onNodeWithText("Delete topic").performClick()
+        compose.onNodeWithText("Delete").performClick()
         compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
         compose.runOnIdle { assertNull(deleted) }
         compose.onNodeWithText(question).assertExists()

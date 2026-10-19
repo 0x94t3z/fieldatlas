@@ -269,9 +269,9 @@ class ModernUiTest {
         val bounds = more.fetchSemanticsNode().boundsInRoot
         assertTrue(bounds.width >= 40 * density - 1)
         more.performClick()
-        listOf("Pin to top", "Share topic", "Copy as text", "Delete topic").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("Pin", "Share", "Copy", "Delete").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         capture("history-menu-light")
-        compose.onNodeWithText("Delete topic").performClick()
+        compose.onNodeWithText("Delete").performClick()
         compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
         compose.runOnIdle { assertFalse(deleted); assertFalse(continued) }
         compose.onNodeWithText(question).performClick()
