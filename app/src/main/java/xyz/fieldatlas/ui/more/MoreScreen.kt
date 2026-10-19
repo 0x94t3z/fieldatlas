@@ -125,7 +125,7 @@ fun MoreScreen(
                 ReadinessCheck("Voice input", if (packs.any { it.type == PackType.AUDIO }) "Saved model" else "Built in", true)
                 MoreDivider()
                 // Guides always have their recordings; answers use the natural voice once it is downloaded.
-                ReadinessCheck("Reading aloud", if (naturalReady) "Natural voice" else "Phone voice", true)
+                ReadinessCheck("Reading aloud", if (naturalReady) xyz.fieldatlas.speech.NaturalVoice.NAME else "Phone voice", true)
             }
             MoreNote("Only downloads need internet.")
             OutlinedButton(onClick = { sheet = null; onOpenLibrary() }, shape = FieldAtlasButtonShape,

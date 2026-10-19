@@ -148,7 +148,7 @@ private fun clock(ms: Long): String = (ms.coerceAtLeast(0) / 1000).let { "%d:%02
 
 private fun voiceName(voice: ReadAloud.Voice) = when (voice) {
     ReadAloud.Voice.Recorded -> "Recorded voice"
-    ReadAloud.Voice.Natural -> "Natural voice"
+    ReadAloud.Voice.Natural -> xyz.fieldatlas.speech.NaturalVoice.NAME
     ReadAloud.Voice.Phone -> "Phone voice"
 }
 

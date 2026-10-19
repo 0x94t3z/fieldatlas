@@ -57,7 +57,7 @@ class NaturalVoiceTest {
 
     @Test fun moreSummarisesTheVoiceAndSpeed() {
         assertEquals("Phone voice · normal speed", readingSummary(ReadAloud.Settings(), naturalReady = false))
-        assertEquals("Natural voice · 1.25×", readingSummary(ReadAloud.Settings(ReadAloud.Choice.Natural, 1.25f), naturalReady = true))
-        assertEquals("Natural voice, not downloaded · normal speed", readingSummary(ReadAloud.Settings(ReadAloud.Choice.Natural), naturalReady = false))
+        assertEquals("Supertonic 3 · 1.25×", readingSummary(ReadAloud.Settings(ReadAloud.Choice.Natural, 1.25f), naturalReady = true))
+        assertEquals("Supertonic 3, not downloaded · normal speed", readingSummary(ReadAloud.Settings(ReadAloud.Choice.Natural), naturalReady = false))
     }
 }

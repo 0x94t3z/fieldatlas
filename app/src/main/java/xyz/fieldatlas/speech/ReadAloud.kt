@@ -598,7 +598,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
 
     companion object {
         const val SAMPLE_KEY = "sample"
-        const val NO_PHONE_VOICE = "This phone has no speech voice. Download the natural voice in Library, " +
+        const val NO_PHONE_VOICE = "This phone has no speech voice. Download ${NaturalVoice.NAME} in Library, " +
             "or add a text-to-speech voice in Android settings."
         const val SAMPLE_TEXT = "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal."
         const val PHONE_SAMPLE_TEXT = "This is your phone's own voice. Field Atlas can read your answers aloud with it, even with no signal."

@@ -134,7 +134,7 @@ internal fun VoiceInstalledRow(readAloud: ReadAloud) {
             xyz.fieldatlas.ui.theme.FieldAtlasSwitch(
                 checked = inUse,
                 onCheckedChange = { on -> readAloud.updateSettings { it.copy(voice = if (on) ReadAloud.Choice.Natural else ReadAloud.Choice.Phone) } },
-                modifier = Modifier.semantics { contentDescription = "Read answers in the natural voice" },
+                modifier = Modifier.semantics { contentDescription = "Read answers in ${NaturalVoice.NAME}" },
             )
             // The same overflow menu as every pack card: rounded, on the card's colour, delete last and in red.
             Box {
@@ -260,7 +260,7 @@ internal fun SampleLine(readAloud: ReadAloud, reading: ReadAloud.Reading?) {
                 paused -> readAloud.resume()
                 else -> readAloud.playSample(ReadAloud.Choice.Natural)
             }
-        }.semantics { contentDescription = if (active) label else "Play a sample of the natural voice" }) {
+        }.semantics { contentDescription = if (active) label else "Play a sample of ${NaturalVoice.NAME}" }) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(fraction).background(colors.primary.copy(alpha = 0.12f)))
         Row(Modifier.fillMaxSize().padding(start = 8.dp, end = 18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically) {

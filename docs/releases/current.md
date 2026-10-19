@@ -21,8 +21,8 @@ on the phone, with no account and nothing sent anywhere.
   Search to Read to Write while the answer forms in place, Stop sits in the question box, and the
   passages found appear as they come in.
 - **Read aloud.** Answers and emergency guides can be read aloud with the phone's voice, or with a
-  natural voice (Supertonic 3, about 146 MB) offered as an optional third step in setup. Both work
-  with no signal.
+  natural voice, Supertonic 3 (about 146 MB), offered as an optional second step in setup, after the
+  answer model. Both work with no signal.
 - **More emergencies found.** An emergency told as a statement ("tornado siren going off and we're
   in a motel room") now gets its guide. On 45 new emergencies the right guide was shown for 14,
   against 9 in 1.4.1, with no unsafe guide. Two guides are new: a chemical or object in the eye,

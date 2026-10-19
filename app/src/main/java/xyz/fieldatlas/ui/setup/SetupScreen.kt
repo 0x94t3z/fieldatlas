@@ -189,6 +189,11 @@ fun SetupScreen(
                         online = online,
                     )
                 }
+                // The voice is the other optional thing that runs on the phone itself; offered here so a first
+                // run can fetch it with the rest instead of finding it later in Library. It comes second, after
+                // the models and before the collections, in the order Library's Discover lists them.
+                item(key = "setup-voice-header") { SetupSection(2, "Voice", "Optional · add later in Library") }
+                item(key = "setup-voice") { SetupVoiceCard(busy = busy, blockedReason = blockedReason, online = online) }
                 item {
                     val refresh: @Composable () -> Unit = {
                         TextButton(shape = FieldAtlasButtonShape, onClick = onRefreshCatalog, enabled = online && !catalogRefreshing) {
@@ -196,10 +201,10 @@ fun SetupScreen(
                         }
                     }
                     if (LocalDensity.current.fontScale > 1.3f) Column(Modifier.fillMaxWidth()) {
-                        SetupSection(2, "Knowledge", "Optional · add later in Library")
+                        SetupSection(3, "Knowledge", "Optional · add later in Library")
                         Box(Modifier.align(Alignment.End)) { refresh() }
                     } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { SetupSection(2, "Knowledge", "Optional · add later in Library") }
+                        Box(Modifier.weight(1f)) { SetupSection(3, "Knowledge", "Optional · add later in Library") }
                         refresh()
                     }
                     if (online && catalogError != null) Text(catalogError,
@@ -257,10 +262,6 @@ fun SetupScreen(
                         }
                     }
                 }
-                // The voice is the other optional thing that runs on the phone itself; offered here so a first
-                // run can fetch it with the rest instead of finding it later in Library.
-                item(key = "setup-voice-header") { SetupSection(3, "Voice", "Optional · reads answers aloud with no signal") }
-                item(key = "setup-voice") { SetupVoiceCard(busy = busy, blockedReason = blockedReason, online = online) }
                 (knowledgeError ?: error?.takeUnless { it == modelDownloadError })?.let { message -> item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
                         Text("Setup couldn’t finish", style = MaterialTheme.typography.titleSmall,
@@ -273,7 +274,7 @@ fun SetupScreen(
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (!importing && !downloading && !otherModelDownloading && model == null) Text(
-                    "Add a model to start. Knowledge and the voice can come later.",
+                    "Add a model to start. The voice and knowledge can come later.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -354,7 +355,8 @@ private fun SetupVoiceCard(busy: Boolean, blockedReason: String?, online: Boolea
                     downloads.queue.enqueue(item, allowMobileData = true)
                 },
                 onCancel = downloads.queue::pause,
-                subtitle = "Supertonic 3 · " + (runCatching { java.net.URI(source).host }.getOrNull() ?: ""),
+                // The same line as the voice's row in Library's Discover: "146 MB · Reads answers aloud".
+                subtitle = "Reads answers aloud",
                 blockedReason = blockedReason, inGroup = true,
                 freeBytesNeeded = item.bytes + 200_000_000L,
                 downloadUrl = source,
@@ -453,7 +455,7 @@ private fun SetupDownloadRow(
                     "${downloadSize(resumableBytes)} saved · resume" else downloadSize(bytes)
                 val accent = MaterialTheme.colorScheme.primary
                 Text(androidx.compose.ui.text.buildAnnotatedString {
-                    // The size first, as in Library: "146 MB · Supertonic 3", "3.01 GB · Best for this phone".
+                    // The size first, as in Library: "146 MB · Reads answers aloud", "3.01 GB · Best for this phone".
                     append(listOfNotNull(status, subtitle).joinToString(" · "))
                     if (badge != null && !installed) {
                         append(" · ")

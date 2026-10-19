@@ -103,13 +103,13 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
         val queue = xyz.fieldatlas.ui.library.LocalDownloads.current?.state?.collectAsState()?.value
         val fetching = queue != null && (queue.isActive(xyz.fieldatlas.assets.DownloadItem.Voice) ||
             queue.queuePosition(xyz.fieldatlas.assets.DownloadItem.Voice) >= 0)
-        VoiceOption(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, "Natural voice", selected = true, detail = when {
+        VoiceOption(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, NaturalVoice.NAME, selected = true, detail = when {
             voice == NaturalVoice.State.Ready -> "Sounds like a person. On this phone; reads with no signal."
             fetching -> "Sounds like a person. Downloading now; the phone's voice reads until it is ready."
             else -> "Sounds like a person. $naturalSize, downloaded once, then works with no signal. The phone's voice reads until it is ready."
         }) {
             when {
-                voice == NaturalVoice.State.Ready || fetching -> BoardPill(if (fetching) "Use it when ready" else "Use natural voice", tonal = true, onClick = {
+                voice == NaturalVoice.State.Ready || fetching -> BoardPill(if (fetching) "Use it when ready" else "Use ${NaturalVoice.NAME}", tonal = true, onClick = {
                     readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Natural) }; onChosen()
                 })
                 else -> BoardPill("Download · $naturalSize", tonal = true, icon = FieldAtlasIcons.Download, onClick = { confirm = true })
@@ -121,7 +121,7 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
                 BoardPill("Use phone voice now", onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen() })
             }
         } else VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice",
-            detail = "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or use the natural voice.") {}
+            detail = "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or use ${NaturalVoice.NAME}.") {}
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(FieldAtlasIcons.Info, null, Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("An emergency guide never waits for this: it reads with the best voice already on the phone.",
@@ -162,17 +162,17 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
     val natural = settings.voice == ReadAloud.Choice.Natural
     FieldAtlasInfoSheet("Reading aloud", onDismiss = { if (reading?.key == ReadAloud.SAMPLE_KEY) readAloud.stop(); onDismiss() }) {
         Label("Voice")
-        Segments(listOf("Natural · $naturalSize", "Phone voice"), if (natural) 0 else if (settings.voice == ReadAloud.Choice.Phone) 1 else -1) { picked ->
+        Segments(listOf(NaturalVoice.NAME, "Phone voice"), if (natural) 0 else if (settings.voice == ReadAloud.Choice.Phone) 1 else -1) { picked ->
             readAloud.updateSettings { it.copy(voice = if (picked == 0) ReadAloud.Choice.Natural else ReadAloud.Choice.Phone) }
         }
         when {
-            natural && voice == NaturalVoice.State.Ready -> Note("Natural voice is on this phone. It reads with no signal.")
+            natural && voice == NaturalVoice.State.Ready -> Note("${NaturalVoice.NAME} is on this phone. It reads with no signal.")
             natural -> {
-                Note("Natural voice is not on this phone yet; the phone's voice reads until it is.")
+                Note("${NaturalVoice.NAME} is not on this phone yet; the phone's voice reads until it is.")
                 xyz.fieldatlas.ui.library.DownloadGroup(listOf { xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true }) })
             }
             readAloud.phoneVoiceAvailable -> Note("The phone's own voice: ready now, no download.")
-            else -> Note("This phone has no speech voice. Add one in Android settings (Text-to-speech output), or download the natural voice.")
+            else -> Note("This phone has no speech voice. Add one in Android settings (Text-to-speech output), or download ${NaturalVoice.NAME}.")
         }
         Label("Speed")
         val speeds = listOf(0.8f, 1.0f, 1.25f, 1.5f)
@@ -240,8 +240,8 @@ private fun SwitchRow(title: String, detail: String, checked: Boolean, onChange:
 /** What More shows under Reading aloud before it is opened. */
 fun readingSummary(settings: ReadAloud.Settings, naturalReady: Boolean): String {
     val voice = when {
-        settings.voice == ReadAloud.Choice.Natural && naturalReady -> "Natural voice"
-        settings.voice == ReadAloud.Choice.Natural -> "Natural voice, not downloaded"
+        settings.voice == ReadAloud.Choice.Natural && naturalReady -> NaturalVoice.NAME
+        settings.voice == ReadAloud.Choice.Natural -> "${NaturalVoice.NAME}, not downloaded"
         else -> "Phone voice"
     }
     val speed = if (settings.speed == 1.0f) "normal speed" else "${settings.speed.toString().removeSuffix(".0")}×"

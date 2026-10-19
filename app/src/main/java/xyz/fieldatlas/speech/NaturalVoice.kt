@@ -137,7 +137,7 @@ class NaturalVoice internal constructor(
 
     /** Makes one piece of speech; the first call loads the voice (a few seconds on an older phone). */
     suspend fun speak(text: String, speed: Float): Audio = withContext(engine) {
-        check(ready) { "The natural voice is not on this phone" }
+        check(ready) { "$NAME is not on this phone" }
         val began = android.os.SystemClock.elapsedRealtime()
         val audio = loaded().generateWithConfig(text, GenerationConfig(sid = STYLE_F1, numSteps = STEPS, speed = speed, extra = mapOf("lang" to "en")))
         // Lengths and times only, never the words: how fast this phone makes speech is what is worth knowing.
@@ -186,6 +186,8 @@ class NaturalVoice internal constructor(
 
     companion object {
         const val ID = "supertonic-3-int8"
+        /** What every screen calls the voice: its model's name, as the answer models go by theirs. */
+        const val NAME = "Supertonic 3"
         private const val LOG_TAG = "FieldAtlasVoice"
         const val STYLE_F1 = 0
         const val STEPS = 5

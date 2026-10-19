@@ -175,7 +175,7 @@ fun LibraryScreen(
     val modelsFound = modelDownloads.filter { DiscoverSearch.matches(discoverQuery, it.name, it.line, "model") }
     val updatesFound = updates.filter(::knowledgeMatches)
     val freshFound = fresh.filter(::knowledgeMatches)
-    val voiceFound = voiceOffered && DiscoverSearch.matches(discoverQuery, "Supertonic 3", "Natural reading voice: an English voice that reads answers aloud")
+    val voiceFound = voiceOffered && DiscoverSearch.matches(discoverQuery, xyz.fieldatlas.speech.NaturalVoice.NAME, "Natural reading voice: an English voice that reads answers aloud")
     val discoverCounts = mapOf(DiscoverType.Models to modelsFound.size, DiscoverType.Knowledge to updatesFound.size + freshFound.size,
         DiscoverType.Voices to if (voiceFound) 1 else 0).let { it + (DiscoverType.All to it.values.sum()) }
     val discoverOffered = modelDownloads.size + updates.size + fresh.size + if (voiceOffered) 1 else 0
