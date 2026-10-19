@@ -33,9 +33,9 @@ fun chooseModel(
             "$name needs a phone with ${offer?.minimumMemoryLabel} of memory or more. " +
                 "Download ${recommended.name} in Library to answer on this phone."
         }
-        // Nothing smaller to fall back to: try again, but say what to do if the phone keeps closing the app.
-        return ModelChoice(selected, if (interrupted) "Field Atlas closed while loading $name last time. If it happens again, " +
-            "get ${recommended.name} in Library: it needs less memory." else null)
+        // Nothing smaller to fall back to: the model is simply tried again. A note about the earlier load only
+        // worried people whose phone loaded it fine the second time, and there was nothing for them to do.
+        return ModelChoice(selected)
     }
     return ModelChoice(fallback, if (tooLarge) {
         "$name needs a phone with ${offer?.minimumMemoryLabel} of memory or more, so ${recommended.name} answers instead."

@@ -69,12 +69,11 @@ class ModelChoiceTest {
         assertNull(choice.notice)
     }
 
-    @Test fun withNothingToFallBackToAnInterruptedModelIsTriedAgainAndTheFixIsNamed() {
+    @Test fun withNothingToFallBackToAnInterruptedModelIsTriedAgainQuietly() {
         val choice = chooseModel(listOf(larger), eightGb, modelLoadKey(larger))
         assertSame(larger, choice.pack)
-        // Tried again, since it is all there is, but a phone that keeps closing the app needs the smaller model.
-        assertEquals("Field Atlas closed while loading Larger model last time. If it happens again, get Qwen3.5 2B in Library: " +
-            "it needs less memory.", choice.notice)
+        // Tried again, since it is all there is, with no note about the earlier load.
+        assertNull(choice.notice)
     }
 
     @Test fun anImportedModelIsNamedByItsTitle() {
