@@ -66,6 +66,11 @@ interface DownloadEngine {
     fun failure(item: DownloadItem): String?
     /** Stops [item], keeping its saved bytes; [keepForLater] also keeps it to resume when the app reopens. */
     fun stop(item: DownloadItem, keepForLater: Boolean)
+    /**
+     * The person paused or removed [item] while it was not running (waiting for Wi-Fi, or in line): any request saved
+     * to resume it when the app reopens is dropped, so it does not start again by itself. Its saved bytes stay.
+     */
+    fun forget(item: DownloadItem) {}
 }
 
 /**
@@ -109,6 +114,8 @@ class DownloadQueue(
         val current = mutableState.value
         val item = current.active ?: return
         if (current.waitingForWifi) {
+            // Held for Wi-Fi, its request to resume was kept (hold); paused by the person, it must not come back by itself.
+            engine.forget(item)
             advance(current.copy(active = null, bytes = 0, waitingForWifi = false))
             return
         }
@@ -116,13 +123,16 @@ class DownloadQueue(
     }
 
     fun pauseAll() {
-        mutableState.value = mutableState.value.copy(queued = emptyList())
+        val current = mutableState.value
+        current.queued.forEach(engine::forget)
+        mutableState.value = current.copy(queued = emptyList())
         pause()
     }
 
     /** Takes a waiting download out of the line. */
     fun remove(item: DownloadItem) {
         val current = mutableState.value
+        if (current.queuePosition(item) >= 0) engine.forget(item)
         mutableState.value = current.copy(queued = current.queued.filterNot { it.key == item.key })
     }
 

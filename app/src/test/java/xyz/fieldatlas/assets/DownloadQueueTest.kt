@@ -21,6 +21,8 @@ class DownloadQueueTest {
         }
         override fun failure(item: DownloadItem) = "Could not start"
         override fun stop(item: DownloadItem, keepForLater: Boolean) { stopped += item.key to keepForLater }
+        val forgotten = mutableListOf<String>()
+        override fun forget(item: DownloadItem) { forgotten += item.key }
     }
 
     private fun pack(id: String, mb: Long) = KnowledgeCatalogEntry(id = id, version = "2026.10.05", title = id, description = "",
@@ -136,6 +138,48 @@ class DownloadQueueTest {
         assertEquals(vegan, q.state.value.active)
         assertTrue(q.state.value.waitingForWifi)
         assertTrue(engine.stopped.isEmpty())
+        // Waiting from the start, it may still have a request saved by an earlier session: that goes too.
+        assertEquals(listOf(travel.key), engine.forgotten)
+    }
+
+    @Test fun aDownloadHeldForWifiAndThenPausedDoesNotComeBackByItself() {
+        val engine = FakeEngine()
+        val q = queue(engine)
+        q.enqueue(travel)
+        // Leaving Wi-Fi holds it and keeps the request to resume.
+        q.onNetwork(false)
+        assertEquals(listOf(travel.key to true), engine.stopped)
+        q.onEnded(travel, DownloadOutcome.Stopped)
+        assertTrue(engine.forgotten.isEmpty())
+        // The person pauses it: the kept request is dropped, and Wi-Fi coming back starts nothing.
+        q.pause()
+        assertEquals(listOf(travel.key), engine.forgotten)
+        assertNull(q.state.value.active)
+        q.onNetwork(true)
+        assertEquals(listOf(travel.key), engine.started)
+    }
+
+    @Test fun aRunningDownloadPausedIsStoppedWithoutKeepingItForLater() {
+        val engine = FakeEngine()
+        val q = queue(engine)
+        q.enqueue(travel)
+        q.pause()
+        assertEquals(listOf(travel.key to false), engine.stopped)
+        assertTrue(engine.forgotten.isEmpty())
+    }
+
+    @Test fun downloadsTakenOutOfTheLineAreForgottenToo() {
+        val engine = FakeEngine()
+        val q = queue(engine)
+        q.enqueue(travel); q.enqueue(vegan); q.enqueue(DownloadItem.Voice)
+        q.remove(vegan)
+        assertEquals(listOf(vegan.key), engine.forgotten)
+        // Removing what is not in line forgets nothing.
+        q.remove(vegan)
+        assertEquals(listOf(vegan.key), engine.forgotten)
+        q.pauseAll()
+        assertEquals(listOf(vegan.key, DownloadItem.Voice.key), engine.forgotten)
+        assertEquals(listOf(travel.key to false), engine.stopped)
     }
 
     @Test fun timeLeftComesFromTheRecentSpeed() {

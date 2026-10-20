@@ -169,6 +169,17 @@ class BackgroundAssetDownloads(
         job?.cancel()
     }
 
+    /**
+     * Forgets the request to resume a download the person paused while it waited for Wi-Fi or its turn. Held for Wi-Fi,
+     * its transfer was stopped with the request kept and may still be ending; it must not keep it, and opening the app
+     * must not start the download again. Another download's request stays.
+     */
+    fun forgetPaused(modelId: String?, packId: String?) {
+        if (!pendingDownloadIs(preferences.getString(PENDING_MODEL, null), preferences.getString(PENDING_PACK, null), modelId, packId)) return
+        keepPendingAfterCancel = false
+        clearPending()
+    }
+
     /** Forgets a paused download the user discarded, so opening the app does not start it again. */
     fun forget(modelId: String?, packId: String?) {
         if (mutableState.value.active) return

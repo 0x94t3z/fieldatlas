@@ -52,6 +52,13 @@ class AppDownloads(
             DownloadItem.Voice -> voice.pauseDownload()
             else -> background.cancel(keepPending = keepForLater)
         }
+
+        // The voice keeps no request to resume when the app reopens; a model or a collection does.
+        override fun forget(item: DownloadItem) = when (item) {
+            is DownloadItem.Model -> background.forgetPaused(item.offer.id, null)
+            is DownloadItem.Knowledge -> background.forgetPaused(null, item.pack.id)
+            DownloadItem.Voice -> Unit
+        }
     }
 
     val queue: DownloadQueue = DownloadQueue(engine, preferences.getBoolean(ONLY_ON_WIFI, true),
