@@ -408,7 +408,8 @@ object EmergencyGuideMatch {
             "my (fingers?|toes?|hands?|feet|foot|legs?|arms?|skin|face|ears?|nose|eyes?|knees?|ankles?|wrists?|lips?|" +
             "neck|back|head|chest|belly|stomach|shoulders?|hips?|ribs?|throat|mouth|tongue|cheeks?|palms?|thumbs?|elbows?|shins?|calf|calves)|" +
             // A bystander describing a stranger, in the present: "a man has collapsed and is not breathing".
-            "(a|an|the|this) (man|woman|person|child|kid|boy|girl|baby|hiker|driver|player|swimmer|runner) (has|is|was|just)|" +
+            "(a|an|the|this|some|one) (man|woman|person|child|kid|boy|girl|baby|hiker|driver|player|swimmer|runner|guy|bloke|lad|lady|stranger|" +
+            "passenger|teenager|student|customer|cyclist|jogger|worker|tourist)( \\w+){0,4} (has|is|was|just|collapsed|dropped|fell|keeled)|" +
             "(has|have|just) collapsed|(is|isn't|is not|are not|aren't) (not )?(breathing|responding|conscious)|" +
             "(is|are) (unconscious|unresponsive|having a seizure|choking|drowning)|" +
             "(ambulance|help) (is|has been|was|has) (called|coming|on (its|the) way|not arrived)|" +
@@ -463,7 +464,11 @@ object EmergencyGuideMatch {
      */
     private val noSignsOfLife = Regex(
         "(?i)\\b((?:not|isn['’]?t|wasn['’]?t|stopped|no longer) breathing|(?:doesn['’]?t|does not) breathe|no pulse|no heartbeat|" +
-            "unresponsive|not responding|won['’]?t wake up|(?:$PERSON)\\b(?:[^.?!]{0,60}? and)? (?:isn['’]?t|wasn['’]?t) responding)\\b(?! to\\b)",
+            "unresponsive|not responding|won['’]?t wake up|(?:$PERSON)\\b(?:[^.?!]{0,60}? and)? (?:isn['’]?t|wasn['’]?t) responding|" +
+            // "I put my ear by his mouth and there's nothing", "not answering me": no breath found, no answer given.
+            "(?:ear|cheek|hand|face) (?:by|to|over|near|on|next to|against) (?:his|her|their) (?:mouth|nose|chest|lips)[^.?!]{0,30}?" +
+            "\\b(?:nothing|no breath\\w*|not (?:a thing|anything))|(?:feel|hear|get) no breath\\w*|no (?:breath|breathing) at all|" +
+            "chest (?:isn['’]?t|is not|not) (?:moving|rising)(?: at all)?)\\b(?! to\\b)",
     )
     /**
      * Out but breathing: "breathing but not waking up", "passed out on his back snoring, we can't wake him". The person
@@ -517,7 +522,10 @@ object EmergencyGuideMatch {
     /** A guide whose steps would be wrong for this question, whatever its words share with it. */
     private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
         // A place's tap water is that place's travel advice, not water to treat.
-        "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question)
+        "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
+            waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question)
+        // "Hiking through long grass, something struck my calf": a hike is not being lost; the guide needs the lost person.
+        "lost" -> !lostSign.containsMatchIn(question)
         // "A fish bone is stuck, I can breathe and talk but it hurts": the airway is open. The choking steps (back
         // blows, abdominal thrusts) are for someone who cannot breathe, speak or cough.
         "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
@@ -560,7 +568,8 @@ object EmergencyGuideMatch {
     private val burnedPerson = Regex("(?i)\\b(?:burn(?:ed|t)? (?:my|his|her|their|him|her|me|myself|himself|herself)|got burn(?:ed|t)|" +
         "(?:i|he|she|they|my \\w+) (?:am|is|are|was|were|got) burn(?:ed|t)|blister\\w*|skin)\\b")
 
-    private val noseBleed = Regex("(?i)\\b(?:nose ?bleed\\w*|nose\\b[^.?!]{0,25}?\\bbleed\\w*|bleed\\w*\\b[^.?!]{0,25}?\\bnose|nostrils?\\b[^.?!]{0,20}?\\bblood)\\b")
+    private val noseBleed = Regex("(?i)\\b(?:nose ?bleed\\w*|nose\\b[^.?!]{0,25}?\\b(?:bleed\\w*|blood|pouring|gushing|dripping)|" +
+        "(?:bleed\\w*|blood)\\b[^.?!]{0,25}?\\bnose|nostrils?\\b[^.?!]{0,20}?\\bblood)\\b")
     private val hitHead = Regex("(?i)\\b(?:hit|banged|bumped|struck|knocked|smacked|whacked|fell on|landed on|concuss\\w*|skull|punched|headbutt\\w*|fell|fall|crash\\w*|accident)\\b")
     /** Something heavy on a person: no bundled guide covers it. */
     private val crushInjury = Regex("(?i)\\b(?:pinned|trapped under|crushed|crush injur\\w*|(?:fell|landed|collapsed|toppled|came down) on (?:top of )?(?:my|his|her|their|him|me)|" +
@@ -572,9 +581,10 @@ object EmergencyGuideMatch {
      */
     private val pastEvent = Regex("(?i)\\b(?:had (?:one|it|an? \\w+(?: \\w+)?) (?:in|back in|last|during|at) \\w+|" +
         "(?:in|back in|since|during) (?:january|february|march|april|june|july|august|september|october|november|december)|" +
-        "\\d+ (?:weeks?|months?|years?) ago|(?:weeks|months|years) ago)\\b")
+        "\\d+ (?:weeks?|months?|years?) ago|(?:weeks|months|years) ago|last (?:week|month|year|summer|winter|spring|autumn|fall)|" +
+        "(?:a|one|two|three|\\d+) (?:years?|months?) on|(?:back )?in (?:19|20)\\d{2}|ages ago|a while ago|years back)\\b")
     private val happeningNow = Regex("(?i)\\b(?:just (?:stopped|hit|happened|started|went off|struck|came|collapsed|fell|had|did)|right now|now|currently|" +
-        "at the moment|again|still|keeps?|coming in|rolling in|approaching|getting closer|is (?:here|happening|starting|coming)|" +
+        "at the moment|again|keeps?|coming in|rolling in|approaching|getting closer|is (?:here|happening|starting|coming)|" +
         "can see|what do (?:we|i) do|help)\\b")
     private val minorBleeding = Regex("(?i)\\b(?:bleeding (?:a little|a bit|slightly|only a little)|small cut|tiny cut|little cut|paper cut|minor cut|" +
         "(?:bit|bitten) (?:my|his|her|their) (?:tongue|lip|cheek)|graze|scrape)\\b")
@@ -601,6 +611,22 @@ object EmergencyGuideMatch {
     // A place's tap water is its supply, answered by that place's travel guide ("Stay healthy").
     // The treatment guide is for water someone has to make safe, or a supply an event has spoiled.
     private val tapWater = Regex("(?i)\\btap water\\b")
+    private val waterStorage = Regex("(?i)\\b(?:stor(?:e|ing|age)|stockpil\\w*|rotate|rotating|rotation|shelf life|how long (?:does|will|can|should) [^.?!]{0,30}?\\b(?:keep|last|stay)|" +
+        "keep for|supply for|(?:weeks?|days?|months?) of (?:drinking )?water|gallons|litres? per (?:person|day))\\b")
+    private val treatNow = Regex("(?i)\\b(?:purif\\w*|disinfect\\w*|boil\\w*|filter\\w*|tablets?|bleach|iodine|chlorine|contaminat\\w*|dirty|cloudy|murky|brown|" +
+        "smell\\w*|safe to drink|can (?:i|we) drink|drinkable|advisory|notice|stream|river|lake|pond|creek)\\b")
+    private val lostSign = Regex("(?i)\\b(?:lost|can'?t find|cant find|cannot find|no idea where|don'?t know where|dont know where|which way|wrong (?:turn|trail|path|way)|" +
+        "nothing looks familiar|doesn'?t look familiar|separated|hasn'?t come back|hasnt come back|didn'?t come back|didnt come back|not come back|missing|" +
+        "stay put|search and rescue|whistle|navigat\\w*|way back|route|path|direction|off (?:the )?trail|off trail|overdue|not (?:back|returned))\\b")
+    /** Work talk in emergency words: "inbox is flooded, deadlines hitting like lightning". */
+    private val workTalk = Regex("(?i)\\b(?:inbox|deadlines?|e-?mails?|slack|meetings?|workload|spreadsheets?|backlog|prioriti[sz]\\w*|to-?do list|" +
+        "kpis?|stakeholders?|sprint|standup|jira|tickets? (?:are|keep)|my boss|clients? (?:are|keep)|quarter(?:ly)?|q[1-4])\\b")
+    /** "I am writing an essay comparing how tsunamis are forecast": the hazard is the subject of a piece of work. */
+    private val studyTalk = Regex("(?i)\\b(?:essays?|homework|assignments?|dissertation|thesis|school project|class project|quiz|exams?|revision|revising|studying|" +
+        "lecture|textbook|paper on|article (?:about|on)|writing (?:about|on|up)|write (?:about|on|up)|researching|research project|presentation (?:on|about))\\b")
+    /** Planning for a season or a kit, with nothing happening: the guides as published answer the moment, not the plan. */
+    private val planning = Regex("(?i)\\b(?:(?:hurricane|storm|wildfire|fire|tornado|flood|monsoon|cyclone|typhoon|winter|snow|rainy) season|" +
+        "how often should (?:i|we) (?:rotate|replace|check|swap)|stockpil\\w*|emergency kit|go bag|bug.?out bag|shelf life)\\b")
     private val waterToTreat = Regex("(?i)\\b(?:purif\\w*|disinfect\\w*|boil\\w*|treat\\w*|filter\\w*|tablets?|bleach|iodine|chlorine|" +
         "stream|river|lake|pond|creek|well|rain\\w*|flood\\w*|storm|hurricane|earthquake|emergency|outage|contaminat\\w*|" +
         "dirty|cloudy|murky|brown|smells?|sick|ill|diarrh\\w*|vomit\\w*|advisory|notice)\\b")
@@ -677,9 +703,12 @@ object EmergencyGuideMatch {
      * person. "Them", "people" and a bare "my" are not enough: "why do people get altitude
      * sickness?" and "my iphone lightning cable" describe nobody in danger.
      */
-    private val inTheSituation = Regex("(?i)\\b(?:i|i'm|im|i've|we|we're|we've|our|he|he's|she|she's|someone|somebody|" +
+    private val inTheSituation = Regex("(?i)\\b(?:i|i'm|im|i've|ive|we|we're|were|we've|weve|our|he|he's|hes|she|she's|shes|they're|theyre|someone|somebody|" +
+        "family|everyone|all of us|the kids|mate|guy|bloke|lad|lady|stranger|passenger|neighbou?r|colleague|coworker|" +
+        "my \\d+ ?(?:yr|year|month|mo)s?[- ]old|" +
         "my (?:friends?|child|children|kids?|sons?|daughters?|wife|husband|partner|boyfriend|girlfriend|dad|mom|mum|mother|father|" +
-        "baby|parents|brothers?|sisters?|uncle|aunt|grandma|grandpa|group))\\b")
+        "baby|parents|brothers?|sisters?|uncle|aunt|grandma|grandpa|group|toddler|little one|teen\\w*|boy|girl|nephew|niece|grandson|" +
+        "granddaughter|grandchild|flatmate|roommate|guest|student|patient|client))\\b")
 
     /**
      * A person and a hazard in the same message, but not in danger now: a story from last year, a film, a song, a school
@@ -708,7 +737,10 @@ object EmergencyGuideMatch {
     // battery may sit between, so "ate lunch and my phone battery died" is not a swallowed battery.
     private val batteryIngestion = Regex("(?i)\\b(?:swallowed|swallowing|ingested|ate|eaten)" +
         "(?:\\s+(?:a|an|the|one|two|some|of|those|these|that|this|small|tiny|little|round|flat|shiny|silver|watch|button|coin|" +
-        "disc|disk|lithium|hearing[- ]aid|remote|toy|key|fob|cr\\d{4}|lr\\d{2}|ag\\d{1,2}))*\\s+batter(?:y|ies)\\b")
+        "disc|disk|lithium|hearing[- ]aid|remote|toy|key|fob|cr\\d{4}|lr\\d{2}|ag\\d{1,2}))*\\s+batter(?:y|ies)\\b|" +
+        // "The back of the remote is off and the coin battery is gone, I think she swallowed it".
+        "\\b(?:coin|button|watch|remote|hearing[- ]aid|lithium|little|small|tiny|flat|round) batter(?:y|ies)\\b[^.?!]{0,60}?" +
+        "\\b(?:gone|missing|swallowed|in (?:his|her|their) mouth|can'?t find|cant find)\\b")
 
     /**
      * Where an object can lodge and be left in for the bleeding guide's padding: the limbs and trunk. The eye and the
@@ -761,10 +793,11 @@ object EmergencyGuideMatch {
         // Food poisoning is an illness no guide covers: the poison-control guide would mislead, and the text ranking once
         // handed "throwing up all night" to the head-injury guide. Only a person not breathing changes that.
         if (foodPoisoning.containsMatchIn(question) && !swallowedThing.containsMatchIn(question) && !noSignsOfLife.containsMatchIn(question) && !sideways) return emptyList()
-        // Extra context must not disqualify an explicit request for help, but a long question
-        // that only names a hazard is research, not first aid.
-        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways) return emptyList()
         if (onScreen.containsMatchIn(question) && !personalSituation.containsMatchIn(question)) return emptyList()
+        // "Inbox is flooded, deadlines hitting like lightning": work talk, and "water for hurricane season": planning.
+        // Nobody is hurt in either, and the guides as published would answer neither.
+        if ((workTalk.containsMatchIn(question) || planning.containsMatchIn(question) || studyTalk.containsMatchIn(question)) &&
+            !bodySign.containsMatchIn(question) && !noSignsOfLife.containsMatchIn(question)) return emptyList()
         // A burn while cooking still names the body ("burned my hand on the pan"); housework and recipes do not.
         if (kitchenOrHousework.containsMatchIn(question) && !bodyPart.containsMatchIn(question)) return emptyList()
         val dangerous = danger.containsMatchIn(question)
@@ -810,6 +843,7 @@ object EmergencyGuideMatch {
                     wildIngestion.containsMatchIn(question) && poisonSign.containsMatchIn(question))) {
                 score += 4
                 specific = true
+                describedBySigns += guide.id
             }
             // "A branch went into his thigh, it's still sticking out": the object is the emergency, told in no keyword.
             // This guide pads around it and leaves it in; the text ranking once matched the words "branch" and
@@ -826,6 +860,10 @@ object EmergencyGuideMatch {
             val enough = specific || score >= 2 || context == true
             Triple(guide, if (!enough || context == false) 0 else score, specific)
         }
+        // Extra context must not disqualify an explicit request for help, but a long question that only names a hazard is
+        // research, not first aid. A long message that describes the signs as they happen is the situation itself.
+        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways &&
+            (describedBySigns.isEmpty() || notHappeningNow.containsMatchIn(question)) && !noSignsOfLife.containsMatchIn(question)) return emptyList()
         // The snakebite and flood guides have no CPR step, so a person who is not breathing gets CPR,
         // or the drowning guide's rescue breaths in water. When a choking or swelling airway is the
         // main sign, its own guide stays: those steps are for a person who cannot breathe.
@@ -938,8 +976,11 @@ object EmergencyGuideMatch {
     /** What heat, cold and water loss do to a body, beside the medical guides; weather and terrain guides stay with keywords. */
     private val bodyConditions = setOf("heat-illness", "hypothermia", "frostbite", "dehydration", "sunburn")
     private val usualEpisode = Regex("(?i)\\b(?:usual|always|like (?:her|his|my|their|the) (?:usual|other|last|normal)|same as (?:always|before|usual|last time)|" +
-        "exactly like|(?:her|his|my|their) normal)\\b")
-    private val panic = Regex("(?i)\\b(?:panic\\w*|anxiety attacks?|hyperventilat\\w*)\\b")
+        "exactly like|(?:her|his|my|their) normal|(?:has |this has |it'?s )?happened before|had this before|gets? these|like last time|" +
+        "when (?:she'?s|he'?s|i'?m|shes|hes|im|they'?re) (?:stressed|anxious|worried|upset|panick\\w*))\\b")
+    private val panic = Regex("(?i)\\b(?:panic\\w*|anxiety attacks?|hyperventilat\\w*|" +
+        // Fast breathing with tingling hands or lips, told together, is hyperventilation.
+        "breathing (?:really |very |so |too |super )?fast[^.?!]{0,80}?\\btingl\\w*|tingl\\w*[^.?!]{0,80}?\\bbreathing (?:really |very |so |too |super )?fast)\\b")
 
     /**
      * Signs told as people see them, in whatever inflection ("grabbing at his throat", "the sea has sucked right back",
@@ -961,6 +1002,35 @@ object EmergencyGuideMatch {
         "drowning" to Regex("(?i)\\b(?:(?:dragged|pulled|got|fished|hauled|lifted) (?:him|her|them|me|my \\w+|our \\w+|the \\w+|a \\w+) (?:out|up)(?: of| from)?(?: the| a)? " +
             "(?:pool|water|lake|river|sea|bath|bathtub|pond|canal|surf|waves|ocean|hot tub|jacuzzi)|(?:was|went|been) under(?: the water| water)? for|" +
             "(?:nearly|almost) drowned|(?:inhaled|breathed in) (?:a lot of |some |loads of |lots of )?(?:pool |sea |bath )?water)\\b"),
+        "earthquake" to Regex("(?i)\\b(?:everything(?:'s| is)? shaking|whole (?:building|house|room|flat|apartment|place) (?:is )?(?:shaking|swaying|moving|rocking)|" +
+            "shelves (?:are )?(?:falling|coming down)|(?:walls|floor|building|ground) (?:is |are )?(?:swaying|shaking|moving|rolling)|" +
+            "things (?:are )?falling off (?:the )?(?:shelves|walls)|(?:light|lamp|chandelier) (?:is )?swinging)\\b"),
+        "seizures" to Regex("(?i)^(?!.*\\b(?:pods?|detergent|soap|dishwasher|washing|bleach|chemical|shampoo|bubble|toothpaste|capsules?)\\b).*" +
+            "\\b(?:whole body (?:is )?(?:jerking|shaking|convulsing|twitching|stiff)|eyes (?:have )?rolled back|eyes rolling back|" +
+            "had a (?:fit|seizure)[^.?!]{0,80}?\\b(?:groggy|confused|sleepy|drowsy|out of it|doesn'?t know|dont know|bitten (?:his|her) tongue|wet (?:himself|herself)|lie (?:him|her) down)|" +
+            "(?:foam|foaming|froth|frothing)(?: coming)? (?:at|around|from|out of) (?:his|her|the|their) mouth|jerking (?:all over|uncontrollably|violently)|" +
+            "(?:arms|legs|limbs) (?:are )?(?:jerking|thrashing|flailing)|went (?:stiff|rigid) and (?:started )?(?:shaking|jerking))\\b"),
+        "lost" to Regex("(?i)\\b(?:nothing looks familiar|doesn'?t look familiar|(?:don'?t|dont|not sure|no idea) (?:know )?(?:which|where|what) (?:way|direction|path|trail)|" +
+            "(?:can'?t|cant|cannot) find (?:the|our|my) (?:way|trail|path|car|camp|tent|way back)|off (?:the )?trail|wrong (?:turn|trail|path)|" +
+            "keep walking or stay put|stay put or|been walking (?:for )?(?:hours|ages)|going in circles|same (?:rock|tree|spot) (?:again|twice))\\b"),
+        "fractures-sprains" to Regex("(?i)^(?=.*\\b(?:ankle|wrist|arm|leg|finger|thumb|knee|elbow|foot|toe|shoulder|collarbone|hip|shin|forearm)\\w*\\b)" +
+            "(?!.*\\b(?:bit|bite|bitten|sting\\w*|stung|snake|spider|back went out|slipped disc|sciatica)\\b).*" +
+            "\\b(?:bent (?:sideways|backwards|the wrong way|at a (?:\\w+ )?angle|outwards|inwards|funny|weird)|pointing the wrong way|sticking out (?:sideways|at an angle)|" +
+            "(?:can'?t|cant|cannot) (?:stand on (?:it|the|my|his|her|that)|put (?:any )?weight|bear weight|walk on it|move it|straighten it)|" +
+            "heard (?:a|it) (?:crack|snap|pop)|felt (?:a|it) (?:crack|snap|pop))\\b"),
+        "wildfire" to Regex("(?i)\\b(?:sky (?:is |has gone |has turned |went |turned |looks )?(?:orange|red|dark orange|blood red)|ash (?:is )?(?:falling|landing|raining|coming down)|" +
+            "flames? (?:on|over|coming over|along|up|down) the (?:ridge|hill|hillside|mountain|valley|slope|next street|road)|" +
+            "smoke (?:is )?(?:getting|coming) (?:into|in|thicker|closer|worse)|embers? (?:are )?(?:landing|falling|blowing)|evacuat\\w* (?:order|warning|alert|zone)|" +
+            "(?:fire|flames?) (?:is |are )?(?:coming|getting|moving|spreading) (?:closer|towards us|this way|our way|fast)|bush ?fire|forest fire)\\b"),
+        "snakebite" to Regex("(?i)^(?=.*\\b(?:grass|bush|scrub|undergrowth|rocks?|logs?|trail|hik\\w*|desert|creek|river ?bank|woodpile|garden|field|paddock|outback|jungle|forest|woods|camp\\w*)\\b).*" +
+            "\\b(?:(?:two|2) (?:small |tiny |little )?(?:puncture|fang|bite) (?:holes|marks|wounds|punctures)|puncture (?:marks|holes|wounds)|fang marks|" +
+            "something (?:struck|bit|got|nipped) (?:my|his|her|their) (?:calf|ankle|leg|foot|hand|arm|finger|toe|shin|heel|wrist))\\b"),
+        "head-injury" to Regex("(?i)\\b(?:(?:head|skull) (?:hit|smacked|slammed|struck|smashed|cracked|bounced) (?:the|a|on|into|against|off)|" +
+            "(?:hit|smacked|banged|cracked|whacked|bashed|split) (?:the back of |the side of |the front of )?(?:his|her|my|their) (?:head|skull)|" +
+            "came off (?:his|her|my|their) (?:skateboard|bike|scooter|board|horse|motorbike)[^.?!]*\\bno helmet|no helmet[^.?!]*\\b(?:head|kerb|curb|concrete|pavement|ground))\\b|" +
+            "^(?=.*\\b(?:head|skull|helmet|kerb|curb|fell|fall\\w*|hit|banged|knocked|crash\\w*|came off|concuss\\w*|bike|skateboard|ladder|stairs|radiator|tackle\\w*)\\b).*" +
+            "\\b(?:same (?:thing|question)s? (?:over and over|again and again|repeatedly)|(?:keeps|kept) asking (?:me |us )?(?:the same|what happened|where (?:he|she) is)|" +
+            "doesn'?t (?:know|remember) (?:where (?:he|she) is|what happened|what day))\\b"),
         "altitude-sickness" to Regex("(?i)\\b(?:(?:pounding|splitting|crushing|terrible|awful|worst|banging|thumping) headache|stumbling|staggering|" +
             "(?:like|as if) (?:he'?s|she'?s|they'?re|i'?m|hes|shes) drunk|can'?t walk (?:straight|in a straight line))\\b"),
         "tornado" to Regex("(?i)\\b(?:(?:see|seeing|spotted|spot|there'?s|theres|watching) (?:a |the |this )?(?:huge |big |massive |dark )?funnel|" +
@@ -973,13 +1043,18 @@ object EmergencyGuideMatch {
     ) + listOf("lightning", "lightning-backcountry").associateWith {
         // Hair on end before a strike, with the weather or the ground that makes it lightning and not a chill.
         Regex("(?i)^(?=.*\\b(?:storm\\w*|thunder\\w*|lightning|clouds?|ridge|summit|peak|hik\\w*|camp\\w*|outside|outdoors|field|golf|beach|treeline|tree line)\\b).*" +
-            "\\bhair (?:is |was |has |just )?(?:literally |all |just |suddenly |actually )?(?:standing|stands|stood|sticking|stuck) (?:up|on end|straight up)\\b")
+            "\\b(?:hair (?:on (?:my|his|her|our|the back of my|the back of his|the back of her) (?:arms?|neck|head|legs?) )?(?:is |was |has |are |just )?" +
+            "(?:literally |all |just |suddenly |actually )?(?:standing|stands|stood|sticking|stuck) (?:up|on end|straight up)|" +
+            "(?:poles?|rope|ice axe|tent poles?|metal|fence|zip\\w*) (?:are |is )?(?:buzzing|humming|crackling)|skin (?:is )?(?:tingling|buzzing|crackling))\\b")
     } + mapOf(
         // A child who ate something from the house that is poison in a mouthful: a cigarette, a vape pod, a detergent pod.
-        "poisoning" to Regex("(?i)\\b(?:ate|eaten|eating|swallowed|swallowing|chewed|chewing|drank|drinking|licked|sucked on|got into)" +
-            "(?:\\s+(?:a|an|the|some|one|two|half|half a|my|his|her|mum'?s|dad'?s|of|out of|from|bit of|piece of|whole|couple of|few|lot of|load of))*\\s+" +
-            "(?:cigarette\\w*|cig|cigs|butt|butts|ashtray|tobacco|nicotine|vape\\w*|e-?cig\\w*|e-?liquid|juul|pods?|detergent|washing pod|dishwasher tablet|" +
-            "laundry pod|mouthwash|hand sanitis\\w*|hand sanitiz\\w*|sanitiser|sanitizer|essential oils?|nail polish remover|acetone|antifreeze|" +
+        "poisoning" to Regex("(?i)\\b(?:ate|eaten|eating|swallowed|swallowing|chewed|chewing|chewed on|chewing on|bit into|bitten into|bit|biting|drank|drinking|" +
+            "licked|licking|sucked on|sucking on|got into|got hold of)" +
+            "(?:\\s+(?:a|an|the|some|one|two|half|half a|my|his|her|mum'?s|dad'?s|of|out of|from|bit of|piece of|whole|couple of|few|lot of|load of|" +
+            "those|these|that|this|them|it|another|more|lots of|loads of|something|one of|handful of))*\\s+" +
+            "(?:cigarette\\w*|cig|cigs|butt|butts|ashtray|tobacco|nicotine|vape\\w*|e-?cig\\w*|e-?liquid|juul|pods?|detergent|" +
+            "dishwasher (?:pods?|tablets?|tabs?)|(?:washing|laundry|detergent|washing machine) (?:pods?|tablets?|tabs?|capsules?|liquitabs?|liquid|gel)|liquitabs?|" +
+            "mouthwash|hand sanitis\\w*|hand sanitiz\\w*|sanitiser|sanitizer|essential oils?|nail polish remover|acetone|antifreeze|" +
             "weed ?killer|rat poison|slug pellets|mothballs?|lamp oil|lighter fluid|paint thinner|white spirit|turps|perfume|aftershave|" +
             "(?:iron|vitamin|sleeping|blood pressure|diabetes|heart|pain) (?:pills?|tablets?)|gummies|edibles?|cannabis|weed|magic mushrooms?)\\b"),
     )

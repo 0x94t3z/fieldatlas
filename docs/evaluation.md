@@ -83,6 +83,39 @@ blood" on blood thinners gets the tourniquet guide; a panic attack with a tight 
 guide; a metaphorical "storm of Slack messages" gets the lightning guide; a wrist broken last winter gets the
 fracture guide; storing water for hurricane season gets the drinking-water guide).
 
+**Third routing pass (same day).** Written against set 40 and checked blind on a further sealed set of 60
+([set 41](fieldtest/routing41.jsonl), SHA-256
+`832c9615371c40feb120b485ad68f5adc1e770d2fbedf206f933fff1b12d2ef9`, same make-up). The 30-word research
+gate now runs after scoring, so a long message that describes the signs as they happen still counts; no breath
+felt at the mouth ("I put my ear by his mouth and there's nothing") or a chest not moving is no sign of life;
+people typed without apostrophes ("weve", "hes"), "my 18 month old", "mate", "guy on the train" put someone in
+the situation. New signs: everything or the whole building shaking (earthquake); the whole body jerking, eyes
+rolled back, foam at the mouth, or a fit told as over with the person groggy (seizures); nothing looks familiar,
+can't find the trail, "keep walking or stay put" (lost, which now needs a lost sign, so a hike alone no longer
+opens it); a limb bent sideways or at an angle, can't put weight on it (fractures); an orange sky, ash falling,
+flames on the ridge, smoke getting in (wildfire); two puncture holes or something that struck a calf in long
+grass (snakebite); a head that hit the kerb, no helmet, the same question over and over with a blow in the
+message (head injury); hair on the arms standing up, trekking poles buzzing (lightning); a coin battery gone
+from a remote with a toddler, a bitten detergent pod (poisoning). Guards: a nose "pouring blood"; fast
+breathing with tingling hands is hyperventilation and, when it has happened before, rules the heart attack guide
+out; "last winter", "in 2024", "two years on" are the past; work talk (inbox, deadlines, Slack), study work
+(essay, school poster) and season planning (hurricane season, stockpiling, how often to rotate) open no guide;
+stored water is not water to treat. The first draft of these signs misfired five times on the 1,207-question
+harness (a detergent pod's foam read as a seizure, "won't answer me properly" as not breathing, a purple finger
+after a snakebite and a bad back as fractures, confusion after a fit as a head injury); each is fixed and kept
+as a test. Set 40, written against, is 60 of 60. The 320 labelled questions go from 223 to 228 right, still no
+unsafe guide; 27 harness picks changed, all to the right guide or to none. Blind set 41: 34 of 60 before, 45
+after (covered emergencies 10 to 19 of 25; unsafe guides 9 to 8; nothing lost). Left open on set 41, for a
+further pass against a fresh blind set: six covered emergencies get no guide or the wrong one (a hotel
+"shaking and swaying" in Kathmandu, a petrol "genny" in the porch with four banging headaches, an angle grinder
+through a thigh with "blood pumping out in spurts", shivering "so hard she can't talk" which opens the choking
+guide, a thumping headache at 4,300 m which opens the CPR guide, a chewed dishwasher tablet "under the sink"),
+a molar abscess gets the head-injury guide from the text ranking, and seven look-alikes still open a guide (a
+comedian called Earthquake, a wedding-speech pun about being struck by lightning, a Lightning cable, a startup
+"bleeding cash", an ankle broken in 2024 "two years on", an episode of a sitcom with a heart attack, heat
+exhaustion against heat stroke for a school poster): things named, quoted or joked about, let through by the
+"should I" and "help" wording the matcher trusts.
+
 **Passages as a check on figures.** The 4B and Gemma write ordinary answers from their own knowledge, with
 the passages found listed under them unread. A new step compares the numbers, units and years in such an
 answer with those passages and, where a passage about the asked subject states a different figure for the
