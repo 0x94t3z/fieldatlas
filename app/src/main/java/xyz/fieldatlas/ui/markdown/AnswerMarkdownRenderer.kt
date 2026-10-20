@@ -16,6 +16,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasStatusPill
 import xyz.fieldatlas.ui.theme.StatusTone
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,16 +69,15 @@ fun AnswerMarkdownRenderer(
     modifier: Modifier = Modifier,
     bodyStyle: TextStyle = FieldAtlasReadingStyle,
     sourceTitles: List<String> = emptyList(),
-    /** What the app checked of the model's own text, drawn as that section's badge; null keeps the plain badge. */
-    modelCheck: AnswerCheck? = null,
+    /** The model's own text starts without a "Model explanation" header: the line under the answer says where it came from. */
+    showModelHeading: Boolean = false,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         blocks.forEach { block ->
             when (block) {
                 is MarkdownBlock.Heading -> answerSection(block)?.let { section ->
-                    val shown = if (modelCheck != null && !section.quoted && section.title == "Model explanation")
-                        section.copy(badge = modelCheck.text, quoted = modelCheck.positive) else section
-                    SectionHeading(shown, headingStyle(block.level))
+                    if (!showModelHeading && !section.quoted && section.title == "Model explanation") return@forEach
+                    SectionHeading(section, headingStyle(block.level))
                 } ?: InlineBlock(
                     content = block.content,
                     style = headingStyle(block.level),
@@ -263,13 +263,15 @@ private fun InlineBlock(
 
 @Composable
 private fun SectionHeading(section: AnswerSection, style: TextStyle) {
-    // One announcement ("Model explanation, Not verified") instead of two fragments.
-    Row(
+    // One announcement ("Model explanation, 2 figures match your sources") instead of two fragments. A badge too long
+    // for the row drops under the title rather than squeezing it into a column of broken words.
+    FlowRow(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { heading() },
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(section.title, style = style, modifier = Modifier.weight(1f, fill = false))
+        Text(section.title, style = style)
         FieldAtlasStatusPill(
             text = section.badge,
             state = if (section.quoted) StatusTone.Positive else StatusTone.Attention,

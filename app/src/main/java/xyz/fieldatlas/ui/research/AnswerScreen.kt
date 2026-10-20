@@ -119,9 +119,8 @@ fun AnswerScreen(
     val hasUnverifiedUpload = citedSources.any { AttachmentProvenance.needsWarning(it.second) }
     var showOtherSources by rememberSaveable { mutableStateOf(false) }
     var showPerformance by rememberSaveable { mutableStateOf(false) }
-    // Written from the model's own knowledge: the passages under it were found to check it, not read to write it.
-    val fromKnowledge = !running && (state.answer.contains(xyz.fieldatlas.research.SavedFactCheck.MARKED_NOTE) ||
-        state.answer.contains(xyz.fieldatlas.research.SavedFactCheck.UNMARKED_NOTE))
+    // Written from the model's own knowledge: the line under the answer says so, and the pills would only repeat it.
+    val fromKnowledge = !running && state.answer.lines().any { xyz.fieldatlas.research.SavedFactCheck.isKnowledgeNote(it) }
     // Citation and source taps open a quick preview first; the full source is one tap further.
     var previewIndex by rememberSaveable(state.question) { mutableStateOf<Int?>(null) }
     val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
@@ -211,18 +210,14 @@ fun AnswerScreen(
                             ReadingLine(label, reading, onEdit = if (state.asked.isNotBlank()) onEditReadAs else null)
                         }
                         // While research runs the status card says what is happening; the pills describe a finished answer.
-                        if (!running) FlowRow(
+                        // A from-memory answer carries its own line at the foot and shows none; its time is in Answer details.
+                        if (!running && !fromKnowledge) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
                             val cited = citedSourceGroups.size
-                            if (fromKnowledge) {
-                                FieldAtlasStatusPill(
-                                    "From the model's knowledge" + when (cited) { 0 -> ""; 1 -> " · 1 passage agrees"; else -> " · $cited passages agree" },
-                                    StatusTone.Neutral,
-                                )
-                            } else if (cited > 0) {
+                            if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
                                     (if (noModelReply) "From saved data · " else "") +
@@ -333,7 +328,6 @@ fun AnswerScreen(
                             onCitation = openPreview,
                             bodyStyle = FieldAtlasReadingStyle,
                             sourceTitles = state.sources.map { it.title },
-                            modelCheck = remember(state.answer) { xyz.fieldatlas.ui.markdown.modelCheckBadge(state.answer) },
                         )
                     }
                 }

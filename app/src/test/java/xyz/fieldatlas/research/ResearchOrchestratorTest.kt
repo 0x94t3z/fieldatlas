@@ -405,7 +405,7 @@ class ResearchOrchestratorTest {
         assertTrue(reviews.isEmpty())
         assertTrue(answer, answer.startsWith("## " + AnswerText.MODEL_LABEL) && knowledge in answer)
         // The passages found are the sources under the answer on the screen, not excerpts inside it; the answer says so.
-        assertTrue(answer, "Saved excerpts" !in answer && answer.trimEnd().endsWith(SavedFactCheck.UNMARKED_NOTE))
+        assertTrue(answer, "Saved excerpts" !in answer && answer.trimEnd().endsWith(SavedFactCheck.knowledgeNote(0, 1)))
         assertTrue(events.filterIsInstance<ResearchEvent.Sources>().last().evidence.isNotEmpty())
         assertTrue(events.last() is ResearchEvent.Complete)
     }

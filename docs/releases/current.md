@@ -79,8 +79,8 @@ on the phone, with no account and nothing sent anywhere.
   reaches the model without a passage. On 80 questions written for these cases, the 30 answers that
   changed went from 1.9 to 3.9 of 10.
 - **Answers from the model's own knowledge.** With Qwen3.5 4B or Gemma 4 26B, an ordinary question
-  is answered from what the model knows, its badge saying what was checked ("2 figures match your
-  sources", "1 figure differs", or "Not checked against your sources"), with the passages found listed under
+  is answered from what the model knows, with one line under it saying so and what was checked
+  ("From the model's knowledge; 2 figures match your sources"), and the passages found listed under
   it to check. On 40 new questions graded blind, the 4B went from 33.7% to 41.8% of web-and-AI
   answers, and Gemma 4 26B, which reasons before it answers, reached 70.2%
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).

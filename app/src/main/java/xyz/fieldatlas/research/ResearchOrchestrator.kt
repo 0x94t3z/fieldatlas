@@ -964,8 +964,9 @@ class ResearchOrchestrator(
                 val explained = AnswerText.mixed(raw, emptyList())
                 val shown = if (knowledgeNotes == 0) {
                     val marked = SavedFactCheck.marks(question, explained, packed.sources)
+                    val markCount = Regex("\\[S\\d+]").findAll(marked).count() - Regex("\\[S\\d+]").findAll(explained).count()
                     listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
-                        if (packed.sources.isEmpty()) null else SavedFactCheck.knowledgeNote(marked != explained)).joinToString("\n\n")
+                        SavedFactCheck.knowledgeNote(markCount, packed.sources.size)).joinToString("\n\n")
                 } else {
                     val listed = SavedEvidenceAppendix.append(explained, packed)
                     SavedFactCheck.note(question, raw, packed.sources)?.let { SavedFactCheck.insert(listed, it) } ?: listed

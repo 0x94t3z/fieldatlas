@@ -15,9 +15,11 @@ the same figure, or the same year of the same event, as the sentence (the fact-c
 agreement; one mark per sentence, the lowest-numbered passage), and a line under the answer says what a mark
 means. Where a passage gives a different figure the note from the fact-check stays. The pill reads "From the
 model's knowledge · N passages agree". The model-only route (nothing found) takes the same shape; the cited route
-for 4 GB phones is unchanged. The badge on the model's own text no longer says "Not verified" of everything; it says
-what the app checked: "2 figures match your sources", "1 figure differs from your sources", or "Not checked
-against your sources" when no passage touched it. "Verified" is said of nothing the app did not check.
+for 4 GB phones is unchanged. The "Model explanation / Not verified" header inside the answer, the badge
+and the pill row are gone from a from-memory answer, which the owner found cluttered: the answer starts under Read
+aloud, and one line at its foot says where it came from and what was checked ("From the model's knowledge; 2
+figures match your sources", "… not checked against your sources", "… nothing saved on this phone covers it");
+a figure a passage gives differently is still quoted under it. The time moved into Answer details.
 
 Measured on set 38, desktop 4B, the same forty questions and web references as the rounds above, graded blind by
 eight graders who saw the answers without their marks or notes: the shaped answers carry a Key facts line in 36

@@ -31,38 +31,8 @@ fun parseAnswerMarkdown(markdown: String): List<MarkdownBlock> = MarkdownParser(
 /** How an answer section heading is presented: a short title plus a provenance badge. */
 data class AnswerSection(val title: String, val badge: String, val quoted: Boolean)
 
-/** The badge on the model's own text when nothing of it has been checked against the saved sources. */
+/** The badge on the model's own text where its heading is still drawn (previews); the answer screen draws neither. */
 const val NOT_CHECKED = "Not checked against your sources"
-
-/** What was checked of the model's own text: [positive] when a saved passage states the same figures. */
-data class AnswerCheck(val text: String, val positive: Boolean)
-
-private val markPattern = Regex("\\[S?\\d+]")
-
-/**
- * The badge the model's own text earns, from what the app checked: a figure a passage states too is marked in
- * the text, a figure a passage gives differently is quoted in a note under it. "Verified" is said of nothing
- * the app did not check; the model's prose with no mark and no note is "not checked", whoever wrote it.
- */
-fun modelCheckBadge(answer: String): AnswerCheck {
-    var inModel = false
-    var marks = 0
-    var differs = 0
-    for (line in answer.lines()) {
-        val trimmed = line.trim()
-        if (trimmed.startsWith("## ")) { inModel = trimmed.startsWith("## " + xyz.fieldatlas.research.AnswerText.MODEL_LABEL); continue }
-        if (trimmed.startsWith(xyz.fieldatlas.research.SavedFactCheck.HEADING)) { differs += markPattern.findAll(trimmed).count(); continue }
-        if (!inModel || trimmed.startsWith(">") || trimmed.startsWith("_")) continue
-        marks += markPattern.findAll(trimmed).count()
-    }
-    fun figures(n: Int) = if (n == 1) "1 figure" else "$n figures"
-    return when {
-        differs > 0 && marks > 0 -> AnswerCheck("${figures(marks)} match, ${figures(differs)} differ${if (differs == 1) "s" else ""}", positive = false)
-        differs > 0 -> AnswerCheck("${figures(differs)} differ${if (differs == 1) "s" else ""} from your sources", positive = false)
-        marks > 0 -> AnswerCheck("${figures(marks)} match your sources", positive = true)
-        else -> AnswerCheck(NOT_CHECKED, positive = false)
-    }
-}
 
 /**
  * Sections the app writes itself get a compact title and an explicit badge, so verbatim

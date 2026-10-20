@@ -15,10 +15,11 @@ import xyz.fieldatlas.text.MarkdownLiteral
  */
 internal object SavedFactCheck {
     const val HEADING = "_Your saved sources give a different figure:_"
-    /** Under a from-memory answer whose sentences carry marks: what a mark means. */
-    const val MARKED_NOTE = "_Written from the model's knowledge; a bracketed number marks a figure your saved passages state too._"
-    /** Under a from-memory answer with passages found but none agreeing on a figure. */
-    const val UNMARKED_NOTE = "_Written from the model's knowledge, without the saved passages listed below._"
+    /** Opens the one line under a from-memory answer; the screen knows the route by it, on old answers too. */
+    const val KNOWLEDGE_PREFIX = "_From the model's knowledge"
+    /** Earlier wordings of that line, still in saved answers. */
+    val OLD_KNOWLEDGE_NOTES = listOf("_Written from the model's knowledge; a bracketed number marks a figure your saved passages state too._",
+        "_Written from the model's knowledge, without the saved passages listed below._")
     private val cited = Regex("\\[S?\\d+]")
     /** "From 1961 to 1989", "between 1961 and 1989", "1961–1989": the years a thing began and ended. */
     private val yearSpan = Regex("(?i)\\b(?:from|between)\\s+(1[0-9]{3}|20[0-9]{2})\\s+(?:to|and|until|till)\\s+(1[0-9]{3}|20[0-9]{2})\\b|" +
@@ -34,8 +35,15 @@ internal object SavedFactCheck {
     private val sentenceTail = Regex("[.!?)*_\\s]*$")
     private val bulletStart = Regex("^\\s*(?:[-*•]|\\d+[.)])\\s")
 
-    /** The line under a from-memory answer, by whether [marks] changed it. */
-    fun knowledgeNote(marked: Boolean): String = if (marked) MARKED_NOTE else UNMARKED_NOTE
+    /** The line under a from-memory answer: where it came from and how many of its figures a saved passage states too. */
+    fun knowledgeNote(marks: Int, passages: Int): String = when {
+        passages == 0 -> "$KNOWLEDGE_PREFIX; nothing saved on this phone covers it._"
+        marks == 0 -> "$KNOWLEDGE_PREFIX; not checked against your sources._"
+        marks == 1 -> "$KNOWLEDGE_PREFIX; 1 figure matches your sources._"
+        else -> "$KNOWLEDGE_PREFIX; $marks figures match your sources._"
+    }
+    /** A line [knowledgeNote] or an earlier wording wrote: the answer was written from the model's knowledge. */
+    fun isKnowledgeNote(line: String): Boolean = line.trim().startsWith(KNOWLEDGE_PREFIX) || line.trim() in OLD_KNOWLEDGE_NOTES
 
     /**
      * [answer] with " [Sn]" after each sentence about the asked subject whose figure, or whose year of an event, a
@@ -61,7 +69,7 @@ internal object SavedFactCheck {
                 val names = EvidenceRelevance.termHits(sentence, terms) >= 1
                 val about = names || named
                 named = names
-                about && sentence.length in 12..MAX_QUOTE && !enumeration.containsMatchIn(sentence) &&
+                about && wholeSentence(sentence) && sentence.length in 12..MAX_QUOTE && !enumeration.containsMatchIn(sentence) &&
                     quantities(sentence).map { q -> q.unit }.toSet().size <= MAX_UNITS_IN_PASSAGE
             }
         }
@@ -279,6 +287,8 @@ internal object SavedFactCheck {
     private val countUnits = setOf("people", "countries", "languages", "species", "islands", "episodes", "seats", "players", "moons")
     private const val MAX_UNITS_IN_PASSAGE = 3
     private val sentenceEnd = Regex("(?<=[.!?])\\s+|\\n+")
+    /** A chunk cut mid-sentence opens with a fragment ("he sector boundary in Berlin"): not a sentence to quote or match. */
+    private fun wholeSentence(sentence: String): Boolean = sentence.firstOrNull()?.let { it.isUpperCase() || it.isDigit() || it in "\"“(«¿¡" } == true
     private val markup = Regex("^(?:#{1,6}\\s.*|[-*•]\\s*|>\\s*|\\d+[.)]\\s*)")
     private val stripMarks = Regex("[*_`]")
 
@@ -306,7 +316,7 @@ internal object SavedFactCheck {
         for (source in sources) {
             val citation = source.citationId.takeIf { Regex("S[1-9][0-9]*").matches(it) } ?: continue
             val sentences = EvidenceRelevance.passageText(source.evidence.text).split(sentenceEnd).map(String::trim)
-                .filter { it.length in 12..MAX_QUOTE && EvidenceRelevance.termHits(it, terms) >= MIN_PASSAGE_HITS &&
+                .filter { wholeSentence(it) && it.length in 12..MAX_QUOTE && EvidenceRelevance.termHits(it, terms) >= MIN_PASSAGE_HITS &&
                     !enumeration.containsMatchIn(it) && quantities(it).map { q -> q.unit }.toSet().size <= MAX_UNITS_IN_PASSAGE }
             for (sentence in sentences) {
                 if (notes.size >= MAX_NOTES) break

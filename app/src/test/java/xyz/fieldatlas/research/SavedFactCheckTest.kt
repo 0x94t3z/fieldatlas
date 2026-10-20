@@ -40,6 +40,24 @@ class SavedFactCheckTest {
         assertTrue(marked, "- **Opened:** 1965." in marked)
     }
 
+    @Test fun aChunkThatOpensMidSentenceIsNotQuotedFromItsFragment() {
+        val cut = source("S1", "Berlin Wall", "he sector boundary in Berlin Same panel, other side (original) In the 28 years of its existence, " +
+            "between 125 and 206 people were killed at the Berlin Wall. At least 140 people were killed at the Berlin Wall.")
+        val q = "how many people were killed at the berlin wall"
+        val note = plain(SavedFactCheck.note(q, "About 300 people were killed at the Berlin Wall.", listOf(cut)))
+        assertNotNull(note)
+        assertTrue(note!!, "At least 140 people" in note && "he sector boundary" !in note)
+    }
+
+    @Test fun theLineUnderAFromMemoryAnswerSaysWhatWasChecked() {
+        assertEquals("_From the model's knowledge; not checked against your sources._", SavedFactCheck.knowledgeNote(0, 3))
+        assertEquals("_From the model's knowledge; 2 figures match your sources._", SavedFactCheck.knowledgeNote(2, 3))
+        assertEquals("_From the model's knowledge; nothing saved on this phone covers it._", SavedFactCheck.knowledgeNote(0, 0))
+        assertTrue(SavedFactCheck.isKnowledgeNote(SavedFactCheck.knowledgeNote(1, 2)))
+        assertTrue(SavedFactCheck.isKnowledgeNote(SavedFactCheck.OLD_KNOWLEDGE_NOTES.first()))
+        assertFalse(SavedFactCheck.isKnowledgeNote("_Your saved sources give a different figure:_ “x” [S1]"))
+    }
+
     @Test fun aDifferentFigureOrAnotherSubjectGetsNoMark() {
         assertEquals("It stands 428 m tall.", SavedFactCheck.marks(question, "It stands 428 m tall.", listOf(burj)))
         val eiffel = source("S2", "Eiffel Tower", "The Eiffel Tower is 330 m tall and has 3 floors for visitors.")
