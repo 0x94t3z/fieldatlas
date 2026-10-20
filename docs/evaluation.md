@@ -1,5 +1,48 @@
 # Evaluation
 
+## Set 38, and passages as a check on figures (October 20)
+
+A second sealed set of 40 questions in set 37's category mix (set 38, [questions](fieldtest/heldout38.jsonl),
+SHA-256 `2d9243351eeb1ff0722b1076c1ecf82de2820fd75dba90edfceab0f7650e8b23`), written by a model that read only
+the earlier question files, answered on the desktop pipeline by the two setups phones get, with web-and-AI
+references and two blind rounds of eight graders
+([every answer and grade](fieldtest/results-1.4.2/heldout38-knowledge.jsonl)):
+
+| Set 38, 40 questions | Share of the reference | Rounds | Factual errors per answer |
+| --- | ---: | ---: | ---: |
+| Qwen3.5 4B, own knowledge (6 and 8 GB phones) | 38.5% | 39.0% / 38.1% | 2.21 |
+| Gemma 4 26B, reasoning first (12 GB phones) | **74.1%** | 74.8% / 73.5% | 0.24 |
+
+Set 37 gave 41.8% and 70.2%, so the two sets agree. By category, Gemma scores 84-97% of the reference on
+facts, explanations, comparisons, travel and reasoning, and 51% on health and 28% on emergencies; the 4B
+3% on emergencies. The emergency and health losses come from the shared routing, not the models: of the ten
+questions in those categories, both models scored 0 on four because the question opened the wrong bundled
+guide ("food poisoning" opened the poisoning guide for a question about reheated rice; a blood pressure
+reading opened CPR through the text ranking; a diver's dizziness and tingling arm opened the stroke guide;
+oil on fire in a frying pan opened the burns guide) and on one because "90 minutes from the nearest
+hospital", said of a woman in labour, was read as a request to find one and failed on the phone's
+location. Two emergencies had no guide at all (an avalanche burial and a smoke-filled hotel corridor): Gemma
+answered them acceptably, the 4B dangerously. "Take her to a doctor" sent a child's fever down the venue
+route, where the 4B refused. These are the next fixes.
+
+**Passages as a check on figures.** The 4B and Gemma write ordinary answers from their own knowledge, with
+the passages found listed under them unread. A new step compares the numbers, units and years in such an
+answer with those passages and, where a passage about the asked subject states a different figure for the
+same unit, quotes that sentence with its citation above the excerpts, adding nothing else and changing no
+word of the answer (on set 34, handing the model three passages as notes had made its answers three times
+longer and wronger). It is deliberately strict: the passage sentence must carry two of the question's subject
+words, units are never converted, ranges and "about" are allowed for, a year counts only for the same event,
+comparison questions and worked sums are skipped, and shares or counts are compared only when the question
+asks for one. Replayed over set 37's 120 from-memory answers and set 38's 80, it fires twice, both on wrong
+figures the graders had listed as errors: the 4B's Hubble altitude of "540 miles (870 km)" against the
+Encyclopedia's 600 km (the orbit is about 540 km), and the 4B's Grand Canyon depth of "over 8,000 feet"
+against the passage's 6,000 feet (about 6,000 feet at the deepest). Gemma's answers drew none. An earlier
+draft fired on 12 of those 200 answers, 10 of them wrongly (a year of an arrest read as a year of death, a
+list of predator cycles, a reign of 9 years against an age of 19, a 747 figure against an A380 passage); the
+rules above were fitted to those cases, so this precision is not a fresh measurement. With one changed answer
+in 80, set 38 was graded without a separate arm for the check: the one note falls on an answer graded 4
+and 5 of 10 for that very figure.
+
 ## Fixes after an outside audit (October 20)
 
 An audit of the 1.4.2 work found seven issues. Each was checked against the code first; what was

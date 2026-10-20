@@ -957,7 +957,9 @@ class ResearchOrchestrator(
                 val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(written.toString(), question), question), question, emptyList())
                 // With no notes the passages never reached the model: they are listed to check against, not as its source.
-                val shown = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed, writtenWithout = knowledgeNotes == 0)
+                // Where one of them gives a different figure for what was asked, its sentence is quoted above them.
+                val listed = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed, writtenWithout = knowledgeNotes == 0)
+                val shown = SavedFactCheck.note(question, raw, packed.sources)?.let { SavedFactCheck.insert(listed, it) } ?: listed
                 emit(ResearchEvent.Token(shown, replace = true))
                 val audit = AnswerText.citationAudit(shown, packed.sources.size)
                 emit(ResearchEvent.Complete(ResearchMetrics(

@@ -46,6 +46,20 @@ class OnDeviceAuditPatternsTest {
         assertTrue(negated, "Check how often" !in negated)
     }
 
+    /** The saved-fact check's patterns (quantities, years, events, comparisons) on ICU, through every branch that compiles one. */
+    @Test fun savedFactCheckRunsOnIcu() {
+        fun source(id: String, text: String) = PromptSource(id, Evidence("library:$id", id, "Burj Khalifa", "Saved collection", text, 1.0), text)
+        val burj = source("S1", "With a total height of 829.8 m (2,722 ft) and a roof height of 828 m (2,717 ft), the Burj Khalifa has been the tallest structure in the world since 2009. " +
+            "It opened on 4 January 2010 and has 163 floors above ground.")
+        val q = "how tall is the burj khalifa and how many floors does it have"
+        val wrong = SavedFactCheck.note(q, "The Burj Khalifa stands 428 m (1,404 ft) tall and has 163 floors. It opened in 2012.", listOf(burj))
+        assertTrue(wrong ?: "null", wrong != null && "829.8 m" in wrong && "[S1]" in wrong)
+        assertEquals(null, SavedFactCheck.note(q, "The Burj Khalifa is about 830 m tall with 163 floors, and opened in 2010.", listOf(burj)))
+        assertEquals(null, SavedFactCheck.note("burj khalifa vs shanghai tower: which is taller", "The Shanghai Tower is 632 m.", listOf(burj)))
+        assertEquals(listOf(1986), SavedFactCheck.years("On 26 April 1986 the 1,000 MW reactor exploded"))
+        assertEquals(1.0, SavedFactCheck.quantities("over a mile deep")[0].value, 0.0)
+    }
+
     @Test fun lodgedObjectsRunOnIcu() {
         assertEquals(true, EmergencyGuideMatch.embeddedObject("the knife is still in his side, do I pull it out"))
         assertEquals(true, EmergencyGuideMatch.embeddedObject("he got impaled by a metal rod in his calf"))
