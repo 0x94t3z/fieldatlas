@@ -9,7 +9,7 @@ import xyz.fieldatlas.research.ResearchMetrics
 class ResearchPresentationTest {
     @Test fun modelWarningSurvivesTheReadyCardPreview() {
         val answer = "## Model explanation—not verified against saved sources\n\nGeneral background.\n\n## From saved sources\n\n- A quote [S1]"
-        assertEquals("Model explanation (unverified): General background.", answerCardPreview(answer))
+        assertEquals("Model explanation (not checked against saved sources): General background.", answerCardPreview(answer))
     }
     @Test fun readyCardCountsActualCitationSyntaxAndIgnoresUnavailableSources() {
         assertEquals(2, readyCitationCount("Sources [S1], [S2], [S2], [S9].", 4))

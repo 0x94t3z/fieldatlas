@@ -333,6 +333,7 @@ fun AnswerScreen(
                             onCitation = openPreview,
                             bodyStyle = FieldAtlasReadingStyle,
                             sourceTitles = state.sources.map { it.title },
+                            modelCheck = remember(state.answer) { xyz.fieldatlas.ui.markdown.modelCheckBadge(state.answer) },
                         )
                     }
                 }

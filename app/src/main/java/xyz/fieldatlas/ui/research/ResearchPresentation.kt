@@ -96,7 +96,7 @@ fun answerCardPreview(answer: String): String {
         ?.trim()
         .orEmpty()
     val labelled = if (answer.startsWith("## Model explanation—not verified against saved sources")) {
-        "Model explanation (unverified): $text"
+        "Model explanation (not checked against saved sources): $text"
     } else text
     return if (labelled.length <= 170) labelled else labelled.take(169).trimEnd() + "…"
 }

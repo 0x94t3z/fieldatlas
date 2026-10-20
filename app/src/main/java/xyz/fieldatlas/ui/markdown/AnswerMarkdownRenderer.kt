@@ -68,12 +68,16 @@ fun AnswerMarkdownRenderer(
     modifier: Modifier = Modifier,
     bodyStyle: TextStyle = FieldAtlasReadingStyle,
     sourceTitles: List<String> = emptyList(),
+    /** What the app checked of the model's own text, drawn as that section's badge; null keeps the plain badge. */
+    modelCheck: AnswerCheck? = null,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
         blocks.forEach { block ->
             when (block) {
                 is MarkdownBlock.Heading -> answerSection(block)?.let { section ->
-                    SectionHeading(section, headingStyle(block.level))
+                    val shown = if (modelCheck != null && !section.quoted && section.title == "Model explanation")
+                        section.copy(badge = modelCheck.text, quoted = modelCheck.positive) else section
+                    SectionHeading(shown, headingStyle(block.level))
                 } ?: InlineBlock(
                     content = block.content,
                     style = headingStyle(block.level),

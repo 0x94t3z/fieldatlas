@@ -15,7 +15,9 @@ the same figure, or the same year of the same event, as the sentence (the fact-c
 agreement; one mark per sentence, the lowest-numbered passage), and a line under the answer says what a mark
 means. Where a passage gives a different figure the note from the fact-check stays. The pill reads "From the
 model's knowledge · N passages agree". The model-only route (nothing found) takes the same shape; the cited route
-for 4 GB phones is unchanged.
+for 4 GB phones is unchanged. The badge on the model's own text no longer says "Not verified" of everything; it says
+what the app checked: "2 figures match your sources", "1 figure differs from your sources", or "Not checked
+against your sources" when no passage touched it. "Verified" is said of nothing the app did not check.
 
 Measured on set 38, desktop 4B, the same forty questions and web references as the rounds above, graded blind by
 eight graders who saw the answers without their marks or notes: the shaped answers carry a Key facts line in 36

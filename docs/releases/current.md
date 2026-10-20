@@ -67,7 +67,7 @@ on the phone, with no account and nothing sent anywhere.
   frequency wrong ("your file gives METHOTREXATE once a week, not daily"; daily against weekly only).
   The answer itself is not changed, so a wrong sentence in it stays: read the quoted lines.
 - **An answer instead of "the excerpts do not say".** When none of the passages found is about the
-  question, the model now answers from what it knows, still labelled unverified, instead of saying
+  question, the model now answers from what it knows, labelled as not checked against your sources, instead of saying
   the passages miss it. On the 8 answers this changed, graded blind, they went from 10% to 67% of
   web-and-AI answers, with more wrong details to check
   ([details](../evaluation.md#answering-when-the-excerpts-miss-the-question-october-19)). A
@@ -79,7 +79,8 @@ on the phone, with no account and nothing sent anywhere.
   reaches the model without a passage. On 80 questions written for these cases, the 30 answers that
   changed went from 1.9 to 3.9 of 10.
 - **Answers from the model's own knowledge.** With Qwen3.5 4B or Gemma 4 26B, an ordinary question
-  is answered from what the model knows, labelled unverified, with the passages found listed under
+  is answered from what the model knows, its badge saying what was checked ("2 figures match your
+  sources", "1 figure differs", or "Not checked against your sources"), with the passages found listed under
   it to check. On 40 new questions graded blind, the 4B went from 33.7% to 41.8% of web-and-AI
   answers, and Gemma 4 26B, which reasons before it answers, reached 70.2%
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
