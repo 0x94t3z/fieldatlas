@@ -8,7 +8,7 @@ generated packs, caches, reports and recordings belong in ignored `build/` paths
 | [packs/](packs/) | Pack builders, corpus conversion, extraction, embeddings and shared pack utilities |
 | [android/](android/) | Native retrieval builds, instrumentation and device research checks |
 | [evaluation/](evaluation/) | Retrieval benchmarks, search-index experiments and answer comparisons |
-| [maintenance/](maintenance/) | Storage planning, artifact retention and download verification |
+| [maintenance/](maintenance/) | Storage planning, artifact retention, download verification, and a check that the docs and website link only to releases, assets and files GitHub serves (CI runs it after each push in its own job, so a failure does not stop the Android checks; it does not stop a push) |
 | [data/](data/) | Versioned source lists, topic definitions and evaluation cases |
 | [tests/](tests/) | Regression tests for these tools |
 

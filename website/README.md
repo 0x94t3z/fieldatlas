@@ -21,9 +21,15 @@ Stop the preview before running browser tests (they own port 4173):
 
 ```sh
 npm test --prefix website
-node --test website/tests/build.test.mjs
+node --test website/tests/build.test.mjs website/tests/release-links.test.mjs
 npm run build --prefix website
 ```
+
+`npm run build` first runs `tools/check-release-links.mjs`, which asks GitHub whether every
+release, asset and file `index.html` links to is one a visitor can get (a published release, an
+uploaded asset, a file at that tag), and stops the build if not. It needs network access to
+github.com and api.github.com; without it the build fails rather than skipping the check. The
+build tests run `build.mjs` directly and do not use the network.
 
 Browser tests use installed Google Chrome by default. To use Playwright Chromium,
 run `npx playwright install chromium` inside `website/`, then set
@@ -40,7 +46,9 @@ Import the existing repository into your Vercel account with these settings:
 - Output Directory: `dist`
 
 The checked-in `vercel.json` supplies the build/output settings and security
-headers. `build.mjs` copies an explicit allowlist of public files to `dist/`.
+headers. Its build command runs the release-link check above, so a page linking to a
+release that is not published, or an asset not uploaded, fails to build and is not deployed;
+the deployment already live stays. `build.mjs` copies an explicit allowlist of public files to `dist/`.
 Tests, node_modules, private evidence, and Android files are not published.
 No environment variables, paid plan, or custom domain are required by this site.
 Do not deploy the repository root.

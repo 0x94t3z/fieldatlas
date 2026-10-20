@@ -72,3 +72,16 @@ jobs:
             app-debug.apk.sha256
             app/build/reports/lint-results-release.html
           if-no-files-found: error
+
+  # Its own job, so docs prepared for an unpublished release fail this check without stopping the Android build and
+  # tests above. It runs after a push and cannot stop one; the website's build (npm run build on Vercel) runs the same
+  # check and does not deploy a page that links to a release, asset or file GitHub does not serve.
+  release-links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check release links in the docs and the website
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 tools/maintenance/check_release_links.py

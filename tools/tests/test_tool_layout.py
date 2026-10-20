@@ -18,6 +18,7 @@ class ToolLayoutTests(unittest.TestCase):
             "tools/android/build_leviathan_native.py",
             "tools/evaluation/compare_research_runs.py",
             "tools/maintenance/plan_library_storage.py",
+            "tools/maintenance/check_release_links.py",
             "scripts/research/check_claim_support.py",
         )
         with tempfile.TemporaryDirectory() as cwd:
