@@ -18,6 +18,27 @@ class SavedFactCheckTest {
         "The building has 163 floors above ground. It opened on 4 January 2010.")
     private val question = "how tall is the burj khalifa and how many floors does it have"
 
+    @Test fun aSentenceWhoseFigureAPassageStatesTooIsMarkedWithIt() {
+        val answer = "## Model explanation—not verified against saved sources\n\nThe Burj Khalifa is the tallest building in the world.\n" +
+            "- **Height:** 828 m (2,717 ft) to the roof.\n- **Floors:** It has 163 floors above ground.\n- **Opened:** It opened in 2010."
+        val marked = SavedFactCheck.marks(question, answer, listOf(burj))
+        assertTrue(marked, "- **Height:** 828 m (2,717 ft) to the roof [S1]." in marked)
+        assertTrue(marked, "- **Floors:** It has 163 floors above ground [S1]." in marked)
+        // The year of a different event, and a sentence with no figure, carry no mark; the heading is untouched.
+        assertTrue(marked, "It opened in 2010." in marked && "tallest building in the world." in marked)
+        assertTrue(marked, marked.startsWith("## Model explanation—not verified against saved sources"))
+        assertEquals(2, Regex("\\[S1]").findAll(marked).count())
+    }
+
+    @Test fun aDifferentFigureOrAnotherSubjectGetsNoMark() {
+        assertEquals("It stands 428 m tall.", SavedFactCheck.marks(question, "It stands 428 m tall.", listOf(burj)))
+        val eiffel = source("S2", "Eiffel Tower", "The Eiffel Tower is 330 m tall and has 3 floors for visitors.")
+        assertEquals("The Burj Khalifa has 163 floors.", SavedFactCheck.marks(question, "The Burj Khalifa has 163 floors.", listOf(eiffel)))
+        // An already cited sentence, a quote and the app's own note are left as they are.
+        val cited = "The Burj Khalifa has 163 floors [S1].\n> It has 163 floors above ground. [S1]\n_It has 163 floors._"
+        assertEquals(cited, SavedFactCheck.marks(question, cited, listOf(burj)))
+    }
+
     @Test fun aWrongHeightIsAnsweredWithThePassagesSentence() {
         val note = plain(SavedFactCheck.note(question, "The Burj Khalifa stands 428 m (1,404 ft) tall and has 163 floors.", listOf(burj)))
         assertNotNull(note)

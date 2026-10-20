@@ -6,6 +6,11 @@ import org.junit.Assert.assertFalse
 import org.junit.Test
 
 class AnswerTextTest {
+    @Test fun `a bold label run on from a sentence starts its own line`() {
+        val answer = AnswerText.mixed("The wall divided Berlin under Soviet control. **Key facts:**\n- **Height:** 3.6 m.\n**Caveats**: none.", emptyList())
+        assertTrue(answer, answer.contains("under Soviet control.\n**Key facts:**\n- **Height:** 3.6 m.\n**Caveats**: none."))
+    }
+
     @Test fun `inline source heading preserves exact attribution`() {
         val answer = AnswerText.mixed("**From saved sources:** \"Mitosis produces two cells.\" [S1]", listOf(passage))
         assertTrue(answer.contains("## From saved sources"))

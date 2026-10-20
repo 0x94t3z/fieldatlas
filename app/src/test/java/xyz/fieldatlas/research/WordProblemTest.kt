@@ -20,6 +20,13 @@ class WordProblemTest {
         assertTrue(WordProblem.isSelfContained("cooking breakfast for 14 people for 3 mornings. everyone has 2 eggs each morning and eggs come in boxes of 12. how many boxes?"))
     }
 
+    @Test fun aFareWithARateIsTheQuestionsOwnSumWhateverTravelPagesSayAboutTaxis() {
+        assertTrue(WordProblem.isSelfContained("a taxi costs 12 euros plus 2 euros per km how much is a 15 km ride"))
+        assertTrue(WordProblem.isSelfContained("a taxi in Rome costs 12 euros plus 2 euros per km, how much is a 15 km ride"))
+        // Three litres a day on a named trail still needs the trail looked up.
+        assertFalse(WordProblem.isSelfContained("How much water do I need for 3 days on the 43 km Inca Trail if I drink 3 litres a day?"))
+    }
+
     @Test fun theNumbersAreListedAsWrittenWithClockTimesCounted() {
         assertEquals(listOf("180", "4", "15", "12", "3.50"), WordProblem.of(hotel).numbers)
         assertEquals(listOf("8:15", "420", "140", "10"), WordProblem.of(train).numbers)

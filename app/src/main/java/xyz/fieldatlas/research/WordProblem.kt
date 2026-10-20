@@ -45,6 +45,10 @@ object WordProblem {
 
     // "On 14 July 2026" gives a day and a year, not figures the sum needs: entry to the Louvre for 2 adults and 3
     // kids on that day still needs the ticket price looked up.
+    // "12 euros plus 2 euros per km": a rate or a surcharge among the figures makes the sum the question's own, however
+    // many travel pages mention taxis; on a phone with travel packs the taxi question otherwise became a lookup.
+    private val rateWords = Regex("(?i)\\b(?:per (?:km|kilomet\\w*|miles?|hours?|hrs?|minutes?|mins?|person|head|adult|child|kg|kilos?|unit|item|piece)|" +
+        "each|apiece|plus|extra|surcharge|flat (?:fee|rate)|starts? at|base (?:fare|rate|price))\\b")
     private val dateFigures = Regex("(?i)\\b\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\b|" +
         "\\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\s+\\d{1,2}(?:st|nd|rd|th)?\\b|\\b(?:19|20)\\d{2}\\b")
 
@@ -57,7 +61,7 @@ object WordProblem {
         val selfContained = counted >= MIN_NUMBERS &&
             arithmeticAsk.containsMatchIn(question) &&
             !PromptBuilder.requiresSavedSources(question) &&
-            (figures >= FIGURES_OVER_PLACES ||
+            (figures >= FIGURES_OVER_PLACES || figures >= MIN_NUMBERS && rateWords.containsMatchIn(question) ||
                 !GuideScope.namesPlace(lowered) && TravelSections.lookup(plain)?.places.isNullOrEmpty() && !SubjectLookup.leads(plain)) &&
             !judgement.containsMatchIn(shouldTake.replace(question, "take"))
         return Problem(numbers, selfContained)

@@ -42,6 +42,14 @@ on the phone, with no account and nothing sent anywhere.
   of 60 routing questions the right guide was shown for 14 and 19 of 25 covered emergencies, against
   11 and 10 before, with nothing lost
   ([details](../evaluation.md#set-38-and-passages-as-a-check-on-figures-october-20)).
+- **Every answer in one shape, sources at the foot.** An answer written from the model's own knowledge
+  opens with a short paragraph that answers outright, then **Key facts** as bullets, then **Caveats**
+  when something varies. The explanation comes first; the passages found are listed under it as
+  sources, and a sentence whose figure one of them also states is marked with that passage's number,
+  so the collections show where they back the answer. On 40 questions graded blind the shape changed
+  how answers read, not what they got right (better on 12, worse on 9, the same on 19)
+  ([details](../evaluation.md#one-shape-for-every-answer-sources-at-the-foot-october-20)). A fare
+  with a rate ("12 euros plus 2 per km, how much is 15 km") is worked out from its own figures.
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
   more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new

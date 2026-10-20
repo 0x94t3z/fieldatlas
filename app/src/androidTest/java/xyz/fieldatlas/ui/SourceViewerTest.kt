@@ -29,10 +29,13 @@ class SourceViewerTest {
                     sources = listOf(evidence("Saved note", original))),
                 onBack = {}, onAskAnother = {}, onCitation = { opened = it })
         } }
-        compose.onNodeWithText("Saved passages").assertIsDisplayed()
-        compose.onNodeWithText(original).assertIsDisplayed()
-        // The passage opens a preview sheet first; "Full source" opens the complete source.
-        compose.onNodeWithText("Open full passage").performClick()
+        // The explanation comes first; the passage is a source under it, opened from its row.
+        compose.onNodeWithText("Generated explanation.").assertIsDisplayed()
+        compose.onNodeWithText("Sources").assertIsDisplayed()
+        compose.onNodeWithText("Saved passages").assertDoesNotExist()
+        // The row opens a preview sheet first; "Full source" opens the complete source.
+        compose.onNodeWithText("1 other retrieved passage").performClick()
+        compose.onNodeWithText("Saved note", substring = true).performClick()
         compose.onNodeWithText("Full source").performClick()
         compose.runOnIdle { org.junit.Assert.assertEquals(0, opened) }
     }

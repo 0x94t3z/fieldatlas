@@ -404,8 +404,8 @@ class ResearchOrchestratorTest {
         assertTrue(prompts.single(), "from what you know" in prompts.single() && "displaces a weight" !in prompts.single())
         assertTrue(reviews.isEmpty())
         assertTrue(answer, answer.startsWith("## " + AnswerText.MODEL_LABEL) && knowledge in answer)
-        // The passages found stay under the answer for checking.
-        assertTrue(answer, "Saved excerpts" in answer && "displaces a weight" in answer)
+        // The passages found are the sources under the answer on the screen, not excerpts inside it; the answer says so.
+        assertTrue(answer, "Saved excerpts" !in answer && answer.trimEnd().endsWith(SavedFactCheck.UNMARKED_NOTE))
         assertTrue(events.filterIsInstance<ResearchEvent.Sources>().last().evidence.isNotEmpty())
         assertTrue(events.last() is ResearchEvent.Complete)
     }

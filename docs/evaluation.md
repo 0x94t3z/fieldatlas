@@ -1,5 +1,33 @@
 # Evaluation
 
+## One shape for every answer, sources at the foot (October 20)
+
+A run-through on the Redmi (8 GB, Qwen3.5 4B, offline) showed what the owner then asked to change: a from-memory
+answer opened with a stack of "Saved passages" cards above the explanation (for a taxi-fare sum, three passages on
+Italian prescription costs filled the screen before the answer), and the same passages were quoted again as "Saved
+excerpts" inside it. Now every answer written from the model's own knowledge takes one shape, asked for in the
+prompt: a short paragraph that answers outright, then **Key facts:** as bullets with a bold label each, then
+**Caveats:** only when something varies or may have changed; a bold label the model runs on from a sentence is put on
+its own line. The explanation comes first on the screen, whatever route wrote it; the passages found are the
+Sources list under it, as the cited route already showed them, with "N other retrieved passages" folded away.
+Instead of quoting them, the app marks a sentence of the answer with a passage's number where that passage states
+the same figure, or the same year of the same event, as the sentence (the fact-check's own matching, run for
+agreement; one mark per sentence, the lowest-numbered passage), and a line under the answer says what a mark
+means. Where a passage gives a different figure the note from the fact-check stays. The pill reads "From the
+model's knowledge · N passages agree". The model-only route (nothing found) takes the same shape; the cited route
+for 4 GB phones is unchanged.
+
+Measured on set 38, desktop 4B, the same forty questions and web references as the rounds above, graded blind by
+eight graders who saw the answers without their marks or notes: the shaped answers carry a Key facts line in 36
+of 40 and a Caveats line in 36, a mark in 6 answers (9 marks) and a fact-check note in 3; median length 170 to
+180 words, median time on the Mac 12.6 to 14.5 s. Against the earlier 4B rounds question by question: better on
+12, worse on 9, the same on 19 (within half a point), mean +0.4 points, sign test p=0.66; errors noted per answer
+2.21 to 2.55, the bullets adding a few more claims and with them a few more wrong details: the shape changes how an
+answer reads, not what it gets right. Shipped with the run-through's other fixes:
+a priced question with a rate ("12 euros plus 2 euros per km, how much is 15 km") is worked from its own figures
+even on a phone whose travel packs have a page about taxis, and a heading line of a medicine list ("Medicines to
+take at home:") is no longer quoted as a medicine line.
+
 ## Set 38, and passages as a check on figures (October 20)
 
 A second sealed set of 40 questions in set 37's category mix (set 38, [questions](fieldtest/heldout38.jsonl),

@@ -15,6 +15,102 @@ import xyz.fieldatlas.text.MarkdownLiteral
  */
 internal object SavedFactCheck {
     const val HEADING = "_Your saved sources give a different figure:_"
+    /** Under a from-memory answer whose sentences carry marks: what a mark means. */
+    const val MARKED_NOTE = "_Written from the model's knowledge; a bracketed number marks a figure your saved passages state too._"
+    /** Under a from-memory answer with passages found but none agreeing on a figure. */
+    const val UNMARKED_NOTE = "_Written from the model's knowledge, without the saved passages listed below._"
+    private val cited = Regex("\\[S?\\d+]")
+    private val sentenceTail = Regex("[.!?)*_\\s]*$")
+    private val bulletStart = Regex("^\\s*(?:[-*•]|\\d+[.)])\\s")
+
+    /** The line under a from-memory answer, by whether [marks] changed it. */
+    fun knowledgeNote(marked: Boolean): String = if (marked) MARKED_NOTE else UNMARKED_NOTE
+
+    /**
+     * [answer] with " [Sn]" after each sentence about the asked subject whose figure, or whose year of an event, a
+     * passage about that subject states the same ([Quantity.agrees]): the mark says a saved passage backs that
+     * sentence, so the passages read as sources at the foot of the answer and not as a stack of excerpts above it.
+     * One mark per sentence, the lowest-numbered passage; the same gates as [note], and sentences already cited,
+     * headings, quotes and the app's own notes are left alone.
+     */
+    fun marks(question: String, answer: String, sources: List<PromptSource>): String {
+        if (sources.isEmpty() || answer.isBlank()) return answer
+        if (EvidenceRelevance.conceptualComparisonSubjects(question).isNotEmpty() || comparison.containsMatchIn(question)) return answer
+        val terms = subjectTerms(question)
+        if (terms.size < 2) return answer
+        if (answerSentences(answer).count { arithmetic.containsMatchIn(it) } >= 2) return answer
+        // A passage about the subject, then its sentences that name it or follow one that does: "The building has 163
+        // floors" states the Burj Khalifa's floors when the sentence before it named the tower.
+        val passages = sources.mapNotNull { source ->
+            val citation = source.citationId.takeIf { Regex("S[1-9][0-9]*").matches(it) } ?: return@mapNotNull null
+            val text = EvidenceRelevance.passageText(source.evidence.text)
+            if (EvidenceRelevance.termHits(text, terms) < MIN_PASSAGE_HITS) return@mapNotNull null
+            var named = false
+            citation to text.split(sentenceEnd).map(String::trim).filter { sentence ->
+                val names = EvidenceRelevance.termHits(sentence, terms) >= 1
+                val about = names || named
+                named = names
+                about && sentence.length in 12..MAX_QUOTE && !enumeration.containsMatchIn(sentence) &&
+                    quantities(sentence).map { q -> q.unit }.toSet().size <= MAX_UNITS_IN_PASSAGE
+            }
+        }
+        if (passages.all { it.second.isEmpty() }) return answer
+        var previousOnSubject = false
+        var inBody = true
+        val lines = answer.lines().map { line ->
+            val trimmed = line.trim()
+            if (trimmed.startsWith("## Saved excerpts") || trimmed.startsWith("## From your saved sources")) inBody = false
+            if (!inBody || trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith(">") || trimmed.startsWith("_")) return@map line
+            val out = StringBuilder()
+            var cursor = 0
+            val ends = sentenceEnd.findAll(line).map { it.range.first }.toList() + line.length
+            for (end in ends) {
+                if (end <= cursor) continue
+                val segment = line.substring(cursor, end)
+                val gap = line.substring(end, ends.getOrNull(ends.indexOf(end) + 1)?.let { minOf(it, line.length) } ?: line.length)
+                cursor = end
+                val clean = stripMarks.replace(markup.replace(segment.trim(), ""), "").trim()
+                val onSubject = EvidenceRelevance.termHits(clean, terms) >= 1
+                val eligible = (onSubject || previousOnSubject) && clean.length >= 8 && !cited.containsMatchIn(segment) &&
+                    !enumeration.containsMatchIn(clean) && quantities(clean).map { q -> q.unit }.toSet().size <= MAX_UNITS_IN_CLAIM
+                // The bullets under a lead about the subject are about it too ("**Floors:** It has 163 floors").
+                previousOnSubject = onSubject || bulletStart.containsMatchIn(segment) && previousOnSubject
+                val citation = if (eligible) backing(question, clean, passages) else null
+                if (citation == null) out.append(segment) else {
+                    val tail = sentenceTail.find(segment)!!.range.first
+                    out.append(segment, 0, tail).append(" [").append(citation).append("]").append(segment, tail, segment.length)
+                }
+            }
+            out.toString()
+        }
+        return lines.joinToString("\n")
+    }
+
+    /** The first passage (by number) with a sentence stating the same figure or event year as [clean]. */
+    private fun backing(question: String, clean: String, passages: List<Pair<String, List<String>>>): String? {
+        val claimed = placed(clean).filter { p ->
+            val q = p.quantity
+            q.unit !in shareUnits && q.unit !in countUnits || q.unit in shareUnits && askedShare.containsMatchIn(question) ||
+                q.unit in countUnits && askedCount.containsMatchIn(question)
+        }
+        val ourYear = years(clean).singleOrNull()
+        if (claimed.isEmpty() && ourYear == null) return null
+        for ((citation, sentences) in passages) {
+            for (sentence in sentences) {
+                val stated = placed(sentence)
+                val figure = claimed.any { ours ->
+                    val same = stated.filter { it.quantity.unit == ours.quantity.unit }
+                    val comparable = if (ours.quantity.unit in durations) same.filter { theirs ->
+                        context(clean, ours.range).intersect(context(sentence, theirs.range)).isNotEmpty() } else same
+                    comparable.any { it.quantity.agrees(ours.quantity) }
+                }
+                val year = ourYear != null && ourYear in years(sentence) && !relativeYear.containsMatchIn(sentence) &&
+                    eventOf(clean, ourYear) != null && eventOf(clean, ourYear) == eventOf(sentence, ourYear)
+                if (figure || year) return citation
+            }
+        }
+        return null
+    }
     private const val MAX_NOTES = 2
     private const val MAX_QUOTE = 320
     private const val MIN_PASSAGE_HITS = 2

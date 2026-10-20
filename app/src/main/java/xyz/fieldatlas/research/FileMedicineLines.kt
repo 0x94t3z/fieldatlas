@@ -158,6 +158,8 @@ internal object FileMedicineLines {
         val asksMissed = missedWords.containsMatchIn(question)
         fun weightOf(line: Line): Int {
             if (line.text.isEmpty() || line.text.length > MAX_CHARS) return 0
+            // "Medicines to take at home:" heads the list and says nothing about any medicine.
+            if (line.text.trimEnd().endsWith(":") && !amountIn(line.text)) return 0
             val found = hits(line)
             val named = found.count { it.any(Char::isLetter) }
             val hasAmount = amountIn(line.text)

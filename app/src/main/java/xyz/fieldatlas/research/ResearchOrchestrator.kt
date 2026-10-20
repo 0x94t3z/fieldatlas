@@ -956,10 +956,18 @@ class ResearchOrchestrator(
                 firstAt?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(first.prompt), at - generationStart) }
                 val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(written.toString(), question), question), question, emptyList())
-                // With no notes the passages never reached the model: they are listed to check against, not as its source.
-                // Where one of them gives a different figure for what was asked, its sentence is quoted above them.
-                val listed = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed, writtenWithout = knowledgeNotes == 0)
-                val shown = SavedFactCheck.note(question, raw, packed.sources)?.let { SavedFactCheck.insert(listed, it) } ?: listed
+                // With no notes the passages never reached the model: the screen lists them under the answer as the sources
+                // to check it against. A sentence whose figure one of them states too is marked with that passage; where one
+                // gives a different figure for what was asked, its sentence is quoted under the answer.
+                val explained = AnswerText.mixed(raw, emptyList())
+                val shown = if (knowledgeNotes == 0) {
+                    val marked = SavedFactCheck.marks(question, explained, packed.sources)
+                    listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
+                        if (packed.sources.isEmpty()) null else SavedFactCheck.knowledgeNote(marked != explained)).joinToString("\n\n")
+                } else {
+                    val listed = SavedEvidenceAppendix.append(explained, packed)
+                    SavedFactCheck.note(question, raw, packed.sources)?.let { SavedFactCheck.insert(listed, it) } ?: listed
+                }
                 emit(ResearchEvent.Token(shown, replace = true))
                 val audit = AnswerText.citationAudit(shown, packed.sources.size)
                 emit(ResearchEvent.Complete(ResearchMetrics(

@@ -5,6 +5,8 @@ object AnswerText {
     private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)*)[.!]?\\s*$", RegexOption.IGNORE_CASE)
     private val inlineSourceHeading = Regex("(?im)^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?From saved sources(?:\\*\\*)?\\s*:(?:\\*\\*)?\\s*(?=[\"“])")
     private val danglingAttribution = Regex("(?i)according to sources?\\s+(?:\\[(?:S)?[0-9]+]\\s*)+,\\s*")
+    // "…under Soviet control. **Key facts:**": a bold label the model runs on from a sentence is a line of its own.
+    private val runOnLabel = Regex("(?<=[.!?:;)\\]\"”’])[ \\t]+(?=\\*\\*[^*\\n]{2,40}(?::\\*\\*|\\*\\*:)[ \\t]*(?:\\n|$))")
 
     /**
      * Mixed answers fail closed: only a verbatim quotation from the cited passage gets
@@ -16,7 +18,7 @@ object AnswerText {
         val model = mutableListOf<String>()
         val quotes = mutableListOf<String>()
         var sourceSection = false
-        val text = inlineSourceHeading.replace(normalizeReferences(visible(raw)), "From saved sources\n")
+        val text = runOnLabel.replace(inlineSourceHeading.replace(normalizeReferences(visible(raw)), "From saved sources\n"), "\n")
         val lines = text.lines()
         lines.forEachIndexed { index, line ->
             val heading = line.trim().trim('#', '*', ' ', ':').lowercase()

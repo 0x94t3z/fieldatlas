@@ -119,9 +119,9 @@ fun AnswerScreen(
     val hasUnverifiedUpload = citedSources.any { AttachmentProvenance.needsWarning(it.second) }
     var showOtherSources by rememberSaveable { mutableStateOf(false) }
     var showPerformance by rememberSaveable { mutableStateOf(false) }
-    val showPassagesFirst = state.sources.isNotEmpty() &&
-        state.answer.startsWith("## Model explanation—not verified against saved sources")
-    var showAllPassages by rememberSaveable(state.question) { mutableStateOf(false) }
+    // Written from the model's own knowledge: the passages under it were found to check it, not read to write it.
+    val fromKnowledge = !running && (state.answer.contains(xyz.fieldatlas.research.SavedFactCheck.MARKED_NOTE) ||
+        state.answer.contains(xyz.fieldatlas.research.SavedFactCheck.UNMARKED_NOTE))
     // Citation and source taps open a quick preview first; the full source is one tap further.
     var previewIndex by rememberSaveable(state.question) { mutableStateOf<Int?>(null) }
     val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
@@ -217,7 +217,12 @@ fun AnswerScreen(
                             itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
                             val cited = citedSourceGroups.size
-                            if (cited > 0) {
+                            if (fromKnowledge) {
+                                FieldAtlasStatusPill(
+                                    "From the model's knowledge" + when (cited) { 0 -> ""; 1 -> " · 1 passage agrees"; else -> " · $cited passages agree" },
+                                    StatusTone.Neutral,
+                                )
+                            } else if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
                                     (if (noModelReply) "From saved data · " else "") +
@@ -287,31 +292,6 @@ fun AnswerScreen(
                             color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
-                if (showPassagesFirst) {
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            AnswerSectionLabel("Saved passages")
-                            Text("Original retrieved text. These passages do not verify the explanation below.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (missingSubjects.isNotEmpty()) Text(
-                                "These retrieved passages do not mention: ${missingSubjects.joinToString(", ")}. The saved context may not cover both sides of your comparison.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                    val previewCount = if (showAllPassages) state.sources.size else minOf(2, state.sources.size)
-                    items(previewCount, key = { "passage:$it" }) { index ->
-                        SavedPassagePreview(state.sources[index], index, cited = index + 1 in citedNumberSet, openPreview)
-                    }
-                    if (state.sources.size > 2) item {
-                        AnswerDisclosure(
-                            label = if (showAllPassages) "Show fewer passages" else "Show all ${state.sources.size} passages",
-                            expanded = showAllPassages,
-                            onClick = { showAllPassages = !showAllPassages },
-                        )
-                    }
-                }
                 if (placeCards != null) {
                     // A place lookup reads as a list of places to choose from, each one tappable.
                     val listAt = presentation.blocks.indexOfFirst { it is xyz.fieldatlas.ui.markdown.MarkdownBlock.ListBlock }
@@ -356,12 +336,17 @@ fun AnswerScreen(
                         )
                     }
                 }
-                if (state.sources.isNotEmpty() && !showPassagesFirst) {
+                if (state.sources.isNotEmpty()) {
                     item { AnswerSectionLabel("Sources") }
+                    if (missingSubjects.isNotEmpty()) item {
+                        Text("These passages do not mention: ${missingSubjects.joinToString(", ")}. The saved context may not cover both sides of your comparison.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     if (citedSources.isNotEmpty()) {
-                        if (otherSources.isNotEmpty()) item {
+                        if (otherSources.isNotEmpty() || fromKnowledge) item {
                             Text(
-                                "Cited in this answer",
+                                if (fromKnowledge) "State the same figures as the answer" else "Cited in this answer",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -371,7 +356,7 @@ fun AnswerScreen(
                         }
                     }
                 }
-                val showOtherRow = state.sources.isNotEmpty() && !showPassagesFirst && otherSources.isNotEmpty()
+                val showOtherRow = state.sources.isNotEmpty() && otherSources.isNotEmpty()
                 val metrics = state.metrics
                 if (showOtherRow || metrics != null) item {
                     // One grouped card, as in the design: secondary disclosures sit together.
@@ -532,29 +517,6 @@ private fun AnswerShareActions(shareText: String, question: String) {
         description = "Share answer with sources", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share)
 }
 
-@Composable
-private fun SavedPassagePreview(evidence: Evidence, index: Int, cited: Boolean, onCitation: (Int) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open complete saved passage ${index + 1}") { onCitation(index) },
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.medium,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("${index + 1} · ${evidence.title}", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                if (cited) FieldAtlasStatusPill("Cited", StatusTone.Positive)
-                else FieldAtlasStatusPill("Not cited")
-            }
-            // Plain text, not model output or Markdown: source content cannot inject
-            // clickable citations. Ellipsis is visual only; opening retains full context.
-            Text(evidence.text, style = MaterialTheme.typography.bodyMedium,
-                maxLines = 6, overflow = TextOverflow.Ellipsis)
-            Text("Open full passage", style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
 
 @Composable
 private fun AnswerSectionLabel(text: String) {
