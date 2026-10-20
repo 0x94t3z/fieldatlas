@@ -166,13 +166,14 @@ fun SetupScreen(
                             SetupDownloadRow(offer.name, FieldAtlasIcons.Model, offer.bytes, installed = false,
                                 downloading = downloading && downloadingOffer.id == offer.id, busy = busy || !online,
                                 downloadedBytes = downloadedBytes, resumableBytes = saved,
-                                details = "${if (index == 0) "Best for this phone" else "Faster choice"} · Apache 2.0\n\n${offer.description}",
+                                details = "${if (index == 0) "Best for this phone" else "Smaller choice"} · Apache 2.0\n\n${offer.description}",
                                 onDownload = { onDownloadModelOffer(offer) }, onCancel = onCancelDownload,
                                 blockedReason = blockedReason, inGroup = true,
                                 freeBytesNeeded = offer.bytes - saved.coerceIn(0, offer.bytes) + 512_000_000L,
                                 downloadUrl = modelDownloadUrlFor(offer), downloadError = modelErrorFor(offer), online = online,
                                 badge = "Best for this phone".takeIf { index == 0 },
-                                note = if (index == 0) "Fewer mistakes. Slower answers." else "Faster answers. A few more mistakes.")
+                                // Each model's own trade-off, as measured: the larger one is not always the one with fewer mistakes.
+                                note = offer.tradeOff.ifEmpty { null })
                         } }
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == recommended.id) recommended.name else model.title,

@@ -8,7 +8,8 @@ A **model pack** is the large local file that lets Field Atlas generate answers.
 | --- | --- | --- |
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
 | [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
-| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2), on a phone with 8 GB of memory or more | Qwen3.5 4B, optional in 1.4.0, offered first in 1.4.2 setup | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
+| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) from 6 GB | Qwen3.5 4B, optional in 1.4.0, offered first in 1.4.2 setup | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
+| [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2), on a phone with 12 GB of memory | Gemma 4 26B-A4B (UD-Q2_K_XL), offered first in setup | Download in setup or Library; see [Gemma 4 26B in v1.4.2](#gemma-4-26b-in-v142) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. Building a `.fapack` for manual import still needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
@@ -62,16 +63,31 @@ Gemma 4 E2B is therefore not offered.
 ## Qwen3.5 4B in v1.4.0 and v1.4.2
 
 Version 1.4.0 offered Qwen3.5 4B on phones with 8 GB of memory, and 1.4.1 did not. Version 1.4.2
-offers it again on those phones, first in setup, with Qwen3.5 2B still listed below it; on a
-phone with less memory only the 2B is offered. On 120 new questions graded blind, the 4B made
-half the factual errors of the 2B (0.30 against 0.62 per answer) and scored 38.2% of the
+offers it from 6 GB, first in setup, with Qwen3.5 2B still listed below it; on a phone with less
+memory only the 2B is offered. Citing the saved passages, on 120 new questions graded blind, the
+4B made half the factual errors of the 2B (0.30 against 0.62 per answer) and scored 38.2% of the
 web-and-AI reference against 36.9%
-([details](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)). It has not
-been timed on an 8 GB phone; on a 6 GB Redmi 13C one answer took 8.5 minutes against 2.3 for the
-2B. A phone that already has it keeps it and can choose it in Library. Its pinned
+([details](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)). In 1.4.2 it
+answers ordinary questions from its own knowledge instead, with the passages listed under the
+answer: on 40 newer questions (set 37) it scored 41.8% against 26.0% for the cited 2B, with more
+wrong details (1.94 against 0.71 per answer)
+([details](docs/evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
+It has not been timed on an 8 GB phone; on a 6 GB Redmi 13C, read from its file, five answers took
+170 to 480 seconds (median 277). A phone that already has it keeps it and can choose it in Library. Its pinned
 file and pack are described in
 [`models/compact-qwen3.5-4b.example.json`](models/compact-qwen3.5-4b.example.json) and in the
 [1.4.0 model notes](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/MODELS.md#optional-larger-model).
+
+## Gemma 4 26B in v1.4.2
+
+On a phone with 12 GB of memory, setup offers Gemma 4 26B-A4B first: unsloth's UD-Q2_K_XL file of
+`google/gemma-4-26B-A4B-it` (10.5 GB, Apache-2.0, SHA-256
+`2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658`), described in
+[`models/compact-gemma-4-26b-a4b.example.json`](models/compact-gemma-4-26b-a4b.example.json). It reasons
+before it answers and answers from its own knowledge: 70.2% of the web-and-AI reference on set 37,
+with 0.44 wrong details per answer, on the desktop pipeline. It has run on a 12 GB Android emulator
+(median 100 seconds an answer), not on a 12 GB phone, and it has no `.fapack` yet: setup downloads
+the pinned file and checks its size and SHA-256.
 
 ## Limits and validation status
 

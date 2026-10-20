@@ -78,8 +78,15 @@ what the app already handles well. Other AI models then scored each answer blind
 scored an answer researched on the web the same way. The result is Field Atlas's total as a share
 of the web answer's.
 
-- **36.9%** of the web-and-AI answers with Qwen3.5 2B and **38.2%** with Qwen3.5 4B. **Not there
-  yet.** The 4B makes half the factual errors of the 2B (0.30 against 0.62 per answer).
+- **36.9%** of the web-and-AI answers with Qwen3.5 2B and **38.2%** with Qwen3.5 4B, both answering
+  from the saved passages with citations. **Not there yet.** Citing, the 4B made half the factual
+  errors of the 2B (0.30 against 0.62 per answer).
+- **Answering from the model's own knowledge**, as the 4B and Gemma 4 26B now do: on 40 newer
+  questions (set 37), the 4B reached 41.8% against 26.0% for the cited 2B, but with more wrong
+  details (1.94 against 0.71 per answer), and Gemma 4 26B, reasoning first, 70.2% with 0.44. These
+  scores measure what the model knows: such an answer is written without the saved passages, which
+  are listed under it to check. They come from desktop runs; Gemma has been timed only on an Android
+  emulator, not on a 12 GB phone ([details](docs/evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
 - **Single questions are about where 1.4.1 left them.** On the same 60 questions 1.4.1 scores 37.3%
   and 1.4.2 36.3%. (1.4.1's published 29% came from a harder set.) What 1.4.2 improves is
   follow-up questions, emergencies told as statements, word problems and the 4B on 8 GB phones.

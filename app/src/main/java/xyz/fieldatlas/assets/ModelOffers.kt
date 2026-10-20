@@ -15,6 +15,8 @@ data class ModelOffer(
     val description: String,
     /** A few words beside the size in Library's list: what sets it apart. */
     val line: String = "",
+    /** Setup's line on what choosing it trades, as measured: how it answers and how often it gets details wrong. */
+    val tradeOff: String = "",
     /** Phones reporting less total memory are not offered this model and do not load it. */
     val minimumMemoryBytes: Long = 0,
     /** The memory a buyer would see on the box, for messages: "6 GB". */
@@ -53,14 +55,18 @@ object ModelOffers {
         bytes = 1_396_198_496L,
         sha256 = "57a1085840f497d764a7fc5d346922dbde961efb54cc792ea81d694fd846a1d8",
         url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-2B-GGUF/resolve/7d26695454df6de5fbcce2e58681e62dae06ce43/Qwen_Qwen3.5-2B-Q4_K_M.gguf",
-        description = "The default model. It answers sooner and runs on phones with 4 GB of memory.",
+        description = "The default model. It answers from your saved passages, with citations, sooner, and runs on phones " +
+            "with 4 GB of memory.",
         line = "Faster, smaller",
+        tradeOff = "Answers from your saved passages, with citations. Quicker.",
     )
 
     /**
-     * The more accurate choice where it fits, from models/compact-qwen3.5-4b.example.json. Answering from its own
-     * knowledge it reached 41.8% of web-and-AI answers on 40 sealed questions (set 37, two blind rounds) against 26.0%
-     * for the 2B answering from the passages. With llama.cpp's repacked copy of the weights it needs about 3.1 GB that
+     * The fuller choice where it fits, from models/compact-qwen3.5-4b.example.json. Answering from its own knowledge it
+     * reached 41.8% of web-and-AI answers on 40 sealed questions (set 37, two blind rounds) against 26.0% for the 2B
+     * answering from the passages, but with more wrong details: 1.94 factual errors per answer against 0.71. (Citing
+     * the passages, it made 0.30 against the 2B's 0.62 on sets 28 and 29; that is no longer how it answers.) With
+     * llama.cpp's repacked copy of the weights it needs about 3.1 GB that
      * Android cannot reclaim, which left a 6 GB Redmi 13C 0.43 GB of free memory; mapped from the file instead it needs
      * 0.3 GB and left 3.2 GB free, reading 3.3 and writing 2.2 tokens a second (against 8.0 and 2.6), so a knowledge
      * answer takes about three minutes there. 6 GB phones report about 5,900,000,000 bytes and 4 GB phones about
@@ -75,8 +81,10 @@ object ModelOffers {
         bytes = 3_013_027_808L,
         sha256 = "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
         url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/4168f45a16a1290d65a4ec0fa312ae917a4c15d6/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        description = "More accurate: about half the factual errors of Qwen3.5 2B. Slower to answer.",
-        line = "Fewer mistakes, slower",
+        description = "Answers more questions well, from what it knows rather than from your saved passages, but gets more " +
+            "details wrong than Qwen3.5 2B: check what matters in the passages listed under each answer. Slower to answer.",
+        line = "Fuller answers, slower",
+        tradeOff = "Fuller answers from what it knows. More details to check.",
         minimumMemoryBytes = 5_000_000_000L,
         minimumMemoryLabel = "6 GB",
         repackMinimumMemoryBytes = 7_000_000_000L,
@@ -102,6 +110,7 @@ object ModelOffers {
         url = "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/resolve/c099eb48e663fd284577b04978a94ffccb261841/gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
         description = "The most accurate: it knows far more and thinks before it answers. For phones with 12 GB of memory.",
         line = "Most accurate, thinks first",
+        tradeOff = "Best answers and fewest wrong details in our tests.",
         minimumMemoryBytes = 10_500_000_000L,
         minimumMemoryLabel = "12 GB",
         thinkingBudget = 2048,
