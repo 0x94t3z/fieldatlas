@@ -1,0 +1,124 @@
+=== q01 | med=true | wrong=- | note=true | keys 1/1 | its day 8 of cycle 3 how many of the capecitabine tablets am i meant to take now, is it still the same as day 1?? i have the 500mg ones
+   | _From CAPOX_cycle3_plan.txt, word for word:_
+   | - “D1-D14             Capecitabine 1500 mg twice daily (BD) = 3 x 500mg tabs AM and 3 x 500mg tabs PM”
+=== q02 | med=true | wrong=- | note=true | keys 1/3 | ava had tylenol at 11pm and its 2am now and shes burning up again 103.1, can i give her something now?? what and how much, shes 15kg
+   MISSING: - Ibuprofen (Children's Motrin) 100 mg/5 mL: give 7.5 mL (150 mg) every 6 hours as needed, with food or milk. Max 4 doses in 24 hrs.
+   MISSING: If the fever comes back before the same medicine is due again, you may ALTERNATE: give the other medicine 3 hours after the last dose.
+   | _From Ava_fever_care_plan.txt, word for word:_
+   | - “- Acetaminophen (Children's Tylenol) 160 mg/5 mL: give 7 mL (224 mg) every 6 hours as needed. Max 4 doses in 24 hrs.”
+   | - “Example alternating schedule (if needed):”
+   | - “8:00 AM  - Tylenol 7 mL”
+   | - “2:00 PM  - Tylenol 7 mL”
+   | - “8:00 PM  - Tylenol 7 mL”
+   | - “2:00 AM  - Tylenol 7 mL”
+=== q03 | med=true | wrong=- | note=true | keys 1/2 | op was on the 8th and today is the 25th, how many times a day is the pred forte now? i lost track and mum is asking
+   MISSING: Week 3 (23/10 - 29/10): 1 drop 2 times a day
+   | _From eye_drop_chart_R_cataract.txt, word for word:_
+   | - “2) Pred Forte (prednisolone acetate 1%) - anti-inflammatory. SHAKE WELL before each use.”
+   | - “Then STOP Pred Forte - do not stop suddenly before week 4 is finished.”
+=== q04 | med=true | wrong=- | note=true | keys 3/3 | omg forgot my pill last night, normally take it at 10pm and only just realised now its 9am. im in week 2 of the strip. do i take 2 tonight or one now?? do i need condoms
+   | _From combined_pill_leaflet.txt, word for word:_
+   | - “Start your next strip on day 8, even if you are still bleeding.”
+   | - “ONE tablet missed (less than 48 hours since you should have taken it):”
+   | - “- Take the missed tablet as soon as you remember, even if this means taking 2 tablets at the same time.”
+   | - “- Take the rest of the strip as usual. You are still protected. No extra contraception needed.”
+   | - “- Take the most recent missed tablet as soon as you remember, even if this means taking 2 at once. Leave any earlier missed tablets.”
+   | - “- If 7 or more tablets are left in the strip after the missed ones: finish the strip and have your normal 7-day break.”
+   | - “- If you missed tablets in the first week of the strip and had unprotected sex in the pill-free week or in that first week, you may need emergency contraception. Speak to a pharmacist or doctor.”
+=== q05 | med=true | wrong=- | note=true | keys 1/1 | forgot my maviret this morning, i usually take it with brekky at 8. its 9pm now. do i take it now with dinner or skip it?? dont want to stuff up the cure
+   | _From HepC_Maviret_treatment_plan.txt, word for word:_
+   | - “Maviret (glecaprevir 100 mg / pibrentasvir 40 mg) tablets”
+   | - “Take 3 tablets together ONCE a day WITH FOOD, at the same time each day.”
+   | - “Course: 8 weeks (56 days). Each box = 28 days (4 weekly cartons of 21 tablets).”
+   | - “Start: Mon 07/09/2026”
+   | - “Missed dose:”
+   | - “- Less than 18 hrs since your usual time: take the 3 tablets as soon as you remember (with food), then the next dose at your usual time.”
+   | - “- More than 18 hrs: skip the missed dose and take the next one at the usual time. Do NOT take a double dose.”
+   | - “- Vomit within 3 hrs of a dose: take another 3 tablets. Vomit after 3 hrs: no extra dose needed.”
+=== q06 | med=true | wrong=- | note=true | keys 3/3 | forgot bellas antibiotic this morning its 6pm now and her night one is due at 7. do i give her 2 tablets tonight to catch up
+   | _From Bella_vet_discharge_meds.txt, word for word:_
+   | - “Give 1 tablet ONCE a day WITH FOOD (breakfast). 30 tabs supplied.”
+   | - “2. Cephalexin (Rilexine) 600 mg tablets - antibiotic for the skin”
+   | - “Give 1 tablet TWICE a day (approx every 12 hrs, e.g. 7am + 7pm) for 21 days. Finish the whole course even if the skin looks better.”
+   | - “Give 3 capsules (300 mg) at night if she is sore or restless. May make her a bit wobbly/sleepy.”
+   | - “4. Malaseb medicated shampoo - wash belly twice weekly, leave on 10 min then rinse well.”
+   | - “MISSED DOSE: give it when you remember, unless it is nearly time for the next dose - then skip the missed one. Never give a double dose.”
+=== q07 | med=true | wrong=- | note=true | keys 2/2 | pain is way better now and the amoxicillin is making me feel kinda sick, can i just stop it? how many days was i supposed to take it for
+   | _From wisdom_teeth_postop_instructions.txt, word for word:_
+   | - “Amoxicillin 500 mg: take 1 capsule 3 times a day (about every 8 hrs) until ALL are gone - 21 capsules = 7 days. Do not stop early even if you feel fine.”
+   | - “If the antibiotic upsets your stomach, take it with food. Call us if you get a rash, hives or bad diarrhea.”
+=== q08 | med=true | wrong=- | note=true | keys 1/2 | when do i stop the chlorsig drops? my eye still feels a bit gritty so im worried about stopping too early
+   MISSING: 1) Chlorsig (chloramphenicol 0.5%) - antibiotic
+   | _From eye_drop_chart_R_cataract.txt, word for word:_
+   | - “EYE DROP CHART after cataract surgery”
+   | - “Put these drops in the RIGHT eye only.”
+   | - “Wash your hands first. Wait at least 5 minutes between different drops. Dont let the bottle tip touch your eye.”
+   | - “- 1 drop 4 times a day for 2 weeks, then stop. Last day: Thu 22 Oct 2026. Throw the bottle away after.”
+   | - “2) Pred Forte (prednisolone acetate 1%) - anti-inflammatory. SHAKE WELL before each use.”
+   | - “Week 1 (09/10 - 15/10): 1 drop 4 times a day”
+   | - “Week 2 (16/10 - 22/10): 1 drop 3 times a day”
+   | - “Then STOP Pred Forte - do not stop suddenly before week 4 is finished.”
+=== q09 | med=true | wrong=assumes the B12 shots stay weekly; after the 4 weekly loading shots they are monthly (next 11/12/2026) | note=false | keys 0/3 | had my 4th b12 shot on the 12th so the next one is the 19th right? ive booked dad in for every monday from now on
+   MISSING: Loading: once a WEEK x 4 weeks
+   MISSING: Maintenance: once a MONTH after the loading shots, ongoing (lifelong with pernicious anemia)
+   MISSING: #5  11/12/2026  monthly            __________________
+=== q10 | med=true | wrong=thinks 600 mg twice a day; plan is 600 mg once a day at night | note=true | keys 2/2 | so with the lithium i take one 400 and one 200 in the morning and the same again at night yeah? so twice a day
+   | _From lithium_plan_CMHT.txt, word for word:_
+   | - “Medicine: PRIADEL (lithium carbonate) modified-release tablets, 200 mg and 400 mg”
+   | - “Always get the same brand (Priadel). Do not switch brands without talking to us. Carry your purple lithium card.”
+   | - “DOSE PLAN - take ONCE a day at NIGHT (about 21:00)”
+   | - “Step 1 from 28/09/2026: 400 mg at night (1 x 400 mg tablet)”
+   | - “Step 2 from 06/10/2026: 600 mg at night (1 x 400 mg + 1 x 200 mg tablet)”
+   | - “- Blood must be taken 12 hours after your night dose = 09:00 the next morning. Take your night dose as normal the evening before.”
+=== q11 | med=true | wrong=thinks ibuprofen is every 4 hours; sheet says every 6 hours, max 4 tablets in 24 hrs | note=true | keys 2/2 | ibuprofen is every 4 hours right?? its wearing off after like 3 hrs, can i take the next 600 at the 4 hour mark
+   | _From wisdom_teeth_postop_instructions.txt, word for word:_
+   | - “- Ice packs on the cheeks 20 min on / 20 min off for the first 36 hrs”
+   | - “Amoxicillin 500 mg: take 1 capsule 3 times a day (about every 8 hrs) until ALL are gone - 21 capsules = 7 days. Do not stop early even if you feel fine.”
+   | - “If the antibiotic upsets your stomach, take it with food. Call us if you get a rash, hives or bad diarrhea.”
+   | - “Ibuprofen 600 mg: 1 tablet every 6 hours with food for the first 3 days, then only as needed. No more than 4 tablets (2400 mg) in 24 hrs.”
+   | - “Acetaminophen (Tylenol) 500 mg: 2 tablets (1000 mg) every 6 hours - can be staggered with the ibuprofen (ex: ibuprofen 8am, Tylenol 11am, ibuprofen 2pm...). Max 3000 mg a day.”
+=== q12 | med=true | wrong=- | note=false | keys 0/4 | what did claire say we do if dad gets agitated in the night? can we give him something ourselves or do we have to wait for the nurse to come out
+   MISSING: AS REQUIRED (PRN) doses - given subcut (SC) by the DN or a trained family carer via the butterfly line
+   MISSING: Agitation / distress: Midazolam 2.5 mg SC, can repeat every 1 hour if needed. Max 6 doses in 24 hrs.
+   MISSING: Carer training: Ron's daughter Lisa signed off 15/10/2026 to give PRN subcut doses.
+   MISSING: Hospice at Home overnight (20:00-08:00): 01632 448 900
+=== q13 | med=true | wrong=- | note=true | keys 1/1 | what did the vet say to do if bella throws up on the rimadyl? she vomited once this arvo after brekky
+   | _From Bella_vet_discharge_meds.txt, word for word:_
+   | - “1. Carprofen (Rimadyl) 100 mg chewable tablets - anti-inflammatory/pain relief”
+   | - “Give 1 tablet ONCE a day WITH FOOD (breakfast). 30 tabs supplied.”
+   | - “Give 3 capsules (300 mg) at night if she is sore or restless. May make her a bit wobbly/sleepy.”
+   | - “4. Malaseb medicated shampoo - wash belly twice weekly, leave on 10 min then rinse well.”
+   | - “STOP the carprofen and call us if she vomits, has diarrhoea, black/tarry poo, stops eating, or her gums/eyes look yellow.”
+=== q14 | med=false | wrong=- | note=false | keys 0/0 | what time is my blood test before cycle 3 and where do i go for it
+=== q15 | med=false | wrong=- | note=true | keys 0/0 | what was my viral load before i started the treatment, the actual number? the nurse mentioned it on the phone but i forgot
+   | _From HepC_Maviret_treatment_plan.txt, word for word:_
+   | - “HCV RNA (viral load) 12/08/2026: 1,850,000 IU/mL (6.27 log10)”
+   | - “Missed dose:”
+   | - “- Less than 18 hrs since your usual time: take the 3 tablets as soon as you remember (with food), then the next dose at your usual time.”
+   | - “- More than 18 hrs: skip the missed dose and take the next one at the usual time. Do NOT take a double dose.”
+   | - “- Vomit within 3 hrs of a dose: take another 3 tablets. Vomit after 3 hrs: no extra dose needed.”
+   | - “Week 4 phone check with Sam: Mon 05/10/2026 at 10:30am (done - no side effects, taking every day)”
+=== q16 | med=false | wrong=- | note=false | keys 0/0 | whats the number for the nurse line after hours, the office is closed and i cant find it
+=== q17 | med=false | wrong=- | note=true | keys 0/0 | how much ml does isla take at the 9pm feed and how many scoops is that
+   | _From Isla_feeding_chart.txt, word for word:_
+   | - “Formula Feeding Plan - Baby Isla (born 02/09/2026)”
+   | - “Mixing: 1 level scoop to every 30 ml of cooled boiled water. Water FIRST, then powder.”
+   | - “Never add extra scoops "to fill her up" - too strong is hard on her kidneys.”
+   | - “Feed every 3 hours during the day, let her sleep longer overnight if she wants (max 5 hrs between feeds at this age).”
+   | - “Amount: about 150 ml per feed, 6-7 feeds in 24 hrs (approx 900-1000 ml a day)”
+   | - “6:00am    150 ml    5 scoops”
+   | - “9:00pm    180 ml    "dream feed" - 6 scoops”
+=== q18 | med=false | wrong=- | note=false | keys 0/0 | how much of the shock do i dose and how often, weekly? and how long till the kids can swim after
+=== q19 | med=false | wrong=- | note=false | keys 0/0 | is maths daily for her? and what time does she take it on wednesdays
+=== q20 | med=false | wrong=- | note=false | keys 0/0 | how much priming sugar do i take, is it 6g per litre or for the whole batch?? ended up with 19 litres not 21
+=== q21 | med=false | wrong=thinks feeding is weekly with the watering; card says feed monthly Sept-March | note=false | keys 0/0 | card says feed it, how many ml of the fertiliser do i put in my 9 litre watering can and is that weekly with the watering?
+=== q22 | med=false | wrong=thinks oil change every 6 months; schedule says every 10,000 mi or 12 months | note=false | keys 0/0 | how much oil does the corolla take and how often should i change it, every 6 months is the plan right?
+=== q23 | med=false | wrong=- | note=true | keys 0/0 | she slept right thru the 3am feed, do i give her a double dose at 6 to make up for it??
+   | _From Isla_feeding_chart.txt, word for word:_
+   | - “Feed every 3 hours during the day, let her sleep longer overnight if she wants (max 5 hrs between feeds at this age).”
+   | - “Amount: about 150 ml per feed, 6-7 feeds in 24 hrs (approx 900-1000 ml a day)”
+   | - “9:00pm    180 ml    "dream feed" - 6 scoops”
+   | - “3:00am    150 ml    only if she wakes”
+   | - “If she skips or sleeps through a feed, just offer the next one at the normal amount - don't double up or squeeze 2 feeds into one bottle.”
+   | - “Burp halfway thru and at the end. Hold her upright 10-15 min after if she's spilling.”
+=== q24 | med=false | wrong=assumes chlorine is added daily; log says 2 L weekly (3-4 L twice weekly in summer) | note=false | keys 0/0 | whats the recommended daily dose of liquid chlorine, how many ml a day do i add

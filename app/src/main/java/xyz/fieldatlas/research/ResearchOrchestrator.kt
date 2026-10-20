@@ -1092,6 +1092,12 @@ class ResearchOrchestrator(
                 }.let { text ->
                     val conflict = if (answered) ClockConflict.note(question, finished, packed.sources) else null
                     if (conflict == null) text else text + "\n\n" + conflict
+                }.let { text ->
+                    // A medicine in the person's own file: its lines quoted under the answer, whether or not one was
+                    // written, and the leaflet note pointed at them instead.
+                    val medicine = if (attachments.isNotEmpty()) FileMedicineLines.note(question, if (answered) finished else "", attachments) else null
+                    if (medicine == null) text
+                    else text.replace(AnswerChecks.DOSE_NOTE, FileMedicineLines.DOSE_NOTE).trimEnd() + "\n\n" + medicine
                 }
                 val coverage = selection?.let { AttachmentEvidence.coverageSummary(it, packed.sources.map { s -> s.evidence }, attachments) }
                 val answer = if (coverage == null) explanationWithGap else explanationWithGap + "\n\n_" + coverage + "_"
