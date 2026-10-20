@@ -217,8 +217,9 @@ object VenueLookup {
     /** General shop-opening rules belong to the destination guide, not arbitrary food listings. */
     private fun generalShopHours(question: String) = shopHours.containsMatchIn(question) && !asksSpecificPlaces.containsMatchIn(question)
 
-    private fun isLookup(question: String) =
-        (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
+    private fun isLookup(raw: String): Boolean {
+        val question = withoutCareMentions(raw)
+        return (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
             (lookupWords.containsMatchIn(question) || askWords.containsMatchIn(question) || openNow.containsMatchIn(question) || barePlaceRequest.containsMatchIn(question) ||
                 dayAsk(question) != null ||
                 // An activity question is a lookup only for a named place: "what can we do indoors" in
@@ -227,6 +228,7 @@ object VenueLookup {
             !complexWords.containsMatchIn(question) && !generalShopHours(question) &&
             // An everyday essential named in a decision between alternatives is a place to find only when asked to find it.
             !(!venueWords.containsMatchIn(question) && !dietFood.containsMatchIn(question) && decision.containsMatchIn(question) && !seeks.containsMatchIn(question))
+    }
 
     private fun isOsmPlace(item: Evidence) = item.documentId.startsWith(OSM_PREFIX)
     private fun isGuidePlace(item: Evidence) = item.documentId.startsWith(WV_PREFIX)
@@ -657,13 +659,28 @@ object VenueLookup {
         "(?:at|inside|outside|in the (?:lobby|car park|parking lot|foyer|bar|restaurant) of)\\s+[^,.;?!\\n]*|\\bstaying at\\s+[^,.;?!\\n]*")
     private val notNow = Regex("(?i)\\b(?:next|tomorrow|later|soon|tonight'?s|will|we'?ll|i'?ll|planning|plan to|going to be|arriv\\w*)\\b")
 
+    /**
+     * "We're 90 minutes from the nearest hospital" says how far help is, and "take her to a doctor" or "see a GP" asks
+     * whether to, not where: neither is a request to find a place. The phrase is taken out before the question is
+     * read as a lookup, so "where is the nearest pharmacy" still is one.
+     */
+    internal fun withoutCareMentions(question: String): String =
+        careVisit.replace(distanceStatement.replace(question, " "), " ")
+    private val distanceStatement = Regex("(?i)\\b\\d+(?:\\.\\d+)?\\s*(?:minutes?|mins?|hours?|hrs?|km|kilomet(?:re|er)s?|miles?|mi)\\s+" +
+        "(?:(?:drive|walk|ride|away)\\s+)?(?:from|to|out of)\\s+(?:the\\s+)?(?:nearest|closest)\\s+\\w+")
+    private val careVisit = Regex("(?i)\\b(?:(?:take|bring|get|rush|drive|carry)\\s+(?:him|her|them|me|us|myself|(?:my|the|our)\\s+\\w+)\\s+(?:in\\s+)?to\\s+(?:a|an|the)\\s+" +
+        "(?:doctor|gp|hospital|a&e|er|emergency room|clinic|vet|dentist|pharmacist|nurse)|" +
+        "(?:see|call|phone|ring|visit|consult|ask)\\s+(?:a|an|the|my|your|our)\\s+(?:doctor|gp|dentist|vet|pharmacist|nurse)|" +
+        "go\\s+to\\s+(?:a|an|the|my)\\s+(?:doctor|gp|hospital|a&e|er|emergency room|clinic|vet|dentist))\\b")
+
     /** The question without the person's own position, which says where they are, not what they want. */
     internal fun withoutOwnPosition(question: String): String =
         if (notNow.containsMatchIn(question)) question else ownPosition.replace(question, " ")
 
     /** A place question answered from the phone's own location rather than a named city.
      * "Nearest supermarket in Jakarta" names its city, so it is a city lookup, not a GPS one. */
-    fun isNearMe(question: String): Boolean {
+    fun isNearMe(raw: String): Boolean {
+        val question = withoutCareMentions(raw)
         val rest = withoutOwnPosition(question)
         val placed = rest != question
         return (nearMePhrase.containsMatchIn(rest) || placed) && !namedLandmark.containsMatchIn(rest) &&

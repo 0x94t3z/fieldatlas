@@ -23,7 +23,30 @@ oil on fire in a frying pan opened the burns guide) and on one because "90 minut
 hospital", said of a woman in labour, was read as a request to find one and failed on the phone's
 location. Two emergencies had no guide at all (an avalanche burial and a smoke-filled hotel corridor): Gemma
 answered them acceptably, the 4B dangerously. "Take her to a doctor" sent a child's fever down the venue
-route, where the 4B refused. These are the next fixes.
+route, where the 4B refused.
+
+**Routing fixes (same day).** A question about food poisoning or a stomach bug now opens no guide (the
+poison-control guide is for swallowed chemicals and overdoses) unless someone has stopped breathing;
+the CPR guide can no longer be chosen by the text ranking, only by its own rule for a person who is not
+breathing, and the stroke guide needs a stroke sign (a face, speech, an arm, one side) in the message
+before the text ranking may pick it; a diver's signs after a fast ascent rule the stroke guide out; a pan,
+stove, bin or appliance on fire with nobody burned rules the burns guide out; "what's a normal …", "is that
+high", "difference between" and study words are not first aid; and "90 minutes from the nearest
+hospital" or "take her to a doctor" no longer make a question a search for a place. Set 38's six cases
+each have a test beside the case the guide is still for. The 320 labelled questions still score 217 with
+no unsafe guide; of the 1,207-question harness, 5 picks changed, all to the right guide. On a further
+sealed set of 60 routing questions written blind
+([set 39](fieldtest/routing39.jsonl), SHA-256
+`dffae158327f4fe4dc50434fe8078352d513f11db91b59a9b8e6e05b27feb912`: 25 emergencies a bundled guide
+covers, 15 none covers, 20 look-alikes), the guide chosen is the same before and after for all 60, and the
+two look-alikes that had been sent to the place search are no longer. The same set shows what is still
+open: the matcher opens the right guide for 16 of the 25 covered emergencies (a toddler "grabbing at his
+throat, can't make a sound, going blue" opens nothing, nor does "one side of her face has slid down and
+she's talking gibberish", a funnel cloud with sirens, or a sea that has drawn back after an earthquake),
+opens no guide for 12 of the 15 uncovered ones and 19 of the 20 look-alikes, and opens an unsafe guide
+four times (a heavy nosebleed gets the tourniquet guide; hyperventilation and a man pinned under a
+shelving unit get the choking guide; "how long after a heart attack is it ok to fly" gets the heart
+attack guide). Those are the next fixes, to be checked on a further blind set.
 
 **Passages as a check on figures.** The 4B and Gemma write ordinary answers from their own knowledge, with
 the passages found listed under them unread. A new step compares the numbers, units and years in such an

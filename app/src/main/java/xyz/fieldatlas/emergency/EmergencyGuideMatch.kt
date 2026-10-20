@@ -517,8 +517,6 @@ object EmergencyGuideMatch {
     private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
         // A place's tap water is that place's travel advice, not water to treat.
         "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question)
-        "burns" -> !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
-            stingOrBite.containsMatchIn(question) && !namedBurn.containsMatchIn(question))
         // "A fish bone is stuck, I can breathe and talk but it hurts": the airway is open. The choking steps (back
         // blows, abdominal thrusts) are for someone who cannot breathe, speak or cough.
         "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
@@ -530,8 +528,32 @@ object EmergencyGuideMatch {
         "bleeding-control" -> pregnancyBleeding.containsMatchIn(question) || minorBleeding.containsMatchIn(question)
         // "She gets panic attacks and it's exactly like her usual ones": the person has named it; other chest pain still counts.
         "heart-attack" -> panic.containsMatchIn(question) && usualEpisode.containsMatchIn(question)
+        // Food poisoning is an illness, not a swallowed chemical or an overdose: the poison-control guide would mislead.
+        "poisoning" -> foodPoisoning.containsMatchIn(question) && !swallowedThing.containsMatchIn(question)
+        // A diver's dizziness, tingling and aching after a fast ascent is decompression sickness, not a stroke; the
+        // stroke guide's "note the time, call" steps would miss the oxygen and the chamber.
+        "stroke" -> diving.containsMatchIn(question)
+        // A sting that "burns like crazy" is a sting; a pan, a stove or a bin on fire with nobody burned is a fire to put
+        // out, not a burn to cool.
+        "burns" -> !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
+            stingOrBite.containsMatchIn(question) && !namedBurn.containsMatchIn(question)) ||
+            thingOnFire.containsMatchIn(question) && !bodyPart.containsMatchIn(question) && !burnedPerson.containsMatchIn(question)
         else -> false
     }
+
+    private val foodPoisoning = Regex("(?i)\\b(?:food poisoning|stomach bug|tummy bug|gastro\\w*|salmonella|e\\.? ?coli|norovirus|listeria|" +
+        "campylobacter|reheated|leftovers?|gone off|out of date|past its date)\\b")
+    private val swallowedThing = Regex("(?i)\\b(?:swallow\\w*|overdos\\w*|pills?|tablets?|bleach|chemical\\w*|detergent|antifreeze|" +
+        "batter(?:y|ies)|poison(?:ed|ous)|mushrooms?|berries|plant|cleaner|medicine|paracetamol|acetaminophen|ibuprofen)\\b")
+    private val diving = Regex("(?i)\\b(?:scuba|div(?:e|es|ed|ing)|diver|ascen(?:t|ded|ding)|came up (?:too )?(?:fast|quick\\w*)|surfaced|" +
+        "decompression|the bends|dive computer|depth of \\d+)\\b")
+    /** Something burning: "the oil in the frying pan just caught fire", "the toaster is on fire", "bin on fire". */
+    private val thingOnFire = Regex("(?i)\\b(?:(?:pan|frying pan|pot|oil|grease|fat|stove|hob|oven|toaster|microwave|kitchen|chip pan|deep fryer|" +
+        "candle|curtains?|bin|sofa|couch|mattress|wiring|socket|charger|phone|laptop|car|engine|bbq|barbecue|grill|tent|hood)\\b[^.?!]{0,40}" +
+        "\\b(?:on fire|caught fire|catches fire|is burning|are burning|in flames|flames?)\\b|" +
+        "\\b(?:fire|flames?)\\b[^.?!]{0,30}\\b(?:pan|frying pan|pot|oil|grease|stove|hob|oven|toaster|kitchen|hood|bin|curtains?|sofa))")
+    private val burnedPerson = Regex("(?i)\\b(?:burn(?:ed|t)? (?:my|his|her|their|him|her|me|myself|himself|herself)|got burn(?:ed|t)|" +
+        "(?:i|he|she|they|my \\w+) (?:am|is|are|was|were|got) burn(?:ed|t)|blister\\w*|skin)\\b")
 
     private val noseBleed = Regex("(?i)\\b(?:nose ?bleed\\w*|nose (?:is |started |keeps |won'?t stop |wont stop )?bleed\\w*|bleeding (?:from|out of) (?:my|his|her|the) nose)\\b")
     private val minorBleeding = Regex("(?i)\\b(?:bleeding (?:a little|a bit|slightly|only a little)|small cut|tiny cut|little cut|paper cut|minor cut|" +
@@ -715,6 +737,9 @@ object EmergencyGuideMatch {
             !someoneInvolved.containsMatchIn(question)) return emptyList()
         // Someone out but breathing is happening now, however long the message that tells it.
         val sideways = outButBreathing(question)
+        // Food poisoning is an illness no guide covers: the poison-control guide would mislead, and the text ranking once
+        // handed "throwing up all night" to the head-injury guide. Only a person not breathing changes that.
+        if (foodPoisoning.containsMatchIn(question) && !swallowedThing.containsMatchIn(question) && !noSignsOfLife.containsMatchIn(question) && !sideways) return emptyList()
         // Extra context must not disqualify an explicit request for help, but a long question
         // that only names a hazard is research, not first aid.
         if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways) return emptyList()
@@ -849,10 +874,11 @@ object EmergencyGuideMatch {
         // ranking must not overrule the person with a heart attack guide.
         if (panic.containsMatchIn(question)) return emptyList()
         val medical = guides.filter { guide ->
-            (guide.category == "medical" || guide.id in bodyConditions) && guide.id !in keywordOnly && !ruledOut(guide, question) &&
+            (guide.category == "medical" || guide.id in bodyConditions) && guide.id !in keywordOnly && guide.id !in notByText && !ruledOut(guide, question) &&
                 // A guide's required context still holds: numb fingers at a keyboard are not frostbite.
                 requiredContext[guide.id]?.let { it.containsMatchIn(question) || guide.id == "frostbite" && freezingTemperature(question) } != false &&
                 bodyConditionContext[guide.id]?.containsMatchIn(question) != false &&
+                signContext[guide.id]?.containsMatchIn(question) != false &&
                 // A guide for one setting needs that setting: no water, no drowning guide.
                 settingContext[guide.id]?.containsMatchIn(question) != false &&
                 // A bite or sting guide needs the bite or sting: facial swelling after a pill is not a snakebite.
@@ -873,6 +899,8 @@ object EmergencyGuideMatch {
      * position's article is about airways and positions, words a cold, smoke or stroke message also uses.
      */
     private val keywordOnly = setOf("recovery-position")
+    /** CPR is for someone not breathing, which its own rule decides; the text ranking never picks it for a reading or an ache. */
+    private val notByText = setOf("cpr")
     /** What heat, cold and water loss do to a body, beside the medical guides; weather and terrain guides stay with keywords. */
     private val bodyConditions = setOf("heat-illness", "hypothermia", "frostbite", "dehydration", "sunburn")
     private val usualEpisode = Regex("(?i)\\b(?:usual|always|like (?:her|his|my|their|the) (?:usual|other|last|normal)|same as (?:always|before|usual|last time)|" +
@@ -893,6 +921,11 @@ object EmergencyGuideMatch {
             "burn(?:ed|t)? (?:my|his|her|their|on|from|by|with)|burn (?:mark|on)|burnt|burned)\\b"),
     )
     /** What each of them needs in the message besides a body sign: the sun, heat, cold or wet, fluid lost. */
+    /** A guide the text ranking may pick only when its own signs are in the message, not a shared word like "sudden". */
+    private val signContext = mapOf(
+        "stroke" to Regex("(?i)\\b(?:face|facial|speech|speak\\w*|slur\\w*|words?|arms?|weak\\w*|numb\\w*|droop\\w*|lopsided|confus\\w*|" +
+            "headache|vision|balance|dizz\\w*|one side|half (?:his|her|my|the) (?:face|body))\\b"),
+    )
     private val bodyConditionContext = mapOf(
         "sunburn" to Regex("(?i)\\b(sun\\w*|beach|uv|tann\\w*|outside all day|pool|lake|sea|ski\\w*)\\b"),
         "heat-illness" to Regex("(?i)\\b(heat\\w*|hot|sun\\w*|summer|desert|temperature|degrees?|°|humid\\w*|sauna|marathon|march\\w*)\\b"),
@@ -929,6 +962,8 @@ object EmergencyGuideMatch {
         "cannot (?:move|feel|see|talk|speak|walk|stand)|not moving|not breathing|limp|quiet)\\b")
     /** Research, trivia, shopping and planning: words that share a guide's vocabulary without anyone in danger. */
     private val notFirstAid = Regex("(?i)\\b(who invented|history of|why do|why does|how does|what is a|what are|best brand|which brand|buy|kit|" +
+        "what'?s (?:a |the )?normal|what is (?:a |the )?normal|normal range|is (?:that|this|it|mine) (?:high|low|normal|ok|okay|fine|too high|too low)|" +
+        "differences? between|studying|exams?|homework|quiz|essay|assignment|lecture|textbook|revision|revising|" +
         "movie|film|book|recommend|price|cost|statistics|study|studies|research|invented|famous|documentary|trivia)\\b")
 
     private class GuideIndex(val docs: Map<String, Map<String, Int>>, val lengths: Map<String, Int>, val df: Map<String, Int>, val avg: Double) {

@@ -83,7 +83,10 @@ on the phone, with no account and nothing sent anywhere.
   above the tabs shows what is downloading. Importing a
   collection from a file counts only installed collections against the 50 GB limit, so a 24 GB
   Encyclopedia file is no longer refused. Download sources include the voice.
-- **Fixes:** a download paused while it waited for Wi-Fi stays paused when the app reopens, places named without their accents are found, Ethereum standards stay out of
+- **Fixes:** a question about food poisoning, a blood pressure reading, a diver's dizziness after a fast
+  ascent or a pan on fire no longer opens a guide written for something else (the model answers
+  instead), "90 minutes from the nearest hospital" or "take her to a doctor" no longer turn a question
+  into a search for a place, a download paused while it waited for Wi-Fi stays paused when the app reopens, places named without their accents are found, Ethereum standards stay out of
   questions that are not about crypto, an answer the model wrote twice is shown once, the
   "Answer ready" note follows the light theme, and the research page opens with "Ask the atlas."
 
