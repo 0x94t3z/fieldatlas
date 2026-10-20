@@ -18,7 +18,12 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import xyz.fieldatlas.assets.AssetImportException
+import xyz.fieldatlas.assets.BudgetDecision
+import xyz.fieldatlas.assets.StorageBudget
 import xyz.fieldatlas.assets.VerifiedResumableDownload
 import xyz.fieldatlas.ui.setup.AssetAction
 import xyz.fieldatlas.ui.setup.assetSetupError
@@ -32,6 +37,13 @@ class NaturalVoice internal constructor(
     filesDir: File,
     private val downloader: VerifiedResumableDownload = VerifiedResumableDownload(),
     private val scope: CoroutineScope,
+    /** What Field Atlas holds now, counted as for models and collections, against the 50 GB limit they share. */
+    private val footprint: () -> Long = { 0L },
+    /**
+     * Held while the voice claims storage, as a model, a collection or an import holds it: two at once would each
+     * pass the limit check without counting the other's bytes.
+     */
+    private val provisioning: Mutex = Mutex(),
 ) {
     internal data class Part(val name: String, val bytes: Long, val sha256: String)
 
@@ -72,8 +84,10 @@ class NaturalVoice internal constructor(
             // A paused run can still be inside a stalled read; it lets go of the part file before this one writes to it.
             previous?.join()
             try {
-                withContext(Dispatchers.IO) {
+                provisioning.withLock { withContext(Dispatchers.IO) {
                     val remaining = BYTES - savedBytes()
+                    // The same 50 GB limit as a model or a collection: the voice's bytes count toward theirs, and theirs toward it.
+                    admit(remaining + StorageBudget.METADATA_RESERVE_BYTES)
                     check(dir.parentFile!!.let { it.mkdirs() || it.isDirectory } && filesDirFree() - FREE_MARGIN >= remaining) {
                         "Not enough free space for the voice. It needs about ${remaining / 1_000_000 + FREE_MARGIN / 1_000_000} MB free."
                     }
@@ -92,9 +106,12 @@ class NaturalVoice internal constructor(
                         done += part.bytes
                         if (self.isActive) mutableState.value = State.Downloading(done)
                     }
+                    // History and files can grow during the download; counted again before the voice is marked ready. Its
+                    // files stay, so a retry after freeing space only finishes.
+                    admit(StorageBudget.METADATA_RESERVE_BYTES)
                     File(dir, READY_MARK).writeText(REVISION)
                     staging.deleteRecursively()
-                }
+                } }
                 mutableState.value = State.Ready
             } catch (cancelled: CancellationException) {
                 if (job === self) mutableState.value = State.Missing(savedBytes())
@@ -183,6 +200,12 @@ class NaturalVoice internal constructor(
     private fun path(name: String) = File(dir, name).absolutePath
 
     private fun filesDirFree() = dir.parentFile!!.usableSpace
+
+    /** Refuses [incoming] bytes that would take Field Atlas past its 50 GB limit, with the limit's own message. */
+    private fun admit(incoming: Long) {
+        val decision = StorageBudget.evaluate(footprint(), incoming, Long.MAX_VALUE)
+        if (decision != BudgetDecision.Allowed) throw AssetImportException("The voice does not fit the storage limit", budgetDecision = decision)
+    }
 
     companion object {
         const val ID = "supertonic-3-int8"

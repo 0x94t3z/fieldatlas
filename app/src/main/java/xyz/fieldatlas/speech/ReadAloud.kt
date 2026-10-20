@@ -38,7 +38,12 @@ import xyz.fieldatlas.emergency.EmergencyGuide
  * [state] says which page ([Reading.key]) and which sentence, so the page can mark it. Another app taking the audio (a
  * call) pauses the reading; leaving the page stops it ([stop]).
  */
-class ReadAloud(private val context: Context, private val guides: () -> List<EmergencyGuide>) {
+class ReadAloud(
+    private val context: Context,
+    /** The lock models, collections and imports hold while they claim storage; the voice's download takes it too. */
+    provisioning: kotlinx.coroutines.sync.Mutex = kotlinx.coroutines.sync.Mutex(),
+    private val guides: () -> List<EmergencyGuide>,
+) {
     enum class Voice { Recorded, Natural, Phone }
 
     /** The voice for answers. Null until the person picks one; the phone's voice reads meanwhile. */
@@ -74,7 +79,8 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
     private val mutableState = MutableStateFlow<Reading?>(null)
     val state: StateFlow<Reading?> = mutableState
 
-    val natural = NaturalVoice(context.filesDir, VerifiedResumableDownload(), scope)
+    val natural = NaturalVoice(context.filesDir, VerifiedResumableDownload(), scope,
+        footprint = xyz.fieldatlas.assets.StorageFootprint.forApp(context)::bytes, provisioning = provisioning)
 
     private val preferences = context.getSharedPreferences("reading-aloud", Context.MODE_PRIVATE)
     private val mutableSettings = MutableStateFlow(loadSettings())

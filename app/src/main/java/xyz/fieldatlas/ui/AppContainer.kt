@@ -485,7 +485,7 @@ class AppContainer(context: Context) {
         }
     }
     /** Reads guides and answers aloud: the guides' recordings, or the phone's voice. */
-    val readAloud: xyz.fieldatlas.speech.ReadAloud by lazy { xyz.fieldatlas.speech.ReadAloud(appContext) { emergencyGuides } }
+    val readAloud: xyz.fieldatlas.speech.ReadAloud by lazy { xyz.fieldatlas.speech.ReadAloud(appContext, provisioningMutex) { emergencyGuides } }
 
     /** An activity of the app is on screen; a finished download then needs no notification. */
     @Volatile var appVisible: Boolean = false
