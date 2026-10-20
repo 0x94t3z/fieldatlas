@@ -112,6 +112,35 @@ class ReadAloud(
      * Whether the phone has a speech engine: Google's, GrapheneOS Speech Services, or another. Most phones do, but one
      * can be missing or switched off, and then the phone's voice cannot read.
      */
+    /** What the phone's own speech engine offers for reading answers, once looked at. */
+    sealed interface PhoneVoice {
+        /** An installed English voice that needs no connection, by its engine's name for it. */
+        data class Offline(val name: String) : PhoneVoice
+        /** The engine is there, but every English voice it offers needs the internet: it is not used. */
+        data object OnlineOnly : PhoneVoice
+        /** No engine, or one that would not start. */
+        data object Missing : PhoneVoice
+    }
+
+    private val mutablePhoneVoice = MutableStateFlow<PhoneVoice?>(null)
+    /** Null until the engine has been looked at ([checkPhoneVoice]) or first read with. */
+    val phoneVoice: StateFlow<PhoneVoice?> = mutablePhoneVoice
+
+    /**
+     * Looks at the phone's engine without speaking, so the reading settings can say before anything is played whether
+     * the phone's voice works offline. Looked at again each time while it does not, since a voice can be installed
+     * meanwhile. A reading already setting the engine up brings the answer itself.
+     */
+    fun checkPhoneVoice() {
+        if (mutablePhoneVoice.value is PhoneVoice.Offline) return
+        if (!phoneVoiceAvailable) {
+            mutablePhoneVoice.value = PhoneVoice.Missing
+            return
+        }
+        if (tts != null || pending != null) return
+        withVoice(onFail = {}) {}
+    }
+
     val phoneVoiceAvailable: Boolean get() = runCatching {
         context.packageManager.queryIntentServices(android.content.Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE), 0).isNotEmpty()
     }.getOrDefault(true)
@@ -537,6 +566,7 @@ class ReadAloud(
             scope.launch {
                 val engine = tts
                 if (engine == null || status != TextToSpeech.SUCCESS) {
+                    mutablePhoneVoice.value = PhoneVoice.Missing
                     // Let go of the engine, so a later Listen tries again (after one is installed) instead of waiting forever.
                     runCatching { engine?.shutdown() }
                     tts = null
@@ -563,23 +593,20 @@ class ReadAloud(
                     runCatching { engine.shutdown() }
                     tts = null
                     ttsReady = false
-                    phoneVoiceOnlineOnly = true
+                    mutablePhoneVoice.value = PhoneVoice.OnlineOnly
                     val fail = pendingFail
                     pending = null; pendingFail = null
                     fail?.invoke()
                     return@launch
                 }
                 android.util.Log.i(LOG_TAG, "Phone voice: ${offline.name}")
-                phoneVoiceOnlineOnly = false
+                mutablePhoneVoice.value = PhoneVoice.Offline(offline.name)
                 ttsReady = true
                 engine.setOnUtteranceProgressListener(progress)
                 pending?.invoke(); pending = null; pendingFail = null
             }
         }
     }
-
-    /** The engine was there but every English voice it offered needs a connection. */
-    private var phoneVoiceOnlineOnly = false
 
     /** The phone's voice could not read: the natural voice reads instead if it is here, otherwise the page says why. */
     private fun phoneVoiceFailed(key: String, segments: List<SpeechText.Segment>) {
@@ -589,7 +616,7 @@ class ReadAloud(
             speakNatural(key, segments)
         } else {
             stop()
-            mutableProblem.value = if (phoneVoiceOnlineOnly) NO_OFFLINE_PHONE_VOICE else NO_PHONE_VOICE
+            mutableProblem.value = if (mutablePhoneVoice.value == PhoneVoice.OnlineOnly) NO_OFFLINE_PHONE_VOICE else NO_PHONE_VOICE
         }
     }
 

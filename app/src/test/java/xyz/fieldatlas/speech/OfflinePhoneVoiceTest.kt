@@ -35,3 +35,29 @@ class OfflinePhoneVoiceTest {
         assertNull(ReadAloud.offlineVoice(listOf(voice("fr-fr-local", Locale.FRANCE))))
     }
 }
+
+/** The reading settings say what the phone's voice can do before anything is played. */
+class PhoneVoiceWordingTest {
+    private val offline = ReadAloud.PhoneVoice.Offline("en-us-x-iob-local")
+
+    @Test fun anOfflineVoiceIsOfferedAndSaidToWorkWithNoSignal() {
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceNote(offline).contains("installed on this phone"))
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceChoice(offline).startsWith("Ready now"))
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.untilNaturalNote(offline).contains("the phone's own voice reads until it is"))
+    }
+
+    @Test fun aVoiceThatNeedsTheInternetIsSaidNotToBeUsed() {
+        val online = ReadAloud.PhoneVoice.OnlineOnly
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceNote(online).contains("needs the internet, so answers are not read with it"))
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceChoice(online).contains("does not use it"))
+        // Nobody reads meanwhile: the note must not promise the phone's voice.
+        org.junit.Assert.assertFalse(xyz.fieldatlas.ui.research.untilNaturalNote(online).contains("reads until"))
+    }
+
+    @Test fun noEngineAndStillCheckingAreSaidAsSuch() {
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceNote(ReadAloud.PhoneVoice.Missing).startsWith("This phone has no speech voice"))
+        org.junit.Assert.assertFalse(xyz.fieldatlas.ui.research.untilNaturalNote(ReadAloud.PhoneVoice.Missing).contains("reads until"))
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceNote(null).startsWith("Checking"))
+        org.junit.Assert.assertTrue(xyz.fieldatlas.ui.research.phoneVoiceChoice(null).startsWith("Checking"))
+    }
+}

@@ -96,6 +96,9 @@ private fun SampleButton(readAloud: ReadAloud, reading: ReadAloud.Reading?, choi
 fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -> Unit) {
     val voice by readAloud.natural.state.collectAsState()
     val reading by readAloud.state.collectAsState()
+    val phone by readAloud.phoneVoice.collectAsState()
+    // Looked at before anything is played, so the choice says at once whether the phone's voice works offline.
+    androidx.compose.runtime.LaunchedEffect(Unit) { readAloud.checkPhoneVoice() }
     var confirm by rememberSaveable { mutableStateOf(false) }
     FieldAtlasInfoSheet("Read answers aloud", onDismiss = { if (reading?.key == ReadAloud.SAMPLE_KEY) readAloud.stop(); onDismiss() }) {
         Text("Pick a voice once. You can change it in More.", style = MaterialTheme.typography.bodyMedium,
@@ -105,8 +108,8 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
             queue.queuePosition(xyz.fieldatlas.assets.DownloadItem.Voice) >= 0)
         VoiceOption(Icons.AutoMirrored.Outlined.VolumeUp, TileTone.Sage, NaturalVoice.NAME, selected = true, detail = when {
             voice == NaturalVoice.State.Ready -> "Sounds like a person. On this phone; reads with no signal."
-            fetching -> "Sounds like a person. Downloading now; the phone's voice reads until it is ready."
-            else -> "Sounds like a person. $naturalSize, downloaded once, then works with no signal. The phone's voice reads until it is ready."
+            fetching -> "Sounds like a person. Downloading now." + meanwhile(phone)
+            else -> "Sounds like a person. $naturalSize, downloaded once, then works with no signal." + meanwhile(phone)
         }) {
             when {
                 voice == NaturalVoice.State.Ready || fetching -> BoardPill(if (fetching) "Use it when ready" else "Use ${NaturalVoice.NAME}", tonal = true, onClick = {
@@ -116,12 +119,12 @@ fun ChooseVoiceSheet(readAloud: ReadAloud, onChosen: () -> Unit, onDismiss: () -
             }
             SampleButton(readAloud, reading, ReadAloud.Choice.Natural)
         }
-        if (readAloud.phoneVoiceAvailable) {
-            VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice", detail = "No download, with an offline voice installed on the phone. Sounds more synthetic.") {
+        // Offered only once the phone's voice is known to work offline; otherwise the option says why not.
+        VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice", detail = phoneVoiceChoice(phone)) {
+            if (phone is ReadAloud.PhoneVoice.Offline) {
                 BoardPill("Use phone voice now", onClick = { readAloud.updateSettings { it.copy(voice = ReadAloud.Choice.Phone) }; onChosen() })
             }
-        } else VoiceOption(FieldAtlasIcons.Model, TileTone.Paper, "Phone voice",
-            detail = "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or use ${NaturalVoice.NAME}.") {}
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(FieldAtlasIcons.Info, null, Modifier.size(16.dp).padding(top = 2.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Text("An emergency guide never waits for this: it reads with the best voice already on the phone.",
@@ -160,6 +163,8 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
     val reading by readAloud.state.collectAsState()
     var confirm by rememberSaveable { mutableStateOf(false) }
     val natural = settings.voice == ReadAloud.Choice.Natural
+    val phone by readAloud.phoneVoice.collectAsState()
+    androidx.compose.runtime.LaunchedEffect(Unit) { readAloud.checkPhoneVoice() }
     FieldAtlasInfoSheet("Reading aloud", onDismiss = { if (reading?.key == ReadAloud.SAMPLE_KEY) readAloud.stop(); onDismiss() }) {
         Label("Voice")
         Segments(listOf(NaturalVoice.NAME, "Phone voice"), if (natural) 0 else if (settings.voice == ReadAloud.Choice.Phone) 1 else -1) { picked ->
@@ -168,11 +173,15 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
         when {
             natural && voice == NaturalVoice.State.Ready -> Note("${NaturalVoice.NAME} is on this phone. It reads with no signal.")
             natural -> {
-                Note("${NaturalVoice.NAME} is not on this phone yet; the phone's voice reads until it is.")
+                Note(untilNaturalNote(phone))
                 xyz.fieldatlas.ui.library.DownloadGroup(listOf { xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true }) })
             }
-            readAloud.phoneVoiceAvailable -> Note("The phone's own voice, no download. Only a voice installed on the phone is used, never one that needs the internet.")
-            else -> Note("This phone has no speech voice. Add one in Android settings (Text-to-speech output), or download ${NaturalVoice.NAME}.")
+            else -> {
+                Note(phoneVoiceNote(phone))
+                // A phone voice that cannot read offline leaves Supertonic 3 as the way to listen: offered right here.
+                if ((phone == ReadAloud.PhoneVoice.OnlineOnly || phone == ReadAloud.PhoneVoice.Missing) && voice != NaturalVoice.State.Ready)
+                    xyz.fieldatlas.ui.library.DownloadGroup(listOf { xyz.fieldatlas.ui.library.VoiceDiscoverRow(readAloud, onGet = { confirm = true }, onDetails = { confirm = true }) })
+            }
         }
         Label("Speed")
         val speeds = listOf(0.8f, 1.0f, 1.25f, 1.5f)
@@ -246,4 +255,37 @@ fun readingSummary(settings: ReadAloud.Settings, naturalReady: Boolean): String 
     }
     val speed = if (settings.speed == 1.0f) "normal speed" else "${settings.speed.toString().removeSuffix(".0")}×"
     return "$voice · $speed"
+}
+
+/** The phone voice in the reading settings, as its engine was found: offline, needing the internet, missing, or still being looked at. */
+internal fun phoneVoiceNote(phone: ReadAloud.PhoneVoice?): String = when (phone) {
+    is ReadAloud.PhoneVoice.Offline -> "The phone's own voice, installed on this phone. It reads with no signal."
+    ReadAloud.PhoneVoice.OnlineOnly -> "This phone's speech voice needs the internet, so answers are not read with it. " +
+        "Download ${NaturalVoice.NAME}, or install an offline English voice in Android settings (Text-to-speech output)."
+    ReadAloud.PhoneVoice.Missing -> "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or download ${NaturalVoice.NAME}."
+    null -> "Checking whether the phone's voice works offline…"
+}
+
+/** The phone voice as a choice the first time an answer is listened to. */
+internal fun phoneVoiceChoice(phone: ReadAloud.PhoneVoice?): String = when (phone) {
+    is ReadAloud.PhoneVoice.Offline -> "Ready now, no download: a voice installed on this phone. Sounds more synthetic."
+    ReadAloud.PhoneVoice.OnlineOnly -> "This phone's speech voice needs the internet, so Field Atlas does not use it. " +
+        "Use ${NaturalVoice.NAME}, or install an offline English voice in Android settings (Text-to-speech output)."
+    ReadAloud.PhoneVoice.Missing -> "This phone has no speech voice. Add one in Android settings (Text-to-speech output), or use ${NaturalVoice.NAME}."
+    null -> "Checking whether this phone's voice works offline…"
+}
+
+/** Until Supertonic 3 is on the phone: who reads meanwhile, if anyone. */
+internal fun untilNaturalNote(phone: ReadAloud.PhoneVoice?): String = when (phone) {
+    ReadAloud.PhoneVoice.OnlineOnly -> "${NaturalVoice.NAME} is not on this phone yet, and the phone's voice needs the internet, " +
+        "so answers are read aloud once it is downloaded."
+    ReadAloud.PhoneVoice.Missing -> "${NaturalVoice.NAME} is not on this phone yet, and the phone has no speech voice, " +
+        "so answers are read aloud once it is downloaded."
+    else -> "${NaturalVoice.NAME} is not on this phone yet; the phone's own voice reads until it is."
+}
+
+/** The sentence after the download offer: the phone's voice fills in only where it works offline. */
+private fun meanwhile(phone: ReadAloud.PhoneVoice?): String = when (phone) {
+    ReadAloud.PhoneVoice.OnlineOnly, ReadAloud.PhoneVoice.Missing -> ""
+    else -> " The phone's voice reads until it is ready."
 }
