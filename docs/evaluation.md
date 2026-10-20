@@ -1,5 +1,110 @@
 # Evaluation
 
+## Fixes after an outside audit (October 20)
+
+An audit of the 1.4.2 work found seven issues. Each was checked against the code first; what was
+found, changed and measured is below. "Desktop" means unit tests and the matcher run on a computer;
+"emulator" the 12 GB Android emulator on a Mac; "phone" the Redmi 13C.
+
+**An object stuck in a wound opened the drowning guide.** Held-out case h37-31 ("a broken branch
+went into his thigh, its still sticking out. do we pull it out??") matched no guide's keywords, so
+the guides' full text was ranked, and the drowning guide's rescue "with a broad branch" and "pull …
+out" won. An object told as lodged in someone's body (named, and stuck in a body part or left in
+someone) now opens the bleeding-control guide, which says to leave it in and pad around it, and the
+text ranking may no longer pick the drowning, eye or carbon monoxide guide when the message has no
+water, eye or fuel in it. Desktop: the question and 9 paraphrases open the bleeding guide; 17 look-alikes keep their
+own guide or none (pain that "went into my left arm", a car stuck in mud, a tick, a fish bone, a
+knife that went in with blood pouring out, which keeps the tourniquet guide); the 320 labelled
+emergency questions still score 217 with no unsafe guide; of 1,207 questions (labelled, fresh sets
+and 425 non-emergencies) 2 changed, both chest pressure now opening the heart attack guide.
+"His bone is sticking out" now opens the fracture guide. Emulator: the h37-31 question opens
+"Bleeding control" in the app.
+
+**The phone's voice could be a network voice.** The engine's default voice was used without a check.
+Answers are now read only with an English voice the engine reports as installed and needing no
+connection; otherwise Supertonic 3 reads, or the app says what to install. Desktop: the choice is
+unit-tested. Phone: Google's engine on the Redmi chose `en-US-language` and read the sample. The case
+of an engine with only network voices was not available on a device.
+
+**Health files (partial).** On sets 31 and 32 the model let "carry on daily" stand for a once-a-week
+methotrexate sheet, said a scan letter gave no plan where it recommends alendronate 70 mg weekly,
+turned "35 days" into six weeks, and for "what dose on a Thursday" removed the dose (the dose check)
+and pointed to a package leaflet. The answer is now followed by the file's own lines on the
+medicine asked about, word for word, and a first line when the question or answer says daily for
+a weekly medicine or the reverse. Nothing is withheld. On the 48 recorded file answers it is added
+to the 4 medication ones only. Two blind graders compared those 4 answers with and without it:
+both preferred it 4 times out of 4 (scores 3.5 to 7.0 and 3.75 to 7.25 of 10), and serious errors
+left uncorrected went from 4 and 3 to 0, though the model's wrong sentences are still there, now
+contradicted by the file's lines under them. These 4 are the cases it was built on. On fresh sets
+written by models that did not see the code ([set A](fieldtest/medicine-lines/set-a.json), tuned on;
+[set B](fieldtest/medicine-lines/set-b.json), untouched,
+[notes](fieldtest/medicine-lines/set-b-notes.txt)), it was added to 11 of 11 and 11 of 13 medicine
+questions, showed 22 of 28 and 18 of 29 of the lines needed, and was added to 0 of 9 and 3 of 11
+other questions (two on a baby-feeding chart, quoting the lines that answer them; one quoting a
+viral load beside unrelated dose lines). The frequency line caught daily against weekly (2 of 2 on
+set A); weekly against monthly, twice against once a day and every 4 against every 6 hours are not
+detected (0 of 3 on set B), though the right line was quoted for two of those three. It matches
+words, not meaning: a line in other words ("agitated" against "agitation") can be missed. This is
+a partial safeguard: the quoted lines sit under the model's answer and do not correct its wrong
+sentences, which stay as written.
+
+A second review reproduced two faults in it, now fixed. Two attachments with the same name were
+treated as one file, so "Methotrexate 10 mg" from one sheet.txt was quoted with "Take twice daily"
+from the other; each attachment is now its own document throughout, and repeated names are shown as
+"sheet.txt (attached file 2)". And a frequency anywhere in the question was applied to every
+medicine, so "methotrexate once weekly and folic acid daily", which matches the file, drew two
+false corrections. Now each "daily" or "once a week" belongs to the medicine named in its clause,
+or in its sentence, or the only one the text names; a negated one ("I shouldn't take it daily") or
+one that could be about two medicines is no claim, and no correction is written unless the mismatch
+is clear. Of the warnings above, one is now withheld as ambiguous: "the vitamin d 50000 every
+morning with my lisinopril" names two medicines in one clause; its weekly line is still quoted.
+A third review found two more, also fixed. With no blank line between "Calmavin 5 mg daily" and
+"Zorbitrex 20 mg once weekly", the second line was read as the first one's schedule, so "is
+zorbitrex daily?" corrected Calmavin; a line that names its own medicine before an amount now
+starts a new entry, and a claim is matched to a medicine by its name, not by a line. And "when
+taking methotrexate, should I exercise daily?" was read as a claim about the medicine; a "daily"
+or "once a week" now counts only when it is said of the medicine itself, a dose, or taking it
+("take it daily", "is zorbitrex daily", "20 mg every morning"), not of exercise, walks or checks.
+On the sets above, the lines quoted and the warnings given did not change.
+
+**The 4B's description.** It said "about half the factual errors of Qwen3.5 2B", which was true
+when the 4B cited passages (0.30 against 0.62, sets 28 and 29) and is not now: from its own
+knowledge it makes 1.94 against the cited 2B's 0.71 (set 37). Setup, Library, README and MODELS.md
+now give each model's trade-off as measured; setup's notes come from the model, not its place in the list.
+
+**Model knowledge and the collections.** Set 37's scores for the 4B and Gemma measure what the model
+knows: their answers are written with no passage in the prompt. The section below now says so, and the
+excerpts under such an answer say they were found for checking and were not its source. Whether
+answering from the passages can do better on fresh questions was not re-tested; the policy is unchanged.
+
+**A paused download could resume by itself.** Held while the phone was off Wi-Fi, a download keeps its
+request to resume; paused by the person in that state, the request was not dropped, so the next app
+start could fetch it again. Pausing or removing a download that is not running now drops it. Desktop:
+unit tests for a download held and then paused, one waiting from the start, and one taken out of the
+line. Emulator: the restart did not reproduce. Reading the saved request at each step (old and new
+builds alike), it was already gone when the download was held, most likely because the connection
+broke when the network changed and the transfer ended as a failure, which clears it; so the fix covers
+the case where the stop wins that race. The same reading shows a download held for Wi-Fi does not
+resume by itself after the app is closed; it waits for Resume.
+
+**The voice and the 50 GB limit.** The voice's download checked free space but not the 50 GB limit
+models and collections share, and did not take their provisioning lock. It now does both: at the
+limit it starts, one byte over it is refused with the limit's message before anything is written, and
+it waits while an import or another download claims space. Desktop: unit tests with a pretend
+footprint; no installed data was touched.
+
+**Release links.** v1.4.1 is the latest published release; v1.4.2 has no tag, release or assets
+yet. The pushed docs and website link only to releases, assets and files GitHub serves. The local
+docs and website prepared for 1.4.2 link to it 20 times, which is right once it is published. A tag
+is not a release (GitHub shows a page for a tag with no release, as for v1.1.9), so
+`tools/maintenance/check_release_links.py` asks GitHub for what a reader would get: a download must
+be served (an uploaded asset of a published release), a release page must have a published, non-draft
+release, and a file at a tag must exist. Nothing stops a local push: CI runs the check after each
+push in a job of its own, which fails without stopping the Android build and tests, and the
+website's build command runs the same check
+(`website/tools/check-release-links.mjs`) and does not build a page that links to an unpublished
+release or a missing asset, so Vercel does not deploy it. Run it before pushing.
+
 ## Answers from the model's own knowledge, and a model for 12 GB phones (October 19-20)
 
 Kept to the retrieved passages, a small model often refused, quoted the wrong article ("Mountain"
@@ -22,7 +127,11 @@ An AI model that read only earlier question files wrote a sealed set of 40 new q
 [questions](fieldtest/heldout37.jsonl), SHA-256
 `7038683e668d4ed3f6a494ed397d2335ea2e2607cfaf110bb03735c463a328fd`). Each setup answered on the
 desktop pipeline, and graders scored every answer beside a web-and-AI reference without knowing
-which setup wrote it, in two rounds of eight graders:
+which setup wrote it, in two rounds of eight graders. The "own knowledge" rows measure what the
+model knows: such an answer is written with no saved passage in its prompt, and the passages that
+search finds in the collections are listed under it to check, without changing it. These results
+therefore do not show that the collections or Leviathan improved those answers; only the cited
+rows answer from them.
 
 | Set 37, 40 questions | Share of the reference | Better / worse than today's model on that phone | Factual errors per answer |
 | --- | ---: | ---: | ---: |
@@ -48,8 +157,9 @@ so they stay near 40% with every model. Every answer and grade:
 **Speed and memory.** llama.cpp copies a model's weights into faster layouts when it loads them, and
 Android cannot reclaim that copy. On a 12 GB Android emulator Gemma's copy took 5.9 GB and the app
 was killed while loading; mapped from the file instead, it needed 0.56 GB and wrote as fast (13.6
-against 13.8 tokens a second). In the app with the Encyclopedia installed, 8 answers took a median
-99.5 s, with 9.4 GB of memory still free. On a Redmi 13C (6 GB) the 4B's copy left 0.43 GB free;
+against 13.8 tokens a second). In the app on that emulator, with the Encyclopedia installed, 8
+answers took a median 99.5 s, with 9.4 GB of memory still free. The emulator is an arm64 Android
+image on a Mac, so these times are the Mac's, not a phone's: no 12 GB phone has run Gemma yet. On a Redmi 13C (6 GB) the 4B's copy left 0.43 GB free;
 mapped, it left 3.2 GB, read 3.3 and wrote 2.2 tokens a second (8.0 and 2.6 with the copy), and 5
 answers in the app took 170 to 480 s, median 277 s.
 
@@ -106,7 +216,7 @@ code with Qwen3.5 2B and graded blind in two rounds
 
 15 of the 60 answers differ; 1.4.2 scored higher on 3, lower on 6 and the same on 6. What 1.4.2
 improves is measured in the sections below: follow-up questions, emergencies told as statements,
-word problems, and the passage that reaches the model. The 4B makes half the factual errors of the
+word problems, and the passage that reaches the model. Citing the passages (since 19 October it answers from its own knowledge, above), the 4B makes half the factual errors of the
 2B, and scored higher on three of the four sets it was tried on (sets 26 and 27 by 5.3 and
 3.3 points, set 28 by 3.1), lower on set 29 by 0.5.
 

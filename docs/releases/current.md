@@ -22,12 +22,18 @@ on the phone, with no account and nothing sent anywhere.
   passages found appear as they come in.
 - **Read aloud.** Answers and emergency guides can be read aloud with the phone's voice, or with a
   natural voice, Supertonic 3 (about 146 MB), offered as an optional second step in setup, after the
-  answer model. Both work with no signal.
+  answer model. Both work with no signal. The phone's voice is used only with an English voice that the
+  phone's speech engine reports as installed and working without a connection; an engine offering
+  only voices that need the internet is not used. Supertonic 3 reads instead if it is there;
+  otherwise the app says what to install. The app relies on the engine's own report of its voices. Supertonic 3 counts toward the 50 GB storage limit like a model or a collection.
 - **More emergencies found.** An emergency told as a statement ("tornado siren going off and we're
   in a motel room") now gets its guide. On 45 new emergencies the right guide was shown for 14,
   against 9 in 1.4.1, with no unsafe guide. Two guides are new: a chemical or object in the eye,
   and someone unconscious but breathing, who is now put on their side (the recovery position)
-  instead of left lying down or sent to CPR, which stays for anyone not breathing.
+  instead of left lying down or sent to CPR, which stays for anyone not breathing. An object stuck
+  in a wound ("a branch went into his thigh, it's still sticking out") opens the bleeding guide that
+  says to leave it in and pad around it; it used to open the drowning guide, whose text shares the
+  words "branch" and "pull out".
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
   more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new
@@ -37,7 +43,11 @@ on the phone, with no account and nothing sent anywhere.
   it, and a correct answer is no longer withheld by the model's own review. On 24 new file questions
   graded blind, answers went from 32% to 41% of web-and-AI answers, and refusals from 7 to 1
   ([details](../evaluation.md#questions-about-your-own-files-october-18)). Asking to "use my library"
-  in the question adds the downloaded collections as before.
+  in the question adds the downloaded collections as before. A question about taking a medicine in
+  the file (a dose, how often, until when, a missed dose) also shows the file's own lines on it, word
+  for word, under the answer, and says first when the question or the answer has a medicine's
+  frequency wrong ("your file gives METHOTREXATE once a week, not daily"; daily against weekly only).
+  The answer itself is not changed, so a wrong sentence in it stays: read the quoted lines.
 - **An answer instead of "the excerpts do not say".** When none of the passages found is about the
   question, the model now answers from what it knows, still labelled unverified, instead of saying
   the passages miss it. On the 8 answers this changed, graded blind, they went from 10% to 67% of
@@ -73,7 +83,7 @@ on the phone, with no account and nothing sent anywhere.
   above the tabs shows what is downloading. Importing a
   collection from a file counts only installed collections against the 50 GB limit, so a 24 GB
   Encyclopedia file is no longer refused. Download sources include the voice.
-- **Fixes:** places named without their accents are found, Ethereum standards stay out of
+- **Fixes:** a download paused while it waited for Wi-Fi stays paused when the app reopens, places named without their accents are found, Ethereum standards stay out of
   questions that are not about crypto, an answer the model wrote twice is shown once, the
   "Answer ready" note follows the light theme, and the research page opens with "Ask the atlas."
 
@@ -83,6 +93,10 @@ on the phone, with no account and nothing sent anywhere.
   **70.2%** of web-and-AI answers and Qwen3.5 4B **41.8%**, against 33.7% for the 4B and 26.0% for
   the 2B answering from the passages
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
+  The 4B's answers have more wrong details than the 2B's cited ones (1.94 per answer against 0.71);
+  Gemma's have fewer (0.44). These scores measure what each model knows: its answer is written
+  without the saved passages, which are listed under it to check, so they do not show the
+  collections improving those answers. They come from runs on a computer, not on a phone.
 - **Against web-and-AI answers:** on 120 new questions (two sets written after the changes and
   graded blind twice), 1.4.2 scores **36.9%** of the web-and-AI answers with Qwen3.5 2B and
   **38.2%** with Qwen3.5 4B. That is below the bounty's bar
@@ -108,7 +122,9 @@ Every question, answer and grade is published in
   4B has not been timed on a real 8 GB phone, nor Gemma on a real 12 GB phone.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   Answers about a medical letter or drug sheet you attach can get details wrong: read the file itself
-  before acting on a dose or a result.
+  before acting on a dose or a result. The file's own lines on a medicine are quoted under the answer
+  to make that quicker; they are matched by their words, so a line can be missed, and they do not
+  correct the answer's own sentences.
   The emergency guides are information, not training, and many were written for the United States.
 - **Map data and opening hours can be out of date.**
 - **Storage.** The 2B model and every collection take about 33.7 GB, or 35.3 GB with the 4B
