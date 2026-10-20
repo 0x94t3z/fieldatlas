@@ -33,7 +33,13 @@ on the phone, with no account and nothing sent anywhere.
   instead of left lying down or sent to CPR, which stays for anyone not breathing. An object stuck
   in a wound ("a branch went into his thigh, it's still sticking out") opens the bleeding guide that
   says to leave it in and pad around it; it used to open the drowning guide, whose text shares the
-  words "branch" and "pull out".
+  words "branch" and "pull out". Signs told as people see them now open their guide: "grabbing at
+  his throat, can't make a sound", "one side of her face has slid down, talking gibberish", "grey
+  and clammy" after a crash, "dragged him out of the pool", a pounding headache at 4,500 m, a
+  funnel or a green sky, a sea that has sucked back, hair standing up on a ridge, a toddler who ate
+  a cigarette butt. On a blind set of 60 routing questions the right guide was shown for 14 of 25
+  covered emergencies, against 11 before, with nothing lost
+  ([details](../evaluation.md#set-38-and-passages-as-a-check-on-figures-october-20)).
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
   more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new
@@ -84,7 +90,8 @@ on the phone, with no account and nothing sent anywhere.
   collection from a file counts only installed collections against the 50 GB limit, so a 24 GB
   Encyclopedia file is no longer refused. Download sources include the voice.
 - **Fixes:** a question about food poisoning, a blood pressure reading, a diver's dizziness after a fast
-  ascent or a pan on fire no longer opens a guide written for something else (the model answers
+  ascent, a pan on fire, a nosebleed, hyperventilation, someone pinned under a shelf or a heart
+  attack "back in March" no longer opens a guide written for something else (the model answers
   instead), "90 minutes from the nearest hospital" or "take her to a doctor" no longer turn a question
   into a search for a place, a download paused while it waited for Wi-Fi stays paused when the app reopens, places named without their accents are found, Ethereum standards stay out of
   questions that are not about crypto, an answer the model wrote twice is shown once, the

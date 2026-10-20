@@ -46,7 +46,42 @@ she's talking gibberish", a funnel cloud with sirens, or a sea that has drawn ba
 opens no guide for 12 of the 15 uncovered ones and 19 of the 20 look-alikes, and opens an unsafe guide
 four times (a heavy nosebleed gets the tourniquet guide; hyperventilation and a man pinned under a
 shelving unit get the choking guide; "how long after a heart attack is it ok to fly" gets the heart
-attack guide). Those are the next fixes, to be checked on a further blind set.
+attack guide). Those were the next fixes.
+
+**Second routing pass (same day).** Signs told as people see them, in whatever inflection, now name a guide
+like one of its own phrases: grabbing or clutching at the throat and "can't make a sound" (choking); a face
+that has slid, dropped or sagged, or "talking gibberish" (stroke, unless the person is diabetic or low
+sugar); grey and clammy skin after a crash, a fall or a bleed (shock, but chest, jaw or arm pain with no
+injury stays the heart); dragging someone out of a pool and "was under for" (drowning); a pounding headache,
+stumbling or walking "like he's drunk" at a height (altitude sickness, still only with a height or mountain
+word); a funnel seen, a green sky or a tornado siren (tornado); a sea that has sucked, drawn or pulled back
+or a wall of water (tsunami); hair standing up with a storm, a ridge or a summit in the message (lightning);
+a child who ate or drank a cigarette, vape liquid, a detergent pod, mouthwash, iron tablets and the like
+(poisoning). On the other side, a nosebleed in any wording opens neither bleeding guide nor the head-injury
+guide unless the head was hit; hyperventilation, stress and tingling hands rule the choking guide out and
+leave the text ranking alone, as a panic attack already did; someone pinned or crushed gets no guide
+(nothing bundled covers it, and the choking and fracture guides would have the helper do the wrong thing);
+and an emergency placed in the past ("had one in March", "2 years ago") with nothing happening now opens no
+guide. Set 39's 13 failures each have a test beside a neighbour that keeps its guide. The 320 labelled
+questions go from 217 to 223 right, still with no unsafe guide; of the 1,207-question harness, 16 picks
+changed, all to the right guide or to none where none covers it. Set 39 itself, which these fixes were
+written against, is 60 of 60. The blind check is a further sealed set of 60 written the same way
+([set 40](fieldtest/routing40.jsonl), SHA-256
+`27ac7b4d3efe238e3825ab80b77f03777ed863ebcbea69bdc18df2624c7dc06d`: 25 covered emergencies, 15 none
+covers, 20 look-alikes). Before this pass it scored 41 of 60 (11 of the 25 covered emergencies, 5 unsafe
+guides); the pass as first written scored 42, having opened the shock guide for an elephant on the chest
+with grey, clammy skin (a heart attack) and the stroke guide for a sweaty, shaky diabetic talking nonsense.
+Those two guards were added afterwards, so set 40 counts as seen for them; with them it scores 44 of 60 (14
+of 25 covered, the same 5 unsafe guides as before, nothing lost). What set 40 leaves open, for a further
+pass against a fresh blind set: 11 covered emergencies still get no guide (a whole family waking with
+headaches and a wobbly dog, "everything shaking, shelves falling", a man slumped at the table not answering,
+a seizure told as "whole body jerking, foam at his mouth", "nothing looks familiar" off the trail, a coin
+battery gone from a remote, "hair on my arms is standing up", an ankle bent sideways, an orange sky with
+ash and flames on the ridge, two puncture holes after something struck a calf in long grass, which opens
+the lost guide, and the back of a head hitting a kerb), and 5 unsafe guides remain (a nosebleed "pouring
+blood" on blood thinners gets the tourniquet guide; a panic attack with a tight chest gets the heart attack
+guide; a metaphorical "storm of Slack messages" gets the lightning guide; a wrist broken last winter gets the
+fracture guide; storing water for hurricane season gets the drinking-water guide).
 
 **Passages as a check on figures.** The 4B and Gemma write ordinary answers from their own knowledge, with
 the passages found listed under them unread. A new step compares the numbers, units and years in such an
