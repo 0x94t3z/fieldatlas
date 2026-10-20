@@ -544,12 +544,36 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
                 // it well with its built-in voice (Google's does), so a refusal here is not a failure; only no engine is.
                 listOf(Locale.US, Locale.UK, Locale.ENGLISH).firstOrNull { engine.setLanguage(it) >= TextToSpeech.LANG_AVAILABLE }
                     ?: engine.setLanguage(Locale.US)
+                // The engine's default voice may be a network one, which sends each sentence to a server. Answers are only
+                // read with a voice installed on the phone; an engine that offers none, or will not list its voices, is
+                // not used, as if there were no engine.
+                val installed = runCatching { engine.voices }.getOrNull().orEmpty()
+                val offline = offlineVoice(installed.map { voice ->
+                    EngineVoice(voice.name, voice.locale, voice.isNetworkConnectionRequired,
+                        TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED !in voice.features.orEmpty(), voice.quality)
+                })?.let { choice -> installed.firstOrNull { it.name == choice.name } }
+                if (offline == null || engine.setVoice(offline) != TextToSpeech.SUCCESS) {
+                    android.util.Log.i(LOG_TAG, "Phone voice not used: no offline English voice among ${installed.size}")
+                    runCatching { engine.shutdown() }
+                    tts = null
+                    ttsReady = false
+                    phoneVoiceOnlineOnly = true
+                    val fail = pendingFail
+                    pending = null; pendingFail = null
+                    fail?.invoke()
+                    return@launch
+                }
+                android.util.Log.i(LOG_TAG, "Phone voice: ${offline.name}")
+                phoneVoiceOnlineOnly = false
                 ttsReady = true
                 engine.setOnUtteranceProgressListener(progress)
                 pending?.invoke(); pending = null; pendingFail = null
             }
         }
     }
+
+    /** The engine was there but every English voice it offered needs a connection. */
+    private var phoneVoiceOnlineOnly = false
 
     /** The phone's voice could not read: the natural voice reads instead if it is here, otherwise the page says why. */
     private fun phoneVoiceFailed(key: String, segments: List<SpeechText.Segment>) {
@@ -559,7 +583,7 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
             speakNatural(key, segments)
         } else {
             stop()
-            mutableProblem.value = NO_PHONE_VOICE
+            mutableProblem.value = if (phoneVoiceOnlineOnly) NO_OFFLINE_PHONE_VOICE else NO_PHONE_VOICE
         }
     }
 
@@ -600,6 +624,19 @@ class ReadAloud(private val context: Context, private val guides: () -> List<Eme
         const val SAMPLE_KEY = "sample"
         const val NO_PHONE_VOICE = "This phone has no speech voice. Download ${NaturalVoice.NAME} in Library, " +
             "or add a text-to-speech voice in Android settings."
+        const val NO_OFFLINE_PHONE_VOICE = "This phone's speech voice needs the internet, so answers are not read with it. " +
+            "Download ${NaturalVoice.NAME} in Library, or install an offline English voice in Android settings (Text-to-speech output)."
+        private const val LOG_TAG = "FieldAtlasReadAloud"
+
+        /**
+         * The phone voice answers are read in: English, installed, and needing no connection, so no sentence leaves the
+         * phone to be spoken. American, then British, then any English; the better voice first. Null when there is none.
+         */
+        internal fun offlineVoice(voices: List<EngineVoice>): EngineVoice? = voices
+            .filter { !it.needsNetwork && it.installed && it.locale.language == Locale.ENGLISH.language }
+            .sortedWith(compareBy<EngineVoice> { when (it.locale.country) { "US" -> 0; "GB" -> 1; else -> 2 } }
+                .thenByDescending { it.quality }.thenBy { it.name })
+            .firstOrNull()
         const val SAMPLE_TEXT = "This is the natural voice of Field Atlas. It reads your answers aloud on this phone, even with no signal."
         const val PHONE_SAMPLE_TEXT = "This is your phone's own voice. Field Atlas can read your answers aloud with it, even with no signal."
         private const val VOICE = "voice"
@@ -656,3 +693,6 @@ internal data class GuideAudioEntry(val file: String = "", val durationMs: Long,
 
 @Serializable
 internal data class GuideAudioSegment(val startMs: Long, val shown: String)
+
+/** A speech engine's voice, as far as choosing one to read answers goes. */
+internal data class EngineVoice(val name: String, val locale: Locale, val needsNetwork: Boolean, val installed: Boolean, val quality: Int)
