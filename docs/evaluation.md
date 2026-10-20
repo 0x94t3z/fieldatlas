@@ -28,6 +28,16 @@ a priced question with a rate ("12 euros plus 2 euros per km, how much is 15 km"
 even on a phone whose travel packs have a page about taxis, and a heading line of a medicine list ("Medicines to
 take at home:") is no longer quoted as a medicine line.
 
+**From the rest of the run-through.** A "near me" question on a phone whose Location is on but has no fix (indoors,
+airplane mode) waited 25 s and then said to turn Location on. The GPS wait is now 15 s, and the reply says what was
+the matter: no fix yet (ask again shortly, step outside, or name the city), Location off, or permission not given.
+The readiness banner on a phone with no offline voice no longer says "voice" runs on it. The progress line "Usually
+about 3 min" was the median of the last five answers while the last ones took 3.5 to 4.5 min; it now gives the range
+of the inner three ("Usually 3–4 min"). And a passage that spans the years a thing began and ended ("from 1961 to
+1989"), or says it was taken down, now backs the answer's start and end dates, so the marks under a from-memory
+answer fire a little more often: replayed over set 38's forty 4B answers, one more answer gains a mark ("Concorde
+stopped flying in 2003", 6 to 7 of 40) and the three fact-check notes stay the same.
+
 ## Set 38, and passages as a check on figures (October 20)
 
 A second sealed set of 40 questions in set 37's category mix (set 38, [questions](fieldtest/heldout38.jsonl),

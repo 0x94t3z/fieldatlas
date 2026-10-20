@@ -30,6 +30,16 @@ class SavedFactCheckTest {
         assertEquals(2, Regex("\\[S1]").findAll(marked).count())
     }
 
+    @Test fun aStartOrEndDateIsMarkedByAPassageThatSpansOrEndsTheSameYears() {
+        val wall = source("S1", "Berlin Wall", "The Berlin Wall was a wall that separated the city of Berlin in Germany from 1961 to 1989. " +
+            "The Berlin Wall was taken down on November 9, 1989.")
+        val q = "what was the berlin wall"
+        val marked = SavedFactCheck.marks(q, "The Berlin Wall divided Berlin.\n- **Start date:** August 13, 1961.\n- **End date:** November 9, 1989.\n- **Opened:** 1965.", listOf(wall))
+        assertTrue(marked, "- **Start date:** August 13, 1961 [S1]." in marked)
+        assertTrue(marked, "- **End date:** November 9, 1989 [S1]." in marked)
+        assertTrue(marked, "- **Opened:** 1965." in marked)
+    }
+
     @Test fun aDifferentFigureOrAnotherSubjectGetsNoMark() {
         assertEquals("It stands 428 m tall.", SavedFactCheck.marks(question, "It stands 428 m tall.", listOf(burj)))
         val eiffel = source("S2", "Eiffel Tower", "The Eiffel Tower is 330 m tall and has 3 floors for visitors.")

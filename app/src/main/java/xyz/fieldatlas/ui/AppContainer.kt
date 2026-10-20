@@ -540,7 +540,7 @@ class AppContainer(context: Context) {
     // questions from 45% to 55% of the reference and our own from 57% to 59%, for about 20 s more
     // reading on a slow phone when the English collection is installed.
     // Whether answers come from the model's own knowledge is decided per model when it loads (ModelOffer.knowledgeFirst).
-    private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current,
+    private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current, locationProblem = { deviceLocation.lastProblem },
         emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
         articleDepth = true)
 

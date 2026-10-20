@@ -119,6 +119,25 @@ internal fun typicalAnswerMillis(records: List<xyz.fieldatlas.research.AnswerRec
     return recent.sorted()[recent.size / 2]
 }
 
+/**
+ * The spread of this phone's recent answers, for "Usually 3–4 min": the inner values of the last five researched
+ * answers (the quickest and the slowest left out), once there are three. The median alone read "about 3 min"
+ * on a phone whose last answers took 3.5 to 4.5.
+ */
+internal fun typicalAnswerRange(records: List<xyz.fieldatlas.research.AnswerRecord>): LongRange? {
+    val recent = records.sortedByDescending { it.createdAtEpochMs }.mapNotNull { it.durationMs }
+        .filter { it >= MIN_RESEARCHED_MILLIS }.take(5).sorted()
+    if (recent.size < 3) return null
+    return if (recent.size >= 5) recent[1]..recent[3] else recent.first()..recent.last()
+}
+
+/** "about 3 min" or "3–4 min": whole minutes, rounded, of a measured range. */
+internal fun usualMinutes(range: LongRange): String {
+    fun minutes(ms: Long) = ((ms + 30_000) / 60_000).coerceAtLeast(1)
+    val (low, high) = minutes(range.first) to minutes(range.last)
+    return if (low == high) "about $low min" else "$low–$high min"
+}
+
 private const val MIN_RESEARCHED_MILLIS = 15_000L
 private const val TOKENS_PER_LINE = 40f
 private const val DINO_STEP = 220L
@@ -134,7 +153,7 @@ private fun stillMotion(): Boolean {
 
 /** The trail, the status line and what to expect. */
 @Composable
-internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
+internal fun ResearchTrailStatus(state: ResearchUiState, typicalRange: LongRange?) {
     val estimate = rememberPrefillEstimate(state)
     val readFraction = estimate?.fraction ?: state.promptRead?.takeIf { it.second > 0 }
         ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) }
@@ -192,7 +211,7 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalMillis: Long?) {
         }
         Text(
             state.waitingFor?.let { "One answer at a time on this phone: this starts when “$it” is saved to History." }
-                ?: typicalMillis?.let { "Usually about ${((it + 30_000) / 60_000).coerceAtLeast(1)} min on this phone · keeps going if you switch apps." }
+                ?: typicalRange?.let { "Usually ${usualMinutes(it)} on this phone · keeps going if you switch apps." }
                 ?: "Keeps going if you switch apps. On slower phones an answer takes 2 to 5 minutes.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

@@ -20,6 +20,17 @@ internal object SavedFactCheck {
     /** Under a from-memory answer with passages found but none agreeing on a figure. */
     const val UNMARKED_NOTE = "_Written from the model's knowledge, without the saved passages listed below._"
     private val cited = Regex("\\[S?\\d+]")
+    /** "From 1961 to 1989", "between 1961 and 1989", "1961–1989": the years a thing began and ended. */
+    private val yearSpan = Regex("(?i)\\b(?:from|between)\\s+(1[0-9]{3}|20[0-9]{2})\\s+(?:to|and|until|till)\\s+(1[0-9]{3}|20[0-9]{2})\\b|" +
+        "\\b(1[0-9]{3}|20[0-9]{2})\\s*[-–]\\s*(1[0-9]{3}|20[0-9]{2})\\b")
+    private val startGroups: Set<Int> by lazy { events.withIndex().filter { (_, r) -> listOf("open\\w*", "found\\w*", "built|", "began|").any { it in r.pattern } }.map { it.index }.toSet() }
+    private val endGroups: Set<Int> by lazy { events.withIndex().filter { (_, r) -> "ended|" in r.pattern }.map { it.index }.toSet() }
+
+    /** The years a passage sentence spans, when it gives both. */
+    private fun spanOf(sentence: String): Pair<Int, Int>? = yearSpan.find(sentence)?.let { m ->
+        val v = m.groupValues.drop(1).filter { it.isNotEmpty() }.map(String::toInt)
+        if (v.size == 2) v[0] to v[1] else null
+    }
     private val sentenceTail = Regex("[.!?)*_\\s]*$")
     private val bulletStart = Regex("^\\s*(?:[-*•]|\\d+[.)])\\s")
 
@@ -104,9 +115,13 @@ internal object SavedFactCheck {
                         context(clean, ours.range).intersect(context(sentence, theirs.range)).isNotEmpty() } else same
                     comparable.any { it.quantity.agrees(ours.quantity) }
                 }
+                val ourEvent = ourYear?.let { eventOf(clean, it) }
                 val year = ourYear != null && ourYear in years(sentence) && !relativeYear.containsMatchIn(sentence) &&
-                    eventOf(clean, ourYear) != null && eventOf(clean, ourYear) == eventOf(sentence, ourYear)
-                if (figure || year) return citation
+                    ourEvent != null && ourEvent == eventOf(sentence, ourYear)
+                // "Start date: 1961" against "from 1961 to 1989": the span's first year is a start, its last an end.
+                val span = ourYear?.let { y -> spanOf(sentence)?.let { (first, last) ->
+                    ourEvent in startGroups && y == first || ourEvent in endGroups && y == last } } ?: false
+                if (figure || year || span) return citation
             }
         }
         return null
@@ -221,7 +236,8 @@ internal object SavedFactCheck {
         "found\\w*|establish\\w*|set up|created|creation|formed|formation|incorporat\\w*",
         "built|build\\w*|construct\\w*|complet\\w*|finish\\w*|erected",
         "began|begin\\w*|start\\w*|commenc\\w*|broke out|outbreak",
-        "ended|end\\w*|ceas\\w*|conclud\\w*|abolish\\w*|repeal\\w*|dissolv\\w*|fell|fall of|collapse\\w*",
+        "ended|end\\w*|ceas\\w*|conclud\\w*|abolish\\w*|repeal\\w*|dissolv\\w*|fell|fall of|collapse\\w*|taken down|torn down|" +
+            "demolish\\w*|dismantl\\w*|destroy\\w*|razed|shut down|closed down",
         "discover\\w*|invent\\w*|first (?:described|observed|made|flown|used|synthesi[sz]ed)|isolated|identified",
         "publish\\w*|releas\\w*|premier\\w*|aired|broadcast\\w*|came out|printed",
         "sign\\w*|ratif\\w*|treaty|agreement|adopted|enacted|passed",

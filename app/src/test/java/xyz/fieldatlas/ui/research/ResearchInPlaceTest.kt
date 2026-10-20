@@ -57,6 +57,11 @@ class ResearchInPlaceTest {
         val records = listOf(record(10, 2_000), record(9, 200_000), record(8, 140_000), record(7, 170_000), record(6, 900),
             record(5, 160_000), record(4, 150_000), record(1, 600_000))
         assertEquals(160_000L, typicalAnswerMillis(records))
+        // The range leaves out the quickest and slowest of the five; the status line rounds it to minutes.
+        assertEquals(150_000L..170_000L, typicalAnswerRange(records))
+        assertEquals("about 3 min", usualMinutes(150_000L..170_000L))
+        assertEquals("3–4 min", usualMinutes(160_000L..250_000L))
+        assertNull(typicalAnswerRange(listOf(record(1, 180_000), record(2, 150_000))))
     }
 
     @Test fun anAnswersDurationIsKeptInHistory() = runBlocking {

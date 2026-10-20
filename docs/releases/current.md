@@ -49,7 +49,9 @@ on the phone, with no account and nothing sent anywhere.
   so the collections show where they back the answer. On 40 questions graded blind the shape changed
   how answers read, not what they got right (better on 12, worse on 9, the same on 19)
   ([details](../evaluation.md#one-shape-for-every-answer-sources-at-the-foot-october-20)). A fare
-  with a rate ("12 euros plus 2 per km, how much is 15 km") is worked out from its own figures.
+  with a rate ("12 euros plus 2 per km, how much is 15 km") is worked out from its own figures. A
+  "near me" question says whether Location is off, not allowed, or on without a fix yet, and waits
+  less for GPS; the progress line gives the measured range of recent answers ("Usually 3–4 min").
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
   more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new

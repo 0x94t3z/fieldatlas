@@ -123,7 +123,9 @@ fun MoreScreen(
             val collections = packs.count { it.type == PackType.KNOWLEDGE && it.enabled }
             // An installed model that stopped with an error (loading, answering or unloading) is not ready.
             val modelFailed = model != null && inferenceState is InferenceState.Failed
-            ReadinessVerdict(ready = model != null && !modelFailed, modelFailed = modelFailed)
+            // A voice that reads offline: Supertonic 3 downloaded, or an installed phone voice that needs no connection.
+            val voice = naturalReady || phoneVoice == null || phoneVoice is ReadAloud.PhoneVoice.Offline
+            ReadinessVerdict(ready = model != null && !modelFailed, modelFailed = modelFailed, voice = voice)
             // The pack sheets' facts card: each row's words say whether it is ready, so none needs a mark.
             AboutFacts {
                 ReadinessFact("Answer model", when {
@@ -213,7 +215,7 @@ private fun MoreGroup(title: String, content: @Composable ColumnScope.() -> Unit
 
 /** The sheet's answer first: can the phone research offline right now? */
 @Composable
-private fun ReadinessVerdict(ready: Boolean, modelFailed: Boolean = false) {
+private fun ReadinessVerdict(ready: Boolean, modelFailed: Boolean = false, voice: Boolean = true) {
     val colors = MaterialTheme.colorScheme
     Surface(color = if (ready) colors.primaryContainer else colors.surfaceVariant, shape = FieldAtlasButtonShape) {
         Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -225,7 +227,8 @@ private fun ReadinessVerdict(ready: Boolean, modelFailed: Boolean = false) {
                 Text(if (ready) "Ready to work offline" else "Not ready yet", style = MaterialTheme.typography.titleSmall,
                     color = if (ready) colors.onPrimaryContainer else colors.onSurface)
                 Text(when {
-                    ready -> "Questions, sources and voice all run on this phone."
+                    ready && voice -> "Questions, sources and voice all run on this phone."
+                    ready -> "Questions and sources run on this phone; reading aloud needs a voice."
                     modelFailed -> "The answer model stopped with an error. Load it again under Answer model."
                     else -> "Add an answer model to write answers."
                 },

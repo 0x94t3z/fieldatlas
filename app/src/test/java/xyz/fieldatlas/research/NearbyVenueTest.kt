@@ -290,6 +290,17 @@ class NearbyVenueTest {
         assertEquals(setOf("S1"), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
     }
 
+    @Test fun aMissingFixOrPermissionIsExplainedAsSuch() = runBlocking {
+        val inference = FakeInferenceGateway(listOf("must not run"))
+        val noFix = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, inference, locationProblem = { LocationProblem.NO_FIX })
+            .research("vegan restaurants near me").toList()
+        assertEquals(VenueLookup.LOCATION_NO_FIX, noFix.filterIsInstance<ResearchEvent.Token>().single().text)
+        val denied = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, inference, locationProblem = { LocationProblem.NO_PERMISSION })
+            .research("where am i").toList()
+        assertEquals(VenueLookup.LOCATION_NO_PERMISSION, denied.filterIsInstance<ResearchEvent.Token>().single().text)
+        assertEquals(0, inference.generateCalls)
+    }
+
     @Test fun withoutALocationTheAnswerExplainsHowToFixIt() = runBlocking {
         val inference = FakeInferenceGateway(listOf("must not run"))
         val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, inference)

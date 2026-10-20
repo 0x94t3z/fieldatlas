@@ -692,6 +692,17 @@ object VenueLookup {
 
     const val LOCATION_UNAVAILABLE = "I couldn't get this phone's location. Turn on Location (GPS works " +
         "offline) and allow Field Atlas to use it, or name the city in your question."
+    const val LOCATION_NO_FIX = "Location is on, but this phone has no fix yet: GPS needs open sky and a minute to warm up " +
+        "(it works offline). Ask again shortly, step outside if you can, or name the city in your question."
+    const val LOCATION_NO_PERMISSION = "Field Atlas isn't allowed to use this phone's location. Allow Location for " +
+        "Field Atlas in the phone's settings, or name the city in your question."
+
+    /** What to do about a missing position, by why it was missing. */
+    fun locationUnavailable(problem: LocationProblem?): String = when (problem) {
+        LocationProblem.NO_FIX -> LOCATION_NO_FIX
+        LocationProblem.NO_PERMISSION -> LOCATION_NO_PERMISSION
+        else -> LOCATION_UNAVAILABLE
+    }
 
     // "Where am I?", "What city am I in?", "What's my location?": the phone's own position, named.
     private val whereAmI = Regex(

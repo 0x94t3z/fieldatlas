@@ -17,6 +17,8 @@ class ResearchOrchestrator(
     private val monotonicMillis: () -> Long = { System.nanoTime() / 1_000_000L },
     /** The phone's position for "near me" questions only; null when unavailable or not allowed. */
     private val location: suspend () -> GeoPoint? = { null },
+    /** Why [location] gave nothing, when it is known, so the reply says what to do. */
+    private val locationProblem: () -> LocationProblem? = { null },
     /** Bundled first-aid and safety guides; an emergency question is answered from these, never by the model. */
     private val emergencyGuides: () -> List<xyz.fieldatlas.emergency.EmergencyGuide> = { emptyList() },
     /** Bundled emergency telephone numbers by country; "what number do I call in Japan?" is answered from these. */
@@ -347,7 +349,7 @@ class ResearchOrchestrator(
                 val retrievedAt = monotonicMillis()
                 val result = point?.let { VenueLookup.whereAnswer(it, places) }
                 result?.sources?.takeIf { it.isNotEmpty() }?.let { emit(ResearchEvent.Sources(it)) }
-                emit(ResearchEvent.Token(result?.answer ?: VenueLookup.LOCATION_UNAVAILABLE))
+                emit(ResearchEvent.Token(result?.answer ?: VenueLookup.locationUnavailable(locationProblem())))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = elapsed(startedAt, retrievedAt),
                     timeToFirstTokenMillis = elapsed(startedAt, retrievedAt),
@@ -402,7 +404,7 @@ class ResearchOrchestrator(
                 _searchProgress.value = 1.0
                 val retrievedAt = monotonicMillis()
                 result?.sources?.takeIf { it.isNotEmpty() }?.let { emit(ResearchEvent.Sources(it)) }
-                emit(ResearchEvent.Token(result?.answer ?: VenueLookup.LOCATION_UNAVAILABLE))
+                emit(ResearchEvent.Token(result?.answer ?: VenueLookup.locationUnavailable(locationProblem())))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = elapsed(startedAt, retrievedAt),
                     timeToFirstTokenMillis = elapsed(startedAt, retrievedAt),

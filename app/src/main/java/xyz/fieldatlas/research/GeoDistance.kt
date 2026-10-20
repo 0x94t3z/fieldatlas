@@ -11,6 +11,9 @@ import kotlin.math.sqrt
  * [fromGps] says whether the satellite receiver gave it (true), a network-assisted provider (false), or
  * nobody knows (null), so an answer can say where the position came from.
  */
+/** Why the phone's position was not had: no permission, Location off, or on but no fix yet (indoors, say). */
+enum class LocationProblem { NO_PERMISSION, OFF, NO_FIX }
+
 data class GeoPoint(val lat: Double, val lon: Double, val ageMinutes: Long = 0, val fromGps: Boolean? = null) {
     init {
         require(lat in -90.0..90.0 && lon in -180.0..180.0) { "coordinates out of range" }

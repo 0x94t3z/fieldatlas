@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import xyz.fieldatlas.research.GeoPoint
+import xyz.fieldatlas.research.LocationProblem
 
 /**
  * The phone's position for "near me" questions, from Android's own LocationManager. GPS works
@@ -29,6 +30,9 @@ import xyz.fieldatlas.research.GeoPoint
  */
 class DeviceLocation(private val context: Context) {
     private val executor = Executors.newSingleThreadExecutor()
+    /** Why the last [current] returned null, for the answer that says what to do; null after a position. */
+    @Volatile var lastProblem: LocationProblem? = null
+        private set
 
     fun hasPermission(): Boolean = granted(Manifest.permission.ACCESS_FINE_LOCATION) ||
         granted(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -36,10 +40,13 @@ class DeviceLocation(private val context: Context) {
     // Permission is checked on entry and every provider call is wrapped for SecurityException
     // (the user can revoke it mid-call); lint cannot see through runCatching.
     @SuppressLint("MissingPermission")
-    suspend fun current(): GeoPoint? {
-        if (!hasPermission()) return null
+    suspend fun current(): GeoPoint? = position().also { lastProblem = if (it == null && lastProblem == null) LocationProblem.NO_FIX else lastProblem }
+
+    private suspend fun position(): GeoPoint? {
+        lastProblem = null
+        if (!hasPermission()) { lastProblem = LocationProblem.NO_PERMISSION; return null }
         val manager = context.getSystemService(LocationManager::class.java) ?: return null
-        if (!manager.isLocationEnabled) return null
+        if (!manager.isLocationEnabled) { lastProblem = LocationProblem.OFF; return null }
         // GPS needs precise permission; with approximate only, the system still serves the fused,
         // network and passive providers (fuzzed to about 2 km), which suits city answers. The
         // fused provider is Android's own, so it works without Play Services (GrapheneOS).
@@ -104,7 +111,8 @@ class DeviceLocation(private val context: Context) {
         const val FRESH_MILLIS = 10 * 60 * 1000L
         const val USABLE_MILLIS = 2 * 60 * 60 * 1000L
         const val FIX_TIMEOUT_MILLIS = 45_000L
-        // Long enough for a warm GPS fix outdoors; a cold start indoors falls back to the other providers.
-        const val GPS_FIRST_MILLIS = 25_000L
+        // Long enough for a warm GPS fix outdoors; a cold start indoors falls back to the other providers, and the
+        // answer then says there is no fix yet, so asking again a minute later (GPS warmed up) is the way to a position.
+        const val GPS_FIRST_MILLIS = 15_000L
     }
 }

@@ -346,7 +346,7 @@ fun FieldAtlasApp(
                     // The follow-up is researched on this page, under the answer it follows; from then on the page is
                     // Research's, so a stopped or edited follow-up is held on the Research home.
                     onFollowUp = { navigation.keepInResearch(); onFollowUp(it) },
-                    typicalAnswerMillis = remember(historyRecords) { xyz.fieldatlas.ui.research.typicalAnswerMillis(historyRecords) },
+                    typicalAnswerRange = remember(historyRecords) { xyz.fieldatlas.ui.research.typicalAnswerRange(historyRecords) },
                     onStop = onStop,
                     onEditReadAs = onEditReadAs,
                     onCitation = navigation::openSource,
