@@ -956,7 +956,8 @@ class ResearchOrchestrator(
                 firstAt?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(first.prompt), at - generationStart) }
                 val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(written.toString(), question), question), question, emptyList())
-                val shown = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed)
+                // With no notes the passages never reached the model: they are listed to check against, not as its source.
+                val shown = SavedEvidenceAppendix.append(AnswerText.mixed(raw, emptyList()), packed, writtenWithout = knowledgeNotes == 0)
                 emit(ResearchEvent.Token(shown, replace = true))
                 val audit = AnswerText.citationAudit(shown, packed.sources.size)
                 emit(ResearchEvent.Complete(ResearchMetrics(

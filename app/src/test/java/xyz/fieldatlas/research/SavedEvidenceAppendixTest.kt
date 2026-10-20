@@ -17,4 +17,14 @@ class SavedEvidenceAppendixTest {
         assertEquals(result, SavedEvidenceAppendix.append(result, packed.copy(mixedAnswer = true)))
         assertEquals(answer, SavedEvidenceAppendix.append(answer, packed.copy(mixedAnswer = false)))
     }
+
+    @Test fun anAnswerFromTheModelsOwnKnowledgeSaysTheExcerptsWereNotItsSource() {
+        val answer = "## Model explanation\n\nRain is liquid water falling from clouds."
+        val evidence = Evidence("library", "r1", "Rain", "Saved collection", "Rain is liquid water in droplets.", -1.0)
+        val packed = PromptBuilder.build("What is rain?", listOf(evidence), 2048).copy(mixedAnswer = true)
+        val written = SavedEvidenceAppendix.append(answer, packed, writtenWithout = true)
+        assertTrue(written.endsWith(SavedEvidenceAppendix.NOT_USED))
+        assertFalse(SavedEvidenceAppendix.NOT_VERIFICATION in written)
+        assertTrue(SavedEvidenceAppendix.append(answer, packed).endsWith(SavedEvidenceAppendix.NOT_VERIFICATION))
+    }
 }
