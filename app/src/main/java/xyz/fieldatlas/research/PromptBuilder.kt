@@ -18,6 +18,9 @@ For local places, name only places in the evidence. A dietary match must be stat
     private const val ANSWER_SHAPE = """ Shape it for reading on a phone: first one short paragraph that answers outright; then a line **Key facts:** with bullets, each opening with a bold label and giving one fact (a number, a date, a name, a step); then, only when something varies, is disputed or may have changed, a line **Caveats:** with bullets. No other headings, no closing summary, nothing said twice."""
     private const val KNOWLEDGE_FIRST_POLICY = """Answer the question directly and completely, as a careful expert would on a phone, from what you know. Lead with the answer itself (the number, the place, the yes or no), then the details that matter: steps, times, prices, conditions and caveats. Under 170 words unless more detail is asked for. Be precise with numbers and names, and say plainly when something varies or may have changed. Do not invent citations.""" + ANSWER_SHAPE
     private const val KNOWLEDGE_NOTE_CHARS = 700
+    // For a subject the model barely knows: the notes are the facts, cited; memory fills only the gaps.
+    private const val READ_NOTES_POLICY = """
+The notes below come from your saved sources about this subject. Take the facts they give (names, dates, figures) over your own memory, and end each sentence that uses one with that note's number, as [S1]. Leave uncited what the notes do not say."""
     private const val MODEL_ONLY_POLICY = """Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them.""" + ANSWER_SHAPE
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
@@ -335,7 +338,8 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
      * the passages refused or quoted the wrong article; answering from its own knowledge scored 56% of the
      * reference against 40% (set 34, Qwen3.5 4B). The notes also stay listed under the answer for checking.
      */
-    fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false): PackedPrompt {
+    fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false,
+        cite: Boolean = false): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         val chosen = packed.sources.take(notes.coerceAtLeast(0))
         var fixed = 0
@@ -343,10 +347,12 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             if (!thinking) append(THINK_OFF)
             append(KNOWLEDGE_FIRST_POLICY)
             append(OFFLINE_PERSON)
+            if (chosen.isNotEmpty() && cite) append(READ_NOTES_POLICY)
             fixed = length
             if (chosen.isNotEmpty()) {
                 append("\n\nNOTES FROM THE OFFLINE LIBRARY (use only what is relevant and correct; never mention them):\n")
-                append(chosen.joinToString("\n\n") { "- ${compactMetadata(it.evidence.title)}: ${takeWholeCodePoints(it.excerpt, KNOWLEDGE_NOTE_CHARS)}" })
+                append(chosen.withIndex().joinToString("\n\n") { (i, it) ->
+                    (if (cite) "[S${i + 1}] " else "- ") + "${compactMetadata(it.evidence.title)}: ${takeWholeCodePoints(it.excerpt, KNOWLEDGE_NOTE_CHARS)}" })
             }
             append("\n\n")
             append(questionText(question, framing, "\n"))

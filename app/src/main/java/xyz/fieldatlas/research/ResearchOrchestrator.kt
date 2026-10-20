@@ -37,6 +37,8 @@ class ResearchOrchestrator(
      * the selected passages as notes (0: none), the passages listed under the answer. Null keeps the cited route.
      */
     private val modelFirstNotes: Int? = null,
+    /** Whether a little-known subject is read from the sources even by a model that answers from memory (see [SourceRouter]). */
+    private val sourceRouter: Boolean = true,
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -651,6 +653,8 @@ class ResearchOrchestrator(
             // a comparison reads both of its subjects.
             val subjects = ArrayList<Evidence>()
             var depth = emptyList<Evidence>()
+            // Rows of each subject's article in the full encyclopedia: a short one is about something few readers meet.
+            var articleRows = emptyMap<String, Int>()
             // A factual lookup ("who won the First World War", "tell me about Japan") also reads the
             // articles it names, up to three ("are lions or tigers heavier" names two). The Simple
             // English article answers alone; the English one adds depth when that collection is read.
@@ -720,6 +724,7 @@ class ResearchOrchestrator(
                 if (articleDepth && encyclopedic.isNotEmpty()) {
                     val articles = encyclopedic.map { it.title.substringBefore(" — ") }.distinct()
                         .associateWith { retriever.article(it, ArticleDepth.ARTICLE_ROWS) }
+                    articleRows = articles.mapValues { (_, rows) -> rows.count { it.documentId.startsWith("enw-") || it.documentId.startsWith("wp-") } }
                     depth = ArticleDepth.pickForPrompt(question, encyclopedic, articles,
                         ArticleDepth.budget(prefillSpeed.tokensPerSecond))
                 }
@@ -928,9 +933,16 @@ class ResearchOrchestrator(
             // Model-first: the model answers what it knows, labelled unverified, with the selected passages listed below
             // it. Emergencies, places, files, phrases, calculations and source-only requests keep their own routes.
             // The loaded model may answer from its own knowledge (ModelOffer.knowledgeFirst); a fixed note count overrides it.
+            // A subject few readers meet is read from the sources as cited notes: a small model's memory of famous
+            // subjects beats reading about them, its memory of obscure ones is where it invents (see SourceRouter).
+            val routed = if (!sourceRouter) 0 else {
+                val mentions = SourceRouter.titlesToCount(subjects, packed.sources).associateWith { retriever.mentions(it, SourceRouter.MENTION_CAP) }
+                SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions)
+            }
             val knowledgeNotes: Int? = when {
-                modelFirstNotes != null -> modelFirstNotes
-                inference.knowledgeFirst -> 0
+                // A fixed count of zero (the desktop's knowledge-first switch) still lets the router read a rare subject.
+                modelFirstNotes != null -> if (modelFirstNotes == 0) routed else modelFirstNotes
+                inference.knowledgeFirst -> routed
                 else -> null
             }
             if (knowledgeNotes != null && attachments.isEmpty() && phraseAsk == null && !VenueLookup.asksForBusinesses(question) &&
@@ -938,7 +950,7 @@ class ResearchOrchestrator(
                 // A model chosen for it reasons first: Gemma 4 26B got a time-zone sum wrong straight out and right
                 // after reasoning, and scored 82.5% against 77.5% of web-and-AI answers on set 33 (two blind rounds).
                 val thinking = inference.thinkingBudget.coerceAtLeast(0)
-                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0)
+                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0, cite = knowledgeNotes > 0)
                 onEvidencePacked(first)
                 if (packed.sources.isNotEmpty()) emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
                 emit(ResearchEvent.Token(""))
@@ -961,16 +973,15 @@ class ResearchOrchestrator(
                 // With no notes the passages never reached the model: the screen lists them under the answer as the sources
                 // to check it against. A sentence whose figure one of them states too is marked with that passage; where one
                 // gives a different figure for what was asked, its sentence is quoted under the answer.
-                val explained = AnswerText.mixed(raw, emptyList())
-                val shown = if (knowledgeNotes == 0) {
-                    val marked = SavedFactCheck.marks(question, explained, packed.sources)
-                    val markCount = Regex("\\[S\\d+]").findAll(marked).count() - Regex("\\[S\\d+]").findAll(explained).count()
-                    listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
-                        SavedFactCheck.knowledgeNote(markCount, packed.sources.size)).joinToString("\n\n")
-                } else {
-                    val listed = SavedEvidenceAppendix.append(explained, packed)
-                    SavedFactCheck.note(question, raw, packed.sources)?.let { SavedFactCheck.insert(listed, it) } ?: listed
-                }
+                // Read as notes, the passages' facts come back cited by the model; those citations are kept and audited.
+                val citation = Regex("\\[S\\d+]")
+                val explained = if (knowledgeNotes == 0) AnswerText.mixed(raw, emptyList())
+                    else "## " + AnswerText.MODEL_LABEL + "\n\n" + AnswerText.finalized(raw, first.sources.size).trim()
+                val cited = citation.findAll(explained).count()
+                val marked = SavedFactCheck.marks(question, explained, packed.sources)
+                val markCount = citation.findAll(marked).count() - cited
+                val shown = listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
+                    SavedFactCheck.knowledgeNote(markCount, packed.sources.size, cited)).joinToString("\n\n")
                 emit(ResearchEvent.Token(shown, replace = true))
                 val audit = AnswerText.citationAudit(shown, packed.sources.size)
                 emit(ResearchEvent.Complete(ResearchMetrics(

@@ -42,6 +42,12 @@ on the phone, with no account and nothing sent anywhere.
   of 60 routing questions the right guide was shown for 14 and 19 of 25 covered emergencies, against
   11 and 10 before, with nothing lost
   ([details](../evaluation.md#set-38-and-passages-as-a-check-on-figures-october-20)).
+- **Rare subjects are read from the collections.** A subject few readers meet — one the Simple
+  English edition lacks and that is named in few saved passages, or one a specialist collection
+  holds — is answered from the saved sources, cited sentence by sentence, instead of from the
+  model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B went
+  from 22% to 36% of web-and-AI answers; famous subjects are untouched
+  ([details](../evaluation.md#reading-the-sources-for-subjects-few-readers-meet-october-20)).
 - **Every answer in one shape, sources at the foot.** An answer written from the model's own knowledge
   opens with a short paragraph that answers outright, then **Key facts** as bullets, then **Caveats**
   when something varies. The explanation comes first; the passages found are listed under it as

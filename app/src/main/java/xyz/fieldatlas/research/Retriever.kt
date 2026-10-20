@@ -64,6 +64,13 @@ fun interface Retriever {
      */
     suspend fun article(article: String, limit: Int): List<Evidence> = emptyList()
 
+    /**
+     * How many saved passages mention [phrase], counted up to [cap]: a subject's readership as the collections see
+     * it ("cast iron" in thousands, "Battle of Ramillies" in a few dozen). [cap] when unknown, so a subject whose
+     * count cannot be had is taken as well known.
+     */
+    suspend fun mentions(phrase: String, cap: Int): Int = cap
+
     /** A search for [question]; [placesOnly] keeps a place lookup to the place collections. */
     suspend fun searchQuestion(
         query: String,

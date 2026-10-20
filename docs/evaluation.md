@@ -1,5 +1,36 @@
 # Evaluation
 
+## Reading the sources for subjects few readers meet (October 20)
+
+A model that answers from memory knows the Eiffel Tower and invents the Pantelegraph. On the earlier sets the 4B's
+memory beat reading passages for every mainstream subject, so the question was never "memory or sources" but
+"which subjects". The collections now draw that line themselves. A question's subject is read from the saved
+sources, as numbered notes inside the model's own answer that it is asked to take names, dates and figures from
+and to cite as [S1], when the subject is held only by the full English encyclopedia (not the Simple English
+edition, whose quarter of a million articles are the subjects most readers meet) and is named in at most 400 of
+the saved passages — "cast iron" and "sky blue" are named in thousands, "Pantelegraph" in eight, "Hanaoka Seishū"
+in five — or when a specialist collection (biology, cryptography) leads the passages. The count comes from the
+full-text index in a few milliseconds; the subject must be named in the question itself (a lookup that lands on
+"Goods" for a honeybee question is not a subject), a rare subject counts even beside a common one the question
+also names, and a rare article the search itself led with counts when no subject was looked up. Everything else,
+travel guides included, stays with the model's memory; the one line under the answer then reads "From the model's
+knowledge and your saved sources; N sentences cite them."
+
+Measured on a sealed set of 60 written blind ([set 42](fieldtest/heldout42.jsonl), SHA-256
+`03b2adef8d8e8bf5fc0a00551d50352db90040388797f42a7fb7e76806915df0`): 40 long-tail subjects that have an English
+Wikipedia article (the Caste War of Yucatán, the Huia, Borgward, alkaptonuria, Hertha Ayrton) and 20 mainstream
+controls, web references by five agents, both arms (memory as shipped, router) and the reference graded blind by
+nine graders, one grader per answer, two rounds. The router read 16 of the 40 long-tail questions and none of the
+20 controls; 14 of the 40 subjects are not in our 470,000-article edition at all, and the rest were mainstream
+enough by the count. Round b, the shipped rules: long-tail 22.3% to 35.6% of the reference (errors noted per
+answer 3.27 to 2.42; by question 17 better, 7 worse, 16 the same, p=0.06); on the 16 questions it read, 14
+better and 2 worse, mean 2.4 to 5.7 of 10, errors 2.9 to 1.2; the 20 controls got identical answers (88.0% and
+85.5% are the two graders' noise). Over the whole set, 44.8% to 52.6%. Round a, with stricter rules that read 10,
+had shown the same direction (22.1% to 26.4%; on the 10 read, 8 better, 2 worse). Per-question records:
+[results-1.4.2/heldout42-router.jsonl](fieldtest/results-1.4.2/heldout42-router.jsonl). On set 38 (mainstream)
+the shipped rules read nothing. Cost: three passages of up to 700 characters in the prompt, about 40 s more on the
+Redmi, only for the subjects it reads.
+
 ## One shape for every answer, sources at the foot (October 20)
 
 A run-through on the Redmi 13C (6 GB, Qwen3.5 4B, offline) showed what the owner then asked to change: a from-memory

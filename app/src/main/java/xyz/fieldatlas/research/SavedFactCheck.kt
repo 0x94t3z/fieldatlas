@@ -35,8 +35,13 @@ internal object SavedFactCheck {
     private val sentenceTail = Regex("[.!?)*_\\s]*$")
     private val bulletStart = Regex("^\\s*(?:[-*•]|\\d+[.)])\\s")
 
-    /** The line under a from-memory answer: where it came from and how many of its figures a saved passage states too. */
-    fun knowledgeNote(marks: Int, passages: Int): String = when {
+    /**
+     * The line under a from-memory answer: where it came from and how many of its figures a saved passage states too;
+     * [cited] sentences the model took from the passages it was given to read, for a subject it barely knows.
+     */
+    fun knowledgeNote(marks: Int, passages: Int, cited: Int = 0): String = when {
+        cited > 0 && marks > 0 -> "$KNOWLEDGE_PREFIX and your saved sources; ${cited + marks} sentences cite them._"
+        cited > 0 -> "$KNOWLEDGE_PREFIX and your saved sources; $cited sentence${if (cited == 1) "" else "s"} cite${if (cited == 1) "s" else ""} them._"
         passages == 0 -> "$KNOWLEDGE_PREFIX; nothing saved on this phone covers it._"
         marks == 0 -> "$KNOWLEDGE_PREFIX; not checked against your sources._"
         marks == 1 -> "$KNOWLEDGE_PREFIX; 1 figure matches your sources._"

@@ -263,6 +263,16 @@ class MultiKnowledgeRetriever(
         }.distinctBy { Triple(it.documentId, it.chunkId, it.source) }.take(limit)
     }
 
+    override suspend fun mentions(phrase: String, cap: Int): Int = withContext(ioDispatcher) {
+        if (phrase.isBlank()) return@withContext cap
+        var total = 0
+        for (file in databaseFiles()) {
+            if (total >= cap) break
+            total += runCatching { openOrNull(file)?.countCapped("{text} : " + quoted(phrase), cap - total) ?: 0 }.getOrDefault(0)
+        }
+        total.coerceAtMost(cap)
+    }
+
     private fun openOrNull(file: File): KnowledgeDatabase? = runCatching {
         opened.computeIfAbsent(file.absolutePath) { path -> open(File(path)) }
     }.getOrNull()

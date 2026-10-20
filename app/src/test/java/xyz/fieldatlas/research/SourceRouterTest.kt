@@ -1,0 +1,75 @@
+package xyz.fieldatlas.research
+
+import org.junit.Assert.assertEquals
+import org.junit.Test
+
+class SourceRouterTest {
+    private fun ev(id: String, title: String) = Evidence(id, "$id-0000", title, "Saved collection", "$title is a thing.", 1.0)
+    private fun src(id: String, title: String) = PromptSource("S1", ev(id, title), "$title is a thing.")
+    private val R = SourceRouter.READ_NOTES
+
+    @Test fun aSubjectTheSimpleEncyclopediaHoldsIsAnsweredFromMemory() {
+        val both = listOf(ev("swp-5246", "Eiffel Tower — Overview"), ev("enw-9232", "Eiffel Tower — Overview"))
+        assertEquals(0, SourceRouter.notes("when was the eiffel tower built", both, listOf(src("enw-9232", "Eiffel Tower — Overview")), mapOf("Eiffel Tower" to 60)))
+    }
+
+    @Test fun aLittleKnownSubjectOfTheFullEncyclopediaOrASpecialistCollectionIsRead() {
+        val battle = listOf(ev("enw-77", "Battle of Ramillies — Overview"))
+        assertEquals(R, SourceRouter.notes("who won the battle of ramillies and when", battle, listOf(src("enw-77", "Battle of Ramillies — Overview")), mentions = mapOf("Battle of Ramillies" to 31)))
+        // No count known: a short article decides; nothing known at all: memory, as readership unknown is taken as wide.
+        assertEquals(R, SourceRouter.notes("who won the battle of ramillies and when", battle, listOf(src("enw-77", "Battle of Ramillies — Overview")), mapOf("Battle of Ramillies" to 9)))
+        assertEquals(0, SourceRouter.notes("who won the battle of ramillies and when", battle, listOf(src("enw-77", "Battle of Ramillies — Overview"))))
+        assertEquals(R, SourceRouter.notes("what does the klotho gene do", listOf(ev("hagr-12", "Klotho — Overview")), listOf(src("hagr-12", "Klotho — Overview"))))
+    }
+
+    @Test fun aRareSubjectIsReadEvenBesideACommonOneTheQuestionAlsoNames() {
+        val both = listOf(ev("swp-2", "Surgery — Overview"), ev("enw-1913197", "Hanaoka Seishū — Overview"))
+        assertEquals(R, SourceRouter.notes("who was hanaoka seishu, what surgery did he perform in 1804", both,
+            listOf(src("enw-1913197", "Hanaoka Seishū — Overview")), mentions = mapOf("Surgery" to 1000, "Hanaoka Seishū" to 5)))
+        // A common subject beside a rare name the pack lacks stays with memory.
+        assertEquals(0, SourceRouter.notes("who was ferdinand carré, what gas did his machine use", listOf(ev("swp-3283", "Gas — Overview")),
+            listOf(src("swp-3283", "Gas — Overview")), mentions = mapOf("Gas" to 1000)))
+    }
+
+    @Test fun aFamousSubjectTheSimpleEditionHappensToLackStaysWithMemoryByItsLongArticle() {
+        val iron = listOf(ev("enw-40", "Cast iron — Overview"))
+        assertEquals(0, SourceRouter.notes("cast iron vs non-stick pan which is better", iron, listOf(src("enw-40", "Cast iron — Overview")), mentions = mapOf("Cast iron" to 1000)))
+        assertEquals(0, SourceRouter.notes("cast iron vs non-stick pan which is better", iron, listOf(src("enw-40", "Cast iron — Overview")), mapOf("Cast iron" to 80)))
+    }
+
+    @Test fun aSubjectTheQuestionDoesNotNameIsNoReasonToRead() {
+        val goods = listOf(ev("enw-5", "Goods — Overview"))
+        assertEquals(0, SourceRouter.notes("why are honeybees dying off, is it pesticides or mites", goods, listOf(src("enw-5", "Goods — Overview")), mapOf("Goods" to 8)))
+    }
+
+    @Test fun aCommonWordsArticleIsNoRareSubjectHoweverShortButARareOneWordSubjectIs() {
+        assertEquals(0, SourceRouter.notes("what is the speed of light in a vacuum", listOf(ev("enw-28748", "Speed — Overview")), listOf(src("enw-28748", "Speed — Overview")), mapOf("Speed" to 6), mapOf("Speed" to 1000)))
+        assertEquals(0, SourceRouter.notes("why is the sky blue", listOf(ev("enw-33022", "Sky blue — Overview")), listOf(src("enw-33022", "Sky blue — Overview")), mentions = mapOf("Sky blue" to 640)))
+        assertEquals(R, SourceRouter.notes("what causes alkaptonuria and what enzyme is missing", listOf(ev("wp-148249", "Alkaptonuria — Overview")), listOf(src("wp-148249", "Alkaptonuria — Overview")), mentions = mapOf("Alkaptonuria" to 12)))
+        assertEquals(0, SourceRouter.notes("what was the aroostook war between whom", listOf(ev("swp-944", "Year — Overview")), listOf(src("swp-944", "Year — Overview"))))
+    }
+
+    @Test fun aRareSubjectTheSearchLedWithIsReadWhenNoSubjectWasLookedUp() {
+        val found = listOf(src("wp-695860", "Pantelegraph — Overview"), src("wp-695860", "Pantelegraph — History"))
+        assertEquals(R, SourceRouter.notes("what was the pantelegraph, who built it", emptyList(), found, mentions = mapOf("Pantelegraph" to 4)))
+        // The Simple edition has it too, or the article is long: a famous subject the search happened to lead with.
+        val famous = listOf(src("enw-9232", "Eiffel Tower — Overview"), src("swp-5246", "Eiffel Tower — Overview"))
+        assertEquals(0, SourceRouter.notes("when was the eiffel tower built", emptyList(), famous))
+        assertEquals(0, SourceRouter.notes("what was the pantelegraph", emptyList(), found, mentions = mapOf("Pantelegraph" to 900)))
+        // An unnamed lead is another subject.
+        assertEquals(0, SourceRouter.notes("what was the pantelegraph", emptyList(), listOf(src("wp-1", "Telegraph — Overview"))))
+    }
+
+    @Test fun withNoSubjectTheLeadingPassagesDecideAndOnlyASpecialistLeadReads() {
+        val specialist = listOf(src("pmc-1", "Autophagy in ageing"), src("pmc-2", "Autophagy and lifespan"), src("wp-3", "Ageing — Overview"))
+        assertEquals(R, SourceRouter.notes("does autophagy slow ageing", emptyList(), specialist))
+        val general = listOf(src("wp-3", "Ageing — Overview"), src("pmc-1", "Autophagy in ageing"), src("pmc-2", "Autophagy and lifespan"))
+        assertEquals(0, SourceRouter.notes("does autophagy slow ageing", emptyList(), general))
+    }
+
+    @Test fun travelGuidesUnknownCollectionsAndNoPassagesStayWithMemory() {
+        assertEquals(0, SourceRouter.notes("how do i get into athens from the airport", listOf(ev("wv-athens", "Athens — Get in")), listOf(src("wv-athens", "Athens — Get in"))))
+        assertEquals(0, SourceRouter.notes("why do boats float", listOf(ev("boat", "Boat — Overview")), listOf(src("boat", "Boat — Overview"))))
+        assertEquals(0, SourceRouter.notes("who won the battle of ramillies", listOf(ev("enw-77", "Battle of Ramillies — Overview")), emptyList()))
+    }
+}

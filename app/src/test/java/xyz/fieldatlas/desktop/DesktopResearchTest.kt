@@ -159,6 +159,7 @@ class DesktopResearchTest {
             val selected = manualEvidence?.let { Json.decodeFromJsonElement<List<Evidence>>(it.getValue(question)) }
             val recordingRetriever = object : Retriever {
                 override fun hasEligiblePacks(query: String) = multi.hasEligiblePacks(query)
+                override suspend fun mentions(phrase: String, cap: Int): Int = multi.mentions(phrase, cap)
                 override suspend fun destinations(question: String) = multi.destinations(question)
                 override suspend fun search(query: String, limit: Int, onProgress: suspend (SearchProgress) -> Unit): List<Evidence> =
                     searchQuestion(query, question, limit, false, onProgress)
@@ -233,6 +234,8 @@ class DesktopResearchTest {
                 articleDepth = System.getenv("FIELDATLAS_DESKTOP_ARTICLE_DEPTH") != "0",
                 // Model-first answering with this many notes (0 for none); unset keeps the cited route.
                 modelFirstNotes = System.getenv("FIELDATLAS_DESKTOP_MODEL_FIRST")?.toIntOrNull(),
+                // On by default, as in the app; FIELDATLAS_DESKTOP_SOURCE_ROUTER=0 answers every subject from memory.
+                sourceRouter = System.getenv("FIELDATLAS_DESKTOP_SOURCE_ROUTER") != "0",
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
                 // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
                 libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",
