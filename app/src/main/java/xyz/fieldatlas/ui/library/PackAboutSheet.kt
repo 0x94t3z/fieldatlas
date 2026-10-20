@@ -7,7 +7,6 @@ import xyz.fieldatlas.ui.presentation.aboutDescription
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -41,6 +39,7 @@ import xyz.fieldatlas.assets.PackAttribution
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
@@ -97,14 +96,12 @@ internal fun PackAboutSheet(
                 Text(it, style = MaterialTheme.typography.bodyLarge)
             }
             AboutFacts {
+                // The words carry the state, as in every other fact; a mark beside them said nothing more.
                 if (knowledge) AboutFact("Research", divider = false) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (asset.enabled) Icon(FieldAtlasIcons.Check, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Text(if (asset.enabled) "On · searched offline" else "Off · kept on this phone",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = if (asset.enabled) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (asset.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    Text(if (asset.enabled) "On · searched offline" else "Off · kept on this phone",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (asset.enabled) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (asset.enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 AboutFact("Licence", divider = knowledge) { AboutValue(xyz.fieldatlas.ui.presentation.displayLicence(asset.license)) }
                 AboutFact("Checksum") { AboutValue(asset.manifestSha256.take(12) + "… verified at install") }
@@ -198,6 +195,8 @@ internal fun androidx.compose.foundation.layout.ColumnScope.AboutFact(
     divider: Boolean = true,
     onClick: (() -> Unit)? = null,
     stateDescription: String? = null,
+    /** Wide enough for the pack facts' labels; a card with longer labels widens it so they stay on one line. */
+    labelWidth: Dp = 84.dp,
     value: @Composable () -> Unit,
 ) {
     // Rows after the first are divided from the one above; the card's border closes the first and last.
@@ -210,7 +209,7 @@ internal fun androidx.compose.foundation.layout.ColumnScope.AboutFact(
             .padding(horizontal = 14.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, Modifier.width(84.dp), style = MaterialTheme.typography.bodyMedium,
+        Text(label, Modifier.width(labelWidth), style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Box(Modifier.weight(1f)) { value() }
     }

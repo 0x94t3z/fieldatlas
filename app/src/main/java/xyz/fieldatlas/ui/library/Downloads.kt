@@ -275,11 +275,8 @@ internal fun DownloadControl(state: RowState, getLabel: String, title: String, a
                 Icon(Icons.Outlined.Refresh, null, Modifier.size(19.dp), tint = onClay())
             }
         }
-        RowState.Done -> Box(Modifier.size(48.dp).semantics { contentDescription = "$title is on this phone" }, contentAlignment = Alignment.Center) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(colors.primaryContainer), contentAlignment = Alignment.Center) {
-                Icon(FieldAtlasIcons.Check, null, Modifier.size(19.dp), tint = colors.onPrimaryContainer)
-            }
-        }
+        // "On this phone" under the title says it; the slot stays so titles wrap the same as in rows with a control.
+        RowState.Done -> Spacer(Modifier.size(48.dp))
     }
 }
 

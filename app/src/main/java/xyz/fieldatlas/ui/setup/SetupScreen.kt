@@ -468,9 +468,8 @@ private fun SetupDownloadRow(
                 if (!installed && !downloading && blockedReason != null) Text(blockedReason,
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (installed) Icon(FieldAtlasIcons.Check, null, Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary)
-            else if (!stackAction) downloadAction()
+            // An installed row already reads "Installed" and has nothing left to do, so it ends with no mark.
+            if (!installed && !stackAction) downloadAction()
         }
         if (stackAction && !installed && !downloading) Row(Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End) { downloadAction() }

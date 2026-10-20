@@ -20,6 +20,10 @@ import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
 import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.proof.ProofModel
+import xyz.fieldatlas.speech.ReadAloud
+import xyz.fieldatlas.ui.library.AboutFact
+import xyz.fieldatlas.ui.library.AboutFacts
+import xyz.fieldatlas.ui.library.AboutValue
 import xyz.fieldatlas.ui.presentation.formatAssetBytes
 import xyz.fieldatlas.ui.theme.*
 import androidx.compose.material.icons.Icons
@@ -44,6 +48,7 @@ fun MoreScreen(
     val readAloud = xyz.fieldatlas.ui.research.LocalReadAloud.current
     val readingSettings = readAloud?.settings?.collectAsState()?.value
     val naturalReady = readAloud?.natural?.state?.collectAsState()?.value == xyz.fieldatlas.speech.NaturalVoice.State.Ready
+    val phoneVoice = readAloud?.phoneVoice?.collectAsState()?.value
     val busy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating
     val loaded = inferenceState == InferenceState.Ready || inferenceState == InferenceState.Generating
     val status = when (inferenceState) {
@@ -112,20 +117,33 @@ fun MoreScreen(
         "support" -> SupportSheet(diagnosticsText, includeQuestion, { includeQuestion = it }, onClearDiagnostics,
             { onExportDiagnostics(includeQuestion) }, { sheet = null })
         "readiness" -> FieldAtlasInfoSheet("Offline readiness", { sheet = null }) {
+            // Looked at as the sheet opens, so the reading row can say whether the phone's voice works offline.
+            LaunchedEffect(readAloud) { readAloud?.checkPhoneVoice() }
+            val saved = packs.count { it.type == PackType.KNOWLEDGE }
             val collections = packs.count { it.type == PackType.KNOWLEDGE && it.enabled }
             // An installed model that stopped with an error (loading, answering or unloading) is not ready.
             val modelFailed = model != null && inferenceState is InferenceState.Failed
             ReadinessVerdict(ready = model != null && !modelFailed, modelFailed = modelFailed)
-            Column {
-                ReadinessCheck("Answer model", if (modelFailed) "Stopped with an error"
-                    else model?.title?.substringBefore(" — ") ?: "Missing", model != null && !modelFailed)
-                MoreDivider()
-                ReadinessCheck("Collections", if (collections == 0) "None yet" else "$collections in research", collections > 0)
-                MoreDivider()
-                ReadinessCheck("Voice input", if (packs.any { it.type == PackType.AUDIO }) "Saved model" else "Built in", true)
-                MoreDivider()
-                // Guides always have their recordings; answers use the natural voice once it is downloaded.
-                ReadinessCheck("Reading aloud", if (naturalReady) xyz.fieldatlas.speech.NaturalVoice.NAME else "Phone voice", true)
+            // The pack sheets' facts card: each row's words say whether it is ready, so none needs a mark.
+            AboutFacts {
+                ReadinessFact("Answer model", when {
+                    modelFailed -> "Stopped with an error"
+                    model == null -> "Not downloaded"
+                    else -> model.title.substringBefore(" — ")
+                }, divider = false)
+                ReadinessFact("Collections", when {
+                    collections > 0 -> "$collections in research"
+                    saved > 0 -> "None in research"
+                    else -> "None downloaded"
+                })
+                ReadinessFact("Voice input", if (packs.any { it.type == PackType.AUDIO }) "Saved model" else "Built in")
+                // Guides always have their recordings; answers use the natural voice once it is downloaded, else the phone's.
+                ReadinessFact("Reading aloud", when {
+                    naturalReady -> xyz.fieldatlas.speech.NaturalVoice.NAME
+                    phoneVoice == ReadAloud.PhoneVoice.OnlineOnly -> "Phone voice needs the internet"
+                    phoneVoice == ReadAloud.PhoneVoice.Missing -> "No voice on this phone"
+                    else -> "Phone voice"
+                })
             }
             MoreNote("Only downloads need internet.")
             OutlinedButton(onClick = { sheet = null; onOpenLibrary() }, shape = FieldAtlasButtonShape,
@@ -218,13 +236,7 @@ private fun ReadinessVerdict(ready: Boolean, modelFailed: Boolean = false) {
     }
 }
 
+/** One row of the readiness card; its labels run longer than the pack facts', so the label column is wider. */
 @Composable
-private fun ReadinessCheck(title: String, value: String, ok: Boolean) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Icon(if (ok) FieldAtlasIcons.Check else FieldAtlasIcons.Warning, null, Modifier.size(20.dp),
-            tint = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
-        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-        Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
+private fun ColumnScope.ReadinessFact(label: String, value: String, divider: Boolean = true) =
+    AboutFact(label, divider = divider, labelWidth = 100.dp) { AboutValue(value) }
