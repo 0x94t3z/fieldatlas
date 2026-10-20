@@ -2,7 +2,7 @@
 
 ## One shape for every answer, sources at the foot (October 20)
 
-A run-through on the Redmi (8 GB, Qwen3.5 4B, offline) showed what the owner then asked to change: a from-memory
+A run-through on the Redmi 13C (6 GB, Qwen3.5 4B, offline) showed what the owner then asked to change: a from-memory
 answer opened with a stack of "Saved passages" cards above the explanation (for a taxi-fare sum, three passages on
 Italian prescription costs filled the screen before the answer), and the same passages were quoted again as "Saved
 excerpts" inside it. Now every answer written from the model's own knowledge takes one shape, asked for in the
