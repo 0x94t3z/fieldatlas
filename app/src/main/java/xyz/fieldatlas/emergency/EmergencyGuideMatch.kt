@@ -46,6 +46,8 @@ object EmergencyGuideMatch {
             "broke her arm", "broke his arm", "broke my arm", "broke her wrist", "broke his wrist", "broke my wrist", "broke a bone",
             // Signs a bystander sees: the shape, the bone, a limb that will not move.
             "bent the wrong way", "bone sticking out", "bone poking out", "sticking out of the skin", "odd angle",
+            // Told with a verb: "his bone is sticking out of his leg".
+            "bone is sticking out", "bone is poking out", "bone is showing", "bones are sticking out", "bone sticking through",
             "can't move it", "cant move it", "cannot move it", "can't move his arm", "can't move her arm", "can't move his leg", "can't move her leg",
             "swollen and purple", "purple and swollen", "slammed in the car door", "slammed in the door", "rolled my ankel",
             "twisted my knee", "twisted his knee", "twisted her knee", "hurt my ribs", "ribs hurt", "broken rib", "cracked rib", "broken ribs",
@@ -174,6 +176,11 @@ object EmergencyGuideMatch {
         "burn mark",
         "bent the wrong way",
         "bone sticking out",
+        "bone is sticking out",
+        "bone is poking out",
+        "bone is showing",
+        "bones are sticking out",
+        "bone sticking through",
         "bone poking out",
         "sticking out of the skin",
         "odd angle",
@@ -661,6 +668,41 @@ object EmergencyGuideMatch {
         "disc|disk|lithium|hearing[- ]aid|remote|toy|key|fob|cr\\d{4}|lr\\d{2}|ag\\d{1,2}))*\\s+batter(?:y|ies)\\b")
 
     /**
+     * Where an object can lodge and be left in for the bleeding guide's padding: the limbs and trunk. The eye and the
+     * throat have their own guides, and only a person's own body counts ("his thigh", not "the back room").
+     */
+    private const val LODGE_PART = "legs?|thighs?|calf|calves|knees?|shins?|feet|foot|toes?|heels?|ankles?|arms?|forearms?|" +
+        "hands?|palms?|fingers?|thumbs?|wrists?|elbows?|shoulders?|chest|back|side|stomach|belly|abdomen|gut|tummy|hips?|" +
+        "groin|butt|bum|buttocks?|neck|face|cheek|jaw|scalp|head|skin|flesh|body"
+    private const val OWNER = "his|her|my|their|your|someone'?s|somebody'?s"
+    /** Wood, metal and glass. A tick, splinter, thorn, fish hook or stinger is something else, with other steps. */
+    private val lodgedThing = Regex("(?i)\\b(?:branch|branches|stick|sticks|twig|stake|post|pole|rod|bar|rebar|pipe|spike|spikes|" +
+        "fence|railing|knife|knives|blade|machete|axe|sword|scissors|screwdriver|chisel|fork|skewer|pencil|pen|arrow|bolt|dart|" +
+        "nail|nails|screw|glass|shard|shards|metal|wire|antler|horn|tusk|spear)\\b")
+    /** Still in: "stuck in his arm", "is in her calf", "impaled". "Went into my thigh" alone may have come out again. */
+    private val lodgedIn = Regex("(?i)\\b(?:impaled|impalement|" +
+        "(?:is|was|been|stuck|lodged|embedded|jammed)(?: right| straight| all the way| deep| still)? (?:in|into|in to|inside) " +
+        "(?:$OWNER) (?:\\w+ )?(?:$LODGE_PART))\\b")
+    private val leftIn = Regex("(?i)\\b(?:still (?:in|inside|stuck|sticking|poking|lodged|embedded)|sticking (?:out|up)|poking out|" +
+        "(?:pull|take|yank|get|draw)(?:ing)? (?:it|that|this|the (?:\\w+ )?\\w+) out|remove (?:it|that|this|the (?:\\w+ )?\\w+))\\b")
+    private val lodgeBody = Regex("(?i)\\b(?:(?:$OWNER) (?:\\w+ )?(?:$LODGE_PART)|him|her|them|me)\\b")
+    // A bone showing is a fracture, and a fish or chicken bone is in the throat.
+    private val notLodged = Regex("(?i)\\b(?:ticks?|splinters?|slivers?|thorns?|cactus|spines?|fish ?hooks?|hooks?|stingers?|" +
+        "bones? (?:is |are )?(?:sticking|poking|showing)|(?:fish|chicken) bones?|eyes?|eyeballs?|eyelids?|throat|ears?|nose|nostrils?)\\b")
+
+    /**
+     * An object lodged in someone's body: "a broken branch went into his thigh, it's still sticking out", "the knife is
+     * still in his side, do I pull it out", "impaled on a fence spike". The object is named, and it is stuck in a body
+     * part or told as left in someone. A knife that "went into my thigh, blood pouring out" may be out again: that is
+     * the severe bleeding guide's. Pain that "went into my left arm" names no object; a car stuck in mud names no body.
+     */
+    internal fun embeddedObject(question: String): Boolean {
+        val text = normalize(question)
+        if (notLodged.containsMatchIn(text) || !lodgedThing.containsMatchIn(text)) return false
+        return lodgedIn.containsMatchIn(text) || leftIn.containsMatchIn(text) && lodgeBody.containsMatchIn(text)
+    }
+
+    /**
      * Every guide the question names, best first with its score, or nothing when the question is
      * not a request for emergency help. [match] is the head; [companions] reads the rest.
      */
@@ -715,6 +757,14 @@ object EmergencyGuideMatch {
                     wildIngestion.containsMatchIn(question) && poisonSign.containsMatchIn(question))) {
                 score += 4
                 specific = true
+            }
+            // "A branch went into his thigh, it's still sticking out": the object is the emergency, told in no keyword.
+            // This guide pads around it and leaves it in; the text ranking once matched the words "branch" and
+            // "pull … out" to the drowning guide's rescue with a broad branch.
+            if (guide.id == "bleeding-control" && embeddedObject(question)) {
+                score += 4
+                specific = true
+                describedBySigns += guide.id
             }
             // One everyday word is not enough on its own: "fever" is a tick-bite keyword, "throat" a
             // choking one, but "my baby has a fever" and "my throat hurts" are neither.
@@ -803,6 +853,8 @@ object EmergencyGuideMatch {
                 // A guide's required context still holds: numb fingers at a keyboard are not frostbite.
                 requiredContext[guide.id]?.let { it.containsMatchIn(question) || guide.id == "frostbite" && freezingTemperature(question) } != false &&
                 bodyConditionContext[guide.id]?.containsMatchIn(question) != false &&
+                // A guide for one setting needs that setting: no water, no drowning guide.
+                settingContext[guide.id]?.containsMatchIn(question) != false &&
                 // A bite or sting guide needs the bite or sting: facial swelling after a pill is not a snakebite.
                 biteContext[guide.id]?.containsMatchIn(question) != false &&
                 // The allergy guide needs an allergy in the message: a stuck fish bone also makes swallowing hurt.
@@ -846,6 +898,18 @@ object EmergencyGuideMatch {
         "heat-illness" to Regex("(?i)\\b(heat\\w*|hot|sun\\w*|summer|desert|temperature|degrees?|°|humid\\w*|sauna|marathon|march\\w*)\\b"),
         "hypothermia" to Regex("(?i)\\b(cold\\w*|freez\\w*|froze\\w*|icy|ice|snow\\w*|wet|soaked|rain\\w*|water|winter|wind\\w*|shiver\\w*)\\b"),
         "dehydration" to Regex("(?i)\\b(drink\\w*|drank|fluids?|water|diarrh\\w*|vomit\\w*|throwing up|pee\\w*|urin\\w*|wee|thirst\\w*|dry mouth|nappies|diapers?)\\b"),
+    )
+
+    /**
+     * Guides for one setting, which the text ranking may pick only when the message is in it. Shared words are not the
+     * setting: the drowning guide's rescue "with a broad branch" once answered a bike crash with a branch in the thigh.
+     */
+    private val settingContext = mapOf(
+        "drowning" to Regex("(?i)\\b(drown\\w*|water\\w*|swim\\w*|underwater|pool|river|lake|sea|ocean|surf\\w*|beach|bath\\w*|tub|" +
+            "pond|creek|stream|canal|flood\\w*|boat\\w*|kayak\\w*|canoe\\w*|waves?|ice|current|overboard|submerged)\\b"),
+        "eye-injury" to Regex("(?i)\\b(eyes?|eyeballs?|eyelids?|vision|sight|blind\\w*)\\b"),
+        "carbon-monoxide" to Regex("(?i)\\b(carbon monoxide|co (?:alarm|detector|poisoning)|fumes?|gas|heater|generator|stove|furnace|boiler|" +
+            "charcoal|grill|bbq|barbecue|exhaust|engine|fireplace|wood ?burner|garage|tent|smoke)\\b"),
     )
 
     private const val TEXT_FLOOR = 8.0
