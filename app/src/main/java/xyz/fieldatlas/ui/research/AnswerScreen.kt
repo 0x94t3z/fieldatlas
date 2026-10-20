@@ -121,6 +121,8 @@ fun AnswerScreen(
     var showPerformance by rememberSaveable { mutableStateOf(false) }
     // Written from the model's own knowledge: the line under the answer says so, and the pills would only repeat it.
     val fromKnowledge = !running && state.answer.lines().any { xyz.fieldatlas.research.SavedFactCheck.isKnowledgeNote(it) }
+    // Read for a rare subject: the model cited the passages itself, so they are cited sources, not figures that happen to agree.
+    val readSources = fromKnowledge && state.answer.lines().any { it.trim().startsWith(xyz.fieldatlas.research.SavedFactCheck.KNOWLEDGE_PREFIX + " and your saved sources") }
     // Citation and source taps open a quick preview first; the full source is one tap further.
     var previewIndex by rememberSaveable(state.question) { mutableStateOf<Int?>(null) }
     val openPreview: (Int) -> Unit = { index -> if (index in state.sources.indices) previewIndex = index }
@@ -341,7 +343,7 @@ fun AnswerScreen(
                     if (citedSources.isNotEmpty()) {
                         if (otherSources.isNotEmpty() || fromKnowledge) item {
                             Text(
-                                if (fromKnowledge) "State the same figures as the answer" else "Cited in this answer",
+                                if (fromKnowledge && !readSources) "State the same figures as the answer" else "Cited in this answer",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
