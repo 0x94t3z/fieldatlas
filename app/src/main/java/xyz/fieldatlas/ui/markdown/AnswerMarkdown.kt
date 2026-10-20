@@ -123,6 +123,11 @@ private class MarkdownParser(markdown: String) {
         if (unorderedItem(line) != null) return parseList(ordered = false)
         if (orderedItem(line) != null) return parseList(ordered = true)
         if (quoteText(line) != null) return parseQuote()
+        // "**Key facts:**" alone on a line labels what follows: a paragraph of its own, never run into the one above.
+        if (labelLine.matches(line)) {
+            index += 1
+            return MarkdownBlock.Paragraph(parseInline(line.trim()))
+        }
         return parseParagraph()
     }
 
@@ -187,7 +192,9 @@ private class MarkdownParser(markdown: String) {
 
     private fun startsNonParagraphBlock(line: String): Boolean =
         isCodeFence(line) || isTableStart() || heading(line) != null || unorderedItem(line) != null ||
-            orderedItem(line) != null || quoteText(line) != null || isThematicBreak(line)
+            orderedItem(line) != null || quoteText(line) != null || isThematicBreak(line) || labelLine.matches(line)
+
+    private val labelLine = Regex("\\s*\\*\\*[^*\\n]{2,40}(?::\\*\\*|\\*\\*:)\\s*")
 
     private fun isTableStart(): Boolean = index + 1 < lines.size &&
         lines[index].contains('|') && tableDelimiterPattern.matches(lines[index + 1]) &&

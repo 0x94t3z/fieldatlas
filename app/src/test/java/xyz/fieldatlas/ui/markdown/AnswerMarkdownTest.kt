@@ -6,6 +6,17 @@ import org.junit.Test
 
 class AnswerMarkdownTest {
     @Test
+    fun aBoldLabelOnItsOwnLineIsItsOwnParagraph() {
+        val blocks = parseAnswerMarkdown("The wall divided Berlin.\n**Key facts:**\n- **Height:** 3.6 m\n**Caveats**:\nFigures vary.")
+        assertEquals(5, blocks.size)
+        assertEquals(MarkdownBlock.Paragraph(listOf(MarkdownInline.Text("The wall divided Berlin."))), blocks[0])
+        assertEquals(MarkdownBlock.Paragraph(listOf(MarkdownInline.Strong(listOf(MarkdownInline.Text("Key facts:"))))), blocks[1])
+        assertTrue(blocks[2] is MarkdownBlock.ListBlock)
+        assertTrue(blocks[3].toString(), blocks[3].toString().contains("Caveats"))
+        assertEquals(MarkdownBlock.Paragraph(listOf(MarkdownInline.Text("Figures vary."))), blocks[4])
+    }
+
+    @Test
     fun parsesResearchAnswerStructure() {
         val markdown = """# Finding
 

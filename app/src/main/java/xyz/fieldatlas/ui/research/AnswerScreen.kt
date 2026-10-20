@@ -369,7 +369,8 @@ fun AnswerScreen(
                                     onClick = { showOtherSources = !showOtherSources },
                                 )
                                 if (showOtherSources) {
-                                    Text("These passages were provided to the model but were not cited in this answer.",
+                                    Text(if (fromKnowledge) "Found for this question; the answer was written without them."
+                                        else "These passages were provided to the model but were not cited in this answer.",
                                         modifier = Modifier.padding(horizontal = 16.dp),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
