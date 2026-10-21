@@ -39,6 +39,8 @@ class ResearchOrchestrator(
     private val modelFirstNotes: Int? = null,
     /** Whether a little-known subject is read from the sources even by a model that answers from memory (see [SourceRouter]). */
     private val sourceRouter: Boolean = true,
+    /** Whether the router reads collections the user imported, as it reads specialist ones (see [SourceRouter]). */
+    private val readImportedCollections: Boolean = false,
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -937,7 +939,7 @@ class ResearchOrchestrator(
             // subjects beats reading about them, its memory of obscure ones is where it invents (see SourceRouter).
             val routed = if (!sourceRouter) 0 else {
                 val mentions = SourceRouter.titlesToCount(subjects, packed.sources).associateWith { retriever.mentions(it, SourceRouter.MENTION_CAP) }
-                SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions)
+                SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions, readImportedCollections)
             }
             val knowledgeNotes: Int? = when {
                 // A fixed count of zero (the desktop's knowledge-first switch) still lets the router read a rare subject.
@@ -958,14 +960,23 @@ class ResearchOrchestrator(
                 var tokens = 0
                 var firstAt: Long? = null
                 val generationStart = monotonicMillis()
-                val answer = if (thinking > 0) inference.think(first.prompt, outputBudget + thinking, savedPrefixChars = first.savedPrefixChars)
-                    else inference.generate(first.prompt, outputBudget, savedPrefixChars = first.savedPrefixChars)
-                answer.collect { token ->
+                suspend fun write(answer: Flow<String>) = answer.collect { token ->
                     if (firstAt == null) firstAt = monotonicMillis()
                     tokens++
                     written.append(token)
                     emit(ResearchEvent.Token(AnswerText.mixed(AnswerChecks.removeDoses(
                         AnswerChecks.removeOnlineAdvice(written.toString(), question), question, emptyList()), emptyList()), replace = true))
+                }
+                write(if (thinking > 0) inference.think(first.prompt, outputBudget + thinking, savedPrefixChars = first.savedPrefixChars)
+                    else inference.generate(first.prompt, outputBudget, savedPrefixChars = first.savedPrefixChars))
+                if (thinking > 0 && (AnswerText.visible(written.toString()).isBlank() || inference.lastHitLimit)) {
+                    // The reasoning used the whole budget, so no answer followed or it stopped mid-way: Gemma 4 26B left 5
+                    // of the 16 set 42 questions it read notes for empty, and cut a set 33 answer after "Key facts:".
+                    // Asked again with the thinking turn closed, it answers at once and in full.
+                    written.clear()
+                    val direct = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = false,
+                        cite = knowledgeNotes > 0, shaped = false)
+                    write(inference.generate(direct.prompt, outputBudget, savedPrefixChars = direct.savedPrefixChars))
                 }
                 firstAt?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(first.prompt), at - generationStart) }
                 val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(

@@ -94,6 +94,9 @@ class LlamaInferenceGateway internal constructor(
     /** Set by the app for the loaded model (see ModelOffer.thinkingBudget). */
     override var thinkingBudget: Int = 0
 
+    @Volatile override var lastHitLimit: Boolean = false
+        private set
+
     /** Set by the app for the loaded model (see ModelOffer.knowledgeFirst). */
     override var knowledgeFirst: Boolean = false
 
@@ -127,11 +130,15 @@ class LlamaInferenceGateway internal constructor(
                 engine.resetConversation(systemPrompt ?: loadedSystemPrompt ?: DEFAULT_RESET_PROMPT)
                 engine.setSampler(if (seed >= 0) seed else -1, repeatPenalty)
                 val generated = StringBuilder()
+                var pieces = 0
+                lastHitLimit = false
                 try {
                     val safe = withoutControlTokens(prompt)
                     engine.sendUserPrompt(safe, maxTokens, safe.take(savedPrefixChars.coerceIn(0, safe.length))).collect { token ->
                         emit(token)
                         generated.append(token)
+                        // The engine streams one piece per sampled token, so reaching the budget means it was cut off.
+                        if (++pieces >= maxTokens) lastHitLimit = true
                         if (generated.length >= MIN_LOOP_CHARS * 2 && hasDuplicatedTail(generated)) {
                             throw GenerationLoopStopped()
                         }

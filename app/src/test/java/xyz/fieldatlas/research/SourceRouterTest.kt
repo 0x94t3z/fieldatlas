@@ -67,6 +67,24 @@ class SourceRouterTest {
         assertEquals(0, SourceRouter.notes("does autophagy slow ageing", emptyList(), general))
     }
 
+    @Test fun aCollectionTheUserImportedIsReadLikeASpecialistOne() {
+        // A handbook someone built with the pack tools: its ids match none of the collections Field Atlas offers.
+        val handbook = listOf(src("acme-12", "Leave policy"), src("acme-13", "Parental leave"), src("wp-3", "Leave — Overview"))
+        assertEquals(R, SourceRouter.notes("how many days of parental leave do we get", emptyList(), handbook, readImported = true))
+        assertEquals(R, SourceRouter.notes("what does the leave policy say", listOf(ev("acme-12", "Leave policy")), handbook, readImported = true))
+        // Off by default, as before: the app turns it on where it builds the orchestrator.
+        assertEquals(0, SourceRouter.notes("how many days of parental leave do we get", emptyList(), handbook))
+    }
+
+    @Test fun theAppsOwnPassagesAndItsCollectionsAreNeverTakenForImportedOnes() {
+        val guide = listOf(src("emergency:burns", "Burns"), src("emergency:burns", "Burns"), src("attachment:1", "notes.pdf"))
+        assertEquals(0, SourceRouter.notes("how do i treat a burn", emptyList(), guide, readImported = true))
+        val travel = listOf(src("wvs-athens", "Athens — Get in"), src("wv-athens", "Athens — Sleep"), src("osm-place-n1", "Athens — Pharmacy"))
+        assertEquals(0, SourceRouter.notes("how do i get into athens", emptyList(), travel, readImported = true))
+        val simple = listOf(src("swp-1", "Boat — Overview"), src("swp-2", "Boat — Uses"))
+        assertEquals(0, SourceRouter.notes("why do boats float", emptyList(), simple, readImported = true))
+    }
+
     @Test fun travelGuidesUnknownCollectionsAndNoPassagesStayWithMemory() {
         assertEquals(0, SourceRouter.notes("how do i get into athens from the airport", listOf(ev("wv-athens", "Athens — Get in")), listOf(src("wv-athens", "Athens — Get in"))))
         assertEquals(0, SourceRouter.notes("why do boats float", listOf(ev("boat", "Boat — Overview")), listOf(src("boat", "Boat — Overview"))))

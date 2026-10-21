@@ -17,6 +17,10 @@ For local places, name only places in the evidence. A dietary match must be stat
     // The shape every answer written from the model's own knowledge takes, so it reads the same way each time.
     private const val ANSWER_SHAPE = """ Shape it for reading on a phone: first one short paragraph that answers outright; then a line **Key facts:** with bullets, each opening with a bold label and giving one fact (a number, a date, a name, a step); then, only when something varies, is disputed or may have changed, a line **Caveats:** with bullets. No other headings, no closing summary, nothing said twice."""
     private const val KNOWLEDGE_FIRST_POLICY = """Answer the question directly and completely, as a careful expert would on a phone, from what you know. Lead with the answer itself (the number, the place, the yes or no), then the details that matter: steps, times, prices, conditions and caveats. Under 170 words unless more detail is asked for. Be precise with numbers and names, and say plainly when something varies or may have changed. Do not invent citations.""" + ANSWER_SHAPE
+    // A model that reasons first gets the instruction without the shape. With it, Gemma 4 26B planned the layout at
+    // length (median reasoning 7,862 against 3,326 characters), wrote thinner answers, and once ran out of tokens
+    // after "Key facts:"; on set 33 it scored 79.5% against 86.0% without it, in one blind round of eight graders.
+    private const val REASONING_FIRST_POLICY = """Answer the question directly and completely, as a careful expert would on a phone, from what you know. Lead with the answer itself (the number, the place, the yes or no), then the details that matter: steps, times, prices, conditions and caveats. Under 170 words unless more detail is asked for; short paragraphs or bullets for comparisons and steps. Be precise with numbers and names, and say plainly when something varies or may have changed. Do not invent citations."""
     private const val KNOWLEDGE_NOTE_CHARS = 700
     // For a subject the model barely knows: the notes are the facts, cited; memory fills only the gaps.
     private const val READ_NOTES_POLICY = """
@@ -339,13 +343,13 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
      * reference against 40% (set 34, Qwen3.5 4B). The notes also stay listed under the answer for checking.
      */
     fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false,
-        cite: Boolean = false): PackedPrompt {
+        cite: Boolean = false, shaped: Boolean = !thinking): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         val chosen = packed.sources.take(notes.coerceAtLeast(0))
         var fixed = 0
         val prompt = buildString {
             if (!thinking) append(THINK_OFF)
-            append(KNOWLEDGE_FIRST_POLICY)
+            append(if (shaped) KNOWLEDGE_FIRST_POLICY else REASONING_FIRST_POLICY)
             append(OFFLINE_PERSON)
             if (chosen.isNotEmpty() && cite) append(READ_NOTES_POLICY)
             fixed = length

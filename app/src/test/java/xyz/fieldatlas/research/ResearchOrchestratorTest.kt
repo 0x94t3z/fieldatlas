@@ -438,6 +438,70 @@ class ResearchOrchestratorTest {
         assertTrue(answer, "the water it displaces" in answer && "pushed aside" !in answer)
     }
 
+    @Test fun reasoningThatUsesTheWholeBudgetIsFollowedByAnAnswerWithoutIt() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val thoughts = mutableListOf<String>(); val plain = mutableListOf<String>()
+        val model = object : InferenceGateway {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override val thinkingBudget = 2048
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override suspend fun unload() = Unit
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+                flow { plain += prompt; emit("A boat floats because the water it displaces weighs as much as it does.") }
+            // The budget runs out inside the thought channel: its closing mark never comes.
+            override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> = flow {
+                thoughts += prompt
+                emit("<|channel>thought\nQuestion: why do boats float? Constraints: under 170 words. Draft one")
+            }
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, model, modelFirstNotes = 0)
+            .research("Why do boats float?").toList()
+        val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertEquals(1, thoughts.size)
+        // Asked once more with thinking switched off, the same question gets a written answer, not an empty page.
+        assertEquals(plain.toString(), 1, plain.size)
+        assertTrue(plain.single(), "/no_think" in plain.single() || "from what you know" in plain.single())
+        assertTrue(answer, "the water it displaces" in answer && "Constraints" !in answer)
+        assertTrue(events.last() is ResearchEvent.Complete)
+    }
+
+    @Test fun anAnswerCutOffByTheBudgetIsAskedAgainWithoutReasoning() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val plain = mutableListOf<String>()
+        val model = object : InferenceGateway {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override val thinkingBudget = 2048
+            override var lastHitLimit = false
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override suspend fun unload() = Unit
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+                flow { lastHitLimit = false; plain += prompt; emit("A boat floats because the water it displaces weighs as much as it does.") }
+            // The reasoning ran long and the answer stopped after its first heading.
+            override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> = flow {
+                emit("<|channel>thought\nPlan the layout.<channel|>Boats float.\n\n**Key facts:**")
+                lastHitLimit = true
+            }
+        }
+        val answer = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) }, model, modelFirstNotes = 0)
+            .research("Why do boats float?").toList().filterIsInstance<ResearchEvent.Token>().last().text
+        assertEquals(plain.toString(), 1, plain.size)
+        // The retry keeps the reasoning model's own instruction: no layout block, only reasoning switched off.
+        assertTrue(plain.single(), "/no_think" in plain.single() && "Key facts" !in plain.single())
+        assertTrue(answer, "the water it displaces" in answer && "**Key facts:**" !in answer)
+    }
+
+    @Test fun aReasoningModelIsNotGivenTheAnswerLayout() {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val packed = PromptBuilder.build("Why do boats float?", listOf(boats), contextTokenBudget = 2_048)
+        val reasoning = PromptBuilder.buildKnowledgeFirst("Why do boats float?", packed, 0, thinking = true).prompt
+        val straight = PromptBuilder.buildKnowledgeFirst("Why do boats float?", packed, 0).prompt
+        assertTrue(reasoning, "Key facts" !in reasoning && "bullets for comparisons and steps" in reasoning)
+        assertTrue(straight, "Key facts" in straight)
+    }
+
     @Test fun theLoadedModelDecidesWhetherAnswersComeFromItsKnowledge() = runBlocking {
         val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
             "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)

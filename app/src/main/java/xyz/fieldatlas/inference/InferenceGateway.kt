@@ -43,6 +43,9 @@ interface InferenceGateway {
     fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int = 0): Flow<String> =
         generate(prompt, maxTokens, savedPrefixChars = savedPrefixChars)
 
+    /** Whether the last generation stopped because it used its whole token budget, not because the model finished. */
+    val lastHitLimit: Boolean get() = false
+
     /** Prompt tokens the last generation restored instead of reading; 0 when it read them all. */
     val reusedPromptTokens: Int get() = 0
 

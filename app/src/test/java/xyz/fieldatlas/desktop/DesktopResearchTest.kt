@@ -236,6 +236,7 @@ class DesktopResearchTest {
                 modelFirstNotes = System.getenv("FIELDATLAS_DESKTOP_MODEL_FIRST")?.toIntOrNull(),
                 // On by default, as in the app; FIELDATLAS_DESKTOP_SOURCE_ROUTER=0 answers every subject from memory.
                 sourceRouter = System.getenv("FIELDATLAS_DESKTOP_SOURCE_ROUTER") != "0",
+                readImportedCollections = true,
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
                 // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
                 libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",

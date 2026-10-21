@@ -64,6 +64,9 @@ internal class DesktopGateway(
     // Experiment: FIELDATLAS_DESKTOP_THINK=N gives the model the app's thinking route with N tokens to reason.
     override val thinkingBudget: Int = thinkBudget ?: 0
 
+    override var lastHitLimit: Boolean = false
+        private set
+
     override fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
         request(prompt, maxTokens, null, -1, 1.10, thinking = true)
 
@@ -99,6 +102,7 @@ internal class DesktopGateway(
             check(connection.responseCode == 200) { "Local inference HTTP ${connection.responseCode}" }
             val response = connection.inputStream.bufferedReader().use { Json.parseToJsonElement(it.readText()).jsonObject }
             val choice = response.getValue("choices").jsonArray.first().jsonObject
+            lastHitLimit = choice["finish_reason"]?.jsonPrimitive?.content == "length"
             val raw = choice.getValue("message").jsonObject.getValue("content").jsonPrimitive.content
             calls += buildJsonObject {
                 put("request", request); put("rawAnswer", raw)
