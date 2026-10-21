@@ -784,18 +784,6 @@ returns an evidence gap. These failures block catalog publication. A structurall
 better pack is not necessarily a better answer source under the current model
 and retrieval pipeline.
 
-### Historical Reference fixture
-
-`fixtures/reference/documents.jsonl` contains twelve compact project-authored CC0 reference notes covering seasons, water, solar storage, evidence comparison, Formula One, cars, batteries, climate, computing, networks, health information, and historical evidence. This remains a reproducibility fixture for the historical v2 benchmark; it is no longer bundled into the Android app. It is focused coverage, not a comprehensive encyclopedia.
-
-Build it with:
-
-```sh
-./scripts/build_reference_pack.sh
-```
-
-The build is deterministic and preserves document IDs, titles, provenance, license, and source passages for local citations.
-
 ### Wikivoyage places to eat (optional build)
 
 `tools/packs/build_wikivoyage_eat_pack.py` converts the pinned [1 September 2026 English Wikivoyage pages dump](https://dumps.wikimedia.org/enwikivoyage/20260901/enwikivoyage-20260901-pages-articles.xml.bz2) into one local document per `Eat` listing. Each document retains its destination, venue name, description, listing update date when present, page revision date, and a permalink to that revision. The text license is [CC BY-SA 4.0](https://en.wikivoyage.org/wiki/Wikivoyage:Copyleft). The dump SHA-256 is `c6cebf6b109c31698e736858fd1d8dec1c41d87437aa4c4cafd7b0df88777773`.

@@ -192,7 +192,7 @@ versions. Network-backed fetch commands are separate from offline pack assembly.
 | `stream_pack.py` | JSONL spool | the byte-format builder shared by everything below (same output as `packtool.build_pack`, constant memory) |
 | `content2fapack.py` | raw corpora under `world_knowledge/content` | KNOWLEDGE packs (wikipedia, biology, crypto, …) |
 | `wiki_mini_build.py` | Wikipedia dump (or an extracted text tree) + vital snapshot | the wikipedia-mini KNOWLEDGE pack, end to end |
-| `build_model_packs.py` | `models/compact-*.example.json` registry + GGUFs | MODEL / AUDIO packs (Qwen3.5 recommended; MiniCPM5 and Vosk optional) |
+| `build_model_packs.py` | `models/compact-*.example.json` registry + GGUFs | MODEL / AUDIO packs (Qwen3.5 and Gemma 4 26B; Vosk optional) |
 | `fapack_convert.py` | any JSONL document spool | any KNOWLEDGE pack (generic converter, usage documented in its docstring) |
 | `build_vector_pack.py` | fapack + embeddings TSV + encoder GGUF | vector-capable KNOWLEDGE pack (int8 `chunk_vectors` + embedded query encoder) |
 | `build_wikivoyage_eat_pack.py` | English Wikivoyage pages-articles XML dump | dated, individually searchable restaurant listings |

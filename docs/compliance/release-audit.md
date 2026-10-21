@@ -477,8 +477,7 @@ no device-certificate check was possible this turn. Public catalog unchanged.
 ### Fixed matrix and repeated phone evaluation
 
 Completed a frozen 16-question development matrix, three model-only controls and
-four intended phone query runs. See the [case-by-case review](../evidence/retrieval-matrix-2026-10-01.md)
-for failures, primary-source checks and harness limitations. No app changes or new
+four intended phone query runs. No app changes or new
 installation in this evaluation; existing signed candidate remained installed.
 
 - Current selection still admits metaphors, narrow studies and incidental overlap.

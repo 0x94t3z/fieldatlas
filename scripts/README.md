@@ -6,7 +6,7 @@ research evaluations live in their own folder.
 | Location | Purpose |
 | --- | --- |
 | `install_toolchain.sh`, `android_sdk.py` | Android SDK setup and discovery |
-| `build_starter_pack.sh`, `build_reference_pack.sh` | Small bundled/demo pack builds |
+| `build_starter_pack.sh` | Small bundled/demo pack build |
 | `model_manifest.py` | Model manifest generation |
 | `verify_offline.sh`, `check_native_alignment.py`, `verify_release_reflection.py` | APK checks |
 | `device_acceptance.sh` | Physical-device acceptance evidence |

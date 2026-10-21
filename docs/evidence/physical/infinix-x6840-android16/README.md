@@ -32,8 +32,6 @@ The later fork-stack check verified exact download hashes, imported and selected
 
 The integration candidate passed 176 JVM tests, release lint, the offline APK policy, signature verification, and all 30 connected Android tests on this device. The source is ready for `main`, but no release asset or tag is claimed.
 
-The Reference-pack review page is [here](../../current-reference-v1.1.6/README.md); its directory name is retained for stable links.
-
 ## Radios-off run
 
 Airplane mode was enabled and Wi-Fi and mobile data were disabled before launching the app. The installed model and knowledge pack were used to answer “Why do Earth's hemispheres have opposite seasons?” locally. The resulting answer displays the offline state and mapped local citations.

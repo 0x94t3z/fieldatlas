@@ -95,15 +95,9 @@ Qwen3.5 2B is a compact offline model, not a frontier model. It can miss nuance,
 
 ## Additional verified pack definitions
 
-Field Atlas can install multiple model packs and select one in Library. The following
-registry files pin the exact upstream revision, artifact SHA-256, license, quantization,
-and runtime profile used by the deterministic pack builder:
-
-- `models/compact-minicpm5-1b.example.json` — MiniCPM5 1B Q4_K_M, Apache-2.0;
-  upstream thinking remains enabled and can consume the answer budget.
-- `models/compact-minicpm5-1b-nothink.example.json` — the same published MiniCPM5
-  weights with a locally adjusted, equal-length chat-template setting that suppresses
-  thinking. The registry records the resulting artifact hash.
+Field Atlas can install multiple model packs and select one in Library. The registry files in
+`models/` pin the exact upstream revision, artifact SHA-256, license, quantization, and
+runtime profile used by the deterministic pack builder.
 
 Build any pinned model pack with `tools/packs/build_model_packs.py`. These definitions document
 compatible candidates; they are not claims that every candidate has passed the complete
