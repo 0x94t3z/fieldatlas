@@ -9,13 +9,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Biotech
-import androidx.compose.material.icons.outlined.Eco
-import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Key
-import androidx.compose.material.icons.outlined.Public
-import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material.icons.outlined.Support
 
 object FieldAtlasIcons {
@@ -51,6 +46,12 @@ object FieldAtlasIcons {
     val Knowledge by prototypeIcon("Knowledge", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
     val Place by prototypeIcon("Place", "M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z M14.5 10a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z", false, 24f, PathFillType.NonZero)
     val Map by prototypeIcon("Map", "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15", false, 24f, PathFillType.NonZero)
+    // The website's knowledge-collection icons, path for path, so a collection looks the same on both.
+    val CollectionBook by prototypeIcon("CollectionBook", "M12 5v15M3 4c4-1 6 0 9 1 3-1 5-2 9-1v15c-4-1-6 0-9 1-3-1-5-2-9-1Z", false, 24f, PathFillType.NonZero)
+    val CollectionCross by prototypeIcon("CollectionCross", "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5v8m-4-4h8", false, 24f, PathFillType.NonZero)
+    val CollectionBowl by prototypeIcon("CollectionBowl", "M3 11h18a9 9 0 0 1-18 0Zm6-3c0-2 2-2 2-4m3 4c0-2 2-2 2-4", false, 24f, PathFillType.NonZero)
+    val CollectionPin by prototypeIcon("CollectionPin", "M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z", false, 24f, PathFillType.NonZero)
+    val CollectionLeaf by prototypeIcon("CollectionLeaf", "M20 3C7 2 2 9 6 16s15 1 14-13ZM4 21 16 8", false, 24f, PathFillType.NonZero)
     // Knowledge collections as the website draws them: stacked layers.
     val Layers by prototypeIcon("Layers", "M3 7l9-5 9 5-9 5Z M3 12l9 5 9-5M3 17l9 5 9-5", false, 24f, PathFillType.NonZero)
     val Collection by prototypeIcon("Collection", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
@@ -79,14 +80,9 @@ object FieldAtlasIcons {
     val Heart by prototypeIcon("Heart", "M12 21S1 14 2 7c1-5 7-5 10-1 3-4 9-4 10 1 1 7-10 14-10 14Z", false, 24f, PathFillType.NonZero)
     val Globe by prototypeIcon("Globe", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0Z M16 12a4 9 0 1 1-8 0a4 9 0 1 1 8 0Z M3 12h18", false, 24f, PathFillType.NonZero)
 
-    // Collection subjects and utility actions come from Material Icons (already a dependency),
-    // not hand-drawn paths.
-    val Encyclopedia: ImageVector get() = Icons.Outlined.Public
-    val Leaf: ImageVector get() = Icons.Outlined.Eco
-    val Storefront: ImageVector get() = Icons.Outlined.Storefront
-    val Compass: ImageVector get() = Icons.Outlined.Explore
+    // Utility actions, and the subjects the website does not draw, come from Material Icons (already a
+    // dependency), not hand-drawn paths.
     val Key: ImageVector get() = Icons.Outlined.Key
-    val Microscope: ImageVector get() = Icons.Outlined.Biotech
     val Support: ImageVector get() = Icons.Outlined.Support
     val Import: ImageVector get() = Icons.Outlined.FileOpen
 

@@ -523,23 +523,25 @@ internal data class PackVisual(val icon: ImageVector, val tone: TileTone)
 
 /** The same icon a collection gets once installed, chosen from its catalog category. */
 internal fun categoryVisual(category: KnowledgeCategory): PackVisual = when (category) {
-    KnowledgeCategory.Places -> PackVisual(FieldAtlasIcons.Place, TileTone.Sage)
-    KnowledgeCategory.Travel -> PackVisual(FieldAtlasIcons.Collection, TileTone.Sage)
+    KnowledgeCategory.Places, KnowledgeCategory.Travel -> PackVisual(FieldAtlasIcons.CollectionPin, TileTone.Sage)
     KnowledgeCategory.Science -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
     else -> PackVisual(FieldAtlasIcons.Document, TileTone.Sage)
 }
 
-/** A collection's own subject, so each one is recognisable at a glance in Library and Discover. */
+/**
+ * A collection's own subject, so each one is recognisable at a glance in Library and Discover. The icons are the
+ * website's (its Knowledge collections section), so a collection looks the same in both places.
+ */
 internal fun subjectVisual(packId: String): PackVisual? {
     val id = packId.lowercase()
     return when {
-        "vegan" in id -> PackVisual(FieldAtlasIcons.Leaf, TileTone.Sage)
-        "essentials" in id -> PackVisual(FieldAtlasIcons.Storefront, TileTone.Sage)
-        "guides" in id -> PackVisual(FieldAtlasIcons.Compass, TileTone.Sage)
-        listOf("voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.Place, TileTone.Sage)
-        listOf("encyclopedia", "wikipedia").any { it in id } -> PackVisual(FieldAtlasIcons.Encyclopedia, TileTone.Sage)
+        "vegan" in id -> PackVisual(FieldAtlasIcons.CollectionBowl, TileTone.Sage)
+        "essentials" in id -> PackVisual(FieldAtlasIcons.CollectionCross, TileTone.Sage)
+        // The website shows travel guides and travel places as one card with a pin, so both rows carry it here.
+        listOf("guides", "voyage", "place", "osm", "travel").any { it in id } -> PackVisual(FieldAtlasIcons.CollectionPin, TileTone.Sage)
+        listOf("encyclopedia", "wikipedia").any { it in id } -> PackVisual(FieldAtlasIcons.CollectionBook, TileTone.Sage)
         listOf("crypto", "ethereum").any { it in id } -> PackVisual(FieldAtlasIcons.Key, TileTone.Sage)
-        listOf("biology", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.Microscope, TileTone.Sage)
+        listOf("biology", "longevity", "health").any { it in id } -> PackVisual(FieldAtlasIcons.CollectionLeaf, TileTone.Sage)
         "science" in id -> PackVisual(FieldAtlasIcons.Knowledge, TileTone.Sage)
         else -> null
     }

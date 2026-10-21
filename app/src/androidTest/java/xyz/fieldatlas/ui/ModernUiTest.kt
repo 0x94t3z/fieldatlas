@@ -220,7 +220,9 @@ class ModernUiTest {
             FieldAtlasIcons.Copy, FieldAtlasIcons.Close, FieldAtlasIcons.OpenExternal, FieldAtlasIcons.Trash,
             FieldAtlasIcons.Lock, FieldAtlasIcons.Info, FieldAtlasIcons.Plus, FieldAtlasIcons.Mic, FieldAtlasIcons.Code,
             FieldAtlasIcons.Pdf, FieldAtlasIcons.Download, FieldAtlasIcons.Storage, FieldAtlasIcons.Heart,
-            FieldAtlasIcons.Globe, FieldAtlasIcons.MoreOptions)
+            FieldAtlasIcons.Globe, FieldAtlasIcons.MoreOptions, FieldAtlasIcons.Layers, FieldAtlasIcons.CollectionBook,
+            FieldAtlasIcons.CollectionCross, FieldAtlasIcons.CollectionBowl, FieldAtlasIcons.CollectionPin,
+            FieldAtlasIcons.CollectionLeaf)
         icons.forEach { assertTrue(it.name, it.root.size > 0) }
         assertEquals(32f, FieldAtlasIcons.Offline.viewportWidth)
     }
