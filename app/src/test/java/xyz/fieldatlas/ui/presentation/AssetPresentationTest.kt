@@ -69,6 +69,14 @@ class AssetPresentationTest {
         assertEquals("Answer model", card.kind)
     }
 
+    @Test fun offeredModelsShowTheirShortNames() {
+        // The row is short; the full file name (with its quantisation) is kept for the model's sheets.
+        assertEquals("Gemma 4 26B", asset("gemma-4-26b-a4b-ud-q2-k-xl", PackType.MODEL, null).toAssetCardModel().title)
+        assertEquals("Qwen3.5 4B", asset("qwen3.5-4b-q4-k-m", PackType.MODEL, null).toAssetCardModel().title)
+        // A model the user brought keeps the name it came with.
+        assertEquals("Own-0123456789ab", asset("own-0123456789ab", PackType.MODEL, null).toAssetCardModel().title)
+    }
+
     @Test fun collectionsShowTheirShortCatalogNames() {
         // The earlier encyclopedia is named apart from the Encyclopedia that replaced it.
         assertEquals("Simple English encyclopedia", asset("simplewiki", PackType.KNOWLEDGE, null).toAssetCardModel().title)

@@ -51,6 +51,8 @@ object FieldAtlasIcons {
     val Knowledge by prototypeIcon("Knowledge", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
     val Place by prototypeIcon("Place", "M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z M14.5 10a2.5 2.5 0 1 1-5 0a2.5 2.5 0 1 1 5 0Z", false, 24f, PathFillType.NonZero)
     val Map by prototypeIcon("Map", "M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15", false, 24f, PathFillType.NonZero)
+    // Knowledge collections as the website draws them: stacked layers.
+    val Layers by prototypeIcon("Layers", "M3 7l9-5 9 5-9 5Z M3 12l9 5 9-5M3 17l9 5 9-5", false, 24f, PathFillType.NonZero)
     val Collection by prototypeIcon("Collection", "M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15", false, 24f, PathFillType.NonZero)
     val Database by prototypeIcon("Database", "M20 5a8 3 0 1 1-16 0a8 3 0 1 1 16 0Z M4 5v14c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3", false, 24f, PathFillType.NonZero)
     val ResearchStart by icon("ResearchStart", "M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z")

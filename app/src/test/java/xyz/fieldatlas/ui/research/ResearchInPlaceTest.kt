@@ -25,13 +25,14 @@ class ResearchInPlaceTest {
         assertTrue(trailPosition(searching.copy(retrievalProgress = 0.5), null) > trailPosition(searching, null))
         val reading = ResearchUiState(phase = ResearchPhase.Generating, sources = listOf(passage))
         assertTrue(trailPosition(reading, 0.6f) > trailPosition(reading, null))
-        // Writing has no known length: more words never move the dino; checking does.
+        // Writing has no known length and is the last stop: more words or checking never move the dino.
         val writing = ResearchUiState(phase = ResearchPhase.Generating, tokensWritten = 40)
         assertEquals(trailPosition(writing, null), trailPosition(writing.copy(tokensWritten = 400), null), 0f)
-        assertTrue(trailPosition(writing.copy(checking = true), null) > trailPosition(writing, null))
-        // Never at or past the next flag before that step begins, never past the answer.
+        assertEquals(trailPosition(writing, null), trailPosition(writing.copy(checking = true), null), 0f)
+        // Never at or past the next flag before that step begins, never past the end of the trail.
         assertTrue(trailPosition(searching.copy(retrievalProgress = 1.0), null) < trailPosition(reading, null))
-        assertTrue(trailPosition(writing.copy(checking = true), null) < 1f)
+        assertTrue(trailPosition(reading, 1f) < trailPosition(writing, null))
+        assertTrue(trailPosition(writing, null) < 1f)
     }
 
     @Test fun theStatusSaysWhatIsHappeningInPlainWords() {

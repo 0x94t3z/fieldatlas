@@ -42,7 +42,9 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         "crypto-ethereum" -> "Cryptography & Ethereum"
         "wikipedia-en-vital" -> "Encyclopedia in depth"
         "wikipedia-encyclopedia" -> "Encyclopedia"
-        else -> encyclopediaExpansionLabel(id)?.takeIf { type == PackType.KNOWLEDGE } ?: title
+        // An offered model goes by its short name ("Gemma 4 26B"); the full file name stays in its sheets.
+        else -> if (type == PackType.MODEL) xyz.fieldatlas.assets.ModelOffers.byId(id)?.name ?: title
+            else encyclopediaExpansionLabel(id)?.takeIf { type == PackType.KNOWLEDGE } ?: title
     },
     kind = when (type) {
         // A model the user brought: said wherever its kind is shown, so its answers are read as untested.

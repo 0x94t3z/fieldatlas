@@ -65,9 +65,13 @@ import xyz.fieldatlas.ui.theme.FieldAtlasIcons
  * what the app measures (search progress, prompt reading), and the placeholder only shows that words are arriving.
  */
 
-/** Where the stages sit along the trail, as fractions of its width: Search, Read, Write, and the answer. */
-private val STOPS = floatArrayOf(0.06f, 0.37f, 0.68f, 0.96f)
+/**
+ * Where the stages sit along the trail, as fractions of its width. Write is the last stop: the answer forms on the
+ * page as it is written, so a separate stop for the finished answer marked nothing.
+ */
+private val STOPS = floatArrayOf(0.05f, 0.5f, 0.95f)
 private val STAGES = listOf("Search", "Read", "Write")
+private val STAGE_ICONS = listOf(FieldAtlasIcons.Research, FieldAtlasIcons.Layers, FieldAtlasIcons.Edit)
 
 /** 0 searching, 1 reading the passages, 2 writing (and checking) the answer. */
 internal fun researchStage(state: ResearchUiState): Int = when {
@@ -78,16 +82,16 @@ internal fun researchStage(state: ResearchUiState): Int = when {
 
 /**
  * The dino's place along the trail, 0..1: its stage plus what that stage measures. Searching moves with the packs
- * searched, reading with the prompt read; writing has no known length, so the dino stays at Write, and moves on
- * towards the answer only once the draft is being checked.
+ * searched, reading with the prompt read; writing has no known length and the words show on the page, so the dino
+ * stays at Write, checking included.
  */
 internal fun trailPosition(state: ResearchUiState, readFraction: Float?): Float {
     if (state.waitingFor != null) return STOPS[0]
     val stage = researchStage(state)
+    if (stage == STAGES.lastIndex) return STOPS[stage]
     val within = when (stage) {
         0 -> state.retrievalProgress.toFloat()
-        1 -> readFraction ?: 0f
-        else -> if (state.checking) 1f else 0f
+        else -> readFraction ?: 0f
     }.coerceIn(0f, 1f)
     // Short of the next flag: reaching it is the next stage's news.
     return STOPS[stage] + (STOPS[stage + 1] - STOPS[stage]) * within * 0.85f
@@ -220,53 +224,58 @@ internal fun ResearchTrailStatus(state: ResearchUiState, typicalRange: LongRange
 
 @Composable
 private fun Trail(stage: Int, position: Float, dino: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.outlineVariant
-    BoxWithConstraints(modifier.fillMaxWidth().height(72.dp)) {
+    val colors = MaterialTheme.colorScheme
+    val primary = colors.primary
+    val track = colors.outlineVariant
+    BoxWithConstraints(modifier.fillMaxWidth().height(80.dp)) {
         val inset = 10.dp
         val usable = maxWidth - inset * 2
-        val lineY = 44.dp
+        val lineY = 46.dp
+        val radius = 13.dp
         fun x(fraction: Float) = inset + usable * fraction
-        Canvas(Modifier.fillMaxWidth().height(72.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(80.dp)) {
             val y = lineY.toPx()
-            val start = inset.toPx()
-            // The trail ends in the answer's circle; drawn to the edge, a stub of it stuck out past that circle.
-            val end = start + usable.toPx() * STOPS[3]
+            // From the first stop's centre to the last's: past either circle, a stub of trail stuck out.
+            val start = x(STOPS.first()).toPx()
+            val end = x(STOPS.last()).toPx()
             drawLine(track, Offset(start, y), Offset(end, y), strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round,
                 pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())))
-            drawLine(primary, Offset(start, y), Offset(start + usable.toPx() * position, y), strokeWidth = 4.dp.toPx(),
+            drawLine(primary, Offset(start, y), Offset(x(position).toPx(), y), strokeWidth = 4.dp.toPx(),
                 cap = StrokeCap.Round)
         }
         STAGES.forEachIndexed { index, name ->
             val done = index < stage
+            val current = index == stage
+            val cx = x(STOPS[index])
+            // Each stop shows what happens there; a finished one fills in and keeps its icon, so the trail still
+            // reads Search, Read, Write, and a small check says it is done.
             Surface(
-                modifier = Modifier.offset(x = x(STOPS[index]) - 11.dp, y = lineY - 11.dp).size(22.dp),
+                modifier = Modifier.offset(x = cx - radius, y = lineY - radius).size(radius * 2),
                 shape = CircleShape,
-                color = if (done) primary else MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                border = if (done) null else BorderStroke(2.dp, if (index == stage) primary else track),
+                color = when { done -> primary; current -> colors.primaryContainer; else -> colors.surface },
+                border = when { done -> null; current -> BorderStroke(2.dp, primary); else -> BorderStroke(1.5.dp, track) },
             ) {
-                if (done) Box(contentAlignment = Alignment.Center) { Icon(FieldAtlasIcons.Check, null, Modifier.size(13.dp)) }
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(STAGE_ICONS[index], null, Modifier.size(14.dp),
+                        tint = when { done -> colors.onPrimary; current -> primary; else -> colors.onSurfaceVariant })
+                }
+            }
+            if (done) Surface(
+                modifier = Modifier.offset(x = cx + 9.dp - 6.dp, y = lineY + 9.dp - 6.dp).size(12.dp),
+                shape = CircleShape, color = primary, border = BorderStroke(1.5.dp, colors.background),
+            ) {
+                Box(contentAlignment = Alignment.Center) { Icon(FieldAtlasIcons.Check, null, Modifier.size(8.dp), tint = colors.onPrimary) }
             }
             Text(name, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.5.sp,
                 fontWeight = if (index <= stage) FontWeight(650) else FontWeight.Medium),
-                color = if (index <= stage) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.offset(x = x(STOPS[index]) - 24.dp, y = lineY + 13.dp).width(48.dp)
+                color = if (index <= stage) colors.onSurface else colors.onSurfaceVariant,
+                modifier = Modifier.offset(x = cx - 24.dp, y = lineY + radius + 4.dp).width(48.dp)
                     .clearAndSetSemantics {},
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 1)
         }
-        // Where the answer will be.
-        Surface(
-            modifier = Modifier.offset(x = x(STOPS[3]) - 11.dp, y = lineY - 11.dp).size(22.dp),
-            shape = CircleShape, color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.5.dp, track),
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(FieldAtlasIcons.Document, null, Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
+        // The dino's feet (row 28 of its 32-unit drawing) stand just above the stops.
         Icon(dino, contentDescription = null, tint = primary,
-            modifier = Modifier.offset(x = x(position) - 16.dp, y = 0.dp).size(32.dp))
+            modifier = Modifier.offset(x = x(position) - 16.dp, y = lineY - radius - 31.dp).size(32.dp))
     }
 }
 

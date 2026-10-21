@@ -638,6 +638,8 @@ private fun AssetCard(
     var menuOpen by remember { mutableStateOf(false) }
     var showModelActions by rememberSaveable(model.title, model.version) { mutableStateOf(false) }
     val isAnswerModel = asset?.type == PackType.MODEL
+    // The row shows a model's short name; tapping it shows the full one (quantisation included) in its sheets.
+    val sheetTitle = if (isAnswerModel) asset?.title ?: model.title else model.title
     // A switched-off collection stays readable but visibly inactive.
     val inactive = onToggleResearch != null && !enabled
     AssetSurface(inGroup, onClick = if (isAnswerModel) ({ showModelActions = true }) else null) {
@@ -702,7 +704,7 @@ private fun AssetCard(
         }
     }
     if (showModelActions && asset != null) ModelActionsSheet(
-        title = model.title, detail = "${model.size} · v${model.version}", selected = selectedModel,
+        title = sheetTitle, detail = "${model.size} · v${model.version}", selected = selectedModel,
         notice = note, useEnabled = activateEnabled, onUse = onActivateModel,
         onDetails = { showModelActions = false; showAbout = true },
         onOptions = onModelOptions?.let { { showModelActions = false; it() } },
@@ -722,7 +724,7 @@ private fun AssetCard(
         )
     }
     if (showAbout && asset != null) {
-        PackAboutSheet(asset, model.title, visual, onDismiss = { showAbout = false }, onAskExample = onAskExample,
+        PackAboutSheet(asset, sheetTitle, visual, onDismiss = { showAbout = false }, onAskExample = onAskExample,
             catalogDescription = catalogDescription, category = category)
     }
 }
