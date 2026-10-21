@@ -1,0 +1,285 @@
+{
+  "_about": "Every figure here is copied from docs/evaluation.md. Edit a value there first, then here, then run make_charts.py.",
+  "ladder": {
+    "questions": 40,
+    "sourceLine": "Set 37: 40 sealed questions, two blind grading rounds of eight. Details in docs/evaluation.md.",
+    "rows": [
+      {
+        "phone": "4 GB phones",
+        "model": "Qwen3.5 2B",
+        "route": "cites the saved passages",
+        "share": 26.0,
+        "errors": 0.71
+      },
+      {
+        "phone": "6 and 8 GB phones",
+        "model": "Qwen3.5 4B",
+        "route": "answers from its own knowledge",
+        "share": 41.8,
+        "errors": 1.94
+      },
+      {
+        "phone": "12 GB phones",
+        "model": "Gemma 4 26B",
+        "route": "reasons, then answers",
+        "share": 70.2,
+        "errors": 0.44
+      }
+    ]
+  },
+  "collections": {
+    "sourceLine": "Sets 30 and 42: sealed questions, two blind grading rounds each. Details in docs/evaluation.md.",
+    "rows": [
+      {
+        "label": "Longevity questions, Qwen3.5 2B",
+        "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
+        "set": "set 30, 40 questions",
+        "before": 23.0,
+        "after": 35.6,
+        "beforeLabel": "older",
+        "afterLabel": "rebuilt"
+      },
+      {
+        "label": "Longevity questions, Qwen3.5 4B",
+        "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
+        "set": "set 30, 40 questions",
+        "before": 22.3,
+        "after": 35.9,
+        "beforeLabel": "older",
+        "afterLabel": "rebuilt"
+      },
+      {
+        "label": "Rare subjects, Qwen3.5 4B",
+        "detail": "From memory, then reading and citing the saved Encyclopedia",
+        "set": "set 42, 40 long-tail questions",
+        "before": 22.3,
+        "after": 35.6,
+        "beforeLabel": "from memory",
+        "afterLabel": "reads sources"
+      }
+    ]
+  },
+  "storage": {
+    "sourceLine": "Measured 18 October 2026. Android's own Storage screen showed 37.06 GB. Details in docs/evaluation.md.",
+    "budgetGB": 50,
+    "parts": [
+      {
+        "label": "Seven collections",
+        "gb": 32.3
+      },
+      {
+        "label": "Qwen3.5 2B and 4B",
+        "gb": 4.41
+      },
+      {
+        "label": "Natural voice",
+        "gb": 0.145
+      },
+      {
+        "label": "The app",
+        "gb": 0.173
+      }
+    ],
+    "withGemmaGB": 43,
+    "notes": [
+      "The Encyclopedia alone holds 8.39 million searchable passages of Wikipedia.",
+      "44 first-aid guides and the emergency numbers of 242 countries are built into the app."
+    ]
+  },
+  "hero": {
+    "title": [
+      "Ask",
+      " the atlas."
+    ],
+    "sourceLine": "Screenshot from the app on a Redmi 13C, 20 October 2026.",
+    "screenshot": "screens/answer-pantelegraph.png",
+    "caption": [
+      "Asked on a 6 GB phone in airplane mode.",
+      "The model read the saved Wikipedia",
+      "article on the pantelegraph and cites it."
+    ],
+    "facts": [
+      "Android 13 or later, phones with 4 to 12 GB of memory.",
+      "No account, no cloud AI, no search API."
+    ]
+  },
+  "pipeline": {
+    "title": [
+      "How a question becomes an answer,",
+      " on the phone."
+    ],
+    "method": "After setup, no step below uses the network. The first route that fits answers; the rest are skipped.",
+    "sourceLine": "Drawn from the app's research pipeline in version 1.4.2.",
+    "shortcut": "no model: written by the app, shown at once",
+    "stages": [
+      {
+        "title": "Ask",
+        "note": "what comes in",
+        "cards": [
+          {
+            "title": "A question",
+            "detail": "Typed or spoken, in plain words."
+          },
+          {
+            "title": "A follow-up",
+            "detail": "Builds on the last answer and can read its passages again."
+          },
+          {
+            "title": "A file",
+            "detail": "Its own text is read first."
+          }
+        ]
+      },
+      {
+        "title": "Answer directly",
+        "note": "when the app knows exactly",
+        "skipsModel": true,
+        "cards": [
+          {
+            "title": "Emergency numbers",
+            "detail": "Read from a saved table of 242 countries."
+          },
+          {
+            "title": "First aid",
+            "detail": "One of 44 official guides, shown word for word."
+          },
+          {
+            "title": "Calculations",
+            "detail": "Worked out exactly by the app."
+          },
+          {
+            "title": "Places near you",
+            "detail": "GPS with OpenStreetMap and Wikivoyage listings, nearest first."
+          }
+        ]
+      },
+      {
+        "title": "Search",
+        "note": "the saved collections",
+        "cards": [
+          {
+            "title": "Full-text search",
+            "detail": "Every installed collection, with Leviathan over the Encyclopedia's 8.39 million passages."
+          },
+          {
+            "title": "Named subject",
+            "detail": "The article the question names, found by its title."
+          },
+          {
+            "title": "Travel and phrases",
+            "detail": "The guide section or phrasebook asked for."
+          },
+          {
+            "title": "Wider wording",
+            "detail": "If nothing fits, the model suggests more search words."
+          }
+        ]
+      },
+      {
+        "title": "Write",
+        "note": "the model the phone can hold",
+        "cards": [
+          {
+            "title": "4 GB: Qwen3.5 2B",
+            "detail": "Writes from the passages and cites them; the draft is checked before it shows."
+          },
+          {
+            "title": "6-8 GB: Qwen3.5 4B",
+            "detail": "Answers from its own knowledge."
+          },
+          {
+            "title": "12 GB: Gemma 4 26B",
+            "detail": "Reasons first, then answers."
+          },
+          {
+            "title": "A rare subject",
+            "detail": "Three saved passages are read as notes and cited."
+          }
+        ]
+      },
+      {
+        "title": "Check and show",
+        "note": "before you read it",
+        "cards": [
+          {
+            "title": "Figures checked",
+            "detail": "In an answer from memory, a figure a saved passage also states is marked with it."
+          },
+          {
+            "title": "Conflicts quoted",
+            "detail": "Where a passage disagrees, its sentence is shown."
+          },
+          {
+            "title": "Sources at the foot",
+            "detail": "Each opens to the full passage."
+          },
+          {
+            "title": "Read aloud",
+            "detail": "With an offline voice."
+          }
+        ]
+      }
+    ]
+  },
+  "flow": {
+    "title": [
+      "Which way a question goes,",
+      " decided on the phone."
+    ],
+    "method": "Each question takes one path. What the app holds exactly it answers itself; the rest is searched and written by a model.",
+    "sourceLine": "Drawn from the app's research pipeline in version 1.4.2. The same flow as text is in docs/how-it-works.md.",
+    "ask": [
+      "Question",
+      "Typed, spoken, a follow-up or a file."
+    ],
+    "exact": "Held exactly?",
+    "direct": {
+      "title": "Answered by the app, in seconds, with no model",
+      "routes": [
+        [
+          "Emergency number",
+          "242 countries"
+        ],
+        [
+          "First-aid guide",
+          "44, word for word"
+        ],
+        [
+          "Calculation",
+          "worked out exactly"
+        ],
+        [
+          "Place near you",
+          "GPS and saved maps"
+        ]
+      ]
+    },
+    "search": [
+      "Search",
+      "Every installed collection, and the named article."
+    ],
+    "memory": "Phone memory?",
+    "small": [
+      "4 GB",
+      "Qwen3.5 2B",
+      "Writes from the passages and cites them; the draft is checked before it shows."
+    ],
+    "big": [
+      "6 to 12 GB",
+      "Qwen3.5 4B or Gemma 4 26B"
+    ],
+    "rare": "Rare subject?",
+    "yes": [
+      "Reads its sources",
+      "Three saved passages as notes, cited."
+    ],
+    "no": [
+      "From its knowledge",
+      "Qwen3.5 4B or Gemma 4 26B; figures then checked."
+    ],
+    "answer": [
+      "Sources at the foot, each opening to the full passage.",
+      "Can be read aloud with an offline voice."
+    ]
+  }
+}

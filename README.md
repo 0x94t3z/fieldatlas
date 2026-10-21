@@ -50,6 +50,16 @@ The app only goes online when you start a download or refresh the list of collec
   own figures is worked from them; the model still gets some of these wrong.
 - **Show phrases** from Wikivoyage phrasebooks, in the local script with pronunciation.
 
+## How it works
+
+[![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](docs/images/fieldatlas-pipeline.png)](docs/how-it-works.md)
+
+A question the app can answer exactly, such as an emergency number, a first-aid guide, a sum or the
+nearest pharmacy, is answered by the app itself in seconds. Everything else is searched in the
+saved collections and written by the model your phone can hold. A rare subject is read from the
+saved passages and cited. Figures are then checked against those passages, and the sources sit
+under the answer. [How it works, step by step](docs/how-it-works.md).
+
 ## Get started
 
 You need an Android 13 or later phone with an arm64 processor.
@@ -92,6 +102,8 @@ of the web answer's.
   follow-up questions, emergencies told as statements, word problems and the 4B on 8 GB phones.
 - **Strongest:** quick facts (55%) and emergencies (54%).
 - **Weakest:** places in a named city (14%), cryptography (22%), explanations and synthesis (23%).
+
+![Share of the reference answer's score on 40 sealed questions: Qwen3.5 2B 26.0%, Qwen3.5 4B 41.8%, Gemma 4 26B 70.2%](docs/images/fieldatlas-models.png)
 
 The graders and the reference answers come from AI models of one family, so treat these numbers as
 our own measurement, not an independent score. Every question, answer and grade is published in
