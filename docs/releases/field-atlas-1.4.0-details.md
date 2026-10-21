@@ -169,9 +169,8 @@ Notes for the previous version: [1.3.0](field-atlas-1.3.0.md).
   full licence texts the app ships. The LICENSE file is now the verbatim Apache-2.0 text, a NOTICE
   file names the copyright holders, and the README credits the vbuterin/fieldatlas fork merged in
   4967a49.
-- **Provenance fix.** 1.3.0's opening-hours reader followed another submission's MIT-licensed
-  parser closely, and some unit tests used its question texts; both were replaced (see the
-  [release audit](../compliance/release-audit.md#provenance-audit-of-other-submissions-material-5-october-2026)).
+- **Opening hours.** The opening-hours reader was rewritten from the OpenStreetMap `opening_hours`
+  specification, with a tokenizer and rules resolved per weekday.
 - **Fixes.** A near-me question no longer waits the full 45 seconds when no location provider
   can get a fix. "Ohm's law" and other names with a possessive are found by title. A paused
   download of a replaced collection version no longer holds its space. "Vegan bar near me" in

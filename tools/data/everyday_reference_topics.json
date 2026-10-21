@@ -1,5 +1,5 @@
 {
-  "description": "Field Atlas independent everyday-reference selection. Source articles come directly from Wikimedia, not another submission. This is a bounded preview, not comprehensive coverage.",
+  "description": "Field Atlas independent everyday-reference selection. Source articles come directly from Wikimedia. This is a bounded preview, not comprehensive coverage.",
   "topics": {
     "physical_science": ["Atom", "Energy", "Heat transfer", "Electric current", "Buoyancy", "Density", "Thermal conduction", "Thermal insulation", "Electric battery", "Capacitor", "Pressure", "Friction", "Boat"],
     "earth_and_space": ["Plate tectonics", "Water cycle", "Solar System", "Atmosphere of Earth", "Season", "Axial tilt", "Climate", "Weather", "Tide", "Groundwater"],

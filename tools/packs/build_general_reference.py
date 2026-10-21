@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Snapshot selected original Wikipedia revisions, then build offline from a locked cache.
 
-No competitor assets or code are used. Fetch is explicit, sequential and bounded.
+Fetch is explicit, sequential and bounded.
 Build never accesses the network. This pilot is not a quality-certified release.
 """
 from __future__ import annotations

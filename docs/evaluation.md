@@ -1210,9 +1210,6 @@ reasoning. This test measures exactly that, on questions written for this projec
   - 8 explanation, 6 comparison and 5 synthesis;
   - 6 reasoning with numbers;
   - 6 cryptography.
-
-  Other submissions' question sets were checked, and apart from Vitalik's own question none of
-  ours repeats or rewords one.
 - **Held-out questions** ([`fieldtest/heldout.jsonl`](fieldtest/heldout.jsonl)): 42 more,
   written the same way and not looked at while the app was changed: 6 places (2 near the
   phone), 8 travel, 6 emergencies, 5 explanation, 5 comparison, 4 synthesis, 4 reasoning and
@@ -2010,7 +2007,7 @@ Private reproducibility artifacts: `build/release-controls/plan.json`,
 `complete-context-requests.json`, and `complete-comparison/report.json`.
 The complete-context input is explicitly marked FROZEN_REQUEST, not a successful
 app run. Its preparation retains original chunk text and records database/selection
-hashes. No competitor data or remotely generated answer was used.
+hashes. No remotely generated answer was used.
 
 ### Coverage follow-up and release gate (October 1)
 

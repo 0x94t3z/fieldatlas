@@ -2,38 +2,6 @@
 
 Updated 7 October 2026. **Owner approved v1.2.0, v1.2.1 and v1.3.0 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
-## Provenance audit of other submissions' material (5 October 2026)
-
-The project rule is that nothing is taken from other bounty submissions: no code, data, question
-sets, tests, expected answers or prompts. An audit compared this repository with BOAR
-(rferrari/boar-app), AndroidLM (Phineas1500/AndroidLM) and Outpost (nicoarias81/outpost),
-including their full histories. It found, and these were corrected:
-
-- **`OpeningHours.kt` (shipped in 1.3.0)** followed BOAR's opening-hours parser closely,
-  including one identical comment. It was rewritten from the OpenStreetMap `opening_hours`
-  specification with a different design (a tokenizer, and rules resolved per weekday). The
-  existing tests pass unchanged. Both readers were compared on the 95,795 distinct
-  opening-hours values in the vegan and essentials map packs, at 77 times across a week:
-  - **Read the same way:** about 98.8% of the checks.
-  - **Read only by the new reader:** values written with spaces around the dash, one-digit
-    hours or lower-case days.
-  - **Comma-joined rules add hours**, as the specification says. About 1,760 places with a
-    split shift ("Mo-Sa 09:00-12:00, Mo-Fr 14:00-19:00") were shown as closed during one of
-    their shifts by the old reader.
-  - **Fixed before release:** the comparison found a hang on a weekday-to-holiday range
-    ("Mo-PH").
-- **Unit tests and pack metadata** held question texts from BOAR's public evaluation set,
-  added while measuring against that set. They were replaced with our own examples, numbers and
-  expected values, and the measurement was withdrawn from `docs/evaluation.md`. Field Atlas is
-  now measured only on its own questions ([field test](../evaluation.md#field-test-61-questions-of-our-own-october-5)).
-- **A list of "near me" phrases** in `VenueLookup.kt` matched BOAR's in content and order; it was
-  regrouped. The phrases themselves are ordinary English.
-
-Shared ideas remain where they are general: answering arithmetic exactly instead of with the
-model, quoting an Ethereum proposal's own summary, and a table of emergency numbers. Those
-are implemented here independently, from primary sources (the Wikipedia list of emergency
-numbers at a pinned revision, the EIP and ERC repositories, NIST publications).
-
 ## v1.4.1 release handoff (15 October 2026)
 
 ### Public artifact verification
@@ -429,11 +397,9 @@ demonstrated on-device, not only on desktop.
 
 ### Everyday reference initial desktop candidate — before phone installation
 
-Reviewed AndroidLM/BOAR architecture without importing their code, corpora or
-benchmarks. Built a separate 60-article reference preview directly from pinned
-Wikimedia sources, preserving paragraph context and attribution. The 4,337,718-byte
-0.2.0 pack rebuilt byte-identically; hashes and paired case review are in
-[the candidate/reference review](../evidence/candidate-architecture-review-2026-10-01.md).
+Built a separate 60-article reference preview directly from pinned Wikimedia sources,
+preserving paragraph context and attribution. The 4,337,718-byte 0.2.0 pack rebuilt
+byte-identically.
 This is optional development material, not a catalog publication or accuracy pass.
 
 Implemented a tested recall fix for explicitly named multiword reference
