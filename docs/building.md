@@ -33,7 +33,7 @@ The installable debug APK is `app/build/outputs/apk/debug/app-debug.apk` (`xyz.f
 
 ## Prepare offline files
 
-The current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md). The app imports `.fapack` files, not raw `.gguf` models. Knowledge packs are optional; see [DATASETS.md](../DATASETS.md). `tools/packs/build_model_packs.py`, `tools/packs/build_wikivoyage_eat_pack.py`, `tools/packs/build_vector_pack.py`, and the other [pack tools](../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.
+The current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md). The app imports model files (`.gguf`) and `.fapack` packs. Knowledge packs are optional; see [DATASETS.md](../DATASETS.md). `tools/packs/build_model_packs.py`, `tools/packs/build_wikivoyage_eat_pack.py`, `tools/packs/build_vector_pack.py`, and the other [pack tools](../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.
 
 ## Repository map
 

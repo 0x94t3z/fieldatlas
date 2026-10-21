@@ -27,7 +27,7 @@ class AssetSetupErrorTest {
 
     @Test fun unknownFailureNeverShowsInternalMessage() {
         val message = assetSetupError(IllegalStateException("internal/path/private"), AssetAction.PACK_IMPORT)
-        assertTrue(message.contains("compatible .fapack"))
+        assertTrue(message, message.contains("a model file (.gguf) or a collection (.fapack)"))
         assertFalse(message.contains("internal/path"))
     }
 
@@ -56,7 +56,7 @@ class AssetSetupErrorTest {
     @Test fun invalidSizesDoNotPretendThePhoneOrAppIsOutOfSpace() {
         val message = assetSetupError(AssetImportException("Invalid free-space value",
             budgetDecision = BudgetDecision.InvalidSize), AssetAction.PACK_IMPORT)
-        assertTrue(message.contains("compatible .fapack"))
+        assertTrue(message, message.contains("a model file (.gguf) or a collection (.fapack)"))
         assertFalse(message.contains("50 GB"))
         assertFalse(message.contains("Free up space"))
     }

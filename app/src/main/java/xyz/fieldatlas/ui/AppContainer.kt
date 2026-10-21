@@ -204,6 +204,46 @@ class AppContainer(context: Context) {
     }
     suspend fun inspectImportPack(uri: Uri) = importer.inspect(uri)
 
+    /**
+     * What a chosen file is when it is a model file (.gguf): a tested model, an incomplete download of one, the user's own
+     * model, or one too big for this phone. Null when the file is something else, a pack, left to [importPack].
+     */
+    suspend fun inspectModelFile(uri: Uri): xyz.fieldatlas.assets.ModelFilePlan? = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val resolver = appContext.contentResolver
+        val head = resolver.openInputStream(uri)?.use { input ->
+            val bytes = ByteArray(4); var read = 0
+            while (read < bytes.size) { val n = input.read(bytes, read, bytes.size - read); if (n < 0) break; read += n }
+            bytes.copyOf(read)
+        } ?: return@withContext null
+        if (!xyz.fieldatlas.assets.ModelFileImport.isGguf(head)) return@withContext null
+        val size = runCatching { resolver.openFileDescriptor(uri, "r")?.use { it.statSize } }.getOrNull() ?: -1L
+        if (size <= 0) throw xyz.fieldatlas.assets.ModelFileRefusal("Size can't be read",
+            "Copy the file to the phone's storage, then import it from there.")
+        val name = importFileName(uri)
+        // The header names the model and its licence; a file whose header can't be read still installs under its file name.
+        val header = runCatching { resolver.openInputStream(uri)?.use { com.arm.aichat.gguf.GgufMetadataReader.create().readStructuredMetadata(it) } }.getOrNull()
+        val kind = xyz.fieldatlas.assets.ModelFileImport.classify(name, size, deviceMemoryBytes)
+        // A tested model is proven by its hash; any other must be a model that can chat before gigabytes are copied.
+        if (kind is xyz.fieldatlas.assets.ModelFileKind.Own) xyz.fieldatlas.assets.ModelFileImport
+            .ownModelProblem(header != null, header?.tensorCount, header?.tokenizer?.chatTemplate)
+            ?.let { throw it }
+        xyz.fieldatlas.assets.ModelFilePlan(kind, name, size, xyz.fieldatlas.assets.ModelFileImport.ownTitle(header?.basic?.name, name), header?.author?.license)
+    }
+
+    /** Copies, checks and installs a model file [inspectModelFile] accepted; it becomes the model in use, as the user chose it. */
+    suspend fun importModelFile(uri: Uri, plan: xyz.fieldatlas.assets.ModelFilePlan, onProgress: (Long) -> Unit): InstalledAsset =
+        provisioningMutex.withLock {
+            // Copying gigabytes takes minutes; in the background the process could be killed half-way.
+            xyz.fieldatlas.ui.research.KeepAliveService.hold(appContext, "import", "Installing a model…")
+            try {
+                val input = appContext.contentResolver.openInputStream(uri) ?: error("Unable to open the model file")
+                input.use { modelDownload.installFromFile(plan.kind, it, plan.bytes, plan.fileName, plan.title, plan.license, onProgress) }
+                    .also { refreshPacks() }
+            } finally {
+                xyz.fieldatlas.ui.research.KeepAliveService.release(appContext, "import")
+            }
+        }.also { installed -> if (!installed.active) switchWhenIdle(installed) }
+
     suspend fun downloadModel(offer: ModelOffer, downloadUrl: String = offer.url, onProgress: (Long) -> Unit): InstalledAsset =
         provisioningMutex.withLock { modelDownload.install(offer, downloadUrl, onProgress).also { refreshPacks() } }
             .also { installed ->
@@ -304,8 +344,10 @@ class AppContainer(context: Context) {
             }.commit()
         }
         var loaded = false
+        // A model the app has not measured gets the 4B's rule: its weights are copied into faster layouts only on a phone
+        // with the memory to spare, since Android cannot reclaim that copy.
         (inference as? xyz.fieldatlas.inference.LlamaInferenceGateway)?.repackWeights =
-            ModelOffers.byId(modelPack.id)?.repacksOn(deviceMemoryBytes) ?: true
+            ModelOffers.byId(modelPack.id)?.repacksOn(deviceMemoryBytes) ?: (deviceMemoryBytes >= ModelOffers.larger.repackMinimumMemoryBytes)
         try {
             inference.load(modelFile.absolutePath, SYSTEM_PROMPT)
             (inference as? xyz.fieldatlas.inference.LlamaInferenceGateway)?.let { gateway ->
@@ -541,6 +583,7 @@ class AppContainer(context: Context) {
     // reading on a slow phone when the English collection is installed.
     // Whether answers come from the model's own knowledge is decided per model when it loads (ModelOffer.knowledgeFirst).
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current, locationProblem = { deviceLocation.lastProblem },
+        readImportedCollections = true,
         emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
         articleDepth = true)
 

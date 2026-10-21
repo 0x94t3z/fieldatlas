@@ -212,7 +212,7 @@ fun LibraryScreen(
             if (importError != null) {
                 item {
                     FieldAtlasCard(Modifier.fillMaxWidth()) {
-                        Text("This pack could not be imported.", color = MaterialTheme.colorScheme.error,
+                        Text("This file wasn’t added.", color = MaterialTheme.colorScheme.error,
                             fontWeight = FontWeight.SemiBold)
                         Text(importError, style = MaterialTheme.typography.bodySmall)
                     }
@@ -322,6 +322,30 @@ fun LibraryScreen(
                 }
             }
             }
+            // One order on every screen: the models, then the voice, then the collections, as setup and Discover list them.
+            if (!discovering) {
+            item { SectionLabel("Voice") }
+            if (readAloud != null && naturalVoice == xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
+                item(key = "reading-voice") { VoiceInstalledRow(readAloud) }
+            }
+            if (speech.isEmpty()) {
+                item {
+                    EmptyLibraryNote(
+                        "Voice input uses the compact model built into the app.",
+                    )
+                }
+            }
+            items(speech.size, key = { "audio:${speech[it].id}:${speech[it].version}" }) { index ->
+                val asset = speech[index]
+                AssetCard(
+                    model = asset.toAssetCardModel(),
+                    visual = packVisual(asset),
+                    selectedModel = asset == activeSpeech,
+                    onActivateModel = if (asset == activeSpeech) null else ({ onActivateModel(asset) }),
+                    onDelete = { onDeletePack(asset) },
+                )
+            }
+            }
             if (!discovering) {
             item { SectionLabel("Knowledge collections") }
             if (knowledge.isEmpty()) {
@@ -383,7 +407,7 @@ fun LibraryScreen(
                 item(key = "voice-offer") { DownloadGroup(listOf { VoiceDiscoverRow(readAloud, onGet = { voiceConfirm = true }, onDetails = { voiceDetails = true }) }) }
             }
             if (shows(DiscoverType.Knowledge) && freshFound.isNotEmpty() && downloads != null && queue != null) {
-                item { SectionLabel("Available to download") }
+                item { SectionLabel("Knowledge collections") }
                 val fold = folded(DiscoverType.Knowledge) && DiscoverSearch.folds(freshFound.size)
                 // One card per category, its collections listed inside it.
                 (if (fold) freshFound.take(DiscoverSearch.ROWS_BEFORE_SEE_ALL) else freshFound)
@@ -404,29 +428,6 @@ fun LibraryScreen(
             }
             if (available.isEmpty() && ((discoverQuery.isBlank() && discoverType == DiscoverType.All) || discoverOffered == 0) &&
                 !catalogRefreshing && catalogError == null) item { EmptyLibraryNote("All collections are on this phone.") }
-            }
-            if (!discovering) {
-            item { SectionLabel("Voice") }
-            if (readAloud != null && naturalVoice == xyz.fieldatlas.speech.NaturalVoice.State.Ready) {
-                item(key = "reading-voice") { VoiceInstalledRow(readAloud) }
-            }
-            if (speech.isEmpty()) {
-                item {
-                    EmptyLibraryNote(
-                        "Voice input uses the compact model built into the app.",
-                    )
-                }
-            }
-            items(speech.size, key = { "audio:${speech[it].id}:${speech[it].version}" }) { index ->
-                val asset = speech[index]
-                AssetCard(
-                    model = asset.toAssetCardModel(),
-                    visual = packVisual(asset),
-                    selectedModel = asset == activeSpeech,
-                    onActivateModel = if (asset == activeSpeech) null else ({ onActivateModel(asset) }),
-                    onDelete = { onDeletePack(asset) },
-                )
-            }
             }
         }
     }

@@ -129,13 +129,17 @@ fun SetupScreen(
                             verticalAlignment = Alignment.CenterVertically) {
                             Icon(FieldAtlasIcons.Import, null, Modifier.size(20.dp))
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("Import .fapack", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(650)))
-                                Text("Model or knowledge pack", style = MaterialTheme.typography.labelSmall,
+                                Text("Import a file", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(650)))
+                                Text("A model (.gguf) or a collection (.fapack)", style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
                 }
+                // A file that was not added says why right under the row that added it, not at the end of the list.
+                error?.takeUnless { it == modelDownloadError || importing }?.let { message -> item(key = "setup-import-error") {
+                    SetupImportRefusal(message, enabled = !busy, onChooseAnother = onImportPack)
+                } }
                 // Explain unavailable downloads before their controls, not at the end of the list.
                 if (!online) item {
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -150,13 +154,21 @@ fun SetupScreen(
                     }
                 }
                 if (importing && importingPack?.type !in setOf(PackType.MODEL, PackType.KNOWLEDGE)) item {
-                    SetupImportCard(importingPack?.title ?: "Saved pack", importingName, "Import in progress")
+                    // Before its first bytes are read the file could be a model or a collection, so it is named for what is happening.
+                    SetupImportCard(importingPack?.title ?: "Checking the file", importingName,
+                        if (importingPack == null) "Reading what kind of file it is" else "Import in progress")
                 }
                 item { SetupSection(1, "Answer model", "Required") }
                 item {
                     if (importing && importingPack?.type == PackType.MODEL) {
                         SetupImportCard(if (importingPack.id == recommended.id) recommended.name else importingPack.title,
-                            importingName, "Importing model", FieldAtlasIcons.Model)
+                            importingName, if (importingPack.totalBytes > 0) "Copying and checking" else "Importing model", FieldAtlasIcons.Model,
+                            copiedBytes = importingPack.copiedBytes, totalBytes = importingPack.totalBytes,
+                            note = when {
+                                importingPack.totalBytes <= 0 -> null
+                                importingPack.tested -> "Every byte is compared with the published ${importingPack.title} file before Field Atlas uses it."
+                                else -> "Field Atlas has not tested this model, so it will answer from your saved passages and cite them, with reasoning off."
+                            })
                     } else if (model == null && modelChoices.size > 1) FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
                         // A phone with the memory for the 4B gets it first; the 2B stays one tap away as the faster choice.
                         Column { modelChoices.forEachIndexed { index, offer ->
@@ -263,7 +275,7 @@ fun SetupScreen(
                         }
                     }
                 }
-                (knowledgeError ?: error?.takeUnless { it == modelDownloadError })?.let { message -> item {
+                knowledgeError?.let { message -> item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
                         Text("Setup couldn’t finish", style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.error)
@@ -303,7 +315,8 @@ fun SetupScreen(
 private const val SETUP_KNOWLEDGE_ROWS = 3
 
 @Composable
-private fun SetupImportCard(title: String, filename: String?, status: String, icon: ImageVector = FieldAtlasIcons.Document) {
+private fun SetupImportCard(title: String, filename: String?, status: String, icon: ImageVector = FieldAtlasIcons.Document,
+    copiedBytes: Long = 0, totalBytes: Long = 0, note: String? = null) {
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -315,10 +328,46 @@ private fun SetupImportCard(title: String, filename: String?, status: String, ic
             }
             filename?.let { Text(it, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis,
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            LinearProgressIndicator(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer)
-            Text("Please wait while this pack is checked and installed.", style = MaterialTheme.typography.bodySmall,
+            if (totalBytes > 0) {
+                // A model file is gigabytes: real progress, so a long copy never looks stuck.
+                LinearProgressIndicator(progress = { (copiedBytes.toFloat() / totalBytes).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.primaryContainer)
+                Text("${xyz.fieldatlas.assets.ModelFileImport.gb(copiedBytes).removeSuffix(" GB")} of ${xyz.fieldatlas.assets.ModelFileImport.gb(totalBytes)}",
+                    style = MaterialTheme.typography.bodySmall)
+            } else {
+                LinearProgressIndicator(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.primaryContainer)
+            }
+            Text(note ?: "Please wait while this pack is checked and installed.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Why a chosen file was not added, as the model card would show it: a warning tile beside a short headline, one plain
+ * sentence, and the way on. A refusal arrives as "headline\nsentence"; any other failure has only its sentence.
+ */
+@Composable
+private fun SetupImportRefusal(message: String, enabled: Boolean, onChooseAnother: () -> Unit) {
+    val headline = message.substringBefore('\n', missingDelimiterValue = "").ifEmpty {
+        if (message.startsWith("Couldn't load saved files")) "Setup couldn’t finish" else "This file wasn’t added" }
+    val sentence = message.substringAfter('\n')
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 14.dp) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                FieldAtlasIconTile(FieldAtlasIcons.Warning, size = 40.dp, tone = TileTone.Clay)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text("Not added", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            Text(sentence, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            TextButton(onClick = onChooseAnother, enabled = enabled, shape = FieldAtlasButtonShape,
+                modifier = Modifier.heightIn(min = 48.dp), contentPadding = PaddingValues(start = 0.dp, end = 8.dp)) {
+                Icon(FieldAtlasIcons.Import, null, Modifier.size(18.dp))
+                Text("Choose another file", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
+            }
         }
     }
 }

@@ -265,7 +265,8 @@ class MainActivity : ComponentActivity() {
                 inferenceState = inferenceState,
                 proof = proof,
                 navigation = appNavigation,
-                onImportPack = { openPicker { packPicker.launch(arrayOf("application/zip", "application/octet-stream")) } },
+                // Any file: providers label a .gguf or .fapack inconsistently, and the import tells the kind from the bytes.
+                onImportPack = { openPicker { packPicker.launch(arrayOf("*/*")) } },
                 onDownloadModel = setupViewModel::downloadRecommendedModel,
                 resumableModelBytes = container.resumableModelBytes(),
                 modelOffers = container.modelOffers,

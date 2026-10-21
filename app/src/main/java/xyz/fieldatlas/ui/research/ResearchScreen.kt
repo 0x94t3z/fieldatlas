@@ -200,11 +200,16 @@ fun ResearchScreen(
         }
         if (collectionCount == 0) {
             item {
-                Text(
-                    "Answers can come from your offline model. Add a knowledge pack in Library for source-backed answers.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                // The same note shape as setup's offline line: a marker, then one short sentence.
+                androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.Top) {
+                    Icon(FieldAtlasIcons.Info, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "No collections yet. Add one in Library for cited answers.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
         if (state.isRunning) {

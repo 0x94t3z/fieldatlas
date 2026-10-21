@@ -45,7 +45,8 @@ fun InstalledAsset.toAssetCardModel(): AssetCardModel = AssetCardModel(
         else -> encyclopediaExpansionLabel(id)?.takeIf { type == PackType.KNOWLEDGE } ?: title
     },
     kind = when (type) {
-        PackType.MODEL -> "Answer model"
+        // A model the user brought: said wherever its kind is shown, so its answers are read as untested.
+        PackType.MODEL -> if (xyz.fieldatlas.assets.ModelFileImport.isOwn(id)) "Your own model · not tested by Field Atlas" else "Answer model"
         PackType.KNOWLEDGE -> "Knowledge data"
         PackType.AUDIO -> "Audio model"
     },

@@ -2,7 +2,7 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, Qwen3.5 4B on a phone with 6 GB of memory or more, or Gemma 4 26B on a phone with 12 GB, installed separately by download or matching model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, Qwen3.5 4B on a phone with 6 GB of memory or more, or Gemma 4 26B on a phone with 12 GB, installed separately by download or by importing the model file (`.gguf`) or a model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
@@ -18,7 +18,7 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 
 1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the model it offers first (Gemma 4 26B on a phone with 12 GB of memory, Qwen3.5 4B from 6 GB, Qwen3.5 2B otherwise), or import a matching `.fapack` using the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md). A raw `.gguf` is not a model pack.
+3. In setup, download the model it offers first (Gemma 4 26B on a phone with 12 GB of memory, Qwen3.5 4B from 6 GB, Qwen3.5 2B otherwise), or import the model file: download the `.gguf` linked in the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md) on any device, copy it to the phone and choose **Import a file**. A file Field Atlas tested is checked byte for byte and keeps its tested settings; any other GGUF model installs as your own, untested, when the phone has the memory for it.
 4. Optionally download or import a knowledge collection, and the Supertonic 3 reading voice (about 146 MB). A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
@@ -51,9 +51,9 @@ connection, save a `.fapack` from there on another device and import it in setup
 1.3.0 and older downloaded collections from GitHub releases, which are retired; update the app.
 
 
-Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B `.fapack` built with the command in [MODELS.md](../MODELS.md); both install the same pinned weights, and the app verifies the exact size and SHA-256 before using either. The direct model download was checked on a Redmi 13C for 1.4.1 (1.40 GB in about 11 minutes); the pack import remains the way to set up a phone that cannot download.
+Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B model file (`.gguf`) linked in [MODELS.md](../MODELS.md), or a `.fapack` built with the command there; all install the same pinned weights, and the app verifies the exact size and SHA-256 before using any of them. The direct model download was checked on a Redmi 13C for 1.4.1 (1.40 GB in about 11 minutes); importing the file remains the way to set up a phone that cannot download.
 
-You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Every collection downloads from Hugging Face at a pinned revision. The manual import path accepts `.fapack`, not raw `.gguf` files.
+You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Every collection downloads from Hugging Face at a pinned revision. **Import a file** accepts a model file (`.gguf`) or a pack (`.fapack`) and tells which from the file itself.
 
 Place questions about where you are ("vegan restaurants near me", "where am I?") use the phone's own location through Android's location service, only after a short explanation and Android's permission prompt; naming a city works without location. A place card can open an offline maps app: install one such as [Organic Maps](https://organicmaps.app) or [OsmAnd](https://osmand.net) (both on F-Droid) and its maps before you travel, or copy the coordinates from the card. Voice input uses a bundled English Vosk speech model and, if you choose to use it, microphone permission; words appear in the question box as you speak, and nothing is submitted automatically. You can keep more than one verified model and switch the active one in Library. The answer flow prepares a selected model automatically; **Prepare for research** is a retry if loading needs help.
 
@@ -73,7 +73,7 @@ The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums
 
 | What you see | What to check |
 | --- | --- |
-| “Unsupported file” or model import fails | Select the **model `.fapack`**, not a raw `.gguf`, `.sha256` file, or knowledge pack. Use the model instructions matching your APK version. |
+| Model import fails | The message says why: the download stopped early (download it again), the model needs more memory than the phone has, or the file is the size of a tested model but its contents differ. Choose the `.gguf` or `.fapack` itself, not a `.sha256` file. |
 | Hash or verification failure | Recopy or redownload the file, then verify its checksum on the computer. Do not bypass verification. |
 | Not enough space | Leave room for the downloaded archive, installed model, and Android's working space. |
 | Model takes time to load | The first preparation can take tens of seconds on a modest phone. Let it finish; if it fails, retry from Research and check **More → diagnostics**. |
@@ -81,4 +81,4 @@ The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums
 | A venue answer might be stale | The offline pack cannot check live opening hours, menus, or whether a place still exists. Read the listing date and confirm details separately when online. |
 | Phone gets hot or slow | Stop generation, release model memory from **More**, and allow the phone to cool. |
 
-Installed models and imported packs live in app-private storage. Uninstalling the app removes them, so keep your original `.fapack` files if you may need to reinstall. The unsigned release APK made by a local build is for inspection only; do not sideload it. See [verification](verification.md) for what was actually tested on a device.
+Installed models and imported packs live in app-private storage. Uninstalling the app removes them, so keep your original `.gguf` and `.fapack` files if you may need to reinstall. The unsigned release APK made by a local build is for inspection only; do not sideload it. See [verification](verification.md) for what was actually tested on a device.

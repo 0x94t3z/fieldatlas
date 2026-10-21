@@ -14,9 +14,13 @@ class KnowledgePackDownloadTest {
         val pack = essentials.copy(installedBytes = StorageBudget.MAX_TOTAL_BYTES)
         val partial = paused(root, pack)
         val downloader = KnowledgePackDownload(root, AssetRegistry(root), AssetImporter(root))
-        org.junit.Assert.assertThrows(IllegalStateException::class.java) {
+        val refused = org.junit.Assert.assertThrows(AssetImportException::class.java) {
             kotlinx.coroutines.runBlocking { downloader.install(pack) { error("Must not download") } }
         }
+        // Said as the 50 GB limit and the room a download needs while it unpacks, not as a connection problem.
+        assertEquals(BudgetDecision.ExceedsGlobalLimit, refused.budgetDecision)
+        val shown = xyz.fieldatlas.ui.setup.assetSetupError(refused, xyz.fieldatlas.ui.setup.AssetAction.COLLECTION_DOWNLOAD)
+        org.junit.Assert.assertTrue(shown, "50 GB storage limit" in shown && "unpacked copy" in shown)
         assertEquals(400L, partial.length())
         assertFalse(File(root, "pack-staging").exists())
     }

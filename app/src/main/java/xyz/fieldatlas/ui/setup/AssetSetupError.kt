@@ -13,6 +13,9 @@ internal enum class AssetAction { MODEL_DOWNLOAD, COLLECTION_DOWNLOAD, PACK_IMPO
 
 internal fun assetSetupError(error: Throwable, action: AssetAction): String {
     val causes = generateSequence(error) { it.cause }.take(8).toList()
+    // A model file refused for a reason the user can act on says that reason, not a generic failure.
+    // Its headline and sentence travel as two lines, so the card can set the headline apart.
+    causes.filterIsInstance<xyz.fieldatlas.assets.ModelFileRefusal>().firstOrNull()?.let { return "${it.headline}\n${it.message}" }
     if (causes.any { it is UnknownHostException || it is ConnectException || it is NoRouteToHostException }) {
         return "Can't reach the download server. Turn on Wi-Fi or mobile data, then try again."
     }
@@ -25,7 +28,11 @@ internal fun assetSetupError(error: Throwable, action: AssetAction): String {
     // A valid pack can fail either storage admission check. Do not mislabel that
     // as an incompatible file, or ask users to download the same bytes again.
     when (causes.filterIsInstance<AssetImportException>().firstNotNullOfOrNull { it.budgetDecision }) {
-        BudgetDecision.ExceedsGlobalLimit -> return "There isn't room within Field Atlas's 50 GB storage limit. Remove unused packs in Library, then try again."
+        // A collection is downloaded and then unpacked, so for a while it takes both: the Encyclopedia's 10.64 GB download
+        // and 24.35 GB copy reach past 50 GB if every model is already installed, though everything installed is 47.6 GB.
+        BudgetDecision.ExceedsGlobalLimit -> return if (action == AssetAction.COLLECTION_DOWNLOAD)
+            "While it unpacks, this collection needs room for both its download and its unpacked copy, and that goes past Field Atlas's 50 GB storage limit. Remove a model or collection you don't use in Library, then try again; you can add it back afterwards."
+            else "There isn't room within Field Atlas's 50 GB storage limit. Remove unused packs in Library, then try again."
         BudgetDecision.InsufficientFreeSpace -> return "Not enough storage space on this phone. Free up space, then try again."
         else -> Unit
     }
@@ -45,7 +52,7 @@ internal fun assetSetupError(error: Throwable, action: AssetAction): String {
     return when (action) {
         AssetAction.MODEL_DOWNLOAD -> "The model couldn't be downloaded. Check your connection and free space, then try again. You can also import a model pack."
         AssetAction.COLLECTION_DOWNLOAD -> "The collection couldn't be downloaded. Check your connection and free space, then try again."
-        AssetAction.PACK_IMPORT -> "This pack couldn't be added. Choose a compatible .fapack file and try again."
+        AssetAction.PACK_IMPORT -> "This file couldn't be added. Choose a model file (.gguf) or a collection (.fapack) and try again."
         AssetAction.VOICE_DOWNLOAD -> "The voice couldn't be downloaded. Check your connection and free space, then try again; what was saved is kept."
     }
 }

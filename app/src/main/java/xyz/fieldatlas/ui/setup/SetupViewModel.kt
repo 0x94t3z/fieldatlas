@@ -93,6 +93,14 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
             mutableState.value = mutableState.value.startImport()
             val name = container.importFileName(uri)
             mutableState.value = mutableState.value.copy(importingName = name)
+            // A model file (.gguf) is what people download a model as; anything else is tried as a pack.
+            val plan = try { container.inspectModelFile(uri) } catch (error: Exception) {
+                container.errorBus.report("Model import", error)
+                mutableState.value = mutableState.value.copy(importing = false, importingName = null, importingPack = null,
+                    error = assetSetupError(error, AssetAction.PACK_IMPORT))
+                return@launch
+            }
+            if (plan != null) { importModelFile(uri, plan); return@launch }
             val packInfo = container.inspectImportPack(uri)
             mutableState.value = mutableState.value.copy(importingPack = packInfo)
             mutableState.value = try {
@@ -104,6 +112,29 @@ class SetupViewModel(private val container: AppContainer) : ViewModel() {
                 mutableState.value.copy(importing = false, importingName = null, importingPack = null,
                     error = assetSetupError(error, AssetAction.PACK_IMPORT))
             }
+        }
+    }
+
+    private suspend fun importModelFile(uri: Uri, plan: xyz.fieldatlas.assets.ModelFilePlan) {
+        xyz.fieldatlas.assets.ModelFileImport.refusal(plan.kind, container.deviceMemoryBytes)?.let { refusal ->
+            mutableState.value = mutableState.value.copy(importing = false, importingName = null, importingPack = null,
+                error = assetSetupError(refusal, AssetAction.PACK_IMPORT))
+            return
+        }
+        val tested = (plan.kind as? xyz.fieldatlas.assets.ModelFileKind.Tested)?.offer
+        val info = xyz.fieldatlas.assets.PackImportInfo(tested?.id ?: "own", tested?.name ?: plan.title,
+            xyz.fieldatlas.assets.PackType.MODEL, totalBytes = plan.bytes, tested = tested != null)
+        mutableState.value = mutableState.value.copy(importingPack = info)
+        mutableState.value = try {
+            val hadModel = mutableState.value.packs.any { it.type == xyz.fieldatlas.assets.PackType.MODEL }
+            container.importModelFile(uri, plan) { copied ->
+                mutableState.value.importingPack?.let { mutableState.value = mutableState.value.copy(importingPack = it.copy(copiedBytes = copied)) }
+            }
+            mutableState.value.finishImport(hadModel, xyz.fieldatlas.assets.PackType.MODEL)
+        } catch (error: Exception) {
+            container.errorBus.report("Model import", error)
+            mutableState.value.copy(importing = false, importingName = null, importingPack = null,
+                error = assetSetupError(error, AssetAction.PACK_IMPORT))
         }
     }
 

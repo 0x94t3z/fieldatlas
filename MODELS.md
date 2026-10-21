@@ -2,7 +2,7 @@
 
 [Back to the overview](README.md) · [Phone setup](docs/installation.md)
 
-A **model pack** is the large local file that lets Field Atlas generate answers. The app accepts a verified `.fapack`, not a raw `.gguf`. Choose the instructions that match your APK:
+A **model** is the large local file that lets Field Atlas generate answers: the `.gguf` file its publisher offers, or a `.fapack` built from it. A file Field Atlas tested is checked against its pinned size and SHA-256 and keeps its tested settings; from v1.4.2, any other GGUF model installs as your own, untested, when the phone has the memory for it. Choose the instructions that match your APK:
 
 | App | Model to use | Where to get instructions |
 | --- | --- | --- |
@@ -11,7 +11,7 @@ A **model pack** is the large local file that lets Field Atlas generate answers.
 | [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) from 6 GB | Qwen3.5 4B, optional in 1.4.0, offered first in 1.4.2 setup | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
 | [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2), on a phone with 12 GB of memory | Gemma 4 26B-A4B (UD-Q2_K_XL), offered first in setup | Download in setup or Library; see [Gemma 4 26B in v1.4.2](#gemma-4-26b-in-v142) |
 
-No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. Building a `.fapack` for manual import still needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
+No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. From v1.4.2, a phone that cannot download can import the model's `.gguf` itself, downloaded on another device from the link below; building a `.fapack` is optional and needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
 ## Recommended answer model
 

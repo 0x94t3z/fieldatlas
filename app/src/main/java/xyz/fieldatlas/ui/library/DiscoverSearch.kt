@@ -42,7 +42,8 @@ import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 
 /** What Discover offers, by kind, for its chips. */
-enum class DiscoverType(val label: String) { All("All"), Models("Models"), Knowledge("Knowledge"), Voices("Voices") }
+/** In the order the list shows them, and setup before it: models, the voice, then the collections. */
+enum class DiscoverType(val label: String) { All("All"), Models("Models"), Voices("Voices"), Knowledge("Knowledge") }
 
 /**
  * Finding something in Discover once the catalogue holds more than a screen of models, collections and voices. A
@@ -139,14 +140,14 @@ internal fun DiscoverNothingFound(query: String, refreshing: Boolean, onRefresh:
         Column(Modifier.padding(horizontal = 18.dp, vertical = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Nothing called “${query.trim()}” yet", style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center)
-            Text("Search covers what the catalogue offers. Refresh to check for new ones, or import a .fapack you already have.",
+            Text("Search covers what the catalogue offers. Refresh to check for new ones, or import a file you already have.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onRefresh, enabled = !refreshing, shape = FieldAtlasButtonShape) {
                     Text(if (refreshing) "Refreshing…" else "Refresh")
                 }
                 TextButton(onClick = onImport, shape = FieldAtlasButtonShape) {
-                    Icon(FieldAtlasIcons.Plus, null, Modifier.size(18.dp)); Text("Import .fapack", Modifier.padding(start = 6.dp))
+                    Icon(FieldAtlasIcons.Plus, null, Modifier.size(18.dp)); Text("Import a file", Modifier.padding(start = 6.dp))
                 }
             }
         }

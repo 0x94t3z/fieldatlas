@@ -59,8 +59,9 @@ class KnowledgePackDownload internal constructor(
             // Legacy STORED packs can reserve archive size. Compressed packs explicitly
             // declare expanded bytes, which the importer verifies against the manifest.
             val peakGrowth = pack.downloadGrowthBytes(partial.length())
-            check(StorageBudget.evaluate(footprint.bytes(), peakGrowth, Long.MAX_VALUE) == BudgetDecision.Allowed) {
-                "Collection would exceed the app storage budget"
+            // The reason travels with the refusal, so the screen can say it is the 50 GB limit and why a download needs room twice.
+            StorageBudget.evaluate(footprint.bytes(), peakGrowth, Long.MAX_VALUE).takeIf { it != BudgetDecision.Allowed }?.let { decision ->
+                throw AssetImportException("Collection would exceed the app storage budget", budgetDecision = decision)
             }
             check(storageRoot.usableSpace - 512_000_000L >= peakGrowth) {
                 "Not enough free space to download and install this collection"

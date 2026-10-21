@@ -24,7 +24,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
-data class PackImportInfo(val id: String, val title: String, val type: PackType)
+/** A pack or model file being imported; [copiedBytes] of [totalBytes] while a model file is copied and checked. */
+data class PackImportInfo(val id: String, val title: String, val type: PackType, val copiedBytes: Long = 0, val totalBytes: Long = 0,
+    /** A model file Field Atlas tested, checked against its published SHA-256 as it is copied. */
+    val tested: Boolean = false)
 
 class AssetImportException(
     message: String,
