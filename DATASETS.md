@@ -416,7 +416,7 @@ errors. Retrieval similarity is not a factual-support score or a quality pass.
 
 A separate, independently selected 60-article collection now covers physical
 science, Earth/space, biology, evidence/statistics, computing and history/society.
-It is fetched from original Wikimedia revisions, not another submission's corpus.
+It is fetched from original Wikimedia revisions.
 The 26 earlier pinned source records are retained unchanged. This preview is not
 a complete encyclopedia or a claim that generated answers meet the bounty bar.
 
@@ -444,15 +444,14 @@ revision URLs for the imported pack.
 
 `tools/data/everyday_reference_checks.json` contains eight frozen development questions.
 Paired baseline/preview tests retain original retrieved passages and generated
-answers; source coverage and answer correctness are reviewed separately. See the
-[architecture review](docs/evidence/candidate-architecture-review-2026-10-01.md).
+answers; source coverage and answer correctness are reviewed separately.
 This pack is not automatically recommended or published in the download catalog.
 
 ### General Reference pilot (development only)
 
 `tools/packs/build_general_reference.py` builds a separate, independently selected
-24-article English Wikipedia pilot across six subject areas. It does not use
-another submission's corpus. This is a bounded pipeline experiment, **not** a
+24-article English Wikipedia pilot across six subject areas, fetched from original Wikimedia
+revisions. This is a bounded pipeline experiment, **not** a
 general encyclopedia, published collection, or answer-quality certification.
 
 ```sh
@@ -733,7 +732,7 @@ legacy chunks. Full rebuilds produced identical candidate SHA-256 values:
 A legacy rebuild still matches the original pack SHA-256
 `7866c3a563c0cdbe300325a3d09368d3dc2a3d9770ceb62881b23f1de14583e9`.
 Tests check lossless paragraph grouping, qualifications, deterministic packaging,
-and unchanged default behavior. No competitor dataset is used.
+and unchanged default behavior. Only the sources listed above are used.
 
 Seven development questions were run in
 `build/general-reference/evaluation/whole-paragraph-pack/report.json`. Removing

@@ -10,5 +10,5 @@
     {"question": "How can sampling bias make a large survey misleading?", "review": "Selection can distort representation; sample size alone does not remove systematic bias."},
     {"question": "Using only my saved sources, which roads near me are closed right now?", "review": "Do not invent current conditions or cite timeless references as live information."}
   ],
-  "method": "Same unchanged app pipeline/model and questions, current Biology+Travel vs current packs plus preview. Review original selected passages and generated claims separately. No competitor benchmark or answers used."
+  "method": "Same unchanged app pipeline/model and questions, current Biology+Travel vs current packs plus preview. Review original selected passages and generated claims separately."
 }

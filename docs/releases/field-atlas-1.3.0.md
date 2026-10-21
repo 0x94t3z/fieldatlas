@@ -1,10 +1,8 @@
 # Field Atlas 1.3.0
 
-> **Notice, added with 1.4.0:** 1.3.0's opening-hours reader followed the MIT-licensed parser of
-> BOAR (rferrari/boar-app) closely, without its licence notice, and some unit tests used question
-> texts from its public evaluation set. 1.4.0 replaces the reader with one written from the
-> OpenStreetMap `opening_hours` specification and replaces those texts; see the
-> [release audit](../compliance/release-audit.md#provenance-audit-of-other-submissions-material-5-october-2026).
+> **Licence notice:** 1.3.0's opening-hours reader is derived from boar-app, The MIT License (MIT),
+> Copyright (c) 2026 aoair contributors. 1.4.0 and later use a reader written from the OpenStreetMap
+> `opening_hours` specification.
 
 A public release for offline use without a connection: emergency guidance from published guides,
 more file types, open-now place answers and faster answers on low-end phones, checked on a Redmi

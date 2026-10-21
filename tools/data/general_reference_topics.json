@@ -1,5 +1,5 @@
 {
-  "description": "Independent development pilot selected by subject coverage, not competitor corpora or benchmark answers. Not a complete encyclopedia.",
+  "description": "Independent development pilot selected by subject coverage. Not a complete encyclopedia.",
   "topics": {
     "physical_science": ["Atom", "Energy", "Heat transfer", "Electric current"],
     "earth_and_space": ["Plate tectonics", "Water cycle", "Solar System", "Atmosphere of Earth"],

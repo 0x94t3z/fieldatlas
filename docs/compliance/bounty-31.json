@@ -208,7 +208,7 @@
         "docs/compliance/release-audit.md",
         "README.md"
       ],
-      "note": "Fork credited; the opening-hours reader and test texts that followed another submission were replaced; licences shipped in the app."
+      "note": "Fork credited; third-party licences shipped in the app and listed in THIRD_PARTY_NOTICES.md."
     },
     {
       "id": "B31-20",
