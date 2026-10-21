@@ -1,5 +1,35 @@
 # Evaluation
 
+## Good answers, and storage with everything installed (October 21)
+
+From here on, results lead with two counts: how many questions get a **good answer**, one that the
+blind graders score 7 or more out of 10, and how many **wrong details** the graders note per answer.
+The sections below this one also give each setup's total score as a share of the reference
+answers' total, as it was recorded at the time.
+
+| Set 37, 40 questions, two rounds of eight graders | Good answers | Wrong details per answer |
+| --- | ---: | ---: |
+| Qwen3.5 2B, cites the passages (4 GB phones) | 2 | 0.71 |
+| Qwen3.5 4B, from its own knowledge (6 and 8 GB) | 8 | 1.94 |
+| Gemma 4 26B, reasons first (12 GB) | 27 | 0.44 |
+
+| Same model and questions, only what it could read changed | Good answers before → after | Wrong details per answer |
+| --- | ---: | ---: |
+| Set 30, 2B, Biology collection of 13 October → 18 October | 2 → 7 of 40 | 0.60 → 0.47 |
+| Set 30, 4B, the same | 4 → 6 of 40 | 0.15 → 0.15 |
+| Set 42 long-tail, 4B, from memory → reading the Encyclopedia | 2 → 7 of 40 | 3.27 → 2.42 |
+
+A reasoning model is now given the instruction without the answer layout the other models use, and
+an answer its reasoning cuts short is asked for again with reasoning off; Gemma's set 37 answers were
+written that way.
+
+**Storage with everything installed.** On the 12 GB Android emulator, with Qwen3.5 2B, Qwen3.5 4B,
+Gemma 4 26B, all seven collections and the natural voice installed through the app, Android's own
+Settings › Apps › Field Atlas › Storage showed 47.58 GB: app 173 MB, user data 47.40 GB, cache
+618 kB. The Encyclopedia is a 10.64 GB download that unpacks to 24.35 GB, and for a while it holds
+both; installed after all three models it would pass 50 GB, so the app refuses it before
+downloading, and says that a model can be removed and added back afterwards.
+
 ## Reading the sources for subjects few readers meet (October 20)
 
 A model that answers from memory knows the Eiffel Tower and invents the Pantelegraph. On the earlier sets the 4B's

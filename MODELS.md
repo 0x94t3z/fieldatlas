@@ -49,8 +49,8 @@ Google's Gemma 4 E2B (QAT Q4_0, pinned at `google/gemma-4-E2B-it-qat-q4_0-gguf` 
 `fa401b55b07ee70a54c6dae3903c783a6e65064312529ea57175cb5f8dec6634`) was tried as a second choice
 after 1.4.0 and was never released.
 
-- On 180 development questions it seemed better: 44.2% of the reference answers against 40.7%
-  for Qwen3.5 2B, with half as many factual errors. Those questions had been seen during
+- On 180 development questions it seemed better than Qwen3.5 2B, with half as many factual
+  errors. Those questions had been seen during
   development.
 - On a Redmi 13C, 20 fresh questions were asked in the installed app with each model and
   graded blind by two graders. Qwen3.5 2B scored 4.65 of 10 against 3.75. Gemma still made fewer
@@ -65,8 +65,7 @@ Gemma 4 E2B is therefore not offered.
 Version 1.4.0 offered Qwen3.5 4B on phones with 8 GB of memory, and 1.4.1 did not. Version 1.4.2
 offers it from 6 GB, first in setup, with Qwen3.5 2B still listed below it; on a phone with less
 memory only the 2B is offered. Citing the saved passages, on 120 new questions graded blind, the
-4B made half the factual errors of the 2B (0.30 against 0.62 per answer) and scored 38.2% of the
-web-and-AI reference against 36.9%
+4B made half the factual errors of the 2B (0.30 against 0.62 per answer) and gave a good answer to 28 of them against 27
 ([details](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)). In 1.4.2 it
 answers ordinary questions from its own knowledge instead, with the passages listed under the
 answer: on 40 newer questions (set 37) it scored 41.8% against 26.0% for the cited 2B, with more
@@ -84,7 +83,7 @@ On a phone with 12 GB of memory, setup offers Gemma 4 26B-A4B first: unsloth's U
 `google/gemma-4-26B-A4B-it` (10.5 GB, Apache-2.0, SHA-256
 `2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658`), described in
 [`models/compact-gemma-4-26b-a4b.example.json`](models/compact-gemma-4-26b-a4b.example.json). It reasons
-before it answers and answers from its own knowledge: 70.2% of the web-and-AI reference on set 37,
+before it answers and answers from its own knowledge: a good answer to 27 of the 40 questions of set 37,
 with 0.44 wrong details per answer, on the desktop pipeline. It has run on a 12 GB Android emulator
 (median 100 seconds an answer), not on a 12 GB phone, and it has no `.fapack` yet: setup downloads
 the pinned file and checks its size and SHA-256.

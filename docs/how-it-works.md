@@ -94,14 +94,15 @@ to the full passage. Any answer can be read aloud with an offline voice.
 
 ## Measured results
 
-These charts use blind grading from [the evaluation](evaluation.md). Each answer was scored
-against a web-researched reference answer by AI graders that did not know which setup wrote it.
+We count how many questions get a good answer, one that blind AI graders score 7 or more out of
+10 next to a web-researched answer, and how many wrong details an answer carries. The tests and
+their records are in [the evaluation](evaluation.md).
 
-![Share of the reference answer's score on 40 sealed questions: Qwen3.5 2B 26.0%, Qwen3.5 4B 41.8%, Gemma 4 26B 70.2%](images/fieldatlas-models.png)
+![Good answers out of 40 sealed questions: Qwen3.5 2B 2, Qwen3.5 4B 8, Gemma 4 26B 27](images/fieldatlas-models.png)
 
-![Reading saved sources added 12.6 to 13.6 points in three tests: two Biology collection editions and rare subjects read from the Encyclopedia](images/fieldatlas-collections.png)
+![More good answers when the model reads saved sources: Biology rebuild 2 to 7 and 4 to 6, rare subjects 2 to 7](images/fieldatlas-collections.png)
 
-![Everything installed takes 37.0 GB of the 50 GB allowed](images/fieldatlas-storage.png)
+![47.58 GB of the 50 GB allowed, with every model, collection and voice installed](images/fieldatlas-storage.png)
 
 ## Where it lives in the code
 

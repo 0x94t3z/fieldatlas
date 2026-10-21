@@ -2,89 +2,99 @@
   "_about": "Every figure here is copied from docs/evaluation.md. Edit a value there first, then here, then run make_charts.py.",
   "ladder": {
     "questions": 40,
-    "sourceLine": "Set 37: 40 sealed questions, two blind grading rounds of eight. Details in docs/evaluation.md.",
+    "method": "A good answer scored 7 or more out of 10 from AI graders reading it blind; 40 new questions, two grading rounds.",
+    "sourceLine": "Set 37, sealed before any run; the settings each phone uses today. Every answer and grade in docs/fieldtest.",
     "rows": [
       {
         "phone": "4 GB phones",
         "model": "Qwen3.5 2B",
         "route": "cites the saved passages",
-        "share": 26.0,
+        "good": 2,
         "errors": 0.71
       },
       {
         "phone": "6 and 8 GB phones",
         "model": "Qwen3.5 4B",
         "route": "answers from its own knowledge",
-        "share": 41.8,
+        "good": 8,
         "errors": 1.94
       },
       {
         "phone": "12 GB phones",
         "model": "Gemma 4 26B",
         "route": "reasons, then answers",
-        "share": 70.2,
+        "good": 27,
         "errors": 0.44
       }
     ]
   },
   "collections": {
-    "sourceLine": "Sets 30 and 42: sealed questions, two blind grading rounds each. Details in docs/evaluation.md.",
+    "questions": 40,
+    "method": "Same model and questions in each pair; only what it could read changed. Good = 7 or more out of 10 from blind AI graders.",
+    "sourceLine": "Sets 30 and 42: sealed questions, two blind grading rounds for set 30, one for set 42. Details in docs/evaluation.md.",
     "rows": [
       {
         "label": "Longevity questions, Qwen3.5 2B",
         "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
-        "set": "set 30, 40 questions",
-        "before": 23.0,
-        "after": 35.6,
+        "set": "set 30",
+        "before": 2,
+        "after": 7,
+        "errorsBefore": 0.6,
+        "errorsAfter": 0.47,
         "beforeLabel": "older",
         "afterLabel": "rebuilt"
       },
       {
         "label": "Longevity questions, Qwen3.5 4B",
         "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
-        "set": "set 30, 40 questions",
-        "before": 22.3,
-        "after": 35.9,
+        "set": "set 30",
+        "before": 4,
+        "after": 6,
+        "errorsBefore": 0.15,
+        "errorsAfter": 0.15,
         "beforeLabel": "older",
         "afterLabel": "rebuilt"
       },
       {
         "label": "Rare subjects, Qwen3.5 4B",
         "detail": "From memory, then reading and citing the saved Encyclopedia",
-        "set": "set 42, 40 long-tail questions",
-        "before": 22.3,
-        "after": 35.6,
+        "set": "set 42, long-tail",
+        "before": 2,
+        "after": 7,
+        "errorsBefore": 3.27,
+        "errorsAfter": 2.42,
         "beforeLabel": "from memory",
         "afterLabel": "reads sources"
       }
     ]
   },
   "storage": {
-    "sourceLine": "Measured 18 October 2026. Android's own Storage screen showed 37.06 GB. Details in docs/evaluation.md.",
+    "sourceLine": "Measured 21 October 2026: app 173 MB, data 47.40 GB. Details in docs/evaluation.md.",
     "budgetGB": 50,
     "parts": [
       {
         "label": "Seven collections",
-        "gb": 32.3
+        "gb": 32.31
       },
       {
-        "label": "Qwen3.5 2B and 4B",
-        "gb": 4.41
+        "label": "Three answer models",
+        "gb": 14.96
       },
       {
         "label": "Natural voice",
-        "gb": 0.145
+        "gb": 0.146
       },
       {
         "label": "The app",
         "gb": 0.173
       }
     ],
-    "withGemmaGB": 43,
     "notes": [
       "The Encyclopedia alone holds 8.39 million searchable passages of Wikipedia.",
       "44 first-aid guides and the emergency numbers of 242 countries are built into the app."
-    ]
+    ],
+    "measuredGB": 47.58,
+    "method": "Every answer model, all seven collections and the natural voice, as Android's own Storage screen reported on a 12 GB emulator."
   },
   "hero": {
     "title": [

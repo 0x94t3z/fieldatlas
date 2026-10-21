@@ -45,8 +45,8 @@ on the phone, with no account and nothing sent anywhere.
 - **Rare subjects are read from the collections.** A subject few readers meet — one the Simple
   English edition lacks and that is named in few saved passages, or one a specialist collection
   holds — is answered from the saved sources, cited sentence by sentence, instead of from the
-  model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B went
-  from 22% to 36% of web-and-AI answers; famous subjects are untouched
+  model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B gave a good answer to 7 instead of 2,
+  with fewer wrong details; famous subjects are untouched
   ([details](../evaluation.md#reading-the-sources-for-subjects-few-readers-meet-october-20)).
 - **Every answer in one shape, sources at the foot.** An answer written from the model's own knowledge
   opens with a short paragraph that answers outright, then **Key facts** as bullets, then **Caveats**
@@ -60,12 +60,12 @@ on the phone, with no account and nothing sent anywhere.
   less for GPS; the progress line gives the measured range of recent answers ("Usually 3–4 min").
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
-  more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new
-  longevity questions graded blind, answers went from 23% to 36% of web-and-AI answers with
-  either model. Phones with the earlier edition are offered it as an update in Library.
+  more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new longevity questions graded blind, good answers went from 2 to 7 with
+  Qwen3.5 2B and from 4 to 6 with Qwen3.5 4B. Phones with the earlier edition are offered it as an update in Library.
 - **Questions about your own files answer far more often.** A question asked with a file reads more of
   it, and a correct answer is no longer withheld by the model's own review. On 24 new file questions
-  graded blind, answers went from 32% to 41% of web-and-AI answers, and refusals from 7 to 1
+  graded blind, refusals went from 7 to 1 and good answers from 4 to 5, with more wrong details
+  to check
   ([details](../evaluation.md#questions-about-your-own-files-october-18)). Asking to "use my library"
   in the question adds the downloaded collections as before. A question about taking a medicine in
   the file (a dose, how often, until when, a missed dose) also shows the file's own lines on it, word
@@ -74,8 +74,8 @@ on the phone, with no account and nothing sent anywhere.
   The answer itself is not changed, so a wrong sentence in it stays: read the quoted lines.
 - **An answer instead of "the excerpts do not say".** When none of the passages found is about the
   question, the model now answers from what it knows, labelled as not checked against your sources, instead of saying
-  the passages miss it. On the 8 answers this changed, graded blind, they went from 10% to 67% of
-  web-and-AI answers, with more wrong details to check
+  the passages miss it. On the 8 answers this changed, graded blind, 5 of the 8 became good answers, where none had been, with more wrong
+  details to check
   ([details](../evaluation.md#answering-when-the-excerpts-miss-the-question-october-19)). A
   swallowed battery, however it is described, opens the poisoning guide.
 - **Word problems that name places** ("leaves Tokyo at 17:05 … UTC+9") are worked from their own
@@ -87,8 +87,8 @@ on the phone, with no account and nothing sent anywhere.
 - **Answers from the model's own knowledge.** With Qwen3.5 4B or Gemma 4 26B, an ordinary question
   is answered from what the model knows, with one line under it saying so and what was checked
   ("From the model's knowledge; 2 figures match your sources"), and the passages found listed under
-  it to check. On 40 new questions graded blind, the 4B went from 33.7% to 41.8% of web-and-AI
-  answers, and Gemma 4 26B, which reasons before it answers, reached 70.2%
+  it to check. On 40 new questions graded blind, the 4B gave a good answer to 8 instead
+  of 4, and Gemma 4 26B, which reasons before it answers, to 27
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
   These answers have more wrong details than cited ones, so check the passages. Qwen3.5 2B still
   answers from the passages, with citations. Emergencies, places, files, phrases and calculations
@@ -118,17 +118,16 @@ on the phone, with no account and nothing sent anywhere.
 
 ## How good is it?
 
-- **With the new answer models:** on 40 new questions graded blind (set 37), Gemma 4 26B scores
-  **70.2%** of web-and-AI answers and Qwen3.5 4B **41.8%**, against 33.7% for the 4B and 26.0% for
-  the 2B answering from the passages
+- **With the new answer models:** on 40 new questions graded blind (set 37), Gemma 4 26B gives a good answer to
+  **27 of 40** and Qwen3.5 4B to **8**, against 4 for the 4B and 2 for the 2B answering from the passages
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
   The 4B's answers have more wrong details than the 2B's cited ones (1.94 per answer against 0.71);
   Gemma's have fewer (0.44). These scores measure what each model knows: its answer is written
   without the saved passages, which are listed under it to check, so they do not show the
   collections improving those answers. They come from runs on a computer, not on a phone.
-- **Against web-and-AI answers:** on 120 new questions (two sets written after the changes and
-  graded blind twice), 1.4.2 scores **36.9%** of the web-and-AI answers with Qwen3.5 2B and
-  **38.2%** with Qwen3.5 4B. That is below the bounty's bar
+- **Citing the passages:** on 120 new questions (two sets written after the changes and
+  graded blind twice), 1.4.2 gives a good answer to **27** with Qwen3.5 2B and **28** with
+  Qwen3.5 4B, the 4B with half the wrong details (0.30 against 0.62 per answer). That is below the bounty's bar
   ([details](../evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)).
 - **Single questions are where 1.4.1 left them.** 1.4.1 scored 29% on an earlier, harder set. On
   the same 60 questions, 1.4.1 scores 37.3% and 1.4.2 36.3%. The gains above are in follow-ups,

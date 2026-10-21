@@ -109,22 +109,32 @@ def axis(x_of, ticks, top, base_y, caption):
     return out
 
 
+def axis_counts(x_of, ticks, top, base_y, caption):
+    out = ""
+    for v in ticks:
+        x = x_of(v)
+        out += f'<line x1="{x:.1f}" y1="{top}" x2="{x:.1f}" y2="{base_y}" stroke="{RULE if v == ticks[0] else GRID}" stroke-width="{2 if v == ticks[0] else 1}"/>'
+        out += text(x, base_y + 28, f"{v}", 17, FAINT, 500, anchor="middle")
+    out += text((x_of(ticks[0]) + x_of(ticks[-1])) / 2, base_y + 58, caption, 17, FAINT, anchor="middle")
+    return out
+
+
 def ladder(data):
+    # Counted the way Field Atlas measures itself: how many questions got a good answer (7 or more out of 10 from
+    # blind graders), beside how many wrong details an answer carries.
     d = data["ladder"]
     rows = d["rows"]
-    shares = ", ".join(f"{r['share']:.0f}%" for r in rows)
-    body = heading(
-        (f"{shares},", f" the same {d['questions']} questions on three sizes of phone."),
-        "Each answer scored against a web-researched reference answer by AI graders that did not know which setup wrote it.",
-    )
+    n = d["questions"]
+    counts = ", ".join(str(r["good"]) for r in rows[:-1]) + " and " + str(rows[-1]["good"])
+    body = heading((f"{counts} good answers out of {n},", " by phone size."), d["method"])
     top, row_h, bar_h = 300, 132, 44
     scale_x, scale_w = X0 + 470, 720
-    base_y = top + row_h * len(rows) - 20
 
     def x_of(v):
-        return scale_x + scale_w * v / 100
+        return scale_x + scale_w * v / n
 
-    body += axis(x_of, [0, 25, 50, 75, 100], top - 4, base_y, "share of the reference answer's score")
+    base_y = top + row_h * len(rows) - 20
+    body += axis_counts(x_of, list(range(0, n + 1, 10)), top - 4, base_y, f"questions out of {n} with a good answer")
     body += text(X1, top - 2, "wrong details", 17, FAINT, 600, anchor="end")
     body += text(X1, top + 20, "per answer", 17, FAINT, 600, anchor="end")
     fills = [SAGE_1, SAGE_2, AMBER]
@@ -133,55 +143,48 @@ def ladder(data):
         best = i == len(rows) - 1
         body += text(X0, y + 22, r["model"], 27, INK, 700)
         body += text(X0, y + 52, f"{r['phone']}, {r['route']}", 18, DIM)
-        w = x_of(r["share"]) - scale_x
+        w = max(x_of(r["good"]) - scale_x, 3)
         body += f'<rect x="{scale_x}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="2" fill="{fills[i % 3]}"/>'
-        body += text(scale_x + w + 14, y + 32, f"{r['share']:.1f}%", 27, AMBER if best else INK, 700)
+        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {n}", 27, AMBER if best else INK, 700)
         body += text(X1, y + 32, f"{r['errors']:.2f}", 27, DIM, 600, anchor="end")
-    return frame(body, "Answer quality by phone size", d["sourceLine"])
+    return frame(body, "Good answers by phone size", d["sourceLine"])
 
 
 def collections(data):
     d = data["collections"]
     rows = d["rows"]
-    gains = [r["after"] - r["before"] for r in rows]
-    body = heading(
-        (f"+{min(gains):.1f} to +{max(gains):.1f} points", " from reading the saved sources, in all three tests."),
-        "Same model and questions in each pair; only what the model could read changed. Scored blind by AI graders.",
-    )
+    n = d["questions"]
+    body = heading(("More good answers", " when the model reads your saved sources."), d["method"])
     top, row_h = 300, 128
-    scale_x, scale_w, lo, hi = X0 + 600, 680, 0, 50
-    base_y = top + row_h * len(rows) - 6
+    scale_x, scale_w, lo, hi = X0 + 600, 680, 0, 10
 
     def sx(v):
         return scale_x + scale_w * (v - lo) / (hi - lo)
 
-    body += axis(sx, list(range(lo, hi + 1, 10)), top - 4, base_y, "share of the reference answer's score")
+    base_y = top + row_h * len(rows) - 6
+    body += axis_counts(sx, list(range(lo, hi + 1, 2)), top - 4, base_y, f"good answers out of {n}")
     for i, r in enumerate(rows):
         y = top + 26 + i * row_h
         cy = y + 34
         body += text(X0, y + 24, r["label"], 26, INK, 700)
         body += text(X0, y + 54, r["detail"], 18, DIM)
-        body += text(X0, y + 80, r["set"], 18, FAINT, italic=True, family=SERIF)
+        body += text(X0, y + 80, f"{r['set']} · wrong details per answer {r['errorsBefore']:.2f} → {r['errorsAfter']:.2f}", 18, FAINT, italic=True, family=SERIF)
         a, b = sx(r["before"]), sx(r["after"])
         body += f'<line x1="{a:.1f}" y1="{cy}" x2="{b:.1f}" y2="{cy}" stroke="{SAGE_2}" stroke-width="3"/>'
         body += f'<circle cx="{a:.1f}" cy="{cy}" r="9" fill="{GROUND}" stroke="{SAGE_3}" stroke-width="3"/>'
         body += f'<circle cx="{b:.1f}" cy="{cy}" r="10" fill="{AMBER}"/>'
         body += text(a, cy - 22, r["beforeLabel"], 16, FAINT, anchor="middle")
-        body += text(a, cy + 38, f"{r['before']:.1f}", 18, DIM, 500, anchor="middle")
+        body += text(a, cy + 38, f"{r['before']}", 18, DIM, 500, anchor="middle")
         body += text(b, cy - 22, r["afterLabel"], 16, DIM, 600, anchor="middle")
-        body += text(b, cy + 38, f"{r['after']:.1f}", 18, INK, 700, anchor="middle")
-        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']:.1f}", 22, AMBER, 700)
+        body += text(b, cy + 38, f"{r['after']}", 18, INK, 700, anchor="middle")
+        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']}", 22, AMBER, 700)
     return frame(body, "What the saved sources add", d["sourceLine"])
 
 
 def storage(data):
     d = data["storage"]
     budget = d["budgetGB"]
-    used = sum(p["gb"] for p in d["parts"])
-    body = heading(
-        (f"{used:.1f} GB of {budget},", " with every model, collection and voice installed."),
-        "Both answer models, all seven collections and the natural voice, downloaded through the app on a 12 GB Android emulator.",
-    )
+    body = heading((f"{d['measuredGB']:.2f} GB of {budget},", " with every model, collection and voice installed."), d["method"])
     y0, bh = 400, 60
     bw = X1 - X0
 
@@ -201,19 +204,17 @@ def storage(data):
     # Label the segments where they are instead of in a legend.
     (a0, b0, p0), (a1, b1, p1) = segments[0], segments[1]
     body += text(a0 + 18, y0 + 39, f"{p0['label']}, {p0['gb']:.2f} GB", 21, GROUND, 700)
-    mid1 = (a1 + b1) / 2
-    body += f'<line x1="{mid1:.1f}" y1="{y0 - 6}" x2="{mid1:.1f}" y2="{y0 - 28}" stroke="{SAGE_3}" stroke-width="1.5"/>'
-    body += text(mid1 + 8, y0 - 38, f"{p1['label']}, {p1['gb']:.2f} GB", 18, INK, 600, anchor="end")
+    body += text((a1 + b1) / 2, y0 + 39, f"{p1['label']}, {p1['gb']:.2f} GB", 19, GROUND, 700, anchor="middle")
     rest = segments[2:]
     small = sum(p["gb"] for _, _, p in rest)
     mid2 = (rest[0][0] + rest[-1][1]) / 2
     body += f'<line x1="{mid2:.1f}" y1="{y0 + bh + 6}" x2="{mid2:.1f}" y2="{y0 + bh + 28}" stroke="{AMBER}" stroke-width="1.5"/>'
     rest_label = " and ".join(p["label"].lower() for _, _, p in rest)
-    body += text(mid2, y0 + bh + 52, f"{rest_label}, {small * 1000:.0f} MB", 18, INK, 600, anchor="middle")
-    gm = gx(d["withGemmaGB"])
-    body += f'<line x1="{gm:.1f}" y1="{y0 - 72}" x2="{gm:.1f}" y2="{y0 + bh + 28}" stroke="{DIM}" stroke-width="2" stroke-dasharray="5 5"/>'
-    body += text(gm + 12, y0 - 58, "with Gemma 4 26B", 18, DIM, 600)
-    body += text(gm + 12, y0 - 34, f"about {d['withGemmaGB']} GB", 18, DIM, 600)
+    body += text(mid2 + 12, y0 + bh + 52, f"{rest_label}, {small * 1000:.0f} MB", 18, INK, 600, anchor="end")
+    # What is left under the limit, named above its own slice of the bar.
+    free = budget - d["measuredGB"]
+    body += f'<line x1="{(gx(d["measuredGB"]) + X1) / 2:.1f}" y1="{y0 - 6}" x2="{(gx(d["measuredGB"]) + X1) / 2:.1f}" y2="{y0 - 28}" stroke="{DIM}" stroke-width="1.5"/>'
+    body += text(X1, y0 - 38, f"{free:.2f} GB to spare", 19, DIM, 600, anchor="end")
     for gb in range(0, budget + 1, 10):
         anchor = "start" if gb == 0 else ("end" if gb == budget else "middle")
         body += text(gx(gb), y0 + bh + 100, f"{gb} GB", 16, FAINT, anchor=anchor)

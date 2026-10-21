@@ -81,35 +81,31 @@ file copied from another device: collections from Hugging Face
 
 ## How good is it?
 
-The bounty asks for an offline tool that is more than half as good as a web search plus a
-frontier AI model. We tested Field Atlas 1.4.2 on 120 new questions, in two sets written after the
-changes by AI models that had never seen the app's code, so the questions could not be tailored to
-what the app already handles well. Other AI models then scored each answer blind, on its own, and
-scored an answer researched on the web the same way. The result is Field Atlas's total as a share
-of the web answer's.
+We count how many questions get a **good answer** and how many **wrong details** an answer carries.
+Each question set is written blind and sealed before the app answers it. AI graders then score every
+answer from 0 to 10 next to a web-researched one, without knowing which setup wrote it, in two
+rounds. A good answer is one they score 7 or more. Every change is tested this way before it ships.
 
-- **36.9%** of the web-and-AI answers with Qwen3.5 2B and **38.2%** with Qwen3.5 4B, both answering
-  from the saved passages with citations. **Not there yet.** Citing, the 4B made half the factual
-  errors of the 2B (0.30 against 0.62 per answer).
-- **Answering from the model's own knowledge**, as the 4B and Gemma 4 26B now do: on 40 newer
-  questions (set 37), the 4B reached 41.8% against 26.0% for the cited 2B, but with more wrong
-  details (1.94 against 0.71 per answer), and Gemma 4 26B, reasoning first, 70.2% with 0.44. These
-  scores measure what the model knows: such an answer is written without the saved passages, which
-  are listed under it to check. They come from desktop runs; Gemma has been timed only on an Android
-  emulator, not on a 12 GB phone ([details](docs/evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
-- **Single questions are about where 1.4.1 left them.** On the same 60 questions 1.4.1 scores 37.3%
-  and 1.4.2 36.3%. (1.4.1's published 29% came from a harder set.) What 1.4.2 improves is
-  follow-up questions, emergencies told as statements, word problems and the 4B on 8 GB phones.
-- **Strongest:** quick facts (55%) and emergencies (54%).
-- **Weakest:** places in a named city (14%), cryptography (22%), explanations and synthesis (23%).
+![Good answers out of 40 sealed questions: Qwen3.5 2B 2, Qwen3.5 4B 8, Gemma 4 26B 27](docs/images/fieldatlas-models.png)
 
-![Share of the reference answer's score on 40 sealed questions: Qwen3.5 2B 26.0%, Qwen3.5 4B 41.8%, Gemma 4 26B 70.2%](docs/images/fieldatlas-models.png)
+- **Gemma 4 26B, on 12 GB phones:** a good answer to 27 of 40 new questions (set 37), with 0.44
+  wrong details per answer. It reasons first, then answers from what it knows.
+- **Qwen3.5 4B, on 6 and 8 GB phones:** 8 of 40, with 1.94 wrong details per answer. It answers from
+  what it knows, so it says more and gets more details wrong; the passages found are listed under
+  each answer to check it.
+- **Qwen3.5 2B, on 4 GB phones:** 2 of 40, with 0.71 wrong details per answer. It writes only from
+  the saved passages and cites them.
+- **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 7 good
+  answers on 40 longevity questions; reading the Encyclopedia for subjects few people write about
+  took the 4B from 2 to 7 on 40 such questions, with fewer wrong details
+  ([how it works](docs/how-it-works.md)).
 
-The graders and the reference answers come from AI models of one family, so treat these numbers as
-our own measurement, not an independent score. Every question, answer and grade is published in
-[docs/fieldtest/results-1.4.2](docs/fieldtest/results-1.4.2/), and the
-[evaluation](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18) explains the
-method, including two changes that were tried and not adopted.
+These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
+emulator, not on a 12 GB phone. The graders and the reference answers come from AI models of one
+family, so treat these numbers as our own measurement, not an independent score. Every question,
+answer and grade is published in [docs/fieldtest](docs/fieldtest/), and the
+[evaluation](docs/evaluation.md) explains each test, including changes that were tried and not
+adopted.
 
 ## Good to know
 
@@ -117,9 +113,10 @@ method, including two changes that were tried and not adopted.
   built from saved data take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
-- **Within the bounty's limits:** with both models, every collection and the voice installed, the app
-  takes 37.0 GB of storage and, on a 12 GB Android emulator in airplane mode, at most 6.8 GB of
-  memory while answering ([details](docs/evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
+- **Within the bounty's limits:** with all three models, every collection and the voice installed,
+  Android reports 47.58 GB of storage for the app; on a 12 GB Android emulator in airplane mode it used
+  at most 6.8 GB of memory while answering with the 4B
+  ([details](docs/evaluation.md#good-answers-and-storage-with-everything-installed-october-21)).
 - Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
   GrapheneOS or on a real 8 GB phone.
 

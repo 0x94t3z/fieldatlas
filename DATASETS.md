@@ -365,8 +365,9 @@ the pack and beside it on Hugging Face, carries the credits and licences of ever
 OpenStax books considered for it, Anatomy and Physiology 2e and Microbiology, were left out: their
 pinned revisions are CC BY-NC-SA, which does not allow this use.
 
-On 40 new longevity questions, sealed before the collection was used and graded blind, answers
-went from 23% to 36% of web-and-AI answers with either model
+On 40 new longevity questions, sealed before the collection was used and graded blind, the app
+gave a good answer to 7 instead of 2 with Qwen3.5 2B and to 6 instead of 4 with
+Qwen3.5 4B
 ([details](docs/evaluation.md#biology--longevity-on-40-longevity-questions-october-18)).
 Nothing in this collection is clinical guidance, and a finding in mice or worms is not evidence
 that the same works in people.
