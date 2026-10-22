@@ -44,7 +44,7 @@ class MorePerformanceUiTest {
             BenchmarkScreen(BenchmarkUiState(recorded, 18, question, error = "Interrupted"), InferenceState.Ready,
                 {}, {}, {}, { exported = it }, {})
         } }
-        compose.onNodeWithText("2 of 18 recorded").assertExists()
+        compose.onNodeWithText("2 of 40 recorded").assertExists()
         compose.onNodeWithText("Complete").performScrollTo().assertExists()
         compose.onNodeWithText("Failed").performScrollTo().assertExists()
         compose.onNodeWithText("2 evidence chunks").assertExists()

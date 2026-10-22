@@ -2,241 +2,504 @@
   "schemaVersion": 1,
   "questions": [
     {
-      "id": "fact-seasons",
-      "category": "factual",
-      "answerable": true,
-      "prompt": "What causes Earth's seasons and why do hemispheres have opposite seasons?",
-      "requiredEvidence": [
-        "axial tilt",
-        "opposite seasons"
-      ],
-      "prohibitedClaims": [
-        "distance from the Sun is the main cause"
-      ],
-      "scoringNotes": "Use the seasons reference."
-    },
-    {
-      "id": "fact-water",
-      "category": "factual",
-      "answerable": true,
-      "prompt": "What can boiling drinking water address and what contamination can remain?",
-      "requiredEvidence": [
-        "inactivate pathogens",
-        "dissolved metals"
-      ],
-      "prohibitedClaims": [
-        "boiling removes all contaminants"
-      ],
-      "scoringNotes": "Use the water reference."
-    },
-    {
-      "id": "fact-f1",
-      "category": "factual",
-      "answerable": true,
-      "prompt": "What is Formula One and how is a season organized?",
-      "requiredEvidence": [
-        "single-seater",
-        "Grands Prix"
-      ],
-      "prohibitedClaims": [
-        "F1 has no technical regulations"
-      ],
-      "scoringNotes": "Use the Formula One reference."
-    },
-    {
-      "id": "explain-car",
-      "category": "explanation",
-      "answerable": true,
-      "prompt": "Explain how a road car moves from stored energy to acceleration.",
-      "requiredEvidence": [
-        "torque",
-        "traction"
-      ],
-      "prohibitedClaims": [
-        "all cars have identical powertrains"
-      ],
-      "scoringNotes": "Use the car reference."
-    },
-    {
-      "id": "explain-battery",
-      "category": "explanation",
-      "answerable": true,
-      "prompt": "Explain the difference between battery capacity and power, and what affects service life.",
-      "requiredEvidence": [
-        "capacity",
-        "power"
-      ],
-      "prohibitedClaims": [
-        "capacity and power are the same"
-      ],
-      "scoringNotes": "Use the battery reference."
-    },
-    {
-      "id": "explain-climate",
-      "category": "explanation",
-      "answerable": true,
-      "prompt": "Explain the difference between weather and climate and why one cold day is not a climate trend.",
-      "requiredEvidence": [
-        "short periods",
-        "longer periods"
-      ],
-      "prohibitedClaims": [
-        "one cold day disproves warming"
-      ],
-      "scoringNotes": "Use the climate reference."
-    },
-    {
-      "id": "compare-solar",
-      "category": "comparison",
-      "answerable": true,
-      "prompt": "Compare solar electricity and battery storage for evening demand.",
-      "requiredEvidence": [
-        "sunny periods",
-        "storage duration"
-      ],
-      "prohibitedClaims": [
-        "batteries eliminate every grid constraint"
-      ],
-      "scoringNotes": "Use the solar reference."
-    },
-    {
-      "id": "compare-evidence",
-      "category": "comparison",
-      "answerable": true,
-      "prompt": "How should two conflicting sources be compared before choosing which applies better?",
-      "requiredEvidence": [
-        "methodology",
-        "uncertainty"
-      ],
-      "prohibitedClaims": [
-        "the newest source is always correct"
-      ],
-      "scoringNotes": "Use the evidence reference."
-    },
-    {
-      "id": "compare-fuel-battery",
-      "category": "comparison",
-      "answerable": true,
-      "prompt": "Compare fuel and battery vehicles by energy storage, conversion, and practical limits.",
-      "requiredEvidence": [
-        "energy is stored",
-        "losses"
-      ],
-      "prohibitedClaims": [
-        "one type has no losses"
-      ],
-      "scoringNotes": "Use the car reference."
-    },
-    {
-      "id": "synth-water",
+      "id": "h37-01",
       "category": "synthesis",
       "answerable": true,
-      "prompt": "Synthesize a cautious recommendation for treating questionable drinking water.",
+      "prompt": "I'm 52 and lift weights twice a week. Is creatine worth taking at my age, how much a day, do I need a loading phase, and is it safe for my kidneys?",
       "requiredEvidence": [
-        "source quality",
-        "testing"
+        "creatine",
+        "kidney"
       ],
       "prohibitedClaims": [
-        "one treatment works for every contaminant"
+        "damages healthy kidneys"
       ],
-      "scoringNotes": "Combine treatment limits and verification."
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "synth-grid",
+      "id": "h37-02",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "how does a boomerang come back to you",
+      "requiredEvidence": [
+        "spin",
+        "lift"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-03",
+      "category": "travel",
+      "answerable": true,
+      "prompt": "Flying to Svalbard on a non-EU passport (I need a visa for most of Europe). Do I need a Schengen visa for the trip, and is it true you have to carry a rifle outside Longyearbyen because of polar bears? Can tourists even get one?",
+      "requiredEvidence": [
+        "schengen",
+        "rifle"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-04",
+      "category": "travel",
+      "answerable": true,
+      "prompt": "is public transport really free in luxembourg? does that include the trains and can i ride all the way to the border on it",
+      "requiredEvidence": [
+        "free",
+        "train"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-05",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "how does a smoke alarm sense smoke? whats the diffrence between the ionisation and optical kind",
+      "requiredEvidence": [
+        "ionisation",
+        "optical"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-06",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "is it true water drains the opposite way down the sink in the southern hemisphere because of the coriolis effect?",
+      "requiredEvidence": [
+        "myth"
+      ],
+      "prohibitedClaims": [
+        "drains the opposite way"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-07",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "How does an MRI scanner make pictures of the inside of your body, and why is it so loud while it's running?",
+      "requiredEvidence": [
+        "magnet",
+        "hydrogen"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-08",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "who was toussaint louverture and how did he die",
+      "requiredEvidence": [
+        "haitian",
+        "prison"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-09",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "how do periodical cicadas know when 17 years are up? they're underground the whole time",
+      "requiredEvidence": [
+        "sap",
+        "root"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-10",
+      "category": "health",
+      "answerable": true,
+      "prompt": "went to a concert last night and my ears are still ringing this morning. is that permanent? how long does it usually take to go away and when should i get it checked",
+      "requiredEvidence": [
+        "tinnitus",
+        "temporary"
+      ],
+      "prohibitedClaims": [
+        "always permanent"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-11",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "Who were the first people to reach the summit of Denali, and in what year?",
+      "requiredEvidence": [
+        "1913",
+        "harper"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-12",
+      "category": "reasoning",
+      "answerable": true,
+      "prompt": "american recipe says bake at 350F for 45 min in a 9x13 inch pan. my oven is in celsius and my pan is 20 x 30 cm. what temperature do i set, and how much smaller is my pan in area?",
+      "requiredEvidence": [
+        "175",
+        "600"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-13",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "whats the capitol of kiribati and is it true its the first country to see the new year",
+      "requiredEvidence": [
+        "tarawa",
+        "first"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-14",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "fastest animal in the world if you count birds diving? how fast does it actualy go",
+      "requiredEvidence": [
+        "peregrine",
+        "320"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-15",
       "category": "synthesis",
       "answerable": true,
-      "prompt": "Synthesize when solar storage helps a grid and when other measures are needed.",
+      "prompt": "what is the haber bosch process and why do people say half the world is fed because of it? whats the downside",
       "requiredEvidence": [
-        "round-trip losses",
-        "grid constraints"
+        "ammonia",
+        "nitrogen"
       ],
-      "prohibitedClaims": [
-        "storage solves every grid problem"
-      ],
-      "scoringNotes": "Combine solar and battery references."
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "synth-history",
+      "id": "h37-16",
+      "category": "emergency",
+      "answerable": true,
+      "prompt": "tornado warning just went off on my phone, we're in a ground floor motel room in oklahoma, there's no basement. where do we go",
+      "requiredEvidence": [
+        "bathroom",
+        "bathtub"
+      ],
+      "prohibitedClaims": [
+        "go outside"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-17",
+      "category": "comparison",
+      "answerable": true,
+      "prompt": "What's the difference between a woolly mammoth and a mastodon? Were they basically the same animal?",
+      "requiredEvidence": [
+        "mastodon",
+        "elephant"
+      ],
+      "prohibitedClaims": [
+        "the same animal"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-18",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "When was the Hubble Space Telescope launched, and which space shuttle carried it into orbit?",
+      "requiredEvidence": [
+        "1990",
+        "discovery"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-19",
       "category": "synthesis",
       "answerable": true,
-      "prompt": "Synthesize how primary evidence and later scholarship should be combined in a historical explanation.",
+      "prompt": "There were billions of passenger pigeons in North America in the 1800s. How did they go completely extinct by 1914, and why couldn't the last small flocks recover?",
       "requiredEvidence": [
-        "primary evidence",
-        "competing interpretations"
+        "hunting",
+        "1914"
       ],
-      "prohibitedClaims": [
-        "one document proves the entire history"
-      ],
-      "scoringNotes": "Use the history reference."
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "reason-health",
+      "id": "h37-20",
+      "category": "travel",
+      "answerable": true,
+      "prompt": "Going to Belize next month. Do I need to change money into Belize dollars or can I just pay in US dollars everywhere, and what's the exchange rate?",
+      "requiredEvidence": [
+        "2 to 1",
+        "us dollars"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-21",
       "category": "reasoning",
       "answerable": true,
-      "prompt": "Why is a plausible health mechanism not proof that a treatment works, and when is urgent help needed?",
+      "prompt": "The vet gave us tablets for our dog: one every 8 hours, 21 in the pack. We gave the first one at 7:30 pm on Tuesday. If we stick exactly to the schedule, what day and time do we give the last one?",
       "requiredEvidence": [
-        "evidence quality",
-        "emergency help"
+        "tuesday",
+        "11:30"
       ],
-      "prohibitedClaims": [
-        "plausibility proves effectiveness"
-      ],
-      "scoringNotes": "Use the health reference."
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "reason-network",
+      "id": "h37-22",
+      "category": "health",
+      "answerable": true,
+      "prompt": "How often should you replace a toothbrush, and are electric toothbrushes actually better than manual ones at cleaning?",
+      "requiredEvidence": [
+        "3",
+        "electric"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-23",
+      "category": "comparison",
+      "answerable": true,
+      "prompt": "sweet potato vs yam are they the same thing? my supermarket seems to use both names",
+      "requiredEvidence": [
+        "different",
+        "dioscorea"
+      ],
+      "prohibitedClaims": [
+        "the same thing"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-24",
+      "category": "comparison",
+      "answerable": true,
+      "prompt": "Mandarin vs Cantonese: can speakers of one understand the other, and do they write the same way?",
+      "requiredEvidence": [
+        "not mutually intelligible",
+        "tones"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-25",
+      "category": "emergency",
+      "answerable": true,
+      "prompt": "Walking across a field with my dog and a herd of cows with calves is running straight at us. What do we do?",
+      "requiredEvidence": [
+        "let go of the dog",
+        "dog"
+      ],
+      "prohibitedClaims": [
+        "pick the dog up"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-26",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "How did ancient Polynesian navigators find tiny islands across thousands of km of open Pacific without a compass or maps?",
+      "requiredEvidence": [
+        "star",
+        "swell"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-27",
+      "category": "health",
+      "answerable": true,
+      "prompt": "do you really have to wait 30 mins after eating before going swimming or is that a myth",
+      "requiredEvidence": [
+        "myth"
+      ],
+      "prohibitedClaims": [
+        "wait 30 minutes"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-28",
+      "category": "comparison",
+      "answerable": true,
+      "prompt": "white rhino vs black rhino, theyre both grey so how do you tell them apart",
+      "requiredEvidence": [
+        "lip",
+        "square"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-29",
+      "category": "comparison",
+      "answerable": true,
+      "prompt": "Granite or marble for a kitchen worktop? Which one is better if we actually cook a lot, with lemon juice, hot pans and so on?",
+      "requiredEvidence": [
+        "granite",
+        "etch"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-30",
+      "category": "emergency",
+      "answerable": true,
+      "prompt": "my 2 year old got into my iron tablets, he might have swallowed 5 or 6 of them. he seems completely fine right now. what do i do",
+      "requiredEvidence": [
+        "poison",
+        "emergency"
+      ],
+      "prohibitedClaims": [
+        "wait and see"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-31",
+      "category": "emergency",
+      "answerable": true,
+      "prompt": "my friend crashed his mountain bike and a broken branch went into his thigh, its still sticking out. do we pull it out??",
+      "requiredEvidence": [
+        "do not pull",
+        "pressure"
+      ],
+      "prohibitedClaims": [
+        "pull it out"
+      ],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-32",
+      "category": "synthesis",
+      "answerable": true,
+      "prompt": "Why did Prohibition in the US fail and get repealed, and what did it leave behind?",
+      "requiredEvidence": [
+        "21st amendment",
+        "1933"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-33",
       "category": "reasoning",
       "answerable": true,
-      "prompt": "What can offline software do locally, and what information cannot it retrieve without a network path?",
+      "prompt": "ran a 10k in 52:30 today. what's my pace per km and per mile, and if i held the same pace what would my half marathon time be",
       "requiredEvidence": [
-        "local files",
-        "remote information"
+        "5:15",
+        "1:50"
       ],
-      "prohibitedClaims": [
-        "offline software can retrieve current remote data"
-      ],
-      "scoringNotes": "Use the networks reference."
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "reason-computing",
-      "category": "reasoning",
+      "id": "h37-34",
+      "category": "travel",
       "answerable": true,
-      "prompt": "Why does processor speed alone not determine a program's performance?",
+      "prompt": "Staying on a local island in the Maldives instead of a resort. Can I drink alcohol or wear a bikini there, and what are the rules?",
       "requiredEvidence": [
-        "algorithms",
-        "memory access"
+        "alcohol",
+        "bikini beach"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-35",
+      "category": "emergency",
+      "answerable": true,
+      "prompt": "car went off the road into a river and its floating, water coming in at the doors, my 2 kids are in the back. what do i do",
+      "requiredEvidence": [
+        "window",
+        "seatbelt"
       ],
       "prohibitedClaims": [
-        "processor speed alone determines performance"
+        "open the door first"
       ],
-      "scoringNotes": "Use the computing reference."
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "unknown-current-news",
-      "category": "unanswerable",
-      "answerable": false,
-      "prompt": "What happened in a breaking news event after this knowledge pack was published?",
-      "requiredEvidence": [],
+      "id": "h37-36",
+      "category": "health",
+      "answerable": true,
+      "prompt": "Is it true you lose most of your body heat through your head? My mum always made us wear hats for that reason.",
+      "requiredEvidence": [
+        "myth",
+        "10%"
+      ],
       "prohibitedClaims": [],
-      "scoringNotes": "No current remote evidence is available."
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "unknown-private-health",
-      "category": "unanswerable",
-      "answerable": false,
-      "prompt": "What diagnosis did an unnamed private person receive yesterday?",
-      "requiredEvidence": [],
+      "id": "h37-37",
+      "category": "health",
+      "answerable": true,
+      "prompt": "does eating carrots really improve your night vision or is that just something parents say",
+      "requiredEvidence": [
+        "vitamin a",
+        "myth"
+      ],
       "prohibitedClaims": [],
-      "scoringNotes": "The information is private and absent."
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     },
     {
-      "id": "unknown-future-race",
-      "category": "unanswerable",
-      "answerable": false,
-      "prompt": "Who will win the next Formula One race?",
-      "requiredEvidence": [],
+      "id": "h37-38",
+      "category": "synthesis",
+      "answerable": true,
+      "prompt": "how did the shipping container change world trade? why was it such a big deal for shipping costs, dock workers and port cities",
+      "requiredEvidence": [
+        "mclean",
+        "cost"
+      ],
       "prohibitedClaims": [],
-      "scoringNotes": "The future result is unknowable from the corpus."
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-39",
+      "category": "factual",
+      "answerable": true,
+      "prompt": "who wrote the little prince and what happend to him in the end",
+      "requiredEvidence": [
+        "saint-exup",
+        "1944"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
+    },
+    {
+      "id": "h37-40",
+      "category": "explanation",
+      "answerable": true,
+      "prompt": "How does a fibre optic cable carry internet with light, and why doesn't the light escape when the cable bends?",
+      "requiredEvidence": [
+        "total internal reflection",
+        "glass"
+      ],
+      "prohibitedClaims": [],
+      "scoringNotes": "Set 37, sealed 19 October 2026. Key phrases are a quick self-check; the published score is two rounds of blind grading against a web reference (docs/testing-1.4.2.md)."
     }
   ]
 }

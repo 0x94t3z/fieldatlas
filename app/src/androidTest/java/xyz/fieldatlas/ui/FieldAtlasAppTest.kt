@@ -330,7 +330,7 @@ class FieldAtlasAppTest {
                 )
             }
         }
-        compose.onNodeWithText("0 of 18 recorded").assertExists()
+        compose.onNodeWithText("0 of 40 recorded").assertExists()
         compose.onNodeWithText("What causes Earth's seasons?").assertExists()
         compose.onNodeWithText("Run next").assertHasClickAction().assertIsEnabled()
         compose.onNodeWithContentDescription("Back").performClick()
