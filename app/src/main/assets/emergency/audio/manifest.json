@@ -6,7 +6,7 @@
   "speed": 1.0,
   "lang": "en"
  },
- "scriptSha256": "7e96aaf7ecfbede2c1c3aebd9208b974cf26afbd40f6400fb5218a1500a6d803",
+ "scriptSha256": "6aa16dbbe5e304c1740b77e3a8eff741be73ce746cb9e8a6fc029e3809f8d032",
  "guides": {
   "altitude-sickness": {
    "file": "altitude-sickness.ogg",
@@ -283,6 +283,80 @@
     {
      "startMs": 149953,
      "shown": "Remember, rabies requires urgent medical attention."
+    }
+   ]
+  },
+  "asthma-attack": {
+   "file": "asthma-attack.ogg",
+   "durationMs": 105016,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "How to treat an asthma attack"
+    },
+    {
+     "startMs": 12065,
+     "shown": "If you're having an asthma attack, sit up straight, to help your breathing."
+    },
+    {
+     "startMs": 17314,
+     "shown": "Try to stay calm."
+    },
+    {
+     "startMs": 19507,
+     "shown": "Use your asthma reliever inhaler if you have one:"
+    },
+    {
+     "startMs": 23544,
+     "shown": "If you have a blue reliever inhaler, take 1 puff every 30 to 60 seconds until you feel better, up to a maximum of 10 puffs."
+    },
+    {
+     "startMs": 33528,
+     "shown": "Shake the inhaler between each puff and use a spacer with the inhaler if you have one."
+    },
+    {
+     "startMs": 39694,
+     "shown": "If you have an AIR or MART inhaler (used for both preventing and treating symptoms), take 1 puff every 1 to 3 minutes until you feel better, up to a maximum of 6 puffs."
+    },
+    {
+     "startMs": 53580,
+     "shown": "If your personal asthma action plan has a different maximum dose for treating an asthma attack, follow the instructions in your plan."
+    },
+    {
+     "startMs": 63139,
+     "shown": "Immediate action required: Call 999 if:"
+    },
+    {
+     "startMs": 67496,
+     "shown": "You or someone else is having an asthma attack and:"
+    },
+    {
+     "startMs": 71832,
+     "shown": "start to feel worse at any time"
+    },
+    {
+     "startMs": 75105,
+     "shown": "do not feel better after taking the maximum dose using an asthma reliever inhaler"
+    },
+    {
+     "startMs": 81733,
+     "shown": "do not have an asthma inhaler"
+    },
+    {
+     "startMs": 84866,
+     "shown": "If symptoms are no better after 10 minutes and an ambulance has not arrived, use an asthma inhaler again if you have one, taking up to the same maximum dose."
+    },
+    {
+     "startMs": 96252,
+     "shown": "Do not drive yourself to A&E."
+    },
+    {
+     "startMs": 99222,
+     "shown": "The person you speak to at 999 will give you advice about what to do."
     }
    ]
   },
@@ -1685,6 +1759,168 @@
     {
      "startMs": 40056,
      "shown": "You should wash out your eye right away while you wait for medical help."
+    }
+   ]
+  },
+  "fever-children": {
+   "file": "fever-children.ogg",
+   "durationMs": 239568,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "What to do if your child has a high temperature"
+    },
+    {
+     "startMs": 12941,
+     "shown": "If your child or baby has a high temperature, you can usually look after them at home."
+    },
+    {
+     "startMs": 19192,
+     "shown": "The temperature should go down over 1 to 4 days."
+    },
+    {
+     "startMs": 23542,
+     "shown": "Do"
+    },
+    {
+     "startMs": 25694,
+     "shown": "give them plenty of fluids – if your baby is breastfed, continue to breastfeed as normal"
+    },
+    {
+     "startMs": 32843,
+     "shown": "look out for signs of dehydration"
+    },
+    {
+     "startMs": 36170,
+     "shown": "give them food if they want it"
+    },
+    {
+     "startMs": 39266,
+     "shown": "check on your child regularly, including during the night"
+    },
+    {
+     "startMs": 44257,
+     "shown": "keep them at home"
+    },
+    {
+     "startMs": 46667,
+     "shown": "give them either paracetamol or ibuprofen if they're distressed or uncomfortable – check the packaging or leaflet to make sure the medicine is suitable for your child, or speak to a pharmacist or GP if you're not sure"
+    },
+    {
+     "startMs": 62045,
+     "shown": "get medical advice if you're worried about your child, or if the paracetamol or ibuprofen is not helping"
+    },
+    {
+     "startMs": 69888,
+     "shown": "Don’t"
+    },
+    {
+     "startMs": 72038,
+     "shown": "do not undress your child or sponge them down to cool them – a high temperature is a natural and healthy response to infection"
+    },
+    {
+     "startMs": 81475,
+     "shown": "do not cover them up in too many clothes or bedclothes"
+    },
+    {
+     "startMs": 86171,
+     "shown": "do not give aspirin to children under 16 years of age"
+    },
+    {
+     "startMs": 91276,
+     "shown": "do not alternate ibuprofen and paracetamol, unless a health professional such as a doctor or nurse tells you to"
+    },
+    {
+     "startMs": 100187,
+     "shown": "do not give paracetamol to a child under 2 months"
+    },
+    {
+     "startMs": 104930,
+     "shown": "do not give ibuprofen to a child who is under 3 months, weighs under 5kg, has chickenpox, or is dehydrated"
+    },
+    {
+     "startMs": 114561,
+     "shown": "do not give ibuprofen to children with asthma unless it's been recommended by a doctor"
+    },
+    {
+     "startMs": 121316,
+     "shown": "Read more about giving medicines to babies and children"
+    },
+    {
+     "startMs": 126201,
+     "shown": "Urgent advice: Call 111 if your child:"
+    },
+    {
+     "startMs": 130251,
+     "shown": "is under 3 months old and has a temperature of 38C or higher, or you think they have a high temperature"
+    },
+    {
+     "startMs": 139803,
+     "shown": "is 3 to 6 months old and has a temperature of 39C or higher, or you think they have a high temperature"
+    },
+    {
+     "startMs": 149685,
+     "shown": "has other signs of illness, such as a rash, as well as a high temperature"
+    },
+    {
+     "startMs": 155933,
+     "shown": "has a high temperature that's lasted for 5 days or more"
+    },
+    {
+     "startMs": 160875,
+     "shown": "does not want to eat, or is not their usual self and you're worried"
+    },
+    {
+     "startMs": 166264,
+     "shown": "is dehydrated – such as nappies that are not very wet, sunken eyes, and no tears when they're crying"
+    },
+    {
+     "startMs": 173899,
+     "shown": "Immediate action required: Call 999 if your child:"
+    },
+    {
+     "startMs": 178997,
+     "shown": "has a stiff neck"
+    },
+    {
+     "startMs": 181502,
+     "shown": "has a rash that does not fade when you press a glass against it"
+    },
+    {
+     "startMs": 186810,
+     "shown": "is bothered by light"
+    },
+    {
+     "startMs": 189584,
+     "shown": "has a fit (febrile seizure) for the first time (they cannot stop shaking)"
+    },
+    {
+     "startMs": 195788,
+     "shown": "has unusually cold hands and feet"
+    },
+    {
+     "startMs": 199311,
+     "shown": "has changes to their skin colour such as blue, grey, paler than usual or blotchy skin (this may be harder to see on brown or black skin), or blue, grey or paler than usual lips or tongue"
+    },
+    {
+     "startMs": 212709,
+     "shown": "is drowsy and hard to wake"
+    },
+    {
+     "startMs": 215857,
+     "shown": "is extremely agitated (does not stop crying) or is confused"
+    },
+    {
+     "startMs": 221385,
+     "shown": "has difficulty breathing (you may notice grunting noises or their stomach sucking under their ribcage), breathlessness or breathing very fast"
+    },
+    {
+     "startMs": 231892,
+     "shown": "is not responding like they normally do, or is not interested in feeding or normal activities"
     }
    ]
   },
@@ -3196,6 +3432,100 @@
     }
    ]
   },
+  "knocked-out-tooth": {
+   "file": "knocked-out-tooth.ogg",
+   "durationMs": 112729,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "What to do if a tooth has been knocked out"
+    },
+    {
+     "startMs": 12632,
+     "shown": "There are things you can do yourself before seeing a dentist if your tooth has been knocked out."
+    },
+    {
+     "startMs": 19291,
+     "shown": "Hold the tooth by the white bit that sticks out of the gum (the crown) – do not touch the root."
+    },
+    {
+     "startMs": 26022,
+     "shown": "If the tooth is dirty, rinse it gently in milk, saline or saliva."
+    },
+    {
+     "startMs": 31280,
+     "shown": "Try to put it back into the hole in the gum."
+    },
+    {
+     "startMs": 34838,
+     "shown": "Bite down gently on a clean cloth to hold the tooth in place if it goes back in easily."
+    },
+    {
+     "startMs": 41181,
+     "shown": "Go to a dentist as soon as possible."
+    },
+    {
+     "startMs": 44555,
+     "shown": "Important"
+    },
+    {
+     "startMs": 46759,
+     "shown": "Do not put a baby tooth back in as it could damage the tooth growing underneath."
+    },
+    {
+     "startMs": 52618,
+     "shown": "If you cannot put the tooth back in, you can put it in either milk or saliva."
+    },
+    {
+     "startMs": 58224,
+     "shown": "Spit into a container (if it's your tooth) or get your child to spit into a container (if it's theirs) if you're putting the tooth in saliva."
+    },
+    {
+     "startMs": 67550,
+     "shown": "Immediate action required: Ask for an emergency dentist appointment if:"
+    },
+    {
+     "startMs": 73588,
+     "shown": "you have knocked out a tooth, even if you cannot find it"
+    },
+    {
+     "startMs": 78469,
+     "shown": "Information:"
+    },
+    {
+     "startMs": 80386,
+     "shown": "To see a dentist out of hours:"
+    },
+    {
+     "startMs": 83327,
+     "shown": "call your dentist – if they're closed, their answerphone may tell you what to do"
+    },
+    {
+     "startMs": 89343,
+     "shown": "If you do not have a dentist or cannot get an emergency appointment:"
+    },
+    {
+     "startMs": 94634,
+     "shown": "call 111 – they can advise you what to do"
+    },
+    {
+     "startMs": 98867,
+     "shown": "find a dentist near you – ask if you can have an emergency appointment"
+    },
+    {
+     "startMs": 104747,
+     "shown": "You may have to pay for your appointment."
+    },
+    {
+     "startMs": 108215,
+     "shown": "Read more about how much NHS dental treatment costs."
+    }
+   ]
+  },
   "lightning": {
    "file": "lightning.ogg",
    "durationMs": 114767,
@@ -3586,6 +3916,190 @@
     }
    ]
   },
+  "low-blood-sugar": {
+   "file": "low-blood-sugar.ogg",
+   "durationMs": 131155,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "How to treat low blood sugar yourself"
+    },
+    {
+     "startMs": 12408,
+     "shown": "If you have diabetes and get symptoms of low blood sugar (a hypo) or your blood sugar is below 4mmol/L:"
+    },
+    {
+     "startMs": 20829,
+     "shown": "Eat or drink something that will raise your blood sugar quickly, such as a small glass of fruit juice or sugary fizzy drink, 5 glucose or dextrose tablets, 4 large jelly babies, or 2 tubes of glucose gel."
+    },
+    {
+     "startMs": 36488,
+     "shown": "Check your blood sugar after 10 to 15 minutes."
+    },
+    {
+     "startMs": 40731,
+     "shown": "If your blood sugar is still below 4mmol/L, have another sugary drink or snack, and check again after 10 minutes."
+    },
+    {
+     "startMs": 49702,
+     "shown": "Once your symptoms have improved and your blood sugar is above 4mmol/L, eat something that will keep your blood sugar up for longer, such as some biscuits, a sandwich, or your next meal if it's due."
+    },
+    {
+     "startMs": 63499,
+     "shown": "How to treat severe low blood sugar"
+    },
+    {
+     "startMs": 66997,
+     "shown": "If someone has very low blood sugar (a severe hypo) and becomes unconscious:"
+    },
+    {
+     "startMs": 73475,
+     "shown": "Do not give them any food or drink as they will not be able to swallow safely."
+    },
+    {
+     "startMs": 79350,
+     "shown": "Put them into the recovery position."
+    },
+    {
+     "startMs": 82410,
+     "shown": "Give them a glucagon injection straight away, if one is available and you know how to use it."
+    },
+    {
+     "startMs": 89494,
+     "shown": "If they start to recover within 10 minutes of having a glucagon injection and can swallow safely, give them some food or drink that will raise their blood sugar."
+    },
+    {
+     "startMs": 100771,
+     "shown": "Stay with them until they're fully recovered."
+    },
+    {
+     "startMs": 104231,
+     "shown": "Immediate action required: Call 999 if:"
+    },
+    {
+     "startMs": 108588,
+     "shown": "You think someone has very low blood sugar and they're not responding normally or they're unconscious, and:"
+    },
+    {
+     "startMs": 116161,
+     "shown": "a glucagon injection is not available or you do not know how to use it"
+    },
+    {
+     "startMs": 121992,
+     "shown": "you've given a glucagon injection and they have not recovered within 10 minutes"
+    },
+    {
+     "startMs": 128231,
+     "shown": "they've been drinking alcohol"
+    }
+   ]
+  },
+  "opioid-overdose": {
+   "file": "opioid-overdose.ogg",
+   "durationMs": 150853,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "3. Naloxone is safe"
+    },
+    {
+     "startMs": 11985,
+     "shown": "Naloxone will not harm someone if you give it to them and they are not overdosing on an opioid."
+    },
+    {
+     "startMs": 19080,
+     "shown": "Naloxone can be given safely to people of all ages, from infants to older adults."
+    },
+    {
+     "startMs": 25552,
+     "shown": "This includes an adolescent or young adult who may have unintentionally taken an opioid."
+    },
+    {
+     "startMs": 32204,
+     "shown": "During an overdose, a person's breathing can be dangerously slowed or stopped, causing brain damage or death."
+    },
+    {
+     "startMs": 40090,
+     "shown": "It's important to recognize the signs and act fast, even before emergency workers arrive."
+    },
+    {
+     "startMs": 46741,
+     "shown": "If you think that someone is overdosing, please give them naloxone or any other opioid overdose reversal medication."
+    },
+    {
+     "startMs": 55338,
+     "shown": "Signs of overdose may include:"
+    },
+    {
+     "startMs": 58413,
+     "shown": "Unconsciousness or unable to wake up"
+    },
+    {
+     "startMs": 62117,
+     "shown": "Slow or shallow breathing or difficulty breathing such as choking sounds or a gurgling/snoring noise from a person who cannot be woken up"
+    },
+    {
+     "startMs": 72334,
+     "shown": "Discolored skin (especially in nails or lips)"
+    },
+    {
+     "startMs": 76888,
+     "shown": "Small, constricted \"pinpoint pupils\" that don't react to light"
+    },
+    {
+     "startMs": 82227,
+     "shown": "4. Naloxone is one important step"
+    },
+    {
+     "startMs": 86459,
+     "shown": "Naloxone is one important step when helping someone who is overdosing."
+    },
+    {
+     "startMs": 91998,
+     "shown": "If you think that someone is overdosing on an opioid or another substance:"
+    },
+    {
+     "startMs": 97875,
+     "shown": "Administer naloxone or another opioid overdose reversal medication (if available) and then call 911.A"
+    },
+    {
+     "startMs": 106990,
+     "shown": "Try to keep the person awake and breathing."
+    },
+    {
+     "startMs": 110564,
+     "shown": "Lay the person on their side to prevent choking."
+    },
+    {
+     "startMs": 114369,
+     "shown": "Stay with the person until emergency assistance arrives."
+    },
+    {
+     "startMs": 119078,
+     "shown": "Naloxone quickly reverses an overdose by blocking the effects of opioids."
+    },
+    {
+     "startMs": 124950,
+     "shown": "It can restore normal breathing within 2 to 3 minutes in a person whose breath has slowed, or even stopped, as a result of opioid overdose."
+    },
+    {
+     "startMs": 135720,
+     "shown": "Start by administering one dose of naloxone and wait 2-3 minutes to see if normal breathing returns before giving a second dose."
+    },
+    {
+     "startMs": 145993,
+     "shown": "Giving more than one dose of naloxone may not be necessary."
+    }
+   ]
+  },
   "poisoning": {
    "file": "poisoning.ogg",
    "durationMs": 88795,
@@ -3661,6 +4175,112 @@
     {
      "startMs": 77509,
      "shown": "If you suspect someone has been poisoned, call your local poison control center at 1-800-222-1222 right away."
+    }
+   ]
+  },
+  "poisoning-steps": {
+   "file": "poisoning-steps.ogg",
+   "durationMs": 148591,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "Immediate action required: Call 999 or go to A&E if:"
+    },
+    {
+     "startMs": 14613,
+     "shown": "you think you, a child, or someone else may have swallowed, touched or breathed in something harmful"
+    },
+    {
+     "startMs": 22321,
+     "shown": "someone has lost consciousness"
+    },
+    {
+     "startMs": 25689,
+     "shown": "someone has stopped breathing"
+    },
+    {
+     "startMs": 28836,
+     "shown": "you or someone else has severe difficulty breathing - you're unable to get words out, or you're choking or gasping"
+    },
+    {
+     "startMs": 36720,
+     "shown": "you or someone else has a seizure (fit)"
+    },
+    {
+     "startMs": 40672,
+     "shown": "Do not drive to A&E."
+    },
+    {
+     "startMs": 43158,
+     "shown": "Ask someone to drive you or call 999 and ask for an ambulance."
+    },
+    {
+     "startMs": 48854,
+     "shown": "Bring any medicines you take with you."
+    },
+    {
+     "startMs": 51976,
+     "shown": "Urgent advice: Call NHS 111 if:"
+    },
+    {
+     "startMs": 55886,
+     "shown": "you're not sure if something you or someone else have swallowed, touched or breathed in is harmful"
+    },
+    {
+     "startMs": 63139,
+     "shown": "While you're waiting for medical help"
+    },
+    {
+     "startMs": 66444,
+     "shown": "If you think you or someone else may have been poisoned, there are some things you can do while you're waiting for medical help."
+    },
+    {
+     "startMs": 74844,
+     "shown": "Do"
+    },
+    {
+     "startMs": 76996,
+     "shown": "start CPR if someone is unresponsive and not breathing"
+    },
+    {
+     "startMs": 82490,
+     "shown": "put the person in the recovery position if they're unconscious and still breathing"
+    },
+    {
+     "startMs": 88884,
+     "shown": "keep checking the person is breathing – if they're awake, keep talking to them to make sure they have not lost consciousness"
+    },
+    {
+     "startMs": 97570,
+     "shown": "try to find what may have caused the poisoning – look around for packaging, containers, or medicines"
+    },
+    {
+     "startMs": 105731,
+     "shown": "take some of the substance or its packaging to show doctors at the hospital, if possible"
+    },
+    {
+     "startMs": 112854,
+     "shown": "if the person vomits, try putting some vomit in a container to give to healthcare professionals to help them find out what caused the poisoning"
+    },
+    {
+     "startMs": 123279,
+     "shown": "Don’t"
+    },
+    {
+     "startMs": 125429,
+     "shown": "do not try to make someone sick if you think they've swallowed something harmful – they could choke and stop breathing"
+    },
+    {
+     "startMs": 133849,
+     "shown": "do not give the person anything to eat or drink"
+    },
+    {
+     "startMs": 137960,
+     "shown": "Symptoms may take a few hours or days to start, so it's important to get medical advice quickly if there's a chance you or someone else could have poisoning."
     }
    ]
   },
@@ -3775,6 +4395,76 @@
     {
      "startMs": 145643,
      "shown": "Consult your doctor or pharmacist immediately for a new supply."
+    }
+   ]
+  },
+  "pregnancy-bleeding": {
+   "file": "pregnancy-bleeding.ogg",
+   "durationMs": 85653,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "Urgent advice: Get urgent help if:"
+    },
+    {
+     "startMs": 12164,
+     "shown": "You're pregnant and have light bleeding or spotting with:"
+    },
+    {
+     "startMs": 16404,
+     "shown": "no pain, or mild tummy pain (the pain does not stop you doing daily tasks)"
+    },
+    {
+     "startMs": 22766,
+     "shown": "diarrhoea, or pain or pressure when you pee or poo"
+    },
+    {
+     "startMs": 27380,
+     "shown": "Call your maternity unit if you have the phone number."
+    },
+    {
+     "startMs": 31425,
+     "shown": "If you're less than 20 weeks pregnant, an early pregnancy unit may be able to help."
+    },
+    {
+     "startMs": 37571,
+     "shown": "You can find how to contact one on your local NHS trust website or in your maternity notes."
+    },
+    {
+     "startMs": 44387,
+     "shown": "If you do not have a maternity unit yet or cannot contact an early pregnancy unit, call NHS 111."
+    },
+    {
+     "startMs": 52100,
+     "shown": "Immediate action required: Call 999 if:"
+    },
+    {
+     "startMs": 56458,
+     "shown": "You're pregnant and bleeding and:"
+    },
+    {
+     "startMs": 59273,
+     "shown": "you have severe pain in your tummy (you cannot focus on TV, read a book or do daily tasks because of the pain)"
+    },
+    {
+     "startMs": 67933,
+     "shown": "you have pain in your shoulder"
+    },
+    {
+     "startMs": 71024,
+     "shown": "you feel sick, faint, dizzy or lose consciousness"
+    },
+    {
+     "startMs": 75767,
+     "shown": "the bleeding is heavy (soaking a period pad soon after putting it on)"
+    },
+    {
+     "startMs": 81820,
+     "shown": "These can be signs you need immediate treatment."
     }
    ]
   },

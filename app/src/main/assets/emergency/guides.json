@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-18",
+  "generated": "2026-10-21",
   "guides": [
     {
       "category": "medical",
@@ -606,6 +606,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:57Z",
@@ -667,6 +668,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:55Z",
@@ -754,6 +756,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:54Z",
@@ -910,6 +913,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:52Z",
@@ -972,6 +976,598 @@
         "url": "https://medlineplus.gov/poisoning.html"
       },
       "title": "Poisoning",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "poisoning-steps",
+      "keywords": [
+        "poisoning"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "Immediate action required: Call 999 or go to A&E if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "you think you, a child, or someone else may have swallowed, touched or breathed in something harmful",
+            "someone has lost consciousness",
+            "someone has stopped breathing",
+            "you or someone else has severe difficulty breathing - you're unable to get words out, or you're choking or gasping",
+            "you or someone else has a seizure (fit)"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "Do not drive to A&E. Ask someone to drive you or call 999 and ask for an ambulance.",
+            "Bring any medicines you take with you."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Urgent advice: Call NHS 111 if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "you're not sure if something you or someone else have swallowed, touched or breathed in is harmful"
+          ]
+        },
+        {
+          "heading": "While you're waiting for medical help",
+          "level": 1,
+          "paragraphs": [
+            "If you think you or someone else may have been poisoned, there are some things you can do while you're waiting for medical help."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Do",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "start CPR if someone is unresponsive and not breathing",
+            "put the person in the recovery position if they're unconscious and still breathing",
+            "keep checking the person is breathing – if they're awake, keep talking to them to make sure they have not lost consciousness",
+            "try to find what may have caused the poisoning – look around for packaging, containers, or medicines",
+            "take some of the substance or its packaging to show doctors at the hospital, if possible",
+            "if the person vomits, try putting some vomit in a container to give to healthcare professionals to help them find out what caused the poisoning"
+          ]
+        },
+        {
+          "heading": "Don’t",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "do not try to make someone sick if you think they've swallowed something harmful – they could choke and stop breathing",
+            "do not give the person anything to eat or drink"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "Symptoms may take a few hours or days to start, so it's important to get medical advice quickly if there's a chance you or someone else could have poisoning."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:46:34Z",
+        "revision": null,
+        "sha256": "4caf038879ef5f3142a6fc203b61783f78fd294cb85ff2ac55ef668b73706571",
+        "title": "Poisoning",
+        "url": "https://www.nhs.uk/conditions/poisoning/"
+      },
+      "title": "Poisoning: what to do",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "asthma-attack",
+      "keywords": [
+        "asthma attack",
+        "asthma",
+        "inhaler",
+        "reliever",
+        "puffer",
+        "salbutamol",
+        "ventolin",
+        "wheezing",
+        "can't catch breath"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "How to treat an asthma attack",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "If you're having an asthma attack, sit up straight, to help your breathing. Try to stay calm.",
+            "Use your asthma reliever inhaler if you have one:"
+          ],
+          "steps": [
+            "If you have a blue reliever inhaler, take 1 puff every 30 to 60 seconds until you feel better, up to a maximum of 10 puffs. Shake the inhaler between each puff and use a spacer with the inhaler if you have one.",
+            "If you have an AIR or MART inhaler (used for both preventing and treating symptoms), take 1 puff every 1 to 3 minutes until you feel better, up to a maximum of 6 puffs."
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "If your personal asthma action plan has a different maximum dose for treating an asthma attack, follow the instructions in your plan."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Immediate action required: Call 999 if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "You or someone else is having an asthma attack and:"
+          ],
+          "steps": [
+            "start to feel worse at any time",
+            "do not feel better after taking the maximum dose using an asthma reliever inhaler",
+            "do not have an asthma inhaler"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "If symptoms are no better after 10 minutes and an ambulance has not arrived, use an asthma inhaler again if you have one, taking up to the same maximum dose.",
+            "Do not drive yourself to A&E.",
+            "The person you speak to at 999 will give you advice about what to do."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:47:10Z",
+        "revision": null,
+        "sha256": "e23290791327c99de5b53c9bb033e123f33a8aa4d0e755adba3904b9dbb3b5b6",
+        "title": "Asthma",
+        "url": "https://www.nhs.uk/conditions/asthma/"
+      },
+      "title": "Asthma attack",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "low-blood-sugar",
+      "keywords": [
+        "low blood sugar",
+        "hypo",
+        "hypoglycaemia",
+        "hypoglycemia",
+        "diabetic",
+        "diabetes",
+        "insulin",
+        "glucagon",
+        "blood sugar"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "How to treat low blood sugar yourself",
+          "level": 1,
+          "numbered": true,
+          "paragraphs": [
+            "If you have diabetes and get symptoms of low blood sugar (a hypo) or your blood sugar is below 4mmol/L:"
+          ],
+          "steps": [
+            "Eat or drink something that will raise your blood sugar quickly, such as a small glass of fruit juice or sugary fizzy drink, 5 glucose or dextrose tablets, 4 large jelly babies, or 2 tubes of glucose gel.",
+            "Check your blood sugar after 10 to 15 minutes.",
+            "If your blood sugar is still below 4mmol/L, have another sugary drink or snack, and check again after 10 minutes.",
+            "Once your symptoms have improved and your blood sugar is above 4mmol/L, eat something that will keep your blood sugar up for longer, such as some biscuits, a sandwich, or your next meal if it's due."
+          ]
+        },
+        {
+          "heading": "How to treat severe low blood sugar",
+          "level": 2,
+          "numbered": true,
+          "paragraphs": [
+            "If someone has very low blood sugar (a severe hypo) and becomes unconscious:"
+          ],
+          "steps": [
+            "Do not give them any food or drink as they will not be able to swallow safely.",
+            "Put them into the recovery position.",
+            "Give them a glucagon injection straight away, if one is available and you know how to use it.",
+            "If they start to recover within 10 minutes of having a glucagon injection and can swallow safely, give them some food or drink that will raise their blood sugar.",
+            "Stay with them until they're fully recovered."
+          ]
+        },
+        {
+          "heading": "Immediate action required: Call 999 if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "You think someone has very low blood sugar and they're not responding normally or they're unconscious, and:"
+          ],
+          "steps": [
+            "a glucagon injection is not available or you do not know how to use it",
+            "you've given a glucagon injection and they have not recovered within 10 minutes",
+            "they've been drinking alcohol"
+          ]
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:46:28Z",
+        "revision": null,
+        "sha256": "ad8333525b29100b6fda997a010adacedc765184ea9aadb4783d1b08c7630225",
+        "title": "Low blood sugar (hypoglycaemia)",
+        "url": "https://www.nhs.uk/conditions/low-blood-sugar-hypoglycaemia/"
+      },
+      "title": "Low blood sugar (hypo)",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "pregnancy-bleeding",
+      "keywords": [
+        "pregnant",
+        "pregnancy",
+        "bleeding in pregnancy",
+        "weeks pregnant",
+        "miscarriage",
+        "vaginal bleeding"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "Urgent advice: Get urgent help if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "You're pregnant and have light bleeding or spotting with:"
+          ],
+          "steps": [
+            "no pain, or mild tummy pain (the pain does not stop you doing daily tasks)",
+            "diarrhoea, or pain or pressure when you pee or poo"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "Call your maternity unit if you have the phone number.",
+            "If you're less than 20 weeks pregnant, an early pregnancy unit may be able to help. You can find how to contact one on your local NHS trust website or in your maternity notes.",
+            "If you do not have a maternity unit yet or cannot contact an early pregnancy unit, call NHS 111."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Immediate action required: Call 999 if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "You're pregnant and bleeding and:"
+          ],
+          "steps": [
+            "you have severe pain in your tummy (you cannot focus on TV, read a book or do daily tasks because of the pain)",
+            "you have pain in your shoulder",
+            "you feel sick, faint, dizzy or lose consciousness",
+            "the bleeding is heavy (soaking a period pad soon after putting it on)"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "These can be signs you need immediate treatment."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:46:59Z",
+        "revision": null,
+        "sha256": "c42bf16a98f389f653b119e873b85fa22d8f18f1e27efadbeef7f24588933001",
+        "title": "Vaginal bleeding in pregnancy",
+        "url": "https://www.nhs.uk/pregnancy/common-symptoms/vaginal-bleeding/"
+      },
+      "title": "Bleeding in pregnancy",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "fever-children",
+      "keywords": [
+        "fever",
+        "high temperature",
+        "temperature",
+        "baby fever",
+        "newborn",
+        "feverish",
+        "hot to touch"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "What to do if your child has a high temperature",
+          "level": 1,
+          "paragraphs": [
+            "If your child or baby has a high temperature, you can usually look after them at home. The temperature should go down over 1 to 4 days."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Do",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "give them plenty of fluids – if your baby is breastfed, continue to breastfeed as normal",
+            "look out for signs of dehydration",
+            "give them food if they want it",
+            "check on your child regularly, including during the night",
+            "keep them at home",
+            "give them either paracetamol or ibuprofen if they're distressed or uncomfortable – check the packaging or leaflet to make sure the medicine is suitable for your child, or speak to a pharmacist or GP if you're not sure",
+            "get medical advice if you're worried about your child, or if the paracetamol or ibuprofen is not helping"
+          ]
+        },
+        {
+          "heading": "Don’t",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "do not undress your child or sponge them down to cool them – a high temperature is a natural and healthy response to infection",
+            "do not cover them up in too many clothes or bedclothes",
+            "do not give aspirin to children under 16 years of age",
+            "do not alternate ibuprofen and paracetamol, unless a health professional such as a doctor or nurse tells you to",
+            "do not give paracetamol to a child under 2 months",
+            "do not give ibuprofen to a child who is under 3 months, weighs under 5kg, has chickenpox, or is dehydrated",
+            "do not give ibuprofen to children with asthma unless it's been recommended by a doctor"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 2,
+          "paragraphs": [
+            "Read more about giving medicines to babies and children"
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Urgent advice: Call 111 if your child:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "is under 3 months old and has a temperature of 38C or higher, or you think they have a high temperature",
+            "is 3 to 6 months old and has a temperature of 39C or higher, or you think they have a high temperature",
+            "has other signs of illness, such as a rash, as well as a high temperature",
+            "has a high temperature that's lasted for 5 days or more",
+            "does not want to eat, or is not their usual self and you're worried",
+            "is dehydrated – such as nappies that are not very wet, sunken eyes, and no tears when they're crying"
+          ]
+        },
+        {
+          "heading": "Immediate action required: Call 999 if your child:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "has a stiff neck",
+            "has a rash that does not fade when you press a glass against it",
+            "is bothered by light",
+            "has a fit (febrile seizure) for the first time (they cannot stop shaking)",
+            "has unusually cold hands and feet",
+            "has changes to their skin colour such as blue, grey, paler than usual or blotchy skin (this may be harder to see on brown or black skin), or blue, grey or paler than usual lips or tongue",
+            "is drowsy and hard to wake",
+            "is extremely agitated (does not stop crying) or is confused",
+            "has difficulty breathing (you may notice grunting noises or their stomach sucking under their ribcage), breathlessness or breathing very fast",
+            "is not responding like they normally do, or is not interested in feeding or normal activities"
+          ]
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:47:00Z",
+        "revision": null,
+        "sha256": "a3d33bc80445e4e12f3dac854c45b2a7b13c7bf0e919d0fac3879c7a98e964eb",
+        "title": "High temperature (fever) in children",
+        "url": "https://www.nhs.uk/symptoms/fever-in-children/"
+      },
+      "title": "High temperature (fever) in children and babies",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "knocked-out-tooth",
+      "keywords": [
+        "knocked out tooth",
+        "tooth knocked out",
+        "tooth came out",
+        "lost a tooth",
+        "adult tooth",
+        "front tooth"
+      ],
+      "region": "UK",
+      "sections": [
+        {
+          "heading": "What to do if a tooth has been knocked out",
+          "level": 1,
+          "numbered": true,
+          "paragraphs": [
+            "There are things you can do yourself before seeing a dentist if your tooth has been knocked out."
+          ],
+          "steps": [
+            "Hold the tooth by the white bit that sticks out of the gum (the crown) – do not touch the root.",
+            "If the tooth is dirty, rinse it gently in milk, saline or saliva.",
+            "Try to put it back into the hole in the gum.",
+            "Bite down gently on a clean cloth to hold the tooth in place if it goes back in easily.",
+            "Go to a dentist as soon as possible."
+          ]
+        },
+        {
+          "heading": "Important",
+          "level": 2,
+          "paragraphs": [
+            "Do not put a baby tooth back in as it could damage the tooth growing underneath.",
+            "If you cannot put the tooth back in, you can put it in either milk or saliva.",
+            "Spit into a container (if it's your tooth) or get your child to spit into a container (if it's theirs) if you're putting the tooth in saliva."
+          ],
+          "steps": []
+        },
+        {
+          "heading": "Immediate action required: Ask for an emergency dentist appointment if:",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "you have knocked out a tooth, even if you cannot find it"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "Information:"
+          ],
+          "steps": []
+        },
+        {
+          "heading": "To see a dentist out of hours:",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "call your dentist – if they're closed, their answerphone may tell you what to do"
+          ]
+        },
+        {
+          "heading": "If you do not have a dentist or cannot get an emergency appointment:",
+          "level": 2,
+          "numbered": false,
+          "paragraphs": [],
+          "steps": [
+            "call 111 – they can advise you what to do",
+            "find a dentist near you – ask if you can have an emergency appointment"
+          ]
+        },
+        {
+          "heading": "",
+          "level": 2,
+          "paragraphs": [
+            "You may have to pay for your appointment.",
+            "Read more about how much NHS dental treatment costs."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "attribution": "Information from the NHS website, as at 21 October 2026. Contains public sector information licensed under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.",
+        "license": "Open Government Licence v3.0",
+        "license_url": "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/",
+        "publisher": "NHS website (nhs.uk)",
+        "retrieved": "2026-10-21T19:46:36Z",
+        "revision": null,
+        "sha256": "13326b2c7dadfc22d90032ef71638c346f8e96fb5039d511eb6e762e071c1ce4",
+        "title": "Knocked-out tooth",
+        "url": "https://www.nhs.uk/conditions/knocked-out-tooth/"
+      },
+      "title": "Knocked-out tooth",
+      "urgent": true
+    },
+    {
+      "category": "medical",
+      "id": "opioid-overdose",
+      "keywords": [
+        "opioid",
+        "overdose",
+        "naloxone",
+        "narcan",
+        "heroin",
+        "fentanyl",
+        "oxycodone",
+        "oxy",
+        "methadone",
+        "pinpoint pupils"
+      ],
+      "region": "US",
+      "sections": [
+        {
+          "heading": "3. Naloxone is safe",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "Naloxone will not harm someone if you give it to them and they are not overdosing on an opioid.",
+            "Naloxone can be given safely to people of all ages, from infants to older adults. This includes an adolescent or young adult who may have unintentionally taken an opioid.",
+            "During an overdose, a person's breathing can be dangerously slowed or stopped, causing brain damage or death. It's important to recognize the signs and act fast, even before emergency workers arrive.",
+            "If you think that someone is overdosing, please give them naloxone or any other opioid overdose reversal medication.",
+            "Signs of overdose may include:"
+          ],
+          "steps": [
+            "Unconsciousness or unable to wake up",
+            "Slow or shallow breathing or difficulty breathing such as choking sounds or a gurgling/snoring noise from a person who cannot be woken up",
+            "Discolored skin (especially in nails or lips)",
+            "Small, constricted \"pinpoint pupils\" that don't react to light"
+          ]
+        },
+        {
+          "heading": "4. Naloxone is one important step",
+          "level": 1,
+          "numbered": false,
+          "paragraphs": [
+            "Naloxone is one important step when helping someone who is overdosing.",
+            "If you think that someone is overdosing on an opioid or another substance:"
+          ],
+          "steps": [
+            "Administer naloxone or another opioid overdose reversal medication (if available) and then call 911.A",
+            "Try to keep the person awake and breathing.",
+            "Lay the person on their side to prevent choking.",
+            "Stay with the person until emergency assistance arrives."
+          ]
+        },
+        {
+          "heading": "",
+          "level": 1,
+          "paragraphs": [
+            "Naloxone quickly reverses an overdose by blocking the effects of opioids. It can restore normal breathing within 2 to 3 minutes in a person whose breath has slowed, or even stopped, as a result of opioid overdose.",
+            "Start by administering one dose of naloxone and wait 2-3 minutes to see if normal breathing returns before giving a second dose. Giving more than one dose of naloxone may not be necessary."
+          ],
+          "steps": []
+        }
+      ],
+      "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
+        "license": "Public domain (US federal government work)",
+        "publisher": "CDC",
+        "retrieved": "2026-10-21T19:46:38Z",
+        "revision": null,
+        "sha256": "32e7c5863318b2f85616a6d36d6503f3bf39cfe8f63395838ba5b7b54f02847c",
+        "title": "5 Things to Know About Naloxone",
+        "url": "https://www.cdc.gov/overdose-prevention/reversing-overdose/about-naloxone.html"
+      },
+      "title": "Opioid overdose and naloxone",
       "urgent": true
     },
     {
@@ -1104,6 +1700,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC/NIOSH",
         "retrieved": "2026-10-05T09:09:03Z",
@@ -1238,6 +1835,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC/NIOSH",
         "retrieved": "2026-10-03T16:57:31Z",
@@ -1399,6 +1997,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC/NIOSH",
         "retrieved": "2026-10-03T16:57:34Z",
@@ -1468,6 +2067,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC/NIOSH",
         "retrieved": "2026-10-03T16:57:35Z",
@@ -1531,6 +2131,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:37Z",
@@ -1593,6 +2194,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:39Z",
@@ -1836,6 +2438,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:44Z",
@@ -1926,6 +2529,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:50Z",
@@ -2326,6 +2930,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:58:01Z",
@@ -2487,6 +3092,7 @@
         }
       ],
       "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
         "license": "Public domain (US federal government work)",
         "publisher": "CDC",
         "retrieved": "2026-10-03T16:57:58Z",
@@ -3491,5 +4097,5 @@
       "urgent": false
     }
   ],
-  "version": "2026.10.18"
+  "version": "2026.10.21"
 }

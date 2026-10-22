@@ -41,6 +41,24 @@ class ResearchOrchestrator(
     private val sourceRouter: Boolean = true,
     /** Whether the router reads collections the user imported, as it reads specialist ones (see [SourceRouter]). */
     private val readImportedCollections: Boolean = false,
+    /**
+     * Measurement only, off in the app: the model writes a first-aid answer for the situation with the official guide
+     * as its note, and the guide follows it. The app shows the guide as published (see the guide route).
+     */
+    private val modelWritesGuides: Boolean = false,
+    /**
+     * Measurement only, with [modelWritesGuides]: the written answer is checked against the guide (see
+     * [xyz.fieldatlas.emergency.GuideAnswerCheck]), the prompt asks for "call now" on a danger sign already described,
+     * and an answer from memory to a question describing a life threat opens with the call line too.
+     */
+    private val guideAnswerChecks: Boolean = false,
+    /**
+     * For a model not trusted with first aid (ModelOffer.writesFirstAid false) and a first-aid question no guide matched.
+     * "fallback" (the app): no treatment steps from memory, only what the saved guides support. On 40 fresh first-aid
+     * questions (set 47, two blind grades each) the 4B answering from memory had 6 answers both graders called unsafe, the
+     * fallback 1. Measurement only: "memory", "careful" (a safety instruction added) and "cited" (the saved-passage route).
+     */
+    private val smallModelFirstAid: String = "fallback",
 ) {
     /** Prefill progress of the loaded engine, surfaced for the activity line. */
     val promptProgress: StateFlow<PromptProgress?> get() = inference.promptProgress
@@ -139,6 +157,11 @@ class ResearchOrchestrator(
             val core = researchCore(question, resultLimit, contextTokenBudget, maxOutputTokens, attachments, topic = topic,
                 libraryWithFiles = libraryWithFiles)
             val numbers = guide?.let { emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) } }
+            // First aid no guide matched opens with the app's call line on every route (an answer, a refusal, the fallback):
+            // on set 47 refusals and off-topic answers to "heavy bleeding at 32 weeks" never said to call.
+            if (numbers == null && guide == null && attachments.isEmpty() && phrase == null &&
+                xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
+                return leading(xyz.fieldatlas.emergency.GuideAnswerCheck.callLine(question, guideFound = false, cautious = !inference.writesFirstAid), core)
             return if (numbers == null) core else leading(numbers + "\n\n", core)
         }
         if (calculation.complete) return flow {
@@ -304,16 +327,104 @@ class ResearchOrchestrator(
             val phraseAsk = phraseRequest(question, attachments.isNotEmpty())
             val guide = if (attachments.isEmpty()) (if (phraseAsk == null) guideFor(question, topic) else null)
                 ?: preferredGuideId?.let { id -> emergencyGuides().firstOrNull { it.id == id } } else null
+            // A model trusted with it writes the answer for the situation, the guide as its source (ModelOffer.writesFirstAid);
+            // every other model shows the guide as published.
+            val writesGuide = modelWritesGuides || inference.writesFirstAid
+            val checksGuide = guideAnswerChecks || inference.writesFirstAid
+            if (guide != null && writesGuide && inference.state.value == xyz.fieldatlas.inference.InferenceState.Ready) {
+                val evidence = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide)
+                emit(ResearchEvent.Sources(listOf(evidence)))
+                val thinking = inference.thinkingBudget.coerceAtLeast(0)
+                val first = PromptBuilder.buildGuideAnswer(question, evidence, thinking > 0, dangerSignsFirst = checksGuide)
+                onEvidencePacked(first)
+                emit(ResearchEvent.Token(""))
+                val written = StringBuilder()
+                var tokens = 0
+                var firstAt: Long? = null
+                val generationStart = monotonicMillis()
+                // "Now" when the question describes a life threat or a swallowed poison, as on the no-guide route (set 50 opened
+                // a swallowed poison's guide with "if this is an emergency").
+                val lead = xyz.fieldatlas.emergency.GuideAnswerCheck.callLine(question, guideId = guide.id)
+                // The official guide is on screen within a second; the answer written for the situation grows above it and
+                // replaces it when checked (the guide stays in Sources). Writing takes minutes on a phone, and until 22 Oct
+                // the screen showed only the call line meanwhile.
+                val meanwhile = GuideStandIn.NOTE + "\n\n" + xyz.fieldatlas.emergency.EmergencyGuideMatch.published(guide)
+                emit(ResearchEvent.Token(lead + meanwhile, replace = true))
+                suspend fun write(answer: Flow<String>) = answer.collect { token ->
+                    if (firstAt == null) firstAt = monotonicMillis()
+                    tokens++
+                    written.append(token)
+                    val shownSoFar = AnswerText.mixed(AnswerChecks.removeDoses(
+                        AnswerChecks.removeOnlineAdvice(written.toString(), question), question, emptyList()), emptyList())
+                    // Checked as it streams: a step the guide forbids is never on screen, not even before the answer ends.
+                    val partial = if (checksGuide) xyz.fieldatlas.emergency.GuideAnswerCheck.streamed(shownSoFar, guide) else shownSoFar
+                    emit(ResearchEvent.Token(lead + (if (partial.isBlank()) "" else partial.trimEnd() + "\n\n---\n\n") + meanwhile, replace = true))
+                }
+                write(if (thinking > 0) inference.think(first.prompt, maxOutputTokens + thinking, savedPrefixChars = first.savedPrefixChars)
+                    else inference.generate(first.prompt, maxOutputTokens, savedPrefixChars = first.savedPrefixChars))
+                if (thinking > 0 && (AnswerText.visible(written.toString()).isBlank() || inference.lastHitLimit)) {
+                    written.clear()
+                    val direct = PromptBuilder.buildGuideAnswer(question, evidence, thinking = false, dangerSignsFirst = checksGuide)
+                    write(inference.generate(direct.prompt, maxOutputTokens, savedPrefixChars = direct.savedPrefixChars))
+                }
+                val raw = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
+                    AnswerChecks.removeOnlineAdvice(written.toString(), question), question), question, emptyList())
+                val draft = AnswerText.finalized(raw, 1).trim()
+                val checked = if (checksGuide) xyz.fieldatlas.emergency.GuideAnswerCheck.check(question, guide, draft) else null
+                val body = checked?.answer ?: draft
+                val figures = if (checksGuide) SavedFactCheck.note(question, body, listOf(PromptSource("S1", evidence, excerpt = evidence.text))) else null
+                // The guide's own call-now line names the sign; it is not repeated under a lead that already says "now".
+                val shown = lead + listOfNotNull(checked?.callNow?.takeIf { lead == CALL_FIRST }, body, figures,
+                    if (guide.source.license.startsWith("Open Government Licence"))
+                        // An answer written from an NHS page is an adaptation: credited to the licence, never presented as the NHS's.
+                        "_Written for your situation from a guide on the NHS website [S1] (contains public sector information licensed under " +
+                            "the Open Government Licence v3.0; not reviewed or endorsed by the NHS). The guide as published is in Sources._"
+                    else "_Written for your situation from " + xyz.fieldatlas.emergency.GuideAnswerCheck.possessive(guide.source.publisher) +
+                        " guide [S1]; the guide as published is in Sources._")
+                    .joinToString("\n\n")
+                emit(ResearchEvent.Token(shown, replace = true))
+                val audit = AnswerText.citationAudit(shown, 1)
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = 0,
+                    timeToFirstTokenMillis = firstAt?.let { elapsed(startedAt, it) },
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = tokens,
+                    citedSourceIds = audit.citedSourceIds,
+                    hasUnmappedCitation = audit.hasUnmappedCitation,
+                    promptMillis = firstAt?.let { it - generationStart },
+                )))
+                return@flow
+            }
             if (guide != null) {
                 emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
                 emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
-                    modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question)))
+                    modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question,
+                    cautious = !inference.writesFirstAid)))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = 0,
                     timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
                     totalMillis = elapsed(startedAt, monotonicMillis()),
                     generatedTokenCount = 0,
                     citedSourceIds = setOf("S1"),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
+            // The small model's no-guide reply uses none of the library: decided before the search, it appears at once. On the
+            // Redmi the search first cost 50-70 s before an emergency answer that never used it (22 Oct offline check).
+            if (attachments.isEmpty() && phraseAsk == null && !inference.writesFirstAid && smallModelFirstAid == "fallback" &&
+                xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)) {
+                val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
+                val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
+                    .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
+                emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
+                emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = 0,
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = basics.indices.map { "S${it + 1}" }.toSet(),
                     hasUnmappedCitation = false,
                 )))
                 return@flow
@@ -941,7 +1052,28 @@ class ResearchOrchestrator(
                 val mentions = SourceRouter.titlesToCount(subjects, packed.sources).associateWith { retriever.mentions(it, SourceRouter.MENTION_CAP) }
                 SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions, readImportedCollections)
             }
+            val firstAidQuestion = attachments.isEmpty() && xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)
+            val firstAidHere = firstAidQuestion && !inference.writesFirstAid && smallModelFirstAid != "memory"
+            if (firstAidHere && smallModelFirstAid == "fallback") {
+                // No saved guide covers it and the model is not trusted to write first aid from memory: the call line, a
+                // plain statement of the gap, and only the basics the saved CPR, recovery-position and anaphylaxis guides support.
+                val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
+                val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
+                    .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
+                emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
+                emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = basics.indices.map { "S${it + 1}" }.toSet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             val knowledgeNotes: Int? = when {
+                firstAidHere && smallModelFirstAid == "cited" -> null
                 // A fixed count of zero (the desktop's knowledge-first switch) still lets the router read a rare subject.
                 modelFirstNotes != null -> if (modelFirstNotes == 0) routed else modelFirstNotes
                 inference.knowledgeFirst -> routed
@@ -952,7 +1084,8 @@ class ResearchOrchestrator(
                 // A model chosen for it reasons first: Gemma 4 26B got a time-zone sum wrong straight out and right
                 // after reasoning, and scored 82.5% against 77.5% of web-and-AI answers on set 33 (two blind rounds).
                 val thinking = inference.thinkingBudget.coerceAtLeast(0)
-                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0, cite = knowledgeNotes > 0)
+                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0, cite = knowledgeNotes > 0,
+                    firstAidCare = firstAidQuestion && (inference.writesFirstAid || firstAidHere && smallModelFirstAid == "careful"))
                 onEvidencePacked(first)
                 if (packed.sources.isNotEmpty()) emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
                 emit(ResearchEvent.Token(""))
@@ -975,7 +1108,7 @@ class ResearchOrchestrator(
                     // Asked again with the thinking turn closed, it answers at once and in full.
                     written.clear()
                     val direct = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = false,
-                        cite = knowledgeNotes > 0, shaped = false)
+                        cite = knowledgeNotes > 0, shaped = false, firstAidCare = firstAidQuestion && (inference.writesFirstAid || firstAidHere && smallModelFirstAid == "careful"))
                     write(inference.generate(direct.prompt, outputBudget, savedPrefixChars = direct.savedPrefixChars))
                 }
                 firstAt?.let { at -> prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(first.prompt), at - generationStart) }
@@ -991,6 +1124,7 @@ class ResearchOrchestrator(
                 val cited = citation.findAll(explained).count()
                 val marked = SavedFactCheck.marks(question, explained, packed.sources)
                 val markCount = citation.findAll(marked).count() - cited
+                // The call line for first aid no guide matched is added above this route, in research().
                 val shown = listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
                     SavedFactCheck.knowledgeNote(markCount, packed.sources.size, cited)).joinToString("\n\n")
                 emit(ResearchEvent.Token(shown, replace = true))
@@ -1420,8 +1554,11 @@ class ResearchOrchestrator(
      */
     private fun guideFor(question: String, topic: TopicEvidence.Carried?): xyz.fieldatlas.emergency.EmergencyGuide? {
         val guides = emergencyGuides()
-        if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let { return it }
-        val guide = xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides) ?: return null
+        if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let {
+            return xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides)
+        }
+        val guide = xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides)
+            ?.let { xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides) } ?: return null
         val shown = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide).documentId
         return guide.takeIf { topic == null || (topic.sources + topic.earlier.flatMap { it.sources }).none { it.documentId == shown } }
     }
@@ -1429,6 +1566,19 @@ class ResearchOrchestrator(
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
 
     private companion object {
+        /** Opens every first-aid answer a model writes: the call is the app's, never left to the model. */
+        /** The fallback for first aid no saved guide covers (measurement): no treatment steps the sources do not support. */
+        const val FIRST_AID_GAP = "No first-aid guide saved on this phone covers this situation, so this answer gives no treatment steps for it. " +
+            "While you get help:\n\n" +
+            "- If the person is not breathing normally, start CPR: chest compressions with the heel of one hand on the centre of the chest [S1].\n" +
+            "- If they are unconscious but breathing, turn them onto their side in the recovery position [S2].\n" +
+            "- If they have an adrenaline auto-injector for a severe allergic reaction, give the injection right away [S3].\n" +
+            "- Stay with them and watch their breathing until help arrives."
+        // The poisoning guide (NHS): "Call 999 or go to A&E if … someone else may have swallowed … something harmful" and
+        // "Symptoms may take a few hours or days to start".
+        const val POISON_LINE = "\n- If they may have swallowed something harmful, call your local emergency number or go to hospital now, even if they " +
+            "seem fine: symptoms may take a few hours or days to start [S4]."
+        const val CALL_FIRST = "**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n"
         const val KEYWORD_SEED = 17
         const val ATTACHMENT_CANDIDATES = 16
         const val MUSEUM_SLOTS = 3
@@ -1465,4 +1615,9 @@ class ResearchOrchestrator(
         const val NEARBY_ENOUGH = 6
         const val NEARBY_CANDIDATES = 200
     }
+}
+
+/** The note above the official guide shown while a trusted model writes its answer; the preview shows its head, not its tail. */
+object GuideStandIn {
+    const val NOTE = "_The official guide, while an answer for your situation is written:_"
 }

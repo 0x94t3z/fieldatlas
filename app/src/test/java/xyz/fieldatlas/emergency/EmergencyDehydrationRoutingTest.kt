@@ -53,8 +53,10 @@ class EmergencyDehydrationRoutingTest {
             val text = events.filterIsInstance<ResearchEvent.Token>().last().text
             assertTrue(text.contains("without a model rewrite"))
             assertTrue(text.contains("not a battery-specific treatment guide"))
-            assertTrue(text.contains("call your local emergency number"))
-            assertTrue(text.contains("poison control center"))
+            // A swallowed battery opens with "call … now" (set 50), any other call line with "if this is an emergency".
+            assertTrue(text, text.startsWith("**Call your local emergency number now**"))
+            // The poisoning guide (NHS): call 999 or go to A&E if a child may have swallowed something harmful.
+            assertTrue(text, text.contains("swallowed, touched or breathed in something harmful"))
             assertFalse(text.contains("Invent treatment"))
         }
     }

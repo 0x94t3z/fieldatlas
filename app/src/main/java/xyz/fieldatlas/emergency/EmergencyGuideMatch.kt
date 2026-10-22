@@ -476,14 +476,38 @@ object EmergencyGuideMatch {
      */
     private val outSigns = Regex(
         "(?i)\\b(?:won['’]?t|wont|will not|can['’]?t|cant|cannot|couldn['’]?t|not) (?:properly |fully |really )?(?:wake|waking|rouse)|" +
-            "\\bnot waking\\b|\\bunconscious\\b|\\bunresponsive\\b|\\bnot responding\\b|\\bout cold\\b",
+            "\\bnot waking\\b|\\bunconscious\\b|\\bunresponsive\\b|\\b(?:not|isn['’]?t|isnt|is not) responding\\b|\\bout cold\\b|" +
+            // "Eyes open but not answering": no answer when spoken to is not responding (set 50).
+            "\\b(?:not|isn['’]?t|isnt|won['’]?t|wont) answer(?:ing)?\\b|" +
+            // "Won't come round", "won't open her eyes when I say her name" (set 52).
+            "\\b(?:won['’]?t|wont|will not|not|isn['’]?t|isnt) (?:come|coming) round\\b|\\b(?:won['’]?t|wont|will not) open (?:his|her|their) eyes\\b",
     )
     private fun outButBreathing(question: String) = outSigns.containsMatchIn(question) && stillBreathing.containsMatchIn(question) &&
         !noBreath.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)
-    private val stillBreathing = Regex("(?i)\\b(?:breathing|breathes|snoring|snores)\\b")
+    private val collapsedNoResponse = Regex("(?i)\\b(?:won['’]?t|wont|doesn['’]?t|does not|isn['’]?t|not) respond(?:ing)?\\b|\\bno response\\b")
+    /**
+     * A collapse told without "not responding": "coworker just dropped in the warehouse", "she collapsed in the garden".
+     * With gasps or no breathing it is an arrest, unless the person is awake ("collapsed, gasping for air, still talking").
+     */
+    private val collapsed = Regex("(?i)\\b(?:collapsed|keeled over|just dropped|dropped (?:down|to the (?:floor|ground)|while|on the|at the|in the|during|halfway))\\b")
+    private val awake = Regex("(?i)\\bgasp\\w* for (?:air|breath)\\b|\\b(?:talking|speaking|says|said|saying|told (?:me|us)|awake|conscious|answering|responding|crying)\\b")
+    // A breath only every 6 seconds or more (10 a minute or fewer), the odd breath, or gasping. "Breathing slow" alone is
+    // not it: someone passed out drunk and breathing slowly goes on their side.
+    private val slowBreathing = Regex(
+        "(?i)\\bbreath(?:s|ing|es)?\\b[^.]{0,30}\\bevery (?:[6-9]|[1-9]\\d) seconds\\b|\\bonly (?:a few|the odd) breaths?\\b|" +
+            "\\b(?:gasping|agonal) breath|" +
+            "\\b[1-8](?: (?:or|to|-) [1-8])? (?:breaths? )?(?:a|per|each) minute\\b|" +
+            "\\b(?:[1-4]|one|two|three|four) breaths? (?:while|as|when|in the time|before) (?:i |we )?(?:count(?:ed)?|counting) to (?:20|30|60)\\b|" +
+            "\\b(?:[1-4]|one|two|three|four) breaths? in (?:20|30|60) seconds\\b|" +
+            "\\b(?:[1-8]|one|two|three|four|five|six|seven|eight) breaths? (?:in|per|a|each) (?:a |one |the )?(?:whole |full |single )?minute\\b|\\blong (?:long )?pauses? between (?:breaths|them|each)\\b",
+    )
+    private val coldCasualty = Regex("(?i)\\b(?:shiver\\w*|shaking|trembl\\w*|muddled|mumbl\\w*|slurr\\w*|confus\\w*|hypotherm\\w*|frostbit\\w*)\\b")
+    private val stillBreathing = Regex("(?i)\\b(?:breathing|breathes|snoring|snores)\\b|\\bchest (?:is )?(?:going|moving|rising) up and down\\b")
     private val noBreath = Regex(
         "(?i)\\b(?:not|isn['’]?t|isnt|wasn['’]?t|stopped|no longer|no|barely|hardly|can['’]?t feel (?:any |his |her |their )?|" +
-            "cant feel (?:any |his |her |their )?|can['’]?t see (?:any |him |her |them )?)\\s*(?:breathing|breath)|\\bgasp\\w*|no pulse|no heartbeat",
+            "cant feel (?:any |his |her |their )?|can['’]?t see (?:any |him |her |them )?)\\s*(?:breathing|breath)|\\bgasp\\w*|no pulse|no heartbeat|" +
+            "\\b(?:heaving|sucking|gulping|snorting|guppy|fish-like) breaths?\\b|like a fish out of water|\\bodd (?:little )?gulps?\\b|" +
+            "\\bchest (?:hardly|barely|is hardly|is barely|isn['’]?t really|is not really) (?:mov\\w*|ris\\w*|going up)",
     )
     /** In or out of the water: the drowning guide starts with rescue breaths. */
     private val inWater = Regex(
@@ -517,7 +541,78 @@ object EmergencyGuideMatch {
 
     private val safetyWords = Regex("(?i)\\b(?:safe|safely|safety|safest)\\b")
 
-    fun match(question: String, guides: List<EmergencyGuide>): EmergencyGuide? = rank(question, guides).firstOrNull()?.first
+    /**
+     * The guide shown for a matched one: the poisoning match (found by the MedlinePlus summary's words, which the labelled
+     * sets were tuned on) shows the NHS page's steps, which say what to do while waiting and that symptoms can come hours later.
+     */
+    fun shown(guide: EmergencyGuide, guides: List<EmergencyGuide>): EmergencyGuide =
+        if (guide.id == "poisoning") guides.firstOrNull { it.id == "poisoning-steps" } ?: guide else guide
+
+    fun match(asked: String, guides: List<EmergencyGuide>): EmergencyGuide? = withoutExpiry(asked).let { question ->
+        // Pinpoint pupils, or naloxone already in hand, with slow breathing or no waking: the naloxone guide, which also
+        // gives rescue breathing. Set 52's "4 or 5 breaths a minute, pupils tiny" got a memory answer with no call.
+        (if (opioidSigns.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)) guides.firstOrNull { it.id == "opioid-overdose" } else null)
+            ?: (if (describesArrest(question)) guides.firstOrNull { it.id == "cpr" } else null)
+            ?: rank(question, guides).firstOrNull()?.first
+            // Only when nothing else fits: a fever with a fit is the seizure guide, with no wet nappies the dehydration one.
+            ?: (if (childFever.containsMatchIn(question) && !onScreen.containsMatchIn(question)) {
+                // A fever with a fit is the seizure guide's: "kid was shivering with a fever then started convulsing".
+                if (feverFit.containsMatchIn(question)) guides.firstOrNull { it.id == "seizures" } else guides.firstOrNull { it.id == "fever-children" }
+            } else null)
+            // Something swallowed that no keyword names ("a hearing aid battery", "his tablets twice by mistake"): the
+            // poisoning guide, which says to get help even if they seem fine. Set 50 sent these to no guide at all.
+            ?: (if (swallowedNow(question)) guides.firstOrNull { it.id == "poisoning" } else null)
+    }
+
+    /**
+     * "His pen expired last year", "the inhaler ran out in March": a medicine's date, not when the emergency happened. Set 53's
+     * wasp sting with a swelling face and a hoarse voice was read as a past event and got no guide and no call line.
+     */
+    private fun withoutExpiry(question: String): String = expiryDate.replace(question, " ")
+    private val expiryDate = Regex("(?i)\\b(?:expired|expires|expiring|went out of date|out of date|ran out|use[- ]by|best before|expiry(?: date)?(?: was| is)?)" +
+        "\\s+(?:(?:in|on|at|since|back in|last|this|about|around|a|an)\\s+)?(?:(?:a|an|\\d+|few|couple of)\\s+)?" +
+        "(?:january|february|march|april|may|june|july|august|september|october|november|december|(?:19|20)\\d{2}|year|month|week|spring|summer|autumn|fall|winter|" +
+        "(?:months?|years?|weeks?) ago)\\b")
+    /** Swallowed now and a worry about it: not "ate mushrooms in Italy, which kind were they" or "ate lunch and my battery died". */
+    private fun swallowedNow(question: String): Boolean =
+        GuideAnswerCheck.swallowedSomething(question) && (swallowConcern.containsMatchIn(question) || harmfulSwallowed.containsMatchIn(question)) &&
+            !notHappeningNow.containsMatchIn(question) &&
+            !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question)) && !onScreen.containsMatchIn(question)
+    /** "Drank gasoline", "swallowed two of her pills": the harmful thing right after the verb is the worry itself. */
+    private val harmfulSwallowed = Regex("(?i)\\b(?:took|taken|swallowed|swallowing|ate|eaten|drank|drunk|downed|ingested|got into|got hold of|chewed|licked)\\b(?:\\s+[\\w'’-]+){0,3}?\\s+" +
+        "(?:pills?|tablets?|capsules?|medicine|medication|meds|bleach|petrol|gasoline|diesel|paraffin|kerosene|antifreeze|batter(?:y|ies)|magnets?|" +
+        "chemicals?|detergent|pods?|poison\\w*|cleaner|fluid|white spirit|turps|nicotine|e-?liquid|descaler)\\b")
+    private val swallowConcern = Regex("(?i)\\b(?:seems?|fine|ok|okay|sick|ill|queasy|vomit\\w*|throw\\w* up|threw up|puk\\w*|dizzy|drowsy|sleepy|tired|pain|ache|" +
+        "flutter\\w*|heart|crying|cries|when (?:he|she|they) swallows?|(?:round|around|on|in) (?:his|her|their) (?:mouth|lips)|(?:lid|cap|top) (?:was )?(?:off|open)|" +
+        "should|what (?:do|should)|do (?:i|we)|can (?:i|we|he|she|they)|help|worried|safe|skip|now|just|ago|mistake|accident\\w*|thinking it was|thought it was)\\b")
+
+    private val opioidSigns = Regex("(?i)\\b(?:pinpoint|tiny|very small|pin-?prick) pupils\\b|\\bpupils (?:are |look |gone )?(?:tiny|pinpoint|really small|like pinpricks)\\b|" +
+        "^(?=.*\\b(?:naloxone|narcan|nyxoid|prenoxad)\\b)(?=.*\\b(?:gave|given|used|sprayed|injected|second|another|nodd\\w*|breathing|wake|waking|came round)\\b).*")
+    private val feverFit = Regex("(?i)\\b(?:convuls\\w*|seizure\\w*|fitting|having a fit|jerking|twitching|eyes rolled)\\b")
+
+    /** A baby or child with a fever ("my baby has a fever of 39°C"): the fever guide, with when to call 111 or 999. */
+    private val childFever = Regex("(?i)^(?!.*\\bhay ?fever\\b)(?=.*\\b(?:baby|babies|newborn|infant|toddler|child|son|daughter|kid|\\d+[- ](?:week|month|day)s?[- ]old)\\b" +
+        "[^.?!]{0,60}\\b(?:fever|feverish|high temperature|temperature (?:of|is)|temp (?:of|is)|\\d{2}(?:\\.\\d)? ?°? ?c\\b|(?:3[89]|4[01])\\.\\d\\b|feels hot|burning up|hot to (?:the )?touch)).*")
+
+    /**
+     * Someone who cannot be woken and is not breathing normally: gasping, or breathing only every few seconds. That is
+     * CPR, whatever else the question asks: an overdose "breathing like every 10 seconds" was given the recovery
+     * position, and a collapse with "gasping breaths every few seconds" asked about packing for hospital got no guide.
+     */
+    fun describesArrest(asked: String): Boolean = withoutExpiry(asked).let { question ->
+        (outSigns.containsMatchIn(question) || collapsedNoResponse.containsMatchIn(question) ||
+            collapsed.containsMatchIn(question) && !awake.containsMatchIn(question)) &&
+            (noBreath.containsMatchIn(question) || slowBreathing.containsMatchIn(question)) && !notHappeningNow.containsMatchIn(question)
+    }
+
+    /**
+     * Whether the question describes someone hurt or unwell now ("my son is wheezing after shrimp"), as opposed to asking
+     * about a topic, a past event or a study question: the same test that lets a guide be found by its text.
+     */
+    fun describesFirstAidSituation(asked: String): Boolean = withoutExpiry(asked).let { question ->
+        aPerson.containsMatchIn(question) && bodySign.containsMatchIn(question) && !notFirstAid.containsMatchIn(question) &&
+            !notHappeningNow.containsMatchIn(question) && !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question))
+    }
 
     /** A guide whose steps would be wrong for this question, whatever its words share with it. */
     private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
@@ -525,7 +620,8 @@ object EmergencyGuideMatch {
         "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
             waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question)
         // "Hiking through long grass, something struck my calf": a hike is not being lost; the guide needs the lost person.
-        "lost" -> !lostSign.containsMatchIn(question)
+        // Found after being lost, but shivering and confused: the cold, not the getting lost, is the danger now.
+        "lost" -> !lostSign.containsMatchIn(question) || coldCasualty.containsMatchIn(question)
         // "A fish bone is stuck, I can breathe and talk but it hurts": the airway is open. The choking steps (back
         // blows, abdominal thrusts) are for someone who cannot breathe, speak or cough.
         "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
@@ -546,6 +642,9 @@ object EmergencyGuideMatch {
         // A diver's dizziness, tingling and aching after a fast ascent is decompression sickness, not a stroke; the
         // stroke guide's "note the time, call" steps would miss the oxygen and the chamber.
         "stroke" -> diving.containsMatchIn(question)
+        "frostbite", "hypothermia" -> headCold.containsMatchIn(question) && !freezingWeather.containsMatchIn(question)
+        // Headache, flashing lights and puffy hands at 35 weeks are not bleeding: the bleeding guide was shown for them.
+        "pregnancy-bleeding" -> !bleedingWords.containsMatchIn(question)
         // A sting that "burns like crazy" is a sting; a pan, a stove or a bin on fire with nobody burned is a fire to put
         // out, not a burn to cool.
         "burns" -> !heatBurn.containsMatchIn(question) && (marineOrPlantSting.containsMatchIn(question) ||
@@ -588,6 +687,10 @@ object EmergencyGuideMatch {
         "can see|what do (?:we|i) do|help)\\b")
     private val minorBleeding = Regex("(?i)\\b(?:bleeding (?:a little|a bit|slightly|only a little)|small cut|tiny cut|little cut|paper cut|minor cut|" +
         "(?:bit|bitten) (?:my|his|her|their) (?:tongue|lip|cheek)|graze|scrape)\\b")
+    private val headCold = Regex("(?i)\\b(?:(?:a|my|his|her|their|bad|heavy|head|nasty|streaming) cold(?! (?:night|day|morning|evening|water|river|lake|sea|wind|snap|front|spell|room|floor|shower|bath|weather|climate|place|garage|shed|tent|car|one|spot))|" +
+        "colds|cold (?:symptoms|sore|and flu|or flu)|runny nose|sneez\\w*)\\b")
+    private val freezingWeather = Regex("(?i)\\b(?:freezing|frost\\w*|snow\\w*|ice|icy|below zero|minus \\d|outside (?:all |for )?(?:night|hours)|cold water|lake|river|sea)\\b")
+    private val bleedingWords = Regex("(?i)\\b(?:bleed\\w*|blood\\w*|spotting|clots?|miscarr\\w*)\\b")
     private val pregnancyBleeding = Regex("(?i)\\b(pregnan\\w*|weeks? along|miscarr\\w*|vagina\\w*|down there|period|labou?r|contractions?|" +
         "gave birth|after (?:the )?birth|postpartum)\\b")
 
@@ -676,9 +779,10 @@ object EmergencyGuideMatch {
     private val saysChoking = Regex("(?i)\\bchok\\w*|\\bswallow\\w*\\s+(?:a|an|the|some|his|her|their|my|one)\\s+\\p{L}+")
     private val allergyOnlySign = Regex("(?i)\\b(hives|rash\\w*|welts?|itch\\w*|swollen|swelling|puff\\w*|blotch\\w*)\\b")
     // An allergic trigger with airway or swelling signs is anaphylaxis, not a mild sting or choking.
-    private val allergyTrigger = Regex("(?i)\\b(stung|stings?|bee|bees|wasps?|hornets?|insect|peanuts?|nuts?|shellfish|allerg\\w*)\\b")
+    private val allergyTrigger = Regex("(?i)\\b(stung|stings?|bee|bees|wasps?|hornets?|insect|peanuts?|nuts?|shellfish|allerg\\w*|hay ?fever|smoothie|milkshake)\\b")
     private val allergySign = Regex("(?i)\\b(wheez\\w*|(?:trouble|difficulty|problems?|struggling) (?:to )?breath\\w*|hard to breathe|" +
         "can'?t breathe|cannot breathe|short(?:ness)? of breath|hives|throat (?:is |feels )?(?:tight|closing)|chest (?:is |feels )?tight|feel\\w* faint|" +
+        "(?:voice (?:is |has gone |gone |going |getting )?(?:croaky|hoarse)|croaky|hoarse)\\b.{0,60}\\b(?:dizzy|faint|swell\\w*|wheez\\w*|breath\\w*|tight)|" +
         "(?:lips?|tongue|face|throat|mouth|eyes?) (?:is |are |has |have |got |getting )?(?:swollen|swelling|puff\\w*)|" +
         "swollen (?:lips?|tongue|face|throat|mouth))")
 
@@ -862,7 +966,10 @@ object EmergencyGuideMatch {
         }
         // Extra context must not disqualify an explicit request for help, but a long question that only names a hazard is
         // research, not first aid. A long message that describes the signs as they happen is the situation itself.
-        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways &&
+        // A sting or food with a swelling face or a tight throat is told as it happens too ("husband got stung on the neck by a
+        // wasp, face swelling and hes gone hoarse", set 53), with or without "my".
+        val reactionTold = allergyTrigger.containsMatchIn(question) && allergySign.containsMatchIn(question)
+        if (words.size > SHORT_QUESTION_WORDS && !personalSituation.containsMatchIn(question) && !sideways && !reactionTold &&
             (describedBySigns.isEmpty() || notHappeningNow.containsMatchIn(question)) && !noSignsOfLife.containsMatchIn(question)) return emptyList()
         // The snakebite and flood guides have no CPR step, so a person who is not breathing gets CPR,
         // or the drowning guide's rescue breaths in water. When a choking or swelling airway is the
@@ -937,8 +1044,7 @@ object EmergencyGuideMatch {
      * for what heat, cold and water loss do to a body join the medical ones.
      */
     private fun byGuideText(question: String, guides: List<EmergencyGuide>): List<Pair<EmergencyGuide, Int>> {
-        if (!aPerson.containsMatchIn(question) || !bodySign.containsMatchIn(question) || notFirstAid.containsMatchIn(question) ||
-            notHappeningNow.containsMatchIn(question) || pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question)) return emptyList()
+        if (!describesFirstAidSituation(question)) return emptyList()
         // Someone pinned or crushed: no bundled guide covers it, and the ones sharing its words (a blocked airway, a
         // broken bone) would have the helper do the wrong thing.
         if (crushInjury.containsMatchIn(question)) return emptyList()
@@ -970,7 +1076,10 @@ object EmergencyGuideMatch {
      * Guides only their keywords or their own rule choose, kept out of the text ranking and its word weights: the recovery
      * position's article is about airways and positions, words a cold, smoke or stroke message also uses.
      */
-    private val keywordOnly = setOf("recovery-position")
+    // The guides added on 22 October (NHS and CDC) match by their keywords only, so the description ranking tuned on the
+    // labelled sets keeps its word weights: their text ("chest feeling tight", "sweating") cost a heart attack its lead.
+    private val keywordOnly = setOf("recovery-position", "asthma-attack", "low-blood-sugar", "pregnancy-bleeding", "fever-children",
+        "knocked-out-tooth", "opioid-overdose", "poisoning-steps")
     /** CPR is for someone not breathing, which its own rule decides; the text ranking never picks it for a reading or an ache. */
     private val notByText = setOf("cpr")
     /** What heat, cold and water loss do to a body, beside the medical guides; weather and terrain guides stay with keywords. */
@@ -994,7 +1103,9 @@ object EmergencyGuideMatch {
         // A diabetic gone sweaty, shaky and confused is low blood sugar, which the stroke guide would miss.
         "stroke" to Regex("(?i)^(?!.*\\b(?:diabet\\w*|insulin|blood sugar|sugar|hypo|glucose)\\b).*" +
             "\\b(?:(?:side of (?:his|her|my|their|the) face|(?:his|her|my|their) face) (?:has |is |was |had |just )?(?:slid|slipped|dropped|fallen|sagged|sagging|slumped)|" +
-            "(?:talking|speaking|saying) (?:total |complete |utter |pure |absolute )?gibberish|gibberish)\\b"),
+            "(?:talking|speaking|saying) (?:total |complete |utter |pure |absolute )?gibberish|gibberish|" +
+            "(?:vision|eyesight) (?:has |just |suddenly )?(?:went|gone|going|is|turned) (?:double|blurry|blurred)[^.?!]{0,80}\\b(?:can'?t walk (?:straight|properly)|unsteady|dizzy|slurr\\w*|weak|numb|falling over)|" +
+            "double vision[^.?!]{0,80}\\b(?:can'?t walk (?:straight|properly)|unsteady|dizzy|slurr\\w*|weak|numb|falling over))\\b"),
         // Grey, clammy skin after a crash or a bleed is shock; with chest, jaw or arm pain and no injury it is the heart.
         "shock" to Regex("(?i)^(?:(?=.*\\b(?:crash\\w*|accident\\w*|collision|wreck\\w*|fell|fall\\w*|came off|knocked|hit by|bleed\\w*|blood|injur\\w*|stab\\w*|" +
             "burn\\w*|bike|motorbike|car|lorry|truck|trampl\\w*)\\b)|(?!.*\\b(?:chest|heart|jaw|arm|arms)\\b)).*" +
@@ -1009,7 +1120,8 @@ object EmergencyGuideMatch {
             "\\b(?:whole body (?:is )?(?:jerking|shaking|convulsing|twitching|stiff)|eyes (?:have )?rolled back|eyes rolling back|" +
             "had a (?:fit|seizure)[^.?!]{0,80}?\\b(?:groggy|confused|sleepy|drowsy|out of it|doesn'?t know|dont know|bitten (?:his|her) tongue|wet (?:himself|herself)|lie (?:him|her) down)|" +
             "(?:foam|foaming|froth|frothing)(?: coming)? (?:at|around|from|out of) (?:his|her|the|their) mouth|jerking (?:all over|uncontrollably|violently)|" +
-            "(?:arms|legs|limbs) (?:are )?(?:jerking|thrashing|flailing)|went (?:stiff|rigid) and (?:started )?(?:shaking|jerking))\\b"),
+            "(?:arms|legs|limbs) (?:are )?(?:jerking|thrashing|flailing)|went (?:stiff|rigid) and (?:started )?(?:shaking|jerking)|" +
+            "bit(?:ten)? (?:his|her|their|my) tongue[^.?!]{0,80}\\b(?:wet|wee|peed|confus\\w*|floor|groggy)|(?:wet (?:himself|herself|themselves)|pyjamas are wet)[^.?!]{0,80}\\bbit(?:ten)? (?:his|her|their) tongue)\\b"),
         "lost" to Regex("(?i)\\b(?:nothing looks familiar|doesn'?t look familiar|(?:don'?t|dont|not sure|no idea) (?:know )?(?:which|where|what) (?:way|direction|path|trail)|" +
             "(?:can'?t|cant|cannot) find (?:the|our|my) (?:way|trail|path|car|camp|tent|way back)|off (?:the )?trail|wrong (?:turn|trail|path)|" +
             "keep walking or stay put|stay put or|been walking (?:for )?(?:hours|ages)|going in circles|same (?:rock|tree|spot) (?:again|twice))\\b"),
@@ -1057,6 +1169,35 @@ object EmergencyGuideMatch {
             "mouthwash|hand sanitis\\w*|hand sanitiz\\w*|sanitiser|sanitizer|essential oils?|nail polish remover|acetone|antifreeze|" +
             "weed ?killer|rat poison|slug pellets|mothballs?|lamp oil|lighter fluid|paint thinner|white spirit|turps|perfume|aftershave|" +
             "(?:iron|vitamin|sleeping|blood pressure|diabetes|heart|pain) (?:pills?|tablets?)|gummies|edibles?|cannabis|weed|magic mushrooms?)\\b"),
+        // The signs in the NHS guides' own call lists, told the way set 50 told them. The guides' single keywords
+        // ("asthma", "insulin") score nothing alone, so these situations reached no guide.
+        // Their reliever named, with a breathing sign: wheezing, too breathless to finish a sentence, the inhaler not helping.
+        "asthma-attack" to Regex("(?i)^(?=.*\\b(?:asthma\\w*|inhalers?|puffers?|reliever|ventolin|salbutamol|albuterol|seretide|symbicort|preventer|blue one)\\b)" +
+            "(?=.*\\b(?:wheez\\w*|breathless|out of breath|(?:can'?t|cant|cannot|struggling to|trouble) (?:breathe|breathing|catch)|cough\\w*|tight chest|chest (?:is |feels )?tight|" +
+            "sentence|neck muscles|(?:not|isn'?t|isnt|barely|hardly) (?:helping|working|doing)|doing nothing|no (?:better|difference|change)|tight[- ]chested|still tight|gasp\\w*|words at a time|(?:can|could) only (?:say|get out|manage))\\b).*"),
+        // A hypo by name or by its signs in someone on insulin; a meter reading HI, ketones or pear-drop breath are high sugar.
+        "low-blood-sugar" to Regex("(?i)^(?!.*(?:\\b(?:says|reads|shows|showing|reading) hi\\b|\\bhigh\\b|\\bketone\\w*|pear drops|nail polish)).*" +
+            "(?:\\b(?:hypo|hypos|hypoing|having a hypo|going low|having a low|low blood sugar|low sugar)\\b|" +
+            "\\b(?:blood )?sugar(?:s)? (?:is |are |has |'s |went |gone |going |keeps )?(?:low|dropp\\w*|crash\\w*|plummet\\w*)\\b|" +
+            "^(?=.*\\b(?:diabet\\w*|insulin|type 1|type one)\\b).*\\b(?:shak\\w*|trembl\\w*|sweat\\w*|clammy|confus\\w*|not making sense|drowsy)\\b|" +
+            // A reading under 4 mmol/L ("his meter said 3.1 ... now it says 3.4"): set 52's reversed hypo treatment, every model.
+            "\\b(?:meter|reading|sugar|levels?|bm|glucose|monitor|libre|sensor)\\b[^.?!]{0,25}\\b(?:said|says|reads|read|showed|shows|is|was|at|of|dropped to|down to)\\s*[0-3]\\.\\d\\b)"),
+        // Arm or jaw pain with sweating or sickness, called indigestion or not; after a fall or a bite it is the injury.
+        "heart-attack" to Regex("(?i)^(?=.*\\b(?:sweat\\w*|clammy|sick|nause\\w*|indigestion|heartburn|breathless|short of breath|grey|gray|pale)\\b)" +
+            "(?!.*\\b(?:fell|fall|fallen|hit|banged|crash\\w*|twist\\w*|broke\\w*|bone|sprain\\w*|bit|bite|bitten|stung|sting\\w*)\\b).*" +
+            "\\b(?:(?:left |right )?arm (?:aches|aching|hurts|is (?:aching|sore|hurting|numb|heavy))|(?:ache|aching|pain) (?:in|down) (?:his|her|my|their|the) (?:left )?arm|" +
+            "jaw (?:aches|aching|hurts|pain)|pain (?:going|spreading|moving|radiating) (?:in(?:to)?|down|up|to) (?:his|her|my|their|the) (?:left )?(?:arm|jaw|neck|back))\\b|" +
+            // "Heartburn" that came with effort and now will not go at rest, in an older person (set 52): angina turning into a heart attack.
+            "^(?=.*\\b(?:heartburn|indigestion|chest (?:pain|pressure|tightness|is tight|feels tight|heavy))\\b)(?=.*\\b(?:[5-9]\\d|walk\\w*|hill|stairs|exert\\w*|exercis\\w*)\\b)" +
+            "(?=.*\\b(?:won'?t go(?: away)?|wont go(?: away)?|not going away|isn'?t going|at rest|resting|sitting (?:down|still|watching)|watching tv)\\b).*"),
+        "opioid-overdose" to opioidSigns,
+        // A chemical on the skin is a burn to rinse: drain unblocker, oven cleaner, bleach, wet cement.
+        "burns" to Regex("(?i)\\b(?:spill\\w*|splash\\w*|spilt|got|poured|knocked|dripped)\\b[^.?!]{0,30}\\b(?:drain (?:cleaner|unblocker)|oven cleaner|bleach|caustic|lye|acid|" +
+            "wet cement|cement|concrete|chemical\\w*|ammonia|chlorine|pool (?:chemicals?|shock|granules)|descaler|caustic soda)\\b[^.?!]{0,30}\\b(?:on|onto|over|down)\\b[^.?!]{0,20}\\b(?:skin|hands?|arms?|forearms?|legs?|face|neck|feet|foot|fingers?|chest|wrists?)\\b"),
+        // A night outside and now shaking or muddled: the cold is the danger ("found in the park this morning in her nightie").
+        // A wound or a crash in the rain is the injury first: the bleeding guide stays.
+        "hypothermia" to Regex("(?i)^(?!.*\\b(?:bleed\\w*|blood|crash\\w*|broken|bent|fractur\\w*|wound\\w*|cut)\\b)(?=.*\\b(?:overnight|all night|night (?:outside|out(?:doors)?|in the)|outside all night|in the (?:cold|snow|rain)|freezing|soaked|wet through)\\b).*" +
+            "\\b(?:shiver\\w*|shaking|trembl\\w*|muddled|confus\\w*|drowsy|slurr\\w*|mumbl\\w*|cold to (?:the )?touch|ice cold)\\b"),
     )
     private val biteContext = mapOf(
         "snakebite" to Regex("(?i)\\b(snakes?|adder|viper|cobra|rattle\\w*|copperhead|cottonmouth|mamba|krait)\\b"),
@@ -1105,7 +1246,8 @@ object EmergencyGuideMatch {
         "daughter|man|woman|guy|lady|boy|girl|friend|mate|wife|husband|mum|mom|dad|grandma|grandpa|uncle|aunt|sister|brother|teenager|student|" +
         "coworker|neighbou?r|mother|father|partner|player|hiker|driver|passenger|patient|stranger)\\b")
     /** A sign on the body or an injury, as people describe them. */
-    private val bodySign = Regex("(?i)\\b(pain\\w*|hurt\\w*|ache\\w*|aching|bleed\\w*|blood\\w*|swell\\w*|swollen|puffy|breath\\w*|cough\\w*|chok\\w*|" +
+    // "Pain", "painful", "painkillers", not "painted" (set 51: "who painted girl with a pearl earring" got the first-aid reply).
+    private val bodySign = Regex("(?i)\\b(pain(?:s|ful\\w*|killers?)?|hurt\\w*|ache\\w*|aching|bleed\\w*|blood\\w*|swell\\w*|swollen|puffy|breath\\w*|cough\\w*|chok\\w*|" +
         "vomit\\w*|puk\\w*|threw up|throwing up|dizz\\w*|faint\\w*|collaps\\w*|unconscious|passed out|wont wake|won't wake|can'?t wake|drows\\w*|" +
         "confus\\w*|slurr\\w*|numb\\w*|tingl\\w*|burn\\w*|blister\\w*|scald\\w*|bit|bite|bitten|sting\\w*|stung|broke\\w*|broken|fractur\\w*|" +
         "sprain\\w*|twist\\w*|bent|lump|bump|bruis\\w*|fell|fall|fallen|crash\\w*|hit|cut|gash|wound\\w*|stab\\w*|seiz\\w*|fit|shak\\w*|" +
@@ -1495,6 +1637,7 @@ object EmergencyGuideMatch {
         append("If nothing connects, send someone for help and keep following these steps. ")
         append("Steps are from ${guide.source.publisher}; tap a citation to read the guide.")
         if (guide.region == "US") append(" The guide was written for the United States; numbers and some advice (such as local snakes) may differ where you are.")
+        if (guide.region == "UK") append(" The guide was written for the United Kingdom; numbers (999, 111) and services may differ where you are.")
     }
 
     /** The guide as a citable source; its text is the published wording. */
@@ -1512,11 +1655,11 @@ object EmergencyGuideMatch {
      * The guide as published. Only formatting is added; every sentence is the source's own.
      * [modelUnavailable] preserves the explanation for callers showing an unavailable-model fallback.
      */
-    fun answer(guide: EmergencyGuide, modelUnavailable: Boolean = true, question: String = ""): String = buildString {
-        append("**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n")
+    fun answer(guide: EmergencyGuide, modelUnavailable: Boolean = true, question: String = "", cautious: Boolean = false): String = buildString {
+        append(GuideAnswerCheck.callLine(question, guideId = guide.id, cautious = cautious))
         append(if (modelUnavailable) "_The answer model isn't available right now, so this is the guide as published._\n\n"
             else "_For safety, this is the guide as published, without a model rewrite._\n\n")
-        if (guide.id == "poisoning" && batteryIngestion.containsMatchIn(question)) {
+        if (guide.id in setOf("poisoning", "poisoning-steps") && batteryIngestion.containsMatchIn(question)) {
             append("_This saved reference covers poisoning generally; it is not a battery-specific treatment guide. Contact local emergency services or poison control immediately._\n\n")
         }
         append(published(guide))
@@ -1526,6 +1669,7 @@ object EmergencyGuideMatch {
     fun published(guide: EmergencyGuide): String = buildString {
         append("_${guide.title}: shown as published by ${guide.source.publisher} [S1]")
         if (guide.region == "US") append(". This guide was written for the United States; numbers and some advice (such as local snakes) may differ where you are")
+        if (guide.region == "UK") append(". This guide was written for the United Kingdom; numbers (999, 111) and services may differ where you are")
         append("._\n\n")
         for (section in guide.sections) {
             if (section.heading.isNotBlank()) append("#".repeat((section.level + 2).coerceAtMost(4))).append(' ').append(section.heading).append("\n\n")
@@ -1536,5 +1680,7 @@ object EmergencyGuideMatch {
             }
             if (section.steps.isNotEmpty()) append('\n')
         }
+        // The source's own credit line, as its licence asks (the NHS's Open Government Licence, CDC's no-endorsement note).
+        guide.source.attribution?.let { append("_").append(it).append("_\n") }
     }.trimEnd()
 }

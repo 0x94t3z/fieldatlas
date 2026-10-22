@@ -39,6 +39,9 @@ interface InferenceGateway {
     /** Whether the loaded model answers ordinary questions from its own knowledge (see ModelOffer.knowledgeFirst). */
     val knowledgeFirst: Boolean get() = false
 
+    /** Whether the loaded model writes first-aid answers from the official guide (see ModelOffer.writesFirstAid). */
+    val writesFirstAid: Boolean get() = false
+
     /** Like [generate], with the model's thinking turn open: its reasoning streams first, between the template's marks. */
     fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int = 0): Flow<String> =
         generate(prompt, maxTokens, savedPrefixChars = savedPrefixChars)

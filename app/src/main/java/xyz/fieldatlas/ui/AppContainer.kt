@@ -354,6 +354,7 @@ class AppContainer(context: Context) {
                 val offer = ModelOffers.byId(modelPack.id)
                 gateway.thinkingBudget = offer?.thinkingBudget ?: 0
                 gateway.knowledgeFirst = offer?.knowledgeFirst ?: false
+                gateway.writesFirstAid = offer?.writesFirstAid ?: false
             }
             loaded = true
         } finally {

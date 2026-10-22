@@ -21,10 +21,22 @@ For local places, name only places in the evidence. A dietary match must be stat
     // length (median reasoning 7,862 against 3,326 characters), wrote thinner answers, and once ran out of tokens
     // after "Key facts:"; on set 33 it scored 79.5% against 86.0% without it, in one blind round of eight graders.
     private const val REASONING_FIRST_POLICY = """Answer the question directly and completely, as a careful expert would on a phone, from what you know. Lead with the answer itself (the number, the place, the yes or no), then the details that matter: steps, times, prices, conditions and caveats. Under 170 words unless more detail is asked for; short paragraphs or bullets for comparisons and steps. Be precise with numbers and names, and say plainly when something varies or may have changed. Do not invent citations."""
+    // Set 54: Gemma kept someone with 3 breaths a minute, and someone with a gurgling rattle and a barely moving chest, in the
+    // recovery position, and told a man with a past bleeding ulcer to chew aspirin against his doctor's advice.
+    private const val CARE_RULES = """ Someone who does not respond and is not breathing normally (only gasps, a gurgling rattle, the chest barely moving, or only a few breaths a minute) needs CPR now, not the recovery position. Do not give aspirin to someone a doctor has told to avoid it (a bleeding ulcer, an allergy, blood thinners); tell the emergency operator instead."""
+    // Measurement: a first-aid question no guide matched, answered from a small model's memory. The 4B told a parent not
+    // to use an expired adrenaline pen on a child whose throat was tightening and refused a borrowed reliever inhaler (set 45).
+    private const val FIRST_AID_CARE = """
+This is first aid for someone hurt or unwell now. Follow current Red Cross and NHS first-aid guidance. Say first whether to call emergency services now. Never advise against using emergency medicine the person has for this (an adrenaline auto-injector, a reliever inhaler, sugar for a diabetic low): in an emergency an expired or borrowed one is better than none. Give only steps you are sure of; do not invent precautions or restrictions. If unsure, say what is certain and to get medical help.""" + CARE_RULES
     private const val KNOWLEDGE_NOTE_CHARS = 700
     // For a subject the model barely knows: the notes are the facts, cited; memory fills only the gaps.
     private const val READ_NOTES_POLICY = """
 The notes below come from your saved sources about this subject. Take the facts they give (names, dates, figures) over your own memory, and end each sentence that uses one with that note's number, as [S1]. Leave uncited what the notes do not say."""
+    // For a first-aid question answered by a model trusted to write it: the official guide is the authority, the
+    // answer fits the situation asked about. Measured before any use in the app (the guide is shown as published there).
+    private const val GUIDE_ANSWER_POLICY = """Someone needs first aid now. Answer for their exact situation as an experienced first-aid instructor would, on a phone. Start with the single most urgent action in one line. Then numbered steps in the order to do them; then, where it matters, what not to do; then what to watch for and when the danger has passed or help is needed. The official guide in the notes is your authority: follow it, never contradict it, and end each step taken from it with [S1]. Add only well-established first-aid knowledge this situation needs that the guide lacks, and nothing that conflicts with it. If the guide does not fit the situation, follow standard first-aid practice. Under 200 words.""" + CARE_RULES
+    // Candidate addition: a model wrote "call if he loses consciousness" for a man already confused after a head injury.
+    private const val DANGER_SIGNS_FIRST = """ If the person already describes a sign the guide gives as a reason to get emergency help, say to call for it now, before anything else."""
     private const val MODEL_ONLY_POLICY = """Answer from the model's offline knowledge only. Do not invent citations. Answer the question directly, under 150 words unless more detail is requested. Distinguish background knowledge from uncertain interpretation and state relevant limitations. Do not force unrelated facts into the answer. Do not add a generic disclaimer about missing packs or current data. No matching local evidence is available: acknowledge this when the question requires current, private, location-specific, or source-backed facts, and do not guess them.""" + ANSWER_SHAPE
     private const val MODEL_ONLY_VENUE_POLICY = """
 For a request seeking specific current local places, explain that you cannot verify or recommend them without an installed relevant local travel pack. Do not invent place names."""
@@ -343,13 +355,14 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
      * reference against 40% (set 34, Qwen3.5 4B). The notes also stay listed under the answer for checking.
      */
     fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false,
-        cite: Boolean = false, shaped: Boolean = !thinking): PackedPrompt {
+        cite: Boolean = false, shaped: Boolean = !thinking, firstAidCare: Boolean = false): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
         val chosen = packed.sources.take(notes.coerceAtLeast(0))
         var fixed = 0
         val prompt = buildString {
             if (!thinking) append(THINK_OFF)
             append(if (shaped) KNOWLEDGE_FIRST_POLICY else REASONING_FIRST_POLICY)
+            if (firstAidCare) append(FIRST_AID_CARE)
             append(OFFLINE_PERSON)
             if (chosen.isNotEmpty() && cite) append(READ_NOTES_POLICY)
             fixed = length
@@ -363,6 +376,24 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             append("\n\nANSWER:")
         }
         return PackedPrompt(prompt, chosen, mixedAnswer = true, savedPrefixChars = fixed, framing = framing)
+    }
+
+    /** A first-aid answer written for the situation, with the official guide as its one note [S1]. */
+    fun buildGuideAnswer(question: String, guide: Evidence, thinking: Boolean, dangerSignsFirst: Boolean = false): PackedPrompt {
+        require(question.isNotBlank()) { "question must not be blank" }
+        val source = PromptSource("S1", guide, excerpt = guide.text)
+        var fixed = 0
+        val prompt = buildString {
+            if (!thinking) append(THINK_OFF)
+            append(GUIDE_ANSWER_POLICY)
+            if (dangerSignsFirst) append(DANGER_SIGNS_FIRST)
+            append(OFFLINE_PERSON_GUIDE)
+            fixed = length
+            append("\n\nOFFICIAL GUIDE:\n[S1] ").append(compactMetadata(guide.title)).append(": ").append(guide.text)
+            append("\n\nQUESTION:\n").append(question.trim())
+            append("\n\nANSWER:")
+        }
+        return PackedPrompt(prompt, listOf(source), mixedAnswer = true, savedPrefixChars = fixed)
     }
 
     fun buildModelOnly(question: String, framing: Framing? = null): PackedPrompt {

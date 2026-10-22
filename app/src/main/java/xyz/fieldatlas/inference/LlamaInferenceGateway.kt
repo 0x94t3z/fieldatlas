@@ -100,6 +100,9 @@ class LlamaInferenceGateway internal constructor(
     /** Set by the app for the loaded model (see ModelOffer.knowledgeFirst). */
     override var knowledgeFirst: Boolean = false
 
+    /** Set by the app for the loaded model (see ModelOffer.writesFirstAid). */
+    override var writesFirstAid: Boolean = false
+
     /** Set by the app before a load (see ModelOffer.repackWeights). */
     var repackWeights: Boolean = true
 

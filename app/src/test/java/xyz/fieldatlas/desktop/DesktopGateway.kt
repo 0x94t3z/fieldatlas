@@ -37,6 +37,25 @@ Answer using only the numbered evidence below. Address each requested part separ
 }
 
 /** Test-only inference adapter; never packaged into the Android app. */
+/**
+ * Experiment: a wording measured blind before it is written into the app. FIELDATLAS_DESKTOP_REASONING_POLICY_FILE names a
+ * file whose text replaces the reasoning model's instruction (PromptBuilder.REASONING_FIRST_POLICY);
+ * FIELDATLAS_DESKTOP_KNOWLEDGE_POLICY_FILE does the same for PromptBuilder.KNOWLEDGE_FIRST_POLICY (the 4B's, shape
+ * included). Unset, prompts are the app's own.
+ */
+private fun policyOverride(env: String, field: String): Pair<String, String>? = System.getenv(env)?.let { path ->
+    val current = PromptBuilder::class.java.getDeclaredField(field).apply { isAccessible = true }.get(null) as String
+    current to java.io.File(path).readText().trim()
+}
+
+private val policyOverrides = listOfNotNull(
+    policyOverride("FIELDATLAS_DESKTOP_REASONING_POLICY_FILE", "REASONING_FIRST_POLICY"),
+    policyOverride("FIELDATLAS_DESKTOP_KNOWLEDGE_POLICY_FILE", "KNOWLEDGE_FIRST_POLICY"),
+)
+
+internal fun withReasoningPolicy(prompt: String): String =
+    policyOverrides.fold(prompt) { text, (current, replacement) -> text.replace(current, replacement) }
+
 internal class DesktopGateway(
     endpoint: String,
     private val system: String,
@@ -63,6 +82,8 @@ internal class DesktopGateway(
 
     // Experiment: FIELDATLAS_DESKTOP_THINK=N gives the model the app's thinking route with N tokens to reason.
     override val thinkingBudget: Int = thinkBudget ?: 0
+    // The app sets this per model (ModelOffer.writesFirstAid); FIELDATLAS_DESKTOP_WRITES_FIRST_AID=1 stands in for Gemma's.
+    override val writesFirstAid: Boolean = System.getenv("FIELDATLAS_DESKTOP_WRITES_FIRST_AID") == "1"
 
     override var lastHitLimit: Boolean = false
         private set
@@ -78,7 +99,7 @@ internal class DesktopGateway(
         val request = buildJsonObject {
             put("messages", buildJsonArray {
                 add(buildJsonObject { put("role", "system"); put("content", systemPrompt ?: system) })
-                add(buildJsonObject { put("role", "user"); put("content", diagnosticAnswerPrompt(prompt, answerPolicy)) })
+                add(buildJsonObject { put("role", "user"); put("content", withReasoningPolicy(diagnosticAnswerPrompt(prompt, answerPolicy))) })
             })
             put("max_tokens", maxTokens)
             put("seed", if (seed >= 0) seed else defaultSeed)

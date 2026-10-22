@@ -30,6 +30,13 @@ data class ModelOffer(
      */
     val knowledgeFirst: Boolean = false,
     /**
+     * Whether this model writes a first-aid answer for the situation asked about, with the official guide as its source,
+     * instead of the app showing the guide as published. On 40 fresh first-aid questions (set 45, ten blind graders)
+     * Gemma 4 26B went from 20 to 32 good answers with fewer flagged unsafe (2 to 1); the 4B given the same made more
+     * errors (1.35 wrong details per answer) and 9 unsafe answers, so it keeps the published guides.
+     */
+    val writesFirstAid: Boolean = false,
+    /**
      * Whether llama.cpp copies this model's weights into its faster in-memory layouts when loading. The copy cannot be
      * reclaimed by Android: Gemma's took 5.9 GB on a 12 GB phone and got the app killed while loading; mapped from the
      * file instead it needed 0.56 GB and wrote just as fast (13.6 against 13.8 tokens a second).
@@ -115,6 +122,7 @@ object ModelOffers {
         minimumMemoryLabel = "12 GB",
         thinkingBudget = 2048,
         knowledgeFirst = true,
+        writesFirstAid = true,
         repackWeights = false,
     )
 

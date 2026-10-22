@@ -42,13 +42,19 @@ MAX_RESPONSE = 8 * 1024 * 1024
 FETCH_DELAY = 1.0
 PUBLIC_DOMAIN = "Public domain (US federal government work)"
 CC_BY_SA = "CC BY-SA 4.0"
-LICENSES = {PUBLIC_DOMAIN, CC_BY_SA}
+OGL = "Open Government Licence v3.0"
+LICENSES = {PUBLIC_DOMAIN, CC_BY_SA, OGL}
+OGL_URL = "https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/"
 CATEGORIES = {"medical", "environment", "survival", "disaster"}
 # Only hosts whose pages are US federal government works may carry the public-domain label.
 FEDERAL_HOSTS = {"www.cdc.gov", "www.weather.gov", "www.ready.gov", "www.nps.gov", "www.dhs.gov",
                  "www.niams.nih.gov", "www.ninds.nih.gov", "www.nhlbi.nih.gov", "www.niaid.nih.gov",
                  "www.nigms.nih.gov", "medlineplus.gov", "www.noaa.gov", "www.tsunami.gov",
                  "www.fema.gov", "www.usfa.fema.gov", "www.osha.gov"}
+# nhs.uk content is released under the Open Government Licence v3.0 (https://www.nhs.uk/our-policies/terms-and-conditions/,
+# section 3): copies keep the credit and an "as at" date, never NHS logos or images, and imply no NHS endorsement.
+OGL_HOSTS = {"www.nhs.uk"}
+HTML_HOSTS = FEDERAL_HOSTS | OGL_HOSTS
 GUIDE_WORDS = (80, 600)
 MAX_GUIDES_BYTES = 600 * 1024
 
@@ -164,8 +170,8 @@ def load_sources(path):
             raise ValueError(f"Unsafe source id: {source['id']}")
         if source["kind"] == "html":
             host = urllib.parse.urlsplit(source["url"]).netloc
-            if urllib.parse.urlsplit(source["url"]).scheme != "https" or host not in FEDERAL_HOSTS:
-                raise ValueError(f"Not an allow-listed US federal host: {source['url']}")
+            if urllib.parse.urlsplit(source["url"]).scheme != "https" or host not in HTML_HOSTS:
+                raise ValueError(f"Not an allow-listed host (US federal or OGL): {source['url']}")
         elif source["kind"] == "wikipedia":
             if not isinstance(source.get("revision"), int) or not source.get("title"):
                 raise ValueError(f"Wikipedia source needs a title and pinned integer revision: {source['id']}")
@@ -222,8 +228,8 @@ def fetch(sources_path, cache, refresh=()):
             raw, status, final, content_type = http_get(source["url"])
             if status != 200:
                 raise ValueError(f"HTTP {status} for {source['url']}")
-            if urllib.parse.urlsplit(final).netloc not in FEDERAL_HOSTS:
-                raise ValueError(f"Redirected off an allow-listed federal host: {final}")
+            if urllib.parse.urlsplit(final).netloc != urllib.parse.urlsplit(source["url"]).netloc:
+                raise ValueError(f"Redirected off the source's own host: {final}")
             text = raw.decode("utf-8")
             if re.search(r"<meta[^>]+http-equiv=[\"']?refresh", text, re.I) and len(text) < 4096:
                 raise ValueError(f"{source['url']} is a client-side redirect stub; pin the target URL instead")
@@ -549,6 +555,7 @@ def word_count(sections):
 
 
 # US phone numbers, agencies or geography in the text mean the advice assumes US services.
+UK_SPECIFIC = re.compile(r"\b999\b|\bNHS 111\b|\bcall 111\b|\bA&E\b")
 US_SPECIFIC = re.compile(r"\b9-1-1\b|\b911\b|\bUnited States\b|\bU\.S\.|1-800-222-1222|\bFEMA\b|"
                          r"\bNOAA Weather Radio\b|\bEAS\b")
 
@@ -564,11 +571,23 @@ def source_title(source, html):
     return text
 
 
+def host_of(source):
+    return urllib.parse.urlsplit(source.get("url", "")).netloc if source["kind"] == "html" else ""
+
+
 def source_record(source, row, html):
     record = {"publisher": source["publisher"], "title": source_title(source, html),
               "url": source_url(source), "retrieved": row["retrieved"],
-              "license": CC_BY_SA if source["kind"] == "wikipedia" else PUBLIC_DOMAIN,
+              "license": CC_BY_SA if source["kind"] == "wikipedia" else OGL if host_of(source) in OGL_HOSTS else PUBLIC_DOMAIN,
               "revision": source.get("revision"), "sha256": row["sha256"]}
+    if host_of(source) in OGL_HOSTS:
+        as_at = dt.datetime.fromisoformat(row["retrieved"].replace("Z", "+00:00")).strftime("%-d %B %Y")
+        record["license_url"] = OGL_URL
+        record["attribution"] = (f"Information from the NHS website, as at {as_at}. Contains public sector information licensed "
+                                 "under the Open Government Licence v3.0. Not reviewed or endorsed by the NHS.")
+    elif host_of(source) == "www.cdc.gov":
+        record["attribution"] = ("Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, "
+                                 "HHS or the United States Government.")
     if source["kind"] == "wikipedia":
         record["license_url"] = "https://creativecommons.org/licenses/by-sa/4.0/"
         record["attribution"] = (f"Text from the English Wikipedia article \"{source['title']}\" "
@@ -590,7 +609,8 @@ def build_guide(spec, source, row, html):
         if problems:
             raise ValueError(f"Guide {spec['id']}: {', '.join(problems)} in {text[:80]!r}")
     detected_us = any(US_SPECIFIC.search(text) for text in texts)
-    region = spec.get("region") or ("US" if detected_us else None)
+    detected_uk = host_of(source) in OGL_HOSTS or any(UK_SPECIFIC.search(text) for text in texts)
+    region = spec.get("region") or ("US" if detected_us else "UK" if detected_uk else None)
     return {"id": spec["id"], "title": spec["title"], "category": spec["category"],
             "keywords": spec["keywords"], "urgent": spec["urgent"], "region": region,
             "sections": sections, "source": source_record(source, row, html)}

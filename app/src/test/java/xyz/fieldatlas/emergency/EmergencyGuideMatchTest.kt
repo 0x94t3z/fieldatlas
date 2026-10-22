@@ -253,7 +253,8 @@ class EmergencyGuideMatchTest {
     }
 
     @Test fun oneEverydayWordDoesNotPickAGuide() {
-        assertNull(match("My baby has a fever of 39°C, what do I do?"))
+        // A fever has its own guide since 22 October (NHS): home care, and when to call 111 or 999.
+        assertEquals("fever-children", match("My baby has a fever of 39°C, what do I do?"))
         assertNull(match("My throat hurts, what should I do?"))
         assertEquals("cpr", match("Someone collapsed and isn't breathing, what do I do?"))
         assertEquals("cpr", match("My dad stopped breathing"))
@@ -740,8 +741,8 @@ class EmergencyGuideMatchTest {
         assertEquals(null, match("a fish bone is stuck in my throat, i can breathe and talk but swallowing hurts"))
         assertEquals(null, match("who invented the tourniquet"))
         assertEquals(null, match("a bit of apple skin feels stuck in my throat, im breathing and talking fine"))
-        // Bleeding in pregnancy is not a wound to press on.
-        assertEquals(null, match("im 20 weeks pregnant and suddenly bleeding heavily"))
+        // Bleeding in pregnancy is not a wound to press on: it has its own guide (NHS), with when to call 999.
+        assertEquals("pregnancy-bleeding", match("im 20 weeks pregnant and suddenly bleeding heavily"))
         // "Swallowed it the wrong way" is about the airway, not a bent bone.
         assertNotEquals("fractures-sprains", match("baby swallowed a bead the wrong way and cant breath"))
         assertEquals(null, match("what does it mean when a film shows someone foaming at the mouth"))
@@ -777,6 +778,17 @@ class EmergencyGuideMatchTest {
         assertNotEquals("eye-injury", match("cut above his eye and blood keeps running into it"))
     }
 
+    @Test fun aChildWithAFeverGetsTheFeverGuideUnlessAFitIsDescribed() {
+        assertEquals("fever-children", match("my 6 week old feels hot, temp is 38.2, should i be worried"))
+        assertEquals("seizures", match("kid was shivering with a fever then started convulsing"))
+        assertNull(match("what is a normal temperature for a child"))
+    }
+
+    @Test fun aColdCasualtyFoundAfterBeingLostGetsTheColdGuide() {
+        // Set 47: "lost in the snow overnight, shivering hard and mumbling" was shown the guide for getting lost.
+        assertEquals("hypothermia", match("we found my uncle after he got lost in the snow overnight, shivering hard and mumbling nonsense. my dad wants to give him brandy and rub his arms hard, is that right"))
+    }
+
     @Test fun someoneOutButBreathingIsPutOnTheirSide() {
         // Breathing but not waking: the recovery position (and the call for help every urgent guide opens with), not CPR.
         assertEquals("recovery-position", match("my friend fainted and is breathing but not waking up, what do I do"))
@@ -784,10 +796,96 @@ class EmergencyGuideMatchTest {
         // Not breathing, or only gasping, is still CPR.
         assertEquals("cpr", match("my dad collapsed and is not breathing and wont wake up"))
         assertEquals("cpr", match("she wont wake up and is just gasping every few seconds"))
+        // Breathing only every 10 seconds, or gasping while the question asks about something else, is CPR (sets 47-48).
+        assertEquals("cpr", match("my roommate took a bunch of his oxy pills, hes making a weird snoring sound and only breathing like every 10 seconds and i cant wake him. do i put him on his side?"))
+        assertEquals("cpr", match("my husband just collapsed in the kitchen, he wont respond and is doing weird gasping breaths every few seconds. what should i pack for the hospital"))
+        assertNotEquals("cpr", match("he passed out but is breathing every 3 seconds and snoring"))
         // Someone who fainted and came round needs no side position.
         assertNotEquals("recovery-position", match("my husband fainted at the doctors when he saw the needle, came round in seconds and is chatting now"))
         // Out after drink and breathing: on their side first, ahead of the poisoning guide.
         assertEquals("recovery-position", match("My mate drank way too much at the beach party and is passed out on his back, " +
             "snoring strangely. We can't properly wake him and he threw up a bit earlier."))
+    }
+
+    @Test fun signsTheNhsGuidesListOpenThoseGuides() {
+        // Set 50: these guides existed, but their single keywords ("asthma", "insulin") score nothing alone.
+        assertEquals("asthma-attack", match("my brother has asthma and is wheezing so badly he cant get a sentence out, his inhaler isnt helping"))
+        assertEquals("asthma-attack", match("lady on the train is coughing and wheezing hard and only has her brown preventer inhaler with her"))
+        assertEquals("low-blood-sugar", match("my dad is on insulin and has gone shaky, sweaty and is not making sense"))
+        assertEquals("low-blood-sugar", match("my daughter thinks shes having a hypo at school, what should the teacher give her"))
+        // High sugar is not a hypo.
+        assertNotEquals("low-blood-sugar", match("my son is type 1, being sick, breath smells of pear drops and his meter says HI"))
+        assertEquals("heart-attack", match("my grandad thinks it is heartburn but he is sweaty and pale and his left arm is aching"))
+        assertNotEquals("heart-attack", match("she fell off her bike, her arm hurts and she feels a bit sick"))
+        assertEquals("burns", match("splashed oven cleaner on my wrist and the skin is stinging and red"))
+        assertEquals("hypothermia", match("we found my grandad in the garden this morning, he had been out all night and is shaking and muddled"))
+        // Injured in the rain: the wound comes first.
+        assertNotEquals("hypothermia", match("crashed my bike in the rain, my knee is bleeding loads and im shaking"))
+    }
+
+    @Test fun aCollapseWithGaspsIsCprAndNoAnswerIsNotResponding() {
+        assertEquals("cpr", match("my colleague just dropped to the floor and is not answering, he takes a gasp every so often"))
+        assertEquals("cpr", match("a man collapsed outside the shop and i cant see him breathing, just an odd gulp"))
+        // Awake and gasping for air is not an arrest.
+        assertNotEquals("cpr", match("she collapsed onto the sofa gasping for air but is still talking to me"))
+        // Not responding but breathing, with blood in the mouth: on the side to keep the airway clear.
+        assertEquals("recovery-position", match("my son came off his scooter and isnt responding, he is breathing but there is blood in his mouth"))
+    }
+
+    @Test fun somethingSwallowedThatNoKeywordNamesOpensThePoisoningGuide() {
+        assertEquals("poisoning", match("my toddler drank a mouthful of the blue screenwash from the car boot, he seems fine"))
+        assertEquals("poisoning", match("my mum took her blood pressure tablets twice this morning by mistake, should she skip tonight"))
+        assertEquals("poisoning", match("my grandad swallowed a hearing aid battery, thought it was one of his pills"))
+        // Fluids for a sick child are not a poison.
+        assertNotEquals("poisoning", match("my son has a tummy bug, how much fluid should he drink"))
+    }
+
+    @Test fun pregnancyWithoutBleedingDoesNotOpenTheBleedingGuide() {
+        assertNotEquals("pregnancy-bleeding", match("im 34 weeks pregnant with a terrible headache, blurry vision and my ankles have suddenly swollen"))
+        assertEquals("pregnancy-bleeding", match("im 10 weeks pregnant and have some spotting and cramps"))
+    }
+
+    @Test fun setFiftyTwoSignsOpenTheirGuides() {
+        // Set 52 (fresh wording): each of these reached no guide, or the wrong one.
+        assertEquals("low-blood-sugar", match("my wife is type 1, her meter read 2.9 so she ate some sweets and now it says 3.6, does she need more"))
+        assertNotEquals("low-blood-sugar", match("my son is type 1 and his meter says 14.2 after his birthday cake"))
+        assertEquals("opioid-overdose", match("found my cousin on the sofa, wont wake properly, pupils are tiny and hes barely breathing"))
+        assertEquals("opioid-overdose", match("i sprayed narcan up his nose two minutes ago and hes drifting off again, do i use the other one"))
+        assertEquals("cpr", match("my uncle keeled over at the bbq, eyes wide open, doing these big sucking breaths like a fish out of water"))
+        assertEquals("cpr", match("my nan wont come round and her breathing is only 3 or 4 a minute with long pauses between them"))
+        assertEquals("recovery-position", match("my dad slumped off his chair and wont open his eyes when i shout, his chest is going up and down fine"))
+        assertEquals("asthma-attack", match("my mate uses symbicort for everything, he is tight chested and has had 6 puffs with no change"))
+        assertEquals("heart-attack", match("my neighbour is 74, gets indigestion walking up stairs, tonight it started sitting watching tv and wont go away"))
+        assertNotEquals("heart-attack", match("i get heartburn after spicy food, what can i take for it"))
+        assertEquals("burns", match("spilled pool chlorine on my hand while cleaning the filter and it is stinging red"))
+        assertEquals("seizures", match("found my brother on the floor, he has bitten his tongue and wet himself and is really confused"))
+        assertEquals("stroke", match("my mum's vision suddenly went double and she cant walk straight, started an hour ago"))
+        assertEquals("fever-children", match("our 5 week old is 38.4 under the arm and very sleepy"))
+        assertEquals("poisoning", match("my toddler got hold of the toilet descaler and keeps crying when he swallows"))
+        assertEquals("poisoning", match("we cooked some leaves we picked and now think they were foxglove, my husband feels queasy and his heart is racing"))
+    }
+
+    @Test fun setFiftyThreeWordingsAreUnderstood() {
+        // A medicine's expiry date is not when the emergency happened.
+        assertEquals("anaphylaxis", match("my son got stung by a bee, his lips are swelling and his voice is going hoarse. his pen went out of date in june, do i still use it"))
+        assertEquals("cpr", match("my colleague dropped while lifting a crate, eyes half open, just a snore-like gasp now and then"))
+        assertEquals("cpr", match("man in the park wont wake up and only took 2 breaths while i counted to 30"))
+        assertNotEquals("cpr", match("my grandma sleeps very deeply and breathes slowly, is that normal"))
+    }
+
+    @Test fun breathingThatIsNotNormalIsCprHoweverItIsTold() {
+        // Set 54: counted per minute, or a rattle with the chest barely moving.
+        assertEquals("cpr", match("cant wake my brother, hes breathing really slowly, i counted 2 breaths in a whole minute"))
+        assertEquals("cpr", match("old lady at the bus stop is not responding, theres a rattle when she breathes and her chest is barely moving"))
+        assertEquals("poisoning", match("found my 3 year old with grandmas pills, the lid was off and theres white powder round her mouth"))
+    }
+
+    @Test fun aHeadColdIsNotColdInjuryAndHayFeverIsNotAChildsFever() {
+        // Set 55: a nosebleed "with a cold" opened the frostbite guide; "hay fever gone mad" after a cafe drink opened the fever guide.
+        assertNull(match("my nose bled for a bit after blowing it hard with a cold, it stopped on its own, how do i stop it happening again"))
+        assertEquals("anaphylaxis", match("my daughter says her hay fever has gone crazy after a milkshake, her voice has gone croaky and she feels dizzy"))
+        assertNotEquals("fever-children", match("my daughter says her hay fever has gone crazy after a milkshake, her voice has gone croaky and she feels dizzy"))
+        // A real chill outdoors still finds the cold guides.
+        assertEquals("hypothermia", match("dad got lost in the snow for hours and is now shivering and confused"))
     }
 }

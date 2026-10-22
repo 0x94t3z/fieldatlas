@@ -53,10 +53,81 @@ class EmergencyRoutingTest {
         assertFalse(text, text.contains("model isn't available"))
         assertTrue(text, text.contains("shown as published by CDC/NIOSH [S1]"))
         assertTrue(text, text.contains("Seek emergency medical attention as soon as possible to start antivenom (if needed) and stop irreversible damage."))
-        assertTrue(text, text.contains("call your local emergency number first"))
+        // A small model's published guide for someone hurt now opens with "call now" (sets 53-54).
+        assertTrue(text, text.startsWith("**Call your local emergency number now**"))
         assertTrue(text, text.contains("written for the United States"))
         assertTrue(events.last() is ResearchEvent.Complete)
         assertEquals(0, (events.last() as ResearchEvent.Complete).metrics.generatedTokenCount)
+    }
+
+    @Test fun theMeasurementSwitchLetsTheModelWriteFromTheGuideWithTheGuideAsItsNote() = runBlocking {
+        val model = Recording("Keep him still, with the bite below the heart [S1].\n1. Call for help now [S1].")
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, emergencyGuides = { guides },
+            modelWritesGuides = true).research("My friend was bitten by a snake on the trail, what should we do?").toList()
+        assertTrue("the guide is the model's one note", model.prompt.contains("OFFICIAL GUIDE:\n[S1]"))
+        assertTrue(model.prompt.contains("Seek emergency medical attention as soon as possible"))
+        val text = answer(events)
+        assertTrue(text, text.startsWith("**If this is an emergency, call your local emergency number first**"))
+        assertTrue(text, text.contains("Keep him still"))
+        assertTrue(text, text.contains("the guide as published is in Sources"))
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().single().evidence.all { it.documentId == "emergency:snakebite" })
+    }
+
+    @Test fun aModelTrustedWithFirstAidWritesItAndOthersShowTheGuide() = runBlocking {
+        class Trusted(reply: String, private val trusted: Boolean) : InferenceGateway by Recording(reply) {
+            override val writesFirstAid: Boolean get() = trusted
+        }
+        val question = "My friend was bitten by a snake on the trail, what should we do?"
+        val written = answer(ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Trusted("Keep him still [S1].", true),
+            emergencyGuides = { guides }).research(question).toList())
+        assertTrue(written, written.contains("Keep him still"))
+        assertTrue(written, written.contains("Written for your situation from CDC/NIOSH's guide"))
+        val shown = answer(ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Trusted("Keep him still [S1].", false),
+            emergencyGuides = { guides }).research(question).toList())
+        assertTrue(shown, shown.contains("shown as published by CDC/NIOSH [S1]"))
+        assertFalse(shown, shown.contains("Keep him still"))
+    }
+
+    @Test fun theFallbackGivesNoTreatmentStepsTheSavedGuidesDoNotSupport() = runBlocking {
+        val model = Recording("Don't use an expired pen.")
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, emergencyGuides = { guides },
+            modelFirstNotes = 0, smallModelFirstAid = "fallback")
+            .research("my mum has had a water infection for days and is now shivering and confused, can she take my old antibiotics").toList()
+        val text = answer(events)
+        assertFalse("the model may plan the search but writes no answer", model.prompt.contains("ANSWER:"))
+        // No guide fits and nothing says it is minor: "call now" (set 52).
+        assertTrue(text, text.startsWith("**Call your local emergency number now**"))
+        assertTrue(text, text.contains("No first-aid guide saved on this phone covers this situation"))
+        assertFalse(text, text.contains("expired"))
+        assertEquals(listOf("emergency:cpr", "emergency:recovery-position", "emergency:anaphylaxis"),
+            events.filterIsInstance<ResearchEvent.Sources>().single().evidence.map { it.documentId })
+    }
+
+    @Test fun aSwallowedPoisonGetsCallNowAndThePoisoningGuideNotAMemoryAnswer() = runBlocking {
+        // Set 47: "took a whole packet of paracetamol … feels fine" was answered from memory about taking her phone away.
+        val model = Recording("Take her phone away tonight.")
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, emergencyGuides = { guides }, modelFirstNotes = 0)
+            .research("my 16 yr old daughter took a whole packet of paracetamol 2 hours ago after a fight. she says she feels fine, should i take her phone").toList()
+        val text = answer(events)
+        assertTrue(text, text.startsWith("**Call your local emergency number now**"))
+        // Set 50: a swallowed medicine no keyword names now opens the NHS poisoning guide itself, as published.
+        assertTrue(text, text.contains("shown as published by NHS"))
+        assertFalse(text, text.contains("phone away"))
+        assertEquals("emergency:poisoning-steps", events.filterIsInstance<ResearchEvent.Sources>().single().evidence.single().documentId)
+    }
+
+    @Test fun aModelTrustedWithFirstAidGetsTheMedicineSafetyRuleWhenNoGuideMatched() = runBlocking {
+        class Trusted : InferenceGateway by Recording("Call now.") {
+            override val writesFirstAid: Boolean get() = true
+            override val knowledgeFirst: Boolean get() = true
+            var asked = ""
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int) =
+                flow { asked = prompt; emit("Keep giving her reliever puffs and call an ambulance.") }
+        }
+        val model = Trusted()
+        ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, model, emergencyGuides = { guides })
+            .research("my wife has sickle cell and is in a bad pain crisis, can she take the tramadol from my back operation").toList()
+        assertTrue(model.asked, model.asked.contains("Never advise against using emergency medicine"))
     }
 
     @Test fun theGuideIsShownAsPublishedWhenTheModelIsNotReady() = runBlocking {
@@ -151,5 +222,26 @@ class EmergencyRoutingTest {
                 "tornado on the ground a few miles away and we're in a trailer",
                 topic = xyz.fieldatlas.research.TopicEvidence.Carried("tornado on the ground a few miles away and we're in a trailer", emptyList())).toList()
         assertTrue(events.filterIsInstance<ResearchEvent.Sources>().first().evidence.all { it.documentId == "emergency:tornado" })
+    }
+
+    @Test fun firstAidPromptsCarryTheCprAndAspirinRules() {
+        // Set 54: Gemma kept someone barely breathing in the recovery position, and gave aspirin against a doctor's advice.
+        val guide = xyz.fieldatlas.research.PromptBuilder.buildGuideAnswer("he has collapsed", EmergencyGuideMatch.evidence(guides.first { it.id == "cpr" }), false, false)
+        assertTrue(guide.prompt.contains("needs CPR now, not the recovery position"))
+        assertTrue(guide.prompt.contains("Do not give aspirin to someone a doctor has told to avoid it"))
+    }
+
+    @Test fun theOfficialGuideIsOnScreenWhileATrustedModelWritesItsAnswer() = runBlocking {
+        class Trusted : InferenceGateway by Recording("Lie him on his side [S1].") {
+            override val writesFirstAid: Boolean get() = true
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Trusted(),
+            emergencyGuides = { guides }).research("my mate drank too much and is passed out on his back snoring, we cant wake him").toList()
+        val tokens = events.filterIsInstance<ResearchEvent.Token>().map { it.text }.filter { it.isNotBlank() }
+        assertTrue(tokens.first(), tokens.first().contains("shown as published by"))
+        assertTrue(tokens.first(), tokens.first().contains("while an answer for your situation is written"))
+        // The finished answer stands alone; the guide as published is in Sources.
+        assertFalse(tokens.last(), tokens.last().contains("while an answer for your situation is written"))
+        assertTrue(tokens.last(), tokens.last().contains("Lie him on his side"))
     }
 }

@@ -237,6 +237,12 @@ class DesktopResearchTest {
                 // On by default, as in the app; FIELDATLAS_DESKTOP_SOURCE_ROUTER=0 answers every subject from memory.
                 sourceRouter = System.getenv("FIELDATLAS_DESKTOP_SOURCE_ROUTER") != "0",
                 readImportedCollections = true,
+                // Measurement: FIELDATLAS_DESKTOP_GUIDE_ANSWER=1 lets the model write first-aid answers from the guide.
+                modelWritesGuides = System.getenv("FIELDATLAS_DESKTOP_GUIDE_ANSWER") == "1",
+                // Candidate fixes on top: FIELDATLAS_DESKTOP_GUIDE_CHECK=1 (see GuideAnswerCheck).
+                guideAnswerChecks = System.getenv("FIELDATLAS_DESKTOP_GUIDE_CHECK") == "1",
+                // Measurement: FIELDATLAS_DESKTOP_SMALL_FIRST_AID=careful|cited for first aid no guide matched.
+                smallModelFirstAid = System.getenv("FIELDATLAS_DESKTOP_SMALL_FIRST_AID")?.takeIf { it.isNotBlank() } ?: "fallback",
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
                 // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
                 libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",
