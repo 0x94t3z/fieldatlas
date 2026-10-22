@@ -515,6 +515,7 @@ class ResearchViewModel(
                                 topic = state.topic,
                                 readAs = state.question.takeIf { state.asked.isNotBlank() },
                                 durationMs = event.metrics.totalMillis,
+                                metrics = event.metrics,
                             )
                         }
                     }
@@ -666,6 +667,7 @@ class ResearchViewModel(
             phase = ResearchPhase.Complete,
             completion = ResearchCompletion.Complete,
             savedMillis = last.durationMs,
+            metrics = last.metrics,
             reopened = true,
         )
         return true

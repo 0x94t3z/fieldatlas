@@ -121,4 +121,18 @@ class ContinueTopicTest {
         // The follow-up's own run replaces it: its time comes from its metrics.
         assertEquals(null, vm.uiState.value.savedMillis)
     }
+
+    @Test fun aReopenedAnswerKeepsItsDetails() {
+        val history = store()
+        val vm = viewModel(history)
+        vm.updateQuestion("tell me about the hagia sophia")
+        vm.submit()
+        val made = vm.uiState.value.metrics!!
+        // Saved with the answer, so Answer details can be opened again from History, as on the day.
+        assertEquals(made, history.records.value.single().metrics)
+        vm.startNewQuestion()
+        assertEquals(null, vm.uiState.value.metrics)
+        assertTrue(vm.continueTopic(history.records.value.single(), history.records.value))
+        assertEquals(made, vm.uiState.value.metrics)
+    }
 }
