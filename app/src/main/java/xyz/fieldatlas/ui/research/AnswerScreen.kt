@@ -247,7 +247,10 @@ fun AnswerScreen(
                                     if (withheld || isInputNotice || noModelReply || workedFromQuestion) StatusTone.Neutral else StatusTone.Attention,
                                 )
                             }
-                            (state.metrics?.totalMillis ?: state.savedMillis)?.let { FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it)) }
+                            // The clock says what the number is: the time the answer took, not the listening time under it.
+                            (state.metrics?.totalMillis ?: state.savedMillis)?.let {
+                                FieldAtlasStatusPill(if (it < 1_000) "Under 1s" else formatResearchElapsed(it), icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Clock)
+                            }
                         }
                         if (guideId != null && readAloud != null) {
                             if (readingHere == null) ReadAloudButton(readAloud.recordingMillis(guideId)) { readAloud.readGuide(readKey, guideId) }

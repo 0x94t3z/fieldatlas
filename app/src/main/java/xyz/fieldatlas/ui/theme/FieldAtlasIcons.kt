@@ -28,6 +28,7 @@ object FieldAtlasIcons {
     val Library by prototypeIcon("Library", "M4.5 4H6.5a1.5 1.5 0 0 1 1.5 1.5V19.5a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5V5.5a1.5 1.5 0 0 1 1.5-1.5Z M11 4v17m4-17 5 16M3 8h5", false, 24f, PathFillType.NonZero)
     val More by prototypeIcon("More", "M4 7h2m6 0h8M4 17h8m6 0h2 M12 7a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z M18 17a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z", false, 24f, PathFillType.NonZero)
     val History by prototypeIcon("History", "M3 11a9 9 0 1 1 2 7M3 4v7h7M12 7v5l3 2", false, 24f, PathFillType.NonZero)
+    val Clock by prototypeIcon("Clock", "M21 12a9 9 0 1 1-18 0a9 9 0 1 1 18 0ZM12 7v5l3 2", false, 24f, PathFillType.NonZero)
     val Privacy by prototypeIcon("Privacy", "M12 2l8 3v6c0 5-8 11-8 11S4 16 4 11V5l8-3Z M8 11l3 3 5 -6", false, 24f, PathFillType.NonZero)
     val Performance by prototypeIcon("Performance", "M4 3v18h17M8 17v-5m4 5V7m4 10v-7m4 7V5", false, 24f, PathFillType.NonZero)
     val Diagnostics by prototypeIcon("Diagnostics", "M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5", false, 24f, PathFillType.NonZero)
