@@ -609,6 +609,48 @@ object EmergencyGuideMatch {
      * Whether the question describes someone hurt or unwell now ("my son is wheezing after shrimp"), as opposed to asking
      * about a topic, a past event or a study question: the same test that lets a guide be found by its text.
      */
+    /**
+     * The guide a learning question is about ("how many compressions a minute for CPR, before my course next week"), by the
+     * topic it names. A model that cannot answer from its own knowledge shows this guide as published rather than
+     * paraphrasing whatever passage search found: on the 4 GB phone (23 Oct) the 2B answered the CPR question from a
+     * research paper with "40 compressions per minute".
+     */
+    fun learningGuide(question: String, guides: List<EmergencyGuide>): EmergencyGuide? {
+        val q = question.lowercase(Locale.ROOT)
+        val id = learningTopics.firstOrNull { (regex, _) -> regex.containsMatchIn(q) }?.second ?: return null
+        return guides.firstOrNull { it.id == id }
+    }
+
+    // Specific topics before the words they contain: sunburn before burns, heat stroke before stroke.
+    private val learningTopics = listOf(
+        Regex("\\b(?:cpr|chest compressions?|rescue breath\\w*|cardiopulmonary)\\b") to "cpr",
+        Regex("\\b(?:choking|heimlich|abdominal thrusts?|back blows)\\b") to "choking",
+        Regex("\\b(?:tourniquets?|severe bleeding|stop the bleed\\w*|arterial bleed\\w*)\\b") to "severe-bleeding",
+        Regex("\\brecovery position\\b") to "recovery-position",
+        Regex("\\b(?:anaphyla\\w+|epipens?|adrenaline (?:auto-?injectors?|pens?))\\b") to "anaphylaxis",
+        Regex("\\b(?:naloxone|narcan|opioid overdoses?)\\b") to "opioid-overdose",
+        Regex("\\b(?:heat ?stroke|heat exhaustion|heat illness)\\b") to "heat-illness",
+        Regex("\\bsunburn\\w*\\b") to "sunburn",
+        Regex("\\bburns?\\b") to "burns",
+        Regex("\\bheart attacks?\\b") to "heart-attack",
+        Regex("\\b(?:strokes?|fast test)\\b") to "stroke",
+        Regex("\\bhypothermia\\b") to "hypothermia",
+        Regex("\\bfrostbite\\b") to "frostbite",
+        Regex("\\bdrown\\w*\\b") to "drowning",
+        Regex("\\b(?:seizures?|epilep\\w+|convuls\\w+)\\b") to "seizures",
+        Regex("\\b(?:hypoglyc\\w+|low blood sugar|a hypo)\\b") to "low-blood-sugar",
+        Regex("\\basthma\\b") to "asthma-attack",
+        Regex("\\bsnake ?bites?\\b") to "snakebite",
+        Regex("\\bcarbon monoxide\\b") to "carbon-monoxide",
+        Regex("\\b(?:fractures?|sprains?|broken (?:bones?|arm|leg|wrist|ankle))\\b") to "fractures-sprains",
+        Regex("\\b(?:concussions?|head injur\\w+)\\b") to "head-injury",
+        Regex("\\bpoison\\w*\\b") to "poisoning",
+        Regex("\\bdehydrat\\w+\\b") to "dehydration",
+        Regex("\\baltitude sickness\\b") to "altitude-sickness",
+        Regex("\\blightning\\b") to "lightning",
+        Regex("\\btick bites?\\b") to "tick-bites",
+    )
+
     fun describesFirstAidSituation(asked: String): Boolean = withoutExpiry(asked).let { question ->
         aPerson.containsMatchIn(question) && bodySign.containsMatchIn(question) && !notFirstAid.containsMatchIn(question) &&
             !notHappeningNow.containsMatchIn(question) && !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question))

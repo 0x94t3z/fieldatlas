@@ -56,7 +56,8 @@ on the phone, with no account and nothing sent anywhere.
   while the published guide stays on screen; on 40 new situations graded blind it gave a good answer
   to 30, one judged unsafe. The smaller models show the guide as published and never rewrite it.
   Where no saved guide covers the situation, the answer says so and gives no treatment steps. A
-  learning question ("how deep do you push for CPR?") is answered as a question. On 320 labelled
+  learning question ("how deep do you push for CPR?") is answered as a question by the 4B and Gemma;
+  the 2B shows the guide it is about instead of paraphrasing a passage. On 320 labelled
   questions the right guide opens 231 times, with none misleading
   ([details](../testing-1.4.2.md)).
 - **Any model file.** **Import a file** in setup or Library accepts a model's own `.gguf` as well as

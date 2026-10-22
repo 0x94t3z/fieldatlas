@@ -170,4 +170,11 @@ class GuideAnswerCheckTest {
         assertFalse(GuideAnswerCheck.firstAidQuestion("how hard do you push for chest compressions? just want to know before my course"))
         assertTrue(GuideAnswerCheck.firstAidQuestion("my dad collapsed and i am doing chest compressions, how hard do i push"))
     }
+
+    @Test fun aLearningQuestionIsNotSomeoneInTroubleNow() {
+        assertTrue(GuideAnswerCheck.learning("how many chest compressions a minute is it for CPR and how deep do you push? just want to know before my course next week"))
+        assertTrue(GuideAnswerCheck.learning("how do you do the heimlich on a child"))
+        assertFalse(GuideAnswerCheck.learning("my uncle dropped while carrying boxes, just a snorty gasp every 8 seconds, do i start cpr"))
+        assertFalse(GuideAnswerCheck.learning("who painted girl with a pearl earring"))
+    }
 }

@@ -244,4 +244,26 @@ class EmergencyRoutingTest {
         assertFalse(tokens.last(), tokens.last().contains("while an answer for your situation is written"))
         assertTrue(tokens.last(), tokens.last().contains("Lie him on his side"))
     }
+
+    @Test fun aLearningQuestionShowsItsGuideOnAModelWithNoKnowledgeRoute() = runBlocking {
+        val question = "how many chest compressions a minute is it for CPR and how deep do you push? just want to know before my course next week"
+        // The 2B: no knowledge route, so the CPR guide as published, no call for help now, nothing searched or written.
+        val small = Recording("The number of compressions per minute is 40 +/- 9 [S1].")
+        var searched = false
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> searched = true; emptyList() }, small, emergencyGuides = { guides })
+            .research(question).toList()
+        assertFalse(searched)
+        assertEquals("", small.prompt)
+        assertTrue(events.filterIsInstance<ResearchEvent.Sources>().single().evidence.all { it.documentId == "emergency:cpr" })
+        val text = answer(events)
+        assertTrue(text, text.startsWith("**If this is an emergency, call your local emergency number first**"))
+        assertTrue(text, text.contains("shown as published"))
+        // A model that answers from its own knowledge keeps answering the question (22 Oct: the 4B and Gemma get it right).
+        class Knowing(reply: String) : InferenceGateway by Recording(reply) {
+            override val knowledgeFirst: Boolean get() = true
+        }
+        val known = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Knowing("100 to 120 a minute, 5 to 6 cm deep."),
+            emergencyGuides = { guides }).research(question).toList()
+        assertTrue(known.filterIsInstance<ResearchEvent.Sources>().none { s -> s.evidence.any { it.documentId == "emergency:cpr" } })
+    }
 }

@@ -100,6 +100,12 @@ object GuideAnswerCheck {
         else "**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n"
 
     /** Says itself that it is small: "doesn't hurt much", "otherwise totally fine", a splinter, a blister, a nettle sting. */
+    /** A first-aid question asked to learn ("before my course", "how do you…"), not for someone in trouble now. */
+    fun learning(question: String): Boolean {
+        val q = question.lowercase(Locale.ROOT).replace('’', '\'')
+        return (GENERAL.containsMatchIn(q) || EXPLAINING.containsMatchIn(q)) && !firstAidQuestion(question)
+    }
+
     fun minor(question: String): Boolean {
         val q = question.lowercase(Locale.ROOT).replace('’', '\'')
         return MINOR.containsMatchIn(q) && !SERIOUS.containsMatchIn(q) && !describesLifeThreat(question)

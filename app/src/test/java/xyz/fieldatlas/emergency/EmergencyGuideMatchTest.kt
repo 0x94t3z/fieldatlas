@@ -888,4 +888,13 @@ class EmergencyGuideMatchTest {
         // A real chill outdoors still finds the cold guides.
         assertEquals("hypothermia", match("dad got lost in the snow for hours and is now shivering and confused"))
     }
+
+    @Test fun aLearningQuestionNamesTheGuideItIsAbout() {
+        val g = EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText()).guides
+        assertEquals("cpr", EmergencyGuideMatch.learningGuide("how many chest compressions a minute is it for CPR and how deep do you push? just want to know before my course next week", g)?.id)
+        assertEquals("choking", EmergencyGuideMatch.learningGuide("how do you do the heimlich on a child", g)?.id)
+        assertEquals("sunburn", EmergencyGuideMatch.learningGuide("what is the best thing for sunburn, out of interest", g)?.id)
+        assertEquals("heat-illness", EmergencyGuideMatch.learningGuide("what's the difference between heat stroke and heat exhaustion", g)?.id)
+        assertNull(EmergencyGuideMatch.learningGuide("what is the difference between a mammoth and a mastodon", g))
+    }
 }

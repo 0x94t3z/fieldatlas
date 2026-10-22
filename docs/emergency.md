@@ -4,7 +4,7 @@ Field Atlas answers first-aid, outdoor and disaster questions offline, from the 
 
 ## How the answer is made
 
-The app reads the situation, not just the topic: the signs the official guides list (a collapse with gasps or a chest that barely moves, a child's fever, something swallowed just now, a low blood-sugar reading, an asthma attack gone quiet, a reaction after a food) open the guide for that situation, and a learning question (“how deep do you push for CPR?”) is answered as a question, not as an emergency. The answer has up to three parts:
+The app reads the situation, not just the topic: the signs the official guides list (a collapse with gasps or a chest that barely moves, a child's fever, something swallowed just now, a low blood-sugar reading, an asthma attack gone quiet, a reaction after a food) open the guide for that situation, and a learning question (“how deep do you push for CPR?”) is answered as a question, not as an emergency: Gemma 4 26B and the 4B answer it from what they know, and Qwen3.5 2B, which has no such route, shows the official guide the question is about instead of paraphrasing a passage. The answer has up to three parts:
 
 1. **The call line, first.** “Call your local emergency number now (112 works on mobile phones in many countries)” for anything life-threatening; “If this is an emergency, call your local emergency number first” otherwise.
 2. **The official guide, as published.** It appears at once, in about twelve seconds on a 6 GB phone, with its source cited. On Qwen3.5 2B and 4B this is the whole answer: a small model once reversed an instruction while paraphrasing a guide, so these models never rewrite one.

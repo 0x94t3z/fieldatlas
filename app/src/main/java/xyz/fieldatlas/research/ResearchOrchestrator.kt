@@ -1557,7 +1557,11 @@ class ResearchOrchestrator(
         if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let {
             return xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides)
         }
-        val guide = xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides)
+        // A model with no knowledge route (the 2B) shows the guide a learning question is about rather than paraphrase a
+        // passage: the 4 GB phone answered "how many compressions a minute" from a research paper (23 Oct).
+        val guide = (xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides)
+            ?: if (!inference.knowledgeFirst && xyz.fieldatlas.emergency.GuideAnswerCheck.learning(question))
+                xyz.fieldatlas.emergency.EmergencyGuideMatch.learningGuide(question, guides) else null)
             ?.let { xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides) } ?: return null
         val shown = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide).documentId
         return guide.takeIf { topic == null || (topic.sources + topic.earlier.flatMap { it.sources }).none { it.documentId == shown } }
