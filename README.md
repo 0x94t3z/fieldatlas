@@ -100,7 +100,8 @@ rounds. A good answer is one they score 7 or more. Every change is tested this w
   took the 4B from 2 to 7 on 40 such questions, with fewer wrong details
   ([how it works](docs/how-it-works.md)).
 
-These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
+Every test behind 1.4.2, including emergencies and the phone checks, is on one page:
+[How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
 emulator, not on a 12 GB phone. The graders and the reference answers come from AI models of one
 family, so treat these numbers as our own measurement, not an independent score. Every question,
 answer and grade is published in [docs/fieldtest](docs/fieldtest/), and the

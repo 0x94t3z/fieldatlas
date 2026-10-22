@@ -1,5 +1,7 @@
 # Evaluation
 
+The tests behind the 1.4.2 release, in plain words, are on one page: [How Field Atlas 1.4.2 was tested](testing-1.4.2.md).
+
 ## Good answers, and storage with everything installed (October 21)
 
 From here on, results lead with two counts: how many questions get a **good answer**, one that the
