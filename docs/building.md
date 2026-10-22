@@ -33,7 +33,7 @@ The installable debug APK is `app/build/outputs/apk/debug/app-debug.apk` (`xyz.f
 
 ## Prepare offline files
 
-The current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md). The app imports model files (`.gguf`) and `.fapack` packs. Knowledge packs are optional; see [DATASETS.md](../DATASETS.md). `tools/packs/build_model_packs.py`, `tools/packs/build_wikivoyage_eat_pack.py`, `tools/packs/build_vector_pack.py`, and the other [pack tools](../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.
+The current source offers the three answer models in [MODELS.md](../MODELS.md): Qwen3.5 2B, Qwen3.5 4B and Gemma 4 26B. The app imports model files (`.gguf`) and `.fapack` packs. Knowledge packs are optional; see [DATASETS.md](../DATASETS.md). `tools/packs/build_model_packs.py`, `tools/packs/build_wikivoyage_eat_pack.py`, `tools/packs/build_vector_pack.py`, and the other [pack tools](../tools/README.md) recreate large artifacts from pinned inputs. Model weights, audio packs, and most knowledge packs are intentionally not committed.
 
 ## Repository map
 
@@ -49,6 +49,6 @@ The current source uses the Qwen3.5 2B model pack from [MODELS.md](../MODELS.md)
 | `docs/` | Installation, evaluations, and device evidence |
 | `.github/workflows/` | CI build and offline-policy checks |
 
-The app searches relevant local packs first. If the initial result is weak, the selected on-device model can produce one short query expansion. Only passages that pass relevance checks can enter a cited answer. Otherwise the app uses an explicitly uncited model-only answer. Simple local place-listing questions can use a faster source-backed path with dates and freshness caveats. Other answers stream from llama.cpp. Import verifies declared pack files, sizes, hashes, manifest fields, storage limits, and safe archive paths before installation.
+The app searches relevant local packs first. If the initial result is weak, the selected on-device model can produce one short query expansion. Only passages that pass relevance checks can enter a cited answer. With Qwen3.5 4B or Gemma 4 26B an ordinary question is answered from the model's own knowledge, with a foot line saying what was checked and a mark on each sentence whose figure a saved passage also states; a subject rare in the collections is read from the passages as cited notes instead. Simple local place-listing questions can use a faster source-backed path with dates and freshness caveats. Other answers stream from llama.cpp. Import verifies declared pack files, sizes, hashes, manifest fields, storage limits, and safe archive paths before installation.
 
 For test commands and the limits of current device evidence, see [verification](verification.md).

@@ -10,7 +10,7 @@ The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.
 | --- | --- | --- |
 | Use the current release | [Signed v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, the 4B from 6 GB, or Gemma 4 26B on a 12 GB phone; optional collections and voice are separate. Read the [known limitations](releases/current.md). |
 | Use the previous stable release | [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/docs/installation.md). |
-| Test source changes | [Build from source](building.md) | Qwen3.5 2B. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
+| Test source changes | [Build from source](building.md) | The same three models. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
 Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 APK. The public signing key cannot update a local-test-key build; do not uninstall to work around this, because uninstalling removes app-private data.
 
@@ -27,7 +27,7 @@ After setup, turn on airplane mode and turn Wi-Fi off to try offline research. T
 
 ## What setup offers in 1.4.2
 
-The app needs **only an installed model** to answer questions. The 44 emergency guides and the
+The app needs **only an installed model** to answer questions. The 51 emergency guides and the
 emergency-number table for 242 countries ship inside the app and work before any download. Setup
 shows the model and the optional collections together, grouped by category, straight from the
 download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-app-offers)):
@@ -51,7 +51,7 @@ connection, save a `.fapack` from there on another device and import it in setup
 1.3.0 and older downloaded collections from GitHub releases, which are retired; update the app.
 
 
-Choose **Download recommended model** (internet needed, about 1.4 GB) or import the Qwen3.5 2B model file (`.gguf`) linked in [MODELS.md](../MODELS.md), or a `.fapack` built with the command there; all install the same pinned weights, and the app verifies the exact size and SHA-256 before using any of them. The direct model download was checked on a Redmi 13C for 1.4.1 (1.40 GB in about 11 minutes); importing the file remains the way to set up a phone that cannot download.
+Let setup download the model it offers (internet needed: 1.4 GB for Qwen3.5 2B, 3.0 GB for the 4B, 10.5 GB for Gemma 4 26B) or import a model file (`.gguf`) linked in [MODELS.md](../MODELS.md), or a `.fapack` built with the command there; a tested model installs the same pinned weights, and the app verifies the exact size and SHA-256 before using it. Any other `.gguf` installs as your own, untested model when the phone has the memory for it. The direct model download was checked on a Redmi 13C for 1.4.1 (1.40 GB in about 11 minutes); importing the file remains the way to set up a phone that cannot download.
 
 You can switch apps while a collection downloads; an active transfer has a foreground notification. Only one download or import runs at a time. Pause keeps the downloaded bytes, and reopening the app after a process interruption resumes the transfer. If a transfer fails, tap Resume in setup or Library to try again; a server that does not support range requests may require a full restart. Once a model is installed, choose **Start researching** with or without knowledge; more collections can be added later in Library. Every collection downloads from Hugging Face at a pinned revision. **Import a file** accepts a model file (`.gguf`) or a pack (`.fapack`) and tells which from the file itself.
 

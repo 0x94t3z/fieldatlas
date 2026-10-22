@@ -1,5 +1,23 @@
 # Verification
 
+## v1.4.2 candidate (23 October 2026, not yet published)
+
+- **Automated:** 1,714 JVM tests ran with none failing (56 opt-in tests skipped) on the candidate
+  source (`55753b1` plus the History-details change). Every emergency routing change was checked
+  against the 320 labelled questions in `app/src/test/resources/emergency-labelled.jsonl` (231 right,
+  none misleading).
+- **Devices:** the candidate, signed with the local test key, was installed over the previous build
+  with data kept on a Redmi 13C (6 GB, Android 13, Qwen3.5 4B) and a 12 GB Android 15 emulator
+  (Gemma 4 26B). In airplane mode with Wi-Fi and mobile data off: nine first-aid situations on the
+  Redmi opened with the call line and the right guide in 11–12 s each, the no-guide reply for sepsis
+  and a cord prolapse, the splinter without an alarm, and a CPR learning question as a real answer
+  (285 s); on the emulator Gemma answered general questions in 90–110 s, the "Answer ready" note
+  showed only for an answer finishing while the app was in front, the model-fallback note survived
+  a restart and cleared when Gemma was chosen again, and Answer details reopened from History.
+- **Blind grading:** every set used for 1.4.2 is on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md),
+  with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
+- **Not done yet:** the public-key release build, its hash, the tag and the release itself.
+
 ## v1.4.1 release build (October 15, 2026)
 
 - **Public APK:** version 1.4.1 (20), built from `2a2011a` and tagged on `2817ce8`. 73,164,251
@@ -60,7 +78,7 @@ released in 1.4.1 the next day.
   opens a guide that could mislead, and none is answered worse than by 1.4.0.
 - **Old against new:** every change was compared with the previous code over 7,978 corpus and
   blind questions and 614 recorded answers; each difference was read before it was kept.
-- **Real model, fresh set 6 (desktop, Qwen3.5 2B, every collection):** 54 of the 60 answers are
+- **Real model, fresh set 6 (desktop, Qwen3.5 2B, every collection):** 54 of the 60 (90%) answers are
   identical to the 1.4.0 run. Better: the frozen-lake rescue opens the drowning guide instead of
   frostbite, and a wrong "23 × 8 = 184 slices" lead is gone. Withheld instead of answered: the
   siesta question and "old churches I can walk to" in Kraków, where the model's draft (that Kraków

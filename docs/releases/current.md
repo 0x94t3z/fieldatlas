@@ -16,7 +16,8 @@ on the phone, with no account and nothing sent anywhere.
   (1.4.1 kept the newest 100) and warns when the phone is short of storage.
 - **Answers keep going off the screen.** Back or New topic while an answer is being written does
   not stop it. The Research home shows it as "Still answering", the next question waits its turn,
-  and a note says when it is ready. An answer you watched finish is not announced again.
+  and a note says when it is ready if you are in the app at that moment; otherwise the row on the
+  Research home says it. An answer you watched finish is not announced again.
 - **Research on the answer page.** The page opens as soon as you start. The dino walks from
   Search to Read to Write while the answer forms in place, Stop sits in the question box, and the
   passages found appear as they come in.
@@ -28,8 +29,11 @@ on the phone, with no account and nothing sent anywhere.
   otherwise the app says what to install. The app relies on the engine's own report of its voices. Supertonic 3 counts toward the 50 GB storage limit like a model or a collection.
 - **More emergencies found.** An emergency told as a statement ("tornado siren going off and we're
   in a motel room") now gets its guide. On 45 new emergencies the right guide was shown for 14,
-  against 9 in 1.4.1, with no unsafe guide. Two guides are new: a chemical or object in the eye,
-  and someone unconscious but breathing, who is now put on their side (the recovery position)
+  against 9 in 1.4.1, with no unsafe guide. Nine guides are new, 51 in all, each with a recorded
+  reading for Read aloud: from the NHS (Open Government Licence) asthma attacks, fever in children, a
+  knocked-out tooth, low blood sugar, what to do after a poisoning and bleeding in pregnancy; from
+  the CDC opioid overdose and naloxone; a chemical or object in the eye; and someone unconscious but
+  breathing, who is now put on their side (the recovery position)
   instead of left lying down or sent to CPR, which stays for anyone not breathing. An object stuck
   in a wound ("a branch went into his thigh, it's still sticking out") opens the bleeding guide that
   says to leave it in and pad around it; it used to open the drowning guide, whose text shares the
@@ -39,13 +43,34 @@ on the phone, with no account and nothing sent anywhere.
   funnel or a green sky, a sea that has sucked back, hair standing up on a ridge, a toddler who ate
   a cigarette butt, "everything shaking, shelves falling", "whole body jerking, eyes rolled back", a
   head that hit the kerb, an ankle bent sideways, an orange sky with ash falling. On two blind sets
-  of 60 routing questions the right guide was shown for 14 and 19 of 25 covered emergencies, against
+  of 60 routing questions the right guide was shown for 14 (56%) and 19 (76%) of 25 covered emergencies, against
   11 and 10 before, with nothing lost
   ([details](../evaluation.md#set-38-and-passages-as-a-check-on-figures-october-20)).
+- **First aid opens with the call line, and is written for your situation on 12 GB phones.** An
+  emergency answer now starts with "Call your local emergency number now" for anything
+  life-threatening (or "call first" otherwise) and the official guide, in about twelve seconds on a
+  6 GB phone. The signs the guides list open their guide: a collapse with gasps or a chest that
+  barely moves is CPR, not the recovery position; a child's fever, something swallowed just now, a
+  low blood-sugar reading, an asthma attack gone quiet, a reaction after a food. On a 12 GB phone
+  Gemma 4 26B then writes an answer for the question as asked with the guide as its only source,
+  while the published guide stays on screen; on 40 new situations graded blind it gave a good answer
+  to 30, one judged unsafe. The smaller models show the guide as published and never rewrite it.
+  Where no saved guide covers the situation, the answer says so and gives no treatment steps. A
+  learning question ("how deep do you push for CPR?") is answered as a question. On 320 labelled
+  questions the right guide opens 231 times, with none misleading
+  ([details](../testing-1.4.2.md)).
+- **Any model file.** **Import a file** in setup or Library accepts a model's own `.gguf` as well as
+  a `.fapack`: a file Field Atlas tested keeps its tested settings, any other installs as your own.
+- **If Android closes the app while a model loads**, Qwen3.5 2B answers instead and a note stays
+  in Library saying so, with the way back ("Choose Gemma 4 26B here to try it again"), until you
+  choose a model again.
+- **Answer details stay with the answer.** The time an answer took sits under the question with a
+  clock, and the fold with its retrieval, reading and writing times, tokens and citations is kept in
+  History, so an answer opened again shows them as on the day.
 - **Rare subjects are read from the collections.** A subject few readers meet — one the Simple
   English edition lacks and that is named in few saved passages, or one a specialist collection
   holds — is answered from the saved sources, cited sentence by sentence, instead of from the
-  model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B gave a good answer to 7 instead of 2,
+  model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B gave a good answer to 7 instead of 2 (18% instead of 5%),
   with fewer wrong details; famous subjects are untouched
   ([details](../evaluation.md#reading-the-sources-for-subjects-few-readers-meet-october-20)).
 - **Every answer in one shape, sources at the foot.** An answer written from the model's own knowledge
@@ -60,8 +85,8 @@ on the phone, with no account and nothing sent anywhere.
   less for GPS; the progress line gives the measured range of recent answers ("Usually 3–4 min").
 - **A much larger Biology & longevity collection.** It now holds 48,286 open-access ageing and
   longevity papers from PubMed Central, each under CC BY or CC0, with genetics summaries and three
-  more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new longevity questions graded blind, good answers went from 2 to 7 with
-  Qwen3.5 2B and from 4 to 6 with Qwen3.5 4B. Phones with the earlier edition are offered it as an update in Library.
+  more ageing databases: 900,714 passages, a 1.08 GB download (2.86 GB installed). On 40 new longevity questions graded blind, good answers went from 2 to 7 (5% to 18%) with
+  Qwen3.5 2B and from 4 to 6 (10% to 15%) with Qwen3.5 4B. Phones with the earlier edition are offered it as an update in Library.
 - **Questions about your own files answer far more often.** A question asked with a file reads more of
   it, and a correct answer is no longer withheld by the model's own review. On 24 new file questions
   graded blind, refusals went from 7 to 1 and good answers from 4 to 5, with more wrong details
@@ -88,13 +113,13 @@ on the phone, with no account and nothing sent anywhere.
   is answered from what the model knows, with one line under it saying so and what was checked
   ("From the model's knowledge; 2 figures match your sources"), and the passages found listed under
   it to check. On 40 new questions graded blind, the 4B gave a good answer to 8 instead
-  of 4, and Gemma 4 26B, which reasons before it answers, to 27
+  of 4 (20% instead of 10%), and Gemma 4 26B, which reasons before it answers, to 27 (68%)
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
   These answers have more wrong details than cited ones, so check the passages. Qwen3.5 2B still
   answers from the passages, with citations. Emergencies, places, files, phrases and calculations
   keep their own answers.
 - **Gemma 4 26B for phones with 12 GB of memory** (10.5 GB download). Setup offers it first there.
-  On a 12 GB Android emulator it answered in a median of 100 seconds and left 9.4 GB of memory free.
+  On a 12 GB Android emulator it answered in a median of 92 seconds and left 9.4 GB of memory free.
 - **Qwen3.5 4B from 6 GB of memory.** Setup offers it first on 6 and 8 GB phones, and Qwen3.5 2B on
   4 GB phones. Below 8 GB it is read straight from its file, which leaves memory free: on a 6 GB
   Redmi 13C answers took 3 to 8 minutes.
@@ -119,14 +144,14 @@ on the phone, with no account and nothing sent anywhere.
 ## How good is it?
 
 - **With the new answer models:** on 40 new questions graded blind (set 37), Gemma 4 26B gives a good answer to
-  **27 of 40** and Qwen3.5 4B to **8**, against 4 for the 4B and 2 for the 2B answering from the passages
+  **27 of 40 (68%)** and Qwen3.5 4B to **8 (20%)**, against 4 (10%) for the 4B and 2 (5%) for the 2B answering from the passages
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
   The 4B's answers have more wrong details than the 2B's cited ones (1.94 per answer against 0.71);
   Gemma's have fewer (0.44). These scores measure what each model knows: its answer is written
   without the saved passages, which are listed under it to check, so they do not show the
   collections improving those answers. They come from runs on a computer, not on a phone.
 - **Citing the passages:** on 120 new questions (two sets written after the changes and
-  graded blind twice), 1.4.2 gives a good answer to **27** with Qwen3.5 2B and **28** with
+  graded blind twice), 1.4.2 gives a good answer to **27 (22%)** with Qwen3.5 2B and **28 (23%)** with
   Qwen3.5 4B, the 4B with half the wrong details (0.30 against 0.62 per answer). That is below the bounty's bar
   ([details](../evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)).
 - **Single questions are where 1.4.1 left them.** 1.4.1 scored 29% on an earlier, harder set. On
@@ -143,11 +168,11 @@ Every question, answer and grade is published in
 
 ## Good to know
 
-- **Answers that use the model take about 2 to 6 minutes** on a 6 GB phone with Qwen3.5 2B; most
-  of that is the model reading the passages and checking its answer. With the 4B on the same phone
-  they take about 3 to 8 minutes (median 4.6), and with Gemma 4 26B on a 12 GB emulator about 1 to
-  3 minutes. Answers built from saved data (places, guides, phrases, calculations) take seconds. The
-  4B has not been timed on a real 8 GB phone, nor Gemma on a real 12 GB phone.
+- **Answers that use the model take about 4 to 8 minutes** on a 6 GB phone with Qwen3.5 4B
+  (about 4 for a short one), and with Gemma 4 26B on a 12 GB emulator about 1.5 to 3 minutes; an
+  emergency answer written by Gemma takes a few minutes after the guide is on screen. Answers built
+  from saved data (places, guides, phrases, calculations) take seconds. The 4B has not been timed on
+  a real 8 GB phone, nor Gemma on a real 12 GB phone.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   Answers about a medical letter or drug sheet you attach can get details wrong: read the file itself
   before acting on a dose or a result. The file's own lines on a medicine are quoted under the answer

@@ -1,5 +1,5 @@
 {
-  "_about": "Every figure here is copied from docs/evaluation.md. Edit a value there first, then here, then run make_charts.py.",
+  "_about": "Every figure here is copied from docs/testing-1.4.2.md (and docs/evaluation.md for sets 30 and 42). Edit a value there first, then here, then run make_charts.py with an absolute --out.",
   "ladder": {
     "questions": 40,
     "method": "A good answer scored 7 or more out of 10 from AI graders reading it blind; 40 new questions, two grading rounds.",
@@ -13,7 +13,7 @@
         "errors": 0.71
       },
       {
-        "phone": "6 and 8 GB phones",
+        "phone": "phones with 6 GB or more",
         "model": "Qwen3.5 4B",
         "route": "answers from its own knowledge",
         "good": 8,
@@ -91,7 +91,7 @@
     ],
     "notes": [
       "The Encyclopedia alone holds 8.39 million searchable passages of Wikipedia.",
-      "44 first-aid guides and the emergency numbers of 242 countries are built into the app."
+      "51 first-aid guides, each with a recorded reading, and the emergency numbers of 242 countries are built into the app."
     ],
     "measuredGB": 47.58,
     "method": "Every answer model, all seven collections and the natural voice, as Android's own Storage screen reported on a 12 GB emulator."
@@ -151,7 +151,7 @@
           },
           {
             "title": "First aid",
-            "detail": "One of 44 official guides, shown word for word."
+            "detail": "The call line and one of 51 official guides at once; Gemma 4 26B then writes for the situation from it."
           },
           {
             "title": "Calculations",
@@ -244,7 +244,7 @@
     ],
     "exact": "Held exactly?",
     "direct": {
-      "title": "Answered by the app, in seconds, with no model",
+      "title": "Answered by the app, in seconds",
       "routes": [
         [
           "Emergency number",
@@ -252,7 +252,7 @@
         ],
         [
           "First-aid guide",
-          "44, word for word"
+          "51, then Gemma writes"
         ],
         [
           "Calculation",

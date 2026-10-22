@@ -43,8 +43,9 @@ The app only goes online when you start a download or refresh the list of collec
 - **Keep a conversation going.** Ask a follow-up under an answer, by typing, speaking or adding a
   file, and pick a topic up again later from History.
 - **Read answers aloud** with the phone's voice or a natural voice you can download once.
-- **Help in an emergency.** 44 first-aid and safety guides and the emergency numbers of 242
-  countries are built in and work without any download.
+- **Help in an emergency.** 51 first-aid and safety guides, each with a recorded reading, and the
+  emergency numbers of 242 countries are built in and work without any download. The call line and
+  the official guide open in seconds; on a 12 GB phone Gemma 4 26B then writes for your situation.
 - **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
   group, when the question is worded the way its calculators expect. A word problem that gives its
   own figures is worked from them; the model still gets some of these wrong.
@@ -56,8 +57,8 @@ The app only goes online when you start a download or refresh the list of collec
 
 A question the app can answer exactly, such as an emergency number, a first-aid guide, a sum or the
 nearest pharmacy, is answered by the app itself in seconds. Everything else is searched in the
-saved collections and written by the model your phone can hold. A rare subject is read from the
-saved passages and cited. Figures are then checked against those passages, and the sources sit
+saved collections and written by the model your phone can hold. A subject few people write about,
+or one held by a specialist or imported collection, is read from the saved passages and cited. Figures are then checked against those passages, and the sources sit
 under the answer. [How it works, step by step](docs/how-it-works.md).
 
 ## Get started
@@ -68,16 +69,16 @@ You need an Android 13 or later phone with an arm64 processor.
    (about 100 MB). You can check it against its
    [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk.sha256).
 2. Open the file and follow Android's prompts to install it.
-3. In setup, download the answer model it offers: Qwen3.5 2B (1.4 GB), or Qwen3.5 4B (3.0 GB) on a
-   phone with 8 GB of memory.
+3. In setup, download the answer model it offers: Qwen3.5 2B (1.4 GB) on a 4 GB phone, Qwen3.5 4B
+   (3.0 GB) from 6 GB, or Gemma 4 26B (10.5 GB) on a 12 GB phone.
 4. Add any collections you want. You can add more later in **Library**.
 5. Turn on airplane mode and ask a question in **Research**.
 
 Finish the downloads before you go offline. A phone without a connection can import a `.fapack`
 file copied from another device: collections from Hugging Face
 ([Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge),
-[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)), and the model as a
-`.fapack` built as [MODELS.md](MODELS.md) describes. The [install guide](docs/installation.md) covers updates and older versions.
+[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)), and the model's own
+`.gguf` file, or a `.fapack` built as [MODELS.md](MODELS.md) describes, through **Import a file**. The [install guide](docs/installation.md) covers updates and older versions.
 
 ## How good is it?
 
@@ -86,18 +87,24 @@ Each question set is written blind and sealed before the app answers it. AI grad
 answer from 0 to 10 next to a web-researched one, without knowing which setup wrote it, in two
 rounds. A good answer is one they score 7 or more. Every change is tested this way before it ships.
 
-![Good answers out of 40 sealed questions: Qwen3.5 2B 2, Qwen3.5 4B 8, Gemma 4 26B 27](docs/images/fieldatlas-models.png)
+![Good answers out of 40 sealed questions: Qwen3.5 2B 2 (5%), Qwen3.5 4B 8 (20%), Gemma 4 26B 27 (68%)](docs/images/fieldatlas-models.png)
 
-- **Gemma 4 26B, on 12 GB phones:** a good answer to 27 of 40 new questions (set 37), with 0.44
+- **Gemma 4 26B, on 12 GB phones:** a good answer to 27 of 40 (68%) new questions (set 37), with 0.44
   wrong details per answer. It reasons first, then answers from what it knows.
-- **Qwen3.5 4B, on 6 and 8 GB phones:** 8 of 40, with 1.94 wrong details per answer. It answers from
+- **Qwen3.5 4B, on phones with 6 GB or more:** 8 of 40 (20%), with 1.94 wrong details per answer. It answers from
   what it knows, so it says more and gets more details wrong; the passages found are listed under
   each answer to check it.
-- **Qwen3.5 2B, on 4 GB phones:** 2 of 40, with 0.71 wrong details per answer. It writes only from
+- **Qwen3.5 2B, on 4 GB phones:** 2 of 40 (5%), with 0.71 wrong details per answer. It writes only from
   the saved passages and cites them.
+- **On three more sets of 40 everyday questions** (46, 49 and 51) Gemma gave a good answer to 29,
+  25 and 34 and the 4B to 6, 5 and 8.
+- **Emergencies:** on 40 new first-aid situations (set 55), Gemma 4 26B writing from the official
+  guide gave a good answer to 30, one judged unsafe; the smaller models show the guide as published,
+  with the call line first, and on 320 labelled questions the right guide opened 231 times with none
+  misleading.
 - **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 7 good
-  answers on 40 longevity questions; reading the Encyclopedia for subjects few people write about
-  took the 4B from 2 to 7 on 40 such questions, with fewer wrong details
+  answers (5% to 18%) on 40 longevity questions; reading the Encyclopedia for subjects few people write about
+  took the 4B from 2 to 7 (5% to 18%) on 40 such questions, with fewer wrong details
   ([how it works](docs/how-it-works.md)).
 
 Every test behind 1.4.2, including emergencies and the phone checks, is on one page:
@@ -110,8 +117,9 @@ adopted.
 
 ## Good to know
 
-- Answers that use the model take **about 2 to 6 minutes** on a 6 GB phone with Qwen3.5 2B. Answers
-  built from saved data take seconds.
+- Answers that use the model take **about 4 to 8 minutes** on a 6 GB phone with Qwen3.5 4B, and
+  a median of 92 seconds with Gemma 4 26B on a 12 GB emulator (eight questions, 1.5 to 3 minutes each). Answers built from saved data, and
+  the call line with the first-aid guide, take seconds.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with all three models, every collection and the voice installed,
@@ -156,7 +164,7 @@ on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns s
 
 | Version | What changed |
 | --- | --- |
-| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, more emergencies found, Qwen3.5 4B on 8 GB phones. [Release notes](docs/releases/current.md) |
+| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B from 6 GB and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Release notes](docs/releases/current.md) |
 | [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Notes](docs/releases/field-atlas-1.4.1.md) |
 | [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Notes](docs/releases/field-atlas-1.4.0.md) |
 | [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |

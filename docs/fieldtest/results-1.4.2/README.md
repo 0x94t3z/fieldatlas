@@ -12,9 +12,9 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Guide shown as published (1.4.1) | 36 | 12 | 4.9 | 0.14 | 3 |
-| Gemma writes from the guide (1.4.2) | 36 | 28 | 7.4 | 0.10 | 0 |
-| Web reference answer | 36 | 36 | 9.2 | 0.00 | 0 |
+| Guide shown as published (1.4.1) | 36 | 12 (33%) | 4.9 | 0.14 | 3 |
+| Gemma writes from the guide (1.4.2) | 36 | 28 (78%) | 7.4 | 0.10 | 0 |
+| Web reference answer | 36 | 36 (100%) | 9.2 | 0.00 | 0 |
 
 <details>
 <summary>Every question of set 44, with each setup's scores</summary>
@@ -66,12 +66,12 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, guide shown as published (1.4.1) | 40 | 20 | 5.8 | 0.15 | 2 |
-| Gemma writes from the guide | 40 | 32 | 7.5 | 0.10 | 1 |
-| Gemma writes from the guide, with the answer checks (1.4.2) | 40 | 31 | 7.6 | 0.15 | 1 |
-| 4B answers from memory (1.4.1) | 40 | 10 | 4.4 | 0.82 | 8 |
-| 4B with a careful prompt (not kept) | 40 | 18 | 5.5 | 1.35 | 9 |
-| Web reference answer | 40 | 40 | 9.2 | 0.05 | 0 |
+| Gemma, guide shown as published (1.4.1) | 40 | 20 (50%) | 5.8 | 0.15 | 2 |
+| Gemma writes from the guide | 40 | 32 (80%) | 7.5 | 0.10 | 1 |
+| Gemma writes from the guide, with the answer checks (1.4.2) | 40 | 31 (78%) | 7.6 | 0.15 | 1 |
+| 4B answers from memory (1.4.1) | 40 | 10 (25%) | 4.4 | 0.82 | 8 |
+| 4B with a careful prompt (not kept) | 40 | 18 (45%) | 5.5 | 1.35 | 9 |
+| Web reference answer | 40 | 40 (100%) | 9.2 | 0.05 | 0 |
 
 <details>
 <summary>Every question of set 45, with each setup's scores</summary>
@@ -127,12 +127,12 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 4B, careful prompt (not kept) | 40 | 13 | 4.6 | 1.11 | 7 |
-| 4B, citing the guides (not kept) | 40 | 11 | 4.3 | 0.69 | 5 |
-| 4B, guide or a short no-guide reply (1.4.2) | 40 | 7 | 3.1 | 0.31 | 1 |
-| 4B, release wording | 40 | 14 | 4.7 | 1.12 | 6 |
-| 2B, release wording | 40 | 5 | 2.8 | 0.99 | 16 |
-| Web reference answer | 40 | 40 | 9.2 | 0.04 | 0 |
+| 4B, careful prompt (not kept) | 40 | 13 (32%) | 4.6 | 1.11 | 7 |
+| 4B, citing the guides (not kept) | 40 | 11 (28%) | 4.3 | 0.69 | 5 |
+| 4B, guide or a short no-guide reply (1.4.2) | 40 | 7 (18%) | 3.1 | 0.31 | 1 |
+| 4B, release wording | 40 | 14 (35%) | 4.7 | 1.12 | 6 |
+| 2B, release wording | 40 | 5 (12%) | 2.8 | 0.99 | 16 |
+| Web reference answer | 40 | 40 (100%) | 9.2 | 0.04 | 0 |
 
 <details>
 <summary>Every question of set 47, with each setup's scores</summary>
@@ -188,8 +188,8 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma writes from the guide, with the answer checks | 24 | 16 | 7.0 | 0.35 | 2 |
-| Web reference answer | 24 | 24 | 9.5 | 0.02 | 0 |
+| Gemma writes from the guide, with the answer checks | 24 | 16 (67%) | 7.0 | 0.35 | 2 |
+| Web reference answer | 24 | 24 (100%) | 9.5 | 0.02 | 0 |
 
 <details>
 <summary>Every question of set 48, with each setup's scores</summary>
@@ -229,13 +229,13 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, after the fixes | 40 | 29 | 7.5 | 0.17 | 1 |
-| Gemma, before the fixes | 40 | 29 | 7.2 | 0.26 | 1 |
-| 4B, after the fixes | 40 | 3 | 2.8 | 0.10 | 5 |
-| 4B, before the fixes | 40 | 10 | 4.7 | 1.06 | 6 |
-| 2B, after the fixes | 40 | 0 | 2.4 | 0.16 | 7 |
-| 2B, before the fixes | 40 | 0 | 1.7 | 0.90 | 16 |
-| Web reference answer | 40 | 40 | 9.1 | 0.05 | 0 |
+| Gemma, after the fixes | 40 | 29 (72%) | 7.5 | 0.17 | 1 |
+| Gemma, before the fixes | 40 | 29 (72%) | 7.2 | 0.26 | 1 |
+| 4B, after the fixes | 40 | 3 (8%) | 2.8 | 0.10 | 5 |
+| 4B, before the fixes | 40 | 10 (25%) | 4.7 | 1.06 | 6 |
+| 2B, after the fixes | 40 | 0 (0%) | 2.4 | 0.16 | 7 |
+| 2B, before the fixes | 40 | 0 (0%) | 1.7 | 0.90 | 16 |
+| Web reference answer | 40 | 40 (100%) | 9.1 | 0.05 | 0 |
 
 <details>
 <summary>Every question of set 50, with each setup's scores</summary>
@@ -291,13 +291,13 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, after the fixes | 40 | 24 | 6.8 | 0.39 | 1 |
-| Gemma, before the fixes | 40 | 24 | 6.9 | 0.47 | 1 |
-| 4B, after the fixes | 40 | 0 | 2.5 | 0.51 | 7 |
-| 4B, before the fixes | 40 | 0 | 1.9 | 0.55 | 7 |
-| 2B, after the fixes | 40 | 1 | 2.3 | 0.30 | 8 |
-| 2B, before the fixes | 40 | 0 | 1.5 | 0.30 | 10 |
-| Web reference answer | 40 | 40 | 8.9 | 0.07 | 0 |
+| Gemma, after the fixes | 40 | 24 (60%) | 6.8 | 0.39 | 1 |
+| Gemma, before the fixes | 40 | 24 (60%) | 6.9 | 0.47 | 1 |
+| 4B, after the fixes | 40 | 0 (0%) | 2.5 | 0.51 | 7 |
+| 4B, before the fixes | 40 | 0 (0%) | 1.9 | 0.55 | 7 |
+| 2B, after the fixes | 40 | 1 (2%) | 2.3 | 0.30 | 8 |
+| 2B, before the fixes | 40 | 0 (0%) | 1.5 | 0.30 | 10 |
+| Web reference answer | 40 | 40 (100%) | 8.9 | 0.07 | 0 |
 
 <details>
 <summary>Every question of set 52, with each setup's scores</summary>
@@ -353,13 +353,13 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, after the fixes | 40 | 29 | 7.5 | 0.28 | 0 |
-| Gemma, before the fixes | 40 | 27 | 7.5 | 0.25 | 0 |
-| 4B, after the fixes | 40 | 6 | 3.9 | 0.20 | 2 |
-| 4B, before the fixes | 40 | 5 | 3.6 | 0.33 | 5 |
-| 2B, after the fixes | 40 | 3 | 3.4 | 0.30 | 3 |
-| 2B, before the fixes | 40 | 3 | 3.1 | 0.29 | 6 |
-| Web reference answer | 40 | 40 | 9.1 | 0.03 | 0 |
+| Gemma, after the fixes | 40 | 29 (72%) | 7.5 | 0.28 | 0 |
+| Gemma, before the fixes | 40 | 27 (68%) | 7.5 | 0.25 | 0 |
+| 4B, after the fixes | 40 | 6 (15%) | 3.9 | 0.20 | 2 |
+| 4B, before the fixes | 40 | 5 (12%) | 3.6 | 0.33 | 5 |
+| 2B, after the fixes | 40 | 3 (8%) | 3.4 | 0.30 | 3 |
+| 2B, before the fixes | 40 | 3 (8%) | 3.1 | 0.29 | 6 |
+| Web reference answer | 40 | 40 (100%) | 9.1 | 0.03 | 0 |
 
 <details>
 <summary>Every question of set 53, with each setup's scores</summary>
@@ -415,13 +415,13 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, after the fixes | 40 | 31 | 7.4 | 0.23 | 3 |
-| Gemma, before the fixes | 40 | 31 | 7.3 | 0.19 | 2 |
-| 4B, after the fixes | 40 | 2 | 3.2 | 0.35 | 7 |
-| 4B, before the fixes | 40 | 1 | 3.2 | 0.17 | 6 |
-| 2B, after the fixes | 40 | 1 | 2.9 | 0.21 | 9 |
-| 2B, before the fixes | 40 | 1 | 2.9 | 0.20 | 7 |
-| Web reference answer | 40 | 40 | 9.0 | 0.06 | 0 |
+| Gemma, after the fixes | 40 | 31 (78%) | 7.4 | 0.23 | 3 |
+| Gemma, before the fixes | 40 | 31 (78%) | 7.3 | 0.19 | 2 |
+| 4B, after the fixes | 40 | 2 (5%) | 3.2 | 0.35 | 7 |
+| 4B, before the fixes | 40 | 1 (2%) | 3.2 | 0.17 | 6 |
+| 2B, after the fixes | 40 | 1 (2%) | 2.9 | 0.21 | 9 |
+| 2B, before the fixes | 40 | 1 (2%) | 2.9 | 0.20 | 7 |
+| Web reference answer | 40 | 40 (100%) | 9.0 | 0.06 | 0 |
 
 <details>
 <summary>Every question of set 54, with each setup's scores</summary>
@@ -477,13 +477,13 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Gemma, after the fixes | 40 | 30 | 7.8 | 0.26 | 1 |
-| Gemma, before the fixes | 40 | 30 | 7.7 | 0.23 | 1 |
-| 4B, after the fixes | 40 | 2 | 4.2 | 0.29 | 1 |
-| 4B, before the fixes | 40 | 2 | 4.0 | 0.26 | 4 |
-| 2B, after the fixes | 40 | 2 | 4.0 | 0.30 | 3 |
-| 2B, before the fixes | 40 | 2 | 3.8 | 0.33 | 4 |
-| Web reference answer | 40 | 40 | 9.4 | 0.02 | 0 |
+| Gemma, after the fixes | 40 | 30 (75%) | 7.8 | 0.26 | 1 |
+| Gemma, before the fixes | 40 | 30 (75%) | 7.7 | 0.23 | 1 |
+| 4B, after the fixes | 40 | 2 (5%) | 4.2 | 0.29 | 1 |
+| 4B, before the fixes | 40 | 2 (5%) | 4.0 | 0.26 | 4 |
+| 2B, after the fixes | 40 | 2 (5%) | 4.0 | 0.30 | 3 |
+| 2B, before the fixes | 40 | 2 (5%) | 3.8 | 0.33 | 4 |
+| Web reference answer | 40 | 40 (100%) | 9.4 | 0.02 | 0 |
 
 <details>
 <summary>Every question of set 55, with each setup's scores</summary>
@@ -539,11 +539,11 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer |
 | --- | ---: | ---: | ---: | ---: |
-| Gemma, adaptive length (not kept) | 40 | 32 | 7.7 | 0.17 |
-| Gemma, release wording | 40 | 32 | 7.5 | 0.28 |
-| 4B, adaptive length (not kept) | 40 | 11 | 5.0 | 1.90 |
-| 4B, release wording | 40 | 9 | 4.7 | 2.10 |
-| Web reference answer | 40 | 40 | 9.6 | 0.00 |
+| Gemma, adaptive length (not kept) | 40 | 32 (80%) | 7.7 | 0.17 |
+| Gemma, release wording | 40 | 32 (80%) | 7.5 | 0.28 |
+| 4B, adaptive length (not kept) | 40 | 11 (28%) | 5.0 | 1.90 |
+| 4B, release wording | 40 | 9 (22%) | 4.7 | 2.10 |
+| Web reference answer | 40 | 40 (100%) | 9.6 | 0.00 |
 
 <details>
 <summary>Every question of set 46, with each setup's scores</summary>
@@ -599,11 +599,11 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer |
 | --- | ---: | ---: | ---: | ---: |
-| Gemma, adaptive length (not kept) | 40 | 31 | 7.6 | 0.16 |
-| Gemma, release wording | 40 | 29 | 7.4 | 0.34 |
-| 4B, adaptive length (not kept) | 40 | 12 | 5.1 | 1.94 |
-| 4B, release wording | 40 | 6 | 4.5 | 2.21 |
-| Web reference answer | 40 | 39 | 9.5 | 0.03 |
+| Gemma, adaptive length (not kept) | 40 | 31 (78%) | 7.6 | 0.16 |
+| Gemma, release wording | 40 | 29 (72%) | 7.4 | 0.34 |
+| 4B, adaptive length (not kept) | 40 | 12 (30%) | 5.1 | 1.94 |
+| 4B, release wording | 40 | 6 (15%) | 4.5 | 2.21 |
+| Web reference answer | 40 | 39 (98%) | 9.5 | 0.03 |
 
 <details>
 <summary>Every question of set 46f, with each setup's scores</summary>
@@ -659,11 +659,11 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer |
 | --- | ---: | ---: | ---: | ---: |
-| Gemma, release wording | 40 | 25 | 7.2 | 0.38 |
-| Gemma, plain-language wording (not kept) | 40 | 24 | 7.0 | 0.45 |
-| 4B, release wording | 40 | 5 | 4.2 | 2.51 |
-| 4B, plain-language wording (not kept) | 40 | 4 | 4.1 | 2.25 |
-| Web reference answer | 40 | 40 | 9.3 | 0.03 |
+| Gemma, release wording | 40 | 25 (62%) | 7.2 | 0.38 |
+| Gemma, plain-language wording (not kept) | 40 | 24 (60%) | 7.0 | 0.45 |
+| 4B, release wording | 40 | 5 (12%) | 4.2 | 2.51 |
+| 4B, plain-language wording (not kept) | 40 | 4 (10%) | 4.1 | 2.25 |
+| Web reference answer | 40 | 40 (100%) | 9.3 | 0.03 |
 
 <details>
 <summary>Every question of set 49, with each setup's scores</summary>
@@ -719,11 +719,11 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 | Setup | Answers | Good answers | Mean score | Wrong details per answer |
 | --- | ---: | ---: | ---: | ---: |
-| Gemma, one-sentence facts (not kept) | 40 | 32 | 7.6 | 0.28 |
-| Gemma, release wording | 40 | 34 | 7.8 | 0.36 |
-| 4B, one-sentence facts (not kept) | 40 | 11 | 4.3 | 2.08 |
-| 4B, release wording | 40 | 8 | 4.3 | 2.12 |
-| Web reference answer | 40 | 39 | 9.5 | 0.04 |
+| Gemma, one-sentence facts (not kept) | 40 | 32 (80%) | 7.6 | 0.28 |
+| Gemma, release wording | 40 | 34 (85%) | 7.8 | 0.36 |
+| 4B, one-sentence facts (not kept) | 40 | 11 (28%) | 4.3 | 2.08 |
+| 4B, release wording | 40 | 8 (20%) | 4.3 | 2.12 |
+| Web reference answer | 40 | 39 (98%) | 9.5 | 0.04 |
 
 <details>
 <summary>Every question of set 51, with each setup's scores</summary>

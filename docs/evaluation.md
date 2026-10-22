@@ -82,7 +82,7 @@ for 4 GB phones is unchanged. The "Model explanation / Not verified" header insi
 and the pill row are gone from a from-memory answer, which the owner found cluttered: the answer starts under Read
 aloud, and one line at its foot says where it came from and what was checked ("From the model's knowledge; 2
 figures match your sources", "… not checked against your sources", "… nothing saved on this phone covers it");
-a figure a passage gives differently is still quoted under it. The time moved into Answer details.
+a figure a passage gives differently is still quoted under it. The time is a pill with a clock icon under the question, and the rest of the metrics sit in Answer details.
 
 Measured on set 38, desktop 4B, the same forty questions and web references as the rounds above, graded blind by
 eight graders who saw the answers without their marks or notes: the shaped answers carry a Key facts line in 36
@@ -1682,7 +1682,9 @@ Kotlin vector search/fusion/filtering still runs; source selection is not suppli
 by the fixture. Encoder queries are replayed, not recomputed by this desktop adapter.
 Unknown queries fall back to keywords. This is not full Android inference parity.
 
-`benchmarks/questions.json` freezes 18 historical questions aligned with the former Field Atlas Reference pack: three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning, and unanswerable requests. That pack is no longer bundled, so a fresh run with only the current model or with the optional biology pack is a different test configuration. Do not compare its score to Reference-pack results as if the evidence were unchanged. Freeze offline outputs before obtaining the named online baseline so baseline knowledge cannot influence the local run.
+### The benchmark file and its scorer
+
+`benchmarks/questions.json` holds the 40 questions of set 37 since 23 October 2026 (SHA-256 `ee786599aa3c1c9ff14595c9d5bff80654a49842f6e8d136a0f51b4076367d99`), the everyday set the published figures use, so **More › Performance check** runs the same questions on a phone and exports the answers for grading by the method on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md). Each question carries one or two key phrases from the web reference answer and, where a myth is common, a prohibited claim; the keyword score below is a quick self-check, not the published measure. Until then the file froze 18 historical questions aligned with the former Field Atlas Reference pack (three each for factual retrieval, explanation, comparison, synthesis, multi-step reasoning and unanswerable requests); results from those are not comparable with the current file.
 
 Each answer is scored for required evidence phrases, prohibited claims, citations, and appropriate abstention. This mechanical rubric is deliberately reproducible but cannot replace human review of correctness or prose quality.
 

@@ -108,7 +108,7 @@ def render_set(set_id: str, title: str, size: str) -> str:
     head = "| Setup | Answers | Good answers | Mean score | Wrong details per answer |" + (" Unsafe |" if emergency else "")
     lines += [head, "| --- | ---: | ---: | ---: | ---: |" + (" ---: |" if emergency else "")]
     for system, n, good, mean, wrong, unsafe in summary_rows(rows):
-        lines.append(f"| {label(system)} | {n} | {good} | {mean:.1f} | {wrong:.2f} |" + (f" {unsafe} |" if emergency else ""))
+        lines.append(f"| {label(system)} | {n} | {good} ({round(100 * good / n)}%) | {mean:.1f} | {wrong:.2f} |" + (f" {unsafe} |" if emergency else ""))
     systems = [s for s, *_ in summary_rows(rows)]
     by_q: dict[str, dict[str, dict]] = OrderedDict()
     for row in sorted(rows, key=lambda r: r["id"]):

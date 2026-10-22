@@ -145,7 +145,8 @@ def ladder(data):
         body += text(X0, y + 52, f"{r['phone']}, {r['route']}", 18, DIM)
         w = max(x_of(r["good"]) - scale_x, 3)
         body += f'<rect x="{scale_x}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="2" fill="{fills[i % 3]}"/>'
-        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {n}", 27, AMBER if best else INK, 700)
+        # The count and its share, so the bar reads at a glance without the axis.
+        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {n} · {round(100 * r['good'] / n)}%", 27, AMBER if best else INK, 700)
         body += text(X1, y + 32, f"{r['errors']:.2f}", 27, DIM, 600, anchor="end")
     return frame(body, "Good answers by phone size", d["sourceLine"])
 
@@ -177,7 +178,8 @@ def collections(data):
         body += text(a, cy + 38, f"{r['before']}", 18, DIM, 500, anchor="middle")
         body += text(b, cy - 22, r["afterLabel"], 16, DIM, 600, anchor="middle")
         body += text(b, cy + 38, f"{r['after']}", 18, INK, 700, anchor="middle")
-        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']}", 22, AMBER, 700)
+        # The gain, with the shares, so the dots read without the axis.
+        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']} · {round(100 * r['before'] / n)}% → {round(100 * r['after'] / n)}%", 22, AMBER, 700)
     return frame(body, "What the saved sources add", d["sourceLine"])
 
 

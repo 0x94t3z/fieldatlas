@@ -40,11 +40,11 @@ prompts. The 2B was measured on set 37; it answers only from the saved passages 
 
 | Set | Gemma 4 26B (12 GB phones) | Qwen3.5 4B (6 and 8 GB) | Qwen3.5 2B (4 GB) |
 | --- | ---: | ---: | ---: |
-| Set 37, 19 October | 27 of 40 good, 0.44 wrong per answer | 8 of 40, 1.94 | 2 of 40, 0.71 |
-| Set 46, rerun 22 October | 29 of 40, 0.34 | 6 of 40, 2.21 | — |
-| Set 49, 22 October | 25 of 40, 0.38 | 5 of 40, 2.51 | — |
-| Set 51, 22 October | 34 of 40, 0.36 | 8 of 40, 2.12 | — |
-| Web reference answers | 39 to 40 of 40, 0.03 | | |
+| Set 37, 19 October | 27 of 40 (68%) good, 0.44 wrong per answer | 8 of 40 (20%), 1.94 | 2 of 40 (5%), 0.71 |
+| Set 46, rerun 22 October | 29 of 40 (72%), 0.34 | 6 of 40 (15%), 2.21 | — |
+| Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | — |
+| Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | — |
+| Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 wrong details per
 answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
@@ -89,11 +89,11 @@ with the final rules:
 
 | Set | Good answers | Wrong details per answer | Unsafe (both graders) |
 | --- | ---: | ---: | ---: |
-| Set 50 | 29 of 40 | 0.17 | 1 |
-| Set 52 | 24 of 40 | 0.39 | 1 |
-| Set 53 | 29 of 40 | 0.28 | 0 |
-| Set 54 | 31 of 40 | 0.23 | 3 |
-| Set 55 | 30 of 40 | 0.26 | 1 |
+| Set 50 | 29 of 40 (72%) | 0.17 | 1 |
+| Set 52 | 24 of 40 (60%) | 0.39 | 1 |
+| Set 53 | 29 of 40 (72%) | 0.28 | 0 |
+| Set 54 | 31 of 40 (78%) | 0.23 | 3 |
+| Set 55 | 30 of 40 (75%) | 0.26 | 1 |
 
 The unsafe answers were: an unresponsive cyclist with blood in his mouth not turned on his side; a
 hypo treated in the wrong order (that question now reaches the low blood sugar guide); someone
@@ -108,11 +108,11 @@ to be found. The work in 1.4.2 went into finding it, and into the call line when
 
 | Set | 4B good | 4B unsafe | 2B good | 2B unsafe |
 | --- | ---: | ---: | ---: | ---: |
-| Set 50 (before the 1.4.2 matching fixes) | 10 of 40 | 6 | 0 of 40 | 16 |
-| Set 52 | 0 of 40 | 7 | 1 of 40 | 8 |
-| Set 53 | 6 of 40 | 2 | 3 of 40 | 3 |
-| Set 54 | 2 of 40 | 7 | 1 of 40 | 9 |
-| Set 55 (final rules) | 2 of 40 | 1 | 2 of 40 | 3 |
+| Set 50 (before the 1.4.2 matching fixes) | 10 of 40 (25%) | 6 | 0 of 40 (0%) | 16 |
+| Set 52 | 0 of 40 (0%) | 7 | 1 of 40 (2%) | 8 |
+| Set 53 | 6 of 40 (15%) | 2 | 3 of 40 (8%) | 3 |
+| Set 54 | 2 of 40 (5%) | 7 | 1 of 40 (2%) | 9 |
+| Set 55 (final rules) | 2 of 40 (5%) | 1 | 2 of 40 (5%) | 3 |
 
 Two things to read from this table. First, the small models give few good answers in emergencies
 because a guide as published rarely answers the exact question asked; what they do give is the
@@ -123,7 +123,7 @@ fixed afterwards and checked on the phone, but no fresh set has been graded sinc
 
 **Routing check.** A separate list of 320 emergency and look-alike questions, each labelled with
 the guide to show and the guides that would mislead (the choking manoeuvre for a heart attack,
-cooling water for a jellyfish sting), runs in the unit tests. 1.4.2 answers 231 of 320 well (1.4.1:
+cooling water for a jellyfish sting), runs in the unit tests. 1.4.2 answers 231 of 320 (72%) well (1.4.1:
 229) and opens no misleading guide. The matching rules reach every guide the NHS and CDC sources list
 as a reason to call for help, in the words people use: gasping or a rattle, a meter reading under
 4, a silent chest, a rash that does not fade, pinpoint pupils, "waters just went", and so on.
@@ -196,6 +196,14 @@ On the small models none of the three changed the count of good answers. The rel
   answer to act on until Gemma's is checked.
 - **Answers can still be wrong.** The grades above come from AI graders checking the web; they
   caught errors in the reference answers too.
+
+## Run the set on your own phone
+
+**More › Performance check** asks the phone the 40 questions of set 37, the everyday set above, one
+after another, and exports the answers with their times as a JSON file. Grade them by the method at
+the top of this page, or run `python3 benchmarks/score_results.py` for the quick key-phrase check
+described in [evaluation.md](evaluation.md#the-benchmark-file-and-its-scorer). The questions are in
+[benchmarks/questions.json](../benchmarks/questions.json).
 
 ## Data
 

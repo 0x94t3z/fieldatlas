@@ -1,6 +1,16 @@
 # Release audit
 
-Updated 7 October 2026. **Owner approved v1.2.0, v1.2.1 and v1.3.0 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 23 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.2 candidate (23 October 2026)
+
+Not published. The candidate source is committed locally and installed on the two test devices with
+the local test key only; see [verification](../verification.md#v142-candidate-23-october-2026-not-yet-published)
+for what was run. Before publishing: build the optimized APK with the public release key, verify
+its certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`), record its
+size and SHA-256 here and in the release notes, run the release lint and the offline packaging
+audit, tag, and hash the download again after publishing. Known limits carried into the release
+are listed on [How Field Atlas 1.4.2 was tested](../testing-1.4.2.md).
 
 ## v1.4.1 release handoff (15 October 2026)
 

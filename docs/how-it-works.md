@@ -19,7 +19,7 @@ way one question goes, and why.
 flowchart TD
     Q["Question, follow-up or attached file"] --> D{"Can the app answer it exactly?"}
     D -->|"emergency number"| N["Saved table of 242 countries"]
-    D -->|"first aid"| G["One of 44 official guides, word for word"]
+    D -->|"first aid"| G["The call line and one of 51 official guides; Gemma 4 26B then writes for the situation"]
     D -->|"calculation"| C["Worked out by the app"]
     D -->|"place near you"| P["GPS with OpenStreetMap and Wikivoyage"]
     D -->|"no"| S["Search the saved collections"]
@@ -51,8 +51,10 @@ Some questions have one right answer that the app already holds. These never rea
 they come back in seconds and the model cannot rephrase them wrongly.
 
 - **Emergency numbers** come from a saved table covering 242 countries.
-- **First aid** opens one of 44 official guides and shows it as published. A model once reversed an
-  instruction while paraphrasing a guide, so the guide is never rewritten.
+- **First aid** opens with the call line and one of 51 official guides, shown as published, in
+  seconds. On a 12 GB phone Gemma 4 26B then writes an answer for the situation with the guide as its
+  only source; the smaller models never rewrite a guide, because one once reversed an instruction
+  while paraphrasing. Where no guide covers the situation, the answer says so and gives no steps.
 - **Calculations** such as fuel cost, currency at a given rate or time zones are worked out by the
   app. A word problem that gives all its own figures goes to the model with those figures only, and
   every step it writes is recomputed on the phone.
@@ -73,8 +75,8 @@ The app offers the model that fits the phone's memory.
 
 | Phone memory | Model | How it writes |
 | --- | --- | --- |
-| 4 GB | Qwen3.5 2B | From the passages, citing each one. The draft is checked before it shows. |
-| 6 or 8 GB | Qwen3.5 4B | From its own knowledge. |
+| 4 GB | Qwen3.5 2B | From the passages, citing each one; the draft is checked before it shows. A how-or-why question with sources shows the passages as quoted excerpts rather than a paraphrase, which this model gets wrong. |
+| 6 GB or more | Qwen3.5 4B | From its own knowledge. |
 | 12 GB | Gemma 4 26B | Reasons first, then answers from its own knowledge. |
 
 A model answering from its own knowledge knows well-known subjects better than the passages say
@@ -82,14 +84,16 @@ them, and invents details about subjects few people write about. So when a subje
 saved collections, the model reads three saved passages about it as notes and cites them. A subject
 counts as rare when the question names it, when it has no article in Simple English Wikipedia, and
 when it appears in at most 400 saved passages. A question led by a specialist collection, such as
-Biology or Cryptography, also counts.
+Biology or Cryptography, or by a collection you imported yourself, also counts.
 
 ## 5. Check and show
 
 Before you read an answer written from memory, the app compares it with the saved passages. A
 figure or date that a passage also states is marked with that passage's number. Where a passage
 gives a different figure for what was asked, its sentence is quoted under the answer. One line at
-the end says where the answer came from. The sources sit at the foot of the screen, and each opens
+the end says where the answer came from and what was checked: "From the model's knowledge; 2 figures
+match your sources", "… not checked against your sources" when no figure could be compared, or
+"… nothing saved on this phone covers it". The sources sit at the foot of the screen, and each opens
 to the full passage. Any answer can be read aloud with an offline voice.
 
 ## Measured results
@@ -98,9 +102,9 @@ We count how many questions get a good answer, one that blind AI graders score 7
 10 next to a web-researched answer, and how many wrong details an answer carries. The tests and
 their records are in [the evaluation](evaluation.md).
 
-![Good answers out of 40 sealed questions: Qwen3.5 2B 2, Qwen3.5 4B 8, Gemma 4 26B 27](images/fieldatlas-models.png)
+![Good answers out of 40 sealed questions: Qwen3.5 2B 2 (5%), Qwen3.5 4B 8 (20%), Gemma 4 26B 27 (68%)](images/fieldatlas-models.png)
 
-![More good answers when the model reads saved sources: Biology rebuild 2 to 7 and 4 to 6, rare subjects 2 to 7](images/fieldatlas-collections.png)
+![More good answers out of 40 when the model reads saved sources: Biology rebuild 2 to 7 (5% to 18%) and 4 to 6 (10% to 15%), rare subjects 2 to 7 (5% to 18%)](images/fieldatlas-collections.png)
 
 ![47.58 GB of the 50 GB allowed, with every model, collection and voice installed](images/fieldatlas-storage.png)
 

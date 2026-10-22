@@ -38,7 +38,7 @@ printf '%s  %s\n' \
   build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack | shasum -a 256 -c -
 ```
 
-Copy `build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack` to Android and import it through **Import model pack**, or use **Download recommended model** in setup. Do not select a raw `.gguf` in the file picker.
+Copy `build/packs/model/qwen3.5-2b-q4-k-m-1.0.0.fapack` to Android and import it through **Import a file** in setup or Library, which also accepts the pinned `.gguf` itself; or let setup download the model it offers.
 
 The builder downloads the pinned GGUF, rejects a hash mismatch, and stores it uncompressed in a deterministic pack. Model weights are not committed to Git. The exact upstream sources and runtime profile are in [`models/compact-qwen3.5-2b.example.json`](models/compact-qwen3.5-2b.example.json).
 
@@ -54,7 +54,7 @@ after 1.4.0 and was never released.
   development.
 - On a Redmi 13C, 20 fresh questions were asked in the installed app with each model and
   graded blind by two graders. Qwen3.5 2B scored 4.65 of 10 against 3.75. Gemma still made fewer
-  factual errors (0.12 per answer against 0.50), but scored 3 or less on 12 of the 20. Where the
+  factual errors (0.12 per answer against 0.50), but scored 3 or less on 12 of the 20 (60%). Where the
   saved passages did not state every part of the answer, it often replied that the excerpts do
   not contain it, or gave one line, while Qwen3.5 2B explained.
 
@@ -83,10 +83,12 @@ On a phone with 12 GB of memory, setup offers Gemma 4 26B-A4B first: unsloth's U
 `google/gemma-4-26B-A4B-it` (10.5 GB, Apache-2.0, SHA-256
 `2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658`), described in
 [`models/compact-gemma-4-26b-a4b.example.json`](models/compact-gemma-4-26b-a4b.example.json). It reasons
-before it answers and answers from its own knowledge: a good answer to 27 of the 40 questions of set 37,
+before it answers and answers from its own knowledge: a good answer to 27 of the 40 (68%) questions of set 37,
 with 0.44 wrong details per answer, on the desktop pipeline. It has run on a 12 GB Android emulator
-(median 100 seconds an answer), not on a 12 GB phone, and it has no `.fapack` yet: setup downloads
+(median 92 seconds an answer), not on a 12 GB phone, and it has no `.fapack` yet: setup downloads
 the pinned file and checks its size and SHA-256.
+
+If Android closes the app while a model other than the 2B is loading, or within fifteen seconds after, the next launch answers with Qwen3.5 2B instead and a note stays in Library ("Field Atlas closed while loading Gemma 4 26B last time, so Qwen3.5 2B answers instead. Choose Gemma 4 26B here to try it again.") until a model is chosen again. Running out of memory a second time could freeze or restart the phone, which is why the larger model is not retried on its own.
 
 ## Limits and validation status
 
