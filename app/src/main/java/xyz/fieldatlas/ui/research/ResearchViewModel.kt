@@ -49,8 +49,14 @@ data class BackgroundAnswer(
     val done: Boolean = false,
     val failed: Boolean = false,
     val waiting: Boolean = false,
+    /** When the research ended, by System.nanoTime(); null while it runs. */
+    val finishedAtNanos: Long? = null,
 ) {
     val running: Boolean get() = !done && !failed
+
+    /** True for an answer that ended within the last [windowNanos]: a note about it then says something new. */
+    fun finishedWithin(windowNanos: Long, nowNanos: Long = System.nanoTime()): Boolean =
+        finishedAtNanos?.let { nowNanos - it <= windowNanos } == true
 }
 
 data class ResearchUiState(
@@ -149,7 +155,9 @@ class ResearchViewModel(
     private var currentSink: RunSink? = null
 
     /** An answer kept off the screen, with the run still writing to it, if any. */
-    private class Aside(val id: Long, val sink: RunSink, val job: Job?)
+    private class Aside(val id: Long, val sink: RunSink, val job: Job?) {
+        var finishedAtNanos: Long? = null
+    }
     private val asides = mutableListOf<Aside>()
     private var nextAsideId = 1L
     private val mutableBackground = MutableStateFlow<List<BackgroundAnswer>>(emptyList())
@@ -360,7 +368,8 @@ class ResearchViewModel(
     }
 
     fun submit() {
-        val question = mutableUiState.value.question
+        // Trimmed as History saves it, so an answer read there is known as the one on the home's row.
+        val question = mutableUiState.value.question.trim()
         if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
         beforeFollowUp = null
         run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis(), byVoice = askedByVoice(question))
@@ -423,6 +432,9 @@ class ResearchViewModel(
         val sink = RunSink()
         currentSink = sink
         val rawAnswer = StringBuilder()
+        // The files as attached now: a question that waits its turn off the screen keeps them, while the screen
+        // starts afresh and may attach others to the next question.
+        val attached = attachmentSession.state.value.mapNotNull { it.extracted }
         researchJob = scope.launch {
             // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join(); ahead.forEach { it.join() } }
@@ -433,7 +445,7 @@ class ResearchViewModel(
                 if (sink.detached) settleBackground(sink, sink.state.copy(waitingFor = null, workingSinceNanos = now))
                 else mutableUiState.update { it.copy(waitingFor = null, workingSinceNanos = now) }
             }
-            orchestrator.research(question, attachments = attachmentSession.state.value.mapNotNull { it.extracted }, topic = carried)
+            orchestrator.research(question, attachments = attached, topic = carried)
                 .flowOn(researchContext).collect { event ->
                 // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
                 ensureActive()
@@ -523,7 +535,10 @@ class ResearchViewModel(
     /** An answer's progress off the screen: kept with it, and its state (running, ready, no answer) shown on the home. */
     private fun settleBackground(sink: RunSink, state: ResearchUiState) {
         sink.state = state
-        if (asides.any { it.sink === sink }) publishAsides()
+        val aside = asides.firstOrNull { it.sink === sink } ?: return
+        // The moment it ended, so the app can tell an answer that has just finished from one found finished later.
+        if (!state.isRunning && aside.finishedAtNanos == null) aside.finishedAtNanos = System.nanoTime()
+        publishAsides()
     }
 
     private fun publishAsides() {
@@ -534,7 +549,8 @@ class ResearchViewModel(
             val state = aside.sink.state
             val answered = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
             BackgroundAnswer(aside.id, state.shownQuestion, state.clockStartNanos, done = answered,
-                failed = !state.isRunning && !answered, waiting = state.waitingFor != null)
+                failed = !state.isRunning && !answered, waiting = state.waitingFor != null,
+                finishedAtNanos = aside.finishedAtNanos)
         }
     }
 

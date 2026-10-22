@@ -186,4 +186,33 @@ class BackgroundAnswerTest {
         release()
         assertTrue(aside().done)
     }
+
+    @Test fun theRowKnowsWhenTheAnswerFinishedSoTheNoteOnlyAnnouncesAFreshOne() {
+        startFirst()
+        viewModel.startNewQuestion()
+        assertNull(aside().finishedAtNanos)
+        assertFalse(aside().finishedWithin(10_000_000_000L))
+        release()
+        val done = aside()
+        assertTrue(done.done)
+        val finished = done.finishedAtNanos!!
+        // Seen finishing: a note is news. Found finished minutes later, when the app comes back: the row has said it.
+        assertTrue(done.finishedWithin(10_000_000_000L, nowNanos = finished + 2_000_000_000L))
+        assertFalse(done.finishedWithin(10_000_000_000L, nowNanos = finished + 120_000_000_000L))
+        // The moment is kept, not recomputed, as the row is published again.
+        viewModel.updateQuestion("another")
+        assertEquals(finished, aside().finishedAtNanos)
+    }
+
+    @Test fun aQuestionTypedWithTrailingSpaceIsStillKnownWhenReadFromHistory() {
+        viewModel.updateQuestion("tell me about the hagia sophia \n")
+        viewModel.submit()
+        viewModel.startNewQuestion()
+        release()
+        assertTrue(aside().done)
+        val record = history.records.value.single()
+        assertEquals("tell me about the hagia sophia", record.question)
+        assertTrue(viewModel.continueTopic(record, history.records.value))
+        assertTrue(viewModel.background.value.isEmpty())
+    }
 }

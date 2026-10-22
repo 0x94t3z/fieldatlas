@@ -291,12 +291,15 @@ fun FieldAtlasApp(
         // while it fades out, this frame keeps its question box on screen to travel down into the answer page's.
         var launchFrame by remember { mutableStateOf<ResearchUiState?>(null) }
         // When an answer finishes off the screen, a short note says so wherever the reader is, and opens its page.
+        // Only as it finishes: this list is watched while the app is in front, so an answer that ended while the
+        // screen was off or another app was in front would be announced on the way back, long after the Research
+        // home's "Answer ready" row said it. That row is enough then.
         var readyNote by remember { mutableStateOf<xyz.fieldatlas.ui.research.BackgroundAnswer?>(null) }
         val runningAside = remember { mutableSetOf<Long>() }
         LaunchedEffect(researchBackground) {
             for (answer in researchBackground) {
                 if (answer.running) runningAside += answer.id
-                else if (runningAside.remove(answer.id) && answer.done) readyNote = answer
+                else if (runningAside.remove(answer.id) && answer.done && answer.finishedWithin(READY_NOTE_FRESH_NANOS)) readyNote = answer
             }
             if (readyNote?.let { note -> researchBackground.none { it.id == note.id } } == true) readyNote = null
         }
@@ -671,3 +674,5 @@ private const val START_GRACE_MILLIS = 2_000L
 
 /** How long the note that an answer finished off the screen stays up. */
 private const val READY_NOTE_MILLIS = 8_000L
+/** An answer that ended longer ago than this is not news: it was found finished, not seen finishing. */
+private const val READY_NOTE_FRESH_NANOS = 10_000_000_000L

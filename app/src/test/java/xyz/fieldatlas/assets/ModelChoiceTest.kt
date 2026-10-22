@@ -54,7 +54,7 @@ class ModelChoiceTest {
     @Test fun aLoadTheAppDidNotSurviveFallsBackOnce() {
         val choice = chooseModel(listOf(compact, larger), eightGb, modelLoadKey(larger))
         assertSame(compact, choice.pack)
-        assertEquals("Field Atlas closed while loading Larger model last time, so Qwen3.5 2B answers instead.", choice.notice)
+        assertEquals("Field Atlas closed while loading Larger model last time, so Qwen3.5 2B answers instead. Choose Larger model here to try it again.", choice.notice)
     }
 
     @Test fun anUnfinishedLoadOfAnotherModelOrVersionIsIgnored() {

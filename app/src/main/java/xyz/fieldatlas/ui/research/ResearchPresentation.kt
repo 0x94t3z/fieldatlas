@@ -70,6 +70,13 @@ fun draftAnswerPreview(answer: String, maxChars: Int = 650): String {
         .replace(Regex("[ \\t]{2,}"), " ")
         .trim()
     if (text.length <= maxChars) return text
+    // The official guide stands in while a trusted model writes: its call line and first steps matter, not its closing lines
+    // (22 Oct: the tail looked like a finished answer that had stuck).
+    if (answer.contains(xyz.fieldatlas.research.GuideStandIn.NOTE)) {
+        val head = text.substring(0, maxChars)
+        val lineEnd = head.lastIndexOf('\n').takeIf { it > maxChars / 2 }
+        return (if (lineEnd != null) head.substring(0, lineEnd) else head.substringBeforeLast(' ')).trimEnd() + "\n\n…"
+    }
     val tail = text.substring(text.length - maxChars)
     val lineStart = tail.indexOf('\n').takeIf { it in 0 until maxChars / 2 }
     // A cut at a line keeps that line's own Markdown; "…- Keep calm." would show the list marker as text.

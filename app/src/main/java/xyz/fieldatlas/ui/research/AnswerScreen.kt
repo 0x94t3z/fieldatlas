@@ -140,8 +140,11 @@ fun AnswerScreen(
             .map { reading -> reading?.takeIf { it.key == readKey }?.let { ReadingHere(it.shown) } }
             .distinctUntilChanged()
     }.collectAsState(null)
+    // A guide shown as published opens with either call line (22 Oct: the "call now" opening left the recording unused and
+    // the slow live voice read the guide instead).
     val guideId = if (running) null else state.sources.singleOrNull()?.documentId
-        ?.takeIf { it.startsWith("emergency:") && state.answer.startsWith("**If this is an emergency") }?.removePrefix("emergency:")
+        ?.takeIf { it.startsWith("emergency:") && (state.answer.startsWith("**If this is an emergency") ||
+            state.answer.startsWith("**Call your local emergency number now")) }?.removePrefix("emergency:")
     val listenable = !running && guideId == null && state.answer.isNotBlank() && !withheld && !isInputNotice
     DisposableEffect(readKey) { onDispose { if (readAloud?.state?.value?.key == readKey) readAloud.stop() } }
     // The natural voice takes a few seconds to load on an older phone: do it while the answer is being read.
@@ -212,14 +215,17 @@ fun AnswerScreen(
                             ReadingLine(label, reading, onEdit = if (state.asked.isNotBlank()) onEditReadAs else null)
                         }
                         // While research runs the status card says what is happening; the pills describe a finished answer.
-                        // A from-memory answer carries its own line at the foot and shows none; its time is in Answer details.
-                        if (!running && !fromKnowledge) FlowRow(
+                        // A from-memory answer carries its own line at the foot and shows no source pill; its time still shows
+                        // (owner, 22 Oct: the time had gone missing on those answers).
+                        if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
                             val cited = citedSourceGroups.size
-                            if (cited > 0) {
+                            if (fromKnowledge) {
+                                // The foot line already says where the answer came from.
+                            } else if (cited > 0) {
                                 FieldAtlasStatusPill(
                                     // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
                                     (if (noModelReply) "From saved data · " else "") +

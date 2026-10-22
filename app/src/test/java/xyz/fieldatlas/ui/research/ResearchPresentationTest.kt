@@ -1,6 +1,7 @@
 package xyz.fieldatlas.ui.research
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -139,4 +140,16 @@ class ResearchPresentationTest {
         citedSourceIds = setOf("S1", "S2"),
         hasUnmappedCitation = unmapped,
     )
+
+    @Test fun theStandInGuidePreviewsFromItsStartNotItsEnd() {
+        // While a trusted model writes, the official guide stands in; its call line and first steps must stay in view.
+        val answer = "**Call your local emergency number now** (112).\n\n" + xyz.fieldatlas.research.GuideStandIn.NOTE +
+            "\n\n_CPR: shown as published by NIH/NLM [S1]._\n\n1. Check for breathing.\n2. Call for help.\n" + "3. Push hard and fast.\n".repeat(40) +
+            "Take an accredited course and refresh every two years."
+        val preview = draftAnswerPreview(answer, maxChars = 200)
+        assertTrue(preview, preview.startsWith("**Call your local emergency number now**"))
+        assertTrue(preview, preview.contains("Check for breathing"))
+        assertTrue(preview, preview.trimEnd().endsWith("…"))
+        assertFalse(preview, preview.contains("accredited course"))
+    }
 }

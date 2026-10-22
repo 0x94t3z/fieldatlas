@@ -95,7 +95,9 @@ class AppContainer(context: Context) {
     private val modelPreferences = appContext.getSharedPreferences("models", Context.MODE_PRIVATE)
     private val modelScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
     private var settleJob: kotlinx.coroutines.Job? = null
-    private val mutableModelNotice = MutableStateFlow<String?>(null)
+    // Kept across launches: the fallback becomes the selected model, so without this the next launch would run it
+    // silently and the person would only find "In use" moved in Library.
+    private val mutableModelNotice = MutableStateFlow<String?>(modelPreferences.getString(MODEL_NOTICE, null))
     /** Why the model in use is not the one that was selected, until another model is chosen. */
     val modelNotice: StateFlow<String?> = mutableModelNotice.asStateFlow()
     private val catalogRepository = xyz.fieldatlas.assets.KnowledgeCatalogRepository(
@@ -324,7 +326,7 @@ class AppContainer(context: Context) {
         val modelFile = java.io.File(modelPack.rootPath, "model.gguf")
         check(modelFile.isFile) { "Verified model file is missing" }
         choice.notice?.let { notice ->
-            mutableModelNotice.value = notice
+            rememberModelNotice(notice)
             errorBus.report("Model", notice)
         }
         if (!modelPack.active) {
@@ -396,6 +398,14 @@ class AppContainer(context: Context) {
         }
     }
 
+    /** The note about a model fallback, shown in Library and kept across launches until a model is chosen or removed. */
+    private fun rememberModelNotice(notice: String?) {
+        mutableModelNotice.value = notice
+        modelScope.launch {
+            modelPreferences.edit().apply { if (notice == null) remove(MODEL_NOTICE) else putString(MODEL_NOTICE, notice) }.commit()
+        }
+    }
+
     /** Which model pack the running native engine was loaded from, if any. */
     @Volatile private var loadedModel: Pair<String, String>? = null
 
@@ -413,7 +423,7 @@ class AppContainer(context: Context) {
         require(packs.value.any { it.id == asset.id && it.version == asset.version }) {
             "Model pack is not installed"
         }
-        if (asset.type == PackType.MODEL) mutableModelNotice.value = null
+        if (asset.type == PackType.MODEL) rememberModelNotice(null)
         if (asset.type != PackType.MODEL) {
             // Speech model swap: no inference reload involved.
             registry.setActiveModel(asset.id, asset.version)
@@ -491,7 +501,7 @@ class AppContainer(context: Context) {
             runCatching { unloadModel() }
         }
         // The note explains why a model is not in use; it is stale once a model is removed.
-        if (asset.type == PackType.MODEL) mutableModelNotice.value = null
+        if (asset.type == PackType.MODEL) rememberModelNotice(null)
         // An open database keeps its deleted file's space until it is closed; a 24 GB pack would stay
         // counted against the phone. The delete itself can take seconds, so it runs off the main thread.
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
@@ -655,6 +665,7 @@ class AppContainer(context: Context) {
                 "use supplied sources when present, otherwise answer from model knowledge. " +
                 "Never invent citations, claim internet access, or present changing facts as verified current facts."
         const val UNFINISHED_LOAD = "unfinished_load"
+        const val MODEL_NOTICE = "model_notice"
         const val MODEL_SETTLE_MILLIS = 15_000L
         const val BUNDLED_REFERENCE_ID = "fieldatlas-reference"
         const val BUNDLED_REFERENCE_VERSION = "1.0.0"

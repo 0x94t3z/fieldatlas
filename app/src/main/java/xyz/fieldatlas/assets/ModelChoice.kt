@@ -37,10 +37,11 @@ fun chooseModel(
         // worried people whose phone loaded it fine the second time, and there was nothing for them to do.
         return ModelChoice(selected)
     }
+    // The fallback becomes the selected model, so the note says how to go back: it stays in Library until a model is chosen.
     return ModelChoice(fallback, if (tooLarge) {
         "$name needs a phone with ${offer?.minimumMemoryLabel} of memory or more, so ${recommended.name} answers instead."
     } else {
-        "Field Atlas closed while loading $name last time, so ${recommended.name} answers instead."
+        "Field Atlas closed while loading $name last time, so ${recommended.name} answers instead. Choose $name here to try it again."
     })
 }
 
