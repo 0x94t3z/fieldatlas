@@ -231,7 +231,8 @@ fun FieldAtlasCard(
 }
 
 /** Icon tile tints drawn only from the notebook palette: sage, gold, paper and forest. */
-enum class TileTone { Sage, Gold, Paper, Forest, Clay }
+/** [Health] is a red tint for places in a list; [HealthSolid] the solid red of the one place in focus. Red is kept for health. */
+enum class TileTone { Sage, Gold, Paper, Forest, Clay, Health, HealthSolid }
 
 @Composable
 fun FieldAtlasIconTile(
@@ -247,6 +248,8 @@ fun FieldAtlasIconTile(
         TileTone.Gold -> colors.secondaryContainer to colors.onSecondaryContainer
         TileTone.Paper -> colors.surfaceVariant to colors.onSurfaceVariant
         TileTone.Forest -> colors.primary to colors.onPrimary
+        TileTone.Health -> colors.errorContainer to colors.error
+        TileTone.HealthSolid -> if (colors.background.luminance() > 0.5f) colors.error to colors.onError else colors.errorContainer to colors.onErrorContainer
         // A warm wash outside the green family, for when tiles in one list should all differ.
         TileTone.Clay -> if (colors.background.luminance() > 0.5f) Color(0xFFF2DED2) to Color(0xFF754333)
             else Color(0xFF51372C) to Color(0xFFEFC7B2)

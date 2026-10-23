@@ -38,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.foundation.background
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -305,12 +306,14 @@ fun AnswerScreen(
                     val listAt = presentation.blocks.indexOfFirst { it is xyz.fieldatlas.ui.markdown.MarkdownBlock.ListBlock }
                     val intro = presentation.blocks.take(listAt)
                     val outro = presentation.blocks.drop(listAt + 1)
+                    val asked = state.shownQuestion.ifBlank { state.question }
                     if (intro.isNotEmpty()) item {
                         val (lead, notes) = remember(state.answer) { placeIntroParts(placeIntroText(state.answer)) }
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(lead),
+                            // Regular weight, so the bold count ("**6 hospitals**") stands out from the rest of the sentence.
+                            AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(placeLead(lead, asked, placeCards.size)),
                                 sourceCount = state.sources.size, onCitation = openPreview,
-                                bodyStyle = FieldAtlasReadingStyle.copy(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Medium))
+                                bodyStyle = FieldAtlasReadingStyle.copy(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Normal))
                             notes?.let {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Info, contentDescription = null,
@@ -325,13 +328,63 @@ fun AnswerScreen(
                             }
                         }
                     }
+                    val outroText = placeOutroText(state.answer)
+                    // Health places: what to do in an emergency comes before the list, not in its small print.
+                    if (PLACE_EMERGENCY_LINE in outroText) item {
+                        val emergencyLine = hospitalEmergencyLine(placeCards)
+                        Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            shape = MaterialTheme.shapes.medium) {
+                            Column {
+                                Row(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 12.dp,
+                                    bottom = if (emergencyLine == null) 12.dp else 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Call, contentDescription = null, tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp))
+                                    // 112 reaches emergency services from mobile phones in many countries; the local number may differ.
+                                    Text("Emergency? Call 112 or your local number.", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                }
+                                emergencyLine?.let { (text, sourceIndex) ->
+                                    val opens = sourceIndex != null
+                                    Row(Modifier.fillMaxWidth()
+                                        .then(if (opens) Modifier.clickable(onClickLabel = "Open this hospital") { openPreview(sourceIndex!!) } else Modifier)
+                                        .heightIn(min = 44.dp).padding(start = 46.dp, end = 14.dp, bottom = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        Text(text, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = if (opens) FontWeight.SemiBold else FontWeight.Normal)
+                                        if (opens) Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ChevronRight, contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    val showDiet = dietAsked.containsMatchIn(asked)
                     items(placeCards.size, key = { "place:${placeCards[it].sourceIndex}" }) { index ->
-                        PlaceCard(placeCards[index], openPreview)
+                        PlaceCard(placeCards[index], openPreview, showDiet)
                     }
                     if (outro.isNotEmpty()) item {
-                        AnswerMarkdownRenderer(blocks = outro, sourceCount = state.sources.size, onCitation = openPreview,
-                            bodyStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant),
-                            modifier = Modifier.padding(top = 4.dp))
+                        val footnote = remember(state.answer) { placeFootnote(outroText, placeMapDate(placeIntroText(state.answer))) }
+                        val full = outroText.replace(PLACE_EMERGENCY_LINE, "").trim()
+                        var expanded by rememberSaveable(state.answer) { mutableStateOf(false) }
+                        Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(Modifier.fillMaxWidth().clickable(onClickLabel = if (expanded) "Hide details" else "About these places") { expanded = !expanded }
+                                .heightIn(min = 48.dp).padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.Info, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 1.dp).size(16.dp))
+                                Text(androidx.compose.ui.text.buildAnnotatedString {
+                                    append(footnote ?: "Distances, hours and where these places come from.")
+                                    append(" ")
+                                    withStyle(androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+                                        append(if (expanded) "Hide\u00A0details" else "About\u00A0these\u00A0places")
+                                    }
+                                }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (expanded && full.isNotBlank()) {
+                                AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(full), sourceCount = state.sources.size,
+                                    onCitation = openPreview,
+                                    bodyStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant))
+                            }
+                        }
                     }
                 } else item {
                     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 20.dp) {

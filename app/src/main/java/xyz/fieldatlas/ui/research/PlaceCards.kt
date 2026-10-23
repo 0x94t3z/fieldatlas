@@ -32,6 +32,12 @@ import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.TileTone
 
+/** The kind of place, shown by its tile: one colour per kind, and red kept for health. */
+internal enum class PlaceKind { Cafe, Food, Health, Stay, Other }
+
+/** How the card's status line reads: open, closed, a plain fact, or something the record does not say. */
+internal enum class PlaceStatusTone { Open, Closed, Fact, Unknown }
+
 /** One listing of a place lookup, drawn as a card instead of a line of prose. */
 internal data class PlaceCardModel(
     val sourceIndex: Int,
@@ -46,7 +52,42 @@ internal data class PlaceCardModel(
     val distance: String?,
     val direction: String?,
     val eat: Boolean,
-)
+    val kind: PlaceKind = PlaceKind.Other,
+    /** What it is, once: "Coffee shop", not "Coffee shop cafe". */
+    val kindLabel: String? = null,
+    val street: String? = null,
+    /** The travel guide's own words about it. */
+    val quote: String? = null,
+    /** Whether the map records an emergency department: "yes", "no", or null when not recorded. */
+    val emergency: String? = null,
+    val hospital: Boolean = false,
+    /** The year the guide last checked the listing, when that is long enough ago to matter. */
+    val listedYear: Int? = null,
+    val phone: String? = null,
+    /** Listed by the travel guide, which gives a description rather than map tags. */
+    val guide: Boolean = false,
+) {
+    /** What it is and where, once each: "Coffee shop · 1-20-12 Jinnan". A guide listing without tags says it is one. */
+    val kindLine: String?
+        get() = listOfNotNull(kindLabel ?: if (guide) "Travel guide listing" else null, street).joinToString(" · ").takeIf(String::isNotBlank)
+
+    /** The one status line under the name: open now, a hospital's emergency department, or the recorded hours. */
+    val status: Pair<String, PlaceStatusTone>
+        get() {
+            val (text, tone) = when {
+                openNow != null -> openNow.replace("Open now until", "Open now · until") to
+                    (if (openNow.startsWith("Open")) PlaceStatusTone.Open else PlaceStatusTone.Closed)
+                hospital -> when (emergency) {
+                    "yes" -> "Emergency department" to PlaceStatusTone.Open
+                    "no" -> "No emergency department" to PlaceStatusTone.Fact
+                    else -> "Emergency department not recorded" to PlaceStatusTone.Unknown
+                }
+                hours == "Hours not recorded" -> hours to PlaceStatusTone.Unknown
+                else -> hours to PlaceStatusTone.Fact
+            }
+            return (listedYear?.let { "$text · listed in $it" } ?: text) to tone
+        }
+}
 
 private val openNowText = Regex("\\b(Open now(?: until \\d{2}:\\d{2})?|Closed now)\\b")
 // "290 m north-west away" (near me) and "1.2 km to the north" (where am I).
@@ -98,7 +139,12 @@ internal fun placeCardModels(blocks: List<MarkdownBlock>, sources: List<Evidence
     }.takeIf { it.isNotEmpty() }
 }
 
-internal fun placeCardModel(index: Int, evidence: Evidence, line: String = ""): PlaceCardModel? {
+// A kind word in the cuisine already says what the place is: "coffee shop" needs no "cafe" after it.
+private val placeNoun = Regex("(?i)\\b(?:shop|caf[eé]|bar|baker(?:y|ies)|house|restaurant|pub|parlou?r|stand|stall|kitchen|diner|grill)s?\\b")
+// A guide listing checked this many years ago or more says so: a café listed in 2015 may have closed.
+private const val OLD_LISTING_YEARS = 3
+
+internal fun placeCardModel(index: Int, evidence: Evidence, line: String = "", today: java.time.LocalDate = java.time.LocalDate.now()): PlaceCardModel? {
     if (placeSheetContent(evidence.text) == null) return null
     val fields = evidence.text.lines().mapNotNull { row ->
         val split = row.indexOf(": ")
@@ -111,27 +157,53 @@ internal fun placeCardModel(index: Int, evidence: Evidence, line: String = ""): 
         "limited vegan options" -> "Some vegan"
         else -> null
     }
-    val kind = listOfNotNull(fields["Cuisine"]?.substringBefore(';')?.substringBefore(',')?.trim(), fields["Type"])
+    val cuisine = fields["Cuisine"]?.substringBefore(';')?.substringBefore(',')?.replace('_', ' ')?.trim()?.takeIf(String::isNotBlank)
+    val type = fields["Type"]?.replace('_', ' ')?.trim()?.takeIf(String::isNotBlank)
+    val kindLabel = listOfNotNull(cuisine, type?.takeUnless { cuisine != null && placeNoun.containsMatchIn(cuisine) })
         .joinToString(" ").replaceFirstChar(Char::uppercaseChar).takeIf(String::isNotBlank)
-        ?: fields["Description"]?.take(80)
-    // "Hauptstraße 5, 10115 Berlin" shows its street; "1, 110-0005 台東区" (a Japanese block
-    // number without a street) is only useful whole.
+    // "Hauptstraße 5, 10115 Berlin" shows its street; "1, 110-0005 台東区" (a Japanese block number without a
+    // street) drops the lone number, which means nothing without the block it belongs to.
     val street = fields["Address"]?.let { address ->
-        address.substringBefore(',').trim().takeIf { part -> part.any(Char::isLetter) } ?: address.trim()
+        val first = address.substringBefore(',').trim()
+        when {
+            first.any(Char::isLetter) -> first
+            ',' in address && first.all { it.isDigit() || it == '-' } -> address.substringAfter(',').trim()
+            else -> address.trim()
+        }.replace(Regex(" (\\d+[A-Za-z]?)$"), "\u00A0$1")  // "Rotondo 6" never leaves its 6 on a line alone
     }
+    val category = fields["Category"]
+    val coffee = type?.contains(Regex("(?i)caf[eé]|coffee")) == true || cuisine?.contains(Regex("(?i)coffee|caf[eé]|tea")) == true
+    val kind = when {
+        category == "Health" -> PlaceKind.Health
+        category in setOf("Eat", "Drink") && (coffee || category == "Drink" && type == null) -> PlaceKind.Cafe
+        category in setOf("Eat", "Drink") -> PlaceKind.Food
+        category == "Sleep" -> PlaceKind.Stay
+        else -> PlaceKind.Other
+    }
+    val checkedDate = fields["Listing last checked"]
+    val listedYear = checkedDate?.take(4)?.toIntOrNull()?.takeIf { it <= today.year - OLD_LISTING_YEARS }
     val distance = distanceText.find(line.substringBefore('“'))
     return PlaceCardModel(
         sourceIndex = index,
         name = fields.getValue("Place"),
         badge = badge,
         badgePositive = vegan == "fully vegan",
-        summary = listOfNotNull(kind, street).joinToString(" · ").takeIf(String::isNotBlank),
+        summary = listOfNotNull(kindLabel ?: fields["Description"]?.take(80), street).joinToString(" · ").takeIf(String::isNotBlank),
         hours = (fields["Hours in source"] ?: fields["Hours"])?.let(::readableHours) ?: "Hours not recorded",
         openNow = openNowText.find(line)?.value,
-        checked = fields["Listing last checked"]?.let { "Checked $it" } ?: "No check date",
+        checked = checkedDate?.let { "Checked $it" } ?: "No check date",
         distance = distance?.groupValues?.get(1),
         direction = distance?.let { d -> d.groupValues[2].ifEmpty { d.groupValues[3] } }?.takeIf(String::isNotEmpty),
-        eat = fields["Category"] in setOf("Eat", "Drink"),
+        eat = category in setOf("Eat", "Drink"),
+        kind = kind,
+        kindLabel = kindLabel,
+        street = street,
+        quote = fields["Description"]?.takeIf(String::isNotBlank),
+        guide = evidence.documentId.startsWith("wv"),
+        emergency = fields["Emergency department"]?.lowercase(),
+        hospital = type.equals("hospital", ignoreCase = true),
+        listedYear = listedYear,
+        phone = fields["Phone"],
     )
 }
 
@@ -168,46 +240,140 @@ internal fun placeIntroParts(intro: String): Pair<String, String?> {
     return text.substring(0, cut.range.first) to text.substring(cut.range.last + 1).trim().takeIf(String::isNotEmpty)
 }
 
+private val nearestLead = Regex("^Nearest saved places to (.+?)(?: \\(map data as of ([\\d-]+)\\))?:$")
+
+/**
+ * The opening sentence a place list shows: what was found, counted, and where it is measured from ("**2 coffee shops**
+ * near Shibuya Crossing in Tokyo, nearest first."). The map's date moves to the footnote. Any other opening (open-now
+ * counts, a vegan qualification) is shown as written.
+ */
+internal fun placeLead(lead: String, question: String, count: Int): String {
+    val match = nearestLead.matchEntire(lead.trim()) ?: return lead
+    val where = match.groupValues[1]
+    if (" that " in where) return lead
+    val counted = xyz.fieldatlas.research.VenueLookup.placeCount(question, count) ?: "$count ${if (count == 1) "place" else "places"}"
+    val near = if (where == "your current location") "near you" else "near $where"
+    return "**$counted** $near, nearest first."
+}
+
+/** "2026-10-02" from the opening's "(map data as of 2026-10-02)", shown as "2 Oct 2026" in the footnote. */
+internal fun placeMapDate(intro: String): String? = Regex("\\(map data as of (\\d{4})-(\\d{2})-(\\d{2})\\)").find(intro)?.let { m ->
+    val (y, mo, d) = m.destructured
+    val month = java.time.Month.of(mo.toInt()).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)
+    "${d.toInt()} $month $y"
+}
+
+/**
+ * What the note above a list of hospitals adds: the nearest one recorded with an emergency department, which may be
+ * last in a list ordered by distance (its card's source, so the line opens it), or that none of them is.
+ */
+internal fun hospitalEmergencyLine(cards: List<PlaceCardModel>): Pair<String, Int?>? {
+    if (cards.isEmpty() || !cards.all { it.hospital }) return null
+    val nearest = cards.firstOrNull { it.emergency == "yes" }
+        ?: return "None of these is recorded with an emergency department." to null
+    val where = listOfNotNull(nearest.distance, nearest.direction).joinToString(" ")
+    return "Nearest emergency department: ${nearest.name}" + (if (where.isNotBlank()) ", $where" else "") to nearest.sourceIndex
+}
+
+/** The health line the lookup writes after a list of health places; shown as a note above the list instead. */
+internal const val PLACE_EMERGENCY_LINE = "In an emergency, call the local emergency number first."
+
+/**
+ * The footnote under a place list, in one short line: where distances are measured from and how old the map is. The
+ * lookup's full wording stays one tap away ("About these places").
+ */
+internal fun placeFootnote(outro: String, mapDate: String?): String? {
+    val from = Regex("Distances are straight-line from (.+?), by").find(outro)?.groupValues?.get(1)
+        ?: Regex("Distances are straight-line from (this phone's location)").find(outro)?.groupValues?.get(1)
+        ?: return null
+    val origin = if (from == "this phone's location") "your location" else from
+    return "Straight-line distances from $origin. " + (mapDate?.let { "Map data $it; hours" } ?: "Hours") + " can be out of date."
+}
+
+/** The text after a place list: the lookup's notes on distances, hours and data credit. */
+internal fun placeOutroText(answer: String): String =
+    answer.lines().let { lines -> lines.drop(lines.indexOfLast { it.trimStart().startsWith("- ") } + 1) }.joinToString("\n").trim()
+
 /** The text before an answer's first list item: the opening of an app-written place answer. */
 internal fun placeIntroText(answer: String): String =
     answer.lines().takeWhile { !it.trimStart().startsWith("- ") }.joinToString("\n").trim()
 
+/** The tile for a kind of place: gold for food and drink, a red tint for health, sage for places to stay. */
+internal fun placeTile(kind: PlaceKind, focused: Boolean = false): Pair<androidx.compose.ui.graphics.vector.ImageVector, TileTone> = when (kind) {
+    PlaceKind.Cafe -> FieldAtlasIcons.Cup to TileTone.Gold
+    PlaceKind.Food -> FieldAtlasIcons.Food to TileTone.Gold
+    PlaceKind.Health -> FieldAtlasIcons.Medical to if (focused) TileTone.HealthSolid else TileTone.Health
+    PlaceKind.Stay -> FieldAtlasIcons.Bed to TileTone.Sage
+    PlaceKind.Other -> FieldAtlasIcons.Place to TileTone.Paper
+}
+
+/** A diet the question asks about: only then does a card show its vegan tag. */
+internal val dietAsked = Regex("(?i)\\b(vegan|vegetarian|plant[- ]based|halal|kosher|gluten)\\b")
+
+/**
+ * One place: name, with how far and which way at the right; what it is and where; one status line; the guide's words.
+ * The whole card opens the place.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun PlaceCard(place: PlaceCardModel, onOpen: (Int) -> Unit) {
+internal fun PlaceCard(place: PlaceCardModel, onOpen: (Int) -> Unit, showDiet: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
     Surface(
         modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${place.name}") { onOpen(place.sourceIndex) },
-        color = MaterialTheme.colorScheme.surface,
+        color = colors.surface,
         shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        border = BorderStroke(1.dp, colors.outlineVariant.copy(alpha = 0.6f)),
     ) {
-        Row(Modifier.padding(start = 14.dp, end = 10.dp, top = 14.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            FieldAtlasIconTile(if (place.eat) FieldAtlasIcons.Food else FieldAtlasIcons.Place, size = 42.dp,
-                tone = if (place.eat) TileTone.Clay else TileTone.Gold)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(place.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                place.summary?.let {
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis)
-                }
-                // What decides whether to go, as scannable chips: open now, diet, how far.
-                val distance = place.distance?.let { listOfNotNull(it, place.direction).joinToString(" ") }
-                if (place.openNow != null || place.badge != null || distance != null) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        place.openNow?.let { OpenNowChip(it) }
-                        place.badge?.let {
-                            PlaceChip(it, if (place.badgePositive) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant)
-                        }
-                        distance?.let { PlaceChip(it, MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f), FieldAtlasIcons.Place) }
+        Column(Modifier.padding(start = 14.dp, end = 16.dp, top = 14.dp, bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                val (icon, tone) = placeTile(place.kind)
+                FieldAtlasIconTile(icon, size = 40.dp, tone = tone)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(place.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    place.kindLine?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
-                Text(listOf(place.hours, place.checked).joinToString(" · "), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // How far and which way belong together, where the eye ends the line.
+                place.distance?.let { distance ->
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(distance, style = MaterialTheme.typography.titleSmall.copy(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.ExtraBold, maxLines = 1)
+                        place.direction?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, maxLines = 1) }
+                    }
+                }
             }
-            Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp).align(Alignment.CenterVertically))
+            Column(Modifier.padding(start = 52.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                val (text, tone) = place.status
+                PlaceStatusLine(text, tone)
+                if (showDiet) place.badge?.let {
+                    PlaceChip(it, if (place.badgePositive) colors.primaryContainer else colors.surfaceVariant)
+                }
+                place.quote?.let {
+                    Text("“$it”", style = MaterialTheme.typography.bodySmall.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
+                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic), color = colors.onSurfaceVariant,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
         }
+    }
+}
+
+/** A dot and words, so the state never depends on colour alone. Red is not used here: it means health. */
+@Composable
+private fun PlaceStatusLine(text: String, tone: PlaceStatusTone) {
+    val colors = MaterialTheme.colorScheme
+    val (dot, ink) = when (tone) {
+        PlaceStatusTone.Open -> colors.primary to colors.onPrimaryContainer
+        PlaceStatusTone.Closed -> colors.secondary to colors.onSurface
+        PlaceStatusTone.Fact -> colors.outline to colors.onSurface
+        PlaceStatusTone.Unknown -> colors.outlineVariant to colors.onSurfaceVariant
+    }
+    // The dot sits by the first line when the hours run to two.
+    Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.Top) {
+        Box(Modifier.padding(top = 5.dp).size(8.dp).background(dot, CircleShape))
+        Text(text, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = ink, maxLines = 2,
+            overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -218,26 +384,6 @@ private fun PlaceChip(text: String, container: Color, icon: androidx.compose.ui.
             verticalAlignment = Alignment.CenterVertically) {
             icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(13.dp)) }
             Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-        }
-    }
-}
-
-/** Open or closed by recorded hours: a dot plus words, so the state never depends on colour alone. */
-@Composable
-private fun OpenNowChip(text: String) {
-    val open = text.startsWith("Open")
-    val colors = MaterialTheme.colorScheme
-    Surface(
-        color = if (open) colors.primaryContainer else colors.errorContainer.copy(alpha = 0.7f),
-        contentColor = if (open) colors.onPrimaryContainer else colors.onErrorContainer,
-        shape = FieldAtlasChipShape,
-    ) {
-        Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(7.dp).background(if (open) colors.primary else colors.error, CircleShape))
-            // "Open until 23:00" is enough on a chip; the answer text keeps the full wording.
-            Text(text.replace("Open now until", "Open until"), style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold, maxLines = 1)
         }
     }
 }

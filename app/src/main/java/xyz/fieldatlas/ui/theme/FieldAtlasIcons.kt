@@ -60,6 +60,12 @@ object FieldAtlasIcons {
     val ResearchStart by icon("ResearchStart", "M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2L12 2z")
     val AutoAwesome by icon("AutoAwesome", "M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zM9 23l2.5-5.5L17 15l-5.5-2.5L9 7l-2.5 5.5L1 15l5.5 2.5L9 23zm10-8l1.25 2.75L23 19l-2.75 1.25L19 23l-1.25-2.75L15 19l2.75-1.25L19 15z")
     val ResearchSparkles by icon("ResearchSparkles", "M8 7l2.3 5.7L16 15l-5.7 2.3L8 23l-2.3-5.7L0 15l5.7-2.3L8 7zM16 1l1.2 3.8L21 6l-3.8 1.2L16 11l-1.2-3.8L11 6l3.8-1.2L16 1zM20 16l.65 2.35L23 19l-2.35.65L20 22l-.65-2.35L17 19l2.35-.65L20 16z")
+    // Places by kind: a cup for cafés, a cross for health (drawn as an outline on a red tile, never a red cross on
+    // white, the protected emblem), a bed for places to stay.
+    val Cup by prototypeIcon("Cup", "M4 9h12v4.5A5.5 5.5 0 0 1 10.5 19h-1A5.5 5.5 0 0 1 4 13.5V9Z M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16 M8 3.5v2.5M12 3.5v2.5", false, 24f, PathFillType.NonZero)
+    val Medical by prototypeIcon("Medical", "M10 4.5h4v5.5h5.5v4H14v5.5h-4V14H4.5v-4H10V4.5Z", false, 24f, PathFillType.NonZero)
+    val Bed by prototypeIcon("Bed", "M3 18V7M3 13h18v5M21 13a3 3 0 0 0-3-3h-7v3 M8.8 10.5a1.8 1.8 0 1 1-3.6 0a1.8 1.8 0 1 1 3.6 0Z", false, 24f, PathFillType.NonZero)
+    val FullScreen by prototypeIcon("FullScreen", "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5", false, 24f, PathFillType.NonZero)
     val Food by prototypeIcon("Food", "M5 3v7m3-7v7m-6-7v7h6M5 10v11m10-18v18m0-18c5 2 5 8 0 9", false, 24f, PathFillType.NonZero)
     val Document by prototypeIcon("Document", "M6 3h8l4 4v14H6V3Zm8 0v5h4M9 12h6M9 16h6", false, 24f, PathFillType.NonZero)
     val Share by prototypeIcon("Share", "M12 15V2m-5 5 5-5 5 5M5 12v9h14v-9", false, 24f, PathFillType.NonZero)

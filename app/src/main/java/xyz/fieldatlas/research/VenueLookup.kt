@@ -77,6 +77,35 @@ object VenueLookup {
     private val lookupWords = Regex("(?i)\\b(best|good|recommend|suggest|find|list|which|where|any|need|is there|are there|nearest|closest)\\b")
 
     /**
+     * The kind of place a lookup asked for, counted: "2 coffee shops", "1 hospital". Null when the question names no kind
+     * that counts as a noun ("things to do", "a rainy day"), so the answer counts "places" instead.
+     */
+    fun placeCount(question: String, count: Int): String? {
+        val plural = ESSENTIALS.firstOrNull { it.words.containsMatchIn(question) }?.noun
+            ?: COUNTED_KINDS.firstOrNull { (words, _) -> words.containsMatchIn(question) }?.second
+            ?: return null
+        return "$count ${if (count == 1) singular(plural) else plural}"
+    }
+
+    private val COUNTED_KINDS = listOf(
+        "coffee shops?" to "coffee shops", "caf[eé]s?" to "cafés", "restaurants?" to "restaurants", "bars?" to "bars", "pubs?" to "pubs",
+        "museums?" to "museums", "galler(?:y|ies)" to "galleries", "markets?" to "markets", "baker(?:y|ies)" to "bakeries",
+        "beach(?:es)?" to "beaches", "hotels?" to "hotels", "hostels?" to "hostels", "guest ?houses?" to "guest houses",
+        "shops?|stores?" to "shops",
+    ).map { (words, noun) -> Regex("(?i)\\b(?:$words)\\b") to noun }
+
+    /** "embassies or consulates" -> "embassy or consulate", "beaches" -> "beach", "ATMs" -> "ATM". */
+    private fun singular(plural: String): String = plural.split(' ').joinToString(" ") { word ->
+        when {
+            word == "or" -> word
+            word.endsWith("ies") -> word.dropLast(3) + "y"
+            Regex("(?:ch|sh|x)es$").containsMatchIn(word) -> word.dropLast(2)
+            word.endsWith("s") -> word.dropLast(1)
+            else -> word
+        }
+    }
+
+    /**
      * Everyday essentials a traveller asks for, mapped to the listing category and, where the
      * words name one kind of place, its type. [noun] names them in "none found" answers.
      */

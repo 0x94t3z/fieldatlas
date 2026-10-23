@@ -29,7 +29,7 @@ class PlaceCardsTest {
         assertEquals(listOf("Daizu", "Best Grill"), cards.map { it.name })
         val first = cards.first()
         assertEquals("Fully vegan", first.badge)
-        assertEquals("Ramen restaurant · Falckensteinstraße 36", first.summary)
+        assertEquals("Ramen restaurant · Falckensteinstraße\u00A036", first.summary)
         assertEquals("Hours not recorded", first.hours)
         assertEquals("Checked 2025-09-01", first.checked)
         assertEquals(answer.sources.indexOf(daizu), first.sourceIndex)
@@ -65,9 +65,86 @@ class PlaceCardsTest {
             listOf(grill))!!.single().openNow)
     }
 
-    @Test fun anAddressWithoutAStreetIsShownWhole() {
+    @Test fun anAddressWithoutAStreetDropsItsLoneBlockNumber() {
+        // "1," means nothing without its block: the postcode and ward are what someone can use.
         val ramen = place("4", "T's TanTan", "fully vegan", listOf("Cuisine: ramen", "Address: 1, 110-0005 台東区"))
-        assertEquals("Ramen restaurant · 1, 110-0005 台東区", placeCardModel(0, ramen)!!.summary)
+        assertEquals("Ramen restaurant · 110-0005 台東区", placeCardModel(0, ramen)!!.summary)
+    }
+
+    private fun osm(id: String, name: String, category: String, vararg extra: String) = Evidence(
+        documentId = "osm-place-$id", chunkId = "osm-place-$id:0000", title = "Rome — $name", source = "https://www.openstreetmap.org/node/$id",
+        text = (listOf("Destination: Rome", "Category: $category", "Place: $name") + extra +
+            listOf("Latitude: 41.88", "Longitude: 12.49", "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)")).joinToString("\n"),
+        score = 0.0)
+
+    @Test fun aCardSaysWhatThePlaceIsOnceAndShowsItsKindByItsTile() {
+        val starbucks = osm("5", "Starbucks", "Eat", "Type: cafe", "Cuisine: coffee_shop", "Hours in source: Mo-Fr 07:00-22:30")
+        val card = placeCardModel(0, starbucks)!!
+        assertEquals("Coffee shop", card.kindLabel)
+        assertEquals(PlaceKind.Cafe, card.kind)
+        assertEquals("Mon–Fri 07:00–22:30" to PlaceStatusTone.Fact, card.status)
+        assertEquals(PlaceKind.Food, placeCardModel(0, daizu)!!.kind)
+        assertEquals(PlaceKind.Stay, placeCardModel(0, osm("6", "Hotel Roma", "Sleep", "Type: hotel"))!!.kind)
+    }
+
+    @Test fun aHospitalsStatusIsItsEmergencyDepartment() {
+        val celio = placeCardModel(0, osm("7", "Policlinico militare Celio", "Health", "Type: hospital"))!!
+        assertEquals(PlaceKind.Health, celio.kind)
+        assertEquals("Emergency department not recorded" to PlaceStatusTone.Unknown, celio.status)
+        val britannico = placeCardModel(0, osm("8", "Ospedale Britannico", "Health", "Type: hospital", "Emergency department: no"))!!
+        assertEquals("No emergency department" to PlaceStatusTone.Fact, britannico.status)
+        // A pharmacy is health too, but its line is its hours.
+        assertEquals("Hours not recorded" to PlaceStatusTone.Unknown, placeCardModel(0, osm("9", "Farmacia", "Health", "Type: pharmacy"))!!.status)
+    }
+
+    @Test fun aHospitalListNamesTheNearestWithAnEmergencyDepartment() {
+        // On the emulator (23 Oct) the one hospital with an emergency department was sixth of six, at 1.0 km.
+        fun hospital(id: String, name: String, er: String?) = placeCardModel(0, osm(id, name, "Health", *listOfNotNull("Type: hospital",
+            er?.let { "Emergency department: $it" }, "Address: Via di Santo Stefano Rotondo 6, 00184 Roma").toTypedArray()),
+            line = "- **$name** — hospital, 690 m south-east away. [S1]")!!
+        val celio = hospital("10", "Policlinico militare Celio", null)
+        val britannico = hospital("11", "Ospedale Britannico", "no")
+        val sanGiovanni = hospital("12", "Ospedale San Giovanni", "yes")
+        // The line names it and opens its card's source.
+        assertEquals("Nearest emergency department: Ospedale San Giovanni, 690 m south-east" to sanGiovanni.sourceIndex,
+            hospitalEmergencyLine(listOf(celio, britannico, sanGiovanni)))
+        assertEquals("None of these is recorded with an emergency department." to null, hospitalEmergencyLine(listOf(celio, britannico)))
+        assertNull(hospitalEmergencyLine(listOf(placeCardModel(0, daizu)!!)))
+        assertEquals("Emergency department" to PlaceStatusTone.Open, sanGiovanni.status)
+        // The house number stays on its street's line.
+        assertEquals("Via di Santo Stefano Rotondo\u00A06", britannico.street)
+    }
+
+    @Test fun anOldGuideListingSaysWhenItWasListedAndKeepsTheGuidesWords() {
+        val excelsior = Evidence("wv-place-x", "wv-place-x:0000", "Tokyo/Shibuya — Excelsior Cafe", "https://en.wikivoyage.org/wiki/Tokyo/Shibuya",
+            listOf("Destination: Tokyo/Shibuya", "Category: Drink", "Place: Excelsior Cafe", "Description: Great coffee and delicious sandwiches, with a warm smile.",
+                "Address: 1-20-12 Jinnan, Toyama Building 1st/2nd Floors", "Listing last checked: 2015-05-14", "Latitude: 35.66", "Longitude: 139.70").joinToString("\n"), 0.0)
+        val card = placeCardModel(0, excelsior, today = java.time.LocalDate.of(2026, 10, 23))!!
+        assertEquals("Travel guide listing · 1-20-12 Jinnan", card.kindLine)
+        assertEquals("Great coffee and delicious sandwiches, with a warm smile.", card.quote)
+        assertEquals("Hours not recorded · listed in 2015", card.status.first)
+        assertEquals(PlaceKind.Cafe, card.kind)
+        // A recent check says nothing about age.
+        assertNull(placeCardModel(0, daizu, today = java.time.LocalDate.of(2026, 10, 23))!!.listedYear)
+    }
+
+    @Test fun aPlaceListOpensWithWhatWasFoundCountedAndEndsWithAShortFootnote() {
+        val lead = "Nearest saved places to Shibuya Crossing in Tokyo (map data as of 2026-10-02):"
+        assertEquals("**2 coffee shops** near Shibuya Crossing in Tokyo, nearest first.", placeLead(lead, "Coffee shops near Shibuya Crossing in Tokyo?", 2))
+        assertEquals("**1 hospital** near you, nearest first.", placeLead("Nearest saved places to your current location:", "hospital near me", 1))
+        assertEquals("**3 places** near you, nearest first.", placeLead("Nearest saved places to your current location:", "what's around me", 3))
+        // A qualified opening is shown as written.
+        val vegan = "Nearest saved places to your current location that OpenStreetMap tags as fully vegan or serving vegan options:"
+        assertEquals(vegan, placeLead(vegan, "vegan food near me", 2))
+        assertEquals("2 Oct 2026", placeMapDate(lead))
+        assertEquals("Straight-line distances from Shibuya Crossing. Map data 2 Oct 2026; hours can be out of date.",
+            placeFootnote("Distances are straight-line from Shibuya Crossing, by its position in the saved collections; directions are compass bearings.", "2 Oct 2026"))
+        assertEquals("Straight-line distances from your location. Hours can be out of date.",
+            placeFootnote("Distances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings.", null))
+        assertEquals("2 embassies or consulates", VenueLookup.placeCount("nearest embassy", 2))
+        assertEquals("1 embassy or consulate", VenueLookup.placeCount("nearest embassy", 1))
+        assertEquals("1 pharmacy", VenueLookup.placeCount("pharmacy open now", 1))
+        assertNull(VenueLookup.placeCount("things to do on a rainy day", 4))
     }
 
     @Test fun ordinaryAnswersKeepTheirText() {
