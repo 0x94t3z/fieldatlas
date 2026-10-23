@@ -85,7 +85,8 @@ object GuideAnswerCheck {
             !GENERAL.containsMatchIn(question.lowercase(Locale.ROOT).replace('’', '\'')) ||
             // A small model's answer cannot be trusted to say how urgent it is: any first-aid situation opens with "now" unless
             // it is minor or a general question. Sets 53-54: the rules kept missing new wordings of serious signs.
-            cautious && (firstAidQuestion(question) || guideId != null && SITUATION.containsMatchIn(question.lowercase(Locale.ROOT))) &&
+            cautious && (firstAidQuestion(question) || guideId != null && SITUATION.containsMatchIn(question.lowercase(Locale.ROOT)) &&
+                !routinePreparation(question)) &&
                 !minor(question) && !GENERAL.containsMatchIn(question.lowercase(Locale.ROOT).replace('’', '\'')) &&
                 !EXPLAINING.containsMatchIn(question.lowercase(Locale.ROOT)) ||
             // A life-threat guide matched for someone in the situation (set 53: a sting with a hoarse voice and a swelling face
@@ -98,6 +99,16 @@ object GuideAnswerCheck {
                 !EXPLAINING.containsMatchIn(question.lowercase(Locale.ROOT)))
             "**Call your local emergency number now** (112 works on mobile phones in many countries).\n\n"
         else "**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n"
+
+    /**
+     * Getting ready for an ordinary day out, with nothing wrong: "how do I make stream water safe to drink when I am hiking"
+     * opened the water guide with "call your local emergency number now" (24 Oct, Redmi). The "I" made it a situation.
+     * Anyone who already drank, is ill, or is stranded is not preparing, and keeps "now".
+     */
+    fun routinePreparation(question: String): Boolean {
+        val q = question.lowercase(Locale.ROOT).replace('’', '\'')
+        return ROUTINE_TASK.containsMatchIn(q) && !UNDER_WAY.containsMatchIn(q) && !firstAidQuestion(question)
+    }
 
     /** Says itself that it is small: "doesn't hurt much", "otherwise totally fine", a splinter, a blister, a nettle sting. */
     /** A first-aid question asked to learn ("before my course", "how do you…"), not for someone in trouble now. */
@@ -321,6 +332,11 @@ object GuideAnswerCheck {
         "patch (in|on) (his|her|their) mouth|sucking on (a|the|it|his|her)|frost|hypotherm\\w*|silent chest|can't hear (the |her |his )?wheeze)\\b")
     private val EMERGENCY_MEDICINE = Regex("\\b(inhaler|salbutamol|albuterol|ventolin|puffer|epi-?pens?|auto-?injector|adrenaline|epinephrine|" +
         "glucagon|glucose (gel|tablets?)|insulin|naloxone|narcan|nitro(glycerin)?|gtn spray|aspirin)\\b")
+    private val ROUTINE_TASK = Regex("^\\s*(how (do|can|should|would) (i|we)|what's the (best|safest) way to|what is the (best|safest) way to|best way to) " +
+        "(make|purify|treat|filter|disinfect|boil|store|pack|prepare|carry)\\b")
+    private val UNDER_WAY = Regex("\\b(now|right now|urgent\\w*|already|drank|drunk|been drinking|sick|ill|unwell|vomit\\w*|being sick|throwing up|" +
+        "diarrh\\w*|cramps?|fever\\w*|stuck|trapped|stranded|lost|ran out|run out|running out|no (clean |safe |drinking )?water|cut off|flood\\w*|" +
+        "earthquake|hurricane|storm|outage|boil (water )?(notice|advisory)|contaminat\\w*)\\b")
     private val SITUATION = Regex("\\b(my|our|i|i'm|im|he|she|he's|she's|hes|shes|they|we|someone|somebody|friend|baby|son|daughter|kid|child|toddler|just|now|ago)\\b")
     private val STUDY = Regex("\\b(exam|essay|homework|study|studying|quiz|course|class|lecture|novel|film|movie|story|in general)\\b")
 }

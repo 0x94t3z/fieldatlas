@@ -245,6 +245,39 @@ class EmergencyRoutingTest {
         assertTrue(tokens.last(), tokens.last().contains("Lie him on his side"))
     }
 
+    @Test fun someoneIllAfterDrinkingWaterIsNotShownHowToTreatWater() = runBlocking {
+        // 24 Oct, Redmi: "my son drank stream water … now vomiting and confused" was answered with the CDC steps for boiling
+        // and disinfecting water. Preparation steps are no answer for someone already ill.
+        val boil = "Bring clear water to a rolling boil for 1 minute"
+        for (question in listOf(
+            "My son drank stream water on our hike and now he is vomiting and confused",
+            "we drank untreated lake water two days ago and now I have stomach cramps and a fever",
+            "my friend has been drinking from a well and now he is vomiting and dizzy",
+            "I think the water we drank camping made my kid sick, she keeps throwing up and is very sleepy",
+            "my daughter drank from a river yesterday and has had diarrhoea all night",
+            "after drinking floodwater my husband has bad diarrhoea and feels faint",
+        )) {
+            val small = Recording("unused")
+            val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, small, emergencyGuides = { guides }).research(question).toList()
+            val shown = events.filterIsInstance<ResearchEvent.Sources>().flatMap { it.evidence }.map { it.documentId }
+            val text = answer(events)
+            assertFalse("$question -> $shown", "emergency:safe-drinking-water" in shown)
+            assertFalse(question, text.contains(boil))
+            assertTrue(question, text.startsWith("**Call your local emergency number now**"))
+            // The vetted dehydration guide, or the no-guide reply that gives no treatment steps; nothing written by the model.
+            assertTrue("$question -> $shown", shown == listOf("emergency:dehydration") && text.contains("shown as published by NIH/NLM") ||
+                text.contains("No first-aid guide saved on this phone covers this situation, so this answer gives no treatment steps for it."))
+            assertEquals(question, "", small.prompt)
+        }
+        // Getting ready for a hike still gets the water guide, under the softer line.
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Recording("unused"), emergencyGuides = { guides })
+            .research("How do I make stream water safe to drink when I am hiking?").toList()
+        assertEquals(listOf("emergency:safe-drinking-water"), events.filterIsInstance<ResearchEvent.Sources>().flatMap { it.evidence }.map { it.documentId })
+        val text = answer(events)
+        assertTrue(text, text.startsWith("**If this is an emergency, call your local emergency number first**"))
+        assertTrue(text, text.contains(boil))
+    }
+
     @Test fun aLearningQuestionShowsItsGuideOnAModelWithNoKnowledgeRoute() = runBlocking {
         val question = "how many chest compressions a minute is it for CPR and how deep do you push? just want to know before my course next week"
         // The 2B: no knowledge route, so the CPR guide as published, no call for help now, nothing searched or written.

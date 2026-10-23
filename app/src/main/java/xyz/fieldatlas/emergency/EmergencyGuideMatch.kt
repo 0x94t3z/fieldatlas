@@ -660,7 +660,14 @@ object EmergencyGuideMatch {
     private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
         // A place's tap water is that place's travel advice, not water to treat.
         "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
-            waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question)
+            waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question) ||
+            // Already drank it and now ill: how to treat water is no answer for the sick person ("my son drank stream water
+            // on our hike and now he is vomiting and confused" was shown the purifying steps, 24 Oct). The dehydration guide
+            // or the no-guide reply answers instead.
+            drankWater.containsMatchIn(question) && illAfterDrinking.containsMatchIn(question)
+        // Sunburn is on the skin: "drank untreated lake water, now stomach cramps and a fever" took the lake for a sunny
+        // day and the fever for a sunburn's (24 Oct).
+        "sunburn" -> !sunOrSkin.containsMatchIn(question)
         // "Hiking through long grass, something struck my calf": a hike is not being lost; the guide needs the lost person.
         // Found after being lost, but shivering and confused: the cold, not the getting lost, is the danger now.
         "lost" -> !lostSign.containsMatchIn(question) || coldCasualty.containsMatchIn(question)
@@ -695,6 +702,10 @@ object EmergencyGuideMatch {
         else -> false
     }
 
+    private val drankWater = Regex("(?i)\\b(?:drank|drunk|been drinking|after drinking|drinking from|the water (?:we|i|he|she|they) drank)\\b")
+    private val illAfterDrinking = Regex("(?i)\\b(?:vomit\\w*|throwing up|threw up|being sick|diarrh\\w*|the runs|stomach (?:cramps?|pains?|ache)|cramps|" +
+        "fever\\w*|confus\\w*|drows\\w*|sleepy|dizz\\w*|faint\\w*|unwell|(?:is|are|am|got|gotten|feels?|feeling|made (?:me|him|her|them|us|my \\w+)) (?:very |really )?(?:sick|ill))\\b")
+    private val sunOrSkin = Regex("(?i)\\b(?:sun\\w*|uv|burn\\w*|tann\\w*|red|reddened|peel\\w*|blister\\w*|skin|itch\\w*|sting\\w*|raw|tender)\\b")
     private val foodPoisoning = Regex("(?i)\\b(?:food poisoning|stomach bug|tummy bug|gastro\\w*|salmonella|e\\.? ?coli|norovirus|listeria|" +
         "campylobacter|reheated|leftovers?|gone off|out of date|past its date)\\b")
     private val swallowedThing = Regex("(?i)\\b(?:swallow\\w*|overdos\\w*|pills?|tablets?|bleach|chemical\\w*|detergent|antifreeze|" +

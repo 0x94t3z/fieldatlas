@@ -180,6 +180,34 @@ class EmergencyGuideMatchTest {
         }
     }
 
+    @Test fun routineWaterPreparationKeepsTheGuideWithoutCallNow() {
+        // 24 Oct, Redmi (2B): the hiking question opened the water guide with "call your local emergency number now".
+        val now = "**Call your local emergency number now**"
+        for (question in listOf(
+            "How do I make stream water safe to drink when I am hiking?",
+            "how can we purify lake water on our camping trip",
+            "What's the best way to treat river water when we go backpacking?",
+        )) {
+            assertEquals(question, "safe-drinking-water", match(question))
+            val guide = book.guides.single { it.id == match(question) }
+            val shown = EmergencyGuideMatch.answer(guide, modelUnavailable = false, question = question, cautious = true)
+            assertFalse(question, shown.contains(now))
+            assertTrue(question, shown.startsWith("**If this is an emergency"))
+            for (step in guide.sections.flatMap { it.steps }) assertTrue(step, shown.contains(step))
+        }
+        // Already drank it and ill, stranded without water, or a poison swallowed: still "now" from the small model.
+        for ((question, id) in listOf(
+            "we drank stream water on our hike and now my son is vomiting and confused" to null,
+            "how do I make water safe to drink, we are stranded after the flood and ran out of bottled water" to "safe-drinking-water",
+            "how do i make my toddler sick, he just drank bleach from under the sink" to null,
+        )) {
+            val guide = (id ?: match(question))?.let { found -> book.guides.single { it.id == found } }
+            val shown = if (guide != null) EmergencyGuideMatch.answer(guide, modelUnavailable = false, question = question, cautious = true)
+                else GuideAnswerCheck.callLine(question, guideFound = false, cautious = true)
+            assertTrue("$question -> ${guide?.id}", shown.startsWith(now))
+        }
+    }
+
     @Test fun answersKeepThePublishedWordingAndCiteTheSource() {
         val guide = book.guides.single { it.id == "snakebite" }
         val answer = EmergencyGuideMatch.answer(guide)
