@@ -45,6 +45,7 @@ prompts. The 2B was measured on set 37; it answers only from the saved passages 
 | Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | 9 of 40 (22%), 1.15 |
 | Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | 13 of 40 (32%), 0.80 |
 | **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.20 | **35 of 160 (22%)**, 0.84 |
+| Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 The 2B ran sets 46, 49 and 51 on 23 October, after the other models, with web reference answers written
 that day and two fresh grading rounds (the two rounds agreed within two points on 119 of 120). To check
@@ -55,11 +56,33 @@ Over the 160 questions the 2B's cited route gives slightly more good answers tha
 (35 against 27) with far fewer wrong details (0.84 against 2.20); the 4B leads on explanations and
 comparisons, the 2B on facts the collections hold. The 4B stays the 6 GB default on the strength of
 set 37 (8 against 4 good when both routes ran on the 4B); that choice deserves a fresh test after 1.4.2.
-| Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 wrong details per
 answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
 which no offline app can answer, and a few explanations where it simplified a mechanism.
+
+### Facts from the saved encyclopedia (4B)
+
+The 4B's wrong facts led to one change made after the sets above were graded. A question for a single
+fact (who designed, when did, what year, how tall, how deep, what is the capital of) now has the 4B
+read three short notes from the saved encyclopedia before it answers, as it already did for rare
+subjects. From memory it opened the Sydney Opera House on 26 October; with its notes it gives
+20 October 1973. Gemma reasons before it answers and keeps answering from memory, and questions about
+the asker's own plans ("how much rice do I need") or follow-ups ("how much does that cost?") stay with memory.
+
+The change was measured on the 149 fact questions in earlier sealed sets, which it was not written
+against. It changed the 4B's answer to 105 of them; each pair was graded blind, in two rounds:
+
+| 4B on the 105 changed fact questions | From memory | With encyclopedia notes |
+| --- | ---: | ---: |
+| Good answers | 38 of 105 (36%) | 66 of 105 (63%) |
+| Wrong details per answer | 2.79 | 1.69 |
+| Unsafe | 0 | 0 |
+
+The notes version scored higher on 62 questions and lower on 33 (sign test p = 0.004). Its losses are
+mostly the encyclopedia's own mistakes passed on: the saved Simple English article gives the Burj
+Khalifa as 428 m tall (it is 828 m). The four-set table above was graded before this change, so its 4B
+column does not include it.
 
 ## Emergencies
 
@@ -222,6 +245,8 @@ described in [evaluation.md](evaluation.md#the-benchmark-file-and-its-scorer). T
 - Grades, set by set, as readable tables: [results-1.4.2](fieldtest/results-1.4.2/README.md), with
   every question, each setup's scores and what the graders found wrong. The raw files next to it
   (`heldoutNN-grades.jsonl`) hold the same data with the graders' notes.
+- The fact-notes test: [fact-notes-grades.jsonl](fieldtest/results-1.4.2/fact-notes-grades.jsonl), one line per
+  changed question, with the set it came from and both versions' scores and noted mistakes.
 - The 320-question routing list: `app/src/test/resources/emergency-labelled.jsonl`, run by the unit
   tests on every build.
 - Earlier releases' tests: [evaluation](evaluation.md).
