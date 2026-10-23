@@ -128,7 +128,8 @@ def ladder(data):
     counts = ", ".join(str(r["good"]) for r in rows[:-1]) + " and " + str(rows[-1]["good"])
     body = heading((f"{counts} good answers out of {n},", " by phone size."), d["method"])
     top, row_h, bar_h = 300, 132, 44
-    scale_x, scale_w = X0 + 470, 720
+    # The label column holds the phone tier and the route on separate lines, clear of the axis.
+    scale_x, scale_w = X0 + 520, 690
 
     def x_of(v):
         return scale_x + scale_w * v / n
@@ -142,7 +143,8 @@ def ladder(data):
         y = top + 42 + i * row_h
         best = i == len(rows) - 1
         body += text(X0, y + 22, r["model"], 27, INK, 700)
-        body += text(X0, y + 52, f"{r['phone']}, {r['route']}", 18, DIM)
+        body += text(X0, y + 50, r["phone"], 18, DIM)
+        body += text(X0, y + 74, r["route"], 18, DIM)
         w = max(x_of(r["good"]) - scale_x, 3)
         body += f'<rect x="{scale_x}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="2" fill="{fills[i % 3]}"/>'
         # The count and its share, so the bar reads at a glance without the axis.
