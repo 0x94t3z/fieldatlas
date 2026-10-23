@@ -2,19 +2,18 @@
   "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
-  "auditScope": "Status of the v1.4.1 source against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md has the detail.",
-  "lastAuditedAt": "2026-10-13",
+  "auditScope": "Status of the 1.4.2 candidate source (23 October 2026, not yet published) against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md and docs/testing-1.4.2.md have the detail.",
+  "lastAuditedAt": "2026-10-23",
   "requirements": [
     {
       "id": "B31-01",
       "obligation": "Run on compatible Android or GrapheneOS hardware",
       "status": "partial",
       "evidence": [
-        "docs/device-testing.md",
-        "docs/evidence/physical/infinix-x6840-android16/",
-        "docs/evidence/physical/redmi-13c-android13/"
+        "docs/testing-1.4.2.md",
+        "docs/verification.md"
       ],
-      "note": "Runs on a Redmi 13C (Android 13) and an Infinix X6840 (Android 16); not yet run on a Pixel or GrapheneOS."
+      "note": "Runs on a Redmi 13C (6 GB, Android 13), an Infinix X6840 (4 GB, Android 16) and a 12 GB Android 15 emulator image without Google apps; not yet run on a Pixel or GrapheneOS."
     },
     {
       "id": "B31-02",
@@ -22,11 +21,9 @@
       "status": "pass",
       "evidence": [
         "app/src/main/java/xyz/fieldatlas/assets/ModelOffers.kt",
-        "docs/evidence/physical/infinix-x6840-android16/current-app-meminfo.txt",
-        "docs/evidence/physical/redmi-13c-android13/",
-        "docs/evaluation.md"
+        "docs/testing-1.4.2.md"
       ],
-      "note": "The 2B needs about 2 GB; the optional 4B is offered only on phones reporting 7e9 bytes or more."
+      "note": "Qwen3.5 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering (12 GB emulator, airplane mode); Gemma 4 26B is offered only on phones reporting 10.5e9 bytes or more and, with its weights read from the file, leaves 9.4 GB free on the 12 GB emulator."
     },
     {
       "id": "B31-03",
@@ -34,21 +31,19 @@
       "status": "pass",
       "evidence": [
         "app/src/main/java/xyz/fieldatlas/assets/StorageBudget.kt",
-        "app/src/test/java/xyz/fieldatlas/assets/StorageBudgetTest.kt",
-        "DATASETS.md"
+        "docs/testing-1.4.2.md"
       ],
-      "note": "Every offered collection and both models together take about 32 GB installed (the Encyclopedia alone 24.35 GB); installing the Encyclopedia needs about 43 GB at its peak, under the 50 GB limit."
+      "note": "With all three models, every collection and the voice installed, Android reports 47.58 GB of storage for the app; the budget check refuses installs past 50 GB."
     },
     {
       "id": "B31-04",
       "obligation": "Work completely offline after installation and asset provisioning",
       "status": "pass",
       "evidence": [
-        "scripts/verify_offline.sh",
-        "docs/evidence/physical/infinix-x6840-android16/radios-off-answer.png",
-        "docs/evidence/physical/redmi-13c-android13/"
+        "docs/verification.md",
+        "docs/testing-1.4.2.md"
       ],
-      "note": "Research runs with airplane mode on and Wi-Fi off once a model and collections are installed."
+      "note": "Every device check on 22-23 October ran in airplane mode with Wi-Fi and mobile data off on the Redmi, the Infinix and the emulator: emergencies, lookups, explanations, read aloud."
     },
     {
       "id": "B31-05",
@@ -56,43 +51,37 @@
       "status": "partial",
       "evidence": [
         "scripts/verify_offline.sh",
-        "app/src/main/AndroidManifest.xml",
-        "docs/compliance/release-audit.md"
+        "docs/verification.md"
       ],
-      "note": "Network use is limited by code to user-started downloads and catalog refresh; no traffic capture during research has been made."
+      "note": "Network use is limited by code to user-started downloads and the catalogue refresh, and every research check ran with the radios off; no packet capture during a run has been made."
     },
     {
       "id": "B31-06",
       "obligation": "Require no Google Play Services for core offline behavior",
-      "status": "partial",
+      "status": "pass",
       "evidence": [
-        "scripts/verify_offline.sh",
-        "app/src/androidTest/java/xyz/fieldatlas/diagnostics/OfflineAcceptanceTest.kt",
-        "app/src/main/java/xyz/fieldatlas/location/DeviceLocation.kt"
+        "docs/verification.md"
       ],
-      "note": "No Play Services dependency in the code or the APK; not yet run on a phone without them."
+      "note": "No Play Services dependency in the code or the APK, and the 12 GB emulator image used for every Gemma check carries no Google apps at all (pm lists no com.google.android.gms)."
     },
     {
       "id": "B31-07",
       "obligation": "Handle explanation, comparison, synthesis, and reasoning beyond recall",
       "status": "partial",
       "evidence": [
-        "docs/evaluation.md",
-        "docs/fieldtest/questions.jsonl",
-        "docs/fieldtest/heldout3.jsonl"
+        "docs/testing-1.4.2.md",
+        "docs/fieldtest/results-1.4.2/"
       ],
-      "note": "Handled, but the 2B's own explanations score well below the reference on new questions."
+      "note": "Explanation, comparison, synthesis and reasoning are handled; on 40 sealed questions of those kinds Gemma 4 26B (12 GB phones) gives a good answer to 27 (68%), the 4B to 8 (20%), the 2B to 2 (5%)."
     },
     {
       "id": "B31-08",
       "obligation": "Respond at speeds usable for real phone lookups",
       "status": "partial",
       "evidence": [
-        "docs/releases/current.md",
-        "docs/evaluation.md",
-        "docs/evidence/physical/redmi-13c-android13/"
+        "docs/testing-1.4.2.md"
       ],
-      "note": "Measured on a Redmi 13C; no timings on a typical or flagship phone."
+      "note": "Lookups, guides, places and calculations answer in seconds on every phone; model answers take about 4 to 8 minutes with the 4B on a 6 GB Redmi 13C and a median of 92 s with Gemma on a 12 GB emulator; Gemma has not been timed on a 12 GB phone."
     },
     {
       "id": "B31-09",
@@ -132,21 +121,18 @@
       "obligation": "Work on real Android hardware at submission time",
       "status": "partial",
       "evidence": [
-        "docs/device-testing.md",
-        "docs/evidence/physical/redmi-13c-android13/",
-        "docs/evidence/physical/infinix-x6840-android16/current-package-version.txt"
+        "docs/verification.md"
       ],
-      "note": "The 1.4.0 release source was installed and checked on a Redmi 13C with the local test key; the public-key APK cannot update that installation without uninstalling, so it was not installed there."
+      "note": "The candidate source is installed and checked on the Redmi 13C and the Infinix X6840 with the local test key; the public-key 1.4.2 APK is not yet built or installed anywhere."
     },
     {
       "id": "B31-13",
       "obligation": "Install and run within minutes without substantial debugging",
       "status": "partial",
       "evidence": [
-        "docs/installation.md",
-        "docs/evidence/physical/infinix-x6840-android16/README.md"
+        "docs/installation.md"
       ],
-      "note": "On a Redmi 13C, setup downloaded and installed the model and six collections through the app (4.1 GB in about 35 minutes) and answered offline; not yet run from the public APK on a clean phone, and the Encyclopedia was imported rather than downloaded."
+      "note": "Setup downloads a model and collections in the app from pinned Hugging Face revisions; the 1.4.1 public APK did this on a Redmi 13C. Not yet run from the 1.4.2 public APK on a clean phone."
     },
     {
       "id": "B31-14",
@@ -165,19 +151,18 @@
       "obligation": "Publish a public demo on X or Farcaster",
       "status": "partial",
       "evidence": [
-        "https://farcaster.xyz/0x94t3z.eth/0x9538cba8"
+        "README.md"
       ],
-      "note": "Earlier demos show older builds; a 1.4.0 demo is still to be posted."
+      "note": "Earlier demos show older builds; a 1.4.2 demo is still to be posted."
     },
     {
       "id": "B31-16",
       "obligation": "Demo offline use, hard queries, repository link, and approach",
       "status": "partial",
       "evidence": [
-        "https://farcaster.xyz/0x94t3z.eth/0x9538cba8",
-        "docs/evidence/physical/infinix-x6840-android16/README.md"
+        "README.md"
       ],
-      "note": "A 1.4.0 demo of offline use, hard questions and the vegan question is still to be recorded."
+      "note": "A 1.4.2 demo of offline use, hard questions and the repository link is still to be recorded."
     },
     {
       "id": "B31-17",
@@ -186,17 +171,16 @@
       "evidence": [
         "https://etherscan.io/tx/0x9c8dfc4d137d17052393baefc4cca108a2d3be160bb0461216fd94801a357ce9"
       ],
-      "note": "The existing claim describes an older build."
+      "note": "The existing claim describes an older build; it is to be updated after the 1.4.2 release."
     },
     {
       "id": "B31-18",
       "obligation": "Keep the functional reviewed version in GitHub at claim time",
       "status": "partial",
       "evidence": [
-        "https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0",
-        "docs/releases/current.md"
+        "docs/compliance/release-audit.md"
       ],
-      "note": "v1.4.0 is tagged and released at the reviewed source; the claim is still to be updated."
+      "note": "1.4.2 is committed locally and not yet tagged or released; the claim must point at the released tag."
     },
     {
       "id": "B31-19",
@@ -214,12 +198,10 @@
       "obligation": "Measure against the greater-than-50-percent quality bar transparently",
       "status": "partial",
       "evidence": [
-        "docs/evaluation.md",
-        "docs/fieldtest/heldout9.jsonl",
-        "docs/fieldtest/results-1.4.1/heldout9.jsonl",
-        "docs/fieldtest/results-1.4.0/"
+        "docs/testing-1.4.2.md",
+        "docs/fieldtest/results-1.4.2/"
       ],
-      "note": "On 60 fresh questions written after the 1.4.1 release (set 9), graded blind twice against a frontier model's web-researched answers, the default Qwen3.5 2B reaches 29% of the reference (0.67 factual errors per answer); on the same questions 1.4.0 reaches 28.6% (34% on its earlier set 6). The bar is not met. Method, limits and every graded answer are published."
+      "note": "Measured transparently on sealed sets graded blind in two rounds against web-researched answers (docs/testing-1.4.2.md, every grade published). Gemma 4 26B on 12 GB phones is above the bar on that measure (27 of 40 good answers, 68%; 82-84% of the reference's score on set 33); the 4B and the 2B are below it."
     }
   ]
 }
