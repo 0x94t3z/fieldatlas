@@ -87,17 +87,16 @@ Each question set is written blind and sealed before the app answers it. AI grad
 answer from 0 to 10 next to a web-researched one, without knowing which setup wrote it, in two
 rounds. A good answer is one they score 7 or more. Every change is tested this way before it ships.
 
-![Good answers out of 40 sealed questions: Qwen3.5 2B 2 (5%), Qwen3.5 4B 8 (20%), Gemma 4 26B 27 (68%)](docs/images/fieldatlas-models.png)
+![Share of sealed questions with a good answer: Qwen3.5 2B 2 of 40 (5%), Qwen3.5 4B 27 of 160 (17%), Gemma 4 26B 115 of 160 (72%)](docs/images/fieldatlas-models.png)
 
-- **Gemma 4 26B, on 12 GB phones:** a good answer to 27 of 40 (68%) new questions (set 37), with 0.44
-  wrong details per answer. It reasons first, then answers from what it knows.
-- **Qwen3.5 4B, on phones with 6 GB or more:** 8 of 40 (20%), with 1.94 wrong details per answer. It answers from
-  what it knows, so it says more and gets more details wrong; the passages found are listed under
-  each answer to check it.
-- **Qwen3.5 2B, on 4 GB phones:** 2 of 40 (5%), with 0.71 wrong details per answer. It writes only from
-  the saved passages and cites them.
-- **On three more sets of 40 everyday questions** (46, 49 and 51) Gemma gave a good answer to 29,
-  25 and 34 and the 4B to 6, 5 and 8.
+- **Gemma 4 26B, on 12 GB phones:** a good answer to 115 of 160 new questions (72%) over four sealed
+  sets (37, 46, 49 and 51: 27, 29, 25 and 34 of 40), with 0.38 wrong details per answer. It reasons
+  first, then answers from what it knows.
+- **Qwen3.5 4B, on phones with 6 GB or more:** 27 of 160 (17%; 8, 6, 5 and 8 of 40), with 2.20 wrong
+  details per answer. It answers from what it knows, so it says more and gets more details wrong; the
+  passages found are listed under each answer to check it.
+- **Qwen3.5 2B, on 4 GB phones:** 2 of 40 (5%) on the first of those sets, with 0.71 wrong details per
+  answer. It writes only from the saved passages and cites them.
 - **Emergencies:** on 40 new first-aid situations (set 55), Gemma 4 26B writing from the official
   guide gave a good answer to 30, one judged unsafe; the smaller models show the guide as published,
   with the call line first, and on 320 labelled questions the right guide opened 231 times with none

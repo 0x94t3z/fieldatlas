@@ -44,6 +44,7 @@ prompts. The 2B was measured on set 37; it answers only from the saved passages 
 | Set 46, rerun 22 October | 29 of 40 (72%), 0.34 | 6 of 40 (15%), 2.21 | — |
 | Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | — |
 | Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | — |
+| **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.20 | 2 of 40 (5%), 0.71 |
 | Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 wrong details per

@@ -124,18 +124,19 @@ def ladder(data):
     # blind graders), beside how many wrong details an answer carries.
     d = data["ladder"]
     rows = d["rows"]
-    n = d["questions"]
-    counts = ", ".join(str(r["good"]) for r in rows[:-1]) + " and " + str(rows[-1]["good"])
-    body = heading((f"{counts} good answers out of {n},", " by phone size."), d["method"])
+    # Sets of different sizes sit on one scale: the share of questions with a good answer.
+    shares = [100 * r["good"] / r["questions"] for r in rows]
+    counts = ", ".join(f"{round(v)}%" for v in shares[:-1]) + " and " + f"{round(shares[-1])}%"
+    body = heading((f"{counts} good answers,", " by phone size."), d["method"])
     top, row_h, bar_h = 300, 132, 44
     # The label column holds the phone tier and the route on separate lines, clear of the axis.
     scale_x, scale_w = X0 + 520, 690
 
     def x_of(v):
-        return scale_x + scale_w * v / n
+        return scale_x + scale_w * v / 100
 
     base_y = top + row_h * len(rows) - 20
-    body += axis_counts(x_of, list(range(0, n + 1, 10)), top - 4, base_y, f"questions out of {n} with a good answer")
+    body += axis(x_of, list(range(0, 101, 25)), top - 4, base_y, "share of questions with a good answer")
     body += text(X1, top - 2, "wrong details", 17, FAINT, 600, anchor="end")
     body += text(X1, top + 20, "per answer", 17, FAINT, 600, anchor="end")
     fills = [SAGE_1, SAGE_2, AMBER]
@@ -145,10 +146,10 @@ def ladder(data):
         body += text(X0, y + 22, r["model"], 27, INK, 700)
         body += text(X0, y + 50, r["phone"], 18, DIM)
         body += text(X0, y + 74, r["route"], 18, DIM)
-        w = max(x_of(r["good"]) - scale_x, 3)
+        w = max(x_of(shares[i]) - scale_x, 3)
         body += f'<rect x="{scale_x}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="2" fill="{fills[i % 3]}"/>'
         # The count and its share, so the bar reads at a glance without the axis.
-        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {n} · {round(100 * r['good'] / n)}%", 27, AMBER if best else INK, 700)
+        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {r['questions']} · {round(shares[i])}%", 27, AMBER if best else INK, 700)
         body += text(X1, y + 32, f"{r['errors']:.2f}", 27, DIM, 600, anchor="end")
     return frame(body, "Good answers by phone size", d["sourceLine"])
 

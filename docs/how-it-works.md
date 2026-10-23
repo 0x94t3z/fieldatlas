@@ -102,7 +102,7 @@ We count how many questions get a good answer, one that blind AI graders score 7
 10 next to a web-researched answer, and how many wrong details an answer carries. The tests and
 their records are in [the evaluation](evaluation.md).
 
-![Good answers out of 40 sealed questions: Qwen3.5 2B 2 (5%), Qwen3.5 4B 8 (20%), Gemma 4 26B 27 (68%)](images/fieldatlas-models.png)
+![Share of sealed questions with a good answer: Qwen3.5 2B 2 of 40 (5%), Qwen3.5 4B 27 of 160 (17%), Gemma 4 26B 115 of 160 (72%)](images/fieldatlas-models.png)
 
 ![More good answers out of 40 when the model reads saved sources: Biology rebuild 2 to 7 (5% to 18%) and 4 to 6 (10% to 15%), rare subjects 2 to 7 (5% to 18%)](images/fieldatlas-collections.png)
 
