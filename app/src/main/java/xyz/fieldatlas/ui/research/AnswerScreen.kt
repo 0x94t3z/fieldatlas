@@ -216,14 +216,16 @@ fun AnswerScreen(
                         }
                         // While research runs the status card says what is happening; the pills describe a finished answer.
                         // A from-memory answer carries its own line at the foot and shows no source pill; its time still shows
-                        // (owner, 22 Oct: the time had gone missing on those answers).
+                        // (owner, 22 Oct: the time had gone missing on those answers). One that read notes and cited them
+                        // says so at the top like any cited answer (owner, 23 Oct: the 4B's fact answers cite [1] under a
+                        // lone time pill).
                         if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
                             val cited = citedSourceGroups.size
-                            if (fromKnowledge) {
+                            if (!showsSourcePill(fromKnowledge, readSources, cited)) {
                                 // The foot line already says where the answer came from.
                             } else if (cited > 0) {
                                 FieldAtlasStatusPill(
@@ -653,3 +655,10 @@ private fun otherSourceLabel(count: Int, expanded: Boolean): String {
 
 /** Which sentence of this page is being read aloud, if any: all the page itself needs to know. */
 private data class ReadingHere(val shown: String?)
+
+/**
+ * Whether a finished answer's header names its sources. A from-memory answer leaves that to its foot line, unless the
+ * model read notes and cited them: then the passages it cites are cited sources, shown as for any cited answer.
+ */
+internal fun showsSourcePill(fromKnowledge: Boolean, readSources: Boolean, cited: Int): Boolean =
+    !fromKnowledge || readSources && cited > 0
