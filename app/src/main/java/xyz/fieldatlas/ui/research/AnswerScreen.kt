@@ -648,7 +648,7 @@ private fun AnswerSourceCard(
                     maxLines = if (source.isAttachment) 1 else 2,
                     overflow = if (source.isAttachment) TextOverflow.MiddleEllipsis else TextOverflow.Ellipsis,
                 )
-                passageOpening(evidence.text)?.let { opening ->
+                sourceOpening(evidence)?.let { opening ->
                     Text(opening, style = MaterialTheme.typography.bodySmall.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
                         color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -691,6 +691,15 @@ private data class AnswerSourceGroup(
 // and each number in the answer should lead to its own passage.
 private fun groupAnswerSources(sources: List<Pair<Int, Evidence>>): List<AnswerSourceGroup> =
     sources.map { entry -> AnswerSourceGroup("${entry.first}:${entry.second.chunkId}", listOf(entry)) }
+
+/**
+ * What a source card shows under its title: a place listing's own words ("Great coffee…") or what and where it is
+ * ("Hospital · Via di Santo Stefano Rotondo 6"), never its data fields ("Destination: Rome Category: Health…"); any
+ * other passage its first words.
+ */
+internal fun sourceOpening(evidence: xyz.fieldatlas.research.Evidence): String? =
+    placeCardModel(0, evidence)?.let { place -> place.quote?.let { quote -> passageOpening(quote) } ?: place.kindLine }
+        ?: passageOpening(evidence.text)
 
 /** The first words of a passage, so two passages from the same article can be told apart before one is opened. */
 internal fun passageOpening(text: String): String? {

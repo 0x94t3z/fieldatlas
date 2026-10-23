@@ -6,6 +6,20 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PassageOpeningTest {
+    @Test fun aPlaceSourceShowsItsOwnWordsNotItsDataFields() {
+        fun place(id: String, vararg lines: String) = xyz.fieldatlas.research.Evidence("$id", "$id:0000", "Rome — Place", "https://example.org",
+            (lines.toList() + listOf("Latitude: 41.88", "Longitude: 12.49")).joinToString("\n"), 0.0)
+        val hospital = place("osm-place-1", "Destination: Rome", "Category: Health", "Place: Ospedale Britannico", "Type: hospital",
+            "Address: Via di Santo Stefano Rotondo 6, 00184 Roma")
+        assertEquals("Hospital · Via di Santo Stefano Rotondo\u00A06", sourceOpening(hospital))
+        val cafe = place("wv-place-2", "Destination: Tokyo/Shibuya", "Category: Drink", "Place: Excelsior Cafe",
+            "Description: Great coffee and delicious sandwiches, with a warm smile.")
+        assertEquals("“Great coffee and delicious sandwiches, with a warm smile.”", sourceOpening(cafe))
+        // Any other passage keeps its opening words.
+        assertEquals("“The tower is 330 metres tall.”", sourceOpening(xyz.fieldatlas.research.Evidence("d", "d:0", "Eiffel Tower", "x",
+            "The tower is 330 metres tall.", 0.0)))
+    }
+
     @Test fun aShortPassageIsQuotedWhole() {
         assertEquals("“The tower is 330 metres tall.”", passageOpening("The tower is 330 metres tall."))
     }

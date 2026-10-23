@@ -25,6 +25,7 @@ import xyz.fieldatlas.ui.library.AboutFact
 import xyz.fieldatlas.ui.library.AboutFacts
 import xyz.fieldatlas.ui.library.AboutValue
 import xyz.fieldatlas.ui.presentation.formatAssetBytes
+import xyz.fieldatlas.ui.presentation.toAssetCardModel
 import xyz.fieldatlas.ui.theme.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bolt
@@ -66,7 +67,7 @@ fun MoreScreen(
                     onClick = onOpenLibrary, chevron = true)
                 else {
                     // Tapping the model shows or hides its one setting; changing models stays in Library.
-                    SettingRow(FieldAtlasIcons.Model, model.title.substringBefore(" — "),
+                    SettingRow(FieldAtlasIcons.Model, model.toAssetCardModel().title,
                         "${formatAssetBytes(model.installedBytes)} · $status", expanded = modelExpanded,
                         onClick = { modelExpanded = !modelExpanded })
                     androidx.compose.animation.AnimatedVisibility(modelExpanded) {
@@ -131,7 +132,7 @@ fun MoreScreen(
                 ReadinessFact("Answer model", when {
                     modelFailed -> "Stopped with an error"
                     model == null -> "Not downloaded"
-                    else -> model.title.substringBefore(" — ")
+                    else -> model.toAssetCardModel().title
                 }, divider = false)
                 ReadinessFact("Collections", when {
                     collections > 0 -> "$collections in research"
