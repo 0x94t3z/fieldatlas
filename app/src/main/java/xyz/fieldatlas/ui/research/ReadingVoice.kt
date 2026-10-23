@@ -196,7 +196,10 @@ fun ReadingAloudSheet(readAloud: ReadAloud, onDismiss: () -> Unit) {
             SwitchRow("Read emergency guides at once", "Starts reading as soon as a guide opens. Off: tap Read aloud.",
                 settings.readGuidesAtOnce) { on -> readAloud.updateSettings { it.copy(readGuidesAtOnce = on) } }
         }
-        SampleButton(readAloud, reading, settings.voice ?: ReadAloud.Choice.Phone, label = "Play a sample")
+        // Supertonic 3's sample is a recording in the app, a preview before the download; the phone's voice has nothing
+        // to play with until an offline engine is there, so its sample is not offered.
+        val sampled = settings.voice ?: ReadAloud.Choice.Phone
+        if (sampleAvailable(sampled, phone)) SampleButton(readAloud, reading, sampled, label = "Play a sample")
     }
     if (confirm) xyz.fieldatlas.ui.library.VoiceDownloadConfirm(onDone = { confirm = false })
 }
@@ -256,6 +259,10 @@ fun readingSummary(settings: ReadAloud.Settings, naturalReady: Boolean): String 
     val speed = if (settings.speed == 1.0f) "normal speed" else "${settings.speed.toString().removeSuffix(".0")}×"
     return "$voice · $speed"
 }
+
+/** Whether a sample of [choice] can play: the natural voice's is bundled, the phone's needs an offline engine. */
+internal fun sampleAvailable(choice: ReadAloud.Choice, phone: ReadAloud.PhoneVoice?): Boolean =
+    choice == ReadAloud.Choice.Natural || phone is ReadAloud.PhoneVoice.Offline
 
 /** The phone voice in the reading settings, as its engine was found: offline, needing the internet, missing, or still being looked at. */
 internal fun phoneVoiceNote(phone: ReadAloud.PhoneVoice?): String = when (phone) {
