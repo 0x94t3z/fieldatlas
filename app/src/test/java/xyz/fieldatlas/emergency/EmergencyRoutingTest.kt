@@ -266,4 +266,16 @@ class EmergencyRoutingTest {
             emergencyGuides = { guides }).research(question).toList()
         assertTrue(known.filterIsInstance<ResearchEvent.Sources>().none { s -> s.evidence.any { it.documentId == "emergency:cpr" } })
     }
+
+    @Test fun aFirstAidQuestionNoSituationRuleMatchesGetsItsTopicsGuide() = runBlocking {
+        // A knowledge-first 4B that does not write first aid: the burns guide, not the no-guide reply with CPR basics.
+        class Knowing(reply: String) : InferenceGateway by Recording(reply) {
+            override val knowledgeFirst: Boolean get() = true
+        }
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Knowing("Cool it."), emergencyGuides = { guides })
+            .research("How do I treat a minor burn at home, and when should I see a doctor?").toList()
+        val shown = events.filterIsInstance<ResearchEvent.Sources>().flatMap { it.evidence }.map { it.documentId }
+        assertTrue(shown.toString(), "emergency:burns" in shown)
+        assertFalse(shown.toString(), "emergency:cpr" in shown)
+    }
 }

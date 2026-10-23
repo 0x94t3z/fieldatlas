@@ -10,6 +10,9 @@
       "obligation": "Run on compatible Android or GrapheneOS hardware",
       "status": "pass",
       "evidence": [
+        "docs/device-testing.md",
+        "docs/evidence/physical/infinix-x6840-android16/",
+        "docs/evidence/physical/redmi-13c-android13/",
         "docs/testing-1.4.2.md",
         "docs/verification.md"
       ],
@@ -20,6 +23,8 @@
       "obligation": "Stay within a maximum 12 GB RAM environment",
       "status": "pass",
       "evidence": [
+        "docs/evidence/physical/redmi-13c-android13/",
+        "docs/evidence/physical/infinix-x6840-android16/",
         "app/src/main/java/xyz/fieldatlas/assets/ModelOffers.kt",
         "docs/testing-1.4.2.md"
       ],
@@ -40,6 +45,8 @@
       "obligation": "Work completely offline after installation and asset provisioning",
       "status": "pass",
       "evidence": [
+        "docs/evidence/physical/redmi-13c-android13/",
+        "docs/evidence/physical/infinix-x6840-android16/",
         "docs/verification.md",
         "docs/testing-1.4.2.md"
       ],
@@ -79,6 +86,8 @@
       "obligation": "Respond at speeds usable for real phone lookups",
       "status": "partial",
       "evidence": [
+        "docs/evidence/physical/redmi-13c-android13/",
+        "docs/evidence/physical/infinix-x6840-android16/",
         "docs/testing-1.4.2.md"
       ],
       "note": "Lookups, guides, places and calculations answer in seconds on every phone; model answers take about 4 to 8 minutes with the 4B on a 6 GB Redmi 13C and a median of 92 s with Gemma on a 12 GB emulator; Gemma has not been timed on a 12 GB phone."
@@ -121,6 +130,8 @@
       "obligation": "Work on real Android hardware at submission time",
       "status": "partial",
       "evidence": [
+        "docs/evidence/physical/redmi-13c-android13/",
+        "docs/evidence/physical/infinix-x6840-android16/",
         "docs/verification.md"
       ],
       "note": "The candidate source is installed and checked on the Redmi 13C and the Infinix X6840 with the local test key; the public-key 1.4.2 APK is not yet built or installed anywhere."
@@ -199,7 +210,9 @@
       "status": "partial",
       "evidence": [
         "docs/testing-1.4.2.md",
-        "docs/fieldtest/results-1.4.2/"
+        "docs/fieldtest/results-1.4.2/",
+        "docs/evaluation.md",
+        "docs/fieldtest/heldout55.jsonl"
       ],
       "note": "Measured transparently on sealed sets graded blind in two rounds against web-researched answers (docs/testing-1.4.2.md, every grade published). Gemma 4 26B on 12 GB phones is above the bar on that measure (27 of 40 good answers, 68%; 82-84% of the reference's score on set 33); the 4B and the 2B are below it."
     }

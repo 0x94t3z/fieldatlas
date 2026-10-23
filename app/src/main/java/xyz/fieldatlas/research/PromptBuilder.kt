@@ -52,7 +52,15 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
 The person asking is offline, with no internet and maybe no phone signal. Never suggest searching online, websites, apps or social media, and never mention internet access."""
     private val VENUE_QUESTION = Regex("(?i)\\b(restaurants?|caf[eé]s?|places? to eat|dining|hotels?|hostels?|museums?|attractions?|sights?|bars?|shops?|stores?)\\b")
     private val LOCAL_PLACE_REQUEST = Regex("(?i)\\b(best|recommend|suggest|find|list|which|where|near|around|in)\\b")
-    private val SOURCE_ONLY_REQUEST = Regex("(?i)\\b(summari[sz]e|according to|(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?))\\b")
+    // "Summarize" and "according to" ask for the saved sources only when they point at them ("summarize these files",
+    // "according to my notes", a bare "Summarize"). "Summarize the main causes of the First World War" and "according to
+    // historians" ask about the world: until 23 Oct they locked a model that answers from its knowledge onto the strict
+    // cited route, which refused both.
+    private val SOURCE_ONLY_REQUEST = Regex("(?i)^\\s*summari[sz]e\\s*[!?.]?\\s*$|" +
+        "\\bsummari[sz]e\\s+(?:(?:all|everything)\\s+(?:in\\s+)?)?(?:this|these|that|those|my|our|the\\s+(?:attached|saved|provided|selected))\\b|" +
+        "\\baccording\\s+to\\s+(?:the\\s+|my\\s+|our\\s+|these\\s+|this\\s+|that\\s+)?(?:saved\\s+|local\\s+|provided\\s+|attached\\s+|selected\\s+)?" +
+        "(?:sources?|documents?|files?|notes?|library|collections?|stud(?:y|ies)|papers?|reports?|passages?|excerpts?|articles?|data)\\b|" +
+        "\\b(?:saved|local|provided|attached|these|this|that|my|our) (?:sources?|documents?|files?|notes?|stud(?:y|ies)|papers?|reports?)\\b")
 
     /**
      * A follow-up as the person typed it, with the conversation it continues (see [FollowUp.conversation]).

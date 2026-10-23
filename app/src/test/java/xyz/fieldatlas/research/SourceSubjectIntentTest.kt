@@ -109,4 +109,18 @@ class SourceSubjectIntentTest {
             assertTrue(packed.prompt.contains(direct.text))
         }
     }
+
+    @Test fun summarizeAndAccordingToAskForSavedSourcesOnlyWhenTheyPointAtThem() {
+        for (question in listOf("Summarize", "Summarize these files", "summarise my notes on the trip",
+            "Summarize the attached report", "According to my notes, when does the ferry leave?",
+            "How does a battery differ from a capacitor, according to this study?", "according to the saved sources, what is ML-KEM?")) {
+            assertTrue(question, PromptBuilder.requiresSavedSources(question))
+        }
+        // Questions about the world: a model that knows the subject answers them (23 Oct: both were refused).
+        for (question in listOf("Summarize the main causes of the First World War.",
+            "Why did the Bronze Age collapse happen, according to historians?",
+            "According to scientists, how old is the universe?", "summarize how vaccines work")) {
+            assertFalse(question, PromptBuilder.requiresSavedSources(question))
+        }
+    }
 }

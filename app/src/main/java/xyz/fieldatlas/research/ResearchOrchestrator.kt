@@ -1558,9 +1558,13 @@ class ResearchOrchestrator(
             return xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides)
         }
         // A model with no knowledge route (the 2B) shows the guide a learning question is about rather than paraphrase a
-        // passage: the 4 GB phone answered "how many compressions a minute" from a research paper (23 Oct).
+        // passage: the 4 GB phone answered "how many compressions a minute" from a research paper (23 Oct). A first-aid
+        // question no situation rule matches gets its topic's guide on any model that does not write first aid, instead of
+        // the no-guide reply: "how do I treat a minor burn at home" got CPR and anaphylaxis basics while the burns guide
+        // sat unused (23 Oct).
         val guide = (xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides)
-            ?: if (!inference.knowledgeFirst && xyz.fieldatlas.emergency.GuideAnswerCheck.learning(question))
+            ?: if (!inference.knowledgeFirst && xyz.fieldatlas.emergency.GuideAnswerCheck.learning(question) ||
+                    !inference.writesFirstAid && xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
                 xyz.fieldatlas.emergency.EmergencyGuideMatch.learningGuide(question, guides) else null)
             ?.let { xyz.fieldatlas.emergency.EmergencyGuideMatch.shown(it, guides) } ?: return null
         val shown = xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide).documentId
