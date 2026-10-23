@@ -1,16 +1,16 @@
 {
   "_about": "Every figure here is copied from docs/testing-1.4.2.md (and docs/evaluation.md for sets 30 and 42). Edit a value there first, then here, then run make_charts.py with an absolute --out.",
   "ladder": {
-    "method": "Good = 7 or more out of 10 from blind AI graders, two rounds. 160 new questions in four sealed sets for the 4B and Gemma; the 2B ran the first 40.",
+    "method": "Good = 7 or more out of 10 from blind AI graders, two rounds. 160 new questions in four sealed sets, every model.",
     "sourceLine": "Sets 37, 46, 49 and 51, each sealed before any run; the settings each phone uses today. Every answer and grade in docs/fieldtest.",
     "rows": [
       {
         "phone": "4 GB phones",
         "model": "Qwen3.5 2B",
         "route": "cites the saved passages",
-        "good": 2,
-        "questions": 40,
-        "errors": 0.71
+        "good": 35,
+        "questions": 160,
+        "errors": 0.84
       },
       {
         "phone": "phones with 6 GB or more",

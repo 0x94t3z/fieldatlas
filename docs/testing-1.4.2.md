@@ -41,10 +41,20 @@ prompts. The 2B was measured on set 37; it answers only from the saved passages 
 | Set | Gemma 4 26B (12 GB phones) | Qwen3.5 4B (6 and 8 GB) | Qwen3.5 2B (4 GB) |
 | --- | ---: | ---: | ---: |
 | Set 37, 19 October | 27 of 40 (68%) good, 0.44 wrong per answer | 8 of 40 (20%), 1.94 | 2 of 40 (5%), 0.71 |
-| Set 46, rerun 22 October | 29 of 40 (72%), 0.34 | 6 of 40 (15%), 2.21 | — |
-| Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | — |
-| Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | — |
-| **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.20 | 2 of 40 (5%), 0.71 |
+| Set 46, rerun 22 October | 29 of 40 (72%), 0.34 | 6 of 40 (15%), 2.21 | 11 of 40 (28%), 0.69 |
+| Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | 9 of 40 (22%), 1.15 |
+| Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | 13 of 40 (32%), 0.80 |
+| **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.20 | **35 of 160 (22%)**, 0.84 |
+
+The 2B ran sets 46, 49 and 51 on 23 October, after the other models, with web reference answers written
+that day and two fresh grading rounds (the two rounds agreed within two points on 119 of 120). To check
+the new graders against October's, they re-graded 20 of the 2B's set-37 answers: mean 3.6 against 3.2,
+3 good against 2, the same bar within noise. The 2B's share differs between sets because of the mix: on
+the 32 single-fact questions of sets 46 to 51 it gave a good answer to 22, on the 22 explanations to 1.
+Over the 160 questions the 2B's cited route gives slightly more good answers than the 4B's from memory
+(35 against 27) with far fewer wrong details (0.84 against 2.20); the 4B leads on explanations and
+comparisons, the 2B on facts the collections hold. The 4B stays the 6 GB default on the strength of
+set 37 (8 against 4 good when both routes ran on the 4B); that choice deserves a fresh test after 1.4.2.
 | Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 wrong details per
