@@ -1069,7 +1069,8 @@ class ResearchOrchestrator(
             // subjects beats reading about them, its memory of obscure ones is where it invents (see SourceRouter).
             val routed = if (!sourceRouter) 0 else {
                 val mentions = SourceRouter.titlesToCount(subjects, packed.sources).associateWith { retriever.mentions(it, SourceRouter.MENTION_CAP) }
-                SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions, readImportedCollections)
+                SourceRouter.notes(question, subjects, packed.sources, articleRows, mentions, readImportedCollections,
+                    factLookups = inference.thinkingBudget <= 0)
             }
             val firstAidQuestion = attachments.isEmpty() && xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)
             val firstAidHere = firstAidQuestion && !inference.writesFirstAid && smallModelFirstAid != "memory"

@@ -299,7 +299,7 @@ object GuideAnswerCheck {
         "not (too |very |that )?(bad|painful|serious|deep)|otherwise (fine|ok|okay|well|happy|totally fine)|totally fine|just (asking|wondering|curious)|" +
         "annoying|itch\\w*|graze\\w*|splinter|blister|bruise\\w*|stubbed|mozzie|mosquito|nettle\\w*|hiccups?|paper cut)\\b")
     /** Asking to learn, not for someone now: "before my course next week", "for their first aid badge", "just want to know". */
-    private val GENERAL = Regex("\\b(just want(ed)? to know|before (my|a|the|our) (course|class|training|test|exam)|for (my|a|the|their|our) (course|class|badge|exam|test|training)|" +
+    private val GENERAL = Regex("\\b(${EmergencyGuideMatch.TRIP_AHEAD}|just want(ed)? to know|before (my|a|the|our) (course|class|training|test|exam)|for (my|a|the|their|our) (course|class|badge|exam|test|training)|" +
         "first[- ]aid (course|class|badge|kit|box|training)|practi[sc]e|out of interest|trying to understand|in case (it|this|that) (ever )?happens|in general|" +
         "next (week|month|year)|starts? (on )?(solid|solids|school|nursery|weaning)|in case)\\b")
     private val LIFE_THREAT_GUIDES = setOf("cpr", "choking", "severe-bleeding", "shock", "heart-attack", "stroke", "anaphylaxis", "opioid-overdose",

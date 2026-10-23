@@ -85,7 +85,9 @@ class LandmarkLookupTest {
         assertEquals(GeoPoint(41.89059, 12.49156), askedAround)
         val answer = events.filterIsInstance<ResearchEvent.Token>().joinToString("") { it.text }
         assertTrue(answer, answer.contains("Nearest saved places to the Colosseum in Rome"))
-        assertTrue(answer, answer.indexOf("Ospedale San Giovanni") < answer.indexOf("Aurelia Hospital"))
+        assertTrue(answer, answer.contains("Ospedale San Giovanni"))
+        // 8.1 km off is not near the Colosseum: past three times the nearest's distance and a 1.5 km walk.
+        assertFalse(answer, answer.contains("Aurelia Hospital"))
         assertTrue(answer, answer.contains("straight-line from the Colosseum"))
         assertFalse(answer, answer.contains("this phone's location"))
     }

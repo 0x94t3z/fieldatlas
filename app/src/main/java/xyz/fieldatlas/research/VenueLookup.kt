@@ -880,7 +880,14 @@ object VenueLookup {
         val bearings = places.mapNotNull { place -> place.bearingDegrees?.let { place.evidence.chunkId to it } }.toMap()
         val (matched, unmatchedWords) = nearbyMatches(question, request, places)
         val meals = matched.filter { (listing, _) -> listing.type in MEAL_TYPES || isGuidePlace(listing.evidence) }
-        val pool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
+        val anyPool = if (restaurantWords.containsMatchIn(question) && meals.isNotEmpty()) meals else matched
+        // "Coffee near Shibuya Crossing": places a walk from the landmark, not the 2.5-3 km cafés a widened search
+        // brings in to fill the list (blind graders, 23 Oct: "most listed cafés are not near the crossing"). The
+        // nearest always stays, with what lies within three times its distance or a 1.5 km walk.
+        val pool = if (anchor == null || anyPool.isEmpty()) anyPool else {
+            val reach = maxOf(LANDMARK_WALK_KM, anyPool.minOf { (_, distance) -> distance } * LANDMARK_REACH_FACTOR)
+            anyPool.filter { (_, distance) -> distance <= reach }
+        }
         val wantsBank = request.essential?.category == "Money" && bankWords.containsMatchIn(question)
         // "Hostels or cheap hotels I can walk to": a hostel a kilometre off answers before a grand
         // hotel on the square; within the circle asked for, the budget places lead.
@@ -1376,6 +1383,8 @@ object VenueLookup {
     private val LANDMARK_CATEGORIES = setOf("See", "Do", "Go", "Transport", "Landmark", "Square", "Area")
     /** Two listings of one landmark name this close together are the same place. */
     private const val SAME_LANDMARK_KM = 2.0
+    private const val LANDMARK_WALK_KM = 1.5
+    private const val LANDMARK_REACH_FACTOR = 3.0
     private const val WV_PREFIX = "wv-place-"
     private const val OSM_LISTINGS = 6
     /** Guide listings shown for a city: enough for a day's sights or a market round. */

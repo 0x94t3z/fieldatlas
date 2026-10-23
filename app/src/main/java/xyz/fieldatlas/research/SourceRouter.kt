@@ -76,8 +76,13 @@ object SourceRouter {
      * [readImported], one the user imported. Travel guides and an empty prompt keep the model to its memory.
      */
     fun notes(question: String, subjects: List<Evidence>, sources: List<PromptSource>, articleRows: Map<String, Int> = emptyMap(),
-        mentions: Map<String, Int> = emptyMap(), readImported: Boolean = false): Int {
+        mentions: Map<String, Int> = emptyMap(), readImported: Boolean = false, factLookups: Boolean = false): Int {
         if (sources.isEmpty()) return 0
+        // A question for a date, a name or a measure, with the encyclopedia leading the passages: read, however famous the
+        // subject. Straight from memory the 4B opened the Sydney Opera House on 26 October (20 October 1973) and missed the
+        // deepest lake; with the notes it had both (blind, 23 Oct). A model that reasons first checks its own recall.
+        if (factLookups && FACT_LOOKUP.containsMatchIn(question) && !ADVICE_OR_FOLLOW_UP.containsMatchIn(question) &&
+            from(mainstream + fullEdition, sources.first().evidence.documentId)) return READ_NOTES
         // A rare subject the question names is read even beside a common one it also names: "who was Hanaoka Seishū,
         // what surgery did he perform" resolves "Surgery" too, and the sources are needed for the surgeon, not the surgery.
         val own = subjects.filter { named(it, question) }
@@ -92,6 +97,25 @@ object SourceRouter {
         val simpleHasIt = sources.any { from(mainstream, it.evidence.documentId) && bareTitle(it.evidence).equals(bareTitle(overview.evidence), ignoreCase = true) }
         return if (rare(overview.evidence, simpleHasIt, articleRows, mentions, readImported)) READ_NOTES else 0
     }
+
+    /**
+     * "Who designed…", "when did…", "what year…", "how deep/tall/many…", "what is the deepest/capital/population…": one
+     * fact asked for, where recall slips on the figure. "How do vaccines…" and "what was the Meiji Restoration" ask for an
+     * explanation, and "how much should I tip" or "how long after a heart attack" for advice, which memory answers better
+     * than the passages found for them.
+     */
+    private val FACT_LOOKUP = Regex("(?i)^\\s*(?:who (?:designed|built|invented|discovered|founded|wrote|painted|composed|created|directed|" +
+        "first|was the first)\\b|when (?:did|was|were|is|does|do)\\b|(?:in )?(?:what|which) year\\b|how (?:deep|tall|high|long|far|old|big|large|" +
+        "many|much|heavy|fast)\\b(?! (?:should|do|does|can|must|will|would|could) (?:i|we|you|my|he|she|they)\\b| after\\b)|" +
+        "what(?:'s|’s|s| is| was| are| were) the (?:deepest|tallest|highest|largest|biggest|longest|smallest|oldest|fastest|" +
+        "capital|population|height|depth|length|area|distance|date)\\b)")
+
+    /**
+     * "How much rice do I need for 4 people", "how much does that cost?": the asker's own plan, or a follow-up whose
+     * subject is the earlier answer. Notes about rice or the word "cost" answer neither (blind, 23 Oct).
+     */
+    private val ADVICE_OR_FOLLOW_UP = Regex("(?i)\\b(?:i|i'm|i’m|me|my|we|we're|we’re|our|us)\\b|^\\s*how (?:much|many|long|far|old|big) " +
+        "(?:does|do|is|are|was|were|did) (?:that|it|this|they|those|these|he|she)\\b")
 
     /** The titles whose readership decides the route: the subjects' and the leading overview's. */
     fun titlesToCount(subjects: List<Evidence>, sources: List<PromptSource>): List<String> =

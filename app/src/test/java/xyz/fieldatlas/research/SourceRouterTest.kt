@@ -13,6 +13,29 @@ class SourceRouterTest {
         assertEquals(0, SourceRouter.notes("when was the eiffel tower built", both, listOf(src("enw-9232", "Eiffel Tower — Overview")), mapOf("Eiffel Tower" to 60)))
     }
 
+    @Test fun aFactLookupIsReadByAModelThatAnswersStraightOut() {
+        val opera = listOf(ev("swp-77", "Sydney Opera House — Overview"))
+        val notes = listOf(src("swp-77", "Sydney Opera House — Overview"))
+        val q = "Who designed the Sydney Opera House, and when was it opened?"
+        assertEquals(R, SourceRouter.notes(q, opera, notes, mentions = mapOf("Sydney Opera House" to 1000), factLookups = true))
+        // A model that reasons first keeps to its memory, as before.
+        assertEquals(0, SourceRouter.notes(q, opera, notes, mentions = mapOf("Sydney Opera House" to 1000)))
+        assertEquals(R, SourceRouter.notes("What is the deepest lake in the world and how deep is it?", emptyList(),
+            listOf(src("swp-9", "Lake Baikal — Overview")), factLookups = true))
+        // An explanation is answered from memory; a travel guide leading the passages is not the encyclopedia.
+        assertEquals(0, SourceRouter.notes("How do vaccines train the immune system?", listOf(ev("swp-1", "Vaccine — Overview")),
+            listOf(src("swp-1", "Vaccine — Overview")), mentions = mapOf("Vaccine" to 1000), factLookups = true))
+        assertEquals(0, SourceRouter.notes("How much should I tip in restaurants in Germany?", listOf(ev("swp-4", "Germany — Overview")),
+            listOf(src("swp-4", "Germany — Overview")), mentions = mapOf("Germany" to 1000), factLookups = true))
+        assertEquals(R, SourceRouter.notes("whats the capital of mongolia and about how many people live there", emptyList(),
+            listOf(src("swp-8", "Ulaanbaatar — Overview")), factLookups = true))
+        assertEquals(0, SourceRouter.notes("how much rice and water do i need for 4 people in a pot", emptyList(),
+            listOf(src("swp-5", "Rice — Overview")), factLookups = true))
+        assertEquals(0, SourceRouter.notes("how much does that cost?", emptyList(), listOf(src("swp-6", "Cost — Overview")), factLookups = true))
+        assertEquals(0, SourceRouter.notes("Which year did Bolivia open the Desaguadero crossing?", emptyList(),
+            listOf(src("wv-3", "Bolivia — Get in > By land")), factLookups = true))
+    }
+
     @Test fun aLittleKnownSubjectOfTheFullEncyclopediaOrASpecialistCollectionIsRead() {
         val battle = listOf(ev("enw-77", "Battle of Ramillies — Overview"))
         assertEquals(R, SourceRouter.notes("who won the battle of ramillies and when", battle, listOf(src("enw-77", "Battle of Ramillies — Overview")), mentions = mapOf("Battle of Ramillies" to 31)))

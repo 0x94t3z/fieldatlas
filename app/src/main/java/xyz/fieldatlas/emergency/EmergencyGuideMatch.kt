@@ -769,8 +769,15 @@ object EmergencyGuideMatch {
     /** "I am writing an essay comparing how tsunamis are forecast": the hazard is the subject of a piece of work. */
     private val studyTalk = Regex("(?i)\\b(?:essays?|homework|assignments?|dissertation|thesis|school project|class project|quiz|exams?|revision|revising|studying|" +
         "lecture|textbook|paper on|article (?:about|on)|writing (?:about|on|up)|write (?:about|on|up)|researching|research project|presentation (?:on|about))\\b")
-    /** Planning for a season or a kit, with nothing happening: the guides as published answer the moment, not the plan. */
-    private val planning = Regex("(?i)\\b(?:(?:hurricane|storm|wildfire|fire|tornado|flood|monsoon|cyclone|typhoon|winter|snow|rainy) season|" +
+    /**
+     * A trip still ahead: "what should I know about altitude sickness before trekking to Everest Base Camp" got the call
+     * line and the park guide as published (23 Oct). "Before we go higher" is a decision on the mountain, not a plan.
+     */
+    internal const val TRIP_AHEAD = "before (?:(?:i|we) )?(?:go(?:ing)? (?:on|to)|head(?:ing)? (?:to|off|out)|leav(?:e|ing) for|" +
+        "travel(?:l?ing)? to|trek(?:king)? (?:to|in|up)|hik(?:e|ing) (?:to|in|up)|climb(?:ing)? (?:to|in|up)|fly(?:ing)? to|set(?:ting)? off|visit(?:ing)?)\\b|" +
+        "before (?:my|our|a|the) (?:trip|trek|hike|climb|holiday|vacation|flight|expedition|journey)\\b"
+    /** Planning for a season, a kit or a trip, with nothing happening: the guides as published answer the moment, not the plan. */
+    private val planning = Regex("(?i)\\b(?:$TRIP_AHEAD|(?:hurricane|storm|wildfire|fire|tornado|flood|monsoon|cyclone|typhoon|winter|snow|rainy) season|" +
         "how often should (?:i|we) (?:rotate|replace|check|swap)|stockpil\\w*|emergency kit|go bag|bug.?out bag|shelf life)\\b")
     private val waterToTreat = Regex("(?i)\\b(?:purif\\w*|disinfect\\w*|boil\\w*|treat\\w*|filter\\w*|tablets?|bleach|iodine|chlorine|" +
         "stream|river|lake|pond|creek|well|rain\\w*|flood\\w*|storm|hurricane|earthquake|emergency|outage|contaminat\\w*|" +

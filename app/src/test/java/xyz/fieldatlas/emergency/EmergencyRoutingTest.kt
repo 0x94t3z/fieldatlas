@@ -267,6 +267,24 @@ class EmergencyRoutingTest {
         assertTrue(known.filterIsInstance<ResearchEvent.Sources>().none { s -> s.evidence.any { it.documentId == "emergency:cpr" } })
     }
 
+    @Test fun aTripStillAheadIsPlanningNotAnEmergency() = runBlocking {
+        // 23 Oct: the 4B and the 2B opened "before trekking to Everest Base Camp" with "call now" and the park guide as published.
+        val question = "What should I know about altitude sickness before trekking to Everest Base Camp?"
+        assertNull(EmergencyGuideMatch.match(question, guides))
+        assertTrue(GuideAnswerCheck.learning(question))
+        assertFalse(GuideAnswerCheck.firstAidQuestion(question))
+        class Knowing(reply: String) : InferenceGateway by Recording(reply) {
+            override val knowledgeFirst: Boolean get() = true
+        }
+        val known = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Knowing("Climb slowly: no more than 300-500 m higher each night above 3,000 m."),
+            emergencyGuides = { guides }).research(question).toList()
+        assertTrue(known.filterIsInstance<ResearchEvent.Sources>().none { s -> s.evidence.any { it.documentId.startsWith("emergency:") } })
+        assertFalse(answer(known), answer(known).contains("call your local emergency number now", ignoreCase = true))
+        // On the mountain, it is still the guide: a decision about going higher is not a plan.
+        assertEquals("altitude-sickness", EmergencyGuideMatch.match(
+            "we're at 4,800 m on the Everest trek, my friend is confused and stumbling, should we rest before we go higher", guides)?.id)
+    }
+
     @Test fun aFirstAidQuestionNoSituationRuleMatchesGetsItsTopicsGuide() = runBlocking {
         // A knowledge-first 4B that does not write first aid: the burns guide, not the no-guide reply with CPR basics.
         class Knowing(reply: String) : InferenceGateway by Recording(reply) {
