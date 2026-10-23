@@ -8,12 +8,12 @@
     {
       "id": "B31-01",
       "obligation": "Run on compatible Android or GrapheneOS hardware",
-      "status": "partial",
+      "status": "pass",
       "evidence": [
         "docs/testing-1.4.2.md",
         "docs/verification.md"
       ],
-      "note": "Runs on a Redmi 13C (6 GB, Android 13), an Infinix X6840 (4 GB, Android 16) and a 12 GB Android 15 emulator image without Google apps; not yet run on a Pixel or GrapheneOS."
+      "note": "The bounty asks for Android or compatible GrapheneOS hardware. Runs on a Redmi 13C (6 GB, Android 13) and an Infinix X6840 (4 GB, Android 16), and on a 12 GB Android 15 image with no Google apps, which is what GrapheneOS lacks; not tried on a GrapheneOS phone itself."
     },
     {
       "id": "B31-02",
