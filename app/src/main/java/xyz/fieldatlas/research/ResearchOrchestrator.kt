@@ -475,6 +475,25 @@ class ResearchOrchestrator(
                 )))
                 return@flow
             }
+            // "A hospital near the Colosseum in Rome": the places around the landmark, nearest first, measured from where
+            // the saved guide puts it. A city-wide list put a hospital 7 km away first (23 Oct). No position, no change.
+            val nearLandmark = if (attachments.isEmpty() && phraseAsk == null) landmarkAnswer(question) else null
+            if (nearLandmark != null) {
+                val answered: VenueLookup.Result = nearLandmark
+                _searchProgress.value = 1.0
+                val retrievedAt = monotonicMillis()
+                emit(ResearchEvent.Sources(answered.sources))
+                emit(ResearchEvent.Token(answered.answer))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = elapsed(startedAt, retrievedAt),
+                    timeToFirstTokenMillis = elapsed(startedAt, retrievedAt),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = answered.sources.indices.map { "S${it + 1}" }.toSet(),
+                    hasUnmappedCitation = false,
+                )))
+                return@flow
+            }
             if (attachments.isEmpty() && phraseAsk == null && VenueLookup.isNearMe(question)) {
                 emit(ResearchEvent.Searching(question))
                 val point = runCatching { location() }.getOrNull()
@@ -1571,6 +1590,31 @@ class ResearchOrchestrator(
         return guide.takeIf { topic == null || (topic.sources + topic.earlier.flatMap { it.sources }).none { it.documentId == shown } }
     }
 
+    /**
+     * The places a question asks for around a landmark it names, nearest first, or null when it names none, no saved
+     * listing gives the landmark a position, or nothing is mapped around it: the city lookup then answers as before.
+     */
+    private suspend fun landmarkAnswer(question: String): VenueLookup.Result? {
+        val categories = VenueLookup.nearbyCategories(question)
+        if (categories.isEmpty()) return null
+        val landmark = VenueLookup.landmark(question) ?: return null
+        // A long listing splits into passages and its position is in the last one ("Rome/Colosseo — Colosseum");
+        // search keeps one passage a listing, the title lookup returns them all.
+        val found = (retriever.titled(landmark.city ?: landmark.name, listOf(landmark.name), LANDMARK_CANDIDATES) +
+            retriever.search(listOfNotNull(landmark.name, landmark.city).joinToString(" "), LANDMARK_CANDIDATES) {})
+            .distinctBy { it.chunkId }
+        val point = VenueLookup.landmarkPoint(landmark, found) ?: return null
+        val asked = VenueLookup.withoutLandmark(question, landmark)
+        val radii = if (categories.any { it in FAR_REACH }) NEARBY_RADII_KM + FAR_RADII_KM else NEARBY_RADII_KM
+        var best: VenueLookup.Result? = null
+        for (radius in radii) {
+            val result = VenueLookup.nearbyAnswer(asked, retriever.nearby(point, radius, NEARBY_CANDIDATES, categories), radius, anchor = landmark)
+            best = result
+            if (result.sources.size >= NEARBY_ENOUGH && result.openNow != 0) break
+        }
+        return best?.takeIf { it.sources.isNotEmpty() }
+    }
+
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
 
     private companion object {
@@ -1622,6 +1666,8 @@ class ResearchOrchestrator(
         val FAR_REACH = setOf("Health", "Safety", "Water")
         const val NEARBY_ENOUGH = 6
         const val NEARBY_CANDIDATES = 200
+        /** Passages searched for a landmark's own listing; its position can sit in a later passage of it. */
+        const val LANDMARK_CANDIDATES = 30
     }
 }
 

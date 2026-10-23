@@ -203,7 +203,11 @@ object VenueLookup {
     private val dietFood = Regex("(?i)\\b(vegans?|vegetarians?)\\b.*\\b(eat|eats|eating|food|places|spots|dine|meals?|dinner|lunch|breakfast)\\b|" +
         "\\b(eat|eats|eating|food|places|spots|dine|meals?|dinner|lunch|breakfast)\\b.*\\b(vegans?|vegetarians?)\\b")
     private val askWords = Regex("(?i)\\b(name|try|should i|where do|where can|options|go to)\\b")
-    private val barePlaceRequest = Regex("(?i)^\\s*(?:hotels?|hostels?|restaurants?|caf[eé]s?|museums?|markets?|bakeries)\\s+(?:in|near|around)\\b")
+    // "Restaurants in Lisbon", and with what kind first: "vegan restaurants in Berlin", "cheap hotels near the station"
+    // (until 23 Oct the kind sent a plain list request to the model, which the 2B refused).
+    private val barePlaceRequest = Regex("(?i)^\\s*(?:(?:vegan|vegetarian|veggie|halal|kosher|gluten[- ]free|cheap|budget|good|nice|" +
+        "family[- ]friendly|local|traditional|seafood|street[- ]food)\\s+){0,3}(?:hotels?|hostels?|restaurants?|caf[eé]s?|museums?|markets?|" +
+        "bakeries|food|places to eat|eateries)\\s+(?:in|near|around)\\b")
     // "What can we do indoors?", "things to do with the kids": the activity itself is the ask. "What
     // should we do?" is left out: it opens emergencies ("we are lost in a forest, what should we do?").
     private val activityAsk = Regex("(?i)\\b(things? to do|what (?:can|could) (?:we|i|you) do|what is there to do|anything (?:fun )?to do|activities|rainy day)\\b")
@@ -792,8 +796,81 @@ object VenueLookup {
      * fully vegan place 9 km away never outranks one around the corner; within a band, fully
      * vegan places lead when vegan food was asked for.
      */
+    /** A named landmark a place question is asked around ("a hospital near the Colosseum in Rome"), and its city if named. */
+    data class Landmark(val name: String, val city: String?, val the: Boolean = false, val phrase: String = "") {
+        /** As the question named it: "the Colosseum", "Times Square". */
+        val label: String get() = if (the) "the $name" else name
+    }
+
+    // "near the Colosseum", "close to Times Square", "walking distance from the Eiffel Tower": a capitalised name of up
+    // to five words, joined by the small words names carry ("Palace of Westminster", "Piazza di Spagna").
+    private val landmarkPhrase = Regex("\\b(?:near|nearby|close to|next to|beside|opposite|around|across from|in front of|" +
+        "(?:a short |within )?walk(?:ing distance)? (?:of|from|to)|steps from)\\s+(?:the\\s+)?" +
+        "(\\p{Lu}[\\p{L}'’.-]*(?:\\s+(?:(?:of|de|del|della|di|da|des|du|la|le|the|and)\\s+)?\\p{Lu}[\\p{L}'’.-]*){0,4})")
+    private val landmarkCity = Regex("\\bin\\s+(\\p{Lu}[\\p{L}'’.-]*(?:\\s+\\p{Lu}[\\p{L}'’.-]*){0,2})")
+
+    /** The landmark a place question names, or null for "near me" and questions that name none. */
+    fun landmark(question: String): Landmark? {
+        // A kind of place asked for ("pharmacy near the Eiffel Tower"), not a question about shops in general: "travelling
+        // around Italy in August, will shops be shut for Ferragosto?" asks about a holiday.
+        if (isNearMe(question) || !asksForAKindOfPlace(question)) return null
+        val found = landmarkPhrase.find(question) ?: return null
+        val name = found.groupValues[1].trim().trimEnd('.', '\'', '’')
+        if (name.isBlank()) return null
+        val city = landmarkCity.find(question.substring(found.range.last + 1))?.groupValues?.get(1)?.trim()
+        val the = Regex("(?i)\\bthe\\s+$").containsMatchIn(question.substring(0, found.groups[1]!!.range.first))
+        return Landmark(name, city?.takeIf { !it.equals(name, ignoreCase = true) }, the, found.value)
+    }
+
+    private fun asksForAKindOfPlace(raw: String): Boolean {
+        val question = withoutCareMentions(raw)
+        return (venueWords.containsMatchIn(question) || essential(question) != null || dietFood.containsMatchIn(question)) &&
+            !complexWords.containsMatchIn(question) && !generalShopHours(question)
+    }
+
+    /** The question without its landmark phrase: "a hospital near the Colosseum in Rome" asks for a hospital in Rome. */
+    fun withoutLandmark(question: String, landmark: Landmark): String =
+        if (landmark.phrase.isBlank()) question else question.replace(landmark.phrase, " ").replace(Regex("\\s+"), " ").trim()
+
+    /**
+     * Where [landmark] stands, by its own listing in the saved travel guide: a listing whose place is the landmark, in its
+     * city when one is named (a guide's district page counts: "Rome/Colosseo"). Its position may sit in a later passage
+     * of the same listing. Null when no listing gives a position, or several cities have one and none was named (the
+     * guide also lists an "Eiffel Tower" in Kolkata), so the question falls back to the city lookup.
+     */
+    fun landmarkPoint(landmark: Landmark, evidence: List<Evidence>): GeoPoint? {
+        val byListing = evidence.groupBy { it.documentId }
+        val candidates = byListing.values.mapNotNull { parts ->
+            val head = parts.firstOrNull { field(it.text, "Place") != null } ?: return@mapNotNull null
+            val place = field(head.text, "Place") ?: return@mapNotNull null
+            if (!place.equals(landmark.name, ignoreCase = true)) return@mapNotNull null
+            // A sight, a district or a station is somewhere to stand; a restaurant or shop that shares the name is not.
+            if (field(head.text, "Category")?.let { it !in LANDMARK_CATEGORIES } == true) return@mapNotNull null
+            val destination = field(head.text, "Destination") ?: return@mapNotNull null
+            // An itinerary or a film's locations page lists the same sight; the city's own guide is where it stands.
+            if (Regex("(?i)\\b(?:tour|tourism|itinerary|route|trail)\\b").containsMatchIn(destination)) return@mapNotNull null
+            val lat = parts.firstNotNullOfOrNull { field(it.text, "Latitude")?.toDoubleOrNull() } ?: return@mapNotNull null
+            val lon = parts.firstNotNullOfOrNull { field(it.text, "Longitude")?.toDoubleOrNull() } ?: return@mapNotNull null
+            if (lat !in -90.0..90.0 || lon !in -180.0..180.0) return@mapNotNull null
+            destination to GeoPoint(lat, lon)
+        }
+        val city = landmark.city
+        val chosen = if (city != null) candidates.filter { (destination, _) ->
+            // "Paris (Texas)" is another Paris; only a generic qualifier ("Hunedoara (city)") names the same place.
+            destination.substringBefore('/').replace(Regex("(?i)\\s*\\((?:city|town|village)\\)"), "").trim().equals(city, ignoreCase = true)
+        } else candidates
+        // The same sight on two pages of one city's guide ("Paris" and an arrondissement) is one place; listings far apart
+        // are different places that share a name.
+        if (chosen.isEmpty()) return null
+        val first: GeoPoint = chosen[0].second
+        for (candidate in chosen) {
+            if (GeoDistance.km(first.lat, first.lon, candidate.second.lat, candidate.second.lon) > SAME_LANDMARK_KM) return null
+        }
+        return first
+    }
+
     fun nearbyAnswer(asked: String, places: List<NearbyPlace>, radiusKm: Double, now: LocalDateTime = LocalDateTime.now(),
-                     fixAgeMinutes: Long = 0): Result {
+                     fixAgeMinutes: Long = 0, anchor: Landmark? = null): Result {
         // "I'm at the campsite, nearest shop": the campsite is where the phone is, not a second thing to find.
         val question = withoutOwnPosition(asked)
         val request = request(question)
@@ -821,7 +898,7 @@ object VenueLookup {
         )).onePerBusiness(request) { (listing, _) -> listing.name }.take(OSM_LISTINGS)
         if (chosen.isEmpty()) {
             val what = request.essential?.noun ?: listOfNotNull(request.diet, "places").joinToString(" ")
-            return Result("I couldn't find saved $what within ${GeoDistance.label(radiusKm)} of your location. " +
+            return Result("I couldn't find saved $what within ${GeoDistance.label(radiusKm)} of ${anchor?.label ?: "your location"}. " +
                 "Saved collections cover places someone mapped; try naming a nearby city.", emptyList())
         }
         val snapshot = chosen.firstNotNullOfOrNull { (listing, _) -> listing.snapshot }
@@ -833,7 +910,7 @@ object VenueLookup {
                 append("I can't verify a current “best” ranking offline; nearest places are listed first")
                 append(if (request.diet == "vegan") ", fully vegan first within each distance. " else ". ")
             }
-            append("Nearest saved places to your current location")
+            append(anchor?.let { "Nearest saved places to ${it.label}" + (it.city?.let { city -> " in $city" } ?: "") } ?: "Nearest saved places to your current location")
             if (request.diet == "vegan") append(if (chosen.all { (listing, _) -> isGuidePlace(listing.evidence) })
                 " that the travel guide describes as vegan or serving vegan food"
                 else if (chosen.any { (listing, _) -> isGuidePlace(listing.evidence) })
@@ -864,7 +941,8 @@ object VenueLookup {
             if (request.essential?.category in setOf("Health", "Safety")) {
                 append("\nIn an emergency, call the local emergency number first.")
             }
-            append("\nDistances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings. ")
+            append(anchor?.let { "\nDistances are straight-line from ${it.label}, by its position in the saved collections; directions are compass bearings. " }
+                ?: "\nDistances are straight-line from this phone's location, which stayed on the phone; directions are compass bearings. ")
             append("Tags and hours can be out of date; confirm before visiting. ")
             appendSourceCredit(chosen.map { (listing, _) -> listing })
         }
@@ -1294,6 +1372,10 @@ object VenueLookup {
     }
 
     private const val OSM_PREFIX = "osm-place-"
+    /** The listing kinds a landmark can be: the guide's sights and activities, and mapped stations and squares. */
+    private val LANDMARK_CATEGORIES = setOf("See", "Do", "Go", "Transport", "Landmark", "Square", "Area")
+    /** Two listings of one landmark name this close together are the same place. */
+    private const val SAME_LANDMARK_KM = 2.0
     private const val WV_PREFIX = "wv-place-"
     private const val OSM_LISTINGS = 6
     /** Guide listings shown for a city: enough for a day's sights or a market round. */
