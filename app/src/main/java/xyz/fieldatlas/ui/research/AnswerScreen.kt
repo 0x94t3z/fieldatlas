@@ -227,9 +227,9 @@ fun AnswerScreen(
                                 // The foot line already says where the answer came from.
                             } else if (cited > 0) {
                                 FieldAtlasStatusPill(
-                                    // Written by the app from saved data (a guide, a number, a listing), or by the model citing it.
-                                    (if (noModelReply) "From saved data · " else "") +
-                                        if (cited == 1) "1 cited local source" else "$cited cited local sources",
+                                    // The same words whether the app wrote it from saved data (a guide, a number, a listing)
+                                    // or the model wrote it citing them: the sources below say which.
+                                    if (cited == 1) "1 cited local source" else "$cited cited local sources",
                                     StatusTone.Positive,
                                     icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Citation,
                                 )

@@ -148,7 +148,7 @@ fun ResearchScreen(
             FieldAtlasPageHeader(
                 // A finished answer is read on its own page and waits here as a row, so this is always the asking view.
                 title = "Ask the atlas.",
-                subtitle = "Answered on this phone, from what’s saved here.",
+                subtitle = "Answers from what you carry.",
                 modifier = Modifier.padding(top = 22.dp),
                 titleStyle = MaterialTheme.typography.displaySmall,
             )
