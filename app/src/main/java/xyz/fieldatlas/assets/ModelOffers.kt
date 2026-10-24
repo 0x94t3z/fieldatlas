@@ -26,7 +26,7 @@ data class ModelOffer(
     /**
      * Whether an ordinary question is answered from this model's own knowledge, with the passages found listed
      * under it, instead of from the passages alone. The 2B knows too little for it: on 40 sealed questions (set 37,
-     * two blind rounds) it fell from 26.0% to 20.6% of web-and-AI answers, with four times the factual errors.
+     * two blind rounds) it fell from 26.0% to 20.6% of web-and-AI answers, with four times the grader annotations.
      */
     val knowledgeFirst: Boolean = false,
     /**
@@ -82,8 +82,8 @@ object ModelOffers {
     /**
      * The fuller choice where it fits, from models/compact-qwen3.5-4b.example.json. Answering from its own knowledge it
      * reached 41.8% of web-and-AI answers on 40 sealed questions (set 37, two blind rounds) against 26.0% for the 2B
-     * answering from the passages, but with more wrong details: 1.94 factual errors per answer against 0.71. (Citing
-     * the passages, it made 0.30 against the 2B's 0.62 on sets 28 and 29; that is no longer how it answers.) With
+     * answering from the passages, but with more wrong details: 1.93 grader annotations per answer against 0.69. (Citing
+     * the passages, it drew 0.30 against the 2B's 0.62 on sets 28 and 29; that is no longer how it answers.) With
      * llama.cpp's repacked copy of the weights it needs about 3.1 GB that
      * Android cannot reclaim, which left a 6 GB Redmi 13C 0.43 GB of free memory; mapped from the file instead it needs
      * 0.3 GB and left 3.2 GB free, reading 3.3 and writing 2.2 tokens a second (against 8.0 and 2.6), so a knowledge
@@ -99,14 +99,14 @@ object ModelOffers {
         bytes = 3_013_027_808L,
         sha256 = "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
         url = "https://huggingface.co/bartowski/Qwen_Qwen3.5-4B-GGUF/resolve/4168f45a16a1290d65a4ec0fa312ae917a4c15d6/Qwen_Qwen3.5-4B-Q4_K_M.gguf",
-        description = "Answers more questions well, from what it knows rather than from your saved passages, but gets more " +
-            "details wrong than Qwen3.5 2B: check what matters in the passages listed under each answer. Slower to answer.",
+        description = "Fuller answers, from what it knows rather than from your saved passages, with more details to " +
+            "check than Qwen3.5 2B: check what matters in the passages listed under each answer. Slower to answer.",
         line = "Fuller answers, slower",
         tradeOff = "Fuller answers from what it knows. More details to check.",
         minimumMemoryBytes = 5_000_000_000L,
         minimumMemoryLabel = "6 GB",
         repackMinimumMemoryBytes = 7_000_000_000L,
-        // On a 6 GB Redmi 13C, mapped from its file, answers took 3 to 6 minutes in airplane mode (24 Oct, 13 answers)
+        // On a 6 GB Redmi 13C, mapped from its file, answers took 3 to 6 minutes in airplane mode (24 Oct, six questions asked twice)
         // and one took 47 minutes with Wi-Fi on and other apps awake, while Android was killing apps for memory.
         // The 2B is the recommended choice below 8 GB; the 4B stays available there, with that warning.
         recommendedMinimumMemoryBytes = 7_000_000_000L,
@@ -118,7 +118,7 @@ object ModelOffers {
      * The most accurate choice, for phones with 12 GB of memory, from models/compact-gemma-4-26b-a4b.example.json: a
      * mixture of experts that reads about 4B of its 26B parameters for each word, so it answers about as fast as the
      * 4B while knowing far more. Answering from its own knowledge and reasoning first it scored 82.5% of web-and-AI
-     * answers on 24 sealed questions (set 33, two blind rounds), against 62.0% for the 4B, with 0.23 factual errors
+     * answers on 24 sealed questions (set 33, two blind rounds), against 62.0% for the 4B, with 0.23 grader annotations
      * per answer. The 10.5 GB file is mapped from storage, not copied; 12 GB phones report about 11,500,000,000 bytes.
      */
     val largest = ModelOffer(
