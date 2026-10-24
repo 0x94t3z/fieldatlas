@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -208,7 +209,6 @@ class CalculatorsTest {
         rightOrNothing("The hike is 15 km with 1.200 m of ascent. How long will it take?", "5 h")
         rightOrNothing("What is 30 mpg (UK) in L/100 km?", "9.4")
         rightOrNothing("My car does 50 mpg UK. What is that in L/100 km?", "5.6")
-        rightOrNothing("It's 9 am in London. What time is it in South Korea?", "5:00 pm")
         rightOrNothing("It's 8 pm in Tokyo. What time is it in Samoa?", "12:00 am")
         rightOrNothing("How many hours until sunset at 18:30 if it's 14:15 now?", "4 h 15")
         rightOrNothing("How long until my bus at 16:45? It is 13:20 now.", "3 h 25")
@@ -333,6 +333,24 @@ class CalculatorsTest {
         // "may" in lower case is not the month.
         assertTrue(Calculators.solve("It may be 9 am in London. What time is it in Tokyo?", october)!!.text.contains("Today London is on UTC+1"))
         assertNull(Calculators.solve("It's 9 am in London on Monday or Tuesday. What time is it in Tokyo?", october)?.takeIf { "Tokyo" in it.text })
+    }
+
+    /**
+     * The 14 October audit's London to Seoul case, on fixed days: London is on UTC+1 in summer and UTC+0 in winter, and
+     * British summer time ends at 01:00 UTC on 25 October 2026, so 9 am that day is already winter time.
+     */
+    @Test fun londonToSeoulFollowsBritishSummerTimeOnTheDayAsked() {
+        val question = "It's 9 am in London. What time is it in South Korea?"
+        listOf(
+            java.time.LocalDate.of(2026, 7, 15) to "5:00 pm",
+            java.time.LocalDate.of(2026, 10, 24) to "5:00 pm",
+            java.time.LocalDate.of(2026, 10, 25) to "6:00 pm",
+            java.time.LocalDate.of(2026, 1, 15) to "6:00 pm",
+        ).forEach { (day, seoul) ->
+            val answer = Calculators.solve(question, day)
+            assertNotNull("$day: no answer", answer)
+            assertTrue("$day: ${answer!!.text}", answer.text.startsWith("9:00 am in London is **$seoul in South Korea**."))
+        }
     }
 
     @Test fun theTimeInAnotherCityUsesThatDaysOffsets() {
