@@ -2,13 +2,16 @@
 
 ## v1.4.2 release candidate (24 October 2026, not yet published)
 
-- **Candidate:** app source `67d731d` (docs `b6999e9`), with `third_party/llama.cpp` at its pinned upstream commit
-  `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied, built from a clean clone.
-  Public-key APK: version 1.4.2 (21), 102,547,963 bytes, SHA-256
-  `bc5cb532a80bc6b017eaf3dd002e356230e808a5f32f6642919c9c6c3c44a398`, signed with the public release
+- **Candidate:** built from a clean clone at `792bbb8` (app source `c4e8d86`; the APK records `792bbb8` as
+  its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
+  `scripts/patches/ai-chat-generation-fixes.patch` applied.
+  Public-key APK: version 1.4.2 (21), 102,547,947 bytes, SHA-256
+  `fc3c2ea324e3f201a3d4e1d332ce88aaa99095b43399ba7c8d1999c8b58784c2`, signed with the public release
   certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). The offline
   packaging audit passed. The same source signed with the local test key differs from it only in its
-  signature: all 419 files outside `META-INF` are byte-identical.
+  signature: all 419 files outside `META-INF` are byte-identical. That local-test build was installed with data kept
+  on the Redmi 13C and the 12 GB emulator; in airplane mode on the Redmi, a bee sting with swelling lips
+  opened the anaphylaxis guide with the call line in under a second.
 - **Automated:** of 1,737 JVM tests, 1,681 ran with none failing and 56 opt-in tests were skipped; the instrumented
   tests compile. Every emergency routing change was checked against the 320 labelled questions.
 - **An earlier public-key APK** (from `0a26881`, SHA-256 `c21280710a99…`, checked after installing; the candidate differs
