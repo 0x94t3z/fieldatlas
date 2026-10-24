@@ -358,12 +358,15 @@ class ResearchViewModel(
         }
     }
 
-    /** The last run cancelled, which the next one waits for. */
-    private var stoppingJob: kotlinx.coroutines.Job? = null
+    /**
+     * Runs cancelled and not yet finished, which the next run waits for. Every one is kept: an emergency answered while
+     * a stopped answer still held the model finishes first, and remembering only the latest forgot the one holding it.
+     */
+    private val stoppingJobs = mutableListOf<kotlinx.coroutines.Job>()
 
     /** Cancels the running answer and remembers it, so the next run starts only after it has let go of the model. */
     private fun stopRunning() {
-        researchJob?.let { job -> job.cancel(); stoppingJob = job }
+        researchJob?.let { job -> job.cancel(); stoppingJobs.removeAll { it.isCompleted }; stoppingJobs += job }
         researchJob = null
     }
 
@@ -415,6 +418,16 @@ class ResearchViewModel(
         // One answer is researched at a time on the phone: a question asked while another runs in the background
         // waits for it, and says so.
         val ahead = asides.filter { it.sink.state.isRunning }.mapNotNull { aside -> aside.job?.takeIf { it.isActive } }
+        // A run cancelled a moment ago may still be letting go of the model and search; start after it,
+        // or the new run fails with "Another local research run is active".
+        val previous = stoppingJobs.filterNot { it.isCompleted }
+        // Saved emergency guidance never waits behind another answer: it reads neither the model nor the search, so it
+        // runs while that answer goes on. On 24 Oct a bee sting with swelling lips waited 20 minutes on a 6 GB phone.
+        // A stopped answer is no longer active while it lets go, but it is not finished either.
+        val busy = ahead.isNotEmpty() || previous.isNotEmpty()
+        val withoutWaiting = if (busy) orchestrator.answerWithoutWaiting(question, attachmentSession.state.value.isNotEmpty(), carried) else null
+        // The time shown is from asking to the finished answer, any wait included.
+        val submittedAt = System.nanoTime()
         mutableUiState.value = ResearchUiState(
             question = question,
             asked = asked,
@@ -423,12 +436,10 @@ class ResearchViewModel(
             attachments = attachmentSession.state.value,
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
-            waitingFor = asides.lastOrNull { it.sink.state.isRunning && it.job?.isActive == true }?.sink?.state?.shownQuestion,
+            waitingFor = if (withoutWaiting != null) null
+                else asides.lastOrNull { it.sink.state.isRunning && it.job?.isActive == true }?.sink?.state?.shownQuestion,
             askedByVoice = byVoice,
         )
-        // A run cancelled a moment ago may still be letting go of the model and search; start after it,
-        // or the new run fails with "Another local research run is active".
-        val previous = stoppingJob
         val sink = RunSink()
         currentSink = sink
         val rawAnswer = StringBuilder()
@@ -436,16 +447,18 @@ class ResearchViewModel(
         // starts afresh and may attach others to the next question.
         val attached = attachmentSession.state.value.mapNotNull { it.extracted }
         researchJob = scope.launch {
-            // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
-            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous?.join(); ahead.forEach { it.join() } }
+            if (withoutWaiting == null) {
+                // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
+                kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) { previous.forEach { it.join() }; ahead.forEach { it.join() } }
+            }
             // A run cancelled while it waited never touches the model.
             ensureActive()
-            if (ahead.isNotEmpty()) {
+            if (ahead.isNotEmpty() && withoutWaiting == null) {
                 val now = System.nanoTime()
                 if (sink.detached) settleBackground(sink, sink.state.copy(waitingFor = null, workingSinceNanos = now))
                 else mutableUiState.update { it.copy(waitingFor = null, workingSinceNanos = now) }
             }
-            orchestrator.research(question, attachments = attached, topic = carried)
+            (withoutWaiting ?: orchestrator.research(question, attachments = attached, topic = carried))
                 .flowOn(researchContext).collect { event ->
                 // A stopped run says nothing more: its last progress would otherwise be copied over what Stop put back.
                 ensureActive()
@@ -495,6 +508,8 @@ class ResearchViewModel(
                         checking = event.checking,
                     )
                     is ResearchEvent.Complete -> {
+                        val metrics = event.metrics.copy(
+                            totalMillis = maxOf(event.metrics.totalMillis, (System.nanoTime() - submittedAt) / 1_000_000L))
                         // Numbered as the answer cites them, here once, so the page, a source's own screen, History
                         // and a shared copy all give a passage the same number.
                         val (finalAnswer, finalSources) = xyz.fieldatlas.research.SourceOrder.citedFirst(
@@ -503,7 +518,7 @@ class ResearchViewModel(
                             answer = finalAnswer,
                             sources = finalSources,
                             phase = ResearchPhase.Complete,
-                            metrics = event.metrics,
+                            metrics = metrics,
                             completion = ResearchCompletion.Complete,
                         ).also {
                             val state = it
@@ -514,8 +529,8 @@ class ResearchViewModel(
                                 evidence = historyEvidence(state.sources),
                                 topic = state.topic,
                                 readAs = state.question.takeIf { state.asked.isNotBlank() },
-                                durationMs = event.metrics.totalMillis,
-                                metrics = event.metrics,
+                                durationMs = metrics.totalMillis,
+                                metrics = metrics,
                             )
                         }
                     }

@@ -4,6 +4,7 @@ import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
 import com.arm.aichat.PromptProgress
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,6 +104,63 @@ class ResearchOrchestrator(
             VenueLookup.isNearMe(question) || VenueLookup.isWhereAmI(question) ||
             xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) != null ||
             emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.answer(question, book) } != null
+    }
+
+    /**
+     * Saved emergency guidance for [question] that needs neither the model nor the library search, or null when the answer
+     * needs either. A question asked while another answer was being researched waited for it: on 24 Oct "my friend was
+     * stung by a bee and her lips are swelling" waited 20 minutes behind a slow answer on a 6 GB phone. Nothing here touches
+     * the model, the search or [activeRun], so it can run while that answer goes on. A model that writes first aid shows
+     * the guide as published here, as when it is not ready; the no-guide reply gives no treatment steps on any model.
+     */
+    fun answerWithoutWaiting(question: String, hasAttachments: Boolean, topic: TopicEvidence.Carried? = null): Flow<ResearchEvent>? {
+        if (hasAttachments || question.isBlank() || phraseRequest(question) != null) return null
+        guideFor(question, topic)?.let { guide ->
+            val core = flow { emitPublishedGuide(question, guide, monotonicMillis()) }
+            val numbers = emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) }
+            return if (numbers == null) core else leading(numbers + "\n\n", core)
+        }
+        // The saved number table, read with the topic a follow-up carries: [research] answers it before taking [activeRun].
+        if (emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.answer(question, book) } != null)
+            return research(question, topic = topic)
+        if (xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
+            return leading(xyz.fieldatlas.emergency.GuideAnswerCheck.callLine(question, guideFound = false, cautious = true),
+                flow { emitNoGuideReply(question, monotonicMillis()) })
+        return null
+    }
+
+    /** The guide as published, with the app's call line. Reads neither the model nor the library. */
+    private suspend fun FlowCollector<ResearchEvent>.emitPublishedGuide(question: String, guide: xyz.fieldatlas.emergency.EmergencyGuide,
+                                                                     startedAt: Long) {
+        emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
+        emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
+            modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question,
+            cautious = !inference.writesFirstAid)))
+        emit(ResearchEvent.Complete(ResearchMetrics(
+            retrievalMillis = 0,
+            timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+            totalMillis = elapsed(startedAt, monotonicMillis()),
+            generatedTokenCount = 0,
+            citedSourceIds = setOf("S1"),
+            hasUnmappedCitation = false,
+        )))
+    }
+
+    /** First aid no saved guide covers: no treatment steps, the vetted basics as its sources. Reads neither the model nor the library. */
+    private suspend fun FlowCollector<ResearchEvent>.emitNoGuideReply(question: String, startedAt: Long) {
+        val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
+        val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
+            .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
+        emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
+        emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
+        emit(ResearchEvent.Complete(ResearchMetrics(
+            retrievalMillis = 0,
+            timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+            totalMillis = elapsed(startedAt, monotonicMillis()),
+            generatedTokenCount = 0,
+            citedSourceIds = basics.indices.map { "S${it + 1}" }.toSet(),
+            hasUnmappedCitation = false,
+        )))
     }
 
     fun research(
@@ -396,37 +454,14 @@ class ResearchOrchestrator(
                 return@flow
             }
             if (guide != null) {
-                emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
-                emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
-                    modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question,
-                    cautious = !inference.writesFirstAid)))
-                emit(ResearchEvent.Complete(ResearchMetrics(
-                    retrievalMillis = 0,
-                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
-                    totalMillis = elapsed(startedAt, monotonicMillis()),
-                    generatedTokenCount = 0,
-                    citedSourceIds = setOf("S1"),
-                    hasUnmappedCitation = false,
-                )))
+                emitPublishedGuide(question, guide, startedAt)
                 return@flow
             }
             // The small model's no-guide reply uses none of the library: decided before the search, it appears at once. On the
             // Redmi the search first cost 50-70 s before an emergency answer that never used it (22 Oct offline check).
             if (attachments.isEmpty() && phraseAsk == null && !inference.writesFirstAid && smallModelFirstAid == "fallback" &&
                 xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)) {
-                val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
-                val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
-                    .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
-                emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
-                emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
-                emit(ResearchEvent.Complete(ResearchMetrics(
-                    retrievalMillis = 0,
-                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
-                    totalMillis = elapsed(startedAt, monotonicMillis()),
-                    generatedTokenCount = 0,
-                    citedSourceIds = basics.indices.map { "S${it + 1}" }.toSet(),
-                    hasUnmappedCitation = false,
-                )))
+                emitNoGuideReply(question, startedAt)
                 return@flow
             }
             if (attachments.isEmpty() && phraseAsk == null) {

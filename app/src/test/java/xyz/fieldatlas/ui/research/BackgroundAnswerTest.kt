@@ -28,11 +28,13 @@ class BackgroundAnswerTest {
         java.io.File(java.nio.file.Files.createTempDirectory("background").toFile(), "answers.json"), synchronousWrites = true)
     @After fun tearDown() = scope.cancel()
 
+    private val model = FakeInferenceGateway(List(10) { "Answer $it [S1]" })
+    private val guides = xyz.fieldatlas.emergency.EmergencyData.guides(java.io.File("src/main/assets/emergency/guides.json").readText()).guides
     // The first question's search waits at the gate; anything asked after it is let through.
     private val viewModel = ResearchViewModel(
         savedStateHandle = SavedStateHandle(),
         orchestrator = ResearchOrchestrator(Retriever { _, _, _ -> if (holding) gate.await(); listOf(evidence) },
-            FakeInferenceGateway(List(10) { "Answer $it [S1]" })),
+            model, emergencyGuides = { guides }),
         launchScope = scope,
         historyStore = history,
     )
@@ -79,6 +81,77 @@ class BackgroundAnswerTest {
         assertEquals(askedAt, second.startedAtNanos)
         assertEquals("when was it built?", second.shownQuestion)
         assertEquals(setOf("tell me about the hagia sophia", "when was it built?"), history.records.value.map { it.question }.toSet())
+    }
+
+    @Test fun anEmergencyAskedDuringASlowAnswerIsShownAtOnce() {
+        // 24 Oct, 6 GB phone: "my friend was stung by a bee and her lips are swelling" waited 1,238 s behind a slow answer,
+        // then said "Under 1s". Saved guidance reads neither the model nor the search, so it no longer waits.
+        startFirst()
+        viewModel.startNewQuestion()
+        val calls = model.generateCalls
+        viewModel.updateQuestion("my friend was stung by a bee and her lips are swelling")
+        viewModel.submit()
+        val shown = viewModel.uiState.value
+        assertEquals(ResearchPhase.Complete, shown.phase)
+        assertNull(shown.waitingFor)
+        assertTrue(shown.answer, shown.answer.startsWith("**Call your local emergency number now**"))
+        assertTrue(shown.answer, shown.answer.contains("shown as published"))
+        assertEquals(listOf("emergency:anaphylaxis"), shown.sources.map { it.documentId })
+        assertEquals("the emergency never used the model", calls, model.generateCalls)
+        // The slow answer goes on, untouched, and finishes afterwards.
+        assertTrue(aside().running)
+        release()
+        assertTrue(aside().done)
+        assertEquals(setOf("tell me about the hagia sophia", "my friend was stung by a bee and her lips are swelling"),
+            history.records.value.map { it.question }.toSet())
+    }
+
+    @Test fun firstAidWithNoGuideGetsTheNoGuideReplyAtOnce() {
+        startFirst()
+        viewModel.startNewQuestion()
+        viewModel.updateQuestion("mum has had a water infection for 3 days, now shes shivering, confused, her skin looks blotchy and she hasnt peed since breakfast")
+        viewModel.submit()
+        val shown = viewModel.uiState.value
+        assertEquals(ResearchPhase.Complete, shown.phase)
+        assertTrue(shown.answer, shown.answer.startsWith("**Call your local emergency number now**"))
+        assertTrue(shown.answer, shown.answer.contains("No first-aid guide saved on this phone covers this situation"))
+        assertTrue(aside().running)
+        release()
+        assertTrue(aside().done)
+    }
+
+    @Test fun aWaitingQuestionsTimeCountsTheWaitAndAnEmergencysDoesNot() {
+        startFirst()
+        viewModel.startNewQuestion()
+        viewModel.updateQuestion("when was it built?")
+        viewModel.submit()
+        Thread.sleep(300)
+        release()
+        // Asking to finished answer, the 300 ms spent waiting its turn included.
+        assertTrue(viewModel.uiState.value.metrics!!.totalMillis >= 300)
+        assertTrue(history.records.value.single { it.question == "when was it built?" }.durationMs!! >= 300)
+    }
+
+    @Test fun stoppingTheSlowAnswerAfterAnEmergencyLeavesTheNextQuestionWorking() {
+        startFirst()
+        viewModel.startNewQuestion()
+        viewModel.updateQuestion("my friend was stung by a bee and her lips are swelling")
+        viewModel.submit()
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+        // Back to the slow answer, and stop it.
+        val slow = viewModel.background.value.single { it.running }
+        assertTrue(viewModel.openAside(slow.id))
+        viewModel.cancelResearch()
+        assertFalse(viewModel.uiState.value.isRunning)
+        // The model and the search were let go: the next question runs and finishes.
+        holding = false
+        viewModel.startNewQuestion()
+        viewModel.updateQuestion("what is the hagia sophia?")
+        viewModel.submit()
+        val next = viewModel.uiState.value
+        assertEquals(ResearchPhase.Complete, next.phase)
+        assertNull(next.error)
+        assertTrue(next.answer, next.answer.isNotBlank())
     }
 
     @Test fun newTopicWhileAQuestionWaitsKeepsThatOneToo() {
