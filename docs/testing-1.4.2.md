@@ -69,8 +69,10 @@ the 2B was (10 of 32 fact questions good on sets 46 to 51, against the 2B's 22).
 still be chosen there.
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 grader annotations
-per answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
-which no offline app can answer, and a few explanations where it simplified a mechanism.
+per answer on obscure subjects); Gemma's are questions that need live data (prices, recent events):
+no offline app can answer them, and its answers did not always say so (2 of the 11 on sets 46 to 51
+were good, against 0 for the 4B, 1 for the 2B and 9 for the web reference). Then come a few
+explanations where it simplified a mechanism.
 
 ### Facts from the saved encyclopedia (4B)
 
@@ -277,6 +279,8 @@ fresh test.
   answer to act on until Gemma's is checked.
 - **Answers can still be wrong.** The grades above come from AI graders checking the web; they
   caught errors in the reference answers too.
+- **No live data.** The models and collections are snapshots. Asked about this year's events or
+  today's prices, an answer can be out of date without saying so.
 
 ## Run the set on your own phone
 

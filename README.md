@@ -134,7 +134,8 @@ adopted.
 ## Good to know
 
 - **Speed, from asking to the complete answer**, on a 6 GB Redmi 13C in airplane mode (October 24,
-  six questions asked twice): Qwen3.5 2B took 88 to 153 seconds for simple questions and 195 to 351
+  [six questions](docs/testing-1.4.2.md#on-the-phone-and-the-emulator), three simple and three
+  complex, each asked twice): Qwen3.5 2B took 88 to 153 seconds for simple questions and 195 to 351
   seconds for explanations, comparisons and trip plans. Qwen3.5 4B took 3 to 6 minutes, and one answer
   took 47 minutes with Wi-Fi on and other apps open, which is why the 2B is recommended below 8 GB.
   Gemma 4 26B answered in a median of 92 seconds on a 12 GB emulator, which runs at a computer's speed,
@@ -142,6 +143,8 @@ adopted.
   guides, emergency numbers, places, sums) take seconds; a first-aid guide, an emergency number or the
   no-guide reply also never waits for another answer to finish.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
+- **No live data.** The models and collections are snapshots; a question about this year's events
+  or today's prices can get an out-of-date answer that does not say so.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with all three models, every collection and the voice installed,
   Android reports 47.58 GB of storage for the app on a 12 GB Android emulator (October 21); there, in

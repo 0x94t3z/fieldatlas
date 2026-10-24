@@ -187,7 +187,7 @@ on the phone, with no account and nothing sent anywhere.
   annotations per answer: 0.38, 2.19 and 0.83. The 4B was measured before it read notes for single facts
   (since then 38 to 66 good answers on 105 fact questions), and the 2B's last three sets were graded a day
   after the others ([details](../testing-1.4.2.md#everyday-questions)). These are our own AI-graded
-  measurements, not an independent score, and below the bounty's bar.
+  measurements, not an independent score.
 - **Earlier results, before answering from the model's own knowledge, the source router, the fact notes
   and the emergency changes** (17–18 October, cited answers): on 120 questions the 2B gave a good answer
   to 27 and the 4B to 28, the 4B with fewer grader annotations (0.30 against 0.60 per answer)
