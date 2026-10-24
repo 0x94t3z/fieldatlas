@@ -74,7 +74,7 @@
       {
         "label": "Single facts, Qwen3.5 4B",
         "detail": "From memory, then reading three saved Encyclopedia notes",
-        "set": "105 earlier sealed fact questions, side by side, 23 Oct",
+        "set": "105 fact questions side by side, 23 Oct",
         "questions": 105,
         "before": 38,
         "after": 66,
@@ -118,11 +118,11 @@
       "Ask",
       " the atlas."
     ],
-    "sourceLine": "Screenshot from the app on a Redmi 13C, 20 October 2026.",
+    "sourceLine": "Screenshot from the app on a Redmi 13C, 24 October 2026.",
     "screenshot": "screens/answer-pantelegraph.png",
     "caption": [
       "Asked on a 6 GB phone in airplane mode.",
-      "Qwen3.5 4B read the saved Wikipedia",
+      "Qwen3.5 2B read the saved Wikipedia",
       "article on the pantelegraph and cites it."
     ],
     "facts": [

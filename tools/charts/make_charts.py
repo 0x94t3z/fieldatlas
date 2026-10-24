@@ -188,9 +188,11 @@ def collections(data):
         body += f'<line x1="{a:.1f}" y1="{cy}" x2="{b:.1f}" y2="{cy}" stroke="{SAGE_2}" stroke-width="3"/>'
         body += f'<circle cx="{a:.1f}" cy="{cy}" r="9" fill="{GROUND}" stroke="{SAGE_3}" stroke-width="3"/>'
         body += f'<circle cx="{b:.1f}" cy="{cy}" r="10" fill="{AMBER}"/>'
-        body += text(a, cy - 22, r["beforeLabel"], 16, FAINT, anchor="middle")
+        # Each label runs outward from its own dot, so two dots close together never put their labels on top
+        # of each other; a label by a dot near 0% is held inside the axis (about 0.55 em a character).
+        body += text(max(a + 6, scale_x + 0.55 * 16 * len(r["beforeLabel"])), cy - 22, r["beforeLabel"], 16, FAINT, anchor="end")
         body += text(a, cy + 38, f"{r['before']}", 18, DIM, 500, anchor="middle")
-        body += text(b, cy - 22, r["afterLabel"], 16, DIM, 600, anchor="middle")
+        body += text(b - 6, cy - 22, r["afterLabel"], 16, DIM, 600)
         body += text(b, cy + 38, f"{r['after']}", 18, INK, 700, anchor="middle")
         # The gain in answers out of the set, with the shares, so the dots read without the axis.
         body += text(b + 26, cy + 8, f"+{r['after'] - r['before']} of {n} · {round(share(r, r['before']))}% → {round(share(r, r['after']))}%", 22, AMBER, 700)
