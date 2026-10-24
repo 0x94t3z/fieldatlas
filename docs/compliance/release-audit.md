@@ -1,16 +1,27 @@
 # Release audit
 
-Updated 23 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 24 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
-## v1.4.2 candidate (23 October 2026)
+## v1.4.2 release build (24 October 2026)
 
-Not published. The candidate source is committed locally and installed on the two test devices with
-the local test key only; see [verification](../verification.md#v142-candidate-23-october-2026-not-yet-published)
-for what was run. Before publishing: build the optimized APK with the public release key, verify
-its certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`), record its
-size and SHA-256 here and in the release notes, run the release lint and the offline packaging
-audit, tag, and hash the download again after publishing. Known limits carried into the release
-are listed on [How Field Atlas 1.4.2 was tested](../testing-1.4.2.md).
+Not yet published. Built from a clean clone at `e854703` (app source `bedf7f9`), with
+`third_party/llama.cpp` at `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied:
+version 1.4.2 (21), 102,547,947 bytes, SHA-256
+`5c02cc2647411d1f496db60ea9b3c0c39ea1c4e7931fe3698e4692d8465acce9`. The certificate matches the public
+release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). Release lint
+reported 0 errors; of 1,737 JVM tests, 1,681 ran with none failing (56 opt-in tests skipped); 78 script,
+12 pack-tool, 10 benchmark and 262 tool tests passed; the starter pack rebuilt byte-identical; the
+website's 22 browser tests and 6 build tests passed. The offline packaging audit (`verify_offline.sh`)
+passed, the APK is 16 KB-aligned (`zipalign -c -P 16`), and all 25 native libraries pass
+`check_native_alignment.py`. All 16 files the app downloads resolved at their pinned revisions with the
+size and SHA-256 the app expects.
+
+Device checks used the same build signed with the local test key, byte-identical outside `META-INF`,
+installed with data kept on a Redmi 13C (6 GB, Android 13) and a 12 GB Android 15 emulator; the
+public-key APK was not installed on a phone. An earlier public-key APK (`0a26881`) ran on a fresh 4 GB
+emulator with no Google Play Services. See [verification](../verification.md) for what was run and
+[How Field Atlas 1.4.2 was tested](../testing-1.4.2.md) for the results and the known limits. Still to
+do: tag, publish, and hash the download again after publishing.
 
 ## v1.4.1 release handoff (15 October 2026)
 

@@ -2,20 +2,28 @@
 
 ## v1.4.2 release candidate (24 October 2026, not yet published)
 
-- **Candidate:** built from a clean clone at `792bbb8` (app source `c4e8d86`; the APK records `792bbb8` as
+- **Candidate:** built from a clean clone at `e854703` (app source `bedf7f9`; the APK records `e854703` as
   its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
   `scripts/patches/ai-chat-generation-fixes.patch` applied.
   Public-key APK: version 1.4.2 (21), 102,547,947 bytes, SHA-256
-  `fc3c2ea324e3f201a3d4e1d332ce88aaa99095b43399ba7c8d1999c8b58784c2`, signed with the public release
-  certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). The offline
-  packaging audit passed. The same source signed with the local test key differs from it only in its
-  signature: all 419 files outside `META-INF` are byte-identical. That local-test build was installed with data kept
-  on the Redmi 13C and the 12 GB emulator; in airplane mode on the Redmi, a bee sting with swelling lips
-  opened the anaphylaxis guide with the call line in under a second.
-- **Automated:** of 1,737 JVM tests, 1,681 ran with none failing and 56 opt-in tests were skipped; the instrumented
-  tests compile. Every emergency routing change was checked against the 320 labelled questions.
+  `5c02cc2647411d1f496db60ea9b3c0c39ea1c4e7931fe3698e4692d8465acce9`, signed with the public release
+  certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). Android 13 or newer,
+  arm64-v8a. The offline packaging audit passed, the APK passes `zipalign -c -P 16 4`, and all 25 native
+  libraries pass `check_native_alignment.py`. The same source signed with the local test key differs from
+  it only in its signature: all 419 files outside `META-INF` are byte-identical. That local-test build
+  was installed with data kept on the Redmi 13C and the 12 GB emulator; in airplane mode on the Redmi, a
+  bee sting with swelling lips opened the anaphylaxis guide with the call line in under a second, and
+  "What is the capital of Australia?" was answered with Qwen3.5 2B, cited, in 1 min 47 s.
+- **Automated:** of 1,737 JVM tests, 1,681 ran with none failing and 56 opt-in tests were skipped; release
+  lint reported 0 errors; the instrumented tests compile. 78 script, 12 pack-tool, 10 benchmark and 262
+  tool tests passed (2 skipped), the starter pack rebuilt byte-identical, and the website's 22 browser
+  tests and 6 build tests passed. Every emergency routing change was checked against the 320 labelled
+  questions.
+- **Downloads:** on 24 October all 16 files the app downloads (3 models, 7 collections and the 6 files of
+  the natural voice) resolved at their pinned Hugging Face revisions with the size and SHA-256 the app
+  checks them against.
 - **An earlier public-key APK** (from `0a26881`, SHA-256 `c21280710a99…`, checked after installing; the candidate differs
-  from it in on-screen wording only) ran on a fresh 4 GB
+  from it in on-screen wording and a lint annotation only) ran on a fresh 4 GB
   Android 15 emulator with no Google Play Services: setup, importing the pinned Qwen3.5 2B file and the
   Cryptography & Ethereum collection (both matched their pinned SHA-256), then in airplane mode a cited
   answer about Merkle trees (38 s, at a computer's speed) and the anaphylaxis guide with the call line
