@@ -126,7 +126,8 @@ Every test behind 1.4.2, including emergencies and the phone checks, is on one p
 [How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
 emulator, not on a 12 GB phone. The graders and the reference answers come from AI models of one
 family, so treat these numbers as our own measurement, not an independent score; the share of the
-reference score is a judge's average, not a share of correct answers. The questions and grades are
+reference score is a judge's average, not a share of correct answers, and none of these numbers shows
+that the bounty's bar is met: that is for the judges. The questions and grades are
 published in [docs/fieldtest](docs/fieldtest/) (for some sets the grades only), and the
 [evaluation](docs/evaluation.md) explains each test, including changes that were tried and not
 adopted.
@@ -148,10 +149,12 @@ adopted.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with all three models, every collection and the voice installed,
   Android reports 47.58 GB of storage for the app on a 12 GB Android emulator (October 21); there, in
-  airplane mode, it used at most 6.8 GB of memory while answering with the 4B (October 18)
+  airplane mode, it used at most 6.8 GB of memory while answering with the 4B (October 18, on an earlier 1.4.2 build)
   ([details](docs/evaluation.md#good-answers-and-storage-with-everything-installed-october-21)).
-- Tested on a Redmi 13C (6 GB, Android 13), with a build of the same code signed with a local test key,
-  and on Android emulators; the release file itself ran on an emulator. Not yet tested on a Pixel, on
+- Tested on a Redmi 13C (6 GB, Android 13) with builds signed with a local test key, the latest one
+  without this release's two screen-reader labels, and on Android emulators. On a fresh emulator with no
+  Google apps, the previous release file was set up only through the app and answered offline, and this
+  release file was installed over it, data kept, and answered offline. Not yet tested on a Pixel, on
   GrapheneOS, or on a real 8 GB or 12 GB phone.
 
 ## Collections

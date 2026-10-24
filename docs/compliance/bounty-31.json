@@ -2,13 +2,13 @@
   "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
-  "auditScope": "Status of the final 1.4.2 build (built 24 October 2026 at e854703, SHA-256 5c02cc26…, not yet published) against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md and docs/testing-1.4.2.md have the detail.",
+  "auditScope": "Status of the final 1.4.2 build (built 25 October 2026 at eb7ab5a, SHA-256 10551873…, not yet published) against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md and docs/testing-1.4.2.md have the detail.",
   "lastAuditedAt": "2026-10-24",
   "requirements": [
     {
       "id": "B31-01",
-      "obligation": "Run on compatible Android or GrapheneOS hardware",
-      "status": "pass",
+      "obligation": "Run on Android and compatible GrapheneOS hardware",
+      "status": "partial",
       "evidence": [
         "docs/device-testing.md",
         "docs/evidence/physical/infinix-x6840-android16/",
@@ -16,7 +16,7 @@
         "docs/testing-1.4.2.md",
         "docs/verification.md"
       ],
-      "note": "The bounty asks for Android or compatible GrapheneOS hardware. The APK is arm64-v8a for Android 13 or newer, with every native library 16 KB-aligned and no Google Play Services code. It runs on a Redmi 13C (6 GB, Android 13), ran the 23 October candidate on an Infinix X6840 (4 GB, Android 16), and runs on Android 15 emulator images with no Google apps (12 GB, and 4 GB for an earlier public-key APK); not tried on a Pixel or a GrapheneOS phone."
+      "note": "The bounty asks for Android and compatible GrapheneOS hardware. Android: the APK is arm64-v8a for Android 13 or newer, with every native library 16 KB-aligned and no Google Play Services code, and runs on a Redmi 13C (6 GB, Android 13), ran the 23 October candidate on an Infinix X6840 (4 GB, Android 16), and runs on Android 15 emulator images with no Google apps, where the release file itself was set up from downloads inside the app and answered offline (25 October). GrapheneOS: compatibility is unverified; the app has not run on a Pixel or on GrapheneOS."
     },
     {
       "id": "B31-02",
@@ -28,7 +28,7 @@
         "app/src/main/java/xyz/fieldatlas/assets/ModelOffers.kt",
         "docs/testing-1.4.2.md"
       ],
-      "note": "Qwen3.5 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering (12 GB emulator, airplane mode); setup recommends the 2B below 8 GB and the 4B from 8 GB, and offers Gemma 4 26B only on phones reporting 10.5e9 bytes or more, where its weights are read from the file."
+      "note": "Measured on the 12 GB emulator on 18 October, on an earlier 1.4.2 build, in airplane mode: Qwen3.5 2B peaked at 3.45 GB and the 4B at 6.83 GB while answering. Gemma 4 26B is offered only on phones reporting 10.5e9 bytes or more and reads its weights from the file; it left 9.4 GB free on that emulator on 19 to 20 October (an earlier build). Setup recommends the 2B below 8 GB and the 4B from 8 GB. No 12 GB phone has been measured."
     },
     {
       "id": "B31-03",
@@ -69,7 +69,7 @@
       "evidence": [
         "docs/verification.md"
       ],
-      "note": "No Play Services dependency in the code or the APK, and the 12 GB emulator image used for every Gemma check carries no Google apps at all (pm lists no com.google.android.gms)."
+      "note": "No Play Services dependency in the code or the APK. The release file was set up and answered offline on a fresh Android 15 emulator with no Google packages at all (pm lists none; 24 and 25 October), and the 12 GB emulator image used for every Gemma check carries no Google apps either."
     },
     {
       "id": "B31-07",
@@ -134,7 +134,7 @@
         "docs/evidence/physical/infinix-x6840-android16/",
         "docs/verification.md"
       ],
-      "note": "The public-key 1.4.2 APK is built (e854703, SHA-256 5c02cc26…); the same build signed with the local test key, identical outside its signature, is installed and checked on the Redmi 13C and the 12 GB emulator. The public-key file itself has run only on an emulator (an earlier build, 0a26881), not on a phone."
+      "note": "The public-key 1.4.2 APK is built (eb7ab5a, SHA-256 10551873…). The public-key file itself has run only on an emulator: the previous candidate (5c02cc26…, without two screen-reader labels) was installed fresh and set up from downloads inside the app, and this build was installed over it with the data kept and answered offline. Phone checks used local-test builds of the 24 October code; the Redmi 13C carries the previous candidate's local-test build, and no public-key APK has been installed on a phone."
     },
     {
       "id": "B31-13",
@@ -143,7 +143,7 @@
       "evidence": [
         "docs/installation.md"
       ],
-      "note": "Setup recommends a model for the phone's memory and downloads it and the collections from pinned Hugging Face revisions; on 24 October all 16 files the app downloads resolved with the size and SHA-256 it checks them against. Everything the app offers was downloaded through the app on an 18 October build of 1.4.2; the final public-key APK has not been set up from downloads on a clean phone."
+      "note": "Setup recommends a model for the phone's memory and downloads it and the collections from pinned Hugging Face revisions, checking each file's SHA-256 after downloading it. On 24 October all 17 files the app can download (3 models, 7 collections, 7 voice files) resolved at their pinned revisions: 16 by Hugging Face's recorded size and SHA-256 (metadata only) and the four smallest voice files by a full download. On a fresh emulator with no Google apps, the previous candidate's release file was set up only through the app: Qwen3.5 2B and a collection downloaded from Hugging Face, through a pause, a cold restart and two dropped connections that it resumed, and their installed files match the pinned SHA-256 values (24 October). Everything the app offers was downloaded through the app on an 18 October build of 1.4.2."
     },
     {
       "id": "B31-14",
@@ -214,7 +214,7 @@
         "docs/evaluation.md",
         "docs/fieldtest/heldout55.jsonl"
       ],
-      "note": "Measured transparently on sealed sets graded blind against web-researched answers, every grade published (docs/testing-1.4.2.md). On that measure Gemma 4 26B on 12 GB phones reaches 77% of the reference answers' average score, with a good answer to 115 of 160; Qwen3.5 4B 45% and Qwen3.5 2B 40%. The graders and references are AI models, so this is our own measurement; the organizers' scorecard rates research quality as a whole, not answer by answer."
+      "note": "Measured transparently on sealed sets graded blind against web-researched answers, every grade published (docs/testing-1.4.2.md). On that measure Gemma 4 26B on 12 GB phones reaches 77% of the reference answers' average score, with a good answer to 115 of 160; Qwen3.5 4B 45% and Qwen3.5 2B 40%. The graders and references are AI models, so this is our own measurement; the organizers' scorecard rates research quality as a whole, not answer by answer. None of this shows that the bounty's bar is met; that is for the judges."
     }
   ]
 }

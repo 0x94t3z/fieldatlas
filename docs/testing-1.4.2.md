@@ -6,7 +6,8 @@ not kept. Every question set, answer and grade it mentions is in [docs/fieldtest
 anyone can check the numbers.
 
 All of it is our own measurement, made with AI graders and AI-written reference answers from one
-model family. It is not an independent score.
+model family. It is not an independent score, and none of these numbers shows that the bounty's bar
+is met: that is for the judges.
 
 ## How a test works
 
@@ -32,8 +33,9 @@ model family. It is not an independent score.
 5. **On real devices.** Builds of the release's code signed with a local test key (the 23 October
    candidate, and the 24 October builds for the speed table) were installed on a Redmi 13C (6 GB,
    Android 13) and on a 12 GB Android emulator, both in airplane mode with Wi-Fi and mobile data off, and
-   asked emergency and everyday questions. The public-key release file itself ran on an emulator; see
-   [verification](verification.md).
+   asked emergency and everyday questions. The public-key release file itself ran only on an emulator:
+   the previous candidate was set up from downloads inside the app on a fresh one with no Google apps,
+   and this build was installed over it with the data kept; see [verification](verification.md).
 
 The desktop runs use the app's own answering code and the same models, collections and prompts as the
 phone; only the hardware differs. Times quoted from the desktop are not phone times.
@@ -212,8 +214,8 @@ Read aloud on the CPR guide started within three seconds, playing the recording.
 An everyday answer from the 4B takes about four minutes on this phone from a clean start (238 and
 261 s on the same question, the 23 October and 20 October builds). It took over 20 minutes once
 during testing, when background apps and a run of searches had pushed the model out of memory; after
-closing those apps it returned to four minutes. Memory measured on the 12 GB emulator on 18 October
-with every collection installed: the 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering.
+closing those apps it returned to four minutes. Memory measured on the 12 GB emulator on 18 October,
+on an earlier 1.4.2 build, with every collection installed: the 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering.
 
 **Speed on the Redmi 13C, October 24.** Six new questions, three simple and three that ask for an
 explanation, a comparison or a trip plan, each asked twice in airplane mode, timed from asking to the

@@ -1,25 +1,35 @@
 # Release audit
 
-Updated 24 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 25 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
-## v1.4.2 release build (24 October 2026)
+## v1.4.2 release build (25 October 2026)
 
-Not yet published. Built from a clean clone at `e854703` (app source `bedf7f9`), with
+Not yet published. Built from a clean clone at `eb7ab5a` (app source `3825c7d`), with
 `third_party/llama.cpp` at `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied:
-version 1.4.2 (21), 102,547,947 bytes, SHA-256
-`5c02cc2647411d1f496db60ea9b3c0c39ea1c4e7931fe3698e4692d8465acce9`. The certificate matches the public
-release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). Release lint
-reported 0 errors; of 1,737 JVM tests, 1,681 ran with none failing (56 opt-in tests skipped); 78 script,
-12 pack-tool, 10 benchmark and 262 tool tests passed; the starter pack rebuilt byte-identical; the
-website's 22 browser tests and 6 build tests passed. The offline packaging audit (`verify_offline.sh`)
-passed, the APK is 16 KB-aligned (`zipalign -c -P 16`), and all 25 native libraries pass
-`check_native_alignment.py`. All 16 files the app downloads resolved at their pinned revisions with the
-size and SHA-256 the app expects.
+version 1.4.2 (21), 102,548,359 bytes, SHA-256
+`1055187374b035194b96115d2ac34781ae9b2d6bd4d83ba5e868d71ae12e75a7`. The certificate matches the public
+release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It differs from
+the previous candidate (`5c02cc26…`, from `e854703`) only in two screen-reader labels: Library's
+download button and a place's address copy button. Release lint reported 0 errors. Of 1,737 JVM tests,
+56 opt-in tests were skipped, 1,680 passed and 1 failed: its expected time for 9 am in London in South
+Korea holds only during British summer time, which ended on 25 October, the day of the run. 78 script,
+12 pack-tool, 10 benchmark and 262 tool tests passed; two clean builds of the starter pack were
+byte-identical; the website's 22 browser tests and 6 build tests passed. The 144 instrumented tests ran
+on the 12 GB emulator in airplane mode: 141 passed, 3 opt-in network tests were skipped, none failed.
+The offline packaging audit (`verify_offline.sh`) passed, the APK is 16 KB-aligned (`zipalign -c -P
+16`), and all 25 native libraries pass `check_native_alignment.py`. All 17 files the app can download
+(3 models, 7 collections, the 7 voice files) resolved at their pinned revisions: 16 by Hugging Face's
+recorded size and SHA-256, a metadata check, and the four smallest voice files, `tts.json` among them,
+by a full download matching the app's SHA-256.
 
-Device checks used the same build signed with the local test key, byte-identical outside `META-INF`,
-installed with data kept on a Redmi 13C (6 GB, Android 13) and a 12 GB Android 15 emulator; the
-public-key APK was not installed on a phone. An earlier public-key APK (`0a26881`) ran on a fresh 4 GB
-emulator with no Google Play Services. See [verification](../verification.md) for what was run and
+On a fresh 4 GB Android 15 emulator with no Google packages, the previous candidate's public-key APK
+was set up only through the app: Qwen3.5 2B and the Cryptography & Ethereum collection were downloaded
+from Hugging Face, paused, resumed and verified, and their installed files match the pinned SHA-256
+values. In airplane mode the 2B answered a question about EIP-4844 with a citation. This build was then
+installed over it with the data kept: Library's new labels show, and the 2B answered a question about
+ML-KEM offline, citing four passages. Phone checks used local-test builds of the 24 October code; the
+Redmi 13C carries the previous candidate's local-test build, and no public-key APK was installed on a
+phone. See [verification](../verification.md) for what was run and
 [How Field Atlas 1.4.2 was tested](../testing-1.4.2.md) for the results and the known limits. Still to
 do: tag, publish, and hash the download again after publishing.
 

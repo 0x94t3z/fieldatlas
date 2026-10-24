@@ -142,8 +142,8 @@ on the phone, with no account and nothing sent anywhere.
   answers from the passages, with citations. Emergencies, places, files, phrases and calculations
   keep their own answers.
 - **Gemma 4 26B for phones with 12 GB of memory** (10.5 GB download). Setup offers it first there.
-  On a 12 GB Android emulator it answered everyday questions in a median of 92 seconds, and in another run
-  left 9.4 GB of memory free.
+  On a 12 GB Android emulator it answered everyday questions in a median of 92 seconds, and in an earlier
+  run (October 19 to 20, an earlier 1.4.2 build) left 9.4 GB of memory free.
 - **Qwen3.5 4B from 8 GB of memory, Qwen3.5 2B below.** Setup recommends the 4B on 8 GB phones and the
   2B on phones with less memory. A 6 GB phone can still choose the 4B: setup and Library mark it slow
   there, and a 4B downloaded on such a phone while another model is in use waits in Library until it is chosen. On a 6 GB Redmi 13C the
@@ -175,7 +175,8 @@ on the phone, with no account and nothing sent anywhere.
   guide; "what should I know about altitude sickness before trekking to Everest Base Camp" is answered
   as a trip still ahead instead of opening with the call line; the Read aloud sample is offered only
   when the phone has an offline voice to play it; and a place source shows its own words, not its
-  data fields.
+  data fields. A screen reader now hears Library's download button as "Download Qwen3.5 2B, 1.4 GB"
+  rather than the size and name alone, and a place's address button as "Copy address".
 
 ## How good is it?
 
@@ -187,7 +188,8 @@ on the phone, with no account and nothing sent anywhere.
   annotations per answer: 0.38, 2.19 and 0.83. The 4B was measured before it read notes for single facts
   (since then 38 to 66 good answers on 105 fact questions), and the 2B's last three sets were graded a day
   after the others ([details](../testing-1.4.2.md#everyday-questions)). These are our own AI-graded
-  measurements, not an independent score.
+  measurements, not an independent score, and they do not show that the bounty's bar is met: that is
+  for the judges.
 - **Earlier results, before answering from the model's own knowledge, the source router, the fact notes
   and the emergency changes** (17–18 October, cited answers): on 120 questions the 2B gave a good answer
   to 27 and the 4B to 28, the 4B with fewer grader annotations (0.30 against 0.60 per answer)
@@ -225,13 +227,15 @@ The questions and grades are published in
 - **Within the bounty's limits.** On an Android emulator with 12 GB of memory, the two Qwen models,
   all seven collections and the voice take 37.0 GB of the 50 GB allowed, or about 47.5 GB with
   Gemma 4 26B as well; a 12 GB phone needs only Gemma, about 43 GB.
-  Answering in airplane mode on that emulator (October 18), the app used at most 3.5 GB of memory with
+  Answering in airplane mode on that emulator (October 18, an earlier 1.4.2 build), the app used at most 3.5 GB of memory with
   the 2B and 6.8 GB with the 4B, and all 40 test answers finished offline, including 6 research questions with a follow-up
   under each, per model
   ([details](../evaluation.md#142-at-the-bountys-limits-on-an-android-emulator-october-18)).
-- **Tested on** a Redmi 13C (6 GB, Android 13), with a build of the same code signed with a local test
-  key, and on Android emulators; the release file itself ran on an emulator. Not yet tested on a Pixel,
-  on GrapheneOS, or on a real 8 GB or 12 GB phone.
+- **Tested on** a Redmi 13C (6 GB, Android 13) with builds signed with a local test key, the latest one
+  without this release's two screen-reader labels, and on Android emulators. On a fresh emulator with no
+  Google apps, the previous release file was set up only through the app and answered offline, and this
+  release file was installed over it, data kept, and answered offline. Not yet tested on a Pixel, on
+  GrapheneOS, or on a real 8 GB or 12 GB phone.
 
 ## Install
 

@@ -1,34 +1,53 @@
 # Verification
 
-## v1.4.2 release candidate (24 October 2026, not yet published)
+## v1.4.2 release candidate (25 October 2026, not yet published)
 
-- **Candidate:** built from a clean clone at `e854703` (app source `bedf7f9`; the APK records `e854703` as
+- **Candidate:** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
   its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
   `scripts/patches/ai-chat-generation-fixes.patch` applied.
-  Public-key APK: version 1.4.2 (21), 102,547,947 bytes, SHA-256
-  `5c02cc2647411d1f496db60ea9b3c0c39ea1c4e7931fe3698e4692d8465acce9`, signed with the public release
+  Public-key APK: version 1.4.2 (21), 102,548,359 bytes, SHA-256
+  `1055187374b035194b96115d2ac34781ae9b2d6bd4d83ba5e868d71ae12e75a7`, signed with the public release
   certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). Android 13 or newer,
   arm64-v8a. The offline packaging audit passed, the APK passes `zipalign -c -P 16 4`, and all 25 native
   libraries pass `check_native_alignment.py`. The same source signed with the local test key differs from
-  it only in its signature: all 419 files outside `META-INF` are byte-identical. That local-test build
-  was installed with data kept on the Redmi 13C and the 12 GB emulator; in airplane mode on the Redmi, a
-  bee sting with swelling lips opened the anaphylaxis guide with the call line in under a second, and
-  "What is the capital of Australia?" was answered with Qwen3.5 2B, cited, in 1 min 47 s.
-- **Automated:** of 1,737 JVM tests, 1,681 ran with none failing and 56 opt-in tests were skipped; release
-  lint reported 0 errors; the instrumented tests compile. 78 script, 12 pack-tool, 10 benchmark and 262
-  tool tests passed (2 skipped), the starter pack rebuilt byte-identical, and the website's 22 browser
-  tests and 6 build tests passed. Every emergency routing change was checked against the 320 labelled
-  questions.
-- **Downloads:** on 24 October all 16 files the app downloads (3 models, 7 collections and the 6 files of
-  the natural voice) resolved at their pinned Hugging Face revisions with the size and SHA-256 the app
-  checks them against.
-- **An earlier public-key APK** (from `0a26881`, SHA-256 `c21280710a99…`, checked after installing; the candidate differs
-  from it in on-screen wording and a lint annotation only) ran on a fresh 4 GB
-  Android 15 emulator with no Google Play Services: setup, importing the pinned Qwen3.5 2B file and the
-  Cryptography & Ethereum collection (both matched their pinned SHA-256), then in airplane mode a cited
-  answer about Merkle trees (38 s, at a computer's speed) and the anaphylaxis guide with the call line
-  (under 1 s). The download from Hugging Face inside the app was not completed there (the computer's
-  connection ran at about 100 KB/s).
+  it only in its signature: all 419 files outside `META-INF` are byte-identical. It differs from the
+  previous candidate (`5c02cc26…`, built from `e854703` on 24 October) only in two screen-reader labels:
+  Library's download button is read as "Download Qwen3.5 2B, 1.4 GB" instead of "1.4 GB, Qwen3.5 2B",
+  and a place's address copy button as "Copy address" instead of "Copy".
+- **Automated:** release lint reported 0 errors. Of 1,737 JVM tests, 56 opt-in tests were skipped, 1,680
+  passed and 1 failed: it expects 9 am in London to be 5:00 pm in South Korea, which is true only during
+  British summer time. That ended on 25 October, the day of this run; from then the app's 6:00 pm is right
+  (on 24 October the same tests all passed). 78 script, 12 pack-tool, 10 benchmark and 262 tool tests
+  passed (2 skipped), two clean builds of the starter pack were byte-identical, and the website's 22
+  browser tests and 6 build tests passed. Every emergency routing change was checked against the 320
+  labelled questions.
+- **On-device tests:** the 144 instrumented tests ran on the 12 GB Android 15 emulator in airplane mode on
+  25 October: 141 passed and 3 were skipped, the opt-in tests that download from the internet; none
+  failed. Earlier that day one test that types into a text field (Download sources) failed once in seven
+  full runs and passed in the others. Library's consent sheet is tested with the app's own download
+  coordinator and no network: nothing is queued before the person agrees or after "Not now", the server
+  is named without the address's private query, and confirming queues the item to wait for Wi-Fi, with no
+  transfer started.
+- **Downloads:** the app can download 17 files: 3 models, 7 collections and the 7 files of the natural
+  voice. On 24 October every one resolved at its pinned Hugging Face revision. For 16 of them the size and
+  SHA-256 that Hugging Face records for the file matched the ones the app checks (a metadata check, not
+  a download). `tts.json`, a small file Hugging Face serves through a redirect without that record, and
+  three other small voice files were downloaded in full and matched the app's SHA-256.
+- **A clean install, set up inside the app (previous candidate, 24 October):** the public-key APK
+  `5c02cc26…` was installed on a fresh 4 GB Android 15 emulator with no Google packages and set up only
+  through the app. It downloaded Qwen3.5 2B from Hugging Face; the download was paused and resumed after
+  a cold restart, and twice resumed after the connection dropped, each time keeping what it had. On the
+  device the installed file is 1,396,198,496 bytes and matches the pinned SHA-256 (`57a10858…`). It then
+  downloaded the Cryptography & Ethereum collection, whose installed files match the SHA-256 values in
+  the collection's manifest. In airplane mode, "How do blob transactions from EIP-4844 make rollups
+  cheaper?" was answered in 41 seconds at a computer's speed, citing the EIP-4844 specification, with
+  424 tokens written by the 2B: the first draft ran past its length and was not shown, and the app's one
+  repair, a single sentence, passed the model's check against the cited passage.
+- **An upgrade, data kept (this build, 25 October):** this APK was installed over that one on the same
+  emulator; the model and the collection stayed in place. Library's download buttons read "Download
+  Supertonic 3, 146 MB" and "Download Encyclopedia, 10.64 GB", and in airplane mode "What does ML-KEM
+  protect against?" was answered by the 2B in 34 seconds, citing four passages from the collection
+  (110 tokens written).
 - **On a phone:** local-test builds of the 24 October code (`f64b0fe` to `13171f6`, before the last wording
   and cleanup commits) were installed over the previous build with data kept on a Redmi 13C (6 GB,
   Android 13). In airplane mode, six questions asked twice took, from asking to the
@@ -38,17 +57,21 @@
   Android was closing apps for memory; the 2B is recommended below 8 GB since. An emergency asked while the 4B was reading another question opened its guide at once;
   Stop, an emergency right after it, and the next question all worked, and the app process stayed up
   throughout. Leaving a running answer by the back arrow or Android's back button, while it searched,
-  read or wrote, showed only the "Still answering" row on the Research home.
+  read or wrote, showed only the "Still answering" row on the Research home. The local-test build of the
+  previous candidate (`e854703`) is the one on the phone: in airplane mode a bee sting with swelling lips
+  opened the anaphylaxis guide with the call line in under a second, and "What is the capital of
+  Australia?" was answered with Qwen3.5 2B, cited, in 1 min 47 s.
 - **Network:** the app has the INTERNET permission, used only when you start a download or tap
   Refresh. Network activity was measured on the Redmi 13C with Android's own per-app counters, on the
   24 October local-test builds: the app sent and received nothing during 75 minutes of questions in airplane mode, nor during a cold start and
   50 minutes of questions with Wi-Fi on and connected.
 - **Blind grading:** every set used for 1.4.2 is on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md),
   with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
-- **Not verified:** the public-key APK on a physical phone (both test devices carry the local test
-  key, and switching would erase their data), an 8 GB or 12 GB phone, a GrapheneOS phone, and an
-  emergency asked while a stopped answer is still finishing its reading on the phone (covered by JVM
-  tests).
+- **Not verified:** compatibility with GrapheneOS (no Pixel or GrapheneOS device was tested), the
+  public-key APK on a physical phone (both test devices carry the local test key, and switching would
+  erase their data), this build on the phone (the Redmi carries the previous candidate's local-test
+  build, which lacks the two labels), an 8 GB or 12 GB phone, and an emergency asked while a stopped
+  answer is still finishing its reading on the phone (covered by JVM tests).
 
 ## v1.4.2 candidate (23 October 2026, superseded)
 

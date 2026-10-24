@@ -1283,8 +1283,9 @@ The last row is estimated from the answers the change touches (travel answers), 
 side with their earlier versions. On the held-out set every other answer was checked to be
 byte-identical between the two builds.
 
-On our own questions Field Atlas now passes the bounty's 50% bar; on the held-out questions it
-does not. Part of the gain on our questions came from fixes for the cases they contain, so
+On our own questions Field Atlas now scores more than half of the reference; on the held-out
+questions it does not. These are our own AI-graded shares, not the judges' verdict on the
+bounty's bar. Part of the gain on our questions came from fixes for the cases they contain, so
 **40% is the honest estimate for a new question.** No answer sent the person online. On desktop
 the median answer took 12-16 s.
 
@@ -1368,8 +1369,8 @@ three different graders in one session, twice, as above.
 
 The 4B gains most where the model writes the answer: explanation 43% to 63% of the reference,
 comparison 38% to 55%, synthesis 34% to 44%. Two graders scoring the same answer differed by
-0.39 points on average over 261 answers. The 4B's held-out share is only just above the bar, and
-40 questions is a small sample.
+0.39 points on average over 261 answers. The 4B's held-out share is only just above half of the
+reference, and 40 questions is a small sample.
 
 On a Redmi 13C (6 GB), measured with llama-bench, the 4B read 6.6-7.3 tokens a second and wrote
 2.3, against 16-17.5 and 5.2-5.45 for the 2B. At those speeds the 70 answers that use the model
