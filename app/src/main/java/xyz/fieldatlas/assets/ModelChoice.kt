@@ -46,14 +46,17 @@ fun chooseModel(
 }
 
 /**
- * Whether a model just downloaded is used from then on: when it fits this phone and is larger than the one in use
- * ([activeId], null when none is), as the 4B fetched on an 8 GB phone that answered with the 2B. A smaller one, kept
- * as a fallback, waits in Library; a model the app does not offer is never replaced.
+ * Whether a model just downloaded is used from then on: when it is recommended for this phone and is larger than the one
+ * in use ([activeId], null when none is), as the 4B fetched on an 8 GB phone that answered with the 2B. A smaller one,
+ * kept as a fallback, or one only allowed here (the 4B on a 6 GB phone) waits in Library; a model the app does not offer
+ * is never replaced.
  */
 fun takesOver(offer: ModelOffer, activeId: String?, deviceMemoryBytes: Long, offerFor: (String) -> ModelOffer? = ModelOffers::byId): Boolean {
     if (!offer.fits(deviceMemoryBytes)) return false
     if (activeId == null) return true
     if (activeId == offer.id) return false
+    // A model this phone is not recommended (the 4B on a 6 GB phone) waits in Library until it is chosen there.
+    if (!offer.recommendedOn(deviceMemoryBytes)) return false
     val active = offerFor(activeId) ?: return false
     return offer.bytes > active.bytes
 }

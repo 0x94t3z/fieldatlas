@@ -44,8 +44,19 @@ data class ModelOffer(
     val repackWeights: Boolean = true,
     /** Phones reporting less memory load this model without the repacked copy, whatever [repackWeights] says. */
     val repackMinimumMemoryBytes: Long = 0,
+    /**
+     * Phones reporting less memory are still offered this model, with a warning, but it is never their recommended
+     * choice and never takes over by itself (see [takesOver]).
+     */
+    val recommendedMinimumMemoryBytes: Long = 0,
 ) {
     fun fits(deviceMemoryBytes: Long): Boolean = deviceMemoryBytes >= minimumMemoryBytes
+
+    /** Whether this is a model to recommend on this phone, not only one it can load. */
+    fun recommendedOn(deviceMemoryBytes: Long): Boolean = fits(deviceMemoryBytes) && deviceMemoryBytes >= recommendedMinimumMemoryBytes
+
+    /** Loads on this phone but answers slowly there; the person is told before choosing it. */
+    fun slowOn(deviceMemoryBytes: Long): Boolean = fits(deviceMemoryBytes) && !recommendedOn(deviceMemoryBytes)
 
     /** Whether this phone loads the model with llama.cpp's repacked copy of the weights. */
     fun repacksOn(deviceMemoryBytes: Long): Boolean = repackWeights && deviceMemoryBytes >= repackMinimumMemoryBytes
@@ -95,6 +106,10 @@ object ModelOffers {
         minimumMemoryBytes = 5_000_000_000L,
         minimumMemoryLabel = "6 GB",
         repackMinimumMemoryBytes = 7_000_000_000L,
+        // On a 6 GB Redmi 13C, mapped from its file, answers took 3 to 6 minutes in airplane mode (24 Oct, 13 answers)
+        // and one took 47 minutes with Wi-Fi on and other apps awake, while Android was killing apps for memory.
+        // The 2B is the recommended choice below 8 GB; the 4B stays available there, with that warning.
+        recommendedMinimumMemoryBytes = 7_000_000_000L,
         // From its own knowledge: 33.7% -> 41.8% on set 37, 39.8% -> 56-58% on set 34 (two blind rounds each).
         knowledgeFirst = true,
     )
@@ -133,9 +148,17 @@ object ModelOffers {
      */
     val all = listOf(recommended, larger, largest)
 
-    /** What setup offers this phone, best first: the 4B where it fits, then the 2B as the faster choice. */
+    /**
+     * What setup offers this phone, best first: the largest model recommended for it, then the others it can load. On a
+     * 6 GB phone that is the 2B, then the 4B with its warning; from 8 GB the 4B, then the 2B as the faster choice.
+     */
     fun forDevice(deviceMemoryBytes: Long): List<ModelOffer> =
-        all.filter { it.fits(deviceMemoryBytes) }.sortedByDescending { it.bytes }
+        all.filter { it.fits(deviceMemoryBytes) }
+            .sortedWith(compareByDescending<ModelOffer> { it.recommendedOn(deviceMemoryBytes) }.thenByDescending { it.bytes })
+
+    /** Said wherever a model that is slow on this phone can be chosen (setup, Library). */
+    const val SLOW_ON_THIS_PHONE = "Slow on this phone's memory: answers take several minutes, and can take much longer " +
+        "while other apps are open. Qwen3.5 2B is recommended here."
 
     fun byId(id: String): ModelOffer? = all.firstOrNull { it.id == id }
 }

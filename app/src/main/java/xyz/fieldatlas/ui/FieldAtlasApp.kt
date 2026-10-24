@@ -119,6 +119,8 @@ fun FieldAtlasApp(
     onDownloadModelOffer: (xyz.fieldatlas.assets.ModelOffer) -> Unit = {},
     resumableOfferBytes: (xyz.fieldatlas.assets.ModelOffer) -> Long = { 0 },
     modelFits: (InstalledAsset) -> Boolean = { true },
+    /** A model this phone can load but answers slowly with, by id: offered with a warning, never recommended. */
+    modelSlow: (String) -> Boolean = { false },
     modelNotice: String? = null,
     resumableKnowledgeBytes: (KnowledgeCatalogEntry) -> Long = { 0 },
     onCancelDownload: () -> Unit = {},
@@ -238,8 +240,8 @@ fun FieldAtlasApp(
             )
         }
         if (!ready || offerKnowledge) {
-            // The models setup offers this phone, best first: the 4B where it fits, then the 2B.
-            val setupModels = modelOffers.sortedByDescending { it.bytes }.ifEmpty { listOf(xyz.fieldatlas.assets.ModelOffers.recommended) }
+            // The models setup offers this phone, best first, as ModelOffers.forDevice ordered them.
+            val setupModels = modelOffers.ifEmpty { listOf(xyz.fieldatlas.assets.ModelOffers.recommended) }
             val setupIds = setupModels.map { it.id }
             val recommendedDownloading = (downloadingModelId ?: xyz.fieldatlas.assets.ModelOffers.recommended.id) in setupIds
             SetupScreen(
@@ -275,6 +277,7 @@ fun FieldAtlasApp(
                     modelErrorId == null || modelErrorId == xyz.fieldatlas.assets.ModelOffers.recommended.id
                 },
                 modelChoices = setupModels,
+                modelSlow = modelSlow,
                 downloadingModelId = downloadingModelId,
                 resumableOfferBytes = resumableOfferBytes,
                 onDownloadModelOffer = onDownloadModelOffer,
@@ -545,6 +548,7 @@ fun FieldAtlasApp(
                         resumableModelBytes = resumableOfferBytes,
                         modelBusy = inferenceState == InferenceState.Loading || inferenceState == InferenceState.Generating,
                         modelFits = modelFits,
+                        modelSlow = modelSlow,
                         modelNotice = modelNotice,
                         modelDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.model(it)) },
                         knowledgeDownloadUrl = { sourceFor(xyz.fieldatlas.assets.DownloadArtifact.knowledge(it)) },

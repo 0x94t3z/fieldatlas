@@ -40,8 +40,12 @@ class ModelOffersTest {
         assertNull(ModelOffers.byId("gemma-4-e2b-q4-0"))
         // A Pixel 8a (8 GB) reports about 7.5e9 bytes: the 4B first, the 2B as the faster choice.
         assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(7_500_000_000L))
-        // A 6 GB Redmi 13C reports under 6.1e9: the 4B first, mapped from its file; a 4 GB phone, the 2B only.
-        assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(5_870_000_000L))
+        // A 6 GB Redmi 13C reports under 6.1e9: the 2B is recommended there and the 4B follows, slow on that memory
+        // (24 Oct: 3-6 minutes an answer, one of 47 minutes with other apps open); a 4 GB phone, the 2B only.
+        assertEquals(listOf(ModelOffers.recommended, ModelOffers.larger), ModelOffers.forDevice(5_870_000_000L))
+        assertTrue(ModelOffers.larger.slowOn(5_870_000_000L))
+        assertFalse(ModelOffers.larger.slowOn(7_500_000_000L))
+        assertFalse(ModelOffers.recommended.slowOn(3_790_000_000L))
         assertEquals(listOf(ModelOffers.recommended), ModelOffers.forDevice(3_790_000_000L))
         assertFalse(ModelOffers.larger.repacksOn(5_870_000_000L))
         assertTrue(ModelOffers.larger.repacksOn(7_500_000_000L))

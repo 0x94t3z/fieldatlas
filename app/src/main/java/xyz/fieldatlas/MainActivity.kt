@@ -282,6 +282,7 @@ class MainActivity : ComponentActivity() {
                 onDownloadModelOffer = setupViewModel::downloadModel,
                 resumableOfferBytes = container::resumableModelBytes,
                 modelFits = container::modelFits,
+                modelSlow = container::modelSlow,
                 modelNotice = modelNotice,
                 resumableKnowledgeBytes = container::resumableKnowledgeBytes,
                 onCancelDownload = setupViewModel::cancelDownload,

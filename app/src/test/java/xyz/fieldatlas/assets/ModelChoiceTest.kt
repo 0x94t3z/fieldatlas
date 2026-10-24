@@ -93,9 +93,11 @@ class ModelChoiceTest {
         assertTrue(takesOver(ModelOffers.recommended, null, eightGb))
         // The 2B fetched as a fallback while the 4B answers waits in Library.
         assertFalse(takesOver(ModelOffers.recommended, ModelOffers.larger.id, eightGb))
-        // The 4B now fits a 6 GB phone, mapped from its file; a 4 GB phone keeps the 2B. A model the app does not
-        // offer is left alone.
-        assertTrue(takesOver(ModelOffers.larger, ModelOffers.recommended.id, sixGb))
+        // The 4B fits a 6 GB phone but is not recommended there: downloaded, it waits in Library until chosen. A 4 GB
+        // phone keeps the 2B. A model the app does not offer is left alone.
+        assertFalse(takesOver(ModelOffers.larger, ModelOffers.recommended.id, sixGb))
+        // The only model on the phone is the one used, whatever its size.
+        assertTrue(takesOver(ModelOffers.larger, null, sixGb))
         assertFalse(takesOver(ModelOffers.larger, ModelOffers.recommended.id, fourGb))
         assertFalse(takesOver(ModelOffers.larger, "imported-model", eightGb))
     }

@@ -89,9 +89,12 @@ class AppContainer(context: Context) {
         }.totalMem
     }
     /** Models this phone has the memory for, whether installed or not. */
-    val modelOffers: List<ModelOffer> by lazy { ModelOffers.all.filter { it.fits(deviceMemoryBytes) } }
+    /** The models this phone is offered, best first ([ModelOffers.forDevice]). */
+    val modelOffers: List<ModelOffer> by lazy { ModelOffers.forDevice(deviceMemoryBytes) }
     /** False for a pinned model this phone has too little memory to run. */
     fun modelFits(asset: InstalledAsset): Boolean = ModelOffers.byId(asset.id)?.fits(deviceMemoryBytes) ?: true
+    /** A model this phone can load but answers slowly with ([ModelOffer.slowOn]). */
+    fun modelSlow(id: String): Boolean = ModelOffers.byId(id)?.slowOn(deviceMemoryBytes) == true
     private val modelPreferences = appContext.getSharedPreferences("models", Context.MODE_PRIVATE)
     private val modelScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
     private var settleJob: kotlinx.coroutines.Job? = null

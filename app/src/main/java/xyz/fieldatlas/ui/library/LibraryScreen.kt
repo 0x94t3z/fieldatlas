@@ -123,6 +123,8 @@ fun LibraryScreen(
     /** A model is loading or answering; switching then would wait for it, so it is offered after. */
     modelBusy: Boolean = false,
     modelFits: (InstalledAsset) -> Boolean = { true },
+    /** A model this phone can load but answers slowly with, by id ([xyz.fieldatlas.assets.ModelOffer.slowOn]). */
+    modelSlow: (String) -> Boolean = { false },
     modelNotice: String? = null,
     modelDownloadUrl: (ModelOffer) -> String = { it.url },
     knowledgeDownloadUrl: (KnowledgeCatalogEntry) -> String = { it.url },
@@ -268,7 +270,7 @@ fun LibraryScreen(
                     selectedModel = asset == activeModel && fits,
                     onActivateModel = if (asset == activeModel || !fits) null else ({ onActivateModel(asset) }),
                     activateEnabled = !modelBusy,
-                    note = if (fits) null else "needs more memory than this phone has",
+                    note = if (!fits) "needs more memory than this phone has" else if (modelSlow(asset.id)) "slow on this phone" else null,
                     onDelete = { onDeletePack(asset) },
                     asset = asset,
                     onModelOptions = { discovering = true },
@@ -312,7 +314,8 @@ fun LibraryScreen(
                     val item = DownloadItem.Model(offer)
                     // Two short lines like a collection in Discover; the download sheet says the rest.
                     DownloadRow(FieldAtlasIcons.Model, TileTone.Sage, offer.name,
-                        "${formatAssetBytes(offer.bytes)} · ${offer.line.ifEmpty { xyz.fieldatlas.ui.presentation.displayLicence(offer.license) }}",
+                        "${formatAssetBytes(offer.bytes)} · " + (if (modelSlow(offer.id)) "Slow on this phone"
+                            else offer.line.ifEmpty { xyz.fieldatlas.ui.presentation.displayLicence(offer.license) }),
                         rowState(item, queue, installed = false, saved = resumableModelBytes(offer)), formatAssetBytes(offer.bytes),
                         rowActions(downloads, item, onGet = { confirming = item },
                             discardSaved = onDiscardPausedDownload?.let { discard -> { discard(offer) } }))

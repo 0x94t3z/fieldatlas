@@ -60,6 +60,8 @@ fun SetupScreen(
     modelDownloadError: String? = null,
     /** The models offered this phone, best first ([ModelOffers.forDevice]); one row each when there is a choice. */
     modelChoices: List<xyz.fieldatlas.assets.ModelOffer> = listOf(ModelOffers.recommended),
+    /** A model this phone can load but answers slowly with, by id: shown with a warning, never as the best choice. */
+    modelSlow: (String) -> Boolean = { false },
     downloadingModelId: String? = null,
     resumableOfferBytes: (xyz.fieldatlas.assets.ModelOffer) -> Long = { 0 },
     onDownloadModelOffer: (xyz.fieldatlas.assets.ModelOffer) -> Unit = {},
@@ -68,7 +70,8 @@ fun SetupScreen(
 ) {
     val recommended = ModelOffers.recommended
     val downloadingOffer = modelChoices.firstOrNull { it.id == (downloadingModelId ?: recommended.id) } ?: recommended
-    val model = packs.firstOrNull { it.type == PackType.MODEL }
+    // The model in use when there is one: an installed 4B on a 6 GB phone is shown as itself, not as the recommended 2B.
+    val model = packs.filter { it.type == PackType.MODEL }.let { models -> models.firstOrNull { it.active } ?: models.firstOrNull() }
     val busy = importing || downloading || otherModelDownloading || knowledgeDownloadKey != null
     val blockedReason = when {
         importing || !online -> null // The single import/offline notice explains unavailable actions.
@@ -170,7 +173,8 @@ fun SetupScreen(
                                 else -> "Field Atlas has not tested this model, so it will answer from your saved passages and cite them, with reasoning off."
                             })
                     } else if (model == null && modelChoices.size > 1) FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-                        // A phone with the memory for the 4B gets it first; the 2B stays one tap away as the faster choice.
+                        // The model recommended for this phone first: the 4B from 8 GB, the 2B below, where the 4B
+                        // follows with its warning.
                         Column { modelChoices.forEachIndexed { index, offer ->
                             if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
@@ -178,22 +182,33 @@ fun SetupScreen(
                             SetupDownloadRow(offer.name, FieldAtlasIcons.Model, offer.bytes, installed = false,
                                 downloading = downloading && downloadingOffer.id == offer.id, busy = busy || !online,
                                 downloadedBytes = downloadedBytes, resumableBytes = saved,
-                                details = "${if (index == 0) "Best for this phone" else "Smaller choice"} · Apache 2.0\n\n${offer.description}",
+                                details = "${when {
+                                    index == 0 -> "Best for this phone"
+                                    modelSlow(offer.id) -> "Slow on this phone"
+                                    else -> "Smaller choice"
+                                }} · Apache 2.0\n\n${offer.description}",
                                 onDownload = { onDownloadModelOffer(offer) }, onCancel = onCancelDownload,
                                 blockedReason = blockedReason, inGroup = true,
                                 freeBytesNeeded = offer.bytes - saved.coerceIn(0, offer.bytes) + 512_000_000L,
                                 downloadUrl = modelDownloadUrlFor(offer), downloadError = modelErrorFor(offer), online = online,
                                 badge = "Best for this phone".takeIf { index == 0 },
                                 // Each model's own trade-off, as measured: the larger one is not always the one with fewer mistakes.
-                                note = offer.tradeOff.ifEmpty { null })
+                                note = if (modelSlow(offer.id)) ModelOffers.SLOW_ON_THIS_PHONE else offer.tradeOff.ifEmpty { null })
                         } }
                     } else SetupDownloadRow(
                         title = if (model == null || model.id == recommended.id) recommended.name else model.title,
                         icon = FieldAtlasIcons.Model,
-                        bytes = recommended.bytes, installed = model != null,
+                        bytes = model?.installedBytes ?: recommended.bytes, installed = model != null,
                         downloading = downloading, busy = busy || !online, downloadedBytes = downloadedBytes,
                         resumableBytes = resumableModelBytes,
-                        details = "Recommended model · Apache 2.0", onDownload = onDownloadModel, onCancel = onCancelDownload,
+                        details = "${when {
+                            model == null -> "Recommended model"
+                            modelSlow(model.id) -> "Slow on this phone"
+                            model.id == modelChoices.firstOrNull()?.id -> "Best for this phone"
+                            else -> "Installed model"
+                        }} · ${xyz.fieldatlas.ui.presentation.displayLicence(model?.license ?: recommended.license)}",
+                        note = if (model != null && modelSlow(model.id)) ModelOffers.SLOW_ON_THIS_PHONE else null,
+                        onDownload = onDownloadModel, onCancel = onCancelDownload,
                         blockedReason = blockedReason,
                         // The verified model is moved into place, not unpacked from a copy.
                         freeBytesNeeded = recommended.bytes - resumableModelBytes.coerceIn(0, recommended.bytes) + 512_000_000L,
