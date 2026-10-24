@@ -43,6 +43,8 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -293,7 +295,7 @@ private fun PlaceAddressCard(name: String, address: String, onCopy: () -> Unit) 
                     Icon(FieldAtlasIcons.FullScreen, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("Full screen", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
                 }
-                TextButton(onClick = onCopy, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = onCopy, modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Copy address" }) {
                     Icon(FieldAtlasIcons.Copy, contentDescription = null, modifier = Modifier.size(18.dp))
                     Text("Copy", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
                 }

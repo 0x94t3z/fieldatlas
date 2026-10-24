@@ -173,7 +173,7 @@ internal fun DownloadRow(
     val open = onClick ?: actions.get.takeIf { state == RowState.Get(0) }
     Column(Modifier.fillMaxWidth()) {
             Row(Modifier.fillMaxWidth()
-                .then(if (open != null) Modifier.clickable(onClickLabel = if (onClick != null) "More about $title" else "$getLabel, $title", onClick = open) else Modifier)
+                .then(if (open != null) Modifier.clickable(onClickLabel = if (onClick != null) "More about $title" else getActionLabel(getLabel, title), onClick = open) else Modifier)
                 .padding(start = 14.dp, end = 4.dp, top = 12.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
                 FieldAtlasIconTile(icon, size = 36.dp, iconSize = 20.dp, tone = if (state is RowState.Failed) TileTone.Clay else tone)
@@ -245,6 +245,10 @@ private fun FootActions(actions: List<Pair<String, () -> Unit>>) {
     }
 }
 
+/** What a screen reader says for the download button: the action first, then the size the pill shows. */
+internal fun getActionLabel(getLabel: String, title: String) =
+    if (getLabel == "Update") "Update $title" else "Download $title, $getLabel"
+
 /** The right edge of a download row. Its touch area is always 48dp, whatever it draws. */
 @Composable
 internal fun DownloadControl(state: RowState, getLabel: String, title: String, actions: RowActions) {
@@ -255,8 +259,8 @@ internal fun DownloadControl(state: RowState, getLabel: String, title: String, a
                 Icon(Icons.Filled.PlayArrow, null, Modifier.size(20.dp), tint = colors.primary)
             }
         } else Box(Modifier.size(48.dp).clip(CircleShape)
-            .clickable(role = Role.Button, onClickLabel = "$getLabel, $title", onClick = actions.get)
-            .semantics { contentDescription = "$getLabel, $title" }, contentAlignment = Alignment.Center) {
+            .clickable(role = Role.Button, onClickLabel = getActionLabel(getLabel, title), onClick = actions.get)
+            .semantics { contentDescription = getActionLabel(getLabel, title) }, contentAlignment = Alignment.Center) {
             Icon(FieldAtlasIcons.Download, null, Modifier.size(22.dp), tint = colors.primary)
         }
         is RowState.Running -> RingButton("Pause $title", state.fraction, colors.primary, colors.primaryContainer, actions.pause) {
