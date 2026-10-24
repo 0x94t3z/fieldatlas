@@ -116,7 +116,8 @@ class ResearchOrchestrator(
     fun answerWithoutWaiting(question: String, hasAttachments: Boolean, topic: TopicEvidence.Carried? = null): Flow<ResearchEvent>? {
         if (hasAttachments || question.isBlank() || phraseRequest(question) != null) return null
         guideFor(question, topic)?.let { guide ->
-            val core = flow { emitPublishedGuide(question, guide, monotonicMillis()) }
+            // The model is busy with the other answer, not missing: "isn't available right now" would be wrong (24 Oct, Redmi).
+            val core = flow { emitPublishedGuide(question, guide, monotonicMillis(), modelUnavailable = false) }
             val numbers = emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.line(question, book) }
             return if (numbers == null) core else leading(numbers + "\n\n", core)
         }
@@ -131,10 +132,11 @@ class ResearchOrchestrator(
 
     /** The guide as published, with the app's call line. Reads neither the model nor the library. */
     private suspend fun FlowCollector<ResearchEvent>.emitPublishedGuide(question: String, guide: xyz.fieldatlas.emergency.EmergencyGuide,
-                                                                     startedAt: Long) {
+                                                                     startedAt: Long,
+                                                                     modelUnavailable: Boolean = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready) {
         emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
         emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
-            modelUnavailable = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready, question = question,
+            modelUnavailable = modelUnavailable, question = question,
             cautious = !inference.writesFirstAid)))
         emit(ResearchEvent.Complete(ResearchMetrics(
             retrievalMillis = 0,

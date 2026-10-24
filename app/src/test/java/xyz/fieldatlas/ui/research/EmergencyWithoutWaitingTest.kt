@@ -95,6 +95,26 @@ class EmergencyWithoutWaitingTest {
         assertTrue(viewModel.background.value.single().done)
     }
 
+    @Test fun aBusyModelIsNotCalledUnavailable() {
+        // 24 Oct, Redmi: the guide shown beside a running answer said "The answer model isn't available right now"; the
+        // model was answering the other question. Here the model reports itself busy, as on the phone.
+        val inner = FakeInferenceGateway(List(10) { "Answer $it [S1]" })
+        val busy = object : InferenceGateway by inner {
+            override val state = kotlinx.coroutines.flow.MutableStateFlow<xyz.fieldatlas.inference.InferenceState>(
+                xyz.fieldatlas.inference.InferenceState.Generating)
+        }
+        val viewModel = viewModel(busy)
+        viewModel.ask("tell me about the hagia sophia")
+        viewModel.startNewQuestion()
+        viewModel.ask("my friend was stung by a bee and her lips are swelling")
+        val shown = viewModel.uiState.value
+        assertEquals(ResearchPhase.Complete, shown.phase)
+        assertFalse(shown.answer, shown.answer.contains("isn't available"))
+        assertTrue(shown.answer, shown.answer.contains("For safety, this is the guide as published, without a model rewrite."))
+        holding = false
+        gate.complete(Unit)
+    }
+
     @Test fun aModelThatWritesFirstAidShowsThePublishedGuideWhileBusy() {
         // Gemma writes first aid for the situation when it is free. Busy with another answer, the guide as published
         // is shown at once instead of waiting for it.
