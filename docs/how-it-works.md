@@ -21,11 +21,11 @@ flowchart TD
     D -->|"emergency number"| N["Saved table of 242 countries"]
     D -->|"first aid"| G["The call line and one of 51 official guides; Gemma 4 26B then writes for the situation"]
     D -->|"calculation"| C["Worked out by the app"]
-    D -->|"place near you"| P["GPS with OpenStreetMap and Wikivoyage"]
+    D -->|"place near you or a landmark"| P["OpenStreetMap and Wikivoyage, nearest first"]
     D -->|"no"| S["Search the saved collections"]
     S --> M{"Which model does the phone hold?"}
-    M -->|"4 GB: Qwen3.5 2B"| W1["Writes from the passages and cites them; the draft is checked"]
-    M -->|"6 to 12 GB: Qwen3.5 4B or Gemma 4 26B"| R{"Is the subject rare in the saved collections?"}
+    M -->|"4 and 6 GB: Qwen3.5 2B"| W1["Writes from the passages and cites them; the draft is checked"]
+    M -->|"8 to 12 GB: Qwen3.5 4B or Gemma 4 26B"| R{"A rare subject, or a single fact on the 4B?"}
     R -->|"yes"| W2["Reads three passages as notes and cites them"]
     R -->|"no"| W3["Answers from its own knowledge"]
     W2 --> F["Figures checked against the passages; conflicts quoted"]
@@ -58,8 +58,13 @@ they come back in seconds and the model cannot rephrase them wrongly.
 - **Calculations** such as fuel cost, currency at a given rate or time zones are worked out by the
   app. A word problem that gives all its own figures goes to the model with those figures only, and
   every step it writes is recomputed on the phone.
-- **Places near you**, such as a pharmacy, an ATM or a vegan restaurant, are found from the phone's
-  position in the OpenStreetMap and Wikivoyage collections, nearest first.
+- **Places near you or near a landmark**, such as a pharmacy, an ATM, a vegan restaurant or a hospital
+  near the Colosseum, are found from the phone's position, or from where the travel guide puts the
+  landmark, in the OpenStreetMap and Wikivoyage collections, nearest first and within a walk of a
+  landmark. Each place is a card with how far and which way, what it is, whether it is open (a
+  hospital's line says whether the map records an emergency department) and the guide's own words;
+  its sheet shows the address large enough to show a driver. A list of hospitals opens with the
+  emergency number to call and the nearest one recorded with an emergency department.
 
 ## 3. Search the saved collections
 
@@ -75,8 +80,8 @@ The app offers the model that fits the phone's memory.
 
 | Phone memory | Model | How it writes |
 | --- | --- | --- |
-| 4 GB | Qwen3.5 2B | From the passages, citing each one; the draft is checked before it shows. A how-or-why question with sources shows the passages as quoted excerpts rather than a paraphrase, which this model gets wrong. |
-| 6 GB or more | Qwen3.5 4B | From its own knowledge. |
+| 4 and 6 GB | Qwen3.5 2B | From the passages, citing each one; the draft is checked before it shows. A how-or-why question with sources shows the passages as quoted excerpts rather than a paraphrase, which this model gets wrong. |
+| 8 GB or more (a 6 GB phone can choose it, slow there) | Qwen3.5 4B | From its own knowledge; a question for a single fact reads three saved notes first. |
 | 12 GB | Gemma 4 26B | Reasons first, then answers from its own knowledge. |
 
 A model answering from its own knowledge knows well-known subjects better than the passages say
@@ -85,6 +90,13 @@ saved collections, the model reads three saved passages about it as notes and ci
 counts as rare when the question names it, when it has no article in Simple English Wikipedia, and
 when it appears in at most 400 saved passages. A question led by a specialist collection, such as
 Biology or Cryptography, or by a collection you imported yourself, also counts.
+
+Qwen3.5 4B also reads three notes for a question that asks for one fact (who designed, when did, what
+year, how tall, how deep, what is the capital of), when the Encyclopedia leads the passages found:
+from memory it slips on dates and figures. On 105 earlier sealed fact questions whose answer this changed, graded with the two answers side by side,
+it took the 4B from 38 to 66 good answers ([details](testing-1.4.2.md#facts-from-the-saved-encyclopedia-4b)).
+Gemma 4 26B reasons before it answers and keeps to its knowledge. A question about the asker's own
+plans, or a follow-up such as "how much does that cost?", stays with memory.
 
 ## 5. Check and show
 
@@ -99,12 +111,12 @@ to the full passage. Any answer can be read aloud with an offline voice.
 ## Measured results
 
 We count how many questions get a good answer, one that blind AI graders score 7 or more out of
-10 next to a web-researched answer, and how many wrong details an answer carries. The tests and
+10 next to a web-researched answer, and how many problems the graders list per answer (grader annotations). The tests and
 their records are in [the evaluation](evaluation.md).
 
 ![Share of sealed questions with a good answer: Qwen3.5 2B 35 of 160 (22%), Qwen3.5 4B 27 of 160 (17%), Gemma 4 26B 115 of 160 (72%)](images/fieldatlas-models.png)
 
-![More good answers out of 40 when the model reads saved sources: Biology rebuild 2 to 7 (5% to 18%) and 4 to 6 (10% to 15%), rare subjects 2 to 7 (5% to 18%)](images/fieldatlas-collections.png)
+![More good answers when the model reads saved sources: Biology rebuild 2 to 7 of 40 (5% to 18%) and 4 to 6 of 40 (10% to 15%), rare subjects 2 to 7 of 40 (5% to 18%), single facts 38 to 66 of 105 (36% to 63%)](images/fieldatlas-collections.png)
 
 ![47.58 GB of the 50 GB allowed, with every model, collection and voice installed](images/fieldatlas-storage.png)
 
@@ -115,11 +127,11 @@ their records are in [the evaluation](evaluation.md).
 | The whole flow, in order | [ResearchOrchestrator.kt](../app/src/main/java/xyz/fieldatlas/research/ResearchOrchestrator.kt) |
 | Emergency numbers and guides | [EmergencyNumbers.kt](../app/src/main/java/xyz/fieldatlas/emergency/EmergencyNumbers.kt), [EmergencyGuideMatch.kt](../app/src/main/java/xyz/fieldatlas/emergency/EmergencyGuideMatch.kt) |
 | Calculations and word problems | [Calculators.kt](../app/src/main/java/xyz/fieldatlas/research/Calculators.kt), [WordProblem.kt](../app/src/main/java/xyz/fieldatlas/research/WordProblem.kt) |
-| Places near you | [VenueLookup.kt](../app/src/main/java/xyz/fieldatlas/research/VenueLookup.kt) |
+| Places near you or a landmark | [VenueLookup.kt](../app/src/main/java/xyz/fieldatlas/research/VenueLookup.kt) |
 | Search across collections | [MultiKnowledgeRetriever.kt](../app/src/main/java/xyz/fieldatlas/research/MultiKnowledgeRetriever.kt), [SubjectLookup.kt](../app/src/main/java/xyz/fieldatlas/research/SubjectLookup.kt), [QueryExpansion.kt](../app/src/main/java/xyz/fieldatlas/research/QueryExpansion.kt) |
 | Model per phone | [ModelOffers.kt](../app/src/main/java/xyz/fieldatlas/assets/ModelOffers.kt) |
 | Prompts | [PromptBuilder.kt](../app/src/main/java/xyz/fieldatlas/research/PromptBuilder.kt) |
-| Rare subjects | [SourceRouter.kt](../app/src/main/java/xyz/fieldatlas/research/SourceRouter.kt) |
+| Rare subjects and single facts | [SourceRouter.kt](../app/src/main/java/xyz/fieldatlas/research/SourceRouter.kt) |
 | Cited drafts and their checks | [CitedExplanation.kt](../app/src/main/java/xyz/fieldatlas/research/CitedExplanation.kt) |
 | Figures checked against passages | [SavedFactCheck.kt](../app/src/main/java/xyz/fieldatlas/research/SavedFactCheck.kt) |
 | The answer screen | [AnswerScreen.kt](../app/src/main/java/xyz/fieldatlas/ui/research/AnswerScreen.kt) |

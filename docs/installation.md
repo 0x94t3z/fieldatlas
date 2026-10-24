@@ -8,7 +8,7 @@ The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.
 
 | If you want to… | Use this | Important difference |
 | --- | --- | --- |
-| Use the current release | [Signed v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, the 4B from 6 GB, or Gemma 4 26B on a 12 GB phone; optional collections and voice are separate. Read the [known limitations](releases/current.md). |
+| Use the current release | [Signed v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B below 8 GB, the 4B from 8 GB (a 6 GB phone can choose it, slow there), or Gemma 4 26B on a 12 GB phone; optional collections and voice are separate. Read the [known limitations](releases/current.md). |
 | Use the previous stable release | [v1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Follow its [version-specific instructions](https://github.com/0x94t3z/fieldatlas/blob/v1.4.1/docs/installation.md). |
 | Test source changes | [Build from source](building.md) | The same three models. Changes after the release are not in the published APK. A debug build is a separate app, not an update to the signed release. |
 
@@ -18,7 +18,7 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 
 1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the model it offers first (Gemma 4 26B on a phone with 12 GB of memory, Qwen3.5 4B from 6 GB, Qwen3.5 2B otherwise), or import the model file: download the `.gguf` linked in the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md) on any device, copy it to the phone and choose **Import a file**. A file Field Atlas tested is checked byte for byte and keeps its tested settings; any other GGUF model installs as your own, untested, when the phone has the memory for it.
+3. In setup, download the model it recommends (Gemma 4 26B on a phone with 12 GB of memory, Qwen3.5 4B from 8 GB, Qwen3.5 2B otherwise), or import the model file: download the `.gguf` linked in the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.2/MODELS.md) on any device, copy it to the phone and choose **Import a file**. A file Field Atlas tested is checked byte for byte and keeps its tested settings; any other GGUF model installs as your own, untested, when the phone has the memory for it.
 4. Optionally download or import a knowledge collection, and the Supertonic 3 reading voice (about 146 MB). A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.

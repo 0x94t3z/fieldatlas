@@ -15,7 +15,8 @@ on the phone, with no account and nothing sent anywhere.
   strip, to pick the topic up where it stopped. History now keeps every answer until you delete it
   (1.4.1 kept the newest 100) and warns when the phone is short of storage.
 - **Answers keep going off the screen.** Back or New topic while an answer is being written does
-  not stop it. The Research home shows it as "Still answering", the next question waits its turn,
+  not stop it. The Research home shows it as "Still answering", the next question waits its turn
+  (a first-aid guide, an emergency number or the no-guide reply never waits: it opens at once),
   and a note says when it is ready if you are in the app at that moment; otherwise the row on the
   Research home says it. An answer you watched finish is not announced again.
 - **Research on the answer page.** The page opens as soon as you start. The dino walks from
@@ -72,8 +73,25 @@ on the phone, with no account and nothing sent anywhere.
   English edition lacks and that is named in few saved passages, or one a specialist collection
   holds — is answered from the saved sources, cited sentence by sentence, instead of from the
   model's memory, which invents on such subjects. On 40 obscure questions graded blind the 4B gave a good answer to 7 instead of 2 (18% instead of 5%),
-  with fewer wrong details; famous subjects are untouched
+  with fewer grader annotations; famous subjects are untouched
   ([details](../evaluation.md#reading-the-sources-for-subjects-few-readers-meet-october-20)).
+- **Single facts are read too, on the 4B.** A question for one fact (who designed, when did, what
+  year, how tall, how deep, what is the capital of) has Qwen3.5 4B read three saved Encyclopedia notes
+  before it answers and cite them: from memory it opened the Sydney Opera House on 26 October, with
+  its notes on 20 October 1973. On 105 earlier sealed fact questions whose answer this changed, compared
+  blind side by side in two rounds (graders did not see the notes), good answers went from 38 to 66 (36% to 63%) and grader annotations per answer from 2.79 to 1.69,
+  none unsafe; the header then says "1 cited local source" beside the time. Gemma 4 26B, which reasons
+  first, keeps to its knowledge. A mistake in a saved article is now passed on: the Simple English
+  article gives the Burj Khalifa as 428 m tall (it is 828 m)
+  ([details](../testing-1.4.2.md#facts-from-the-saved-encyclopedia-4b)).
+- **Places around a landmark, drawn as cards.** "A hospital near the Colosseum" is measured from the
+  Colosseum, where the travel guide puts it, and lists hospitals 690 m away instead of ones 8 km
+  across Rome; "coffee near Shibuya Crossing" keeps to places within a walk. "Vegan restaurants in
+  Berlin" lists them. Each place is now one card: its name with how far and which way, what it is,
+  whether it is open, and the guide's words, with a tile coloured by kind (red is kept for health).
+  A list of hospitals opens with "Emergency? Call 112 or your local number." and the nearest hospital
+  recorded with an emergency department, which opens on a tap: near the Colosseum it was sixth of six
+  by distance. A place's sheet shows its address large enough to show a driver, full screen on a tap.
 - **Every answer in one shape, sources at the foot.** An answer written from the model's own knowledge
   opens with a short paragraph that answers outright, then **Key facts** as bullets, then **Caveats**
   when something varies. The explanation comes first; the passages found are listed under it as
@@ -90,8 +108,8 @@ on the phone, with no account and nothing sent anywhere.
   Qwen3.5 2B and from 4 to 6 (10% to 15%) with Qwen3.5 4B. Phones with the earlier edition are offered it as an update in Library.
 - **Questions about your own files answer far more often.** A question asked with a file reads more of
   it, and a correct answer is no longer withheld by the model's own review. On 24 new file questions
-  graded blind, refusals went from 7 to 1 and good answers from 4 to 5, with more wrong details
-  to check
+  graded blind, refusals went from 7 to 1 and good answers from 4 to 5, with more problems noted
+  by the graders
   ([details](../evaluation.md#questions-about-your-own-files-october-18)). Asking to "use my library"
   in the question adds the downloaded collections as before. A question about taking a medicine in
   the file (a dose, how often, until when, a missed dose) also shows the file's own lines on it, word
@@ -116,14 +134,16 @@ on the phone, with no account and nothing sent anywhere.
   it to check. On 40 new questions graded blind, the 4B gave a good answer to 8 instead
   of 4 (20% instead of 10%), and Gemma 4 26B, which reasons before it answers, to 27 (68%)
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
-  These answers have more wrong details than cited ones, so check the passages. Qwen3.5 2B still
+  These answers draw more grader annotations than cited ones, so check the passages. Qwen3.5 2B still
   answers from the passages, with citations. Emergencies, places, files, phrases and calculations
   keep their own answers.
 - **Gemma 4 26B for phones with 12 GB of memory** (10.5 GB download). Setup offers it first there.
   On a 12 GB Android emulator it answered in a median of 92 seconds and left 9.4 GB of memory free.
-- **Qwen3.5 4B from 6 GB of memory.** Setup offers it first on 6 and 8 GB phones, and Qwen3.5 2B on
-  4 GB phones. Below 8 GB it is read straight from its file, which leaves memory free: on a 6 GB
-  Redmi 13C answers took 3 to 8 minutes.
+- **Qwen3.5 4B from 8 GB of memory, Qwen3.5 2B below.** Setup recommends the 4B on 8 GB phones and the
+  2B on phones with less memory. A 6 GB phone can still choose the 4B: setup and Library mark it slow
+  there, and a 4B downloaded on such a phone waits in Library until it is chosen. On a 6 GB Redmi 13C the
+  4B took 3 to 6 minutes an answer, and once 47 minutes with Wi-Fi on and other apps open. A phone
+  already using the 4B keeps it.
 - **Time across cities** reads "9 in the morning", the month (for daylight saving) and the weekday:
   9 am on a Monday in New York in January is 11 pm Monday in Tokyo.
 - **Sources numbered as the answer cites them.** The first source an answer cites is 1, so a
@@ -141,19 +161,29 @@ on the phone, with no account and nothing sent anywhere.
   into a search for a place, a download paused while it waited for Wi-Fi stays paused when the app reopens, places named without their accents are found, Ethereum standards stay out of
   questions that are not about crypto, an answer the model wrote twice is shown once, the
   "Answer ready" note follows the light theme, and the research page opens with "Ask the atlas."
+  Preparing to make stream water safe on a hike no longer opens with "call your local emergency number
+  now", someone ill after drinking stream or lake water is no longer shown how to treat water (the
+  dehydration guide or the no-guide reply answers), and the old progress card no longer flashes on the
+  Research home. The time shown for an answer now includes any wait for an earlier one.
+  "Summarize the causes of the First World War" and "according to historians" questions are answered
+  instead of refused for want of a saved source; "how do I treat a minor burn at home" gets the burns
+  guide; "what should I know about altitude sickness before trekking to Everest Base Camp" is answered
+  as a trip still ahead instead of opening with the call line; the Read aloud sample is offered only
+  when the phone has an offline voice to play it; and a place source shows its own words, not its
+  data fields.
 
 ## How good is it?
 
 - **With the new answer models:** on 40 new questions graded blind (set 37), Gemma 4 26B gives a good answer to
   **27 of 40 (68%)** and Qwen3.5 4B to **8 (20%)**, against 4 (10%) for the 4B and 2 (5%) for the 2B answering from the passages
   ([details](../evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)).
-  The 4B's answers have more wrong details than the 2B's cited ones (1.94 per answer against 0.71);
+  The 4B's answers draw more grader annotations than the 2B's cited ones (1.94 per answer against 0.71);
   Gemma's have fewer (0.44). These scores measure what each model knows: its answer is written
   without the saved passages, which are listed under it to check, so they do not show the
   collections improving those answers. They come from runs on a computer, not on a phone.
 - **Citing the passages:** on 120 new questions (two sets written after the changes and
   graded blind twice), 1.4.2 gives a good answer to **27 (22%)** with Qwen3.5 2B and **28 (23%)** with
-  Qwen3.5 4B, the 4B with half the wrong details (0.30 against 0.62 per answer). That is below the bounty's bar
+  Qwen3.5 4B, the 4B with half the grader annotations (0.30 against 0.62 per answer). That is below the bounty's bar
   ([details](../evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)).
 - **Single questions are where 1.4.1 left them.** 1.4.1 scored 29% on an earlier, harder set. On
   the same 60 questions, 1.4.1 scores 37.3% and 1.4.2 36.3%. The gains above are in follow-ups,
@@ -169,11 +199,12 @@ Every question, answer and grade is published in
 
 ## Good to know
 
-- **Answers that use the model take about 4 to 8 minutes** on a 6 GB phone with Qwen3.5 4B
-  (about 4 for a short one), and with Gemma 4 26B on a 12 GB emulator about 1.5 to 3 minutes; an
-  emergency answer written by Gemma takes a few minutes after the guide is on screen. Answers built
-  from saved data (places, guides, phrases, calculations) take seconds. The 4B has not been timed on
-  a real 8 GB phone, nor Gemma on a real 12 GB phone.
+- **Speed, from asking to the complete answer.** On a 6 GB Redmi 13C in airplane mode (October 24,
+  six questions asked twice), Qwen3.5 2B took 88 to 153 seconds for simple questions and 195 to 351
+  seconds for explanations, comparisons and a trip plan; Qwen3.5 4B took 3 to 6 minutes. Gemma 4 26B
+  took about 1.5 to 3 minutes on a 12 GB emulator, which runs at a computer's speed; an emergency answer
+  written by Gemma takes a few minutes after the guide is on screen. Answers built from saved data
+  (places, guides, phrases, calculations) take seconds. No 8 GB or 12 GB phone has been timed.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
   Answers about a medical letter or drug sheet you attach can get details wrong: read the file itself
   before acting on a dose or a result. The file's own lines on a medicine are quoted under the answer

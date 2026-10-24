@@ -2,10 +2,10 @@
   "_about": "Every figure here is copied from docs/testing-1.4.2.md (and docs/evaluation.md for sets 30 and 42). Edit a value there first, then here, then run make_charts.py with an absolute --out.",
   "ladder": {
     "method": "Good = 7 or more out of 10 from blind AI graders, two rounds. 160 new questions in four sealed sets, every model.",
-    "sourceLine": "Sets 37, 46, 49 and 51, each sealed before any run; the settings each phone uses today. Every answer and grade in docs/fieldtest.",
+    "sourceLine": "Sets 37, 46, 49 and 51, each sealed before any run, graded before the 4B read notes for single facts. Every answer and grade in docs/fieldtest.",
     "rows": [
       {
-        "phone": "4 GB phones",
+        "phone": "recommended below 8 GB",
         "model": "Qwen3.5 2B",
         "route": "cites the saved passages",
         "good": 35,
@@ -13,7 +13,7 @@
         "errors": 0.84
       },
       {
-        "phone": "phones with 6 GB or more",
+        "phone": "recommended from 8 GB",
         "model": "Qwen3.5 4B",
         "route": "answers from its own knowledge",
         "good": 27,
@@ -33,7 +33,7 @@
   "collections": {
     "questions": 40,
     "method": "Same model and questions in each pair; only what it could read changed. Good = 7 or more out of 10 from blind AI graders.",
-    "sourceLine": "Sets 30 and 42: sealed questions, two blind grading rounds for set 30, one for set 42. Details in docs/evaluation.md.",
+    "sourceLine": "Sets 30 and 42 and 149 sealed fact questions, graded blind. Details in docs/evaluation.md and docs/testing-1.4.2.md.",
     "rows": [
       {
         "label": "Longevity questions, Qwen3.5 2B",
@@ -67,6 +67,18 @@
         "errorsAfter": 2.42,
         "beforeLabel": "from memory",
         "afterLabel": "reads sources"
+      },
+      {
+        "label": "Single facts, Qwen3.5 4B",
+        "detail": "From memory, then reading three saved Encyclopedia notes",
+        "set": "105 earlier sealed fact questions, side by side",
+        "questions": 105,
+        "before": 38,
+        "after": 66,
+        "errorsBefore": 2.79,
+        "errorsAfter": 1.69,
+        "beforeLabel": "from memory",
+        "afterLabel": "reads notes"
       }
     ]
   },
@@ -160,8 +172,8 @@
             "detail": "Worked out exactly by the app."
           },
           {
-            "title": "Places near you",
-            "detail": "GPS with OpenStreetMap and Wikivoyage listings, nearest first."
+            "title": "Places nearby",
+            "detail": "Near you or a named landmark, nearest first, from saved maps."
           }
         ]
       },
@@ -192,19 +204,19 @@
         "note": "the model the phone can hold",
         "cards": [
           {
-            "title": "4 GB: Qwen3.5 2B",
+            "title": "4-6 GB: Qwen3.5 2B",
             "detail": "Writes from the passages and cites them; the draft is checked before it shows."
           },
           {
-            "title": "6-8 GB: Qwen3.5 4B",
-            "detail": "Answers from its own knowledge."
+            "title": "8 GB: Qwen3.5 4B",
+            "detail": "Answers from its own knowledge; reads notes for a single fact."
           },
           {
             "title": "12 GB: Gemma 4 26B",
             "detail": "Reasons first, then answers."
           },
           {
-            "title": "A rare subject",
+            "title": "A rare subject or a fact",
             "detail": "Three saved passages are read as notes and cited."
           }
         ]
@@ -261,8 +273,8 @@
           "worked out exactly"
         ],
         [
-          "Place near you",
-          "GPS and saved maps"
+          "Place nearby",
+          "you or a landmark"
         ]
       ]
     },
@@ -272,18 +284,18 @@
     ],
     "memory": "Phone memory?",
     "small": [
-      "4 GB",
+      "4 and 6 GB",
       "Qwen3.5 2B",
       "Writes from the passages and cites them; the draft is checked before it shows."
     ],
     "big": [
-      "6 to 12 GB",
+      "8 to 12 GB",
       "Qwen3.5 4B or Gemma 4 26B"
     ],
-    "rare": "Rare subject?",
+    "rare": "Rare, or a fact?",
     "yes": [
       "Reads its sources",
-      "Three saved passages as notes, cited."
+      "Three saved passages, cited. Facts: 4B only."
     ],
     "no": [
       "From its knowledge",

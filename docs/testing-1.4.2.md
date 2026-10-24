@@ -18,11 +18,13 @@ model family. It is not an independent score.
    careful assistant with the internet would give. These are graded too, as a yardstick.
 3. **Blind grading, twice.** Each answer goes to an AI grader that does not know which setup wrote
    it; a grader never sees two answers to the same question. The grader checks the important facts
-   on the web, scores the answer 0 to 10, lists its wrong details, and for emergencies marks whether
+   on the web, scores the answer 0 to 10, lists the problems it finds, and for emergencies marks whether
    following it could plausibly harm someone. Every set is graded in two independent rounds with
    different graders; the rounds agreed on whether an answer was good 94 to 97% of the time.
-4. **What we count.** A **good answer** scores 7 or more from both rounds. **Wrong details** is the
-   average number of factual errors the graders listed per answer. For emergencies, **unsafe** counts
+4. **What we count.** A **good answer** scores 7 or more from both rounds. **Grader annotations** is
+   the average number of problems the graders listed per answer. Most are wrong facts, but they also
+   include omissions and points both rounds noted; they are not independently confirmed errors, and a
+   higher count does not by itself prove more factual errors. For emergencies, **unsafe** counts
    answers both rounds flagged. Two setups are compared by question with a sign test; a change is
    kept only if it does not make answers worse on fresh questions.
 5. **On real devices.** The exact release build was installed on a Redmi 13C (6 GB, Android 13) and
@@ -53,12 +55,12 @@ the new graders against October's, they re-graded 20 of the 2B's set-37 answers:
 3 good against 2, the same bar within noise. The 2B's share differs between sets because of the mix: on
 the 32 single-fact questions of sets 46 to 51 it gave a good answer to 22, on the 22 explanations to 1.
 Over the 160 questions the 2B's cited route gives slightly more good answers than the 4B's from memory
-(35 against 27) with far fewer wrong details (0.84 against 2.20); the 4B leads on explanations and
+(35 against 27) with far fewer grader annotations (0.84 against 2.20); the 4B leads on explanations and
 comparisons, the 2B on facts the collections hold. The 4B stays the 6 GB default on the strength of
 set 37 (8 against 4 good when both routes ran on the 4B); that choice deserves a fresh test after 1.4.2.
 
-Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 wrong details per
-answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
+Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 grader annotations
+per answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
 which no offline app can answer, and a few explanations where it simplified a mechanism.
 
 ### Facts from the saved encyclopedia (4B)
@@ -70,17 +72,24 @@ subjects. From memory it opened the Sydney Opera House on 26 October; with its n
 20 October 1973. Gemma reasons before it answers and keeps answering from memory, and questions about
 the asker's own plans ("how much rice do I need") or follow-ups ("how much does that cost?") stay with memory.
 
-The change was measured on the 149 fact questions in earlier sealed sets, which it was not written
-against. It changed the 4B's answer to 105 of them; each pair was graded blind, in two rounds:
+The change was measured on the 149 fact questions in earlier sealed sets. Those sets had been answered
+and graded for earlier releases, so they are not fresh, but this rule was not written against them. On
+the desktop harness it changed the 4B's answer to 105 of them. This test was graded differently from the
+rest of this page: each grader saw the two answers to a question side by side, unlabelled and in random
+order, with no reference answer, checked the facts on the web and scored each answer 0 to 10, in two
+rounds with fresh orders. The graders did not see the saved passages, so whether each cited sentence is
+supported by its note was not checked.
 
 | 4B on the 105 changed fact questions | From memory | With encyclopedia notes |
 | --- | ---: | ---: |
 | Good answers | 38 of 105 (36%) | 66 of 105 (63%) |
-| Wrong details per answer | 2.79 | 1.69 |
+| Grader annotations per answer | 2.79 | 1.69 |
 | Unsafe | 0 | 0 |
 
-The notes version scored higher on 62 questions and lower on 33 (sign test p = 0.004). Its losses are
-mostly the encyclopedia's own mistakes passed on: the saved Simple English article gives the Burj
+The notes version scored higher on 62 questions and lower on 33 (sign test p = 0.004). The annotations
+are the graders' listed problems, averaged over both rounds; side by side, a grader may list a fault in
+one answer because the other gets it right, so the counts compare the two versions, not error rates. Its
+losses are mostly the encyclopedia's own mistakes passed on: the saved Simple English article gives the Burj
 Khalifa as 428 m tall (it is 828 m). The four-set table above was graded before this change, so its 4B
 column does not include it.
 
@@ -121,7 +130,7 @@ behaviour (guide shown as published) gave a good answer to 12 and three unsafe o
 from the guide gave 28 good and none unsafe. On the five fresh sets that followed, Gemma's answers
 with the final rules:
 
-| Set | Good answers | Wrong details per answer | Unsafe (both graders) |
+| Set | Good answers | Grader annotations per answer | Unsafe (both graders) |
 | --- | ---: | ---: | ---: |
 | Set 50 | 29 of 40 (72%) | 0.17 | 1 |
 | Set 52 | 24 of 40 (60%) | 0.39 | 1 |
@@ -189,6 +198,27 @@ An everyday answer from the 4B takes about four minutes on this phone from a cle
 during testing, when background apps and a run of searches had pushed the model out of memory; after
 closing those apps it returned to four minutes. Memory measured on 18 October with every collection
 installed: the 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering.
+
+**Speed on the Redmi 13C, October 24.** Six new questions, three simple and three that ask for an
+explanation, a comparison or a trip plan, each asked twice in airplane mode, timed from asking to the
+complete answer (any wait included):
+
+| Question | Qwen3.5 2B | Qwen3.5 4B |
+| --- | ---: | ---: |
+| Who painted The Starry Night, and in what year? | 88 s, 88 s | 210 s, 362 s |
+| What is the capital of Australia? | 115 s, 139 s | 194 s, 200 s |
+| How long is the Great Wall of China? | 153 s, 144 s | 318 s, 331 s |
+| Why do we have leap years, and what would happen without them? | 195 s, 351 s | 300 s, 321 s |
+| Compare nuclear fission and nuclear fusion | 266 s, 261 s | 357 s, 298 s |
+| Three days in Kyoto in autumn: main sights, getting around | 290 s, 279 s | 284 s, 300 s |
+
+The 2B cited every answer; the 4B answered from its own knowledge. Read by us, not graded blind: the
+simple answers were right on both models; the 2B's first leap-year answer left out the century rule
+(its second had it), one 2B fission answer gave the wrong reason fusion is hard, and the 2B named a
+station exit and Kyoto Tower as Kyoto's main sights, where the 4B named the shrines and temples. With
+Wi-Fi on and other apps open, one 4B answer took 47 minutes while Android was closing apps for
+memory, so 1.4.2 recommends the 2B below 8 GB. The phone's thermal state stayed normal (battery
+33–42 °C).
 
 **12 GB emulator, Gemma 4 26B.** The same emergency questions, written by Gemma from the guides:
 each opened with the right call line and the right guide, and the finished answers were correct (the

@@ -121,7 +121,7 @@ def axis_counts(x_of, ticks, top, base_y, caption):
 
 def ladder(data):
     # Counted the way Field Atlas measures itself: how many questions got a good answer (7 or more out of 10 from
-    # blind graders), beside how many wrong details an answer carries.
+    # blind graders), beside how many problems the graders listed per answer (grader annotations).
     d = data["ladder"]
     rows = d["rows"]
     # Sets of different sizes sit on one scale: the share of questions with a good answer.
@@ -137,7 +137,7 @@ def ladder(data):
 
     base_y = top + row_h * len(rows) - 20
     body += axis(x_of, list(range(0, 101, 25)), top - 4, base_y, "share of questions with a good answer")
-    body += text(X1, top - 2, "wrong details", 17, FAINT, 600, anchor="end")
+    body += text(X1, top - 2, "grader annotations", 17, FAINT, 600, anchor="end")
     body += text(X1, top + 20, "per answer", 17, FAINT, 600, anchor="end")
     fills = [SAGE_1, SAGE_2, AMBER]
     for i, r in enumerate(rows):
@@ -157,23 +157,27 @@ def ladder(data):
 def collections(data):
     d = data["collections"]
     rows = d["rows"]
-    n = d["questions"]
     body = heading(("More good answers", " when the model reads your saved sources."), d["method"])
-    top, row_h = 300, 128
-    scale_x, scale_w, lo, hi = X0 + 600, 680, 0, 10
+    top, row_h = 290, 116
+    # Sets of different sizes sit on one scale: the share of questions with a good answer.
+    scale_x, scale_w, lo, hi = X0 + 600, 600, 0, 70
+
+    def share(r, v):
+        return 100 * v / r.get("questions", d["questions"])
 
     def sx(v):
         return scale_x + scale_w * (v - lo) / (hi - lo)
 
     base_y = top + row_h * len(rows) - 6
-    body += axis_counts(sx, list(range(lo, hi + 1, 2)), top - 4, base_y, f"good answers out of {n}")
+    body += axis(sx, list(range(lo, hi + 1, 10)), top - 4, base_y, "share of questions with a good answer")
     for i, r in enumerate(rows):
+        n = r.get("questions", d["questions"])
         y = top + 26 + i * row_h
         cy = y + 34
         body += text(X0, y + 24, r["label"], 26, INK, 700)
         body += text(X0, y + 54, r["detail"], 18, DIM)
-        body += text(X0, y + 80, f"{r['set']} · wrong details per answer {r['errorsBefore']:.2f} → {r['errorsAfter']:.2f}", 18, FAINT, italic=True, family=SERIF)
-        a, b = sx(r["before"]), sx(r["after"])
+        body += text(X0, y + 80, f"{r['set']} · grader annotations per answer {r['errorsBefore']:.2f} → {r['errorsAfter']:.2f}", 18, FAINT, italic=True, family=SERIF)
+        a, b = sx(share(r, r["before"])), sx(share(r, r["after"]))
         body += f'<line x1="{a:.1f}" y1="{cy}" x2="{b:.1f}" y2="{cy}" stroke="{SAGE_2}" stroke-width="3"/>'
         body += f'<circle cx="{a:.1f}" cy="{cy}" r="9" fill="{GROUND}" stroke="{SAGE_3}" stroke-width="3"/>'
         body += f'<circle cx="{b:.1f}" cy="{cy}" r="10" fill="{AMBER}"/>'
@@ -181,8 +185,8 @@ def collections(data):
         body += text(a, cy + 38, f"{r['before']}", 18, DIM, 500, anchor="middle")
         body += text(b, cy - 22, r["afterLabel"], 16, DIM, 600, anchor="middle")
         body += text(b, cy + 38, f"{r['after']}", 18, INK, 700, anchor="middle")
-        # The gain, with the shares, so the dots read without the axis.
-        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']} · {round(100 * r['before'] / n)}% → {round(100 * r['after'] / n)}%", 22, AMBER, 700)
+        # The gain in answers out of the set, with the shares, so the dots read without the axis.
+        body += text(b + 26, cy + 8, f"+{r['after'] - r['before']} of {n} · {round(share(r, r['before']))}% → {round(share(r, r['after']))}%", 22, AMBER, 700)
     return frame(body, "What the saved sources add", d["sourceLine"])
 
 

@@ -1,9 +1,46 @@
 # Verification
 
-## v1.4.2 candidate (23 October 2026, not yet published)
+## v1.4.2 release candidate (24 October 2026, not yet published)
 
-- **Automated:** 1,714 JVM tests ran with none failing (56 opt-in tests skipped) on the candidate
-  source (`55753b1` plus the History-details change). Every emergency routing change was checked
+- **Candidate:** app source `67d731d` (docs `b6999e9`), with `third_party/llama.cpp` at its pinned upstream commit
+  `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied, built from a clean clone.
+  Public-key APK: version 1.4.2 (21), 102,547,963 bytes, SHA-256
+  `bc5cb532a80bc6b017eaf3dd002e356230e808a5f32f6642919c9c6c3c44a398`, signed with the public release
+  certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). The offline
+  packaging audit passed. The same source signed with the local test key differs from it only in its
+  signature: all 419 files outside `META-INF` are byte-identical.
+- **Automated:** 1,737 JVM tests ran with none failing (56 opt-in tests skipped); the instrumented
+  tests compile. Every emergency routing change was checked against the 320 labelled questions.
+- **The public-key APK itself** (from `0a26881`, which differs only in two lines of text, SHA-256 checked after installing) ran on a fresh 4 GB
+  Android 15 emulator with no Google Play Services: setup, importing the pinned Qwen3.5 2B file and the
+  Cryptography & Ethereum collection (both matched their pinned SHA-256), then in airplane mode a cited
+  answer about Merkle trees (38 s, at a computer's speed) and the anaphylaxis guide with the call line
+  (under 1 s). The download from Hugging Face inside the app was not completed there (the computer's
+  connection ran at about 100 KB/s).
+- **On a phone:** the local-test twin was installed over the previous build with data kept on a
+  Redmi 13C (6 GB, Android 13). In airplane mode, six questions asked twice took, from asking to the
+  complete answer, 88 to 153 seconds (simple) and 195 to 351 seconds (explanation, comparison, a trip
+  plan) with Qwen3.5 2B, and 3 to 6 minutes with Qwen3.5 4B. With Wi-Fi on and other apps open, one
+  4B answer took 47 minutes while Android was closing apps for memory; the 2B is recommended below
+  8 GB since. An emergency asked while the 4B was reading another question opened its guide at once;
+  Stop, an emergency right after it, and the next question all worked, and the app process stayed up
+  throughout. Leaving a running answer by the back arrow or Android's back button, while it searched,
+  read or wrote, showed only the "Still answering" row on the Research home.
+- **Network:** the app has the INTERNET permission, used only when you start a download or tap
+  Refresh. Network activity was measured with Android's own per-app counters: the app sent and
+  received nothing during 75 minutes of questions in airplane mode, nor during a cold start and
+  50 minutes of questions with Wi-Fi on and connected.
+- **Blind grading:** every set used for 1.4.2 is on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md),
+  with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
+- **Not verified:** the public-key APK on a physical phone (both test devices carry the local test
+  key, and switching would erase their data), an 8 GB or 12 GB phone, a GrapheneOS phone, and an
+  emergency asked while a stopped answer is still finishing its reading on the phone (covered by JVM
+  tests).
+
+## v1.4.2 candidate (23 October 2026, superseded)
+
+- **Automated:** 1,733 JVM tests ran with none failing (56 opt-in tests skipped) on the candidate
+  source (`c4adc03`). Every emergency routing change was checked
   against the 320 labelled questions in `app/src/test/resources/emergency-labelled.jsonl` (231 right,
   none misleading).
 - **Devices:** the candidate, signed with the local test key, was installed over the previous build
@@ -14,6 +51,12 @@
   (285 s); on the emulator Gemma answered general questions in 90–110 s, the "Answer ready" note
   showed only for an answer finishing while the app was in front, the model-fallback note survived
   a restart and cleared when Gemma was chosen again, and Answer details reopened from History.
+  Later the same day, on both devices and offline: the 4B answered "Who designed the Sydney Opera
+  House, and when was it opened?" from its notes in 5 min 38 s (Utzon, 20 October 1973, "1 cited
+  local source"); "altitude sickness before trekking to Everest Base Camp" was answered as a trip,
+  with no call line, on both models; "coffee shops near Shibuya Crossing" listed two cafés within a
+  walk as cards; "a hospital near the Colosseum" listed six hospitals with the emergency note, whose
+  line to the nearest emergency department opened its sheet, and the address opened full screen.
 - **Blind grading:** every set used for 1.4.2 is on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md),
   with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
 - **Not done yet:** the public-key release build, its hash, the tag and the release itself.

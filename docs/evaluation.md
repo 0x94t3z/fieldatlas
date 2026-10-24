@@ -5,21 +5,23 @@ The tests behind the 1.4.2 release, in plain words, are on one page: [How Field 
 ## Good answers, and storage with everything installed (October 21)
 
 From here on, results lead with two counts: how many questions get a **good answer**, one that the
-blind graders score 7 or more out of 10, and how many **wrong details** the graders note per answer.
+blind graders score 7 or more out of 10, and how many problems the graders note per answer (**grader annotations**: mostly wrong facts, also
+omissions and repeated points, not independently confirmed errors).
 The sections below this one also give each setup's total score as a share of the reference
 answers' total, as it was recorded at the time.
 
-| Set 37, 40 questions, two rounds of eight graders | Good answers | Wrong details per answer |
+| Set 37, 40 questions, two rounds of eight graders | Good answers | Grader annotations per answer |
 | --- | ---: | ---: |
 | Qwen3.5 2B, cites the passages (4 GB phones) | 2 | 0.71 |
 | Qwen3.5 4B, from its own knowledge (6 and 8 GB) | 8 | 1.94 |
 | Gemma 4 26B, reasons first (12 GB) | 27 | 0.44 |
 
-| Same model and questions, only what it could read changed | Good answers before → after | Wrong details per answer |
+| Same model and questions, only what it could read changed | Good answers before → after | Grader annotations per answer |
 | --- | ---: | ---: |
 | Set 30, 2B, Biology collection of 13 October → 18 October | 2 → 7 of 40 | 0.60 → 0.47 |
 | Set 30, 4B, the same | 4 → 6 of 40 | 0.15 → 0.15 |
 | Set 42 long-tail, 4B, from memory → reading the Encyclopedia | 2 → 7 of 40 | 3.27 → 2.42 |
+| 149 earlier sealed fact questions, 4B, from memory → reading three notes (the 105 whose answer changed, graded side by side; 23 October) | 38 → 66 of 105 | 2.79 → 1.69 |
 
 A reasoning model is now given the instruction without the answer layout the other models use, and
 an answer its reasoning cuts short is asked for again with reasoning off; Gemma's set 37 answers were
@@ -89,7 +91,7 @@ eight graders who saw the answers without their marks or notes: the shaped answe
 of 40 and a Caveats line in 36, a mark in 6 answers (9 marks) and a fact-check note in 3; median length 170 to
 180 words, median time on the Mac 12.6 to 14.5 s. Against the earlier 4B rounds question by question: better on
 12, worse on 9, the same on 19 (within half a point), mean +0.4 points, sign test p=0.66; errors noted per answer
-2.21 to 2.55, the bullets adding a few more claims and with them a few more wrong details: the shape changes how an
+2.21 to 2.55, the bullets adding a few more claims and with them a few more grader annotations: the shape changes how an
 answer reads, not what it gets right. Shipped with the run-through's other fixes:
 a priced question with a rate ("12 euros plus 2 euros per km, how much is 15 km") is worked from its own figures
 even on a phone whose travel packs have a page about taxis, and a heading line of a medicine list ("Medicines to
@@ -387,7 +389,7 @@ the passages. On an earlier sealed set of 40 (set 34), the 4B went from 39.8% to
 from its own knowledge and Gemma reached 71-72%; giving either model three of the passages as notes
 made its answers worse (4B 53.2%, Gemma 64.1%).
 
-**The cost.** An answer from memory has more wrong details than a cited one: 1.94 per answer for the
+**The cost.** An answer from memory draws more grader annotations than a cited one: 1.94 per answer for the
 4B against 0.64, which is why it is labelled unverified and the passages stay under it. The 4B also
 did worse on travel (12% against 35%). Emergencies still open the published guides word for word,
 so they stay near 40% with every model. Every answer and grade:
@@ -557,7 +559,7 @@ Answers that said the excerpts were not enough went from 13 to 3 on set 31 and f
 32. Summaries gained most on set 32 (1.6 to 5.4 of 10); sums and deadlines worked from a file
 stayed weak (0.5 of 10 either way).
 
-**The cost.** More answers means more wrong details: on set 32 the graders found 1.15 errors per
+**The cost.** More answers means more grader annotations: on set 32 the graders found 1.15 errors per
 answer given, against 0.65 before. On the 14 questions about health care (a discharge letter, a
 drug sheet, blood results), answers went from 11% to 35% of the reference, but they included a
 methotrexate answer that missed that the drug is taken weekly and called a MoCA of 23/30 "not
