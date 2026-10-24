@@ -25,7 +25,7 @@ import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 /** Every More destination and its inner actions, isolated from the user's saved data. */
 class MoreMenuUiTest {
     @get:Rule val compose = foregroundComposeRule()
-    private val model = InstalledAsset("model", "1", PackType.MODEL, "Qwen3.5 2B — Q4_K_M Compact", "Apache-2.0", 1_400_000_000, "a".repeat(64), "/fixture")
+    private val model = InstalledAsset("qwen3.5-2b-q4-k-m", "1", PackType.MODEL, "Qwen3.5 2B — Q4_K_M Compact", "Apache-2.0", 1_400_000_000, "a".repeat(64), "/fixture")
     private val knowledge = model.copy(id = "knowledge", type = PackType.KNOWLEDGE, title = "Encyclopedia")
     private val proof = ProofModel(
         listOf(ProofFact("Internet permission", "Present · downloads only", ProofOrigin.ManifestAudit, ProofState.Warning)) +
@@ -55,8 +55,7 @@ class MoreMenuUiTest {
         listOf("Offline readiness" to "Offline readiness", "App & device" to "App & device",
             "Support report" to "Support report", "Privacy & offline use" to "Privacy & offline use",
             "Licences" to "Licences").forEach { (menu, title) ->
-            compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(menu))
-            compose.onNodeWithText(menu).performClick()
+            tapRow(menu)
             compose.onNodeWithContentDescription("Close $title").assertIsDisplayed()
             capture("after-${title.replace(" ", "-").replace("&", "and")}")
             compose.onNodeWithContentDescription("Close $title").performClick()
@@ -180,8 +179,7 @@ class MoreMenuUiTest {
 
     @Test fun everyBundledLicenceOpensAndKeepsBackAndCloseVisibleAfterScrolling() {
         render()
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Licences"))
-        compose.onNodeWithText("Licences").performClick()
+        tapRow("Licences")
         val assets = InstrumentationRegistry.getInstrumentation().targetContext.assets
         val paths = assets.list("licenses").orEmpty().filter { it.endsWith(".txt") && it != "NOTICE.txt" }.sorted().map { "licenses/$it" } +
             assets.list("ocr/licenses").orEmpty().sorted().map { "ocr/licenses/$it" }
@@ -201,12 +199,30 @@ class MoreMenuUiTest {
         render(dark = true, scale = 2f)
         listOf("Offline readiness" to "Offline readiness", "Support report" to "Support report",
             "Privacy & offline use" to "Privacy & offline use", "Licences" to "Licences").forEach { (menu, title) ->
-            compose.onNodeWithText(menu).performScrollTo().performClick()
+            tapRow(menu)
             compose.onAllNodes(hasScrollAction()).onLast().performTouchInput { swipeUp() }
             compose.onNodeWithContentDescription("Close $title").assertIsDisplayed()
             capture("after-large-${title.replace(" ", "-").replace("&", "and")}")
             compose.onNodeWithContentDescription("Close $title").performClick()
         }
+    }
+
+    /**
+     * Taps a More row only once it is laid out on screen. The list builds the next row ahead of time without placing
+     * it, and the scroll actions read such a row as already in view, so a tap would land on whatever is drawn there
+     * (seen at 200% text: the model card opened instead of Privacy & offline use).
+     */
+    private fun tapRow(text: String) {
+        val list = compose.onNode(hasScrollToNodeAction())
+        list.performScrollToNode(hasText(text))
+        var swipes = 0
+        while (!compose.onNodeWithText(text).fetchSemanticsNode().layoutInfo.isPlaced) {
+            check(swipes < 16) { "$text never came on screen" }
+            // The rows these tests open lie further down; if a row is ever behind instead, scroll back.
+            list.performTouchInput { if (swipes < 8) swipeUp() else swipeDown() }
+            swipes++
+        }
+        compose.onNodeWithText(text).performScrollTo().assertIsDisplayed().performClick()
     }
 
     private fun capture(name: String) {

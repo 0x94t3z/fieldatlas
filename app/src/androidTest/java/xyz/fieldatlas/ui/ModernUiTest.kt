@@ -15,8 +15,13 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.test.platform.app.InstrumentationRegistry
 import java.io.File
 import org.junit.Assert.*
@@ -33,6 +38,7 @@ import xyz.fieldatlas.ui.library.LibraryScreen
 import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
 import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.more.MoreScreen
+import xyz.fieldatlas.ui.research.AnswerScreen
 import xyz.fieldatlas.ui.research.ResearchScreen
 import xyz.fieldatlas.ui.research.ResearchPhase
 import xyz.fieldatlas.ui.research.ResearchUiState
@@ -147,7 +153,7 @@ class ModernUiTest {
                 }
             }
         } }
-        compose.onNodeWithText("A few places to start").performScrollTo()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("A few places to start"))
         compose.onAllNodesWithText("Tap to try", useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithText("Tap to try").assertIsDisplayed()
         val heading = compose.onNodeWithText("A few places to start").fetchSemanticsNode().boundsInRoot
@@ -155,7 +161,9 @@ class ModernUiTest {
         assertTrue(heading.right <= hint.left)
         assertEquals(heading.center.y, hint.center.y, 1f)
         capture("suggestions-shared-hint-dark-double-text")
-        compose.onNodeWithContentDescription("Use example: How do earthquake P waves differ from S waves?").performScrollTo().performClick()
+        compose.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasContentDescription("Use example: How do earthquake P waves differ from S waves?"))
+        compose.onNodeWithContentDescription("Use example: How do earthquake P waves differ from S waves?").performClick()
         compose.runOnIdle { assertEquals("How do earthquake P waves differ from S waves?", draft); assertEquals(0, submitted) }
     }
 
@@ -228,8 +236,14 @@ class ModernUiTest {
     }
 
     @Test fun navigationKeepsAllFourTargetsVisibleAtDoubleTextSize() {
+        lateinit var measurer: TextMeasurer
+        lateinit var labelStyle: TextStyle
         compose.setContent { FieldAtlasTheme(darkTheme = true) {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                measurer = rememberTextMeasurer()
+                // The tab label's own style (the navigation item in FieldAtlasApp), at its wider, selected weight.
+                labelStyle = androidx.compose.material3.MaterialTheme.typography.labelMedium
+                    .copy(fontSize = 11.sp, lineHeight = 16.sp, fontWeight = FontWeight.SemiBold)
                 Box(Modifier.width(320.dp).height(640.dp)) {
                     FieldAtlasApp(packs = listOf(model), importing = false, setupError = null,
                         researchState = ResearchUiState(), proof = proof,
@@ -243,12 +257,13 @@ class ModernUiTest {
             val bounds = node.fetchSemanticsNode().boundsInRoot
             assertTrue(bounds.width >= 48f)
             assertTrue(bounds.height >= 48f)
-            val layouts = mutableListOf<TextLayoutResult>()
-            compose.onNodeWithText(label, useUnmergedTree = true)
-                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertEquals(1, layouts.single().lineCount)
-            assertFalse("$label must remain fully readable", layouts.single().isLineEllipsized(0))
+            // Each tab is named once, by its content description; the label under the icon is hidden from screen
+            // readers, so its layout cannot be read through semantics. Measured in its own style instead, on one line it
+            // must fit inside the tab (2 dp of padding each side), or it would be cut short with an ellipsis.
+            val width = measurer.measure(label, labelStyle, maxLines = 1).size.width
+            assertTrue("$label must remain fully readable ($width px in a ${bounds.width} px tab)", width <= bounds.width - 4f)
         }
+        // At double text size the labels no longer fit four across, so the bar reflows to two rows of two.
         val first = compose.onNodeWithContentDescription("Research").fetchSemanticsNode().boundsInRoot
         val second = compose.onNodeWithContentDescription("Library").fetchSemanticsNode().boundsInRoot
         val third = compose.onNodeWithContentDescription("History").fetchSemanticsNode().boundsInRoot
@@ -271,9 +286,9 @@ class ModernUiTest {
         val bounds = more.fetchSemanticsNode().boundsInRoot
         assertTrue(bounds.width >= 40 * density - 1)
         more.performClick()
-        listOf("Pin", "Share", "Copy", "Delete").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("Pin", "Share", "Copy", "Delete").forEach { compose.onNode(hasText(it) and hasClickAction()).assertIsDisplayed() }
         capture("history-menu-light")
-        compose.onNodeWithText("Delete").performClick()
+        compose.onNode(hasText("Delete") and hasClickAction()).performClick()
         compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
         compose.runOnIdle { assertFalse(deleted); assertFalse(continued) }
         compose.onNodeWithText(question).performClick()
@@ -291,7 +306,7 @@ class ModernUiTest {
                     System.currentTimeMillis(), emptyList(), emptyList())))
             }
         } }
-        val card = compose.onNode(hasClickAction() and hasAnyDescendant(hasText(question)))
+        val card = compose.onNode(hasClickAction() and hasAnyDescendant(hasText(question)), useUnmergedTree = true)
         val bounds = card.fetchSemanticsNode().boundsInRoot
         compose.mainClock.autoAdvance = false
         try {
@@ -312,18 +327,26 @@ class ModernUiTest {
     }
 
     @Test fun researchStopRemainsReachableWithLargeTextInDarkMode() {
+        // While an answer is researched, Stop is the button in the answer page's question box (the Research home's
+        // old progress card, with its own Stop, is gone). At twice the text size, in dark mode, on a small screen, it
+        // stays on screen, enabled, at least 48 dp to touch, and it stops the run.
+        var stops = 0
         compose.setContent { FieldAtlasTheme(darkTheme = true) {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
                 Box(Modifier.width(320.dp).height(640.dp)) {
-                    ResearchScreen(ResearchUiState(question = "A long question about a saved document",
-                        phase = ResearchPhase.Generating), InferenceState.Generating, 1,
-                        onQuestionChange = {}, onSubmit = {}, onPrepareModel = {}, onOpenAnswer = {})
+                    AnswerScreen(ResearchUiState(question = "A long question about a saved document",
+                        phase = ResearchPhase.Generating, startedAtNanos = System.nanoTime()),
+                        onBack = {}, onAskAnother = {}, onCitation = {}, onStop = { stops++ })
                 }
             }
         } }
-        compose.onNodeWithText("Stop").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithText("Prepare the model").assertExists()
-        compose.onNodeWithText("Model-generated · no supporting sources found").assertExists()
+        compose.onNodeWithText("Working on this answer · Stop ends it").assertExists()
+        val stop = compose.onNodeWithContentDescription("Stop research").assertIsDisplayed().assertIsEnabled()
+        // Drawn at 40 dp; Material's minimum interactive size makes it 48 dp to touch (1 px is 1 dp here).
+        val touch = stop.fetchSemanticsNode().touchBoundsInRoot
+        assertTrue("Stop must be at least 48 dp to touch", touch.width >= 48f && touch.height >= 48f)
+        stop.performClick()
+        assertEquals(1, stops)
     }
 
     private fun capture(name: String) {

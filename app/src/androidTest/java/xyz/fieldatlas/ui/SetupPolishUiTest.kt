@@ -48,6 +48,9 @@ class SetupPolishUiTest {
         compose.onNodeWithContentDescription("Download Qwen3.5 2B").assertIsNotEnabled()
         compose.onNodeWithText("Start researching").assertIsNotEnabled()
         capture("setup-polished-top")
+        // Setup lists three collections until "See all N collections" is tapped.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("See all", substring = true))
+        compose.onNodeWithText("See all", substring = true).performClick()
         for (entry in catalog) {
             compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(entry.title))
             compose.onAllNodesWithText(entry.title).onLast().assertIsDisplayed()
@@ -57,8 +60,8 @@ class SetupPolishUiTest {
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Download sources"))
         compose.onNodeWithText("Download sources").assertHeightIsAtLeast(48.dp).performClick()
         compose.runOnIdle { assertEquals(1, sources) }
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Import .fapack"))
-        compose.onNodeWithText("Import .fapack").performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Import a file"))
+        compose.onNodeWithText("Import a file").performClick()
         compose.runOnIdle { assertEquals(1, imports) }
     }
 
@@ -69,7 +72,8 @@ class SetupPolishUiTest {
                 availableKnowledge = listOf(entry), online = true)
         } }
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(entry.title))
-        compose.onAllNodesWithText("Installed").assertCountEquals(1)
+        // One status line per row: "Installed · <what it holds>".
+        compose.onAllNodesWithText("Installed", substring = true).assertCountEquals(1)
         compose.onNodeWithContentDescription("Download ${entry.title}").assertDoesNotExist()
         assertReadable(entry.title)
     }
@@ -122,8 +126,8 @@ class SetupPolishUiTest {
             .assertIsDisplayed().assertIsEnabled().assertHeightIsAtLeast(48.dp)
         assertReadable(entry.title)
         capture("setup-polished-large-text")
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Import .fapack"))
-        compose.onNodeWithText("Import .fapack").performClick()
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Import a file"))
+        compose.onNodeWithText("Import a file").performClick()
         compose.runOnIdle { assertEquals(1, imports) }
         compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
     }

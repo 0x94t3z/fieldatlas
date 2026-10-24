@@ -2,6 +2,7 @@ package xyz.fieldatlas.ui
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -25,12 +26,11 @@ import org.junit.Rule
 import org.junit.Test
 import xyz.fieldatlas.assets.InstalledAsset
 import xyz.fieldatlas.assets.PackType
-import xyz.fieldatlas.inference.InferenceState
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.research.ResearchMetrics
 import xyz.fieldatlas.ui.library.LibraryScreen
+import xyz.fieldatlas.ui.research.AnswerScreen
 import xyz.fieldatlas.ui.research.ResearchPhase
-import xyz.fieldatlas.ui.research.ResearchScreen
 import xyz.fieldatlas.ui.research.ResearchUiState
 import xyz.fieldatlas.ui.setup.SetupScreen
 import xyz.fieldatlas.ui.theme.*
@@ -91,8 +91,8 @@ class MockupParityUiTest {
         val cited = compose.onNodeWithText("Cited").fetchSemanticsNode().boundsInRoot
         val private = compose.onNodeWithText("Private").fetchSemanticsNode().boundsInRoot
         assertTrue(offline.left < cited.left && cited.left < private.left)
-        compose.onNodeWithText("Import .fapack").assertIsDisplayed()
-        compose.onNodeWithText("Model or knowledge pack").assertIsDisplayed()
+        compose.onNodeWithText("Import a file").assertIsDisplayed()
+        compose.onNodeWithText("A model (.gguf) or a collection (.fapack)").assertIsDisplayed()
         val pixels = compose.onRoot().captureToImage().toPixelMap()
         val root = compose.onRoot().fetchSemanticsNode().boundsInRoot
         fun wash(rect: androidx.compose.ui.geometry.Rect) = pixels[
@@ -138,37 +138,48 @@ class MockupParityUiTest {
     }
 
     @Test fun readyAnswerStaysReadableAtLargeTextAndKeepsAllExistingActions() {
-        var opened = 0
+        // A finished answer opens on its own page (the home "Answer ready" card is gone). At 200% text in dark mode the
+        // answer, its source and time, the cited passage, copy, share, a follow-up and a new topic all stay reachable.
+        var opened = -1
         var another = 0
-        var submitted = 0
+        val followUps = mutableListOf<String>()
+        var draft by mutableStateOf("")
         val evidence = Evidence("attachment:pump", "chunk", "Pump manual.txt", "Attached file · text", "Use filter K-9.", 1.0)
         compose.setContent { FieldAtlasTheme(darkTheme = true) {
             val density = LocalDensity.current.density
             CompositionLocalProvider(LocalDensity provides Density(density, 2f)) {
-                androidx.compose.material3.Surface(Modifier.width(320.dp),
+                androidx.compose.material3.Surface(Modifier.width(320.dp).height(640.dp),
                     color = androidx.compose.material3.MaterialTheme.colorScheme.background) {
-                    ResearchScreen(ResearchUiState(question = "Which filter applies?", phase = ResearchPhase.Complete,
+                    AnswerScreen(ResearchUiState(question = "Which filter applies?", phase = ResearchPhase.Complete,
                         answer = "Use **Revision B**, filter K-9. [S1]", sources = listOf(evidence),
                         metrics = ResearchMetrics(10, 20, 4000, 20, setOf("S1"), false)),
-                        InferenceState.Ready, 1, onQuestionChange = {}, onSubmit = { submitted++ }, onPrepareModel = {}, onOpenAnswer = { opened++ },
-                        onAskAnotherQuestion = { another++ })
+                        onBack = {}, onAskAnother = { another++ }, onCitation = { opened = it },
+                        onFollowUp = { followUps += it }, followUpDraft = draft, onFollowUpDraftChange = { draft = it })
                 }
             }
         } }
-        compose.onNodeWithText("Answer ready").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("1 local source cited.").assertExists()
-        compose.onNodeWithText("Took 4s").assertExists()
-        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Read answer"))
-        // A 200% text card is taller than a normal one. Scroll it into the safe tap area,
-        // not just partially into view above Android's navigation bar.
-        compose.onNode(hasScrollToNodeAction()).performTouchInput { swipeUp() }
-        compose.onNodeWithText("Read answer").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-        capture("ready-answer-dark-large-before-open")
-        compose.onNodeWithText("Read answer").performClick()
-        compose.runOnIdle { assertEquals(1, opened); assertEquals(0, submitted) }
+        compose.onNodeWithText("Use Revision B, filter K-9.", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("**", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("1 cited local source").assertExists()
+        compose.onNodeWithText("4s").assertExists()
         capture("ready-answer-dark-large")
-        compose.onNodeWithText("Ask another question").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(1, another); assertEquals(0, submitted) }
+        val minTouch = with(compose.density) { 48.dp.toPx() }
+        // Copy and share sit in the top bar, which never scrolls away.
+        for (action in listOf("Copy answer with sources", "Share answer with sources")) {
+            val button = compose.onNodeWithContentDescription(action).assertIsDisplayed().assertHasClickAction()
+            val touch = button.fetchSemanticsNode().touchBoundsInRoot
+            assertTrue("$action must be at least 48 dp to touch", touch.width >= minTouch && touch.height >= minTouch)
+        }
+        // The citation opens the passage it cites over the answer; the full source is one more tap.
+        compose.onNodeWithContentDescription("Open source 1").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Use filter K-9.").assertIsDisplayed()
+        compose.onNodeWithText("Full source").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(0, opened) }
+        compose.onNodeWithContentDescription("Follow-up question").performTextInput("And revision A?")
+        compose.onNodeWithContentDescription("Ask follow-up").assertIsDisplayed().assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(listOf("And revision A?"), followUps) }
+        compose.onNode(hasText("New topic") and hasClickAction()).assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, another) }
     }
 
     @Test fun libraryBareImportKeepsItsTapTargetAndTransferGuards() {

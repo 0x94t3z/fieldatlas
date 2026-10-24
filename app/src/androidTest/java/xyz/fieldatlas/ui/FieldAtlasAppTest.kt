@@ -57,7 +57,7 @@ class FieldAtlasAppTest {
         compose.onNodeWithText("A little setup.\nThen, offline.").assertExists()
         compose.onNodeWithText("Choose what lives on your phone. You can change it later.").assertExists()
         compose.onNodeWithContentDescription("Download Qwen3.5 2B").assertExists().assertHasClickAction()
-        compose.onNodeWithText("Import .fapack").performScrollTo().assertHasClickAction()
+        compose.onNodeWithText("Import a file").performScrollTo().assertHasClickAction()
         compose.onNodeWithText("Start researching").assertIsDisplayed().assertIsNotEnabled()
     }
 
@@ -117,7 +117,7 @@ class FieldAtlasAppTest {
         render(packs = listOf(verifiedPacks().first()), researchState = ResearchUiState(question = "Tell me about birds"))
         compose.onNodeWithText("Start research").assertIsEnabled()
         compose.onNodeWithText("0 collections").assertExists()
-        compose.onNodeWithText("Add a knowledge pack in Library", substring = true).assertExists()
+        compose.onNodeWithText("No collections yet. Add one in Library for cited answers.").assertExists()
     }
 
     @Test fun libraryShowsNonBlockingPackVerificationState() {
@@ -157,8 +157,17 @@ class FieldAtlasAppTest {
     }
 
     @Test fun runningResearchKeepsStopVisible() {
-        render(researchState = ResearchUiState(question = "Explain", phase = ResearchPhase.Generating))
-        compose.onNodeWithText("Stop").assertExists().assertIsEnabled()
+        // While the model writes, Stop is the one button in the answer page's question box: shown, enabled and wired
+        // to the app's stop action, with no second "Stop" beside it. Back still leaves the page for the Research home.
+        var stops = 0
+        render(researchState = ResearchUiState(question = "Explain", phase = ResearchPhase.Generating,
+            startedAtNanos = System.nanoTime()), onStop = { stops++ })
+        compose.waitUntil { compose.onAllNodesWithText("Working on this answer · Stop ends it").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithContentDescription("Stop research").assertIsDisplayed().assertIsEnabled().performClick()
+        assertEquals(1, stops)
+        compose.onNodeWithText("Stop").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithContentDescription("Library").assertExists()
     }
 
     @Test fun aStartedRunOpensTheAnswerPageWithStopInTheQuestionBox() {
@@ -196,14 +205,15 @@ class FieldAtlasAppTest {
     }
 
     @Test fun citationOpensExactPassage() {
-        val passage = Evidence("doc", "doc:0000", "Exact title", "Exact source", "Exact passage text.", 1.0)
+        // The full source credits the licence of where the passage came from (Wikipedia here), never a pack's guess.
+        val passage = Evidence("doc", "doc:0000", "Exact title", "https://en.wikipedia.org/wiki/Exact_title", "Exact passage text.", 1.0)
         render(researchState = completedResearch("Answer [S1]", passage))
         compose.waitUntil { compose.onAllNodesWithText("1 cited local source").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithContentDescription("Open source 1").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
         compose.onNodeWithText("Full source").performClick()
         compose.onNodeWithText("Exact passage text.").assertExists()
-        compose.onNodeWithText("CC0 1.0", substring = true).performScrollTo().assertExists()
+        compose.onNodeWithText("CC BY-SA 4.0", substring = true).performScrollTo().assertExists()
         compose.onNodeWithText("Technical identifiers").performScrollTo().performClick()
         compose.onNodeWithText("doc").performScrollTo().assertExists()
         compose.onNodeWithText("doc:0000").assertExists()
@@ -272,7 +282,7 @@ class FieldAtlasAppTest {
 
     @Test fun libraryShowsBytesHashAndLicense() {
         render()
-        compose.onNodeWithText("Library").performClick()
+        compose.onNodeWithContentDescription("Library").performClick()
         // Sizes stay on each card; licence and checksum live in the pack's About sheet.
         compose.onNodeWithText("1.5 KB · v1", substring = true).assertExists()
         compose.onNodeWithText("2.5 KB · v1", substring = true).assertExists()
@@ -285,7 +295,7 @@ class FieldAtlasAppTest {
     @Test fun moreShowsNoNetworkState() {
         var opened = false
         render(onOpenBenchmark = { opened = true })
-        compose.onNodeWithText("More").performClick()
+        compose.onNodeWithContentDescription("More").performClick()
         compose.onNodeWithText("Privacy & offline use").assertExists()
         compose.onNodeWithText("App & device").performScrollTo().performClick()
         compose.onNodeWithText("Technical details").performScrollTo().performClick()
@@ -318,7 +328,7 @@ class FieldAtlasAppTest {
         compose.setContent {
             FieldAtlasTheme {
                 BenchmarkScreen(
-                    state = BenchmarkUiState(run, 18, question),
+                    state = BenchmarkUiState(run, 40, question),
                     inferenceState = InferenceState.Ready,
                     onRunNext = {},
                     onStop = {},
@@ -340,6 +350,7 @@ class FieldAtlasAppTest {
         researchState: ResearchUiState = ResearchUiState(),
         proof: ProofModel = proofModel(),
         onOpenBenchmark: () -> Unit = {},
+        onStop: () -> Unit = {},
     ) {
         compose.setContent {
             FieldAtlasApp(
@@ -351,7 +362,7 @@ class FieldAtlasAppTest {
                 onImportPack = {},
                 onQuestionChange = {},
                 onSubmit = {},
-                onStop = {},
+                onStop = onStop,
                 onOpenBenchmark = onOpenBenchmark,
             )
         }

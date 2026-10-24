@@ -34,7 +34,8 @@ class HistoryActionsUiTest {
             HistoryScreen(listOf(record), onDelete = { deleted = it })
         } } }
         compose.onNodeWithContentDescription("More for $question").performClick()
-        compose.onNodeWithText("Delete").performClick()
+        // The row's swipe background also reads "Delete"; the menu's item is the clickable one.
+        compose.onNode(hasText("Delete") and hasClickAction()).performClick()
         compose.onNodeWithText("Undo").assertIsDisplayed().performClick()
         compose.runOnIdle { assertNull(deleted) }
         compose.onNodeWithText(question).assertExists()

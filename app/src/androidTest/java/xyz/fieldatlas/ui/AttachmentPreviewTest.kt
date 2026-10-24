@@ -28,9 +28,9 @@ class AttachmentPreviewTest {
                     onQuestionChange = {}, onSubmit = {}, onPrepareModel = {}, onOpenAnswer = {})
             }
         }
-        compose.onNodeWithContentDescription("Add attachment").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Add a file").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Remove notes-1.txt").performClick()
-        compose.onNodeWithContentDescription("Add attachment").assertIsEnabled().performClick()
+        compose.onNodeWithContentDescription("Add a file").assertIsEnabled().performClick()
         compose.onNodeWithText("Choose a file").assertIsDisplayed()
     }
 

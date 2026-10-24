@@ -41,7 +41,7 @@ class MorePerformanceUiTest {
             BenchmarkResult("other", "Another question", BenchmarkResultState.FAILED, "", emptyList(), null, "Interrupted")))
         var exported: BenchmarkRun? = null
         compose.setContent { FieldAtlasTheme {
-            BenchmarkScreen(BenchmarkUiState(recorded, 18, question, error = "Interrupted"), InferenceState.Ready,
+            BenchmarkScreen(BenchmarkUiState(recorded, 40, question, error = "Interrupted"), InferenceState.Ready,
                 {}, {}, {}, { exported = it }, {})
         } }
         compose.onNodeWithText("2 of 40 recorded").assertExists()

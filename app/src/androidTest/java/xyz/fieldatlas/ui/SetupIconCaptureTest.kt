@@ -27,6 +27,9 @@ class SetupIconCaptureTest {
         } }
         val theme = if (dark) "dark" else "light"
         capture("setup-$theme-1")
+        // Setup lists three collections until "See all N collections" is tapped.
+        compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("See all", substring = true))
+        compose.onNodeWithText("See all", substring = true).performClick()
         catalog.forEachIndexed { index, entry ->
             compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(entry.title))
             if (index == 2 || index == catalog.lastIndex) capture("setup-$theme-${index + 2}")

@@ -24,7 +24,7 @@ class DownloadSourcesUiTest {
                 online = false, onOpenDownloadSources = { sources++ })
         } }
         compose.onNodeWithText("Download sources").performScrollTo().performClick()
-        compose.onNodeWithText("Import .fapack").performScrollTo().performClick()
+        compose.onNodeWithText("Import a file").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, sources); assertEquals(1, imports) }
         compose.onNodeWithText("Start researching").assertIsNotEnabled()
     }
@@ -53,9 +53,10 @@ class DownloadSourcesUiTest {
                 { null }, { closed++ })
         } }
         compose.onNodeWithText(model.title).performClick()
-        compose.onNodeWithText("Save source").performScrollTo().performClick()
+        // The editor's Save button and the sheet's Close sit outside its scrolling content: on screen, never scrolled to.
+        compose.onNodeWithText("Save source").assertIsDisplayed().performClick()
         compose.onNodeWithText("Couldn't save the source. Try again.").assertExists()
-        compose.onNodeWithContentDescription("Close download sources").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Close download sources").assertIsDisplayed().performClick()
         compose.runOnIdle { assertEquals(1, saves); assertEquals(1, closed) }
     }
 

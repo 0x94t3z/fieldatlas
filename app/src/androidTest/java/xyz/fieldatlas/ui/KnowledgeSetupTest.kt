@@ -60,7 +60,7 @@ class KnowledgeSetupTest {
         compose.onNodeWithText("Refresh").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(1, calls) }
         compose.onNodeWithText("Refreshing…").assertIsNotEnabled()
-        compose.onNodeWithText("Import .fapack").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Import a file").performScrollTo().assertIsEnabled()
     }
 
     @get:Rule val compose = foregroundComposeRule()
@@ -126,7 +126,7 @@ class KnowledgeSetupTest {
         compose.onNodeWithText("You’re offline. Import saved packs, or reconnect to download.").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Refresh failed").assertDoesNotExist()
         compose.onNodeWithContentDescription("Download Biology & longevity").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithText("Import .fapack").performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Import a file").performScrollTo().assertIsEnabled()
         compose.onNodeWithText("Start researching").assertIsEnabled()
     }
 
