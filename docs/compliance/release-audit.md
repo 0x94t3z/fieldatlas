@@ -12,7 +12,9 @@ release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3
 the previous candidate (`5c02cc26…`, from `e854703`) only in two screen-reader labels: Library's
 download button and a place's address copy button. Release lint reported 0 errors. Of 1,737 JVM tests,
 56 opt-in tests were skipped, 1,680 passed and 1 failed: its expected time for 9 am in London in South
-Korea holds only during British summer time, which ended on 25 October, the day of the run. 78 script,
+Korea holds only during British summer time, which ended on 25 October, the day of the run. With that
+test moved to fixed days on both sides of the change (`47b6669`, tests only; the APK is unchanged), the
+JVM tests ran again: 1,738, of which 1,682 passed and 56 were skipped, none failed. 78 script,
 12 pack-tool, 10 benchmark and 262 tool tests passed; two clean builds of the starter pack were
 byte-identical; the website's 22 browser tests and 6 build tests passed. The 144 instrumented tests ran
 on the 12 GB emulator in airplane mode: 141 passed, 3 opt-in network tests were skipped, none failed.

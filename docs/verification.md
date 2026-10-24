@@ -14,13 +14,15 @@
   previous candidate (`5c02cc26…`, built from `e854703` on 24 October) only in two screen-reader labels:
   Library's download button is read as "Download Qwen3.5 2B, 1.4 GB" instead of "1.4 GB, Qwen3.5 2B",
   and a place's address copy button as "Copy address" instead of "Copy".
-- **Automated:** release lint reported 0 errors. Of 1,737 JVM tests, 56 opt-in tests were skipped, 1,680
-  passed and 1 failed: it expects 9 am in London to be 5:00 pm in South Korea, which is true only during
-  British summer time. That ended on 25 October, the day of this run; from then the app's 6:00 pm is right
-  (on 24 October the same tests all passed). 78 script, 12 pack-tool, 10 benchmark and 262 tool tests
-  passed (2 skipped), two clean builds of the starter pack were byte-identical, and the website's 22
-  browser tests and 6 build tests passed. Every emergency routing change was checked against the 320
-  labelled questions.
+- **Automated:** release lint reported 0 errors. At `eb7ab5a`, of 1,737 JVM tests 56 opt-in tests were
+  skipped, 1,680 passed and 1 failed: it asked for 9 am in London in South Korea on the day it ran and
+  expected 5:00 pm, which is true only during British summer time. That ended on 25 October, the day of
+  the run, and the app's 6:00 pm was the right answer (on 24 October the same tests all passed). The test
+  now checks fixed days on both sides of the change (`47b6669`, tests only; the APK is unchanged), and the
+  rerun on 25 October passed: 1,738 JVM tests, 1,682 passed, 56 skipped, none failed. 78 script,
+  12 pack-tool, 10 benchmark and 262 tool tests passed (2 skipped), two clean builds of the starter pack
+  were byte-identical, and the website's 22 browser tests and 6 build tests passed. Every emergency
+  routing change was checked against the 320 labelled questions.
 - **On-device tests:** the 144 instrumented tests ran on the 12 GB Android 15 emulator in airplane mode on
   25 October: 141 passed and 3 were skipped, the opt-in tests that download from the internet; none
   failed. Earlier that day one test that types into a text field (Download sources) failed once in seven
