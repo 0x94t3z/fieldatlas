@@ -37,11 +37,11 @@ class DeviceLocation(private val context: Context) {
     fun hasPermission(): Boolean = granted(Manifest.permission.ACCESS_FINE_LOCATION) ||
         granted(Manifest.permission.ACCESS_COARSE_LOCATION)
 
+    suspend fun current(): GeoPoint? = position().also { lastProblem = if (it == null && lastProblem == null) LocationProblem.NO_FIX else lastProblem }
+
     // Permission is checked on entry and every provider call is wrapped for SecurityException
     // (the user can revoke it mid-call); lint cannot see through runCatching.
     @SuppressLint("MissingPermission")
-    suspend fun current(): GeoPoint? = position().also { lastProblem = if (it == null && lastProblem == null) LocationProblem.NO_FIX else lastProblem }
-
     private suspend fun position(): GeoPoint? {
         lastProblem = null
         if (!hasPermission()) { lastProblem = LocationProblem.NO_PERMISSION; return null }

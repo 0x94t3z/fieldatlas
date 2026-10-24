@@ -216,7 +216,7 @@ class SourceListTest(unittest.TestCase):
         data = ed.load_sources(SOURCES)
         for source in data["sources"]:
             if source["kind"] == "html":
-                self.assertIn(re.match(r"https://([^/]+)/", source["url"]).group(1), ed.FEDERAL_HOSTS)
+                self.assertIn(re.match(r"https://([^/]+)/", source["url"]).group(1), ed.HTML_HOSTS)
                 self.assertNotIn("/ency/", source["url"], "MedlinePlus A.D.A.M. encyclopedia pages are copyrighted")
             else:
                 self.assertIsInstance(source["revision"], int)
@@ -244,7 +244,7 @@ class BuiltFilesTest(unittest.TestCase):
                 self.assertRegex(guide["id"], r"^[a-z0-9-]+$")
                 self.assertIn(guide["category"], ed.CATEGORIES)
                 self.assertIsInstance(guide["urgent"], bool)
-                self.assertIn(guide["region"], (None, "US"))
+                self.assertIn(guide["region"], (None, "US", "UK"))
                 self.assertTrue(guide["keywords"] and all(isinstance(k, str) and k for k in guide["keywords"]))
                 self.assertTrue(guide["sections"])
                 for section in guide["sections"]:
@@ -267,7 +267,7 @@ class BuiltFilesTest(unittest.TestCase):
                     self.assertIn("Wikipedia contributors", source["attribution"])
                 else:
                     self.assertIsNone(source["revision"])
-                    self.assertIn(re.match(r"https://([^/]+)/", source["url"]).group(1), ed.FEDERAL_HOSTS)
+                    self.assertIn(re.match(r"https://([^/]+)/", source["url"]).group(1), ed.HTML_HOSTS)
 
     def test_no_markup_citations_or_boilerplate_in_guide_text(self):
         for guide in self.guides["guides"]:
