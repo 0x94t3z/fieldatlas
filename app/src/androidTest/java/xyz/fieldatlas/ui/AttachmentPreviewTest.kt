@@ -25,7 +25,7 @@ class AttachmentPreviewTest {
             FieldAtlasTheme {
                 ResearchScreen(ResearchUiState(attachments = files), InferenceState.Ready, 1,
                     onRemoveAttachment = { id -> files = files.filterNot { it.id == id } },
-                    onQuestionChange = {}, onSubmit = {}, onStop = {}, onPrepareModel = {}, onOpenAnswer = {})
+                    onQuestionChange = {}, onSubmit = {}, onPrepareModel = {}, onOpenAnswer = {})
             }
         }
         compose.onNodeWithContentDescription("Add attachment").assertIsNotEnabled()

@@ -84,21 +84,7 @@ class ResearchPresentationTest {
         assertEquals(setOf(1, 2, 3), model.availableCitations)
     }
 
-    @Test fun generationLabelsUsePlainResearchLanguage() {
-        assertEquals("Ready for a question", researchActivityLabel(ResearchPhase.Idle))
-        assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching))
-        assertEquals("Searching your library (47%)", researchActivityLabel(ResearchPhase.Searching, 0.47))
-        assertEquals("Searching your library", researchActivityLabel(ResearchPhase.Searching, 0.004))
-        assertEquals(
-            "Searching your library (+3 concept matches, 42%)",
-            researchActivityLabel(ResearchPhase.Searching, 0.42, vectorMatches = 3),
-        )
-        assertEquals("Writing an offline answer", researchActivityLabel(ResearchPhase.Generating))
-        assertEquals("Writing an offline answer", researchActivityLabel(ResearchPhase.Generating, hasSources = false))
-        assertEquals(
-            "Reading the question (123/2374 tokens read)",
-            researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374, hasSources = false),
-        )
+    @Test fun draftPreviewsDropCitationsAndKeepListItems() {
         assertEquals("**Axial tilt** explains seasons.", draftAnswerPreview("**Axial tilt** [S1] explains seasons."))
         // A long draft cut at a nested list item still draws that item as a list item.
         val excerpt = "First Aid: If a snake bites you\n\n" + "- Seek emergency medical attention as soon as possible.\n".repeat(12) +
@@ -107,25 +93,6 @@ class ResearchPresentationTest {
         assertTrue(preview, preview.startsWith("…\n\n- "))
         val items = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(preview).filterIsInstance<xyz.fieldatlas.ui.markdown.MarkdownBlock.ListBlock>()
         assertTrue(preview, items.isNotEmpty())
-        assertEquals(
-            "Writing an offline answer (85 tokens written)",
-            researchActivityLabel(ResearchPhase.Generating, tokensWritten = 85),
-        )
-        assertEquals(
-            "Reading from sources (123/2374 tokens read)",
-            researchActivityLabel(ResearchPhase.Generating, promptRead = 123 to 2374),
-        )
-        assertEquals(
-            "Writing an offline answer (85 tokens written)",
-            researchActivityLabel(ResearchPhase.Generating, promptRead = 2374 to 2374, tokensWritten = 85),
-        )
-        assertEquals(
-            "Generating search keywords (12/58 tokens read)",
-            researchActivityLabel(ResearchPhase.Planning, promptRead = 12 to 58),
-        )
-        assertEquals("Answer ready", researchActivityLabel(ResearchPhase.Complete))
-        assertEquals("More evidence needed", researchActivityLabel(ResearchPhase.Insufficient))
-        assertEquals("Research needs attention", researchActivityLabel(ResearchPhase.Error))
     }
 
     private fun metrics(

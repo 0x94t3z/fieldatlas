@@ -3,7 +3,6 @@ package xyz.fieldatlas.ui.theme
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.background
@@ -21,23 +20,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -46,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -296,28 +287,6 @@ fun FieldAtlasPrimaryButton(
     }
 }
 
-@Composable
-fun FieldAtlasInformationAction(
-    label: String,
-    onClick: () -> Unit,
-    expanded: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    TextButton(shape = FieldAtlasButtonShape, onClick = onClick, modifier = modifier.fillMaxWidth()) {
-        Icon(
-            Icons.Outlined.Info,
-            contentDescription = null,
-            modifier = Modifier.heightIn(max = 22.dp),
-        )
-        Text(
-            label,
-            modifier = Modifier.weight(1f).padding(start = 12.dp),
-            style = MaterialTheme.typography.titleMedium,
-        )
-        FieldAtlasExpandIcon(expanded)
-    }
-}
-
 /** One chevron for every disclosure: down when closed, up when open. */
 @Composable
 fun FieldAtlasExpandIcon(
@@ -411,72 +380,9 @@ fun FieldAtlasFactRow(
     }
 }
 
-/** A coloured dot that marks a status next to its text label (never colour alone). */
-@Composable
-fun FieldAtlasStatusDot(tone: StatusTone, modifier: Modifier = Modifier) {
-    val color = when (tone) {
-        StatusTone.Positive -> MaterialTheme.colorScheme.primary
-        StatusTone.Attention -> Color(0xFFC9A85C)
-        StatusTone.Neutral -> MaterialTheme.colorScheme.outline
-    }
-    Box(modifier.size(8.dp).background(color, CircleShape))
-}
-
-/** The app's mark: a forest tile with a leaf, beside the editorial wordmark. */
-@Composable
-fun FieldAtlasBrandMark(modifier: Modifier = Modifier) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-        FieldAtlasIconTile(FieldAtlasIcons.Knowledge, size = 34.dp, tone = TileTone.Forest)
-        Text("Field Atlas", style = MaterialTheme.typography.titleLarge, fontFamily = FieldAtlasEditorial)
-    }
-}
-
 @Composable
 fun FieldAtlasHeader(title: String, subtitle: String, modifier: Modifier = Modifier) {
     FieldAtlasPageHeader(title, subtitle, modifier)
-}
-
-@Composable
-fun NotebookSection(
-    title: String,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            title.uppercase(),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-        )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        content()
-    }
-}
-
-@Composable
-fun StatusStrip(
-    items: List<String>,
-    modifier: Modifier = Modifier,
-    containerColor: Color? = null,
-    contentColor: Color? = null,
-) {
-    Row(
-        modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items.forEach { item ->
-            FieldAtlasStatusPill(text = item, containerColor = containerColor, contentColor = contentColor)
-        }
-    }
-}
-
-@Composable
-fun MetricChip(label: String, value: String? = null, modifier: Modifier = Modifier) {
-    FieldAtlasStatusPill(
-        text = listOfNotNull(label, value).joinToString(" · "),
-        modifier = modifier,
-    )
 }
 
 /**

@@ -32,14 +32,6 @@ internal fun MoreDivider() {
 }
 
 @Composable
-internal fun MoreAction(title: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(FieldAtlasButtonShape)
-        .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-    }
-}
-
-@Composable
 internal fun MoreInfoBlock(title: String, body: String, icon: ImageVector? = null) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
         if (icon != null) Icon(icon, null, Modifier.padding(top = 2.dp).size(20.dp), tint = MaterialTheme.colorScheme.primary)

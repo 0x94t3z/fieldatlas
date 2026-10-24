@@ -97,7 +97,7 @@ class ModernUiTest {
         var picked = 0
         compose.setContent { FieldAtlasTheme {
             ResearchScreen(ResearchUiState(), InferenceState.Ready, 1,
-                onQuestionChange = {}, onSubmit = {}, onStop = {}, onPrepareModel = {}, onOpenAnswer = {},
+                onQuestionChange = {}, onSubmit = {}, onPrepareModel = {}, onOpenAnswer = {},
                 onFilesClick = { picked++ })
         } }
         compose.onNodeWithContentDescription("Add a file").performScrollTo().performClick()
@@ -116,7 +116,7 @@ class ModernUiTest {
         var submitted = 0
         compose.setContent { FieldAtlasTheme {
             ResearchScreen(ResearchUiState(), InferenceState.Ready, 1,
-                onQuestionChange = { draft = it }, onSubmit = { submitted++ }, onStop = {}, onPrepareModel = {}, onOpenAnswer = {})
+                onQuestionChange = { draft = it }, onSubmit = { submitted++ }, onPrepareModel = {}, onOpenAnswer = {})
         } }
         compose.onAllNodesWithText("Tap to try", useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithText("A few places to start").performScrollTo()
@@ -142,7 +142,7 @@ class ModernUiTest {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, 2f)) {
                 Box(Modifier.width(320.dp).height(640.dp)) {
                     ResearchScreen(ResearchUiState(), InferenceState.Ready, 1,
-                        onQuestionChange = { draft = it }, onSubmit = { submitted++ }, onStop = {},
+                        onQuestionChange = { draft = it }, onSubmit = { submitted++ },
                         onPrepareModel = {}, onOpenAnswer = {})
                 }
             }
@@ -311,55 +311,13 @@ class ModernUiTest {
         }
     }
 
-    @Test fun researchProgressKeepsLivePhasesRestoredTimelineAndStopCallback() {
-        val evidence = Evidence("attachment:pump", "chunk", "Pump manual.txt", "Attached file · text", "Use filter K-9.", 1.0)
-        val state = mutableStateOf(ResearchUiState(question = "Which filter applies?", phase = ResearchPhase.Searching))
-        var stopped = 0
-        compose.setContent { FieldAtlasTheme {
-            ResearchScreen(state.value, InferenceState.Generating, 1,
-                onQuestionChange = {}, onSubmit = {}, onStop = { stopped++ }, onPrepareModel = {}, onOpenAnswer = {})
-        } }
-        compose.onNodeWithText("Looking into your question.").assertIsDisplayed()
-        compose.onNodeWithText("Working locally. Your question stays on this phone.").assertIsDisplayed()
-        compose.onNodeWithText("YOUR QUESTION").assertIsDisplayed()
-        compose.onNodeWithText("Finding evidence").assertIsDisplayed()
-        compose.onNodeWithText("Stop research").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Done").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Step 1").assert(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "In progress"))
-        compose.onNodeWithContentDescription("Research progress").assertExists()
-        // An early source lead is not a model token: keep the reading phase until tokens arrive.
-        compose.runOnIdle { state.value = state.value.copy(phase = ResearchPhase.Generating,
-            sources = listOf(evidence), answer = "Saved source lead", promptRead = 25 to 100) }
-        compose.onNodeWithText("Reading your sources").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Step 1").assert(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "Completed"))
-        compose.onNodeWithContentDescription("Step 2").assert(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "In progress"))
-        // The restored timeline places the real indicator under the active stage, not below all three.
-        val reading = compose.onNodeWithText("Read the sources").fetchSemanticsNode().boundsInRoot
-        val pending = compose.onNodeWithText("Write the answer").fetchSemanticsNode().boundsInRoot
-        val indicator = compose.onNodeWithContentDescription("Research progress").fetchSemanticsNode().boundsInRoot
-        assertTrue(indicator.top >= reading.bottom)
-        assertTrue(indicator.bottom <= pending.top)
-        compose.onNodeWithText("1", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithText("2", useUnmergedTree = true).assertDoesNotExist()
-        capture("restored-timeline-reading-light")
-        compose.runOnIdle { state.value = state.value.copy(tokensWritten = 7, answer = "Use filter K-9.") }
-        compose.onNodeWithText("Writing your answer").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Step 3").assert(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "In progress"))
-        compose.onNodeWithText("Stop").performClick()
-        compose.runOnIdle { assertEquals(1, stopped) }
-    }
-
     @Test fun researchStopRemainsReachableWithLargeTextInDarkMode() {
         compose.setContent { FieldAtlasTheme(darkTheme = true) {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
                 Box(Modifier.width(320.dp).height(640.dp)) {
                     ResearchScreen(ResearchUiState(question = "A long question about a saved document",
                         phase = ResearchPhase.Generating), InferenceState.Generating, 1,
-                        onQuestionChange = {}, onSubmit = {}, onStop = {}, onPrepareModel = {}, onOpenAnswer = {})
+                        onQuestionChange = {}, onSubmit = {}, onPrepareModel = {}, onOpenAnswer = {})
                 }
             }
         } }

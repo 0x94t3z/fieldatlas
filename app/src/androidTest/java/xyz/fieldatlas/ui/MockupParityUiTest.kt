@@ -150,8 +150,7 @@ class MockupParityUiTest {
                     ResearchScreen(ResearchUiState(question = "Which filter applies?", phase = ResearchPhase.Complete,
                         answer = "Use **Revision B**, filter K-9. [S1]", sources = listOf(evidence),
                         metrics = ResearchMetrics(10, 20, 4000, 20, setOf("S1"), false)),
-                        InferenceState.Ready, 1, onQuestionChange = {}, onSubmit = { submitted++ },
-                        onStop = {}, onPrepareModel = {}, onOpenAnswer = { opened++ },
+                        InferenceState.Ready, 1, onQuestionChange = {}, onSubmit = { submitted++ }, onPrepareModel = {}, onOpenAnswer = { opened++ },
                         onAskAnotherQuestion = { another++ })
                 }
             }

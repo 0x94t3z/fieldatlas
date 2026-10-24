@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.BorderStroke
@@ -23,7 +22,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.sp
-import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.indication
 import androidx.compose.ui.draw.clip
@@ -33,10 +31,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -75,7 +70,6 @@ import xyz.fieldatlas.ui.sources.SourcesScreen
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasTheme
 import xyz.fieldatlas.ui.theme.FieldAtlasTopBar
-import xyz.fieldatlas.ui.theme.FieldAtlasColors
 
 @OptIn(androidx.compose.animation.ExperimentalSharedTransitionApi::class)
 @Composable
@@ -511,11 +505,9 @@ fun FieldAtlasApp(
                             navigation.openAnswer()
                             onSubmit()
                         },
-                        onStop = onStop,
                         onPrepareModel = onLoadModel,
                         onOpenAnswer = navigation::openAnswer,
                         onAskAnotherQuestion = onAskAnotherQuestion,
-                        onEditReadAs = onEditReadAs,
                         answersWithoutModel = answersWithoutModel,
                         background = researchBackground,
                         onOpenBackground = { id -> if (onOpenBackground(id)) navigation.openAnswer() else onDismissBackground(id) },

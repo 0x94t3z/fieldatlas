@@ -1,12 +1,10 @@
 package xyz.fieldatlas.ui.research
 
 import xyz.fieldatlas.ui.sharedQuestionBox
-import xyz.fieldatlas.ui.theme.FieldAtlasProgressBar
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,28 +24,23 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -73,16 +65,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.em
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.semantics.stateDescription
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.inference.InferenceState
-import xyz.fieldatlas.ui.markdown.AnswerMarkdownRenderer
-import xyz.fieldatlas.ui.markdown.parseAnswerMarkdown
 import xyz.fieldatlas.ui.theme.FieldAtlasCard
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 import xyz.fieldatlas.ui.theme.FieldAtlasPageHeader
@@ -118,11 +103,9 @@ fun ResearchScreen(
     onRetryAttachment: (String) -> Unit = {},
     onQuestionChange: (String) -> Unit,
     onSubmit: () -> Unit,
-    onStop: () -> Unit,
     onPrepareModel: () -> Unit,
     onOpenAnswer: () -> Unit,
     onAskAnotherQuestion: () -> Unit = {},
-    onEditReadAs: () -> Unit = {},
     listState: LazyListState = rememberLazyListState(),
     /** True when the app answers this question itself (emergency guide, near-me lookup), with no model. */
     answersWithoutModel: (question: String, hasAttachments: Boolean) -> Boolean = { question, hasAttachments ->
@@ -162,21 +145,7 @@ fun ResearchScreen(
             }
         }
         item {
-            if (state.isRunning) {
-                Column(Modifier.padding(top = 8.dp)) {
-                    Box(Modifier.fillMaxWidth().heightIn(min = 32.dp).padding(top = 4.dp),
-                        contentAlignment = Alignment.CenterStart) {
-                        Text("Researching", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight(650)))
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Looking into your question.", style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 28.sp, lineHeight = 33.6.sp, fontWeight = FontWeight(650), letterSpacing = (-0.025f).em))
-                        Text("Working locally. Your question stays on this phone.", style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            } else FieldAtlasPageHeader(
+            FieldAtlasPageHeader(
                 // A finished answer is read on its own page and waits here as a row, so this is always the asking view.
                 title = "Ask the atlas.",
                 subtitle = "Answered on this phone, from what’s saved here.",
@@ -184,8 +153,7 @@ fun ResearchScreen(
                 titleStyle = MaterialTheme.typography.displaySmall,
             )
         }
-        // The design drops the status chips while research runs, keeping focus on progress.
-        if (!state.isRunning) item {
+        item {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Reflects the real connection: research runs on the phone either way.
                 val online = xyz.fieldatlas.ui.setup.rememberSetupConnectivity()
@@ -212,18 +180,7 @@ fun ResearchScreen(
                 }
             }
         }
-        if (state.isRunning) {
-            item {
-                ResearchQuestionPanel(
-                    question = state.shownQuestion,
-                    onEdit = null,
-                    running = state.isRunning,
-                    followsUp = state.earlier.firstOrNull()?.asked?.takeIf { state.asked.isNotBlank() },
-                    readAs = state.question.takeIf { state.asked.isNotBlank() },
-                    onEditReadAs = onEditReadAs,
-                )
-            }
-        } else item {
+        item {
             Surface(
                 // Start research carries this box down into the answer page's question box.
                 modifier = Modifier.fillMaxWidth().sharedQuestionBox(),
@@ -376,13 +333,9 @@ fun ResearchScreen(
         item {
             ResearchAction(
                 state = state,
-                // The model busy with an answer New topic left running is not this question's: it can be asked,
-                // and waits its turn.
-                inferenceState = if (background.any { it.running } && !state.isRunning &&
-                    inferenceState == InferenceState.Generating) InferenceState.Ready else inferenceState,
+                inferenceState = inferenceState,
                 answersWithoutModel = answersWithoutModel,
                 onSubmit = onSubmit,
-                onStop = onStop,
                 onPrepareModel = onPrepareModel,
             )
         }
@@ -450,84 +403,13 @@ fun ResearchScreen(
 
 /** How a follow-up is searched, as one standalone question, with Edit to correct it. */
 @Composable
-private fun ReadAsRow(readAs: String, onEdit: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(FieldAtlasIcons.Research, null, Modifier.padding(top = 2.dp).size(17.dp), tint = MaterialTheme.colorScheme.primary)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Searching for", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(readAs, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight(550)))
-            }
-            androidx.compose.material3.TextButton(onClick = onEdit) { Text("Edit") }
-        }
-    }
-}
-
-@Composable
-internal fun ResearchQuestionPanel(
-    question: String,
-    onEdit: (() -> Unit)?,
-    running: Boolean = false,
-    followsUp: String? = null,
-    readAs: String? = null,
-    onEditReadAs: () -> Unit = {},
-) {
-    if (running) {
-        FieldAtlasCard(Modifier.fillMaxWidth()) {
-            Text(if (followsUp != null) "FOLLOW-UP TO · ${followsUp.uppercase()}" else "YOUR QUESTION",
-                style = MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp, fontWeight = FontWeight(650), letterSpacing = 0.6.sp),
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            Text(question, modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 15.sp, lineHeight = 24.sp, fontWeight = FontWeight(450)))
-            // A follow-up is searched as one standalone question; show that reading, and let it be corrected.
-            if (readAs != null) ReadAsRow(readAs, onEditReadAs, Modifier.padding(top = 6.dp))
-        }
-        return
-    }
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Your question", modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                if (onEdit != null) {
-                    IconButton(onClick = onEdit) {
-                        Icon(FieldAtlasIcons.Edit, contentDescription = "Edit question",
-                            modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-            Text(question, modifier = Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.bodyLarge, fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasSans,
-                fontWeight = FontWeight.Medium)
-        }
-    }
-}
-
-
-@Composable
 private fun ResearchAction(
     state: ResearchUiState,
     inferenceState: InferenceState,
     answersWithoutModel: (String, Boolean) -> Boolean,
     onSubmit: () -> Unit,
-    onStop: () -> Unit,
     onPrepareModel: () -> Unit,
 ) {
-    if (state.isRunning || inferenceState == InferenceState.Generating) {
-        ResearchProgressCard(state, onStop)
-        return
-    }
     // Missing inputs, emergency guides and near-me lookups are answered without the language
     // model, so they must not wait for it to load (or fail to load on a low-memory phone).
     // Once per question, not on every redraw.
@@ -544,7 +426,9 @@ private fun ResearchAction(
         return
     }
     when (inferenceState) {
-        InferenceState.Ready -> FieldAtlasPrimaryButton(
+        // A model busy with an answer kept off the screen still takes a question: it waits its turn, and the home's
+        // "Still answering" row shows the other one. The old progress card that stood here is gone (24 Oct).
+        InferenceState.Ready, InferenceState.Generating -> FieldAtlasPrimaryButton(
             text = "Start research",
             onClick = onSubmit,
             enabled = state.canSubmit,
@@ -568,62 +452,6 @@ private fun ResearchAction(
             onClick = onPrepareModel,
             modifier = Modifier.fillMaxWidth(),
         )
-        InferenceState.Generating -> Unit
-    }
-}
-
-/** The live status of a research run on the Research home: what it is doing, time so far, the steps, and Stop. */
-@Composable
-private fun ResearchProgressCard(state: ResearchUiState, onStop: () -> Unit) {
-    var elapsedMillis by remember(state.clockStartNanos) { mutableLongStateOf(0L) }
-    LaunchedEffect(state.clockStartNanos) {
-        val start = state.clockStartNanos ?: return@LaunchedEffect
-        while (true) {
-            elapsedMillis = ((System.nanoTime() - start) / 1_000_000).coerceAtLeast(0L)
-            delay(1_000)
-        }
-    }
-    val modelWriting = state.tokensWritten > 0
-    FieldAtlasCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // A source lead arrives before the model writes; until then the model is still reading.
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(if (state.waitingFor != null) "Waiting for your last question"
-                    else researchProgressHeading(state.phase, if (modelWriting) state.answer else "", state.sources.isNotEmpty(),
-                    drafting = modelWriting, checking = state.checking),
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, lineHeight = 22.sp,
-                        fontWeight = FontWeight(650)))
-                if (state.startedAtNanos != null) {
-                    Text(formatResearchElapsed(elapsedMillis), style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.semantics { contentDescription = "${formatResearchElapsed(elapsedMillis)} elapsed" })
-                }
-            }
-            FilledTonalButton(shape = FieldAtlasButtonShape, onClick = onStop, modifier = Modifier.heightIn(min = 48.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                )) { Text("Stop") }
-        }
-        ResearchSteps(researchSteps(state, rememberPrefillEstimate(state)))
-        if (state.phase == ResearchPhase.Generating && state.sources.isEmpty()) {
-            Text("Model-generated · no supporting sources found",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        // Parsed once per answer change, not on every progress tick.
-        val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
-        if (draftBlocks.isNotEmpty()) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-            AnswerMarkdownRenderer(
-                blocks = draftBlocks,
-                sourceCount = 0,
-                onCitation = {},
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
     }
 }
 
@@ -653,69 +481,6 @@ internal fun rememberPrefillEstimate(state: ResearchUiState): PrefillEstimate? {
 }
 
 private data class ExampleQuestion(val label: String, val question: String, val icon: ImageVector, val tone: TileTone)
-
-@Composable
-private fun ResearchSteps(steps: List<ResearchStep>) {
-    Column(Modifier.fillMaxWidth()) {
-        steps.forEachIndexed { index, step ->
-            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.width(24.dp).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    StepMarker(index + 1, step.status)
-                    if (index < steps.lastIndex) {
-                        Box(Modifier.width(2.dp).weight(1f).heightIn(min = 18.dp)
-                            .background(if (step.status == StepStatus.Done) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outlineVariant))
-                    }
-                }
-                Column(Modifier.weight(1f).padding(top = 1.dp, bottom = if (index < steps.lastIndex) 18.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(step.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp, lineHeight = 21.sp),
-                        fontWeight = FontWeight.Medium,
-                        color = if (step.status == StepStatus.Pending) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.onSurface)
-                    step.detail?.let {
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (step.status == StepStatus.Active) {
-                        val indicator = Modifier.padding(top = 5.dp).fillMaxWidth().height(5.dp)
-                            .semantics { contentDescription = "Research progress" }
-                        val progress = step.progress
-                        if (progress != null) FieldAtlasProgressBar(progress = { progress }, modifier = indicator,
-                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
-                        else LinearProgressIndicator(indicator,
-                            color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.surfaceVariant)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun StepMarker(number: Int, status: StepStatus) {
-    val primary = MaterialTheme.colorScheme.primary
-    val background = when (status) {
-        StepStatus.Done -> primary
-        StepStatus.Active, StepStatus.Pending -> MaterialTheme.colorScheme.surface
-    }
-    val foreground = when (status) {
-        StepStatus.Done -> MaterialTheme.colorScheme.onPrimary
-        StepStatus.Active, StepStatus.Pending -> primary
-    }
-    Surface(Modifier.size(24.dp).semantics {
-        contentDescription = "Step $number"
-        stateDescription = when (status) { StepStatus.Done -> "Completed"; StepStatus.Active -> "In progress"; StepStatus.Pending -> "Pending" }
-    }, shape = CircleShape, color = background, contentColor = foreground,
-        border = if (status == StepStatus.Done) null else BorderStroke(2.dp,
-            if (status == StepStatus.Active) primary else MaterialTheme.colorScheme.outlineVariant)) {
-        Box(contentAlignment = Alignment.Center) {
-            when (status) {
-                StepStatus.Done -> Icon(FieldAtlasIcons.Check, null, Modifier.size(15.dp))
-                StepStatus.Active -> Box(Modifier.size(9.dp).background(primary, CircleShape))
-                StepStatus.Pending -> Unit
-            }
-        }
-    }
-}
 
 @Composable
 private fun MessageCard(title: String, message: String) {

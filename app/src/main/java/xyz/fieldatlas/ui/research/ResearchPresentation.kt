@@ -11,21 +11,6 @@ import xyz.fieldatlas.ui.markdown.plainText
 
 typealias ResearchCompletion = DomainResearchCompletion
 
-internal fun researchProgressHeading(
-    phase: ResearchPhase, answer: String, hasSources: Boolean, drafting: Boolean = false, checking: Boolean = false,
-): String =
-    when (phase) {
-        ResearchPhase.Planning -> "Understanding your question…"
-        ResearchPhase.Searching -> "Finding evidence"
-        ResearchPhase.Generating -> when {
-            checking -> "Checking your answer"
-            answer.isNotBlank() || drafting -> "Writing your answer"
-            hasSources -> "Reading your sources"
-            else -> "Preparing your answer…"
-        }
-        else -> "Writing your answer"
-    }
-
 internal fun readyCitationCount(answer: String, sourceCount: Int): Int =
     buildAnswerPresentation(answer, sourceCount).availableCitations.size
 
@@ -121,42 +106,6 @@ fun buildAnswerPresentation(answer: String, sourceCount: Int): AnswerPresentatio
     )
 }
 
-fun researchActivityLabel(
-    phase: ResearchPhase,
-    retrievalProgress: Double = 0.0,
-    promptRead: Pair<Int, Int>? = null,
-    tokensWritten: Int = 0,
-    vectorMatches: Int = 0,
-    hasSources: Boolean = true,
-): String {
-    val readSuffix = promptRead
-        ?.takeIf { (read, total) -> total > 0 && read <= total && tokensWritten == 0 }
-        ?.let { (read, total) -> " ($read/$total tokens read)" }
-        .orEmpty()
-    return when (phase) {
-        ResearchPhase.Idle -> "Ready for a question"
-        ResearchPhase.Planning -> "Generating search keywords$readSuffix"
-        ResearchPhase.Searching -> if (retrievalProgress >= 0.02) {
-            val found = if (vectorMatches > 0) "+$vectorMatches concept matches, " else ""
-            "Searching your library ($found${(retrievalProgress * 100).toInt().coerceIn(1, 99)}%)"
-        } else {
-            "Searching your library"
-        }
-        ResearchPhase.Generating -> if (hasSources) when {
-            tokensWritten > 0 -> "Writing an offline answer ($tokensWritten tokens written)"
-            readSuffix.isNotEmpty() -> "Reading from sources$readSuffix"
-            else -> "Writing an offline answer"
-        } else when {
-            tokensWritten > 0 -> "Writing an offline answer ($tokensWritten tokens written)"
-            readSuffix.isNotEmpty() -> "Reading the question$readSuffix"
-            else -> "Writing an offline answer"
-        }
-        ResearchPhase.Complete -> "Answer ready"
-        ResearchPhase.Insufficient -> "More evidence needed"
-        ResearchPhase.Error -> "Research needs attention"
-    }
-}
-
 fun formatResearchMetrics(metrics: ResearchMetrics, sourceCount: Int): ResearchMetricsModel {
     val citedCount = metrics.citedSourceIds.size.coerceAtMost(sourceCount.coerceAtLeast(0))
     // Writing speed counts the writing only; dividing by the whole wait (search and prompt
@@ -214,8 +163,6 @@ private fun MarkdownInline.citationNumbers(): List<Int> = when (this) {
     is MarkdownInline.Text, is MarkdownInline.Code -> emptyList()
 }
 
-internal enum class StepStatus { Done, Active, Pending }
-
 /** One engine report while the model reads its prompt: [read] of [total] tokens at [atMillis]. */
 internal data class PrefillSample(val read: Int, val total: Int, val atMillis: Long)
 
@@ -245,60 +192,4 @@ internal fun formatTimeLeft(seconds: Long): String = when {
     seconds <= 3 -> "almost done"
     seconds < 60 -> "about ${((seconds + 4) / 5 * 5)} s left"
     else -> "about ${(seconds + 30) / 60} min left"
-}
-
-internal data class ResearchStep(
-    val title: String,
-    val status: StepStatus,
-    val detail: String? = null,
-    /** 0..1 when the step can measure itself; null draws an indeterminate bar. */
-    val progress: Float? = null,
-)
-
-/**
- * The three stages a question passes through on the phone. A source lead can appear before the
- * model writes, so "writing" starts with the first model token, not with the first answer text.
- */
-internal fun researchSteps(state: ResearchUiState, readEstimate: PrefillEstimate? = null): List<ResearchStep> {
-    val searched = state.phase == ResearchPhase.Generating || state.phase == ResearchPhase.Complete
-    val writing = state.tokensWritten > 0
-    val passages = state.sources.size
-    val search = ResearchStep(
-        title = if (state.attachments.isNotEmpty()) "Search your files" else "Search your collections",
-        status = if (searched) StepStatus.Done else StepStatus.Active,
-        detail = when {
-            searched -> when (passages) {
-                0 -> "No matching passages"
-                1 -> "1 passage found"
-                else -> "$passages passages found"
-            }
-            state.keywords.isNotEmpty() -> "Looking for ${state.keywords.take(4).joinToString(", ")}"
-            else -> null
-        },
-    )
-    val read = ResearchStep(
-        title = if (searched && passages == 0) "Prepare the model" else "Read the sources",
-        status = when {
-            writing -> StepStatus.Done
-            searched -> StepStatus.Active
-            else -> StepStatus.Pending
-        },
-        detail = if (readEstimate != null && searched && !writing) {
-            listOfNotNull("${(readEstimate.fraction * 100).toInt().coerceIn(0, 100)}% read",
-                readEstimate.secondsLeft?.let(::formatTimeLeft)).joinToString(" · ")
-        } else state.promptRead?.takeIf { searched && !writing && it.second > 0 }
-            ?.let { (read, total) -> "${(read * 100L / total).coerceIn(0, 100)}% read" },
-        progress = readEstimate?.fraction ?: state.promptRead?.takeIf { it.second > 0 }
-            ?.let { (read, total) -> (read.toFloat() / total).coerceIn(0f, 1f) },
-    )
-    val write = ResearchStep(
-        title = "Write the answer",
-        status = if (writing) StepStatus.Active else StepStatus.Pending,
-        detail = when {
-            !writing -> null
-            state.checking -> "Checking it against your sources"
-            else -> "${state.tokensWritten} tokens written"
-        },
-    )
-    return listOf(search, read, write)
 }

@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +44,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import xyz.fieldatlas.research.Evidence
 import xyz.fieldatlas.research.AttachmentProvenance
 import xyz.fieldatlas.ui.sourceDisplayName
@@ -579,7 +576,6 @@ private fun AnswerShareActions(shareText: String, question: String) {
         description = "Share answer with sources", icon = xyz.fieldatlas.ui.theme.FieldAtlasIcons.Share)
 }
 
-
 @Composable
 private fun AnswerSectionLabel(text: String) {
     xyz.fieldatlas.ui.theme.FieldAtlasSectionLabel(text, Modifier.padding(top = 4.dp))
@@ -667,13 +663,6 @@ private fun AnswerSourceCard(
                 tint = MaterialTheme.colorScheme.primary,
             )
         }
-    }
-}
-
-@Composable
-private fun AnswerDisclosure(label: String, expanded: Boolean, onClick: () -> Unit) {
-    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-        AnswerDisclosureContent(label, expanded, onClick)
     }
 }
 
