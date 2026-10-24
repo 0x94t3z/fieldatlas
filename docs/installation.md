@@ -2,7 +2,7 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B, Qwen3.5 4B on a phone with 6 GB of memory or more, or Gemma 4 26B on a phone with 12 GB, installed separately by download or by importing the model file (`.gguf`) or a model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.4.2**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B (recommended below 8 GB of memory), Qwen3.5 4B (recommended from 8 GB; a 6 GB phone can choose it, slow there), or Gemma 4 26B on a phone with 12 GB, installed separately by download or by importing the model file (`.gguf`) or a model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
@@ -23,7 +23,7 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
-After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for 1.4.1; network traffic during research has not been captured.
+After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for 1.4.1. Android's per-app traffic counters showed no data sent or received during research on a 6 GB test phone, in airplane mode and with Wi-Fi on (October 24); no packet capture was made.
 
 ## What setup offers in 1.4.2
 
@@ -67,7 +67,7 @@ Setup and Library offer **Refresh collections**, an explicit online provisioning
 
 The catalog is maintained at the repository's `main/app/src/main/assets/knowledge/catalog.json` path and fetched over HTTPS. New compatible entries can appear without an APK update once catalog changes are published there. Imported packs need not appear in this catalog. If refresh fails or the endpoint is unavailable, use bundled listings or import a saved pack. Refresh has not been checked with a network traffic capture.
 
-The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums detect mismatches against the accepted catalog, not a compromised publisher. No automatic pack updates or deletions occur. Provisioning checks count the APK, native libraries, app data/cache and staged files, reserve extraction space, and serialize app provisioning operations. They are not an OS-enforced quota on subsequent cache/history growth; final total-storage measurement remains a release gate.
+The trust boundary is the maintained GitHub repository and HTTPS. Pack checksums detect mismatches against the accepted catalog, not a compromised publisher. No automatic pack updates or deletions occur. Provisioning checks count the APK, native libraries, app data/cache and staged files, reserve extraction space, and serialize app provisioning operations. They are not an OS-enforced quota on subsequent cache/history growth. With every model, collection and the voice installed, Android reported 47.58 GB for the app on a 12 GB emulator (October 21).
 
 ### Troubleshooting
 

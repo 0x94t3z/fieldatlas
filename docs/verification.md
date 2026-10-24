@@ -9,26 +9,28 @@
   certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). The offline
   packaging audit passed. The same source signed with the local test key differs from it only in its
   signature: all 419 files outside `META-INF` are byte-identical.
-- **Automated:** 1,737 JVM tests ran with none failing (56 opt-in tests skipped); the instrumented
+- **Automated:** of 1,737 JVM tests, 1,681 ran with none failing and 56 opt-in tests were skipped; the instrumented
   tests compile. Every emergency routing change was checked against the 320 labelled questions.
-- **The public-key APK itself** (from `0a26881`, which differs only in two lines of text, SHA-256 checked after installing) ran on a fresh 4 GB
+- **An earlier public-key APK** (from `0a26881`, SHA-256 `c21280710a99…`, checked after installing; the candidate differs
+  from it in on-screen wording only) ran on a fresh 4 GB
   Android 15 emulator with no Google Play Services: setup, importing the pinned Qwen3.5 2B file and the
   Cryptography & Ethereum collection (both matched their pinned SHA-256), then in airplane mode a cited
   answer about Merkle trees (38 s, at a computer's speed) and the anaphylaxis guide with the call line
   (under 1 s). The download from Hugging Face inside the app was not completed there (the computer's
   connection ran at about 100 KB/s).
-- **On a phone:** the local-test twin was installed over the previous build with data kept on a
-  Redmi 13C (6 GB, Android 13). In airplane mode, six questions asked twice took, from asking to the
+- **On a phone:** local-test builds of the 24 October code (`f64b0fe` to `13171f6`, before the last wording
+  and cleanup commits) were installed over the previous build with data kept on a Redmi 13C (6 GB,
+  Android 13). In airplane mode, six questions asked twice took, from asking to the
   complete answer, 88 to 153 seconds (simple) and 195 to 351 seconds (explanation, comparison, a trip
   plan) with Qwen3.5 2B, and 3 to 6 minutes with Qwen3.5 4B. With Wi-Fi on and other apps open, one
-  4B answer took 47 minutes while Android was closing apps for memory; the 2B is recommended below
-  8 GB since. An emergency asked while the 4B was reading another question opened its guide at once;
+  4B answer (on the build of `f64b0fe`, before the model recommendation changed) took 47 minutes while
+  Android was closing apps for memory; the 2B is recommended below 8 GB since. An emergency asked while the 4B was reading another question opened its guide at once;
   Stop, an emergency right after it, and the next question all worked, and the app process stayed up
   throughout. Leaving a running answer by the back arrow or Android's back button, while it searched,
   read or wrote, showed only the "Still answering" row on the Research home.
 - **Network:** the app has the INTERNET permission, used only when you start a download or tap
-  Refresh. Network activity was measured with Android's own per-app counters: the app sent and
-  received nothing during 75 minutes of questions in airplane mode, nor during a cold start and
+  Refresh. Network activity was measured on the Redmi 13C with Android's own per-app counters, on the
+  24 October local-test builds: the app sent and received nothing during 75 minutes of questions in airplane mode, nor during a cold start and
   50 minutes of questions with Wi-Fi on and connected.
 - **Blind grading:** every set used for 1.4.2 is on [How Field Atlas 1.4.2 was tested](testing-1.4.2.md),
   with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
@@ -39,7 +41,7 @@
 
 ## v1.4.2 candidate (23 October 2026, superseded)
 
-- **Automated:** 1,733 JVM tests ran with none failing (56 opt-in tests skipped) on the candidate
+- **Automated:** of 1,733 JVM tests, none failed and 56 opt-in tests were skipped on the candidate
   source (`c4adc03`). Every emergency routing change was checked
   against the 320 labelled questions in `app/src/test/resources/emergency-labelled.jsonl` (231 right,
   none misleading).

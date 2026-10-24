@@ -12,20 +12,23 @@ answers' total, as it was recorded at the time.
 
 | Set 37, 40 questions, two rounds of eight graders | Good answers | Grader annotations per answer |
 | --- | ---: | ---: |
-| Qwen3.5 2B, cites the passages (4 GB phones) | 2 | 0.71 |
-| Qwen3.5 4B, from its own knowledge (6 and 8 GB) | 8 | 1.94 |
+| Qwen3.5 2B, cites the passages (4 GB phones, as of 19–21 October) | 2 | 0.69 |
+| Qwen3.5 4B, from its own knowledge (6 and 8 GB, as of 19–21 October) | 8 | 1.93 |
 | Gemma 4 26B, reasons first (12 GB) | 27 | 0.44 |
+
+Since 24 October setup recommends the 2B below 8 GB of memory and the 4B from 8 GB; see
+[How Field Atlas 1.4.2 was tested](testing-1.4.2.md).
 
 | Same model and questions, only what it could read changed | Good answers before → after | Grader annotations per answer |
 | --- | ---: | ---: |
-| Set 30, 2B, Biology collection of 13 October → 18 October | 2 → 7 of 40 | 0.60 → 0.47 |
-| Set 30, 4B, the same | 4 → 6 of 40 | 0.15 → 0.15 |
-| Set 42 long-tail, 4B, from memory → reading the Encyclopedia | 2 → 7 of 40 | 3.27 → 2.42 |
+| Set 30, 2B, Biology collection of 13 October → 18 October | 2 → 6 of 40 | not in the published grades → 0.47 |
+| Set 30, 4B, the same | 4 → 6 of 40 | not in the published grades → 0.15 |
+| Set 42 long-tail, 4B, from memory → reading the Encyclopedia (one grading round) | 2 → 7 of 40 | not in the published grades |
 | 149 earlier sealed fact questions, 4B, from memory → reading three notes (the 105 whose answer changed, graded side by side; 23 October) | 38 → 66 of 105 | 2.79 → 1.69 |
 
 A reasoning model is now given the instruction without the answer layout the other models use, and
-an answer its reasoning cuts short is asked for again with reasoning off; Gemma's set 37 answers were
-written that way.
+an answer its reasoning cuts short is asked for again with reasoning off. Gemma's set 37 answers were
+written with the first of these; the re-ask was added afterwards (commit 3f5e896).
 
 **Storage with everything installed.** On the 12 GB Android emulator, with Qwen3.5 2B, Qwen3.5 4B,
 Gemma 4 26B, all seven collections and the natural voice installed through the app, Android's own
@@ -90,9 +93,8 @@ Measured on set 38, desktop 4B, the same forty questions and web references as t
 eight graders who saw the answers without their marks or notes: the shaped answers carry a Key facts line in 36
 of 40 and a Caveats line in 36, a mark in 6 answers (9 marks) and a fact-check note in 3; median length 170 to
 180 words, median time on the Mac 12.6 to 14.5 s. Against the earlier 4B rounds question by question: better on
-12, worse on 9, the same on 19 (within half a point), mean +0.4 points, sign test p=0.66; errors noted per answer
-2.21 to 2.55, the bullets adding a few more claims and with them a few more grader annotations: the shape changes how an
-answer reads, not what it gets right. Shipped with the run-through's other fixes:
+12, worse on 9, the same on 19 (within half a point), mean +0.4 points, sign test p=0.66, no significant difference; grader annotations per answer
+2.21 to 2.55, the bullets adding a few more claims and with them a few more annotations. Shipped with the run-through's other fixes:
 a priced question with a rate ("12 euros plus 2 euros per km, how much is 15 km") is worked from its own figures
 even on a phone whose travel packs have a page about taxis, and a heading line of a medicine list ("Medicines to
 take at home:") is no longer quoted as a medicine line.
@@ -110,12 +112,13 @@ stopped flying in 2003", 6 to 7 of 40) and the three fact-check notes stay the s
 ## Set 38, and passages as a check on figures (October 20)
 
 A second sealed set of 40 questions in set 37's category mix (set 38, [questions](fieldtest/heldout38.jsonl),
-SHA-256 `2d9243351eeb1ff0722b1076c1ecf82de2820fd75dba90edfceab0f7650e8b23`), written by a model that read only
+SHA-256 of the committed file `6e6af69857b0e828fb67c73f6c6065d36024dc9e273fd0827a896420b8096c3e`; the hash noted when it was sealed,
+`2d9243351eeb1ff0722b1076c1ecf82de2820fd75dba90edfceab0f7650e8b23`, does not match it), written by a model that read only
 the earlier question files, answered on the desktop pipeline by the two setups phones get, with web-and-AI
 references and two blind rounds of eight graders
 ([every answer and grade](fieldtest/results-1.4.2/heldout38-knowledge.jsonl)):
 
-| Set 38, 40 questions | Share of the reference | Rounds | Factual errors per answer |
+| Set 38, 40 questions | Share of the reference | Rounds | Grader annotations per answer |
 | --- | ---: | ---: | ---: |
 | Qwen3.5 4B, own knowledge (6 and 8 GB phones) | 38.5% | 39.0% / 38.1% | 2.21 |
 | Gemma 4 26B, reasoning first (12 GB phones) | **74.1%** | 74.8% / 73.5% | 0.24 |
@@ -308,9 +311,9 @@ or "once a week" now counts only when it is said of the medicine itself, a dose,
 ("take it daily", "is zorbitrex daily", "20 mg every morning"), not of exercise, walks or checks.
 On the sets above, the lines quoted and the warnings given did not change.
 
-**The 4B's description.** It said "about half the factual errors of Qwen3.5 2B", which was true
-when the 4B cited passages (0.30 against 0.62, sets 28 and 29) and is not now: from its own
-knowledge it makes 1.94 against the cited 2B's 0.71 (set 37). Setup, Library, README and MODELS.md
+**The 4B's description.** It said "about half the factual errors of Qwen3.5 2B", which matched the grader annotations
+when the 4B cited passages (0.30 against 0.62, sets 28 and 29) and does not now: from its own
+knowledge it drew 1.93 per answer against the cited 2B's 0.69 (set 37). Setup, Library, README and MODELS.md
 now give each model's trade-off as measured; setup's notes come from the model, not its place in the list.
 
 **Model knowledge and the collections.** Set 37's scores for the 4B and Gemma measure what the model
@@ -374,12 +377,12 @@ search finds in the collections are listed under it to check, without changing i
 therefore do not show that the collections or Leviathan improved those answers; only the cited
 rows answer from them.
 
-| Set 37, 40 questions | Share of the reference | Better / worse than today's model on that phone | Factual errors per answer |
+| Set 37, 40 questions | Share of the reference | Better / worse than today's model on that phone | Grader annotations per answer |
 | --- | ---: | ---: | ---: |
-| Qwen3.5 2B, cited (1.4.2) | 26.0% | | 0.71 |
-| Qwen3.5 2B, own knowledge (not adopted) | 20.6% | 12 / 17 | 2.77 |
-| Qwen3.5 4B, cited (1.4.2) | 33.7% | | 0.64 |
-| Qwen3.5 4B, own knowledge | 41.8% | 20 / 14 (p = 0.39) | 1.94 |
+| Qwen3.5 2B, cited (1.4.2) | 26.0% | | 0.69 |
+| Qwen3.5 2B, own knowledge (not adopted) | 20.6% | 12 / 17 | 2.76 |
+| Qwen3.5 4B, cited (1.4.2) | 33.7% | | 0.63 |
+| Qwen3.5 4B, own knowledge | 41.8% | 20 / 14 (p = 0.39) | 1.93 |
 | Gemma 4 26B, own knowledge | 66.5% | 29 / 6 against the 4B | 0.65 |
 | Gemma 4 26B, reasoning first | **70.2%** | 33 / 5 against the 4B | **0.44** |
 
@@ -389,8 +392,8 @@ the passages. On an earlier sealed set of 40 (set 34), the 4B went from 39.8% to
 from its own knowledge and Gemma reached 71-72%; giving either model three of the passages as notes
 made its answers worse (4B 53.2%, Gemma 64.1%).
 
-**The cost.** An answer from memory draws more grader annotations than a cited one: 1.94 per answer for the
-4B against 0.64, which is why it is labelled unverified and the passages stay under it. The 4B also
+**The cost.** An answer from memory draws more grader annotations than a cited one: 1.93 per answer for the
+4B against 0.63, which is why it is labelled unverified and the passages stay under it. The 4B also
 did worse on travel (12% against 35%). Emergencies still open the published guides word for word,
 so they stay near 40% with every model. Every answer and grade:
 [set 37](fieldtest/results-1.4.2/heldout37-knowledge.jsonl).
@@ -424,7 +427,7 @@ eight graders followed for each set, each answer graded on its own
 ([set 28](fieldtest/results-1.4.2/heldout28.jsonl), [set 29](fieldtest/results-1.4.2/heldout29.jsonl):
 every answer, reference and grade).
 
-| 120 questions, 4 grading rounds | Share of the reference | Per round | Factual errors per answer |
+| 120 questions, 4 grading rounds | Share of the reference | Per round | Grader annotations per answer |
 | --- | --- | --- | --- |
 | 1.4.2 with Qwen3.5 2B (phones under 8 GB) | 36.9% | 35.3, 35.1, 38.3, 38.8 | 0.62 |
 | 1.4.2 with Qwen3.5 4B (offered first on 8 GB phones) | 38.2% | 37.9, 38.7, 38.3, 37.9 | 0.30 |
@@ -445,19 +448,18 @@ By category, both sets and both rounds:
 | Places | 12 | 1.2 | 14% | 1.0 | 12% |
 
 These scores are higher than 1.4.1's 29% on set 9, but sets differ: the same 1.4.1 build scored
-37.3% on set 26. Compared on the same questions, the two versions answer single questions about
-equally well. Set 26 ([questions](fieldtest/heldout26.jsonl)) was answered by 1.4.1 and by the 1.4.2
+37.3% on set 26. Compared on the same questions, the two versions showed no significant difference on single questions. Set 26 ([questions](fieldtest/heldout26.jsonl)) was answered by 1.4.1 and by the 1.4.2
 code with Qwen3.5 2B and graded blind in two rounds
 ([both builds' answers and grades](fieldtest/results-1.4.2/heldout26-141-vs-142.jsonl)):
 
-| Set 26, same graders | Share of the reference | Per round | Factual errors per answer |
+| Set 26, same graders | Share of the reference | Per round | Grader annotations per answer |
 | --- | --- | --- | --- |
 | 1.4.1 | 37.3% | 37.6, 36.9 | 0.75 |
 | 1.4.2 code | 36.3% | 36.0, 36.5 | 0.72 |
 
 15 of the 60 answers differ; 1.4.2 scored higher on 3, lower on 6 and the same on 6. What 1.4.2
 improves is measured in the sections below: follow-up questions, emergencies told as statements,
-word problems, and the passage that reaches the model. Citing the passages (since 19 October it answers from its own knowledge, above), the 4B makes half the factual errors of the
+word problems, and the passage that reaches the model. Citing the passages (since 19 October it answers from its own knowledge, above), the 4B drew half the grader annotations of the
 2B, and scored higher on three of the four sets it was tried on (sets 26 and 27 by 5.3 and
 3.3 points, set 28 by 3.1), lower on set 29 by 0.5.
 
@@ -519,7 +521,7 @@ before and after, beside a web-and-AI reference, without knowing which was which
 | --- | ---: | ---: |
 | Share of the reference answers | 10.2% | 67.3% |
 | Better / worse | | 7 / 0 (p = 0.016) |
-| Factual errors per answer | 0.38 | 0.88 |
+| Grader annotations per answer | 0.38 | 0.88 |
 
 **The cost.** A refusal cannot be wrong; an answer can. "9 am Monday in New York is what time in
 Tokyo" was answered "6 hours ahead" (it is 14), and the battery answer added a step no first-aid
@@ -847,7 +849,7 @@ phone's native search loaded. Web-researched frontier-model references and two i
 grading rounds followed, each answer graded on its own
 ([every answer and grade](fieldtest/results-1.4.1/heldout9.jsonl)).
 
-| Set | Build | Share of the reference | Factual errors per answer |
+| Set | Build | Share of the reference | Grader annotations per answer |
 | --- | --- | --- | --- |
 | Set 9 ([questions](fieldtest/heldout9.jsonl)) | The 1.4.1 release build | 29% (29% and 28%) | 0.67 (reference 0.07) |
 
@@ -872,7 +874,7 @@ new graders then scored both builds' answers and the references in two more blin
 question's three answers went to three different graders
 ([both builds' answers and grades](fieldtest/results-1.4.1/heldout9-140-vs-141.jsonl)).
 
-| Same 60 questions, same graders | Share of the reference | Factual errors per answer |
+| Same 60 questions, same graders | Share of the reference | Grader annotations per answer |
 | --- | --- | --- |
 | 1.4.1 | 29.7% (29.6% and 29.8%) | 0.69 |
 | 1.4.0 | 28.6% (29.0% and 28.1%) | 0.76 |
@@ -987,7 +989,7 @@ knowing which model wrote them, checking claims on the web; their scores agreed 
 | Mean score (0-10) | **4.65** | 3.75 |
 | Answers scoring 7 or more | 5 of 20 | 7 of 20 |
 | Answers scoring 3 or less | 7 of 20 | 12 of 20 |
-| Factual errors per answer | 0.50 | 0.12 |
+| Grader annotations per answer | 0.50 | 0.12 |
 | Median time for an answer the model wrote | 240 s | 195 s |
 
 Qwen3.5 2B stays the only model offered. Gemma made fewer mistakes but often gave up when the
@@ -1077,7 +1079,7 @@ order, on the desktop pipeline with the phone's code. The phone's native search 
 loaded on the desktop from the same pinned source, so the Encyclopedia and Biology collections were
 searched as on the phone; the 7 October measurement used keyword search only.
 
-| Set | Build | Share of the reference | Factual errors per answer |
+| Set | Build | Share of the reference | Grader annotations per answer |
 | --- | --- | --- | --- |
 | Set 4 ([questions](fieldtest/heldout4.jsonl)) | First 1.4.0 release candidate | 21% (22% and 21% per round) | 0.41 |
 | Set 5 ([questions](fieldtest/heldout5.jsonl)) | After the answer-path fix | 34% (33% and 34%) | 0.83 |
@@ -1105,7 +1107,7 @@ no map index. Both were fixed, with the note on words no listing carries, and se
 development data.
 
 **Set 6 is the release number:** 34% of the reference with the default model, with about half
-the factual errors per answer of the 7 October candidate on its own set (1.02 against 1.98). Every
+the grader annotations per answer of the 7 October candidate on its own set (1.02 against 1.98). Every
 answer, reference and grade is in [`fieldtest/results-1.4.0/`](fieldtest/results-1.4.0/)
 (`heldout6.jsonl`, and `heldout5.jsonl` and `heldout4-candidate.jsonl` for the earlier sets).
 
@@ -1149,7 +1151,7 @@ published versions, [DATASETS.md](../DATASETS.md#collections-the-app-offers), th
 depth included), article depth on as in the app, on the desktop pipeline with the phone's code.
 Every answer, reference and grade is in [`fieldtest/results-1.4.0/`](fieldtest/results-1.4.0/).
 
-| Questions | Field Atlas, Qwen3.5 2B (share of the reference) | Optional Qwen3.5 4B | Factual errors per answer, 2B |
+| Questions | Field Atlas, Qwen3.5 2B (share of the reference) | Optional Qwen3.5 4B | Grader annotations per answer, 2B |
 | --- | --- | --- | --- |
 | 60 new held-out questions | 38% | 52% on the 55 questions without a phone position (the 2B scored 37% in that grading) | 1.98 |
 | The 48 questions of 6 October (now development data) | 58% (was 34% before the fixes) | – | 1.19 |
@@ -1271,7 +1273,7 @@ not an independent score.
 
 ### Result
 
-| Build | Our 61 questions | 42 held-out questions | Factual errors in our 61 answers |
+| Build | Our 61 questions | 42 held-out questions | Grader annotations in our 61 answers |
 | --- | --- | --- | --- |
 | First run (October 5) | 46% | not run | 93 |
 | October 6, with the changes below except the last travel one | 53% | 39% | 62 |
@@ -1358,7 +1360,7 @@ The same code ran with Qwen3.5 4B Q4_K_M on every question that does not use the
 position: 56 of ours and 40 held-out. Each question's 2B answer, 4B answer and reference went to
 three different graders in one session, twice, as above.
 
-| Questions | Qwen3.5 2B | Qwen3.5 4B | Factual errors per answer, 2B / 4B | 4B better / worse |
+| Questions | Qwen3.5 2B | Qwen3.5 4B | Grader annotations per answer, 2B / 4B | 4B better / worse |
 | --- | --- | --- | --- | --- |
 | Our 56 | 55.2% | 59.9% | 1.08 / 0.57 | 25 / 10 |
 | Held-out 40 | 37.1% | 52.7% | 1.30 / 0.53 | 22 / 4 |

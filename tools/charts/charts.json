@@ -1,8 +1,8 @@
 {
   "_about": "Every figure here is copied from docs/testing-1.4.2.md (and docs/evaluation.md for sets 30 and 42). Edit a value there first, then here, then run make_charts.py with an absolute --out.",
   "ladder": {
-    "method": "Good = 7 or more out of 10 from blind AI graders, two rounds. 160 new questions in four sealed sets, every model.",
-    "sourceLine": "Sets 37, 46, 49 and 51, each sealed before any run, graded before the 4B read notes for single facts. Every answer and grade in docs/fieldtest.",
+    "method": "Blind AI graders, two rounds, 160 new questions. Filled: good answers (7+ of 10). Outlined: average score, as a share of the reference answers'.",
+    "sourceLine": "Sets 37, 46, 49, 51 (19-23 Oct), before the 4B read notes for facts; the 2B's last three sets graded a day later. Data in docs/fieldtest.",
     "rows": [
       {
         "phone": "recommended below 8 GB",
@@ -10,7 +10,8 @@
         "route": "cites the saved passages",
         "good": 35,
         "questions": 160,
-        "errors": 0.84
+        "errors": 0.83,
+        "share": 40.5
       },
       {
         "phone": "recommended from 8 GB",
@@ -18,7 +19,8 @@
         "route": "answers from its own knowledge",
         "good": 27,
         "questions": 160,
-        "errors": 2.2
+        "errors": 2.19,
+        "share": 44.8
       },
       {
         "phone": "12 GB phones",
@@ -26,22 +28,23 @@
         "route": "reasons, then answers",
         "good": 115,
         "questions": 160,
-        "errors": 0.38
+        "errors": 0.38,
+        "share": 76.8
       }
     ]
   },
   "collections": {
     "questions": 40,
     "method": "Same model and questions in each pair; only what it could read changed. Good = 7 or more out of 10 from blind AI graders.",
-    "sourceLine": "Sets 30 and 42 and 149 sealed fact questions, graded blind. Details in docs/evaluation.md and docs/testing-1.4.2.md.",
+    "sourceLine": "Set 30 (18 Oct, both rounds 7+), set 42 long-tail (20 Oct, one round), 105 fact questions side by side (23 Oct). Details in docs/evaluation.md and docs/testing-1.4.2.md.",
     "rows": [
       {
         "label": "Longevity questions, Qwen3.5 2B",
         "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
-        "set": "set 30",
+        "set": "set 30, 18 Oct",
         "before": 2,
-        "after": 7,
-        "errorsBefore": 0.6,
+        "after": 6,
+        "errorsBefore": null,
         "errorsAfter": 0.47,
         "beforeLabel": "older",
         "afterLabel": "rebuilt"
@@ -49,10 +52,10 @@
       {
         "label": "Longevity questions, Qwen3.5 4B",
         "detail": "Biology collection of 13 October, then the rebuilt one of 18 October",
-        "set": "set 30",
+        "set": "set 30, 18 Oct (the 4B then cited passages)",
         "before": 4,
         "after": 6,
-        "errorsBefore": 0.15,
+        "errorsBefore": null,
         "errorsAfter": 0.15,
         "beforeLabel": "older",
         "afterLabel": "rebuilt"
@@ -60,18 +63,18 @@
       {
         "label": "Rare subjects, Qwen3.5 4B",
         "detail": "From memory, then reading and citing the saved Encyclopedia",
-        "set": "set 42, long-tail",
+        "set": "set 42 long-tail, 20 Oct, one grading round",
         "before": 2,
         "after": 7,
-        "errorsBefore": 3.27,
-        "errorsAfter": 2.42,
+        "errorsBefore": null,
+        "errorsAfter": null,
         "beforeLabel": "from memory",
         "afterLabel": "reads sources"
       },
       {
         "label": "Single facts, Qwen3.5 4B",
         "detail": "From memory, then reading three saved Encyclopedia notes",
-        "set": "105 earlier sealed fact questions, side by side",
+        "set": "105 earlier sealed fact questions, side by side, 23 Oct",
         "questions": 105,
         "before": 38,
         "after": 66,
@@ -119,7 +122,7 @@
     "screenshot": "screens/answer-pantelegraph.png",
     "caption": [
       "Asked on a 6 GB phone in airplane mode.",
-      "The model read the saved Wikipedia",
+      "Qwen3.5 4B read the saved Wikipedia",
       "article on the pantelegraph and cites it."
     ],
     "facts": [
@@ -165,7 +168,7 @@
           },
           {
             "title": "First aid",
-            "detail": "The call line and one of 51 official guides at once; Gemma 4 26B then writes for the situation from it."
+            "detail": "The call line and one of 51 official guides, at once. On Gemma 4 26B a written answer follows, in minutes."
           },
           {
             "title": "Calculations",
@@ -204,15 +207,15 @@
         "note": "the model the phone can hold",
         "cards": [
           {
-            "title": "4-6 GB: Qwen3.5 2B",
-            "detail": "Writes from the passages and cites them; the draft is checked before it shows."
+            "title": "Qwen3.5 2B, below 8 GB",
+            "detail": "Writes from the passages and cites them; the draft is checked and reviewed before it shows."
           },
           {
-            "title": "8 GB: Qwen3.5 4B",
+            "title": "Qwen3.5 4B, from 8 GB",
             "detail": "Answers from its own knowledge; reads notes for a single fact."
           },
           {
-            "title": "12 GB: Gemma 4 26B",
+            "title": "Gemma 4 26B, 12 GB",
             "detail": "Reasons first, then answers."
           },
           {
@@ -266,7 +269,7 @@
         ],
         [
           "First-aid guide",
-          "51, then Gemma writes"
+          "51, shown at once"
         ],
         [
           "Calculation",
@@ -282,14 +285,14 @@
       "Search",
       "Every installed collection, and the named article."
     ],
-    "memory": "Phone memory?",
+    "memory": "Which model?",
     "small": [
-      "4 and 6 GB",
+      "under 8 GB",
       "Qwen3.5 2B",
-      "Writes from the passages and cites them; the draft is checked before it shows."
+      "Writes from the passages and cites them; the draft is checked and reviewed before it shows."
     ],
     "big": [
-      "8 to 12 GB",
+      "8 GB and up",
       "Qwen3.5 4B or Gemma 4 26B"
     ],
     "rare": "Rare, or a fact?",

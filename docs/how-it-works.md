@@ -19,13 +19,13 @@ way one question goes, and why.
 flowchart TD
     Q["Question, follow-up or attached file"] --> D{"Can the app answer it exactly?"}
     D -->|"emergency number"| N["Saved table of 242 countries"]
-    D -->|"first aid"| G["The call line and one of 51 official guides; Gemma 4 26B then writes for the situation"]
+    D -->|"first aid"| G["The call line and one of 51 official guides, at once; with Gemma 4 26B in use, a written answer follows"]
     D -->|"calculation"| C["Worked out by the app"]
     D -->|"place near you or a landmark"| P["OpenStreetMap and Wikivoyage, nearest first"]
     D -->|"no"| S["Search the saved collections"]
-    S --> M{"Which model does the phone hold?"}
-    M -->|"4 and 6 GB: Qwen3.5 2B"| W1["Writes from the passages and cites them; the draft is checked"]
-    M -->|"8 to 12 GB: Qwen3.5 4B or Gemma 4 26B"| R{"A rare subject, or a single fact on the 4B?"}
+    S --> M{"Which model is in use?"}
+    M -->|"Qwen3.5 2B (recommended below 8 GB)"| W1["Writes from the passages and cites them; the draft is checked and reviewed"]
+    M -->|"Qwen3.5 4B (from 8 GB) or Gemma 4 26B (12 GB)"| R{"A rare subject, or a single fact on the 4B?"}
     R -->|"yes"| W2["Reads three passages as notes and cites them"]
     R -->|"no"| W3["Answers from its own knowledge"]
     W2 --> F["Figures checked against the passages; conflicts quoted"]
@@ -52,9 +52,12 @@ they come back in seconds and the model cannot rephrase them wrongly.
 
 - **Emergency numbers** come from a saved table covering 242 countries.
 - **First aid** opens with the call line and one of 51 official guides, shown as published, in
-  seconds. On a 12 GB phone Gemma 4 26B then writes an answer for the situation with the guide as its
-  only source; the smaller models never rewrite a guide, because one once reversed an instruction
-  while paraphrasing. Where no guide covers the situation, the answer says so and gives no steps.
+  seconds, even while another answer is being written. When Gemma 4 26B is the model in use (12 GB
+  phones) and is free, it then writes an answer for the situation with the guide as its only source,
+  which takes minutes; the smaller models never rewrite a guide, because one once reversed an
+  instruction while paraphrasing. Where no guide covers the situation, the smaller models say so and give
+  no treatment steps for it, only the basics the CPR, recovery-position and anaphylaxis guides support;
+  Gemma writes from what it knows.
 - **Calculations** such as fuel cost, currency at a given rate or time zones are worked out by the
   app. A word problem that gives all its own figures goes to the model with those figures only, and
   every step it writes is recomputed on the phone.
@@ -76,11 +79,11 @@ suggests more search words and the app searches again.
 
 ## 4. Write, with the model the phone can hold
 
-The app offers the model that fits the phone's memory.
+Setup recommends a model by the phone's memory; how a question is written depends on the model in use.
 
-| Phone memory | Model | How it writes |
+| Recommended on | Model | How it writes |
 | --- | --- | --- |
-| 4 and 6 GB | Qwen3.5 2B | From the passages, citing each one; the draft is checked before it shows. A how-or-why question with sources shows the passages as quoted excerpts rather than a paraphrase, which this model gets wrong. |
+| Below 8 GB (any phone can use it) | Qwen3.5 2B | From the passages, citing each one; the draft is checked and reviewed by the model before it shows. A draft that fails is rewritten once; if that fails too, the answer quotes the saved passages or gives a model explanation labelled as unverified. |
 | 8 GB or more (a 6 GB phone can choose it, slow there) | Qwen3.5 4B | From its own knowledge; a question for a single fact reads three saved notes first. |
 | 12 GB | Gemma 4 26B | Reasons first, then answers from its own knowledge. |
 
@@ -111,12 +114,16 @@ to the full passage. Any answer can be read aloud with an offline voice.
 ## Measured results
 
 We count how many questions get a good answer, one that blind AI graders score 7 or more out of
-10 next to a web-researched answer, and how many problems the graders list per answer (grader annotations). The tests and
-their records are in [the evaluation](evaluation.md).
+10 in every round, and how many problems the graders list per answer (grader annotations); the
+model figure also gives the average score as a share of web-researched reference answers' score, a
+judge's average rather than a share of correct answers. These are runs of the app's own answering code
+on a computer, 19 to 23 October: the 4B was measured before it read notes for single facts, and the 2B's
+last three sets were graded a day after the others. The tests and their records are in
+[the evaluation](evaluation.md) and [How Field Atlas 1.4.2 was tested](testing-1.4.2.md).
 
-![Share of sealed questions with a good answer: Qwen3.5 2B 35 of 160 (22%), Qwen3.5 4B 27 of 160 (17%), Gemma 4 26B 115 of 160 (72%)](images/fieldatlas-models.png)
+![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](images/fieldatlas-models.png)
 
-![More good answers when the model reads saved sources: Biology rebuild 2 to 7 of 40 (5% to 18%) and 4 to 6 of 40 (10% to 15%), rare subjects 2 to 7 of 40 (5% to 18%), single facts 38 to 66 of 105 (36% to 63%)](images/fieldatlas-collections.png)
+![More good answers when the model reads saved sources: Biology rebuild 2 to 6 of 40 (5% to 15%) and 4 to 6 of 40 (10% to 15%), rare subjects 2 to 7 of 40 (5% to 18%), single facts 38 to 66 of 105 (36% to 63%)](images/fieldatlas-collections.png)
 
 ![47.58 GB of the 50 GB allowed, with every model, collection and voice installed](images/fieldatlas-storage.png)
 

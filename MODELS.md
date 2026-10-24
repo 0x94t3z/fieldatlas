@@ -53,8 +53,8 @@ after 1.4.0 and was never released.
   errors. Those questions had been seen during
   development.
 - On a Redmi 13C, 20 fresh questions were asked in the installed app with each model and
-  graded blind by two graders. Qwen3.5 2B scored 4.65 of 10 against 3.75. Gemma still made fewer
-  factual errors (0.12 per answer against 0.50), but scored 3 or less on 12 of the 20 (60%). Where the
+  graded blind by two graders. Qwen3.5 2B scored 4.65 of 10 against 3.75. Gemma still drew fewer
+  grader annotations (0.12 per answer against 0.50), but scored 3 or less on 12 of the 20 (60%). Where the
   saved passages did not state every part of the answer, it often replied that the excerpts do
   not contain it, or gave one line, while Qwen3.5 2B explained.
 
@@ -66,18 +66,18 @@ Version 1.4.0 offered Qwen3.5 4B on phones with 8 GB of memory, and 1.4.1 did no
 recommends it from 8 GB, first in setup, with Qwen3.5 2B listed below it. On a 6 GB phone the 2B is
 recommended and the 4B is still offered, marked slow; a 4B downloaded there waits in Library until it
 is chosen. On a phone with less memory only the 2B is offered. Citing the saved passages, on 120 new questions graded blind, the
-4B made half the factual errors of the 2B (0.30 against 0.62 per answer) and gave a good answer to 28 of them against 27
+4B drew half the grader annotations of the 2B (0.30 against 0.60 per answer) and gave a good answer to 28 of them against 27
 ([details](docs/evaluation.md#142-release-candidate-on-fresh-questions-october-17-18)). In 1.4.2 it
 answers ordinary questions from its own knowledge instead, with the passages listed under the
-answer: on 40 newer questions (set 37) it scored 41.8% against 26.0% for the cited 2B, with more
-grader annotations (1.94 against 0.71 per answer)
+answer: on 40 newer questions (set 37) its average score was 41.8% of the reference answers' against 26.0% for the cited 2B, with more
+grader annotations (1.93 against 0.69 per answer)
 ([details](docs/evaluation.md#answers-from-the-models-own-knowledge-and-a-model-for-12-gb-phones-october-19-20)). For a
 subject few people write about, and for a question that asks for a single fact, it reads three saved
-Encyclopedia notes first and cites them: on 105 earlier sealed fact questions whose answer that changed, graded side by side, good
+Encyclopedia notes first and cites them: on 105 earlier sealed fact questions whose answer it changed, graded side by side, good
 answers went from 38 to 66 and grader annotations per answer from 2.79 to 1.69
 ([details](docs/testing-1.4.2.md#facts-from-the-saved-encyclopedia-4b)).
 It has not been timed on an 8 GB phone. On a 6 GB Redmi 13C, read from its file, answers took 3 to
-6 minutes from asking to the complete answer (13 answers in airplane mode, October 24), and one took
+6 minutes from asking to the complete answer (six questions asked twice in airplane mode, October 24), and one took
 47 minutes with Wi-Fi on and other apps open while Android was closing apps for memory; that is why
 the 2B is recommended below 8 GB. A phone that already uses it keeps it and can choose it in Library. Its pinned
 file and pack are described in

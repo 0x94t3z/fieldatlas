@@ -12,24 +12,28 @@ model family. It is not an independent score.
 
 1. **Fresh questions, sealed first.** A set of 40 questions is written by an AI writer that has not
    seen the app's code or its earlier answers, in the way people type on a phone: casual, sometimes
-   with typos, often with several parts. The file is sealed with a SHA-256 hash before the app sees
-   it, and no fix is made against a set after it has been seen.
+   with typos, often with several parts. The file is sealed before the app sees it (the hashes of sets
+   37, 40, 41 and 42 are given in the evaluation), and a set's own scores are never re-measured after fixes
+   made from it: such fixes are checked on the next fresh set or listed as not yet re-tested.
 2. **A reference answer per question.** Five AI agents with web access write the best answer a
    careful assistant with the internet would give. These are graded too, as a yardstick.
 3. **Blind grading, twice.** Each answer goes to an AI grader that does not know which setup wrote
    it; a grader never sees two answers to the same question. The grader checks the important facts
    on the web, scores the answer 0 to 10, lists the problems it finds, and for emergencies marks whether
-   following it could plausibly harm someone. Every set is graded in two independent rounds with
-   different graders; the rounds agreed on whether an answer was good 94 to 97% of the time.
+   following it could plausibly harm someone. Most sets are graded in two independent rounds with
+   different graders; on sets 44 to 55 the rounds agreed on whether an answer was good 92 to 97% of the time
+   (93 to 98% counting the reference answers). Sets 42 and 45, and the first grading of set 46, had one round.
 4. **What we count.** A **good answer** scores 7 or more from both rounds. **Grader annotations** is
    the average number of problems the graders listed per answer. Most are wrong facts, but they also
    include omissions and points both rounds noted; they are not independently confirmed errors, and a
    higher count does not by itself prove more factual errors. For emergencies, **unsafe** counts
    answers both rounds flagged. Two setups are compared by question with a sign test; a change is
    kept only if it does not make answers worse on fresh questions.
-5. **On real devices.** The exact release build was installed on a Redmi 13C (6 GB, Android 13) and
-   on a 12 GB Android emulator, both in airplane mode with Wi-Fi and mobile data off, and asked
-   emergency and everyday questions while the screen was recorded.
+5. **On real devices.** Builds of the release's code signed with a local test key (the 23 October
+   candidate, and the 24 October builds for the speed table) were installed on a Redmi 13C (6 GB,
+   Android 13) and on a 12 GB Android emulator, both in airplane mode with Wi-Fi and mobile data off, and
+   asked emergency and everyday questions. The public-key release file itself ran on an emulator; see
+   [verification](verification.md).
 
 The desktop runs use the app's own answering code and the same models, collections and prompts as the
 phone; only the hardware differs. Times quoted from the desktop are not phone times.
@@ -38,26 +42,31 @@ phone; only the hardware differs. Times quoted from the desktop are not phone ti
 
 Four sealed sets of 40 mixed questions (facts, explanations, comparisons, multi-part questions,
 obscure subjects, and questions an offline app cannot fully answer), answered with the release's
-prompts. The 2B was measured on set 37; it answers only from the saved passages it cites.
+prompts, by the app's own answering code on a computer, 19 to 23 October. The 2B answers from the saved
+passages it cites when its draft passes the check and review, and otherwise with a model explanation
+labelled as unverified (18 of its 40 answers on set 37).
 
-| Set | Gemma 4 26B (12 GB phones) | Qwen3.5 4B (6 and 8 GB) | Qwen3.5 2B (4 GB) |
+| Set | Gemma 4 26B (12 GB phones) | Qwen3.5 4B (recommended from 8 GB) | Qwen3.5 2B (recommended below 8 GB) |
 | --- | ---: | ---: | ---: |
-| Set 37, 19 October | 27 of 40 (68%) good, 0.44 wrong per answer | 8 of 40 (20%), 1.94 | 2 of 40 (5%), 0.71 |
+| Set 37, 19 October | 27 of 40 (68%) good, 0.44 grader annotations per answer | 8 of 40 (20%), 1.93 | 2 of 40 (5%), 0.69 |
 | Set 46, rerun 22 October | 29 of 40 (72%), 0.34 | 6 of 40 (15%), 2.21 | 11 of 40 (28%), 0.69 |
 | Set 49, 22 October | 25 of 40 (62%), 0.38 | 5 of 40 (12%), 2.51 | 9 of 40 (22%), 1.15 |
 | Set 51, 22 October | 34 of 40 (85%), 0.36 | 8 of 40 (20%), 2.12 | 13 of 40 (32%), 0.80 |
-| **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.20 | **35 of 160 (22%)**, 0.84 |
+| **All four sets** | **115 of 160 (72%)**, 0.38 | **27 of 160 (17%)**, 2.19 | **35 of 160 (22%)**, 0.83 |
+| Average score, share of the reference answers' | 77% | 45% | 40% |
 | Web reference answers | 39 to 40 of 40 (98 to 100%), 0.03 | | |
 
 The 2B ran sets 46, 49 and 51 on 23 October, after the other models, with web reference answers written
 that day and two fresh grading rounds (the two rounds agreed within two points on 119 of 120). To check
 the new graders against October's, they re-graded 20 of the 2B's set-37 answers: mean 3.6 against 3.2,
-3 good against 2, the same bar within noise. The 2B's share differs between sets because of the mix: on
+3 good against 2, no clear difference (those 20 re-grades are not in the published files). The 2B's share differs between sets because of the mix: on
 the 32 single-fact questions of sets 46 to 51 it gave a good answer to 22, on the 22 explanations to 1.
 Over the 160 questions the 2B's cited route gives slightly more good answers than the 4B's from memory
-(35 against 27) with far fewer grader annotations (0.84 against 2.20); the 4B leads on explanations and
-comparisons, the 2B on facts the collections hold. The 4B stays the 6 GB default on the strength of
-set 37 (8 against 4 good when both routes ran on the 4B); that choice deserves a fresh test after 1.4.2.
+(35 against 27) with far fewer grader annotations (0.83 against 2.19); the 4B leads on explanations and
+comparisons, the 2B on facts the collections hold. On average score the 4B is ahead (45% against 40% of
+the reference). These sets were answered before the 4B read notes for single facts, where the gap to
+the 2B was (10 of 32 fact questions good on sets 46 to 51, against the 2B's 22). Since October 24 the 2B is recommended below 8 GB, for speed on a 6 GB phone; the 4B can
+still be chosen there.
 
 Where each model is weakest: the 4B's losses are wrong facts from memory (over 4 grader annotations
 per answer on obscure subjects); Gemma's are questions that need live data (prices, recent events),
@@ -103,7 +112,7 @@ threat, a swallowed poison, or a situation the app cannot match to a guide, and 
 emergency, call your local emergency number first"** for the rest. Then:
 
 - **Gemma 4 26B** writes an answer for the exact situation, with the official guide as its only
-  authority. While it writes, the official guide is on screen within a second, so nobody waits with
+  authority. While it writes, the official guide is on screen at once, so nobody waits with
   a blank page. Every line it writes is checked against the guide as it streams; a step the guide
   forbids never reaches the screen, and the finished answer is checked again. Two extra rules were
   added after testing: someone who does not respond and is not breathing normally needs CPR, not
@@ -112,10 +121,10 @@ emergency, call your local emergency number first"** for the rest. Then:
   published, with the call line above it. When no guide fits, they give a short reply that says so
   and lists only the basics the saved CPR, recovery-position and anaphylaxis guides support. That
   reply appears at once; it no longer waits for a library search it never used.
-- **51 guides** are bundled: the 44 of 1.4.1 (CDC, FEMA, NIH, the National Weather Service, the
-  National Park Service and Wikipedia) and 7 added in 1.4.2 from the NHS website and the CDC under
-  their open licences: poisoning, asthma attack, low blood
-  sugar, bleeding in pregnancy, fever in children, a knocked-out tooth and opioid overdose. Each
+- **51 guides** are bundled: the 42 of 1.4.1 (CDC, FEMA, NIH, the National Weather Service, the
+  National Park Service and Wikipedia) and 9 added in 1.4.2, mostly from the NHS website and the CDC under
+  their open licences: poisoning steps, asthma attack, low blood sugar, bleeding in pregnancy, fever in
+  children, a knocked-out tooth, opioid overdose, eye injury and the recovery position. Each
   guide has a recording in the natural voice, so Read aloud plays at once on any phone, offline,
   with no voice downloaded.
 
@@ -127,8 +136,9 @@ words point to the wrong topic, and 8 calm questions where no emergency call is 
 
 **Gemma 4 26B.** On the set where the change was first tried (set 44, 36 questions), the 1.4.1
 behaviour (guide shown as published) gave a good answer to 12 and three unsafe ones; Gemma writing
-from the guide gave 28 good and none unsafe. On the five fresh sets that followed, Gemma's answers
-with the final rules:
+from the guide gave 28 good and none unsafe. On five later fresh sets, Gemma writing from the guide
+(each set ran on the code of its day; the rules added after a set found a problem were not re-scored on
+that set):
 
 | Set | Good answers | Grader annotations per answer | Unsafe (both graders) |
 | --- | ---: | ---: | ---: |
@@ -151,30 +161,34 @@ to be found. The work in 1.4.2 went into finding it, and into the call line when
 
 | Set | 4B good | 4B unsafe | 2B good | 2B unsafe |
 | --- | ---: | ---: | ---: | ---: |
-| Set 50 (before the 1.4.2 matching fixes) | 10 of 40 (25%) | 6 | 0 of 40 (0%) | 16 |
+| Set 50, before the 1.4.2 matching fixes | 10 of 40 (25%) | 6 | 0 of 40 (0%) | 16 |
+| Set 50, after them | 3 of 40 (8%) | 5 | 0 of 40 (0%) | 7 |
 | Set 52 | 0 of 40 (0%) | 7 | 1 of 40 (2%) | 8 |
 | Set 53 | 6 of 40 (15%) | 2 | 3 of 40 (8%) | 3 |
 | Set 54 | 2 of 40 (5%) | 7 | 1 of 40 (2%) | 9 |
-| Set 55 (final rules) | 2 of 40 (5%) | 1 | 2 of 40 (5%) | 3 |
+| Set 55 | 2 of 40 (5%) | 1 | 2 of 40 (5%) | 3 |
 
 Two things to read from this table. First, the small models give few good answers in emergencies
 because a guide as published rarely answers the exact question asked; what they do give is the
-official text and a call line. Second, unsafe answers fell as the matching and the call line
-improved, but not to zero: on set 55 the remaining ones were a cord prolapse and a neck injury
+official text and a call line. Second, unsafe answers did not fall steadily: they went up and down
+between sets (2B 7, 8, 3, 9, 3; 4B 5, 7, 2, 7, 1 after the fixes), and not to zero: on set 55 the remaining ones were a cord prolapse and a neck injury
 answered from memory with no call line, and a hay-fever reaction sent to the fever guide. Each was
-fixed afterwards and checked on the phone, but no fresh set has been graded since those last fixes.
+fixed afterwards and checked on the phone, but no fresh set has been graded since those last fixes, nor
+since the routing changes of October 24.
 
 **Routing check.** A separate list of 320 emergency and look-alike questions, each labelled with
 the guide to show and the guides that would mislead (the choking manoeuvre for a heart attack,
-cooling water for a jellyfish sting), runs in the unit tests. 1.4.2 answers 231 of 320 (72%) well (1.4.1:
-229) and opens no misleading guide. The matching rules reach every guide the NHS and CDC sources list
+cooling water for a jellyfish sting), runs in the unit tests; the matching rules were developed against it, so it is a regression check,
+not a blind score. The release's code answers 231 of 320 (72%) well (1.4.1: 129) and opens no
+misleading guide. The matching rules reach every guide the NHS and CDC sources list
 as a reason to call for help, in the words people use: gasping or a rattle, a meter reading under
 4, a silent chest, a rash that does not fade, pinpoint pupils, "waters just went", and so on.
 
 ## On the phone and the emulator
 
-The release build (version 1.4.2, build 21) was installed on both devices with app data kept, and
-both were put fully offline.
+A local-test-signed build of the 23 October candidate (version 1.4.2, build 21) was installed on
+both devices with app data kept, and both were put fully offline. The speed table further down used
+local-test builds of the 24 October code.
 
 **Redmi 13C, 6 GB, Qwen3.5 4B.** Nine questions: five emergencies, a splinter, a CPR question for a
 course, and two everyday questions.
@@ -194,10 +208,10 @@ course, and two everyday questions.
 Read aloud on the CPR guide started within three seconds, playing the recording.
 
 An everyday answer from the 4B takes about four minutes on this phone from a clean start (238 and
-261 s on the same question, today's build and the 20 October build). It took over 20 minutes once
+261 s on the same question, the 23 October and 20 October builds). It took over 20 minutes once
 during testing, when background apps and a run of searches had pushed the model out of memory; after
-closing those apps it returned to four minutes. Memory measured on 18 October with every collection
-installed: the 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering.
+closing those apps it returned to four minutes. Memory measured on the 12 GB emulator on 18 October
+with every collection installed: the 2B peaks at 3.45 GB and the 4B at 6.83 GB while answering.
 
 **Speed on the Redmi 13C, October 24.** Six new questions, three simple and three that ask for an
 explanation, a comparison or a trip plan, each asked twice in airplane mode, timed from asking to the
@@ -228,7 +242,7 @@ computer was busy, and 8 everyday questions took a median of 92 s with the host 
 been timed on a real 12 GB phone.
 
 **Storage.** With all three models, every collection and the voice installed, Android reports 47.58
-GB for the app. A long session on 1.4.1 (120 questions in one sitting on the Redmi) showed no drift
+GB for the app on the 12 GB emulator. A long session on 1.4.1 (120 questions in one sitting on the Redmi) showed no drift
 in answer quality and one process throughout.
 
 ## Tried and not kept
@@ -238,17 +252,20 @@ worse on fresh questions.
 
 | Change | Sets | Result |
 | --- | --- | --- |
-| An adaptive length rule: short for facts, as long as needed otherwise | 46, rerun 46 | Gemma 32 vs 32 and 29 vs 31 good answers (p = 0.70, 0.86). Facts improved, comparisons lost parts of the question. |
-| Plain-language wording | 49 | Gemma 24 vs 25 good; explanations fell from 87% to 78% as simplifying added mistakes. |
+| An adaptive length rule: short for facts, as long as needed otherwise | 46 (one round), rerun 46 | Gemma 32 vs 32 and 29 vs 31 good answers (p = 0.70, 0.86). Facts improved, comparisons lost parts of the question. |
+| Plain-language wording | 49 | Gemma 24 vs 25 good; on 8 explanations the average score fell from 8.7 to 7.8 (7 good to 6) as simplifying added mistakes. |
 | One sentence for single-fact questions only | 51 | Gemma 32 vs 34 good (p = 1.0). Fact answers halved in length at the same score, but comparisons still lost parts. |
 
-On the small models none of the three changed the count of good answers. The release keeps the
-1.4.1 wording.
+On the 4B the length rule doubled good answers on the rerun of set 46 (12 against 6; 7 to 1 where they
+differed, p = 0.07, not significant) and the one-sentence rule gave 11 against 8 on set 51 (p = 0.45); plain wording
+gave 4 against 5. None was kept: Gemma, which the rules were written for, did not gain, and none was
+confirmed on a further set. The release keeps the 1.4.1 wording; the length rule for the 4B is worth a
+fresh test.
 
 ## Limits you should know
 
-- **The small models do not write first aid.** On a 4 or 6 GB phone an emergency answer is the
-  official guide and a call line, or a short reply that no guide fits. Minor problems (a splinter, a
+- **The small models do not write first aid.** With Qwen3.5 2B or 4B (any phone without
+  Gemma 4 26B in use) an emergency answer is the official guide and a call line, or a short reply that no guide fits. Minor problems (a splinter, a
   blister) get that reply too, which is safe but not helpful.
 - **Gemma can be wrong in an emergency it has no guide for.** The cord-prolapse answer above is the
   known case. Guides for a possible spinal injury, a tourniquet and helmet removal are still missing.

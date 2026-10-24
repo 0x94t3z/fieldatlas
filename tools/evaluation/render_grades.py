@@ -25,7 +25,7 @@ SETS = [
     ("52", "Emergencies: fresh questions after the set 50 fixes", "40 first-aid situations"),
     ("53", "Emergencies: fresh questions after the set 52 fixes", "40 first-aid situations"),
     ("54", "Emergencies: fresh questions after the set 53 fixes", "40 first-aid situations"),
-    ("55", "Emergencies: fresh questions after the broad fixes (final rules)", "40 first-aid situations"),
+    ("55", "Emergencies: fresh questions after the broad fixes", "40 first-aid situations"),
     ("46", "Everyday questions: an adaptive length rule (not kept)", "40 mixed questions"),
     ("46f", "Everyday questions: the length rule, rerun on a frozen build (not kept)", "40 mixed questions"),
     ("49", "Everyday questions: plain-language wording (not kept)", "40 mixed questions"),
@@ -101,11 +101,15 @@ def found_wrong(answer: dict) -> str:
 def render_set(set_id: str, title: str, size: str) -> str:
     rows = load(set_id)
     emergency = "first-aid" in size
+    # A set can mix setups graded once with setups graded twice (set 46), so the rounds are said per setup.
+    twice = [s for s, *_ in summary_rows(rows) if min(len(r["grades"]) for r in rows if r["system"] == s) > 1]
+    graded = ("two rounds" if len(twice) == len(summary_rows(rows)) else "one round" if not twice
+              else "one round, except " + " and ".join(f"“{label(s)}”" for s in twice) + " in two")
     lines = [f"## Set {set_id}: {title}", "",
              f"{size}, written blind and sealed as `../heldout{set_id[:2]}.jsonl`. Each answer was graded in "
-             f"{'two rounds' if max(len(r['grades']) for r in rows) > 1 else 'one round'}; a good answer scores 7 or more in every round."
+             f"{graded}; a good answer scores 7 or more in every round."
              + (" ⚠ marks an answer both graders said could plausibly harm the person." if emergency else ""), ""]
-    head = "| Setup | Answers | Good answers | Mean score | Wrong details per answer |" + (" Unsafe |" if emergency else "")
+    head = "| Setup | Answers | Good answers | Mean score | Grader annotations per answer |" + (" Unsafe |" if emergency else "")
     lines += [head, "| --- | ---: | ---: | ---: | ---: |" + (" ---: |" if emergency else "")]
     for system, n, good, mean, wrong, unsafe in summary_rows(rows):
         lines.append(f"| {label(system)} | {n} | {good} ({round(100 * good / n)}%) | {mean:.1f} | {wrong:.2f} |" + (f" {unsafe} |" if emergency else ""))
@@ -133,8 +137,10 @@ def main() -> None:
              "Every question set used for the 1.4.2 release, with each setup's scores. The method and the conclusions are on "
              "[How Field Atlas 1.4.2 was tested](../../testing-1.4.2.md); this page is the full record behind it.", "",
              "How to read a row: each answer was scored 0 to 10 by an AI grader who checked the facts on the web without "
-             "knowing which setup wrote it, in two rounds with different graders, shown as `first/second`. "
-             "A **good answer** scores 7 or more in both. **Wrong details** are the factual errors the graders listed. "
+             "knowing which setup wrote it, in two rounds with different graders, shown as `first/second` (some sets or "
+             "setups had one round; each set says which). A **good answer** scores 7 or more in every round. "
+             "**Grader annotations** are the problems the graders listed: mostly wrong facts, also omissions and repeated "
+             "points, not independently confirmed errors. "
              "The **web reference answer** is what an assistant with internet access wrote for the same question, graded the "
              "same way, as a yardstick. The raw files (`heldoutNN-grades.jsonl`) hold the same data, one line per answer, "
              "with the graders' notes.", "",

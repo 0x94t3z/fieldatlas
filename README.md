@@ -47,8 +47,8 @@ The app only goes online when you start a download or refresh the list of collec
 - **Read answers aloud** with the phone's voice or a natural voice you can download once.
 - **Help in an emergency.** 51 first-aid and safety guides, each with a recorded reading, and the
   emergency numbers of 242 countries are built in and work without any download. The call line and
-  the official guide open in seconds, even while another answer is being written; on a 12 GB phone
-  Gemma 4 26B then writes for your situation.
+  the official guide open in seconds, even while another answer is being written. With Gemma 4 26B in
+  use on a 12 GB phone, and not busy with another answer, it then writes for your situation.
 - **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
   group, when the question is worded the way its calculators expect. A word problem that gives its
   own figures is worked from them; the model still gets some of these wrong.
@@ -89,36 +89,45 @@ file copied from another device: collections from Hugging Face
 
 We count how many questions get a **good answer** and how many problems the graders list per answer (**grader annotations**).
 Each question set is written blind and sealed before the app answers it. AI graders then score every
-answer from 0 to 10 next to a web-researched one, without knowing which setup wrote it, in two
-rounds. A good answer is one they score 7 or more. Every change is tested this way before it ships.
+answer from 0 to 10, without knowing which setup wrote it, usually in two rounds; web-researched
+reference answers are graded the same way as a yardstick. A good answer is one they score 7 or more in
+every round. Changes to how answers are written are tested this way; the fixes of October 24 (emergencies,
+the model recommended per phone, wording) were checked on the phone, not on a fresh graded set.
 
-![Share of sealed questions with a good answer: Qwen3.5 2B 35 of 160 (22%), Qwen3.5 4B 27 of 160 (17%), Gemma 4 26B 115 of 160 (72%)](docs/images/fieldatlas-models.png)
+![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](docs/images/fieldatlas-models.png)
 
 - **Gemma 4 26B, on 12 GB phones:** a good answer to 115 of 160 new questions (72%) over four sealed
-  sets (37, 46, 49 and 51: 27, 29, 25 and 34 of 40), with 0.38 grader annotations per answer. It reasons
-  first, then answers from what it knows.
-- **Qwen3.5 4B, recommended from 8 GB (a 6 GB phone can choose it):** 27 of 160 (17%; 8, 6, 5 and 8 of 40), with 2.20 grader
-  annotations per answer. It answers from what it knows, so it says more and gets more details wrong; the
-  passages found are listed under each answer to check it. Since those sets were graded it reads
+  sets (37, 46, 49 and 51, answered 19 to 23 October: 27, 29, 25 and 34 of 40), 77% of the reference
+  answers' average score, with 0.38 grader annotations per answer. It reasons first, then answers from
+  what it knows.
+- **Qwen3.5 4B, recommended from 8 GB (a 6 GB phone can choose it):** 27 of 160 (17%; 8, 6, 5 and 8 of 40),
+  45% of the reference score, with 2.19 grader annotations per answer. It answers from what it knows, so
+  its answers are fuller but have more details to check; fewer of them reach 7 in every round, while its
+  average score is higher than the 2B's. The passages found are listed under each answer to check it. Since those sets were graded it reads
   three saved notes for a question about a single fact, which took it from 38 to 66 good answers on 105 earlier sealed fact questions (36% to 63%; graded with
   the two answers side by side), with grader annotations per answer down from 2.79 to 1.69.
-- **Qwen3.5 2B, on 4 GB phones:** 35 of 160 (22%; 2, 11, 9 and 13 of 40), with 0.84 grader annotations
-  per answer. It writes only from the saved passages and cites them: good on single facts the collections
-  hold (22 of 32), poor at explanations (1 of 22).
+- **Qwen3.5 2B, recommended below 8 GB:** 35 of 160 (22%; 2, 11, 9 and 13 of 40), 40% of the reference
+  score, with 0.83 grader annotations per answer; its answers to sets 46, 49 and 51 were graded a day
+  after the others. It writes from the saved passages and cites them when its draft passes the check and
+  review, and otherwise gives a model explanation labelled as unverified (18 of its 40 answers on set 37).
+  On sets 46 to 51 it was good on single facts the collections hold (22 of 32) and poor at explanations
+  (1 of 22).
 - **Emergencies:** on 40 new first-aid situations (set 55), Gemma 4 26B writing from the official
   guide gave a good answer to 30, one judged unsafe; the smaller models show the guide as published,
-  with the call line first, and on 320 labelled questions the right guide opened 231 times with none
-  misleading.
-- **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 7 good
-  answers (5% to 18%) on 40 longevity questions; reading the Encyclopedia for subjects few people write about
-  took the 4B from 2 to 7 (5% to 18%) on 40 such questions, with fewer grader annotations; reading notes
-  for single facts took it from 38 to 66 of 105 ([how it works](docs/how-it-works.md)).
+  with the call line first. On 320 labelled questions, which the guide matcher was developed against, the
+  right guide opens 231 times with none misleading (the release's code).
+- **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 6 good
+  answers (5% to 15%) on 40 longevity questions (18 October); reading the Encyclopedia for subjects few
+  people write about took the 4B from 2 to 7 (5% to 18%) on 40 such questions (20 October, one grading
+  round); reading notes for single facts took it from 38 to 66 of 105 (23 October)
+  ([how it works](docs/how-it-works.md)).
 
 Every test behind 1.4.2, including emergencies and the phone checks, is on one page:
 [How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
 emulator, not on a 12 GB phone. The graders and the reference answers come from AI models of one
-family, so treat these numbers as our own measurement, not an independent score. Every question,
-answer and grade is published in [docs/fieldtest](docs/fieldtest/), and the
+family, so treat these numbers as our own measurement, not an independent score; the share of the
+reference score is a judge's average, not a share of correct answers. The questions and grades are
+published in [docs/fieldtest](docs/fieldtest/) (for some sets the grades only), and the
 [evaluation](docs/evaluation.md) explains each test, including changes that were tried and not
 adopted.
 
@@ -130,15 +139,17 @@ adopted.
   took 47 minutes with Wi-Fi on and other apps open, which is why the 2B is recommended below 8 GB.
   Gemma 4 26B answered in a median of 92 seconds on a 12 GB emulator, which runs at a computer's speed,
   not a phone's. No 8 GB or 12 GB phone has been measured. Answers built from saved data (first-aid
-  guides, emergency numbers, places, sums) take seconds and never wait for another answer.
+  guides, emergency numbers, places, sums) take seconds; a first-aid guide, an emergency number or the
+  no-guide reply also never waits for another answer to finish.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
 - Map listings, opening hours and menus can be out of date.
 - **Within the bounty's limits:** with all three models, every collection and the voice installed,
-  Android reports 47.58 GB of storage for the app; on a 12 GB Android emulator in airplane mode it used
-  at most 6.8 GB of memory while answering with the 4B
+  Android reports 47.58 GB of storage for the app on a 12 GB Android emulator (October 21); there, in
+  airplane mode, it used at most 6.8 GB of memory while answering with the 4B (October 18)
   ([details](docs/evaluation.md#good-answers-and-storage-with-everything-installed-october-21)).
-- Tested on a Redmi 13C (6 GB, Android 13) and that emulator. Not yet tested on a Pixel, on
-  GrapheneOS or on a real 8 GB phone.
+- Tested on a Redmi 13C (6 GB, Android 13), with a build of the same code signed with a local test key,
+  and on Android emulators; the release file itself ran on an emulator. Not yet tested on a Pixel, on
+  GrapheneOS, or on a real 8 GB or 12 GB phone.
 
 ## Collections
 
@@ -175,7 +186,7 @@ on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns s
 
 | Version | What changed |
 | --- | --- |
-| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B from 6 GB and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Release notes](docs/releases/current.md) |
+| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B (recommended from 8 GB) and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Release notes](docs/releases/current.md) |
 | [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Notes](docs/releases/field-atlas-1.4.1.md) |
 | [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Notes](docs/releases/field-atlas-1.4.0.md) |
 | [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |

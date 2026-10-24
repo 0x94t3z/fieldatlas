@@ -120,23 +120,21 @@ def axis_counts(x_of, ticks, top, base_y, caption):
 
 
 def ladder(data):
-    # Counted the way Field Atlas measures itself: how many questions got a good answer (7 or more out of 10 from
-    # blind graders), beside how many problems the graders listed per answer (grader annotations).
+    # Two measures side by side, so neither tells the story alone: how many questions got a good answer (7 or more
+    # out of 10 from blind graders in both rounds), and the average score as a share of the reference answers' score.
+    # A model that writes fuller answers with more slips (the 4B) scores higher on the second and lower on the first.
     d = data["ladder"]
     rows = d["rows"]
-    # Sets of different sizes sit on one scale: the share of questions with a good answer.
-    shares = [100 * r["good"] / r["questions"] for r in rows]
-    counts = ", ".join(f"{round(v)}%" for v in shares[:-1]) + " and " + f"{round(shares[-1])}%"
-    body = heading((f"{counts} good answers,", " by phone size."), d["method"])
-    top, row_h, bar_h = 300, 132, 44
-    # The label column holds the phone tier and the route on separate lines, clear of the axis.
+    goods = [100 * r["good"] / r["questions"] for r in rows]
+    body = heading(("Good answers and average score,", " by phone size."), d["method"])
+    top, row_h, bar_h, gap = 290, 150, 34, 8
     scale_x, scale_w = X0 + 520, 690
 
     def x_of(v):
         return scale_x + scale_w * v / 100
 
-    base_y = top + row_h * len(rows) - 20
-    body += axis(x_of, list(range(0, 101, 25)), top - 4, base_y, "share of questions with a good answer")
+    base_y = top + row_h * len(rows) - 26
+    body += axis(x_of, list(range(0, 101, 25)), top - 4, base_y, "percent")
     body += text(X1, top - 2, "grader annotations", 17, FAINT, 600, anchor="end")
     body += text(X1, top + 20, "per answer", 17, FAINT, 600, anchor="end")
     fills = [SAGE_1, SAGE_2, AMBER]
@@ -146,12 +144,18 @@ def ladder(data):
         body += text(X0, y + 22, r["model"], 27, INK, 700)
         body += text(X0, y + 50, r["phone"], 18, DIM)
         body += text(X0, y + 74, r["route"], 18, DIM)
-        w = max(x_of(shares[i]) - scale_x, 3)
+        # Good answers: the filled bar.
+        w = max(x_of(goods[i]) - scale_x, 3)
         body += f'<rect x="{scale_x}" y="{y}" width="{w:.1f}" height="{bar_h}" rx="2" fill="{fills[i % 3]}"/>'
-        # The count and its share, so the bar reads at a glance without the axis.
-        body += text(scale_x + w + 14, y + 32, f"{r['good']} of {r['questions']} · {round(shares[i])}%", 27, AMBER if best else INK, 700)
-        body += text(X1, y + 32, f"{r['errors']:.2f}", 27, DIM, 600, anchor="end")
-    return frame(body, "Good answers by phone size", d["sourceLine"])
+        body += text(scale_x + w + 14, y + 26, f"{r['good']} of {r['questions']} good · {round(goods[i])}%", 23, AMBER if best else INK, 700)
+        # Average score as a share of the reference: an outlined bar under it.
+        y2 = y + bar_h + gap
+        w2 = max(x_of(r["share"]) - scale_x, 3)
+        body += (f'<rect x="{scale_x}" y="{y2}" width="{w2:.1f}" height="{bar_h}" rx="2" fill="none" '
+                 f'stroke="{fills[i % 3]}" stroke-width="3"/>')
+        body += text(scale_x + w2 + 14, y2 + 26, f"{r['share']:.0f}% of the reference score", 21, DIM, 600)
+        body += text(X1, y + 26, f"{r['errors']:.2f}", 27, DIM, 600, anchor="end")
+    return frame(body, "Good answers and average score by phone size", d["sourceLine"])
 
 
 def collections(data):
@@ -176,7 +180,10 @@ def collections(data):
         cy = y + 34
         body += text(X0, y + 24, r["label"], 26, INK, 700)
         body += text(X0, y + 54, r["detail"], 18, DIM)
-        body += text(X0, y + 80, f"{r['set']} · grader annotations per answer {r['errorsBefore']:.2f} → {r['errorsAfter']:.2f}", 18, FAINT, italic=True, family=SERIF)
+        # Annotations are shown only where the published grades hold them, before and after or after alone.
+        notes = ("" if r.get("errorsAfter") is None else " · grader annotations per answer "
+                 + (f"{r['errorsBefore']:.2f} → " if r.get("errorsBefore") is not None else "") + f"{r['errorsAfter']:.2f}")
+        body += text(X0, y + 80, f"{r['set']}{notes}", 18, FAINT, italic=True, family=SERIF)
         a, b = sx(share(r, r["before"])), sx(share(r, r["after"]))
         body += f'<line x1="{a:.1f}" y1="{cy}" x2="{b:.1f}" y2="{cy}" stroke="{SAGE_2}" stroke-width="3"/>'
         body += f'<circle cx="{a:.1f}" cy="{cy}" r="9" fill="{GROUND}" stroke="{SAGE_3}" stroke-width="3"/>'

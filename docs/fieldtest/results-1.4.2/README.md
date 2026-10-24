@@ -2,7 +2,7 @@
 
 Every question set used for the 1.4.2 release, with each setup's scores. The method and the conclusions are on [How Field Atlas 1.4.2 was tested](../../testing-1.4.2.md); this page is the full record behind it.
 
-How to read a row: each answer was scored 0 to 10 by an AI grader who checked the facts on the web without knowing which setup wrote it, in two rounds with different graders, shown as `first/second`. A **good answer** scores 7 or more in both. **Wrong details** are the factual errors the graders listed. The **web reference answer** is what an assistant with internet access wrote for the same question, graded the same way, as a yardstick. The raw files (`heldoutNN-grades.jsonl`) hold the same data, one line per answer, with the graders' notes.
+How to read a row: each answer was scored 0 to 10 by an AI grader who checked the facts on the web without knowing which setup wrote it, in two rounds with different graders, shown as `first/second` (some sets or setups had one round; each set says which). A **good answer** scores 7 or more in every round. **Grader annotations** are the problems the graders listed: mostly wrong facts, also omissions and repeated points, not independently confirmed errors. The **web reference answer** is what an assistant with internet access wrote for the same question, graded the same way, as a yardstick. The raw files (`heldoutNN-grades.jsonl`) hold the same data, one line per answer, with the graders' notes.
 
 Emergency sets first, then the everyday-question sets used to test wording changes that were not kept. Where a set was graded in more than two rounds (set 55's reference answers were graded alongside both the small models and Gemma), every score is shown.
 
@@ -10,7 +10,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 36 first-aid situations, written blind and sealed as `../heldout44.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Guide shown as published (1.4.1) | 36 | 12 (33%) | 4.9 | 0.14 | 3 |
 | Gemma writes from the guide (1.4.2) | 36 | 28 (78%) | 7.4 | 0.10 | 0 |
@@ -64,7 +64,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout45.jsonl`. Each answer was graded in one round; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, guide shown as published (1.4.1) | 40 | 20 (50%) | 5.8 | 0.15 | 2 |
 | Gemma writes from the guide | 40 | 32 (80%) | 7.5 | 0.10 | 1 |
@@ -125,7 +125,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout47.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | 4B, careful prompt (not kept) | 40 | 13 (32%) | 4.6 | 1.11 | 7 |
 | 4B, citing the guides (not kept) | 40 | 11 (28%) | 4.3 | 0.69 | 5 |
@@ -186,7 +186,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 24 first-aid situations, written blind and sealed as `../heldout48.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma writes from the guide, with the answer checks | 24 | 16 (67%) | 7.0 | 0.35 | 2 |
 | Web reference answer | 24 | 24 (100%) | 9.5 | 0.02 | 0 |
@@ -227,7 +227,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout50.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, after the fixes | 40 | 29 (72%) | 7.5 | 0.17 | 1 |
 | Gemma, before the fixes | 40 | 29 (72%) | 7.2 | 0.26 | 1 |
@@ -289,7 +289,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout52.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, after the fixes | 40 | 24 (60%) | 6.8 | 0.39 | 1 |
 | Gemma, before the fixes | 40 | 24 (60%) | 6.9 | 0.47 | 1 |
@@ -351,7 +351,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout53.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, after the fixes | 40 | 29 (72%) | 7.5 | 0.28 | 0 |
 | Gemma, before the fixes | 40 | 27 (68%) | 7.5 | 0.25 | 0 |
@@ -413,7 +413,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 first-aid situations, written blind and sealed as `../heldout54.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, after the fixes | 40 | 31 (78%) | 7.4 | 0.23 | 3 |
 | Gemma, before the fixes | 40 | 31 (78%) | 7.3 | 0.19 | 2 |
@@ -471,11 +471,11 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 </details>
 
-## Set 55: Emergencies: fresh questions after the broad fixes (final rules)
+## Set 55: Emergencies: fresh questions after the broad fixes
 
 40 first-aid situations, written blind and sealed as `../heldout55.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round. ⚠ marks an answer both graders said could plausibly harm the person.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer | Unsafe |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer | Unsafe |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Gemma, after the fixes | 40 | 30 (75%) | 7.8 | 0.26 | 1 |
 | Gemma, before the fixes | 40 | 30 (75%) | 7.7 | 0.23 | 1 |
@@ -535,9 +535,9 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 ## Set 46: Everyday questions: an adaptive length rule (not kept)
 
-40 mixed questions, written blind and sealed as `../heldout46.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round.
+40 mixed questions, written blind and sealed as `../heldout46.jsonl`. Each answer was graded in one round, except “2B, release wording” in two; a good answer scores 7 or more in every round.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer |
 | --- | ---: | ---: | ---: | ---: |
 | Gemma, adaptive length (not kept) | 40 | 32 (80%) | 7.7 | 0.17 |
 | Gemma, release wording | 40 | 32 (80%) | 7.5 | 0.28 |
@@ -598,7 +598,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 mixed questions, written blind and sealed as `../heldout46.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer |
 | --- | ---: | ---: | ---: | ---: |
 | Gemma, adaptive length (not kept) | 40 | 31 (78%) | 7.6 | 0.16 |
 | Gemma, release wording | 40 | 29 (72%) | 7.4 | 0.34 |
@@ -659,7 +659,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 mixed questions, written blind and sealed as `../heldout49.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer |
 | --- | ---: | ---: | ---: | ---: |
 | Gemma, release wording | 40 | 25 (62%) | 7.2 | 0.38 |
 | Gemma, plain-language wording (not kept) | 40 | 24 (60%) | 7.0 | 0.45 |
@@ -720,7 +720,7 @@ Emergency sets first, then the everyday-question sets used to test wording chang
 
 40 mixed questions, written blind and sealed as `../heldout51.jsonl`. Each answer was graded in two rounds; a good answer scores 7 or more in every round.
 
-| Setup | Answers | Good answers | Mean score | Wrong details per answer |
+| Setup | Answers | Good answers | Mean score | Grader annotations per answer |
 | --- | ---: | ---: | ---: | ---: |
 | Gemma, one-sentence facts (not kept) | 40 | 32 (80%) | 7.6 | 0.28 |
 | Gemma, release wording | 40 | 34 (85%) | 7.8 | 0.36 |
