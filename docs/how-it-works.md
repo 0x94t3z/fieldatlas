@@ -145,4 +145,5 @@ last three sets were graded a day after the others. The tests and their records 
 | Reading aloud | [ReadAloud.kt](../app/src/main/java/xyz/fieldatlas/speech/ReadAloud.kt) |
 
 The images are drawn by [tools/charts/make_charts.py](../tools/charts/make_charts.py) from the
-figures in [tools/charts/charts.json](../tools/charts/charts.json).
+figures in [tools/charts/charts.json](../tools/charts/charts.json), and the animated README hero, in a light and a dark
+version, by [tools/charts/make_hero.py](../tools/charts/make_hero.py).

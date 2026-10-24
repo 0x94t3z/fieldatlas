@@ -58,8 +58,13 @@ class ProductCopyTest(unittest.TestCase):
 
     def test_readme_uses_approved_identity_without_hype(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertIn('<h1 align="center">Field Atlas</h1>', readme)
-        self.assertIn("Research, explore, and question the knowledge on your phone—even offline.", readme)
+        # The animated hero (tools/charts/make_hero.py) carries the name and the line. GitHub shows the file that
+        # matches the reader's theme, so both are offered, and the alt text says what the image says.
+        for theme in ("light", "dark"):
+            self.assertTrue((ROOT / f"docs/branding/field-atlas-hero-{theme}.svg").is_file())
+        self.assertIn('<source media="(prefers-color-scheme: dark)" srcset="docs/branding/field-atlas-hero-dark.svg">', readme)
+        self.assertIn('src="docs/branding/field-atlas-hero-light.svg"', readme)
+        self.assertIn('alt="Field Atlas, offline research for Android: answers from what you carry."', readme)
         self.assertIn("There is no account, search API, remote inference", readme)
         self.assertNotIn("AI-powered", readme.casefold())
 

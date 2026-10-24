@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/branding/field-atlas-readme-icon.svg" alt="Field Atlas app icon" width="160" height="160">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/branding/field-atlas-hero-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/branding/field-atlas-hero-light.svg">
+    <img alt="Field Atlas, offline research for Android: answers from what you carry." src="docs/branding/field-atlas-hero-light.svg" width="100%">
+  </picture>
 </p>
-
-<h1 align="center">Field Atlas</h1>
-
-<p align="center">Research, explore, and question the knowledge on your phone—even offline.</p>
 
 <p align="center">
   <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk">Download for Android</a></strong> ·
