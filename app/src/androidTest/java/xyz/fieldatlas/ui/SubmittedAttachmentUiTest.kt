@@ -45,14 +45,12 @@ class SubmittedAttachmentUiTest {
             }
         }
 
-        compose.onNodeWithText("Files for this question").assertIsDisplayed()
         compose.onNodeWithText("notes.txt").assertIsDisplayed()
         compose.onNodeWithContentDescription("Remove notes.txt").assertDoesNotExist()
 
         compose.runOnIdle {
             state = state.copy(phase = ResearchPhase.Complete, answer = "The notes describe the water cycle.")
         }
-        compose.onNodeWithText("Files for this question").assertIsDisplayed()
         compose.waitForIdle()
         captureSentFile()
         compose.onNodeWithText("notes.txt").assertIsDisplayed().performClick()
@@ -77,7 +75,6 @@ class SubmittedAttachmentUiTest {
             FieldAtlasTheme { AnswerScreen(state, onBack = {}, onAskAnother = {}, onCitation = {}) }
         }
 
-        compose.onNodeWithText("Files for this question").assertIsDisplayed()
         compose.onNodeWithText("notes.txt").assertIsDisplayed()
         compose.onNodeWithContentDescription("Remove notes.txt").assertDoesNotExist()
         compose.onNodeWithContentDescription("Remove draft.txt").assertIsDisplayed()
@@ -91,21 +88,27 @@ class SubmittedAttachmentUiTest {
                 sentAttachmentIds = setOf(notes.id, draft.id),
             )
         }
-        compose.onNodeWithText("Files for this question").assertIsDisplayed()
-        compose.onNodeWithText("notes.txt").assertExists()
-        compose.onNodeWithText("draft.txt").assertExists()
+        // Two sent files are one pill, so long names never push the answer down.
+        compose.onNodeWithText("notes.txt +1").assertExists()
+        compose.onNodeWithText("draft.txt").assertDoesNotExist()
         compose.onNodeWithContentDescription("Remove notes.txt").assertDoesNotExist()
         compose.onNodeWithContentDescription("Remove draft.txt").assertDoesNotExist()
 
         compose.runOnIdle {
             state = state.copy(phase = ResearchPhase.Complete, answer = "Both files were used for this answer.")
         }
-        compose.onNodeWithText("draft.txt").assertExists()
         compose.onNodeWithContentDescription("Remove notes.txt").assertDoesNotExist()
         compose.onNodeWithContentDescription("Remove draft.txt").assertDoesNotExist()
+        // The pill lists both files, and each opens the text the answer read.
+        compose.onNodeWithText("notes.txt +1").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Files for this question").assertIsDisplayed()
+        compose.onNodeWithText("draft.txt").assertIsDisplayed().performClick()
+        compose.onNodeWithText("Additional notes for the next question.").assertIsDisplayed()
+        compose.onNodeWithText("Close").performClick()
+        compose.onNodeWithText("Additional notes for the next question.").assertDoesNotExist()
     }
 
-    @Test fun sentImageTileHasNoRemoveAction() {
+    @Test fun sentImageHasNoRemoveAction() {
         // No preview file is supplied: exercise the image tile without file IO or bitmap decoding.
         val image = AttachmentUiState(
             id = "photo",
@@ -126,7 +129,6 @@ class SubmittedAttachmentUiTest {
         compose.setContent {
             FieldAtlasTheme { AnswerScreen(state, onBack = {}, onAskAnother = {}, onCitation = {}) }
         }
-        compose.onNodeWithText("Files for this question").assertIsDisplayed()
         compose.onNodeWithText("page.jpg").assertIsDisplayed()
         compose.onNodeWithContentDescription("Remove page.jpg").assertDoesNotExist()
     }

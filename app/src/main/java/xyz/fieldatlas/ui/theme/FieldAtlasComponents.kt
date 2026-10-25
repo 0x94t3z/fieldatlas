@@ -160,6 +160,7 @@ fun FieldAtlasStatusPill(
     contentColor: Color? = null,
     icon: ImageVector? = null,
     compact: Boolean = false,
+    singleLine: Boolean = false,
 ) {
     val defaultColors = when (state) {
         StatusTone.Neutral -> MaterialTheme.colorScheme.surface to MaterialTheme.colorScheme.onSurfaceVariant
@@ -184,7 +185,10 @@ fun FieldAtlasStatusPill(
                 if (icon == FieldAtlasIcons.Offline || icon == FieldAtlasIcons.DinoWalkA || icon == FieldAtlasIcons.DinoWalkB ||
                     icon == FieldAtlasIcons.Citation) 16.dp else 14.dp))
             Text(text = text, style = if (compact) MaterialTheme.typography.labelSmall.copy(
-                fontSize = 10.sp, lineHeight = 14.sp) else MaterialTheme.typography.labelMedium)
+                fontSize = 10.sp, lineHeight = 14.sp) else MaterialTheme.typography.labelMedium,
+                maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                overflow = if (singleLine) androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis
+                    else androidx.compose.ui.text.style.TextOverflow.Clip)
         }
     }
 }

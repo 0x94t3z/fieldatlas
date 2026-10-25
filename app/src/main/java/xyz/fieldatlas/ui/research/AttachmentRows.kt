@@ -2,6 +2,7 @@ package xyz.fieldatlas.ui.research
 
 import xyz.fieldatlas.ui.theme.FieldAtlasButtonShape
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -16,6 +17,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
@@ -151,33 +155,102 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
         }
     }
     items.firstOrNull { it.id == previewId }?.extracted?.let { extracted ->
-        AlertDialog(
-            onDismissRequest = { previewId = null },
-            title = { Text(extracted.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis) },
-            text = {
-                // Up to 300,000 characters: render paragraph by paragraph, only what is on screen.
-                val blocks = remember(extracted) { previewBlocks(extracted) }
-                androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 400.dp)) {
-                    item {
-                        Text("Read on this phone. Answers use the parts that fit the question.", style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))
-                        if (extracted.fromOcr) Text("Text recognition currently supports printed English and may make mistakes. Check the original.", style = MaterialTheme.typography.bodySmall)
-                        extracted.coverageNote?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-                    }
-                    items(blocks.size) { index ->
-                        val (heading, text) = blocks[index]
-                        if (heading != null) Text(heading, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
-                        if (text.isNotEmpty()) Text(text, style =
-                            if (extracted.kind == AttachmentKind.TEXT && TextFileTypes.language(extracted.displayName) != null)
-                                MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    fontSize = 13.sp, lineHeight = 21.sp)
-                            else MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
-                                lineHeight = 29.sp))
+        AttachmentTextPreview(extracted) { previewId = null }
+    }
+}
+
+/** The text read from a file, as the answer will use it. */
+@Composable
+internal fun AttachmentTextPreview(extracted: xyz.fieldatlas.attachments.ExtractedAttachment, onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(extracted.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis) },
+        text = {
+            // Up to 300,000 characters: render paragraph by paragraph, only what is on screen.
+            val blocks = remember(extracted) { previewBlocks(extracted) }
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.heightIn(max = 400.dp)) {
+                item {
+                    Text("Read on this phone. Answers use the parts that fit the question.", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))
+                    if (extracted.fromOcr) Text("Text recognition currently supports printed English and may make mistakes. Check the original.", style = MaterialTheme.typography.bodySmall)
+                    extracted.coverageNote?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                }
+                items(blocks.size) { index ->
+                    val (heading, text) = blocks[index]
+                    if (heading != null) Text(heading, style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 12.dp))
+                    if (text.isNotEmpty()) Text(text, style =
+                        if (extracted.kind == AttachmentKind.TEXT && TextFileTypes.language(extracted.displayName) != null)
+                            MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                fontSize = 13.sp, lineHeight = 21.sp)
+                        else MaterialTheme.typography.bodyLarge.copy(fontFamily = xyz.fieldatlas.ui.theme.FieldAtlasEditorial,
+                            lineHeight = 29.sp))
+                }
+            }
+        },
+        confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = onClose) { Text("Close") } },
+    )
+}
+
+private fun attachmentIcon(item: AttachmentUiState) = when {
+    item.kind == AttachmentKind.IMAGE -> FieldAtlasIcons.Photo
+    item.kind == AttachmentKind.PDF -> FieldAtlasIcons.Pdf
+    item.kind == AttachmentKind.TEXT && TextFileTypes.language(item.displayName) != null -> FieldAtlasIcons.Code
+    else -> FieldAtlasIcons.Document
+}
+
+/**
+ * The files sent with the question, as one pill beside the answer's other facts, so up to three long names never push
+ * the answer down: the first file's name, and "+2" for the others. Nothing to remove or retry. Tapping it opens the
+ * file, or with several a short list of them, each opening the text the answer read, or the photo.
+ */
+@Composable
+internal fun SentFilesPill(items: List<AttachmentUiState>) {
+    if (items.isEmpty()) return
+    var listOpen by remember { mutableStateOf(false) }
+    var opened by remember { mutableStateOf<AttachmentUiState?>(null) }
+    val first = items.first()
+    xyz.fieldatlas.ui.theme.FieldAtlasStatusPill(
+        if (items.size == 1) first.displayName else "${first.displayName} +${items.size - 1}",
+        icon = attachmentIcon(first),
+        singleLine = true,
+        modifier = Modifier.widthIn(max = 260.dp).clip(xyz.fieldatlas.ui.theme.FieldAtlasChipShape)
+            .clickable(onClickLabel = if (items.size == 1) "Open" else "Show files") {
+                if (items.size == 1) opened = first else listOpen = true
+            }
+            .semantics {
+                contentDescription = if (items.size == 1) "Sent file ${first.displayName}"
+                    else "${items.size} sent files: " + items.joinToString(", ") { it.displayName }
+            },
+    )
+    if (listOpen) AlertDialog(
+        onDismissRequest = { listOpen = false },
+        title = { Text("Files for this question") },
+        text = {
+            Column {
+                items.forEach { item ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(MaterialTheme.shapes.small)
+                            .clickable(onClickLabel = "Open") { listOpen = false; opened = item }
+                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(attachmentIcon(item), null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                        Text(item.displayName, maxLines = 1, overflow = TextOverflow.MiddleEllipsis,
+                            style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     }
                 }
-            },
-            confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { previewId = null }) { Text("Close") } },
-        )
+            }
+        },
+        confirmButton = { TextButton(shape = FieldAtlasButtonShape, onClick = { listOpen = false }) { Text("Close") } },
+    )
+    opened?.let { item ->
+        val image = item.previewFile.takeIf { item.kind == AttachmentKind.IMAGE }
+        var asText by remember(item.id) { mutableStateOf(image == null) }
+        if (!asText && image != null) {
+            AttachmentImagePreview(image, canRemove = false, showRemove = false, onClose = { opened = null }, onRemove = {},
+                onReadText = item.extracted?.let { { asText = true } })
+        } else item.extracted?.let { AttachmentTextPreview(it) { opened = null } }
     }
 }
 

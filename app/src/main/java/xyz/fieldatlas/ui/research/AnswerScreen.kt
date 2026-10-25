@@ -209,11 +209,8 @@ fun AnswerScreen(
                             text = state.shownQuestion.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineMedium,
                         )
-                        if (state.submittedAttachments.isNotEmpty()) {
-                            Text("Files for this question", style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            AttachmentRows(state.submittedAttachments, enabled = false, remove = {}, retry = {}, showRemove = false)
-                        }
+                        // The files sent with this question: one pill under it while it runs, then first among the answer's facts.
+                        if (running) SentFilesPill(state.submittedAttachments)
                         // While it runs, how the question is read, when that differs from the title: a follow-up read
                         // with the question before it (Edit corrects it), or the extra words a weak first search tried.
                         if (running) researchReading(state)?.let { (label, reading) ->
@@ -229,6 +226,7 @@ fun AnswerScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             itemVerticalAlignment = Alignment.CenterVertically,
                         ) {
+                            SentFilesPill(state.submittedAttachments)
                             val cited = citedSourceGroups.size
                             if (!showsSourcePill(fromKnowledge, readSources, cited)) {
                                 // The foot line already says where the answer came from.
