@@ -1,8 +1,8 @@
 # Verification
 
-## v1.4.2 release candidate (25 October 2026, not yet published)
+## v1.4.2 release (built and published 25 October 2026)
 
-- **Candidate:** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
+- **Release:** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
   its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
   `scripts/patches/ai-chat-generation-fixes.patch` applied.
   Public-key APK: version 1.4.2 (21), 102,548,359 bytes, SHA-256

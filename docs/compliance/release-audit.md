@@ -1,10 +1,16 @@
 # Release audit
 
-Updated 25 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0 and v1.4.1 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 25 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1 and v1.4.2 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
-## v1.4.2 release build (25 October 2026)
+## v1.4.2 release (25 October 2026)
 
-Not yet published. Built from a clean clone at `eb7ab5a` (app source `3825c7d`), with
+Published on 25 October 2026 at 06:19 UTC as [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2),
+tagged on `d391e82`, not a prerelease and marked latest, with `fieldatlas.apk` and `fieldatlas.apk.sha256`
+attached. The APK was hashed after upload while the release was a draft, and again after publishing, from
+its public download link: both times 102,548,359 bytes with the SHA-256 below, which the attached
+`.sha256` file also gives.
+
+Built from a clean clone at `eb7ab5a` (app source `3825c7d`), with
 `third_party/llama.cpp` at `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied:
 version 1.4.2 (21), 102,548,359 bytes, SHA-256
 `1055187374b035194b96115d2ac34781ae9b2d6bd4d83ba5e868d71ae12e75a7`. The certificate matches the public
@@ -32,8 +38,7 @@ installed over it with the data kept: Library's new labels show, and the 2B answ
 ML-KEM offline, citing four passages. Phone checks used local-test builds of the 24 October code; the
 Redmi 13C carries the previous candidate's local-test build, and no public-key APK was installed on a
 phone. See [verification](../verification.md) for what was run and
-[How Field Atlas 1.4.2 was tested](../testing-1.4.2.md) for the results and the known limits. Still to
-do: tag, publish, and hash the download again after publishing.
+[How Field Atlas 1.4.2 was tested](../testing-1.4.2.md) for the results and the known limits.
 
 ## v1.4.1 release handoff (15 October 2026)
 
