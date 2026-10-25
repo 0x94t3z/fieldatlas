@@ -5,10 +5,16 @@ Updated 25 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1
 ## v1.4.2 release (25 October 2026)
 
 Published on 25 October 2026 at 06:19 UTC as [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2),
-tagged on `d391e82`, not a prerelease and marked latest, with `fieldatlas.apk` and `fieldatlas.apk.sha256`
-attached. The APK was hashed after upload while the release was a draft, and again after publishing, from
-its public download link: both times 102,548,359 bytes with the SHA-256 below, which the attached
-`.sha256` file also gives.
+not a prerelease and marked latest, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached: build 21
+below, hashed after upload while the release was a draft and again from its public link (102,548,359
+bytes, the SHA-256 below). The same day its two files were replaced, at 15:08 UTC by build 22 and at
+21:07 UTC by build 23, and the tag moved from `d391e82` to `a6e0882`, the commit that shortened the
+release notes and kept the full notes in
+[field-atlas-1.4.2-details.md](../releases/field-atlas-1.4.2-details.md). Each replacement was uploaded
+under a temporary name and downloaded back and hashed before the old files were removed. Build 23 was then
+downloaded from its public link without signing in: 102,561,155 bytes, SHA-256
+`16ef7d8bcced0812c91dc408f69ed2547b0beb359b21b7479912bde19471998a`, version 1.4.2 (23), signed with the
+public release certificate, the same SHA-256 the attached `.sha256` file gives.
 
 **Build 23.** Later the same day the APK was rebuilt to replace the build 21 file below before judging,
 first as build 22 (`9f9fec3`, SHA-256 `ae0290ce…`, attached from 15:08 UTC) and then as build 23: a clean
