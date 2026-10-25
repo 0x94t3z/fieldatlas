@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
@@ -91,7 +92,7 @@ fun AnswerScreen(
     // loaded on a worker the first time, and waiting for them here would freeze the screen.
     val presentation = if (running) AnswerPresentation(emptyList(), emptySet(), emptySet()) else buildAnswerPresentation(state.answer, state.sources.size)
     val isInputNotice = !running && state.answer.isNotBlank() && state.answer ==
-        xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.attachments.isNotEmpty())
+        xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.submittedAttachments.isNotEmpty())
     // Lookups such as "near me" reply with app-written text and never run the model, so
     // "model-generated" and "not verified against sources" labels would be wrong there.
     val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
@@ -176,7 +177,8 @@ fun AnswerScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(Modifier.fillMaxSize().navigationBarsPadding()) {
+        // Shrink the answer's scroll area above the IME; never pan the whole page to reveal the composer.
+        Column(Modifier.fillMaxSize().navigationBarsPadding().imePadding()) {
             FieldAtlasTopBar(title = "Answer", onBack = onBack, action = if (state.answer.isBlank() || running) null else ({
                 AnswerShareActions(answerWithSources(state.question, state.answer, state.sources), state.question)
             }))
@@ -207,6 +209,11 @@ fun AnswerScreen(
                             text = state.shownQuestion.ifBlank { "Research result" },
                             style = MaterialTheme.typography.headlineMedium,
                         )
+                        if (state.submittedAttachments.isNotEmpty()) {
+                            Text("Files for this question", style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            AttachmentRows(state.submittedAttachments, enabled = false, remove = {}, retry = {}, showRemove = false)
+                        }
                         // While it runs, how the question is read, when that differs from the title: a follow-up read
                         // with the question before it (Edit corrects it), or the extra words a weak first search tried.
                         if (running) researchReading(state)?.let { (label, reading) ->
@@ -523,7 +530,7 @@ fun AnswerScreen(
                     onNewTopic = onAskAnother,
                     voice = voiceState,
                     onMic = onFollowUpMic,
-                    attachments = state.attachments,
+                    attachments = state.pendingAttachments,
                     canAddAttachment = state.canAddAttachment,
                     attachmentsReady = state.attachmentsReady,
                     onCamera = onFollowUpCamera,

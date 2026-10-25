@@ -19,6 +19,9 @@ data class AttachmentUiState(
     val originalFile: File? = null,
 )
 
+/** A ready file whose staged bytes and extracted text move together between a session and a background answer. */
+data class OwnedAttachment(val ui: AttachmentUiState, val input: AttachmentInput)
+
 /** Called from the UI dispatcher; extraction/staging delegates move expensive work off it. */
 class AttachmentSession(
     private val scope: CoroutineScope,
@@ -50,7 +53,34 @@ class AttachmentSession(
         }
     }
     /** Staged files currently attached, in display order, for saving across process death. */
-    fun staged(): List<AttachmentInput> = state.value.mapNotNull { inputs[it.id] }
+    fun staged(ids: Set<String>? = null): List<AttachmentInput> = state.value
+        .filter { ids == null || it.id in ids }.mapNotNull { inputs[it.id] }
+
+    /** Transfers ownership without deleting or re-reading the files. Only fully read, staged files may leave. */
+    fun take(ids: Set<String>): List<OwnedAttachment> {
+        val selected = state.value.filter { it.id in ids }
+        require(selected.size == ids.size) { "Cannot transfer a file that is not in this session" }
+        require(selected.all { it.phase == AttachmentPhase.Ready && it.extracted != null && inputs[it.id] != null }) {
+            "Only ready staged files can be transferred"
+        }
+        val owned = selected.map { OwnedAttachment(it, inputs.getValue(it.id)) }
+        // Remove ownership before publishing: a collector may resume the read coroutine's finally immediately.
+        selected.forEach { inputs.remove(it.id); jobs.remove(it.id); loaders.remove(it.id) }
+        mutableState.value = state.value.filterNot { it.id in ids }
+        return owned
+    }
+
+    /** Takes back files transferred by [take], preserving their IDs, previews and extracted text. */
+    fun restoreOwned(files: List<OwnedAttachment>) {
+        if (files.isEmpty()) return
+        val ids = files.map { it.ui.id }
+        require(ids.distinct().size == ids.size && state.value.none { it.id in ids }) { "Duplicate transferred file" }
+        require(files.all { it.ui.phase == AttachmentPhase.Ready && it.ui.extracted != null }) { "Transferred files must be ready" }
+        AttachmentPolicy.checkCount(state.value.size + files.size - 1)
+        files.forEach { inputs[it.ui.id] = it.input }
+        mutableState.value += files.map { it.ui }
+    }
+
     fun retry(id: String) {
         if (state.value.none { it.id == id && it.phase == AttachmentPhase.Error }) return
         update(id) { it.copy(phase = AttachmentPhase.Reading, error = null) }
@@ -75,8 +105,8 @@ class AttachmentSession(
                 update(id) { it.copy(phase = AttachmentPhase.Error, error = attachmentError(error)) }
             } finally {
                 if (state.value.none { it.id == id }) {
-                    input?.let { cleanup(it.localFile) }
-                    inputs.remove(id)
+                    // take() may have handed a just-read file to a background answer. Only delete bytes still owned here.
+                    inputs.remove(id)?.let { cleanup(it.localFile) }
                 }
             }
         }

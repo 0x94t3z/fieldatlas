@@ -134,9 +134,9 @@ internal fun FollowUpComposer(
                     if (draft.isBlank() && !recording) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.primary),
             ) {
                 Column(Modifier.fillMaxWidth()) {
-                    // Files used with this follow-up: the topic's earlier files stay attached, new ones join them.
+                    // Only newly added files belong in the draft. Sent files are shown with their question.
                     if (attachments.isNotEmpty()) Box(Modifier.padding(start = 8.dp, end = 8.dp, top = 8.dp)) {
-                        AttachmentRows(attachments, enabled = !recording, remove = onRemoveAttachment, retry = onRetryAttachment)
+                        AttachmentRows(attachments, enabled = !recording && !running, remove = onRemoveAttachment, retry = onRetryAttachment)
                     }
                     Row(Modifier.fillMaxWidth().heightIn(min = 52.dp).padding(horizontal = 4.dp),
                         verticalAlignment = Alignment.CenterVertically) {

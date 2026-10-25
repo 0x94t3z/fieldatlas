@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import xyz.fieldatlas.research.Evidence
@@ -61,6 +63,10 @@ data class BackgroundAnswer(
 
 data class ResearchUiState(
     val attachments: List<AttachmentUiState> = emptyList(),
+    /** Files used by this question, separate from files being composed for the next one. */
+    val submittedAttachments: List<AttachmentUiState> = emptyList(),
+    /** Session files already sent with a question: shown with it, never again in the composer as new. */
+    val sentAttachmentIds: Set<String> = emptySet(),
     /** The standalone question research runs on; for a follow-up, the reading built from the topic. */
     val question: String = "",
     /** A follow-up as it was typed ("which one is closest?"); blank for a question asked on its own. */
@@ -99,8 +105,10 @@ data class ResearchUiState(
     val clockStartNanos: Long? get() = workingSinceNanos ?: startedAtNanos
     /** What the person asked, as they typed it. */
     val shownQuestion: String get() = asked.ifBlank { question }
-    val canAddAttachment: Boolean get() = !isRunning && attachments.size < AttachmentPolicy.MAX_COUNT
-    val attachmentsReady: Boolean get() = attachments.all { it.phase == AttachmentPhase.Ready }
+    val pendingAttachments: List<AttachmentUiState> get() = attachments.filterNot { it.id in sentAttachmentIds }
+    val activeAttachments: List<AttachmentUiState> get() = (submittedAttachments + pendingAttachments).distinctBy { it.id }
+    val canAddAttachment: Boolean get() = !isRunning && activeAttachments.size < AttachmentPolicy.MAX_COUNT
+    val attachmentsReady: Boolean get() = activeAttachments.all { it.phase == AttachmentPhase.Ready }
     val canSubmit: Boolean get() = question.isNotBlank() && !isRunning && attachmentsReady
     val isRunning: Boolean get() = phase == ResearchPhase.Planning ||
         phase == ResearchPhase.Searching ||
@@ -115,7 +123,7 @@ class ResearchViewModel(
     private val onError: (String) -> Unit = {},
     private val historyStore: AnswerHistoryStore? = null,
     attachmentReader: AttachmentReader = AttachmentReader { throw AttachmentException("Attachments are unavailable.") },
-    cleanupAttachment: (File) -> Unit = {},
+    private val cleanupAttachment: (File) -> Unit = {},
     stagedAttachment: (String) -> File? = { null },
     clearAbandonedAttachments: (Set<String>) -> Unit = {},
 ) : ViewModel() {
@@ -137,13 +145,24 @@ class ResearchViewModel(
     fun selectAttachmentTarget(followUp: Boolean) { attachForFollowUp = followUp }
     fun addAttachment(name: String, load: suspend () -> AttachmentInput) {
         if (mutableUiState.value.isRunning) return
+        AttachmentPolicy.checkCount(mutableUiState.value.activeAttachments.size)
+        pruneInactiveAttachments()
         if (mutableUiState.value.phase == ResearchPhase.Complete && !attachForFollowUp) {
-            mutableUiState.value = ResearchUiState(question = mutableUiState.value.question, attachments = attachmentSession.state.value)
+            mutableUiState.value = ResearchUiState(question = mutableUiState.value.question, attachments = mutableUiState.value.activeAttachments)
         }
         attachmentSession.add(name, load)
     }
-    fun removeAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.remove(id) }
+    fun removeAttachment(id: String) {
+        if (mutableUiState.value.isRunning) return
+        mutableUiState.update { it.copy(submittedAttachments = it.submittedAttachments.filterNot { file -> file.id == id }) }
+        attachmentSession.remove(id)
+    }
     fun retryAttachment(id: String) { if (!mutableUiState.value.isRunning) attachmentSession.retry(id) }
+    /** Keep old files until Stop can no longer restore their question; release them before staging another file. */
+    private fun pruneInactiveAttachments() {
+        val keep = mutableUiState.value.activeAttachments.map { it.id }.toSet()
+        attachmentSession.state.value.filterNot { it.id in keep }.forEach { attachmentSession.remove(it.id) }
+    }
     val uiState: StateFlow<ResearchUiState> = mutableUiState.asStateFlow()
     private var researchJob: Job? = null
 
@@ -151,6 +170,8 @@ class ResearchViewModel(
     private class RunSink {
         var detached = false
         var state = ResearchUiState()
+        /** Ownership follows a background answer so leaving the screen does not delete its originals. */
+        var files: List<OwnedAttachment> = emptyList()
     }
     private var currentSink: RunSink? = null
 
@@ -181,7 +202,13 @@ class ResearchViewModel(
         scope.launch {
             attachmentSession.state.collect { attachments ->
                 mutableUiState.update { it.copy(attachments = attachments) }
-                savedStateHandle[ATTACHMENTS_KEY] = ArrayList(attachmentSession.staged().map { "${it.id}\t${it.kind.name}\t${it.displayName}" })
+            }
+        }
+        scope.launch {
+            // A new topic must not restore the previous topic's files after Android closes the process.
+            uiState.map { it.activeAttachments }.distinctUntilChanged().collect { active ->
+                savedStateHandle[ATTACHMENTS_KEY] = ArrayList(attachmentSession.staged(active.map { it.id }.toSet())
+                    .map { "${it.id}\t${it.kind.name}\t${it.displayName}" })
             }
         }
         scope.launch {
@@ -349,9 +376,10 @@ class ResearchViewModel(
         // A dictation error describes the last recording, not a question typed since.
         if (mutableVoiceState.value.error != null && mutableVoiceState.value.phase == VoicePhase.Idle)
             mutableVoiceState.value = mutableVoiceState.value.copy(error = null)
+        if (mutableUiState.value.phase == ResearchPhase.Complete && question != mutableUiState.value.question) pruneInactiveAttachments()
         mutableUiState.update { state ->
             if (state.phase == ResearchPhase.Complete && question != state.question) {
-                ResearchUiState(question = question, attachments = attachmentSession.state.value)
+                ResearchUiState(question = question, attachments = state.activeAttachments)
             } else {
                 state.copy(question = question)
             }
@@ -373,7 +401,7 @@ class ResearchViewModel(
     fun submit() {
         // Trimmed as History saves it, so an answer read there is known as the one on the home's row.
         val question = mutableUiState.value.question.trim()
-        if (question.isBlank() || !attachmentSession.ready || researchJob?.isActive == true) return
+        if (question.isBlank() || !mutableUiState.value.attachmentsReady || researchJob?.isActive == true) return
         beforeFollowUp = null
         run(question, asked = "", earlier = emptyList(), topic = System.currentTimeMillis(), byVoice = askedByVoice(question))
     }
@@ -384,7 +412,7 @@ class ResearchViewModel(
      */
     fun submitFollowUp(text: String) {
         val state = mutableUiState.value
-        if (text.isBlank() || state.answer.isBlank() || state.isRunning || !attachmentSession.ready ||
+        if (text.isBlank() || state.answer.isBlank() || state.isRunning || !state.attachmentsReady ||
             researchJob?.isActive == true) return
         val earlier = state.earlier + xyz.fieldatlas.research.FollowUp.Turn(state.shownQuestion, state.question, state.answer,
             state.sources, state.metrics?.totalMillis ?: state.savedMillis)
@@ -393,6 +421,8 @@ class ResearchViewModel(
         mutableFollowUpDraft.value = ""
         attachForFollowUp = false
         beforeFollowUp = state
+        // Every follow-up keeps the topic and its files: "what is the maximum daily dose?" or "explain the termination
+        // clause" name no earlier subject, yet need it. A real change of subject is New topic, or Edit on the reading.
         run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(), byVoice = askedByVoice(text),
             // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
             // is no longer attached, and its words must not be quoted as the library's.
@@ -409,12 +439,14 @@ class ResearchViewModel(
         if (state.asked.isBlank()) return
         beforeFollowUp = null
         stopRunning()
+        pruneInactiveAttachments()
         savedStateHandle[QUESTION_KEY] = state.question
-        mutableUiState.value = ResearchUiState(question = state.question, attachments = attachmentSession.state.value)
+        mutableUiState.value = ResearchUiState(question = state.question, attachments = state.activeAttachments)
     }
 
     private fun run(question: String, asked: String, earlier: List<xyz.fieldatlas.research.FollowUp.Turn>, topic: Long,
-                    carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null, byVoice: Boolean = false) {
+                    carried: xyz.fieldatlas.research.TopicEvidence.Carried? = null, byVoice: Boolean = false,
+                    selectedAttachments: List<AttachmentUiState> = mutableUiState.value.activeAttachments) {
         // One answer is researched at a time on the phone: a question asked while another runs in the background
         // waits for it, and says so.
         val ahead = asides.filter { it.sink.state.isRunning }.mapNotNull { aside -> aside.job?.takeIf { it.isActive } }
@@ -425,7 +457,7 @@ class ResearchViewModel(
         // runs while that answer goes on. On 24 Oct a bee sting with swelling lips waited 20 minutes on a 6 GB phone.
         // A stopped answer is no longer active while it lets go, but it is not finished either.
         val busy = ahead.isNotEmpty() || previous.isNotEmpty()
-        val withoutWaiting = if (busy) orchestrator.answerWithoutWaiting(question, attachmentSession.state.value.isNotEmpty(), carried) else null
+        val withoutWaiting = if (busy) orchestrator.answerWithoutWaiting(question, selectedAttachments.isNotEmpty(), carried) else null
         // The time shown is from asking to the finished answer, any wait included.
         val submittedAt = System.nanoTime()
         mutableUiState.value = ResearchUiState(
@@ -434,6 +466,8 @@ class ResearchViewModel(
             earlier = earlier,
             topic = topic,
             attachments = attachmentSession.state.value,
+            submittedAttachments = selectedAttachments,
+            sentAttachmentIds = mutableUiState.value.sentAttachmentIds + selectedAttachments.map { it.id },
             startedAtNanos = System.nanoTime(),
             phase = ResearchPhase.Searching,
             waitingFor = if (withoutWaiting != null) null
@@ -445,7 +479,7 @@ class ResearchViewModel(
         val rawAnswer = StringBuilder()
         // The files as attached now: a question that waits its turn off the screen keeps them, while the screen
         // starts afresh and may attach others to the next question.
-        val attached = attachmentSession.state.value.mapNotNull { it.extracted }
+        val attached = selectedAttachments.mapNotNull { it.extracted }
         researchJob = scope.launch {
             if (withoutWaiting == null) {
                 // Waited for even if this run is cancelled meanwhile, so a run after it also waits for the one before.
@@ -560,7 +594,11 @@ class ResearchViewModel(
     private fun publishAsides() {
         // Every running answer stays; of the finished ones only the latest few, the rest are in History.
         val finished = asides.filter { !it.sink.state.isRunning }
-        if (finished.size > MAX_FINISHED_ASIDE) asides.removeAll(finished.take(finished.size - MAX_FINISHED_ASIDE).toSet())
+        if (finished.size > MAX_FINISHED_ASIDE) {
+            val expired = finished.take(finished.size - MAX_FINISHED_ASIDE)
+            expired.forEach { releaseFiles(it.sink) }
+            asides.removeAll(expired.toSet())
+        }
         mutableBackground.value = asides.map { aside ->
             val state = aside.sink.state
             val answered = state.phase == ResearchPhase.Complete && state.answer.isNotBlank()
@@ -570,12 +608,19 @@ class ResearchViewModel(
         }
     }
 
+    private fun releaseFiles(sink: RunSink) {
+        val files = sink.files
+        sink.files = emptyList()
+        files.forEach { cleanupAttachment(it.input.localFile) }
+    }
+
     /** The answer on screen goes on off it, if it is still being researched. */
     private fun detachForeground(): Boolean {
         val state = mutableUiState.value
         val sink = currentSink
         if (!state.isRunning || sink == null || researchJob?.isActive != true) return false
         sink.state = state
+        sink.files = attachmentSession.take(state.submittedAttachments.map { it.id }.toSet())
         sink.detached = true
         asides += Aside(nextAsideId++, sink, researchJob)
         researchJob = null
@@ -627,21 +672,26 @@ class ResearchViewModel(
         if (!state.isRunning && !answered) return false
         if (!detachForeground() && mutableUiState.value.isRunning) return false
         asides.remove(aside)
-        leaveFinished()
+        clearForeground()
+        attachmentSession.restoreOwned(aside.sink.files)
+        aside.sink.files = emptyList()
         aside.sink.detached = false
         currentSink = aside.sink
         researchJob = aside.job?.takeIf { it.isActive }
         beforeFollowUp = null
         mutableFollowUpDraft.value = ""
         savedStateHandle[QUESTION_KEY] = state.question
-        mutableUiState.value = state
+        mutableUiState.value = state.copy(attachments = attachmentSession.state.value)
         publishAsides()
         return true
     }
 
     /** A finished answer's row was dismissed; the answer itself is in History. */
     fun dismissAside(id: Long) {
-        if (asides.removeAll { it.id == id && !it.sink.state.isRunning }) publishAsides()
+        val removed = asides.firstOrNull { it.id == id && !it.sink.state.isRunning } ?: return
+        releaseFiles(removed.sink)
+        asides.remove(removed)
+        publishAsides()
     }
 
     /**
@@ -655,14 +705,16 @@ class ResearchViewModel(
         // An answer saved before topics existed starts its own: its follow-ups take its time as their topic.
         val key = record.topicKey
         val turns = history.filter { it.topicKey == key }
-            .sortedBy { it.createdAtEpochMs }.ifEmpty { listOf(record) }
+            // History is newest first, including entries with the same millisecond. Reverse that stable order
+            // after sorting so a timestamp tie cannot reopen an older answer as the latest one.
+            .sortedByDescending { it.createdAtEpochMs }.reversed().ifEmpty { listOf(record) }
         val last = turns.last()
         // Read again from History, an answer that finished off the screen has been seen: its "Answer ready" row goes.
         val seen = asides.filter { aside ->
             val state = aside.sink.state
             !state.isRunning && turns.any { it.question == state.shownQuestion && it.answer == state.answer }
         }
-        if (seen.isNotEmpty()) { asides.removeAll(seen.toSet()); publishAsides() }
+        if (seen.isNotEmpty()) { seen.forEach { releaseFiles(it.sink) }; asides.removeAll(seen.toSet()); publishAsides() }
         stopRunning()
         attachmentSession.clear()
         mutableFollowUpDraft.value = ""
@@ -723,6 +775,8 @@ class ResearchViewModel(
             } else mutableUiState.value = state.copy(
                 phase = ResearchPhase.Idle,
                 completion = ResearchCompletion.Cancelled,
+                submittedAttachments = emptyList(),
+                sentAttachmentIds = state.sentAttachmentIds - state.submittedAttachments.map { it.id }.toSet(),
             )
         }
     }
@@ -732,6 +786,7 @@ class ResearchViewModel(
 
     override fun onCleared() {
         attachmentSession.clear()
+        asides.forEach { releaseFiles(it.sink) }
         researchJob?.cancel()
         activeTranscriber?.let { transcriber ->
             activeTranscriber = null

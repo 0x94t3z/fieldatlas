@@ -83,4 +83,100 @@ class AttachmentSessionTest {
         session.clear()
         assertTrue(session.staged().isEmpty())
     }
+
+    @Test fun readyFilesTransferWithoutCleanupAndRestoreWithoutReadingAgain() = runBlocking {
+        val reads = mutableListOf<String>()
+        val removed = mutableListOf<File>()
+        val session = AttachmentSession(this, AttachmentReader { input ->
+            reads += input.id
+            ExtractedAttachment(input.id, input.displayName, listOf(AttachmentPage(1, "Text from ${input.id}")))
+        }, { removed += it })
+        val image = AttachmentInput("photo", "photo.jpg", File("owned-photo"), AttachmentKind.IMAGE)
+        val note = AttachmentInput("note", "note.txt", File("owned-note"), AttachmentKind.TEXT)
+        session.add(image.displayName) { image }
+        session.add(note.displayName) { note }
+        yield()
+        val original = session.state.value.toList()
+
+        val transferred = session.take(setOf(original.first().id))
+        assertEquals(listOf(OwnedAttachment(original.first(), image)), transferred)
+        assertEquals(listOf(original.last()), session.state.value)
+        assertEquals(listOf(note), session.staged())
+        assertTrue(removed.isEmpty())
+
+        // Clearing a foreground draft must not delete the photo held by a background answer.
+        session.clear()
+        assertEquals(listOf(note.localFile), removed)
+        session.restoreOwned(transferred)
+        assertEquals(listOf(original.first()), session.state.value)
+        assertEquals(image.localFile, session.state.value.single().previewFile)
+        assertEquals("Text from photo", session.state.value.single().extracted!!.pages.single().text)
+        assertEquals(listOf(image), session.staged())
+        assertEquals(listOf("photo", "note"), reads)
+
+        session.clear()
+        session.clear()
+        assertEquals(listOf(note.localFile, image.localFile), removed)
+        assertTrue(session.staged().isEmpty())
+    }
+
+    @Test fun transferRejectsAnIncompleteSelectionWithoutLosingAnyOwnership() = runBlocking {
+        val wait = CompletableDeferred<Unit>()
+        val removed = mutableListOf<File>()
+        val session = AttachmentSession(this, AttachmentReader { input ->
+            if (input.id == "reading") wait.await()
+            ExtractedAttachment(input.id, input.displayName, listOf(AttachmentPage(1, "Text")))
+        }, { removed += it })
+        session.add("ready.txt") { AttachmentInput("ready", "ready.txt", File("ready"), AttachmentKind.TEXT) }
+        session.add("reading.txt") { AttachmentInput("reading", "reading.txt", File("reading"), AttachmentKind.TEXT) }
+        yield()
+        val before = session.state.value.toList()
+        assertEquals(listOf(AttachmentPhase.Ready, AttachmentPhase.Reading), before.map { it.phase })
+        assertThrows(IllegalArgumentException::class.java) { session.take(before.map { it.id }.toSet()) }
+        assertThrows(IllegalArgumentException::class.java) { session.take(setOf(before.first().id, "unknown")) }
+        assertEquals(before, session.state.value)
+        assertEquals(listOf("ready", "reading"), session.staged().map { it.id })
+        assertTrue(removed.isEmpty())
+
+        wait.complete(Unit)
+        yield()
+        val owned = session.take(session.state.value.map { it.id }.toSet())
+        assertEquals(2, owned.size)
+        assertTrue(session.state.value.isEmpty())
+        assertTrue(session.staged().isEmpty())
+        assertTrue(removed.isEmpty())
+        session.restoreOwned(owned)
+        session.clear()
+        assertEquals(setOf(File("ready"), File("reading")), removed.toSet())
+        assertEquals(2, removed.size)
+    }
+
+    @Test fun restoreOwnedChecksCapacityAndDuplicatesBeforeMutating() = runBlocking {
+        val removed = mutableListOf<File>()
+        val session = AttachmentSession(this, AttachmentReader { input ->
+            ExtractedAttachment(input.id, input.displayName, listOf(AttachmentPage(1, "Text")))
+        }, { removed += it })
+        repeat(3) { index ->
+            session.add("$index.txt") { AttachmentInput("$index", "$index.txt", File("$index"), AttachmentKind.TEXT) }
+        }
+        yield()
+        val first = session.state.value.first()
+        val transferred = session.take(setOf(first.id))
+        val remaining = session.state.value.toList()
+        assertThrows(IllegalArgumentException::class.java) { session.restoreOwned(transferred + transferred) }
+        assertEquals(remaining, session.state.value)
+        session.add("fourth.txt") { AttachmentInput("fourth", "fourth.txt", File("fourth"), AttachmentKind.TEXT) }
+        yield()
+        val full = session.state.value.toList()
+        assertThrows(AttachmentException::class.java) { session.restoreOwned(transferred) }
+        assertEquals(full, session.state.value)
+        assertTrue(removed.isEmpty())
+        session.clear()
+        session.restoreOwned(transferred)
+        assertThrows(IllegalArgumentException::class.java) { session.restoreOwned(transferred) }
+        assertEquals(listOf(first), session.state.value)
+        session.clear()
+        assertEquals(4, removed.size)
+        assertEquals(4, removed.distinct().size)
+    }
 }

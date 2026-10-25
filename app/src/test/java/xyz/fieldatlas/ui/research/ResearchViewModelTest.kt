@@ -314,6 +314,23 @@ class ResearchViewModelTest {
         assertEquals(listOf("hagia-history:0000", "hagia:0000"), sources)
     }
 
+    @Test fun reopeningATopicWhoseAnswersShareAMillisecondShowsTheLatestOne() {
+        val store = xyz.fieldatlas.research.AnswerHistoryStore(java.io.File(temporaryDir, "same-millisecond.json"), synchronousWrites = true)
+        val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, FakeInferenceGateway(listOf("Explanation [S1]")), historyStore = store)
+        viewModel.updateQuestion("explain ocean tides")
+        viewModel.submit()
+        viewModel.submitFollowUp("why does it happen?")
+        assertEquals(ResearchPhase.Complete, viewModel.uiState.value.phase)
+
+        // Instant answers can share a millisecond. History's newest-first order must break the tie, so the follow-up
+        // reopens as the latest answer and the first question folds above it.
+        val saved = store.records.value.map { it.copy(createdAtEpochMs = 10_000L) }
+        val reopened = viewModel(Retriever { _, _, _ -> listOf(evidence) }, FakeInferenceGateway(listOf("Explanation [S1]")), historyStore = store)
+        assertTrue(reopened.continueTopic(saved.first(), saved))
+        assertEquals("why does it happen?", reopened.uiState.value.shownQuestion)
+        assertEquals(listOf("explain ocean tides"), reopened.uiState.value.earlier.map { it.asked })
+    }
+
     @Test fun aFollowUpNeedsAFinishedAnswerAndEditStartsOver() {
         val viewModel = viewModel(Retriever { _, _, _ -> kotlinx.coroutines.awaitCancellation() }, FakeInferenceGateway())
         viewModel.submitFollowUp("and in winter?")

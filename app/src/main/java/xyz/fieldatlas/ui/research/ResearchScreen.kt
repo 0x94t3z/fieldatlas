@@ -194,7 +194,7 @@ fun ResearchScreen(
                 ),
             ) {
                 Column {
-                    AttachmentRows(state.attachments, !state.isRunning, onRemoveAttachment, onRetryAttachment)
+                    AttachmentRows(state.activeAttachments, !state.isRunning, onRemoveAttachment, onRetryAttachment)
                     BasicTextField(
                         value = state.question,
                         onValueChange = onQuestionChange,
@@ -204,8 +204,8 @@ fun ResearchScreen(
                         textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth()
-                            .padding(top = if (state.attachments.isNotEmpty()) 12.dp else 4.dp)
-                            .heightIn(min = if (state.attachments.isNotEmpty() && state.question.isNotBlank()) 48.dp else 96.dp, max = 220.dp)
+                            .padding(top = if (state.activeAttachments.isNotEmpty()) 12.dp else 4.dp)
+                            .heightIn(min = if (state.activeAttachments.isNotEmpty() && state.question.isNotBlank()) 48.dp else 96.dp, max = 220.dp)
                             .onFocusChanged { questionFocused = it.isFocused }
                             .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 14.dp)
                             .semantics { contentDescription = "Research question" },
@@ -253,8 +253,8 @@ fun ResearchScreen(
                             }
                         }
                         Spacer(Modifier.weight(1f))
-                        if (state.attachments.isNotEmpty() && voiceState.phase != VoicePhase.Recording) {
-                            Text(if (state.attachments.size == 1) "1 file" else "${state.attachments.size} files", style = MaterialTheme.typography.labelSmall,
+                        if (state.activeAttachments.isNotEmpty() && voiceState.phase != VoicePhase.Recording) {
+                            Text(if (state.activeAttachments.size == 1) "1 file" else "${state.activeAttachments.size} files", style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(end = 8.dp))
                         }
                         val recording = voiceState.phase == VoicePhase.Recording
@@ -413,7 +413,7 @@ private fun ResearchAction(
     // Missing inputs, emergency guides and near-me lookups are answered without the language
     // model, so they must not wait for it to load (or fail to load on a low-memory phone).
     // Once per question, not on every redraw.
-    val withoutModel = remember(state.question, state.attachments.isNotEmpty()) { answersWithoutModel(state.question, state.attachments.isNotEmpty()) }
+    val withoutModel = remember(state.question, state.activeAttachments.isNotEmpty()) { answersWithoutModel(state.question, state.activeAttachments.isNotEmpty()) }
     if (withoutModel) {
         FieldAtlasPrimaryButton(
             text = "Start research",

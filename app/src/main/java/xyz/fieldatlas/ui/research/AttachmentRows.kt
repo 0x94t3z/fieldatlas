@@ -25,7 +25,8 @@ import xyz.fieldatlas.attachments.*
 import xyz.fieldatlas.ui.theme.FieldAtlasIcons
 
 @Composable
-fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (String) -> Unit, retry: (String) -> Unit) {
+fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (String) -> Unit, retry: (String) -> Unit,
+                   showRemove: Boolean = true) {
     var previewId by remember { mutableStateOf<String?>(null) }
     var imagePreviewId by remember { mutableStateOf<String?>(null) }
     var errorId by remember { mutableStateOf<String?>(null) }
@@ -49,7 +50,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f)),
                     ) {
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 40.dp, top = 12.dp, bottom = 12.dp),
+                            modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = if (showRemove) 40.dp else 12.dp, top = 12.dp, bottom = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
@@ -78,7 +79,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                             }
                         }
                     }
-                    IconButton(onClick = { remove(item.id) }, enabled = enabled,
+                    if (showRemove) IconButton(onClick = { remove(item.id) }, enabled = enabled,
                         modifier = Modifier.align(Alignment.CenterEnd).size(48.dp)) {
                         Icon(FieldAtlasIcons.Close, "Remove ${item.displayName}", Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f))
@@ -97,7 +98,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
                                 }
                             }
                         }
-                        IconButton(onClick = { remove(item.id) }, enabled = enabled,
+                        if (showRemove) IconButton(onClick = { remove(item.id) }, enabled = enabled,
                             modifier = Modifier.align(Alignment.TopEnd).size(48.dp)) {
                             Surface(shape = CircleShape, color = Color(0xFF24392D).copy(alpha = 0.8f),
                                 border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.25f))) {
@@ -143,6 +144,7 @@ fun AttachmentRows(items: List<AttachmentUiState>, enabled: Boolean, remove: (St
     items.firstOrNull { it.id == imagePreviewId }?.let { item ->
         item.previewFile?.let { file ->
             AttachmentImagePreview(file, enabled,
+                showRemove = showRemove,
                 onClose = { imagePreviewId = null },
                 onRemove = { remove(item.id); imagePreviewId = null },
                 onReadText = if (item.phase == AttachmentPhase.Ready) ({ imagePreviewId = null; previewId = item.id }) else null)

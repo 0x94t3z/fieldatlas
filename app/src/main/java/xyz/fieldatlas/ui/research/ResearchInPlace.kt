@@ -100,7 +100,7 @@ internal fun trailPosition(state: ResearchUiState, readFraction: Float?): Float 
 /** What the status line says is happening, in words a reader uses. */
 internal fun researchStatusTitle(state: ResearchUiState): String = if (state.waitingFor != null) "Waiting for your last question" else when (researchStage(state)) {
     0 -> if (state.phase == ResearchPhase.Planning) "Finding better search words"
-        else if (state.attachments.isNotEmpty()) "Searching your files" else "Searching your collections"
+        else if (state.submittedAttachments.isNotEmpty()) "Searching your files" else "Searching your collections"
     1 -> when (state.sources.size) {
         0 -> "Preparing the model"
         1 -> "Reading 1 passage"
