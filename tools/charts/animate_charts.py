@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Animated versions of the README and article figures, from the static SVGs make_charts.py writes.
 
-Only the chart moves, in the hero's motion language: grid lines draw up from the axis, bars grow from it, each value
-appears once its bar has arrived; the figure holds, the chart fades and builds again. Titles, notes and the footer stay. Motion
+Only lines and shapes move, in the hero's motion language: grid lines draw up from the axis and bars grow from it; in a
+diagram the boxes stay and the connectors draw in left to right. No text is ever animated, so every word, value and
+label can be read from the first frame. The figure holds, the moving parts fade and build again. Motion
 is CSS keyframes inside the SVG, each spanning the whole loop as in make_hero.py, so the files play inside GitHub's
 <img>. An SVG shown as an image cannot load web fonts, so the faces it uses (Inter Tight, Instrument Serif) are
 embedded as WOFF2 subsets of just the characters drawn. Readers who ask for reduced motion see the finished figure.
@@ -61,26 +62,29 @@ def animate(svg_text, loop=True, diagram=False):
         moving = [k for k in body if in_chart(k)]
     else:  # a diagram: all of it, swept left to right the way it reads
         moving = body
+    # Words are never animated: anything a reader reads is on screen from the first frame. Only lines and shapes move.
+    moving = [k for k in moving if tag(k) != "text"]
     grid = [k for k in moving if tag(k) == "line" and box(k)[0] == box(k)[2] and box(k)[3] - box(k)[1] > 100]  # tall vertical rules: the grid
     rest = [k for k in moving if k not in grid]
     plan = [(k, .2 + .5 * i / max(1, len(grid)), .55, "draw") for i, k in enumerate(grid)]
-    if not bars:
-        def left(el):  # boxes and words by where they start; connectors and arrowheads by where they arrive
+    if not bars:  # a diagram: the boxes stay, the connectors draw in left to right and each arrowhead lands as its line arrives
+        def arrive(el):
             b = box(el)
-            if b: return b[2] if tag(el) == "line" else b[0]
-            nums = [float(v) for v in re.findall(r"-?\d+\.?\d*", el.get("d") or el.get("points") or el.get("transform") or "")]
+            if b: return b[2]
+            nums = [float(v) for v in re.findall(r"-?\d+\.?\d*", el.get("d") or el.get("points") or "")]
             return max(nums[0::2]) if nums else 0
-        xs = [left(k) for k in rest]; lo, hi = min(xs), max(xs) or 1
-        for k, x in zip(rest, xs):
-            plan.append((k, .5 + 3.0 * (x - lo) / max(1, hi - lo), .5, "rise" if tag(k) == "text" else "fade"))
+        links = [k for k in rest if tag(k) in ("line", "polyline", "polygon", "path")]
+        xs = [arrive(k) for k in links]; lo, hi = (min(xs), max(xs)) if xs else (0, 1)
+        for k, x in zip(links, xs):
+            start = .4 + 3.0 * (x - lo) / max(1, hi - lo)
+            if tag(k) == "line":
+                bx = box(k); across = bx[2] - bx[0] >= bx[3] - bx[1]
+                plan.append((k, start, .5, "draw-x" if across else "draw-y"))
+            else:
+                plan.append((k, start + .4, .3, "fade"))
     else:
-        last_bar = None
         for i, k in enumerate(rest):
-            start = .9 + 2.6 * i / max(1, len(rest))
-            kind = "grow" if is_bar(k) else ("rise" if tag(k) == "text" else "fade")
-            if kind == "grow": last_bar = start
-            elif last_bar is not None: start = max(start, last_bar + .55)  # a value waits for its bar
-            plan.append((k, start, .75 if kind == "grow" else .45, kind))
+            plan.append((k, .9 + 2.6 * i / max(1, len(rest)), .75 if is_bar(k) else .45, "grow" if is_bar(k) else "fade"))
     for n, (el, start, dur, kind) in enumerate(plan):
         name = f"a{n}"
         hidden, shown, ease, origin = {
@@ -88,6 +92,8 @@ def animate(svg_text, loop=True, diagram=False):
             "fade": ("opacity:0", "opacity:1", EASE_OUT, None),
             "grow": ("transform:scaleX(0)", "transform:none", OVERSHOOT, "0 50%"),
             "draw": ("transform:scaleY(0)", "transform:none", EASE_OUT, "50% 100%"),
+            "draw-x": ("transform:scaleX(0)", "transform:none", EASE_OUT, "0 50%"),
+            "draw-y": ("transform:scaleY(0)", "transform:none", EASE_OUT, "50% 0"),
         }[kind]
         el.set("class", ((el.get("class") or "") + " " + name).strip())
         o = f"transform-box:fill-box;transform-origin:{origin};" if origin else ""

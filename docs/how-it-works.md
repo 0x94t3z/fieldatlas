@@ -10,7 +10,7 @@ collection, or refresh the list of collections.
 The picture above shows the stages every answer passes through. This one shows the decisions: which
 way one question goes, and why.
 
-![Which way a question goes: answered by the app when it holds the answer exactly, otherwise searched and written by the model the phone can hold](images/fieldatlas-flow.png)
+![Which way a question goes: answered by the app when it holds the answer exactly, otherwise searched and written by the model the phone can hold](images/fieldatlas-flow-animated.svg)
 
 <details>
 <summary>The same flow as a diagram GitHub draws</summary>

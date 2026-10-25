@@ -10,7 +10,7 @@
 <circle class="seed" cx="353.6" cy="190.0" r="5" fill="#18A67E"/>
 <circle class="ring" cx="353.6" cy="190.0" r="15" fill="none" stroke="#18A67E" stroke-width="3"/>
 <g fill="none" stroke="#18A67E" stroke-width="6" stroke-linecap="round"><path class="r0" d="M362.5 126.1A64.5 64.5 0 0 1 417.4 181.0"/><path class="r1" d="M417.4 199.0A64.5 64.5 0 0 1 362.5 253.9"/><path class="r2" d="M344.6 253.9A64.5 64.5 0 0 1 289.7 199.0"/><path class="r3" d="M289.7 181.0A64.5 64.5 0 0 1 344.6 126.1"/></g>
-<circle class="tile" cx="353.6" cy="190.0" r="64.5" fill="#0B493A"/>
+<rect class="tile" x="289.0" y="125.5" width="129.0" height="129.0" rx="21.5" fill="#0B493A"/>
 <g class="disc"><g transform="translate(289.0 125.5) scale(1.1947)"><path fill="#E9FFF4" d="M54 20a34 34 0 1 1 0 68 34 34 0 1 1 0-68Z"/></g></g>
 <g class="bars"><g transform="translate(289.0 125.5) scale(1.1947)"><path fill="#0B493A" d="M32 53h10v3H32Zm34 0h10v3H66Z"/></g></g>
 <g class="needle"><g transform="translate(289.0 125.5) scale(1.1947)"><path fill="#18A67E" d="m54 29 13 25-13 25-13-25Z"/><path fill="#0B493A" d="m54 37 6 17-6-3-6 3Z"/></g></g></g>

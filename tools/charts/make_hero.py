@@ -17,8 +17,9 @@ pops in, and the needle spins and settles north while the horizon bars draw out.
   4.45 - 5.1   it slides left and "Field Atlas" rises beside it
   7.4 - 7.8    everything fades, and the loop starts again
 
-Readers who ask for reduced motion see the final lockup. The mark is the app icon masked as a circle, as a round
-launcher shows it; its shapes and colours are read from docs/branding/field-atlas-readme-icon.svg unchanged.
+Readers who ask for reduced motion see the final lockup. The mark is the app icon on its rounded square tile (corner
+radius 18 of 108), as the README icon draws it; its shapes and colours are read from
+docs/branding/field-atlas-readme-icon.svg unchanged.
 
     pip install fonttools==4.55.3 uharfbuzz==0.42.0
     python3 tools/charts/make_hero.py [--out docs/branding]
@@ -143,7 +144,7 @@ def build(fonts, theme):
                       (3.5, f"opacity:1;transform:translateY({sign * 320}px)", None),
                       (3.51, f"opacity:0;transform:translateY({sign * 320}px)", None), (LOOP, f"opacity:0;transform:translateY({sign * 320}px)", None)])
 
-    # Scene 2: the mark (the icon as a circle) beside the wordmark; mark 1.6x the wordmark's cap height.
+    # Scene 2: the mark (the icon's rounded tile, as in docs/branding) beside the wordmark; mark 1.6x the wordmark's cap height.
     s3, gap = 112, 40
     D = 1.6 * 0.72 * s3; R = D / 2; k = D / 108
     wmw = width(sans, "Field Atlas", s3, -0.03)
@@ -202,7 +203,7 @@ def build(fonts, theme):
 <circle class="seed" cx="{cx:.1f}" cy="{cy:.1f}" r="5" fill="{SPARK}"/>
 <circle class="ring" cx="{cx:.1f}" cy="{cy:.1f}" r="15" fill="none" stroke="{SPARK}" stroke-width="3"/>
 <g fill="none" stroke="{SPARK}" stroke-width="6" stroke-linecap="round">{"".join(arcs)}</g>
-<circle class="tile" cx="{cx:.1f}" cy="{cy:.1f}" r="{R:.1f}" fill="{tile}"/>
+<rect class="tile" x="{cx - R:.1f}" y="{cy - R:.1f}" width="{D:.1f}" height="{D:.1f}" rx="{18 * k:.1f}" fill="{tile}"/>
 <g class="disc"><g {mark}><path fill="{disc_c}" d="{disc}"/></g></g>
 <g class="bars"><g {mark}><path fill="{bar_c}" d="{bars}"/></g></g>
 <g class="needle"><g {mark}><path fill="{dia_c}" d="{diamond}"/><path fill="{arrow_c}" d="{arrow}"/></g></g></g>
