@@ -56,7 +56,7 @@ The app only goes online when you start a download or refresh the list of collec
 
 ## How it works
 
-[![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](docs/images/fieldatlas-pipeline.png)](docs/how-it-works.md)
+[![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](docs/images/fieldatlas-pipeline-animated.svg)](docs/how-it-works.md)
 
 A question the app can answer exactly, such as an emergency number, a first-aid guide, a sum or the
 nearest pharmacy, is answered by the app itself in seconds. Everything else is searched in the
@@ -94,7 +94,7 @@ reference answers are graded the same way as a yardstick. A good answer is one t
 every round. Changes to how answers are written are tested this way; the fixes of October 24 (emergencies,
 the model recommended per phone, wording) were checked on the phone, not on a fresh graded set.
 
-![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](docs/images/fieldatlas-models.png)
+![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](docs/images/fieldatlas-models-animated.svg)
 
 - **Gemma 4 26B, on 12 GB phones:** a good answer to 115 of 160 new questions (72%) over four sealed
   sets (37, 46, 49 and 51, answered 19 to 23 October: 27, 29, 25 and 34 of 40), 77% of the reference

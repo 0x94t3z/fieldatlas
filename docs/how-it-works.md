@@ -3,7 +3,7 @@
 Everything on this page runs on the phone. The app goes online only when you download a model or a
 collection, or refresh the list of collections.
 
-![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](images/fieldatlas-pipeline.png)
+![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](images/fieldatlas-pipeline-animated.svg)
 
 ## The flow
 
@@ -121,7 +121,7 @@ on a computer, 19 to 23 October: the 4B was measured before it read notes for si
 last three sets were graded a day after the others. The tests and their records are in
 [the evaluation](evaluation.md) and [How Field Atlas 1.4.2 was tested](testing-1.4.2.md).
 
-![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](images/fieldatlas-models.png)
+![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](images/fieldatlas-models-animated.svg)
 
 ![More good answers when the model reads saved sources: Biology rebuild 2 to 6 of 40 (5% to 15%) and 4 to 6 of 40 (10% to 15%), rare subjects 2 to 7 of 40 (5% to 18%), single facts 38 to 66 of 105 (36% to 63%)](images/fieldatlas-collections.png)
 
