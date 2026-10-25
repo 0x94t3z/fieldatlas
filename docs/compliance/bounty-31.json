@@ -2,8 +2,8 @@
   "sourceUrl": "https://poidh.xyz/mainnet/bounty/31",
   "sourceSnapshot": "docs/compliance/bounty-31-source.md",
   "descriptionSha256": "81507393d46e58800373024441b2222a271fa8bc4e2a0fc77f0dd4556de7a4bb",
-  "auditScope": "Status of the final 1.4.2 build (built 25 October 2026 at eb7ab5a, SHA-256 10551873…, published 25 October 2026 as v1.4.2) against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md and docs/testing-1.4.2.md have the detail.",
-  "lastAuditedAt": "2026-10-24",
+  "auditScope": "Status of the final 1.4.2 build (built 25 October 2026 at 9f9fec3 as build 22, SHA-256 ae0290ce…, which replaced the first upload, build 21 at eb7ab5a, SHA-256 10551873…, on v1.4.2 the same day) against each bounty requirement, with the evidence for it. pass: met and evidenced; partial: met in part, or not yet shown on the hardware or channel the requirement names; fail: not met. release-audit.md and docs/testing-1.4.2.md have the detail.",
+  "lastAuditedAt": "2026-10-25",
   "requirements": [
     {
       "id": "B31-01",
@@ -134,7 +134,7 @@
         "docs/evidence/physical/infinix-x6840-android16/",
         "docs/verification.md"
       ],
-      "note": "The public-key 1.4.2 APK is built (eb7ab5a, SHA-256 10551873…). The public-key file itself has run only on an emulator: the previous candidate (5c02cc26…, without two screen-reader labels) was installed fresh and set up from downloads inside the app, and this build was installed over it with the data kept and answered offline. Phone checks used local-test builds of the 24 October code; the Redmi 13C carries the previous candidate's local-test build, and no public-key APK has been installed on a phone."
+      "note": "The public-key 1.4.2 APK is build 22 (9f9fec3, SHA-256 ae0290ce…). Public-key files have run only on emulators: an earlier candidate (5c02cc26…) was installed fresh and set up from downloads inside the app, build 21 (10551873…) was installed over it with the data kept and answered offline, and build 22 was installed over build 21 the same way and answered a question and a follow-up from an attached file offline. Build 22's instrumented tests also ran on an Android 13 emulator shaped like the Redmi 13C. Phone checks used local-test builds of the 24 October code; the Redmi 13C carries the previous candidate's local-test build, and no public-key APK has been installed on a phone."
     },
     {
       "id": "B31-13",
@@ -160,11 +160,11 @@
     {
       "id": "B31-15",
       "obligation": "Publish a public demo on X or Farcaster",
-      "status": "partial",
+      "status": "pass",
       "evidence": [
         "README.md"
       ],
-      "note": "Earlier demos show older builds; a 1.4.2 demo is still to be posted."
+      "note": "The 1.4.2 demo is posted on X (https://x.com/0x94t3z/status/2114251259222134898) and linked from the README."
     },
     {
       "id": "B31-16",
@@ -173,7 +173,7 @@
       "evidence": [
         "README.md"
       ],
-      "note": "A 1.4.2 demo of offline use, hard questions and the repository link is still to be recorded."
+      "note": "The 1.4.2 demo, recorded from the release build in airplane mode, shows setup and the model offered for each memory size, a question answered with cited sources and a follow-up, Read aloud, a spoken first-aid question, a PDF read on the phone, Library and History."
     },
     {
       "id": "B31-17",
@@ -187,11 +187,11 @@
     {
       "id": "B31-18",
       "obligation": "Keep the functional reviewed version in GitHub at claim time",
-      "status": "partial",
+      "status": "pass",
       "evidence": [
         "docs/compliance/release-audit.md"
       ],
-      "note": "1.4.2 is committed and built but not yet pushed, tagged or released; the claim must point at the released tag."
+      "note": "1.4.2 is on main and published as the v1.4.2 release with its tag (build 22 since 25 October); the claim must point at that tag."
     },
     {
       "id": "B31-19",

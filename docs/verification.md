@@ -1,8 +1,34 @@
 # Verification
 
-## v1.4.2 release (built and published 25 October 2026)
+## v1.4.2 release (built and published 25 October 2026; build 22 the same day)
 
-- **Release:** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
+- **Release (build 22):** the first 1.4.2 upload (build 21, `10551873…`, below) was replaced on the same
+  day by build 22, built from a clean clone at `9f9fec3` (the APK records `9f9fec3` as its revision), with
+  `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
+  `scripts/patches/ai-chat-generation-fixes.patch` applied. Public-key APK: version 1.4.2 (22),
+  102,556,207 bytes, SHA-256 `ae0290ce1d0c07b35212232b4d882107445e512a648ab86ff3025acb74665885`, signed
+  with the public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
+  The offline packaging audit passed, the APK passes `zipalign -c -P 16 4`, all 25 native libraries pass
+  `check_native_alignment.py`, and the local-test twin differs only in its signature (419 of 419 files
+  outside `META-INF` byte-identical). Against build 21 it changes four things: files sent with a question
+  stay with it on the answer page (with a preview, without a remove button) and its follow-ups keep using
+  them, while the follow-up box holds only files not sent yet; the answer page shrinks above the keyboard,
+  so the follow-up box and Send stay visible and the answer still scrolls; a natural-voice download that
+  fails at once shows as failed; and a topic reopened from History opens on its latest answer when two
+  answers were saved in the same millisecond.
+- **Build 22 checks (25 October):** release lint reported 0 errors; 1,755 JVM tests ran, 1,699 passed and
+  56 opt-in tests were skipped, none failed; 78 script, 12 pack-tool and 10 benchmark tests passed, 262
+  tool tests ran with 12 skipped and none failed, the website's 6 build tests passed, and two builds of
+  the starter pack were byte-identical. On a 4 GB Android 13 emulator with a 720 × 1600 screen, like the
+  Redmi 13C, the 152 instrumented tests of the same source ran: 149 passed and 3 were skipped, the opt-in
+  tests that download from the internet (the download-consent tests ran in airplane mode). Among them,
+  the answer page was checked with the real on-screen keyboard at normal and double text size, both with
+  the window Android 13 and 14 give the app and with the edge-to-edge window of Android 15 and newer. The
+  public-key APK was then installed over build 21 on the 12 GB Android 15 emulator with its data kept; in
+  airplane mode a question about an attached trail notice was answered from it with a citation, and the
+  follow-up "Where can I get water on the way?", which does not name the file, was answered from the same
+  file ("Water is available only at the 6 km spring") with the keyboard clear of the follow-up box.
+- **Release (build 21):** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
   its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
   `scripts/patches/ai-chat-generation-fixes.patch` applied.
   Public-key APK: version 1.4.2 (21), 102,548,359 bytes, SHA-256
