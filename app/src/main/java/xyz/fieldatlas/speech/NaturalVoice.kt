@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -79,7 +80,8 @@ class NaturalVoice internal constructor(
         if (job?.isActive == true || ready) return
         val previous = job
         mutableState.value = State.Downloading(savedBytes())
-        job = scope.launch {
+        // Started only once stored: a download that fails at once must still find itself as the current job.
+        job = scope.launch(start = CoroutineStart.LAZY) {
             val self = coroutineContext[Job]!!
             // A paused run can still be inside a stalled read; it lets go of the part file before this one writes to it.
             previous?.join()
@@ -122,6 +124,7 @@ class NaturalVoice internal constructor(
                 if (job === self) job = null
             }
         }
+        job?.start()
     }
 
     /** Stops the download; what was fetched stays, to resume. */
