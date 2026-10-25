@@ -178,11 +178,16 @@ The default model and every collection together take about 33.7 GB.
 
 ## Watch it work
 
-A 2-minute narrated tour of v1.4.1, built from screen mockups that match the app: first-run
-setup, then airplane mode, a pharmacy open now found by GPS, a snakebite question spoken aloud, and
-a PDF answered with its page cited:
+A 3½-minute narrated demo of v1.4.2, recorded from the release build on Android emulators in
+airplane mode: first-run setup and the model each memory size is offered (4, 6, 8 and 12 GB), a
+typed question with cited sources, a follow-up, Read aloud in the app's own voice, a spoken
+first-aid question, a PDF, and Library and History. Waits for the model are sped up, and each one is
+labelled with its real time:
 
-[![Watch the Field Atlas v1.4.1 tour](docs/branding/field-atlas-v1.4.1-demo.png)](https://x.com/0x94t3z/status/2110516184823304644)
+[![Watch the Field Atlas v1.4.2 demo](docs/branding/field-atlas-v1.4.2-demo.png)](https://x.com/0x94t3z/status/2114251259222134898)
+
+The earlier [v1.4.1 tour](https://x.com/0x94t3z/status/2110516184823304644) was built from screen
+mockups that match the app.
 
 And an [unedited 35-second phone recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4)
 on a 4 GB Infinix in airplane mode: "best vegan restaurants in Berlin" returns six cited places in
