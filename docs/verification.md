@@ -1,33 +1,39 @@
 # Verification
 
-## v1.4.2 release (built and published 25 October 2026; build 22 the same day)
+## v1.4.2 release (built and published 25 October 2026; build 23 the same day)
 
-- **Release (build 22):** the first 1.4.2 upload (build 21, `10551873…`, below) was replaced on the same
-  day by build 22, built from a clean clone at `9f9fec3` (the APK records `9f9fec3` as its revision), with
+- **Release (build 23):** the first 1.4.2 upload (build 21, `10551873…`, below) was replaced on the same
+  day: from 15:08 UTC by build 22 (`9f9fec3`, 102,556,207 bytes, SHA-256 `ae0290ce…`), and then by build 23,
+  built from a clean clone at `3955e2b` (the APK records `3955e2b` as its revision), with
   `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
-  `scripts/patches/ai-chat-generation-fixes.patch` applied. Public-key APK: version 1.4.2 (22),
-  102,556,207 bytes, SHA-256 `ae0290ce1d0c07b35212232b4d882107445e512a648ab86ff3025acb74665885`, signed
+  `scripts/patches/ai-chat-generation-fixes.patch` applied. Public-key APK: version 1.4.2 (23),
+  102,561,155 bytes, SHA-256 `16ef7d8bcced0812c91dc408f69ed2547b0beb359b21b7479912bde19471998a`, signed
   with the public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`).
   The offline packaging audit passed, the APK passes `zipalign -c -P 16 4`, all 25 native libraries pass
   `check_native_alignment.py`, and the local-test twin differs only in its signature (419 of 419 files
   outside `META-INF` byte-identical). Against build 21 it changes four things: files sent with a question
-  stay with it on the answer page (with a preview, without a remove button) and its follow-ups keep using
-  them, while the follow-up box holds only files not sent yet; the answer page shrinks above the keyboard,
-  so the follow-up box and Send stay visible and the answer still scrolls; a natural-voice download that
-  fails at once shows as failed; and a topic reopened from History opens on its latest answer when two
-  answers were saved in the same millisecond.
-- **Build 22 checks (25 October):** release lint reported 0 errors; 1,755 JVM tests ran, 1,699 passed and
+  stay with it (one label under the question names the first and counts the others; tapping it lists them
+  and opens each, with nothing to remove) and its follow-ups keep using them, while the follow-up box holds
+  only files not sent yet; the answer page shrinks above the keyboard, so the follow-up box and Send stay
+  visible and the answer still scrolls; a natural-voice download that fails at once shows as failed; and a
+  topic reopened from History opens on its latest answer when two answers were saved in the same
+  millisecond. Build 22 had the same changes but showed each sent file as a large card; build 23 differs
+  from it only in that label.
+- **Build 23 checks (25 October):** release lint reported 0 errors; 1,755 JVM tests ran, 1,699 passed and
   56 opt-in tests were skipped, none failed; 78 script, 12 pack-tool and 10 benchmark tests passed, 262
   tool tests ran with 12 skipped and none failed, the website's 6 build tests passed, and two builds of
   the starter pack were byte-identical. On a 4 GB Android 13 emulator with a 720 × 1600 screen, like the
-  Redmi 13C, the 152 instrumented tests of the same source ran: 149 passed and 3 were skipped, the opt-in
-  tests that download from the internet (the download-consent tests ran in airplane mode). Among them,
-  the answer page was checked with the real on-screen keyboard at normal and double text size, both with
-  the window Android 13 and 14 give the app and with the edge-to-edge window of Android 15 and newer. The
-  public-key APK was then installed over build 21 on the 12 GB Android 15 emulator with its data kept; in
-  airplane mode a question about an attached trail notice was answered from it with a citation, and the
-  follow-up "Where can I get water on the way?", which does not name the file, was answered from the same
-  file ("Water is available only at the 6 km spring") with the keyboard clear of the follow-up box.
+  Redmi 13C, the 152 instrumented tests ran in airplane mode: 149 passed and 3 were skipped, the opt-in
+  tests that download from the internet. Among them, the answer page was checked with the real on-screen
+  keyboard at normal and double text size, both with the window Android 13 and 14 give the app and with
+  the edge-to-edge window of Android 15 and newer, and the sent-file label was opened to each file's text.
+  On the 12 GB Android 15 emulator, which had carried build 21, build 22 and a local preview of this change,
+  each installed over the last with its data kept, build 23 was installed the same way. In airplane mode, with two files attached, "When does the hut close and when must
+  beds be booked?" was answered from both with citations, and the follow-up "Where can I get water on the
+  way?", which names no file, was answered from the same files ("Water is available only at the 6 km
+  spring"). With no files, "What is photosynthesis?", its follow-ups "Why is it important for animals?"
+  (read with the topic) and "What about cellular respiration?" were answered with citations, and a bee
+  sting with swelling lips opened the anaphylaxis guide at once.
 - **Release (build 21):** built from a clean clone at `eb7ab5a` (app source `3825c7d`; the APK records `eb7ab5a` as
   its revision), with `third_party/llama.cpp` at its pinned upstream commit `60081bb2b` and
   `scripts/patches/ai-chat-generation-fixes.patch` applied.

@@ -10,19 +10,20 @@ attached. The APK was hashed after upload while the release was a draft, and aga
 its public download link: both times 102,548,359 bytes with the SHA-256 below, which the attached
 `.sha256` file also gives.
 
-**Build 22.** Later the same day the APK was rebuilt as build 22 of 1.4.2, to replace the build 21 file
-below before judging: a clean clone at `9f9fec3`, with `third_party/llama.cpp` at `60081bb2b` and the same
-patch applied, gave version 1.4.2 (22), 102,556,207 bytes, SHA-256
-`ae0290ce1d0c07b35212232b4d882107445e512a648ab86ff3025acb74665885`, with the public release certificate.
-It keeps sent files with their question and its follow-ups, keeps the follow-up box above the keyboard,
-shows a natural-voice download that fails at once as failed, and reopens a History topic on its latest
-answer when two answers share a millisecond. Release lint reported 0 errors; of 1,755 JVM tests 1,699
-passed and 56 opt-in tests were skipped, none failed; the script, pack-tool, benchmark, tool and website
-build tests passed, and the starter pack rebuilt byte-identical. On a 4 GB Android 13 emulator shaped like
-the Redmi 13C, 149 of 152 instrumented tests passed and the 3 opt-in network tests were skipped; the
-keyboard tests cover both the Android 13 and 14 window and the edge-to-edge window of Android 15 and newer.
-The public-key APK was installed over build 21 with the data kept and answered a question and a follow-up
-from an attached file offline. See [verification](../verification.md).
+**Build 23.** Later the same day the APK was rebuilt to replace the build 21 file below before judging,
+first as build 22 (`9f9fec3`, SHA-256 `ae0290ce…`, attached from 15:08 UTC) and then as build 23: a clean
+clone at `3955e2b`, with `third_party/llama.cpp` at `60081bb2b` and the same patch applied, gave version
+1.4.2 (23), 102,561,155 bytes, SHA-256 `16ef7d8bcced0812c91dc408f69ed2547b0beb359b21b7479912bde19471998a`,
+with the public release certificate. It keeps sent files with their question and its follow-ups (one label
+under the question names them), keeps the follow-up box above the keyboard, shows a natural-voice download
+that fails at once as failed, and reopens a History topic on its latest answer when two answers share a
+millisecond. Release lint reported 0 errors; of 1,755 JVM tests 1,699 passed and 56 opt-in tests were
+skipped, none failed; the script, pack-tool, benchmark, tool and website build tests passed, and the
+starter pack rebuilt byte-identical. On a 4 GB Android 13 emulator shaped like the Redmi 13C, 149 of 152
+instrumented tests passed and the 3 opt-in network tests were skipped; the keyboard tests cover both the
+Android 13 and 14 window and the edge-to-edge window of Android 15 and newer. The public-key APK was
+installed over build 22 (and a local preview of the label) with the data kept and answered questions and follow-ups from attached files, and
+from the collections, offline. See [verification](../verification.md).
 
 **Build 21.** Built from a clean clone at `eb7ab5a` (app source `3825c7d`), with
 `third_party/llama.cpp` at `60081bb2b` and `scripts/patches/ai-chat-generation-fixes.patch` applied:

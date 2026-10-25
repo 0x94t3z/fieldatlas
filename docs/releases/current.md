@@ -4,11 +4,12 @@ Field Atlas answers questions on your Android phone without an internet connecti
 online, download the answer model and the collections you want. After that, search and answers run
 on the phone, with no account and nothing sent anywhere.
 
-**Updated 25 October (build 22).** The 1.4.2 download was replaced the same day with build 22 of the
-same version. Files sent with a question now stay with it on the answer page, where they can be
-opened, and its follow-ups keep using them; the follow-up box only holds files not sent yet. The
-answer page makes room for the keyboard, so the follow-up box and Send stay visible while the answer
-still scrolls. A natural-voice download that fails at once shows as failed, and a topic reopened from
+**Updated 25 October (build 23).** The 1.4.2 download was replaced the same day with build 23 of the
+same version. Files sent with a question now stay with it: one small label under the question names
+the first file and how many more there are, and tapping it lists them and opens each one. Its
+follow-ups keep using them, and the follow-up box only holds files not sent yet. The answer page
+makes room for the keyboard, so the follow-up box and Send stay visible while the answer still
+scrolls. A natural-voice download that fails at once shows as failed, and a topic reopened from
 History opens on its latest answer.
 
 ## What's new
@@ -265,4 +266,4 @@ Uninstalling removes saved answers, so keep that build if you need its data.
 - [Install guide](../installation.md)
 - Notes for earlier versions: [1.4.1](field-atlas-1.4.1.md), [1.4.0](field-atlas-1.4.0.md)
 
-App version 1.4.2 (22).
+App version 1.4.2 (23).
