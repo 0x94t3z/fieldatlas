@@ -192,9 +192,8 @@ from the 1.4.2 release build on Android emulators in airplane mode:
 
 Waits for the model are sped up, and each one is labelled with its real time.
 
-Earlier demos, of earlier versions: the [1.4.1 tour](https://x.com/0x94t3z/status/2110516184823304644)
-(screen mockups), an [unedited 1.2.0 phone recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4)
-on a 4 GB Infinix in airplane mode, and the [first public demo](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) on Farcaster.
+Also: an [unedited phone recording](docs/evidence/physical/infinix-x6840-android16/field-atlas-1.2.0-offline-berlin.mp4)
+of version 1.2.0 on a 4 GB Infinix in airplane mode, and the [first public demo](https://farcaster.xyz/0x94t3z.eth/0x9538cba8) on Farcaster.
 
 ## Versions
 
