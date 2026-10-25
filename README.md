@@ -178,7 +178,7 @@ The default model and every collection together take about 33.7 GB.
 
 ## Watch it work
 
-[![Watch the Field Atlas 1.4.2 demo](docs/branding/field-atlas-1.4.2-demo-poster.png)](https://x.com/0x94t3z/status/2114251259222134898)
+[![Watch the Field Atlas 1.4.2 demo](docs/branding/field-atlas-1.4.2-demo-cover.png)](https://x.com/0x94t3z/status/2114251259222134898)
 
 **[Watch the 1.4.2 demo on X](https://x.com/0x94t3z/status/2114251259222134898)** (3½ minutes, narrated). Recorded
 from the 1.4.2 release build on Android emulators in airplane mode:
