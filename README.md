@@ -151,11 +151,13 @@ adopted.
   Android reports 47.58 GB of storage for the app on a 12 GB Android emulator (October 21); there, in
   airplane mode, it used at most 6.8 GB of memory while answering with the 4B (October 18, on an earlier 1.4.2 build)
   ([details](docs/evaluation.md#good-answers-and-storage-with-everything-installed-october-21)).
-- Tested on a Redmi 13C (6 GB, Android 13) with builds signed with a local test key, the latest one
-  without this release's two screen-reader labels, and on Android emulators. On a fresh emulator with no
-  Google apps, the previous release file was set up only through the app and answered offline, and this
-  release file was installed over it, data kept, and answered offline. Not yet tested on a Pixel, on
-  GrapheneOS, or on a real 8 GB or 12 GB phone.
+- Tested on a Redmi 13C (6 GB, Android 13) with builds signed with a local test key, and on Android
+  emulators. The Redmi now carries build 23 signed that way, installed with its data kept and opened on
+  26 October; the timed and emergency checks on it used the 24 October builds. On a fresh emulator with no
+  Google apps, an earlier 1.4.2 file was set up only through the app and answered offline, and the first
+  release file (build 21) was installed over it, data kept, and answered offline; on a 12 GB emulator,
+  builds 22 and 23 were then installed in turn over build 21, data kept, and answered offline. Not yet tested on a
+  Pixel, on GrapheneOS, or on a real 8 GB or 12 GB phone.
 
 ## Collections
 

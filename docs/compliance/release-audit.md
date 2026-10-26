@@ -54,11 +54,11 @@ by a full download matching the app's SHA-256.
 On a fresh 4 GB Android 15 emulator with no Google packages, the previous candidate's public-key APK
 was set up only through the app: Qwen3.5 2B and the Cryptography & Ethereum collection were downloaded
 from Hugging Face, paused, resumed and verified, and their installed files match the pinned SHA-256
-values. In airplane mode the 2B answered a question about EIP-4844 with a citation. This build was then
+values. In airplane mode the 2B answered a question about EIP-4844 with a citation. Build 21 was then
 installed over it with the data kept: Library's new labels show, and the 2B answered a question about
 ML-KEM offline, citing four passages. Phone checks used local-test builds of the 24 October code; the
-Redmi 13C carries the previous candidate's local-test build, and no public-key APK was installed on a
-phone. See [verification](../verification.md) for what was run and
+Redmi 13C then carried the previous candidate's local-test build, and no public-key APK was installed on a
+phone. On 26 October the Redmi was updated with data kept to build 23 signed with the local test key (`bafe5a05…`, the same files as the release build apart from the signature) and opened; no questions have been asked of build 23 on the phone. See [verification](../verification.md) for what was run and
 [How Field Atlas 1.4.2 was tested](../testing-1.4.2.md) for the results and the known limits.
 
 ## v1.4.1 release handoff (15 October 2026)

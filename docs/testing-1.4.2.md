@@ -35,7 +35,9 @@ is met: that is for the judges.
    Android 13) and on a 12 GB Android emulator, both in airplane mode with Wi-Fi and mobile data off, and
    asked emergency and everyday questions. The public-key release file itself ran only on an emulator:
    the previous candidate was set up from downloads inside the app on a fresh one with no Google apps,
-   and this build was installed over it with the data kept; see [verification](verification.md).
+   and the first release file (build 21) was installed over it with the data kept; on the 12 GB emulator,
+   builds 22 and 23 were then installed in turn over build 21 with the data kept. The Redmi was updated to build 23's
+   local-test build on 26 October and opened, but asked nothing; see [verification](verification.md).
 
 The desktop runs use the app's own answering code and the same models, collections and prompts as the
 phone; only the hardware differs. Times quoted from the desktop are not phone times.

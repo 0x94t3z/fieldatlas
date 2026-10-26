@@ -77,7 +77,7 @@
   cheaper?" was answered in 41 seconds at a computer's speed, citing the EIP-4844 specification, with
   424 tokens written by the 2B: the first draft ran past its length and was not shown, and the app's one
   repair, a single sentence, passed the model's check against the cited passage.
-- **An upgrade, data kept (this build, 25 October):** this APK was installed over that one on the same
+- **An upgrade, data kept (build 21, 25 October):** build 21 was installed over that one on the same
   emulator; the model and the collection stayed in place. Library's download buttons read "Download
   Supertonic 3, 146 MB" and "Download Encyclopedia, 10.64 GB", and in airplane mode "What does ML-KEM
   protect against?" was answered by the 2B in 34 seconds, citing four passages from the collection
@@ -92,7 +92,7 @@
   Stop, an emergency right after it, and the next question all worked, and the app process stayed up
   throughout. Leaving a running answer by the back arrow or Android's back button, while it searched,
   read or wrote, showed only the "Still answering" row on the Research home. The local-test build of the
-  previous candidate (`e854703`) is the one on the phone: in airplane mode a bee sting with swelling lips
+  previous candidate (`e854703`) was the one on the phone on 25 October: in airplane mode a bee sting with swelling lips
   opened the anaphylaxis guide with the call line in under a second, and "What is the capital of
   Australia?" was answered with Qwen3.5 2B, cited, in 1 min 47 s.
 - **Network:** the app has the INTERNET permission, used only when you start a download or tap
@@ -103,8 +103,8 @@
   with the graded answers in [fieldtest/results-1.4.2](fieldtest/results-1.4.2/).
 - **Not verified:** compatibility with GrapheneOS (no Pixel or GrapheneOS device was tested), the
   public-key APK on a physical phone (both test devices carry the local test key, and switching would
-  erase their data), this build on the phone (the Redmi carries the previous candidate's local-test
-  build, which lacks the two labels), an 8 GB or 12 GB phone, and an emergency asked while a stopped
+  erase their data), build 23 on the phone beyond opening it (its local-test build, `bafe5a05…`, was
+  installed on the Redmi with the data kept on 26 October and opened, but asked nothing), an 8 GB or 12 GB phone, and an emergency asked while a stopped
   answer is still finishing its reading on the phone (covered by JVM tests).
 
 ## v1.4.2 candidate (23 October 2026, superseded)
