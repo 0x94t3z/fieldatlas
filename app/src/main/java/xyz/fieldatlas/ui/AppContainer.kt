@@ -247,7 +247,10 @@ class AppContainer(context: Context) {
             } finally {
                 xyz.fieldatlas.ui.research.KeepAliveService.release(appContext, "import")
             }
-        }.also { installed -> if (!installed.active) switchWhenIdle(installed) }
+        }.also { installed ->
+            val warning = xyz.fieldatlas.assets.ModelFileImport.sizeWarning(plan.kind, deviceMemoryBytes)
+            if (!installed.active) switchWhenIdle(installed, warning) else warning?.let { rememberModelNotice(it) }
+        }
 
     suspend fun downloadModel(offer: ModelOffer, downloadUrl: String = offer.url, onProgress: (Long) -> Unit): InstalledAsset =
         provisioningMutex.withLock { modelDownload.install(offer, downloadUrl, onProgress).also { refreshPacks() } }
@@ -257,10 +260,12 @@ class AppContainer(context: Context) {
             }
 
     // Never pulled from under an answer being written or a model being loaded: the swap waits for them to finish.
-    private fun switchWhenIdle(installed: InstalledAsset) {
+    // A [notice] is set once the switch is done, since choosing a model clears the last one.
+    private fun switchWhenIdle(installed: InstalledAsset, notice: String? = null) {
         modelScope.launch {
             inference.state.first { it != InferenceState.Generating && it != InferenceState.Loading }
             setActiveModel(installed)
+            notice?.let { rememberModelNotice(it) }
         }
     }
 
