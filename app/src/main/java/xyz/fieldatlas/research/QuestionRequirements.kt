@@ -28,6 +28,7 @@ object QuestionRequirements {
 
     fun response(question: String, hasAttachments: Boolean): String? {
         if (hasAttachments) return null // Supplied material can be read, with its original date/context.
+        SmallTalk.reply(question)?.let { return it }
         val request = quoted.replace(question, " ")
         if (attachmentReference.containsMatchIn(request)) {
             return "I don't have an attached file for this question. Add the report, document, or image you want me to read, then try again."

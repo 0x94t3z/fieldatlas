@@ -115,6 +115,21 @@ class ResearchOrchestrator(
      */
     fun answerWithoutWaiting(question: String, hasAttachments: Boolean, topic: TopicEvidence.Carried? = null): Flow<ResearchEvent>? {
         if (hasAttachments || question.isBlank() || phraseRequest(question) != null) return null
+        // "thanks" sent while a slow answer is still being written needs no model and no search either.
+        SmallTalk.reply(question)?.let { reply ->
+            return flow {
+                val startedAt = monotonicMillis()
+                emit(ResearchEvent.Token(reply))
+                emit(ResearchEvent.Complete(ResearchMetrics(
+                    retrievalMillis = 0,
+                    timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
+                    totalMillis = elapsed(startedAt, monotonicMillis()),
+                    generatedTokenCount = 0,
+                    citedSourceIds = emptySet(),
+                    hasUnmappedCitation = false,
+                )))
+            }
+        }
         guideFor(question, topic)?.let { guide ->
             // The model is busy with the other answer, not missing: "isn't available right now" would be wrong (24 Oct, Redmi).
             val core = flow { emitPublishedGuide(question, guide, monotonicMillis(), modelUnavailable = false) }
