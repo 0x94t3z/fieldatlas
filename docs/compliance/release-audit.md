@@ -1,6 +1,33 @@
 # Release audit
 
-Updated 1 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3 and v1.4.4 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4 and v1.4.5 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.5 release (1 November 2026)
+
+Published on 1 November 2026 at 21:17 UTC as [v1.4.5](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.5),
+not a prerelease and marked latest, tag on `3e43dcc` (the commit that points the website at it), with
+`fieldatlas.apk` and `fieldatlas.apk.sha256` attached. The APK was built from `9e85ee7` in a clean clone with
+the pinned llama.cpp (`60081bb2b`) and its committed patch: version 1.4.5 (26), 103,542,875 bytes, SHA-256
+`492e5e186ac6b8d60cffe75ab21e848b703c691b92608538ef20a79e66b2042f`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload and again from
+its public link without signing in; both match.
+
+A safety update: a bundled classifier (`classifier.bin`, 1,737,789 bytes) opens a guide for first-aid messages the
+keyword rules missed, never the drinking-water or signalling guides; on a sealed set of 160 new messages the
+emergencies left without a guide fell from 33 to 16 of 120, with no guide that would be wrong to follow and one more
+non-emergency given a guide (7 of 40). A follow-up with its own subject after an emergency is now read on its own
+instead of together with the emergency, Library warns about imported models over 6.6 GB or 45% of memory, and long
+answers have a jump-to-end button. Before building: the JVM unit tests and release lint passed in the clean clone;
+the four Python suites passed at the release commit (scripts 78, tools 262 with 12 skipped, packtool 12, benchmarks
+10); the website tests passed (25, and 25 against the live site); the offline packaging audit, native alignment and
+`zipalign -c -P 16 4` passed on the exact APK. On the 12 GB Android emulator in airplane mode the exact APK installed
+over an earlier 1.4.5 candidate (itself installed over 1.4.4) with its data; a stroke message and a hot-car message the
+1.4.4 rules missed opened the stroke and heat guides in under a second (on that candidate, with the same classifier),
+the jump-to-end button showed on a long guide and scrolled to its end, and a supplement question asked as a follow-up
+to the hot-car guide was read on its own and answered by Qwen3.5 4B instead of with the no-guide first-aid reply.
+
+Not checked: no real phone ran this build (the owner chose emulator-only checks). A tester's report of the same
+emergency reply on a 16 GB phone followed voice input; whether 1.4.5 fixes that case is not yet known.
 
 ## v1.4.4 release (1 November 2026)
 
