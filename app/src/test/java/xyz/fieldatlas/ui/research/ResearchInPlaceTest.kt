@@ -37,6 +37,7 @@ class ResearchInPlaceTest {
 
     @Test fun theStatusSaysWhatIsHappeningInPlainWords() {
         assertEquals("Searching your collections", researchStatusTitle(ResearchUiState(phase = ResearchPhase.Searching)))
+        assertEquals("Checking related articles", researchStatusTitle(ResearchUiState(phase = ResearchPhase.Searching, preview = passage)))
         assertEquals("Finding better search words", researchStatusTitle(ResearchUiState(phase = ResearchPhase.Planning)))
         assertEquals("Reading 2 passages", researchStatusTitle(ResearchUiState(phase = ResearchPhase.Generating, sources = listOf(passage, passage))))
         assertEquals("Reading 1 passage", researchStatusTitle(ResearchUiState(phase = ResearchPhase.Generating, sources = listOf(passage))))

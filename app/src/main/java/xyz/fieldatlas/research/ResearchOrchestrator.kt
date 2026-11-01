@@ -148,7 +148,9 @@ class ResearchOrchestrator(
     /** The guide as published, with the app's call line. Reads neither the model nor the library. */
     private suspend fun FlowCollector<ResearchEvent>.emitPublishedGuide(question: String, guide: xyz.fieldatlas.emergency.EmergencyGuide,
                                                                      startedAt: Long,
-                                                                     modelUnavailable: Boolean = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready) {
+                                                                     // Loaded but busy with another answer is not unavailable.
+                                                                     modelUnavailable: Boolean = inference.state.value != xyz.fieldatlas.inference.InferenceState.Ready &&
+                                                                         inference.state.value != xyz.fieldatlas.inference.InferenceState.Generating) {
         emit(ResearchEvent.Sources(listOf(xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(guide))))
         emit(ResearchEvent.Token(xyz.fieldatlas.emergency.EmergencyGuideMatch.answer(guide,
             modelUnavailable = modelUnavailable, question = question,

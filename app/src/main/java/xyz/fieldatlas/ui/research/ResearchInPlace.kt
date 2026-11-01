@@ -100,7 +100,11 @@ internal fun trailPosition(state: ResearchUiState, readFraction: Float?): Float 
 /** What the status line says is happening, in words a reader uses. */
 internal fun researchStatusTitle(state: ResearchUiState): String = if (state.waitingFor != null) "Waiting for your last question" else when (researchStage(state)) {
     0 -> if (state.phase == ResearchPhase.Planning) "Finding better search words"
-        else if (state.submittedAttachments.isNotEmpty()) "Searching your files" else "Searching your collections"
+        else if (state.submittedAttachments.isNotEmpty()) "Searching your files"
+        // The first search is done and its best match is on screen; the run now reads the articles and sections around
+        // it, which took up to 20 s on the emulator with the bar already full.
+        else if (state.preview != null) "Checking related articles"
+        else "Searching your collections"
     1 -> when (state.sources.size) {
         0 -> "Preparing the model"
         1 -> "Reading 1 passage"
@@ -292,6 +296,8 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
     val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
     val sources = state.sources.size
     val caption = when {
+        // The few paths that stream show their words as they come; the finished answer adds its sources and checks.
+        draftBlocks.isNotEmpty() -> "Still being written. Sources are added when it is finished."
         stage == 0 -> "Your answer will appear here, with the sources it cites."
         sources == 0 -> "No saved passage matched: this answer comes from the model alone."
         stage == 1 -> "Written next, from ${if (sources == 1) "this passage" else "these $sources passages"} only."
