@@ -162,30 +162,63 @@ details[open] summary::after { content: '−'; }
 .platform-links a:hover, #copy-address:hover { background: var(--sage); }
 .platform-note, .copy-status { font-size: .625rem; line-height: 1.6; margin: 10px 0 0; }
 .copy-status:empty { margin: 0; }
-.contribute-card { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; padding: 26px 28px; background: #f0f1e9; display: grid; gap: 22px; }
+.contribute-card { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; padding: 28px; background: #f0f1e9; display: grid; gap: 28px; }
 .contribute-card > div { min-width: 0; }
-.contribute-card h3 { font-size: 1.25rem; margin: 0 0 12px; letter-spacing: -.03em; }
-.contribute-lead { margin: 0 0 14px; font-size: .8125rem; line-height: 1.8; max-width: 62ch; }
+.contribute-card h3 { font-size: 1.375rem; margin: 0 0 10px; letter-spacing: -.035em; }
+.contribute-lead { margin: 0; font-size: .8125rem; line-height: 1.8; max-width: 62ch; }
+.contribute-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 18px 0 22px; }
 .contribute-facts { margin: 0; display: grid; border-top: 1px solid #ccd4c5; }
-.contribute-facts > div { display: grid; grid-template-columns: 9.5rem 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ccd4c5; }
-.contribute-facts dt { font-size: .75rem; font-weight: 600; }
-.contribute-facts dd { margin: 0; font-size: .8125rem; line-height: 1.65; }
-.contribute-facts code { font-size: .75rem; }
-.contribute-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 16px; }
-.contribute-disclosure { margin: 14px 0 0; font-size: .75rem; line-height: 1.65; color: var(--muted); max-width: 60ch; }
-.rewards-pool { margin: 0 0 10px; font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
-#rewards-ledger { width: 100%; border-collapse: collapse; font-size: .75rem; }
-#rewards-ledger caption { text-align: left; font-size: .625rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-bottom: 8px; }
-.ledger-scroll { overflow-x: auto; }
-#rewards-ledger th, #rewards-ledger td { text-align: left; padding: 8px 10px 8px 0; border-top: 1px solid #ccd4c5; vertical-align: top; white-space: nowrap; }
+.contribute-facts > div { display: grid; grid-template-columns: 7.5rem 1fr; gap: 16px; padding: 12px 0; border-bottom: 1px solid #ccd4c5; }
+.contribute-facts dt { font-size: .75rem; font-weight: 600; color: var(--ink); padding-top: 1px; }
+.contribute-facts dd { min-width: 0; margin: 0; font-size: .8125rem; line-height: 1.65; color: var(--muted); }
+.contribute-facts code { font-size: .75rem; color: var(--ink); background: #e3e9dd; padding: 1px 5px; border-radius: 4px; }
+/* The usual amounts as a short list, figures first and lined up, so the scale reads at a glance. */
+.reward-amounts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+/* Figures in a fixed column of ten digits so they line up; with no room beside it (very large text), the description
+   moves below its figure instead of off the screen. */
+.reward-amounts li { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; }
+.reward-amounts strong { flex: none; width: 10ch; max-width: 100%; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; overflow-wrap: anywhere; }
+.reward-amounts span { flex: 1 1 12ch; min-width: 0; }
+.contribute-safety { margin-top: 18px; }
+.contribute-safety p { margin: 0; }
+.contribute-safety .icon { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; flex-shrink: 0; }
+.contribute-ledger { border-top: 1px solid #ccd4c5; padding-top: 22px; }
+.ledger-title { margin: 0 0 6px; font-size: .9375rem; font-weight: 600; letter-spacing: -.01em; color: var(--ink); }
+.rewards-pool { margin: 0 0 12px; font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
+.rewards-pool a { font: .75rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--ink); }
+.ledger-scroll { position: relative; overflow-x: auto; }
+#rewards-ledger { width: 100%; border-collapse: collapse; font-size: .75rem; font-variant-numeric: tabular-nums; }
+#rewards-ledger th, #rewards-ledger td { text-align: left; padding: 9px 12px 9px 0; border-top: 1px solid #ccd4c5; vertical-align: top; }
+#rewards-ledger th { font-weight: 600; color: var(--ink); border-top: 0; padding-top: 0; }
+#rewards-ledger td { color: var(--muted); }
+/* Date, name, amount and link stay on one line; the work description wraps, so the table fits the card. */
+#rewards-ledger td:not(:nth-child(3)), #rewards-ledger th { white-space: nowrap; }
+#rewards-ledger td:nth-child(3) { min-width: 9rem; line-height: 1.5; }
 #rewards-ledger td[colspan] { white-space: normal; }
+#rewards-ledger .num { text-align: right; }
+#rewards-ledger td:last-child, #rewards-ledger th:last-child { padding-right: 0; }
+#rewards-ledger a { color: var(--ink); }
 #rewards-ledger abbr { text-decoration: none; }
-#rewards-ledger th { font-weight: 600; }
+/* On a phone each payment stacks: date and amount, the work, then who and the transaction; nothing hides off the side. */
+@media (max-width: 560px) {
+  #rewards-ledger thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #rewards-ledger, #rewards-ledger tbody { display: block; width: 100%; }
+  #rewards-ledger tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 10px 0; border-top: 1px solid #ccd4c5; }
+  #rewards-ledger td { display: block; border: 0; padding: 0; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+  #rewards-ledger td:nth-child(1) { grid-area: 1 / 1; }
+  #rewards-ledger td:nth-child(4) { grid-area: 1 / 2; color: var(--ink); font-weight: 600; }
+  #rewards-ledger td:nth-child(4)::after { content: ' ATLAS'; font-weight: 400; color: var(--muted); }
+  #rewards-ledger td:nth-child(3) { grid-area: 2 / 1 / 3 / 3; white-space: normal; }
+  #rewards-ledger td:nth-child(2) { grid-area: 3 / 1; }
+  #rewards-ledger td:nth-child(5) { grid-area: 3 / 2; text-align: right; }
+  #rewards-ledger td[colspan] { grid-column: 1 / -1; }
+}
+.contribute-disclosure { margin: 18px 0 0; font-size: .75rem; line-height: 1.65; color: var(--muted); max-width: 62ch; }
 .site-footer { border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: start; gap: 2rem; padding: 2rem 0 2.25rem; }
 @media (max-width: 850px) {
   .community-card { grid-template-columns: 1fr; gap: 22px; padding: 22px; }
   .contribute-card { padding: 22px; }
-  .contribute-facts > div { grid-template-columns: 1fr; gap: 2px; }
+  .contribute-facts > div { grid-template-columns: 1fr; gap: 4px; }
 }
 .site-footer p { font-size: .75rem; margin: .6rem 0 0; }
 .footer-links { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; margin-top: -6px; }

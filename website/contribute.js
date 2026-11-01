@@ -39,6 +39,8 @@ if (ledger && pool) {
           td.append(cell);
           row.append(td);
         }
+        // Amounts line up on their last digit.
+        row.children[3].className = 'num';
         return row;
       }));
     })

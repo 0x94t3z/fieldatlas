@@ -140,6 +140,8 @@ test('the contributor card states the pool, the rules and the dev holding, and s
   await expect(card.getByRole('link', { name: 'Full rules' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md');
   await expect(card.locator('.contribute-disclosure')).toContainText('The rest belongs to the dev, to use as they choose, including funding further work on Field Atlas.');
   await expect(card.locator('.contribute-facts')).toContainText('Posts, promotion and follower counts.');
+  // The usual amounts as a list, figures first.
+  await expect(card.locator('.reward-amounts li')).toHaveText([/^5,000,000\s+a small fix/, /^20,000,000\s+a feature/, /^50,000,000\s+a knowledge collection/]);
   await expect(page.locator('#rewards-pool a')).toHaveAttribute('href', 'https://basescan.org/address/0x1111111111111111111111111111111111111111');
   const rows = page.locator('#rewards-ledger tbody tr');
   await expect(rows).toHaveCount(1);
@@ -156,6 +158,7 @@ test('the pool wallet is shown in full and the ledger lists the payment test', a
   const row = page.locator('#rewards-ledger tbody tr').first();
   await expect(row).toContainText('Payment test');
   await expect(row).toContainText('1,000');
+  await expect(row.locator('td.num')).toHaveText('1,000');
   await expect(row.getByRole('link', { name: 'View' })).toHaveAttribute('href', 'https://basescan.org/tx/0x7b66a06a05ed14de529ed0201de1530f0083935ad5c125a1b1b06a60e3a754aa');
 });
 
@@ -164,7 +167,7 @@ test('without JavaScript the card still names the full pool wallet', async ({ br
   const page = await context.newPage();
   await page.goto('/#community');
   await expect(page.locator('#rewards-pool')).toContainText('0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
-  await expect(page.locator('.contribute-facts')).toContainText('Nobody from Field Atlas will ever ask for a key, a seed phrase or a payment.');
+  await expect(page.getByRole('note', { name: 'Safety' })).toHaveText('Nobody from Field Atlas will ever ask for a key, a seed phrase or a payment.');
   await context.close();
 });
 
