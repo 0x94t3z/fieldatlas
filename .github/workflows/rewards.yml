@@ -1,0 +1,140 @@
+name: Contributor rewards
+
+# A merged pull request that closes a `reward` issue gets its payout queued in the pool wallet's Safe; a maintainer
+# confirms it there. Every few hours, rewards a failed run queued but never recorded, and confirmed payouts, are written
+# into the public ledger (website/rewards.json); merged rewards nobody queued are listed for the maintainer to run.
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+  push:
+    paths: ['tools/rewards/**', '.github/workflows/rewards.yml', 'website/rewards.json']
+  pull_request:
+    paths: ['tools/rewards/**', '.github/workflows/rewards.yml', 'website/rewards.json']
+  schedule:
+    - cron: '17 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Pull request number to check again (leave empty to record and settle)
+        required: false
+      dry_run:
+        description: 'Dry run: check and comment only; queue nothing in the Safe'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --prefix tools/rewards
+      - run: npm test --prefix tools/rewards
+
+  propose:
+    if: >-
+      github.repository == '0x94t3z/fieldatlas' &&
+      ((github.event_name == 'pull_request_target' && github.event.pull_request.merged) ||
+       (github.event_name == 'workflow_dispatch' && inputs.pr != ''))
+    # The proposer key lives in this environment, which only main may use: a workflow file on another branch cannot read it.
+    environment: rewards
+    # One ledger writer at a time, never cancelled halfway; a run GitHub drops while waiting is picked up by the sweep.
+    concurrency:
+      group: contributor-rewards-ledger
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: read
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+    steps:
+      # main as merged, never the pull request's head: a pull request's own code runs here only once the maintainer has
+      # merged it, which is why the maintainer reads any change to .github/ or tools/rewards/ before merging.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --prefix tools/rewards
+      - name: Check the pull request and queue its reward
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && 'true' || 'false' }}
+          REWARD_PROPOSER_KEY: ${{ secrets.REWARD_PROPOSER_KEY }}
+          SAFE_API_KEY: ${{ secrets.SAFE_API_KEY }}
+          SAFE_TX_SERVICE: ${{ vars.SAFE_TX_SERVICE }}
+        run: node tools/rewards/cli.mjs propose
+      # Even after a failed step: a reward the Safe already holds must reach the ledger.
+      - name: Record the queued reward in the ledger
+        if: ${{ !cancelled() }}
+        run: |
+          git diff --quiet -- website/rewards.json && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "Record the reward queued for pull request #${PR_NUMBER}" -- website/rewards.json
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1
+
+  settle:
+    if: >-
+      github.repository == '0x94t3z/fieldatlas' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.pr == ''))
+    # No proposer key here: the sweep only records rewards already queued, and settling only reads the Safe.
+    concurrency:
+      group: contributor-rewards-ledger
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --prefix tools/rewards
+      - name: Record rewards queued in the Safe that no run wrote to the ledger
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SAFE_API_KEY: ${{ secrets.SAFE_API_KEY }}
+          SAFE_TX_SERVICE: ${{ vars.SAFE_TX_SERVICE }}
+        run: node tools/rewards/cli.mjs sweep
+      - name: Mark rewards the Safe has paid, failed or replaced
+        if: ${{ !cancelled() }}
+        env:
+          SAFE_API_KEY: ${{ secrets.SAFE_API_KEY }}
+          SAFE_TX_SERVICE: ${{ vars.SAFE_TX_SERVICE }}
+        run: node tools/rewards/cli.mjs settle
+      - name: Record them in the ledger
+        if: ${{ !cancelled() }}
+        run: |
+          git diff --quiet -- website/rewards.json && exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Record queued and paid contributor rewards' -- website/rewards.json
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((attempt * 10))
+          done
+          exit 1

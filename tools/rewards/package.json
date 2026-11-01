@@ -1,0 +1,13 @@
+{
+  "name": "field-atlas-rewards",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Checks merged reward pull requests and proposes their ATLAS payouts to the pool wallet's Safe.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "viem": "2.57.7"
+  }
+}

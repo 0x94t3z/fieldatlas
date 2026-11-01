@@ -17,6 +17,7 @@ keystore.properties
 .DS_Store
 .superpowers/
 website/node_modules/
+tools/rewards/node_modules/
 website/dist/
 website/.vercel/
 __pycache__/
