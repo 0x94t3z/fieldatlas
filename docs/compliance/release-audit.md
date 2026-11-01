@@ -1,6 +1,31 @@
 # Release audit
 
-Updated 1 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2 and v1.4.3 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 1 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3 and v1.4.4 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.4 release (1 November 2026)
+
+Published on 1 November 2026 at 16:25 UTC as [v1.4.4](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.4),
+not a prerelease and marked latest, tag on `a3e59e9` (the commit that points the website at it), with
+`fieldatlas.apk` and `fieldatlas.apk.sha256` attached. The APK was built from `6f9f996` in a clean clone with
+the pinned llama.cpp (`60081bb2b`) and its committed patch, the same diff as the working tree: version 1.4.4 (25),
+102,765,246 bytes, SHA-256 `0972961c8545aad324c58dbff5dc26a855f763db1a14e01c62813b57d127f51a`, signed with the
+public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed
+before upload and again from its public link without signing in; both match.
+
+A speed update: the best saved passage found so far shows while an answer is researched, greetings and
+thanks are answered at once without search or the model, an answer with no progress for 3 minutes stops
+with a message (the patch adds a stop between prompt batches, so Stop also ends prompt reading at once),
+and the page names the lookup step. Answers themselves are unchanged. Before building: the JVM unit tests
+and release lint passed in the clean clone; the four Python suites passed (scripts 78, tools 262, packtool
+12, benchmarks 10); the website tests passed (25); the offline packaging audit, native alignment and
+`zipalign -c -P 16 4` passed on the exact APK. On the 12 GB Android emulator in airplane mode the exact APK
+installed over 1.4.3 with its data, and showed the instant greeting, the best-match card while Qwen3.5 4B
+read its passages, and the severe bleeding guide in under a second. Small talk matched none of 4,542 earlier
+test questions.
+
+Not checked: no real phone ran this build (the owner chose emulator-only checks), the stall guard was tested
+with a simulated engine rather than a real stuck model, and the timings in the release notes are from the
+emulator, which runs faster than a phone.
 
 ## v1.4.3 release (1 November 2026)
 
