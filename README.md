@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.4/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.5/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -20,7 +20,7 @@
   <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.4">v1.4.4 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.5">v1.4.5 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -56,8 +56,8 @@ collections and written by the model on your phone, with its sources underneath.
 
 You need an Android 13 or later phone with an arm64 processor.
 
-1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.4/fieldatlas.apk)
-   (about 100 MB, [SHA-256](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.4/fieldatlas.apk.sha256)).
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.5/fieldatlas.apk)
+   (about 100 MB, [SHA-256](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.5/fieldatlas.apk.sha256)).
 2. Open it and follow Android's prompts to install it.
 3. In setup, download the model it recommends: Qwen3.5 2B (1.4 GB) below 8 GB of memory, or
    Qwen3.5 4B (3.0 GB) from 8 GB.
@@ -102,7 +102,7 @@ These are our own measurements, not an independent score. The questions and grad
 - **No live data.** Models and collections are snapshots, so news, prices and opening hours can be
   out of date.
 - **Storage.** The 2B with every collection takes about 34 GB.
-- **Tested on** a 6 GB Redmi 13C (Android 13) and Android emulators; 1.4.3 and 1.4.4 on an emulator only. Not
+- **Tested on** a 6 GB Redmi 13C (Android 13) and Android emulators; 1.4.3 to 1.4.5 on an emulator only. Not
   yet on a Pixel, GrapheneOS, or a real 8 GB or 12 GB phone.
 
 ## Collections
@@ -147,7 +147,8 @@ of version 1.2.0 on a 4 GB Infinix in airplane mode, and the [first public demo]
 
 | Version | What changed |
 | --- | --- |
-| [1.4.4](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.4) (latest) | A speed update: the best saved passage shows within seconds while an answer is researched, greetings are answered at once, and an answer stuck for 3 minutes stops with a message. Answers are unchanged. [Release notes](docs/releases/current.md) |
+| [1.4.5](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.5) (latest) | A safety update: more emergencies open their guide (a small classifier after the keyword rules), a new question after an emergency is answered as one, a jump-to-end button on long answers, and a warning for very large imported models. [Release notes](docs/releases/current.md) |
+| [1.4.4](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.4) | A speed update: the best saved passage shows within seconds while an answer is researched, greetings are answered at once, and an answer stuck for 3 minutes stops with a message. Answers are unchanged. [Release notes](docs/releases/field-atlas-1.4.4.md) |
 | [1.4.3](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3) | A safety update: severe bleeding and electric shocks find their guide as people describe them, a new CDC electric shock guide (52 guides), the first step even when no guide fits, and Gemma 4 26B no longer offered. [Release notes](docs/releases/field-atlas-1.4.3.md) |
 | [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B (recommended from 8 GB) and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Notes](docs/releases/field-atlas-1.4.2.md) |
 | [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Notes](docs/releases/field-atlas-1.4.1.md) |
