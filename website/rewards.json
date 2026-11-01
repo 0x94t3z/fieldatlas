@@ -72,6 +72,19 @@
       "safeTxHash": "0xf0f570bac73cdb040205e34781ad28da24fc71ae9971524bc845f6fb7adf2812",
       "nonce": 3,
       "tx": null
+    },
+    {
+      "date": "2026-11-01",
+      "contributor": "realsmokingwiz",
+      "work": "Device report: a supplement question got the emergency reply, and a 6.55 GB model ran on a 16 GB phone, which led to the follow-up fix and the model size warning in 1.4.5",
+      "link": "https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.5",
+      "issue": 0,
+      "amount": 20000000,
+      "address": "0x68B8dD3d7d5CEdB72B40c4cF3152a175990D4599",
+      "status": "paid",
+      "safeTxHash": "0x1e9631c986edb81c9de72990061c7505857f8916623b7c3bef919aab4d4894a7",
+      "nonce": 4,
+      "tx": "0x9a02550ac9c10bf4a42bd393623f777788bc51b44aea6ef0214958a069503762"
     }
   ]
 }
