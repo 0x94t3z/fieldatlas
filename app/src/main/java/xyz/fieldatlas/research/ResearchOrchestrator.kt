@@ -22,6 +22,8 @@ class ResearchOrchestrator(
     private val locationProblem: () -> LocationProblem? = { null },
     /** Bundled first-aid and safety guides; an emergency question is answered from these, never by the model. */
     private val emergencyGuides: () -> List<xyz.fieldatlas.emergency.EmergencyGuide> = { emptyList() },
+    /** Reads a first-aid message the keyword matcher finds no guide for; null where none is bundled (tests). */
+    private val emergencyClassifier: () -> xyz.fieldatlas.emergency.EmergencyClassifier? = { null },
     /** Bundled emergency telephone numbers by country; "what number do I call in Japan?" is answered from these. */
     private val emergencyNumbers: () -> xyz.fieldatlas.emergency.NumberBook? = { null },
     /** Learned prompt-reading speed; sizes file evidence to the phone. */
@@ -102,7 +104,7 @@ class ResearchOrchestrator(
         if (hasAttachments || phraseRequest(question) != null) return false
         return Calculators.solve(question)?.complete == true ||
             VenueLookup.isNearMe(question) || VenueLookup.isWhereAmI(question) ||
-            xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) != null ||
+            xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, emergencyGuides()) != null || classifiedGuide(question) != null ||
             emergencyNumbers()?.let { book -> xyz.fieldatlas.emergency.EmergencyNumbers.answer(question, book) } != null
     }
 
@@ -1645,6 +1647,20 @@ class ResearchOrchestrator(
      * after the sunburn guide asks something the guide does not say, and so does "does aloe help?" after that answer,
      * though the joined reading of every later follow-up still starts with the sunburn.
      */
+    /**
+     * The guide the classifier reads in a message the keyword rules found none for, when it is sure enough. Never a past
+     * event, and never the drinking-water or signalling guides, which travel and phone questions ("is the tap water safe
+     * in Lisbon", "no signal here") resemble.
+     */
+    private fun classifiedGuide(question: String): xyz.fieldatlas.emergency.EmergencyGuide? {
+        if (xyz.fieldatlas.emergency.EmergencyGuideMatch.happenedBefore(question)) return null
+        val (label, probability) = emergencyClassifier()?.classify(question) ?: return null
+        if (label in CLASSIFIER_NEVER || probability < CLASSIFIER_THRESHOLD) return null
+        // "Her waters just broke on the ferry" read as pregnancy bleeding: labour has no guide, so that one needs blood.
+        if (label == "pregnancy-bleeding" && !CLASSIFIER_BLOOD.containsMatchIn(question)) return null
+        return emergencyGuides().firstOrNull { it.id == label }
+    }
+
     private fun guideFor(question: String, topic: TopicEvidence.Carried?): xyz.fieldatlas.emergency.EmergencyGuide? {
         val guides = emergencyGuides()
         if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let {
@@ -1655,7 +1671,10 @@ class ResearchOrchestrator(
         // question no situation rule matches gets its topic's guide on any model that does not write first aid, instead of
         // the no-guide reply: "how do I treat a minor burn at home" got CPR and anaphylaxis basics while the burns guide
         // sat unused (23 Oct).
+        // The classifier before the topic fallback: "bitten on the ankle by a snake… two puncture marks" got the bleeding
+        // guide from the fallback's words and the snakebite guide from the classifier (2 Nov 2026).
         val guide = (xyz.fieldatlas.emergency.EmergencyGuideMatch.match(question, guides)
+            ?: classifiedGuide(question)
             ?: if (!inference.knowledgeFirst && xyz.fieldatlas.emergency.GuideAnswerCheck.learning(question) ||
                     !inference.writesFirstAid && xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
                 xyz.fieldatlas.emergency.EmergencyGuideMatch.learningGuide(question, guides) else null)
@@ -1692,6 +1711,10 @@ class ResearchOrchestrator(
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
 
     private companion object {
+        /** Fixed before the sealed set 61 was scored (2 Nov 2026): 17 of the 18 guides it added there were right. */
+        const val CLASSIFIER_THRESHOLD = 0.3
+        val CLASSIFIER_NEVER = setOf("none", "safe-drinking-water", "signaling")
+        val CLASSIFIER_BLOOD = Regex("(?i)\\b(?:blood|bloody|bleed\\w*|spotting|clots?|haemorrhag\\w*|hemorrhag\\w*)\\b")
         /** Opens every first-aid answer a model writes: the call is the app's, never left to the model. */
         /** The fallback for first aid no saved guide covers (measurement): no treatment steps the sources do not support. */
         const val FIRST_AID_GAP = "No first-aid guide saved on this phone covers this situation, so this answer gives no treatment steps for it. " +

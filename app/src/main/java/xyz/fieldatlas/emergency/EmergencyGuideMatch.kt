@@ -907,6 +907,9 @@ object EmergencyGuideMatch {
      * A person and a hazard in the same message, but not in danger now: a story from last year, a film, a song, a school
      * report, or a phone's Lightning cable. "We survived the 2011 earthquake, what magnitude was it" is a lookup.
      */
+    /** A story, a film, a name or an old event rather than danger now: the classifier skips these as the matcher does. */
+    internal fun happenedBefore(question: String): Boolean = notHappeningNow.containsMatchIn(question)
+
     private val notHappeningNow = Regex("(?i)\\b(?:yesterday|last (?:night|week|month|year|summer|winter|spring|autumn|fall|time)|" +
         "years? ago|(?:19|20)\\d{2}|(?:movie|film|documentary|song|novel|book|podcast|series|report|essay|article|show)s? (?:about|on|called)|" +
         "(?:band|game) called|lightning (?:cable|charger|port|connector|adapter)|" +

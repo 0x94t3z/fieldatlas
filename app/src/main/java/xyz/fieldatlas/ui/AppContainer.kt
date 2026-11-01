@@ -540,6 +540,10 @@ class AppContainer(context: Context) {
             xyz.fieldatlas.emergency.EmergencyData.guides(it.readText()).guides
         }
     }
+    /** The bundled guide classifier (1.7 MB); read on first use, and absent rather than fatal if the asset is unreadable. */
+    private val emergencyClassifier: xyz.fieldatlas.emergency.EmergencyClassifier? by lazy {
+        runCatching { appContext.assets.open("emergency/classifier.bin").use { xyz.fieldatlas.emergency.EmergencyClassifier.read(it.readBytes()) } }.getOrNull()
+    }
     /** Reads guides and answers aloud: the guides' recordings, or the phone's voice. */
     val readAloud: xyz.fieldatlas.speech.ReadAloud by lazy { xyz.fieldatlas.speech.ReadAloud(appContext, provisioningMutex) { emergencyGuides } }
 
@@ -598,7 +602,7 @@ class AppContainer(context: Context) {
     // Whether answers come from the model's own knowledge is decided per model when it loads (ModelOffer.knowledgeFirst).
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current, locationProblem = { deviceLocation.lastProblem },
         readImportedCollections = true,
-        emergencyGuides = { emergencyGuides }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
+        emergencyGuides = { emergencyGuides }, emergencyClassifier = { emergencyClassifier }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
         articleDepth = true)
 
     /** Questions the app answers itself, so they can run before (or without) the model; decided where they are answered. */

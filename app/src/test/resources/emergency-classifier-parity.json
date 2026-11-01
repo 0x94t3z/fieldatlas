@@ -1,0 +1,602 @@
+[
+{
+"q": "best sunscreen for hiking in bali",
+"label": "none",
+"p": 0.9657
+},
+{
+"q": "my mate went under at the beach, we got him out, hes coughing and breathing funny",
+"label": "drowning",
+"p": 0.76012
+},
+{
+"q": "mum is 68 and diabetic, suddenly really short of breath, nauseous, tight pain between shoulder blades",
+"label": "heart-attack",
+"p": 0.44648
+},
+{
+"q": "how much water should i drink a day in a hot country",
+"label": "none",
+"p": 0.24544
+},
+{
+"q": "my sons front adult tooth got knocked out at football, im holding it, what now",
+"label": "knocked-out-tooth",
+"p": 0.46452
+},
+{
+"q": "twisted my ankle a month ago, almost healed, when can i start running again",
+"label": "none",
+"p": 0.87515
+},
+{
+"q": "wife woke up talking jibberish and keeps dropping her cup, she was totally fine last night",
+"label": "none",
+"p": 0.4939
+},
+{
+"q": "fire in kitchen, mom's face and hands burned, her eyebrows singed, she keeps coughing",
+"label": "none",
+"p": 0.08054
+},
+{
+"q": "my son hit his head on the pool edge, now he vomitted twice and is very sleepy",
+"label": "head-injury",
+"p": 0.76311
+},
+{
+"q": "pulled my kid out of the pool he isnt breathing",
+"label": "drowning",
+"p": 0.35407
+},
+{
+"q": "my boy fell from the mango tree, his forearm has a bump in the middle and he screams if i touch",
+"label": "electric-shock",
+"p": 0.14641
+},
+{
+"q": "should i put a spoon in his mouth? hes having a fit",
+"label": "none",
+"p": 0.09501
+},
+{
+"q": "should i suck the venom out?? snake bit my friends hand on the hike",
+"label": "snakebite",
+"p": 0.82619
+},
+{
+"q": "feels like elephant sitting on my chest, pain going into my jaw and left arm, sweating buckets",
+"label": "heart-attack",
+"p": 0.77453
+},
+{
+"q": "oil from wok splash on my forearm, big blisters coming up already",
+"label": "burns",
+"p": 0.19554
+},
+{
+"q": "my little girl got into mums iron tablets, maybe 10 gone",
+"label": "none",
+"p": 0.45935
+},
+{
+"q": "is it normal to get small nosebleeds in dry winter? none now, just curious",
+"label": "none",
+"p": 0.91058
+},
+{
+"q": "how long does a hangover usually last",
+"label": "none",
+"p": 0.98444
+},
+{
+"q": "my uncle got cut by machete in the farm deep on the leg, blood soaked the whole sarong",
+"label": "severe-bleeding",
+"p": 0.72164
+},
+{
+"q": "my daughter pulled the kettle and boiling water went on her chest, skin is peeling off",
+"label": "burns",
+"p": 0.49228
+},
+{
+"q": "boy got pulled out of the river by fishermen, coughing water and very sleepy",
+"label": "drowning",
+"p": 0.45064
+},
+{
+"q": "cant catch my breath, wheezing like a kettle, inhaler almost empty",
+"label": "asthma-attack",
+"p": 0.65572
+},
+{
+"q": "my son is burning up 39.8 and has a rash that doesnt fade when i press a glass on it",
+"label": "none",
+"p": 0.36752
+},
+{
+"q": "boss collapsed in the meeting holding his chest, still awake but grey colour",
+"label": "heart-attack",
+"p": 0.1601
+},
+{
+"q": "fell through the ice on the lake, now my friend is shaking like crazy, talking slow and stumbling",
+"label": "hypothermia",
+"p": 0.15863
+},
+{
+"q": "old burn scar from when i was a kid, how to make it fade",
+"label": "none",
+"p": 0.65958
+},
+{
+"q": "grandma wont wake up, eyes half open, chest not moving at all, ambulance is 40 min away pls help",
+"label": "cpr",
+"p": 0.16415
+},
+{
+"q": "hiked in the rain all day, my teen is shivering hard, clumsy, lips blue",
+"label": "hypothermia",
+"p": 0.18384
+},
+{
+"q": "how to become a lifeguard, what certificate do i need",
+"label": "none",
+"p": 0.80811
+},
+{
+"q": "how cold does it have to be for frostbite? asking for ski trip next month",
+"label": "none",
+"p": 0.9788
+},
+{
+"q": "our team got slaughtered in the second half, how do we bring morale back",
+"label": "none",
+"p": 0.17019
+},
+{
+"q": "trapped under rubble after the quake, can hear people above, my leg is pinned",
+"label": "none",
+"p": 0.13991
+},
+{
+"q": "write a short poem about a lightning storm over the sea",
+"label": "thunderstorm",
+"p": 0.24984
+},
+{
+"q": "boyfriend is allergic to cashew and ate curry with it, vomiting, blotchy skin, breathing sounds loud",
+"label": "anaphylaxis",
+"p": 0.19621
+},
+{
+"q": "baby limp and blue and not breathing what do i do with such a small baby",
+"label": "cpr",
+"p": 0.40847
+},
+{
+"q": "im dying of boredom on this 12 hour flight lol",
+"label": "none",
+"p": 0.71415
+},
+{
+"q": "lost in the forest, phone at 5%, getting dark, no idea which way",
+"label": "lost",
+"p": 0.61698
+},
+{
+"q": "throat feels tight after the shrimp, hives all over, voice going hoarse",
+"label": "anaphylaxis",
+"p": 0.58847
+},
+{
+"q": "found a guy slumped on a park bench, breathing really slow, lips purple, probably fentanyl",
+"label": "cpr",
+"p": 0.18909
+},
+{
+"q": "whats the difference between heart attack and cardiac arrest, studying for nursing exam",
+"label": "none",
+"p": 0.87118
+},
+{
+"q": "my 2yo drank some of the dishwasher liquid",
+"label": "poisoning",
+"p": 0.38773
+},
+{
+"q": "at 4500m in nepal, my partner has bad headache, throwing up and out of breath even resting",
+"label": "altitude-sickness",
+"p": 0.69174
+},
+{
+"q": "had a fever last week, all better now, can i go back to the gym",
+"label": "none",
+"p": 0.88957
+},
+{
+"q": "cut my hand on angle grinder blood spraying out wont stop",
+"label": "severe-bleeding",
+"p": 0.65896
+},
+{
+"q": "son took grandpas oxycodone, very drowsy, breathing slow like 4 or 5 a minute",
+"label": "opioid-overdose",
+"p": 0.21786
+},
+{
+"q": "my aunts seizures are well controlled on meds, is she allowed to drive",
+"label": "none",
+"p": 0.34205
+},
+{
+"q": "stray dog bit my sons leg at the market, skin broken and bleeding a little",
+"label": "animal-bites",
+"p": 0.74747
+},
+{
+"q": "opa fell in the bathroom and hit back of head, now talking nonsense and one pupil bigger than other",
+"label": "head-injury",
+"p": 0.27283
+},
+{
+"q": "my diabetic dad is shaky sweaty and confused, acting like hes drunk",
+"label": "low-blood-sugar",
+"p": 0.92352
+},
+{
+"q": "on a ridge hiking, thunder getting closer, no shelter anywhere and my hair standing up",
+"label": "lightning-backcountry",
+"p": 0.5227
+},
+{
+"q": "fire on the hill behind our village, smoke everywhere, how do we get out",
+"label": "wildfire",
+"p": 0.62788
+},
+{
+"q": "what vaccines do i need before going to kenya",
+"label": "none",
+"p": 0.74918
+},
+{
+"q": "storm coming fast and we are in the middle of open football field, kids with us",
+"label": "lightning-backcountry",
+"p": 0.22286
+},
+{
+"q": "typhoon hitting tonight, wind already crazy, windows shaking, where in the house do we go",
+"label": "hurricane",
+"p": 0.55442
+},
+{
+"q": "water rising into the house fast, street outside is a river now",
+"label": "flood",
+"p": 0.79499
+},
+{
+"q": "we have narcan how do i use it, shes not waking up after the pills",
+"label": "safe-drinking-water",
+"p": 0.27321
+},
+{
+"q": "monkey at the temple bit my hand, small wound, are we in trouble with rabies",
+"label": "animal-bites",
+"p": 0.42419
+},
+{
+"q": "he got kicked in the stomach by the horse, no blood outside but hes very pale and his belly getting hard and swollen",
+"label": "shock",
+"p": 0.19835
+},
+{
+"q": "toddler stuck a hairpin in the socket, black mark on fingers, crying a lot",
+"label": "electric-shock",
+"p": 0.14866
+},
+{
+"q": "took my insulin but skipped dinner, now trembling, heart pounding, meter says 2.9",
+"label": "low-blood-sugar",
+"p": 0.18125
+},
+{
+"q": "stuck in the village after flood, only river water left, how to make it safe for kids",
+"label": "safe-drinking-water",
+"p": 0.34276
+},
+{
+"q": "should i give him aspirin? husband crushing chest pain about 20 minutes",
+"label": "heart-attack",
+"p": 0.70363
+},
+{
+"q": "cut my finger slicing onions last week, its healed now but the scar itches",
+"label": "none",
+"p": 0.58799
+},
+{
+"q": "after the half marathon my friend stopped sweating and is acting weird, really hot to touch",
+"label": "heat-illness",
+"p": 0.30087
+},
+{
+"q": "type 1 teenager at our sleepover is very pale clammy and not making sense",
+"label": "shock",
+"p": 0.1591
+},
+{
+"q": "found a man passed out on the street, breathing ok but wont wake up, how should i lay him",
+"label": "recovery-position",
+"p": 0.62679
+},
+{
+"q": "recommend a good first aid kit for a road trip",
+"label": "none",
+"p": 0.96533
+},
+{
+"q": "girl at the bus stop collapsed, arms and legs twitching, she wet herself",
+"label": "seizures",
+"p": 0.11511
+},
+{
+"q": "toes numb hard and grey after walking in snow with wet boots, should i rub them",
+"label": "frostbite",
+"p": 0.54197
+},
+{
+"q": "roommate on the bathroom floor needle next to him, tiny pupils, barely breathing",
+"label": "opioid-overdose",
+"p": 0.25675
+},
+{
+"q": "kid grabbed the hot iron, red stripe on his hand screaming, do i put toothpaste??",
+"label": "burns",
+"p": 0.36251
+},
+{
+"q": "im 12 weeks pregnant and bleeding bright red with cramps",
+"label": "pregnancy-bleeding",
+"p": 0.97733
+},
+{
+"q": "got zapped from the fuse box 10 min ago, my arm is numb and my heart feels fluttery",
+"label": "electric-shock",
+"p": 0.36177
+},
+{
+"q": "who invented CPR? for history homework",
+"label": "none",
+"p": 0.95722
+},
+{
+"q": "he went down playing futsal and now hes doing this weird snore gasp every few seconds then nothing",
+"label": "none",
+"p": 0.13188
+},
+{
+"q": "sea just pulled back super far after that big shake, people walking out to pick fish",
+"label": "none",
+"p": 0.16762
+},
+{
+"q": "read about the earthquake in the news this morning, how many people died",
+"label": "none",
+"p": 0.93428
+},
+{
+"q": "how many weeks pregnant can i still fly",
+"label": "none",
+"p": 0.94373
+},
+{
+"q": "my phone battery is bleeding out so fast any tips",
+"label": "none",
+"p": 0.60003
+},
+{
+"q": "my friend took something at the party now hes snoring weird, lips blue, cant wake him",
+"label": "opioid-overdose",
+"p": 0.35921
+},
+{
+"q": "what is a normal blood sugar after eating",
+"label": "none",
+"p": 0.83684
+},
+{
+"q": "my 8 month baby choking on banana piece no crying no sound",
+"label": "none",
+"p": 0.40732
+},
+{
+"q": "after the crash my friend is shaking, cold sweaty skin, very weak, pulse super fast and thin",
+"label": "shock",
+"p": 0.34617
+},
+{
+"q": "worker on scaffold touched the power line and now not moving",
+"label": "electric-shock",
+"p": 0.89841
+},
+{
+"q": "what to pack in hospital bag for labour",
+"label": "none",
+"p": 0.96702
+},
+{
+"q": "kid left in the car in the sun 20 min, very red and hot and floppy",
+"label": "heat-illness",
+"p": 0.4493
+},
+{
+"q": "clear watery stuff dripping from his nose since he fell off the scooter and hit his head",
+"label": "head-injury",
+"p": 0.66022
+},
+{
+"q": "we ate wild mushrooms we picked this morning now bad cramps and diarrhea, both of us",
+"label": "none",
+"p": 0.16378
+},
+{
+"q": "how many pushes before i give breaths?? doing it on my brother right now",
+"label": "cpr",
+"p": 0.24845
+},
+{
+"q": "my moms face is drooping on one side and her words coming out wrong",
+"label": "stroke",
+"p": 0.57102
+},
+{
+"q": "whole city blackout, my dad is on an oxygen machine at home",
+"label": "power-outage",
+"p": 0.49677
+},
+{
+"q": "worst headache of my life came out of nowhere, cant walk straight and seeing double",
+"label": "altitude-sickness",
+"p": 0.22548
+},
+{
+"q": "metal bit flew in my eye while grinding, cant open it, watering nonstop",
+"label": "eye-injury",
+"p": 0.46997
+},
+{
+"q": "kid fell on a broken bottle at the beach, foot gushing, the towel is already soaked red",
+"label": "severe-bleeding",
+"p": 0.37846
+},
+{
+"q": "fell off the ladder and my wrist bent the wrong way i cant move it",
+"label": "fractures-sprains",
+"p": 0.30782
+},
+{
+"q": "took a new antibiotic pill and now itchy rash everywhere, dizzy like gonna faint, throat closing",
+"label": "anaphylaxis",
+"p": 0.28793
+},
+{
+"q": "HELP friend chokin on steak at restaurant, shes pointing at her neck and cant cough",
+"label": "choking",
+"p": 0.23032
+},
+{
+"q": "this deadline is giving me a heart attack lol",
+"label": "none",
+"p": 0.93646
+},
+{
+"q": "the market crashed and my portfolio is drowning",
+"label": "none",
+"p": 0.29585
+},
+{
+"q": "kid ate some berries off the bush in the garden and now throwing up",
+"label": "poisoning",
+"p": 0.20403
+},
+{
+"q": "punched the window and glass went in my arm, blood comes out pumping with my heartbeat",
+"label": "severe-bleeding",
+"p": 0.46438
+},
+{
+"q": "i choked during my presentation today, how do i get over the embarrassment",
+"label": "none",
+"p": 0.47506
+},
+{
+"q": "baby with fever suddenly went stiff and jerking and not responding to me",
+"label": "seizures",
+"p": 0.40277
+},
+{
+"q": "my dad just colapsed in the kitchen not breathing i cant feel anything on his neck what do i do",
+"label": "cpr",
+"p": 0.74492
+},
+{
+"q": "squeezing pain in middle of chest, cold sweat, i feel like im going to die, 54 male",
+"label": "heart-attack",
+"p": 0.67015
+},
+{
+"q": "im alone at home and food stuck in my throat i can barely breath how do i get it out myself",
+"label": "choking",
+"p": 0.17805
+},
+{
+"q": "where do i stick the epipen?? my daughters tongue is getting big",
+"label": "none",
+"p": 0.13545
+},
+{
+"q": "caught in a blizzard on the trail, cant see anything, need to make shelter now",
+"label": "emergency-shelter",
+"p": 0.4749
+},
+{
+"q": "pharmacy machine said my blood pressure 128/82, is that ok",
+"label": "none",
+"p": 0.63623
+},
+{
+"q": "husband drank from a water bottle that had pesticide in it, smells chemical, he vomiting",
+"label": "poisoning",
+"p": 0.46259
+},
+{
+"q": "my son ate a cookie with peanuts and his lips are swelling up and hes wheezing",
+"label": "anaphylaxis",
+"p": 0.58046
+},
+{
+"q": "my kid is having asthma attack, blue puffer not helping much, he cant say a full sentence",
+"label": "none",
+"p": 0.21552
+},
+{
+"q": "i got a bee sting as a kid and nothing happened, does that mean im not allergic",
+"label": "insect-stings",
+"p": 0.332
+},
+{
+"q": "is it safe to eat sushi when pregnant",
+"label": "none",
+"p": 0.88425
+},
+{
+"q": "we had power cut yesterday for one hour, how do i reset the clock on my oven",
+"label": "none",
+"p": 0.66625
+},
+{
+"q": "bone is sticking out of his shin after the motorbike crash",
+"label": "bleeding-control",
+"p": 0.10017
+},
+{
+"q": "after eating at the food stall my whole body red, eyes swollen shut, getting hard to swallow",
+"label": "anaphylaxis",
+"p": 0.19043
+},
+{
+"q": "my brother fell down shaking all over, eyes rolled back, foam from mouth",
+"label": "seizures",
+"p": 0.39332
+},
+{
+"q": "got knocked out for few seconds at rugby, now bad headache and cant remember the match",
+"label": "head-injury",
+"p": 0.43604
+},
+{
+"q": "got wet cement splash in my eye at work burning so bad",
+"label": "eye-injury",
+"p": 0.418
+}
+]
