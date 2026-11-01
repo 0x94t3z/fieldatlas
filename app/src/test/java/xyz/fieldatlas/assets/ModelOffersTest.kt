@@ -53,11 +53,15 @@ class ModelOffersTest {
         assertFalse(ModelOffers.largest.repacksOn(11_500_000_000L))
     }
 
-    @Test fun theLargestModelIsOfferedFirstOnlyOnTwelveGigabytePhones() {
-        // A 12 GB phone reports about 11.5e9 bytes: Gemma first, then the 4B and the 2B as faster choices.
-        assertEquals(listOf(ModelOffers.largest, ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(11_500_000_000L))
-        // An 8 GB phone never gets it: its 10.5 GB file would page from storage on every word.
+    @Test fun gemmaIsNoLongerOfferedButStillRecognised() {
+        // Since 1.4.3 a 12 GB phone (about 11.5e9 bytes) is offered the 4B first: Gemma gave no answer in 50 minutes on a
+        // 16 GB phone. A copy already installed or imported is still recognised, so it loads mapped, not copied.
+        assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(11_500_000_000L))
+        assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(16_000_000_000L))
         assertEquals(listOf(ModelOffers.larger, ModelOffers.recommended), ModelOffers.forDevice(7_900_000_000L))
+        assertFalse(ModelOffers.largest in ModelOffers.offered)
+        assertEquals(ModelOffers.largest, ModelOffers.byId("gemma-4-26b-a4b-ud-q2-k-xl"))
+        assertTrue(ModelOffers.largest.line.startsWith("No longer offered"))
         // Only the model chosen for it reasons before answering.
         assertEquals(2048, ModelOffers.largest.thinkingBudget)
         assertEquals(0, ModelOffers.larger.thinkingBudget)

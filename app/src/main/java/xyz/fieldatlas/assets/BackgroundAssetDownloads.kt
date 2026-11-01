@@ -63,7 +63,8 @@ class BackgroundAssetDownloads(
             AssetDownloadKind.MODEL.name -> {
                 // Versions before the optional larger model saved no id; theirs was the recommended one.
                 val id = preferences.getString(PENDING_MODEL, null)
-                val offer = if (id == null) ModelOffers.recommended else ModelOffers.byId(id)
+                // A download of a model no longer offered (Gemma 4 26B since 1.4.3) is dropped, not resumed.
+                val offer = if (id == null) ModelOffers.recommended else ModelOffers.offered.firstOrNull { it.id == id }
                 if (offer == null) clearPending() else startModel(offer, resume = true)
             }
             AssetDownloadKind.KNOWLEDGE.name -> {

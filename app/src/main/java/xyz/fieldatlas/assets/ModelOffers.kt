@@ -120,6 +120,10 @@ object ModelOffers {
      * 4B while knowing far more. Answering from its own knowledge and reasoning first it scored 82.5% of web-and-AI
      * answers on 24 sealed questions (set 33, two blind rounds), against 62.0% for the 4B, with 0.23 grader annotations
      * per answer. The 10.5 GB file is mapped from storage, not copied; 12 GB phones report about 11,500,000,000 bytes.
+     *
+     * No longer offered since 1.4.3: on a 16 GB Oppo Find X9 Ultra (1 Nov 2026) it gave no answer in over 50 minutes
+     * while the 4B answered in about 8 seconds, and it had only been timed on an emulator. Kept so a copy already on a
+     * phone, or imported, still loads mapped from its file: as an unknown model a 12 GB phone would copy all of it.
      */
     val largest = ModelOffer(
         id = "gemma-4-26b-a4b-ud-q2-k-xl",
@@ -130,9 +134,10 @@ object ModelOffers {
         bytes = 10_546_934_240L,
         sha256 = "2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658",
         url = "https://huggingface.co/unsloth/gemma-4-26B-A4B-it-GGUF/resolve/c099eb48e663fd284577b04978a94ffccb261841/gemma-4-26B-A4B-it-UD-Q2_K_XL.gguf",
-        description = "The most accurate: it knows far more and thinks before it answers. For phones with 12 GB of memory.",
-        line = "Most accurate, thinks first",
-        tradeOff = "Best answers and fewest wrong details in our tests.",
+        description = "No longer offered: on a real phone it can take far too long to answer. Qwen3.5 4B is recommended " +
+            "instead; you can remove this model in Library to free 10.55 GB.",
+        line = "No longer offered",
+        tradeOff = "No longer offered: on a real phone it can take far too long to answer.",
         minimumMemoryBytes = 10_500_000_000L,
         minimumMemoryLabel = "12 GB",
         thinkingBudget = 2048,
@@ -146,14 +151,17 @@ object ModelOffers {
      * asked 20 fresh questions in the app on a Redmi 13C and graded blind, it scored 3.75 of 10 against 4.65 for
      * Qwen3.5 2B, answering "the excerpts do not contain this" where Qwen explained.
      */
-    val all = listOf(recommended, larger, largest)
+    val offered = listOf(recommended, larger)
+
+    /** Every model the app recognises: the offered ones and [largest], which is no longer offered but may be on a phone. */
+    val all = offered + largest
 
     /**
      * What setup offers this phone, best first: the largest model recommended for it, then the others it can load. On a
      * 6 GB phone that is the 2B, then the 4B with its warning; from 8 GB the 4B, then the 2B as the faster choice.
      */
     fun forDevice(deviceMemoryBytes: Long): List<ModelOffer> =
-        all.filter { it.fits(deviceMemoryBytes) }
+        offered.filter { it.fits(deviceMemoryBytes) }
             .sortedWith(compareByDescending<ModelOffer> { it.recommendedOn(deviceMemoryBytes) }.thenByDescending { it.bytes })
 
     /** Said wherever a model that is slow on this phone can be chosen (setup, Library). */
