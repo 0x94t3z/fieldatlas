@@ -134,14 +134,14 @@ test('the contributor card states the pool, the rules and the dev holding, and s
   await page.goto('/#community');
   const card = page.locator('.contribute-card');
   await expect(card.getByRole('heading', { name: 'Contributor rewards' })).toBeVisible();
-  await expect(card.locator('.contribute-lead')).toContainText('1,000,000,000 ATLAS');
-  await expect(card.locator('.contribute-lead')).toContainText('Only the maintainer signs for it. It is kept apart so anyone can check its balance and payments, but it is not locked.');
+  // Short on purpose: what pays, what doesn't, where to start. The full rules live on GitHub.
+  await expect(card.locator('.contribute-lead')).toContainText('Each task states its amount before you start, usually 5 to 50 million ATLAS.');
+  await expect(card.locator('.contribute-lead')).toContainText('Posts and promotion don’t count.');
   await expect(card.getByRole('link', { name: 'Open tasks' })).toHaveAttribute('href', /label%3Areward/);
-  await expect(card.getByRole('link', { name: 'Full rules' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md');
+  await expect(card.getByRole('link', { name: 'How it works' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md#contributor-rewards');
+  await expect(card.locator('.pool-note')).toHaveText('From 1,000,000,000 ATLAS put into a separate pool wallet on 1 November 2026. Only the maintainer signs for it, and it is not locked.');
+  await expect(card.getByRole('note', { name: 'Safety' })).toHaveText('Nobody from Field Atlas will ever ask for a key, a seed phrase or a payment.');
   await expect(card.locator('.contribute-disclosure')).toContainText('The rest belongs to the dev, to use as they choose, including funding further work on Field Atlas.');
-  await expect(card.locator('.contribute-facts')).toContainText('Posts, promotion and follower counts.');
-  // The usual amounts as a list, figures first.
-  await expect(card.locator('.reward-amounts li')).toHaveText([/^5,000,000\s+a small fix/, /^20,000,000\s+a feature/, /^50,000,000\s+a knowledge collection/]);
   await expect(page.locator('#rewards-pool a')).toHaveAttribute('href', 'https://basescan.org/address/0x1111111111111111111111111111111111111111');
   const rows = page.locator('#rewards-ledger tbody tr');
   await expect(rows).toHaveCount(1);
@@ -155,11 +155,67 @@ test('the pool wallet is shown in full and the ledger lists the payment test', a
   // In full, never shortened: shortened addresses are what look-alike addresses imitate.
   await expect(page.locator('#rewards-pool')).toHaveText('Pool wallet (Safe on Base): 0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
   await expect(page.locator('#rewards-pool a')).toHaveAttribute('href', 'https://basescan.org/address/0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
-  const row = page.locator('#rewards-ledger tbody tr').first();
+  // Newest first, so the first payment ever made, the maintainer's test, is the last row of the last page.
+  const older = page.getByRole('button', { name: 'Older' });
+  await expect(page.locator('#rewards-ledger tbody tr').first()).not.toContainText('Every payment is listed');
+  // The pages appear only once there are more than five payments.
+  if (await older.isVisible()) while (await older.isEnabled()) await older.click();
+  const row = page.locator('#rewards-ledger tbody tr').last();
   await expect(row).toContainText('Payment test');
   await expect(row).toContainText('1,000');
   await expect(row.locator('td.num')).toHaveText('1,000');
   await expect(row.getByRole('link', { name: 'View' })).toHaveAttribute('href', 'https://basescan.org/tx/0x7b66a06a05ed14de529ed0201de1530f0083935ad5c125a1b1b06a60e3a754aa');
+});
+
+test('the ledger lists newest first, five to a page, with the paid total and a stand-in link for a lost pull request', async ({ page }) => {
+  const tx = n => '0x' + String(n).repeat(64);
+  const row = (date, contributor, n, extra = {}) => ({ date, contributor, work: `Task ${n}`, link: `https://github.com/0x94t3z/fieldatlas/pull/${n}`, amount: n * 1000000, tx: tx(n), ...extra });
+  await page.route('**/rewards.json', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    poolWallet: '0x1111111111111111111111111111111111111111',
+    policy: { maintainers: ['owner'] },
+    rewards: [
+      row('2026-11-01', 'owner', 1),
+      row('2026-11-01', 'ann', 2, { proof: 'https://github.com/0x94t3z/fieldatlas/commit/abc1234' }),
+      row('2026-11-03', 'bo', 3),
+      row('2026-11-02', 'cy', 4),
+      row('2026-11-03', 'di', 5),
+      row('2026-11-04', 'ed', 6),
+      row('2026-11-04', 'fay', 7, { proof: 'https://example.com/elsewhere' }),
+    ] }) }));
+  await page.goto('/#community');
+  const rows = page.locator('#rewards-ledger tbody tr');
+  const who = () => rows.locator('td:nth-child(2)').allTextContents();
+  // By date, newest first; on the same day, the payment written into the ledger last comes first.
+  await expect(rows).toHaveCount(5);
+  expect(await who()).toEqual(['fay', 'ed', 'di', 'bo', 'cy']);
+  // The maintainer's own payment test is listed but not counted as paid to contributors.
+  await expect(page.locator('#rewards-total')).toHaveText('27,000,000 ATLAS paid to contributors so far.');
+  const pager = page.getByRole('navigation', { name: 'Rewards paid, pages' });
+  const newer = pager.getByRole('button', { name: 'Newer' });
+  const older = pager.getByRole('button', { name: 'Older' });
+  await expect(pager.locator('#ledger-range')).toHaveText('1–5 of 7');
+  await expect(newer).toBeDisabled();
+  // A proof link outside this repository is ignored.
+  await expect(rows.first().getByRole('link', { name: 'Task 7' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/pull/7');
+  await older.focus();
+  await page.keyboard.press('Enter');
+  await expect(pager.locator('#ledger-range')).toHaveText('6–7 of 7');
+  expect(await who()).toEqual(['ann', 'owner']);
+  await expect(older).toBeDisabled();
+  // Disabling the button that was pressed hands focus to the other one, not to the page.
+  await expect(newer).toBeFocused();
+  await expect(rows.first().getByRole('link', { name: 'Task 2' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/commit/abc1234');
+  await newer.click();
+  expect(await who()).toEqual(['fay', 'ed', 'di', 'bo', 'cy']);
+});
+
+test('five payments or fewer need no pages', async ({ page }) => {
+  await page.route('**/rewards.json', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    rewards: [{ date: '2026-11-02', contributor: 'alice', work: 'Fix a crash', link: 'https://github.com/0x94t3z/fieldatlas/pull/1', amount: 1000000, tx: '0x' + 'a'.repeat(64) }] }) }));
+  await page.goto('/#community');
+  await expect(page.locator('#rewards-ledger tbody tr')).toHaveCount(1);
+  await expect(page.getByRole('navigation', { name: 'Rewards paid, pages' })).toBeHidden();
+  await expect(page.locator('#rewards-total')).toHaveText('1,000,000 ATLAS paid to contributors so far.');
 });
 
 test('without JavaScript the card still names the full pool wallet', async ({ browser }) => {
