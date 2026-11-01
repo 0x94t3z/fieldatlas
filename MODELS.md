@@ -7,9 +7,9 @@ A **model** is the large local file that lets Field Atlas generate answers: the 
 | App | Model to use | Where to get instructions |
 | --- | --- | --- |
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
-| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
-| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) from 6 GB | Qwen3.5 4B, optional in 1.4.0, recommended from 8 GB in 1.4.2 (offered on 6 GB, marked slow) | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
-| [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2), on a phone with 12 GB of memory | Gemma 4 26B-A4B (UD-Q2_K_XL), offered first in setup | Download in setup or Library; see [Gemma 4 26B in v1.4.2](#gemma-4-26b-in-v142) |
+| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.3](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
+| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) and [v1.4.3](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3) from 6 GB | Qwen3.5 4B, optional in 1.4.0, recommended from 8 GB since 1.4.2, including 12 GB phones since 1.4.3 (offered on 6 GB, marked slow) | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
+| [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) only, on a phone with 12 GB of memory | Gemma 4 26B-A4B (UD-Q2_K_XL), offered first in setup; no longer offered from v1.4.3 | An installed or imported copy is still recognised; see [Gemma 4 26B in v1.4.2](#gemma-4-26b-in-v142) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. From v1.4.2, a phone that cannot download can import the model's `.gguf` itself, downloaded on another device from the link below; building a `.fapack` is optional and needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
 
@@ -86,14 +86,22 @@ file and pack are described in
 
 ## Gemma 4 26B in v1.4.2
 
-On a phone with 12 GB of memory, setup offers Gemma 4 26B-A4B first: unsloth's UD-Q2_K_XL file of
+**No longer offered from v1.4.3.** On a 16 GB phone (1 November 2026) it gave no answer in over
+50 minutes, while Qwen3.5 4B on the same phone answered in about 8 seconds; it had only been timed on an
+emulator. Setup and Library no longer offer it, and Qwen3.5 4B is recommended on 12 GB phones instead.
+A copy already on a phone, or imported from its file, is still recognised by its size and SHA-256, so it
+keeps its tested settings (mapped from the file, not copied into memory); Library marks it "No longer
+offered" and it can be removed there. It may be offered again once it answers in reasonable time on a
+real phone.
+
+In v1.4.2, on a phone with 12 GB of memory, setup offered Gemma 4 26B-A4B first: unsloth's UD-Q2_K_XL file of
 `google/gemma-4-26B-A4B-it` (10.5 GB, Apache-2.0, SHA-256
 `2a1d26dfe6ea00a467940a5728316af6edb366bbdba950d65b85d232392fb658`), described in
 [`models/compact-gemma-4-26b-a4b.example.json`](models/compact-gemma-4-26b-a4b.example.json). It reasons
 before it answers and answers from its own knowledge: a good answer to 27 of the 40 (68%) questions of set 37,
-with 0.44 grader annotations per answer, on the desktop pipeline. It has run on a 12 GB Android emulator
-(median 92 seconds an answer), not on a 12 GB phone, and it has no `.fapack` yet: setup downloads
-the pinned file and checks its size and SHA-256.
+with 0.44 grader annotations per answer, on the desktop pipeline. It ran on a 12 GB Android emulator
+(median 92 seconds an answer), never timed on a 12 GB phone, and it has no `.fapack`: setup downloaded
+the pinned file and checked its size and SHA-256.
 
 If Android closes the app while a model other than the 2B is loading, or within fifteen seconds after, the next launch answers with Qwen3.5 2B instead and a note stays in Library ("Field Atlas closed while loading Gemma 4 26B last time, so Qwen3.5 2B answers instead. Choose Gemma 4 26B here to try it again.") until a model is chosen again. Running out of memory a second time could freeze or restart the phone, which is why the larger model is not retried on its own.
 

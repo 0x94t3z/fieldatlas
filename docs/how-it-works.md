@@ -19,13 +19,13 @@ way one question goes, and why.
 flowchart TD
     Q["Question, follow-up or attached file"] --> D{"Can the app answer it exactly?"}
     D -->|"emergency number"| N["Saved table of 242 countries"]
-    D -->|"first aid"| G["The call line and one of 51 official guides, at once; with Gemma 4 26B in use, a written answer follows"]
+    D -->|"first aid"| G["The call line and one of 52 official guides, at once"]
     D -->|"calculation"| C["Worked out by the app"]
     D -->|"place near you or a landmark"| P["OpenStreetMap and Wikivoyage, nearest first"]
     D -->|"no"| S["Search the saved collections"]
     S --> M{"Which model is in use?"}
     M -->|"Qwen3.5 2B (recommended below 8 GB)"| W1["Writes from the passages and cites them; the draft is checked and reviewed"]
-    M -->|"Qwen3.5 4B (from 8 GB) or Gemma 4 26B (12 GB)"| R{"A rare subject, or a single fact on the 4B?"}
+    M -->|"Qwen3.5 4B (from 8 GB)"| R{"A rare subject, or a single fact on the 4B?"}
     R -->|"yes"| W2["Reads three passages as notes and cites them"]
     R -->|"no"| W3["Answers from its own knowledge"]
     W2 --> F["Figures checked against the passages; conflicts quoted"]
@@ -51,13 +51,14 @@ Some questions have one right answer that the app already holds. These never rea
 they come back in seconds and the model cannot rephrase them wrongly.
 
 - **Emergency numbers** come from a saved table covering 242 countries.
-- **First aid** opens with the call line and one of 51 official guides, shown as published, in
-  seconds, even while another answer is being written. When Gemma 4 26B is the model in use (12 GB
-  phones) and is free, it then writes an answer for the situation with the guide as its only source,
-  which takes minutes; the smaller models never rewrite a guide, because one once reversed an
-  instruction while paraphrasing. Where no guide covers the situation, the smaller models say so and give
-  no treatment steps for it, only the basics the CPR, recovery-position and anaphylaxis guides support;
-  Gemma writes from what it knows.
+- **First aid** opens with the call line and one of 52 official guides, shown as published, in
+  seconds, even while another answer is being written. The offered models never rewrite a guide,
+  because one once reversed an instruction while paraphrasing. Where no guide covers the situation, the
+  answer says so and gives only the basics the saved guides support, each cited: "do not touch them"
+  first when electricity may be involved, "cover the wound and keep pressing" when there is a wound,
+  then CPR, the recovery position and an auto-injector. (Gemma 4 26B, offered on 12 GB phones in 1.4.2
+  and no longer offered since 1.4.3, writes an answer for the situation from the guide when a copy is
+  still installed.)
 - **Calculations** such as fuel cost, currency at a given rate or time zones are worked out by the
   app. A word problem that gives all its own figures goes to the model with those figures only, and
   every step it writes is recomputed on the phone.
@@ -85,7 +86,10 @@ Setup recommends a model by the phone's memory; how a question is written depend
 | --- | --- | --- |
 | Below 8 GB (any phone can use it) | Qwen3.5 2B | From the passages, citing each one; the draft is checked and reviewed by the model before it shows. A draft that fails is rewritten once; if that fails too, the answer quotes the saved passages or gives a model explanation labelled as unverified. |
 | 8 GB or more (a 6 GB phone can choose it, slow there) | Qwen3.5 4B | From its own knowledge; a question for a single fact reads three saved notes first. |
-| 12 GB | Gemma 4 26B | Reasons first, then answers from its own knowledge. |
+
+Gemma 4 26B was recommended on 12 GB phones in 1.4.2. It is no longer offered since 1.4.3: on a 16 GB
+phone it gave no answer in over 50 minutes. A copy still installed reasons first, then answers from its
+own knowledge.
 
 A model answering from its own knowledge knows well-known subjects better than the passages say
 them, and invents details about subjects few people write about. So when a subject is rare in the
@@ -98,7 +102,7 @@ Qwen3.5 4B also reads three notes for a question that asks for one fact (who des
 year, how tall, how deep, what is the capital of), when the Encyclopedia leads the passages found:
 from memory it slips on dates and figures. On 105 earlier sealed fact questions whose answer this changed, graded with the two answers side by side,
 it took the 4B from 38 to 66 good answers ([details](testing-1.4.2.md#facts-from-the-saved-encyclopedia-4b)).
-Gemma 4 26B reasons before it answers and keeps to its knowledge. A question about the asker's own
+A question about the asker's own
 plans, or a follow-up such as "how much does that cost?", stays with memory.
 
 ## 5. Check and show

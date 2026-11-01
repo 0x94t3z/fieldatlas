@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -20,7 +20,7 @@
   <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2">v1.4.2 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3">v1.4.3 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -45,10 +45,11 @@ The app only goes online when you start a download or refresh the list of collec
 - **Keep a conversation going.** Ask a follow-up under an answer, by typing, speaking or adding a
   file, and pick a topic up again later from History.
 - **Read answers aloud** with the phone's voice or a natural voice you can download once.
-- **Help in an emergency.** 51 first-aid and safety guides, each with a recorded reading, and the
+- **Help in an emergency.** 52 first-aid and safety guides, each with a recorded reading, and the
   emergency numbers of 242 countries are built in and work without any download. The call line and
-  the official guide open in seconds, even while another answer is being written. With Gemma 4 26B in
-  use on a 12 GB phone, and not busy with another answer, it then writes for your situation.
+  the official guide open in seconds, even while another answer is being written. When no guide fits,
+  the reply still starts with the first step: do not touch someone near a live current, and press on
+  a wound that will not stop.
 - **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
   group, when the question is worded the way its calculators expect. A word problem that gives its
   own figures is worked from them; the model still gets some of these wrong.
@@ -69,13 +70,13 @@ under the answer. [How it works, step by step](docs/how-it-works.md).
 
 You need an Android 13 or later phone with an arm64 processor.
 
-1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk)
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk)
    (about 100 MB). You can check it against its
-   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.2/fieldatlas.apk.sha256).
+   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk.sha256).
 2. Open the file and follow Android's prompts to install it.
 3. In setup, download the answer model it recommends: Qwen3.5 2B (1.4 GB) on phones with less than
-   8 GB of memory, Qwen3.5 4B (3.0 GB) from 8 GB, or Gemma 4 26B (10.5 GB) on a 12 GB phone. A 6 GB
-   phone can choose the 4B too; setup says it is slow there.
+   8 GB of memory, or Qwen3.5 4B (3.0 GB) from 8 GB. A 6 GB phone can choose the 4B too; setup says it
+   is slow there.
 4. Add any collections you want. You can add more later in **Library**.
 5. Turn on airplane mode and ask a question in **Research**.
 
@@ -96,7 +97,8 @@ the model recommended per phone, wording) were checked on the phone, not on a fr
 
 ![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](docs/images/fieldatlas-models-animated.svg)
 
-- **Gemma 4 26B, on 12 GB phones:** a good answer to 115 of 160 new questions (72%) over four sealed
+- **Gemma 4 26B, no longer offered since 1.4.3** (on a 16 GB phone it gave no answer in over 50 minutes;
+  it had only been timed on an emulator): a good answer to 115 of 160 new questions (72%) over four sealed
   sets (37, 46, 49 and 51, answered 19 to 23 October: 27, 29, 25 and 34 of 40), 77% of the reference
   answers' average score, with 0.38 grader annotations per answer. It reasons first, then answers from
   what it knows.
@@ -112,9 +114,11 @@ the model recommended per phone, wording) were checked on the phone, not on a fr
   review, and otherwise gives a model explanation labelled as unverified (18 of its 40 answers on set 37).
   On sets 46 to 51 it was good on single facts the collections hold (22 of 32) and poor at explanations
   (1 of 22).
-- **Emergencies:** on 40 new first-aid situations (set 55), Gemma 4 26B writing from the official
-  guide gave a good answer to 30, one judged unsafe; the smaller models show the guide as published,
-  with the call line first. On 320 labelled questions, which the guide matcher was developed against, the
+- **Emergencies:** the models show the official guide as published, with the call line first. In 1.4.3,
+  on 90 new messages about bleeding, electric shocks and look-alikes, each labelled with the guide that
+  should open, the right guide opened for 59 against 37 in 1.4.2, with misleading guides down from 2 to 1
+  ([1.4.3 notes](docs/releases/current.md)). In 1.4.2 testing, Gemma 4 26B writing from the official
+  guide gave a good answer to 30 of 40 new first-aid situations (set 55), one judged unsafe. On 320 labelled questions, which the guide matcher was developed against, the
   right guide opens 231 times with none misleading (the release's code).
 - **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 6 good
   answers (5% to 15%) on 40 longevity questions (18 October); reading the Encyclopedia for subjects few
@@ -123,8 +127,7 @@ the model recommended per phone, wording) were checked on the phone, not on a fr
   ([how it works](docs/how-it-works.md)).
 
 Every test behind 1.4.2, including emergencies and the phone checks, is on one page:
-[How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. Gemma has been timed only on an Android
-emulator, not on a 12 GB phone. The graders and the reference answers come from AI models of one
+[How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. The graders and the reference answers come from AI models of one
 family, so treat these numbers as our own measurement, not an independent score; the share of the
 reference score is a judge's average, not a share of correct answers, and none of these numbers shows
 that the bounty's bar is met: that is for the judges. The questions and grades are
@@ -139,8 +142,7 @@ adopted.
   complex, each asked twice): Qwen3.5 2B took 88 to 153 seconds for simple questions and 195 to 351
   seconds for explanations, comparisons and trip plans. Qwen3.5 4B took 3 to 6 minutes, and one answer
   took 47 minutes with Wi-Fi on and other apps open, which is why the 2B is recommended below 8 GB.
-  Gemma 4 26B answered in a median of 92 seconds on a 12 GB emulator, which runs at a computer's speed,
-  not a phone's. No 8 GB or 12 GB phone has been measured. Answers built from saved data (first-aid
+  No 8 GB or 12 GB phone has been measured. Answers built from saved data (first-aid
   guides, emergency numbers, places, sums) take seconds; a first-aid guide, an emergency number or the
   no-guide reply also never waits for another answer to finish.
 - **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
@@ -201,7 +203,8 @@ of version 1.2.0 on a 4 GB Infinix in airplane mode, and the [first public demo]
 
 | Version | What changed |
 | --- | --- |
-| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) (latest) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B (recommended from 8 GB) and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Release notes](docs/releases/current.md) |
+| [1.4.3](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3) (latest) | A safety update: severe bleeding and electric shocks find their guide as people describe them, a new CDC electric shock guide (52 guides), the first step even when no guide fits, and Gemma 4 26B no longer offered. [Release notes](docs/releases/current.md) |
+| [1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) | Follow-up questions, topics in History, answers that keep going off the screen, read aloud, answers from the model's own knowledge with Qwen3.5 4B (recommended from 8 GB) and Gemma 4 26B on 12 GB phones, first aid with the call line first and 51 guides, any model file importable. [Notes](docs/releases/field-atlas-1.4.2.md) |
 | [1.4.1](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.1) | Leviathan search in every collection, city-by-city place search, clearer progress and math, one answer model. [Notes](docs/releases/field-atlas-1.4.1.md) |
 | [1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) | One Encyclopedia, faster search on the phone, answers that cite their sources, a new Biology collection, simpler setup. [Notes](docs/releases/field-atlas-1.4.0.md) |
 | [1.3.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.3.0) | Emergency guides, open-now places, Word, PowerPoint and EPUB attachments. [Notes](docs/releases/field-atlas-1.3.0.md) |
