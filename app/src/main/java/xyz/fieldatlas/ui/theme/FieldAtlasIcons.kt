@@ -24,6 +24,7 @@ object FieldAtlasIcons {
     val MoreOptions by prototypeIcon("MoreOptions", "M6.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z M13.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z M20.3 12a1.3 1.3 0 1 1-2.6 0a1.3 1.3 0 1 1 2.6 0Z", false, 24f, PathFillType.NonZero)
     val Back by prototypeIcon("Back", "M14 5l-7 7 7 7M7 12h14", false, 24f, PathFillType.NonZero)
     val ChevronRight by prototypeIcon("ChevronRight", "M9 5l7 7 -7 7", false, 24f, PathFillType.NonZero)
+    val ArrowDown by prototypeIcon("ArrowDown", "M12 5v14M6 13l6 6 6-6", false, 24f, PathFillType.NonZero)
     val Research by prototypeIcon("Research", "M16 10a6 6 0 1 1-12 0a6 6 0 1 1 12 0Z M15 15l6 6", false, 24f, PathFillType.NonZero)
     val Library by prototypeIcon("Library", "M4.5 4H6.5a1.5 1.5 0 0 1 1.5 1.5V19.5a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5V5.5a1.5 1.5 0 0 1 1.5-1.5Z M11 4v17m4-17 5 16M3 8h5", false, 24f, PathFillType.NonZero)
     val More by prototypeIcon("More", "M4 7h2m6 0h8M4 17h8m6 0h2 M12 7a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z M18 17a3 3 0 1 1-6 0a3 3 0 1 1 6 0Z", false, 24f, PathFillType.NonZero)

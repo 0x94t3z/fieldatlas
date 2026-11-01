@@ -30,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.semantics.liveRegion
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -194,9 +195,10 @@ fun AnswerScreen(
                 }
             }
             androidx.compose.runtime.CompositionLocalProvider(xyz.fieldatlas.ui.markdown.LocalSpokenSentence provides readingHere?.shown) {
+            Box(Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(
                 state = listState,
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -485,6 +487,11 @@ fun AnswerScreen(
                 }
                 }
             }
+            // A long answer's sources and follow-up are one tap away. Not while it is written or read aloud: the text moves
+            // under the button, and the reading scrolls to its own sentence.
+            JumpToEndButton(listState, visible = !running && readingHere == null, modifier = Modifier.align(Alignment.BottomEnd)
+                .padding(end = 22.dp, bottom = 12.dp))
+            }
             earlierPreview?.let { (sources, index) ->
                 SourcePreviewSheet(sources = sources, index = index, cited = true, nextIndex = null,
                     onDismiss = { earlierPreview = null }, onOpenFull = null, onNext = {})
@@ -721,3 +728,30 @@ private data class ReadingHere(val shown: String?)
  */
 internal fun showsSourcePill(fromKnowledge: Boolean, readSources: Boolean, cited: Int): Boolean =
     !fromKnowledge || readSources && cited > 0
+
+/** Shown while the end of the answer is off screen; a tap scrolls to it. */
+@Composable
+private fun JumpToEndButton(listState: androidx.compose.foundation.lazy.LazyListState, visible: Boolean, modifier: Modifier = Modifier) {
+    val endOffScreen by remember(listState) {
+        androidx.compose.runtime.derivedStateOf {
+            val info = listState.layoutInfo
+            listState.canScrollForward && (info.visibleItemsInfo.lastOrNull()?.index ?: 0) < info.totalItemsCount - 1
+        }
+    }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    androidx.compose.animation.AnimatedVisibility(visible && endOffScreen, modifier,
+        enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+        Surface(
+            onClick = { scope.launch { listState.animateScrollToItem((listState.layoutInfo.totalItemsCount - 1).coerceAtLeast(0)) } },
+            modifier = Modifier.size(44.dp).semantics { contentDescription = "Jump to the end of the answer" },
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shadowElevation = 3.dp,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(xyz.fieldatlas.ui.theme.FieldAtlasIcons.ArrowDown, null, Modifier.size(22.dp), tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
