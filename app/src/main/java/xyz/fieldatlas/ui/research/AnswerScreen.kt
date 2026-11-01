@@ -91,8 +91,10 @@ fun AnswerScreen(
     // What follows reads the finished answer. While research runs it is skipped: the research rules it calls are being
     // loaded on a worker the first time, and waiting for them here would freeze the screen.
     val presentation = if (running) AnswerPresentation(emptyList(), emptySet(), emptySet()) else buildAnswerPresentation(state.answer, state.sources.size)
+    // A greeting's reply comes from the same place but is no notice about the question: it reads as an app reply.
     val isInputNotice = !running && state.answer.isNotBlank() && state.answer ==
-        xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.submittedAttachments.isNotEmpty())
+        xyz.fieldatlas.research.QuestionRequirements.response(state.question, state.submittedAttachments.isNotEmpty()) &&
+        xyz.fieldatlas.research.SmallTalk.reply(state.question) == null
     // Lookups such as "near me" reply with app-written text and never run the model, so
     // "model-generated" and "not verified against sources" labels would be wrong there.
     val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
