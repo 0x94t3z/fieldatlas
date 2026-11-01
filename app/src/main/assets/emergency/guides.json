@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-21",
+  "generated": "2026-11-01",
   "guides": [
     {
       "category": "medical",
@@ -394,6 +394,48 @@
       },
       "title": "Burns",
       "urgent": false
+    },
+    {
+      "category": "medical",
+      "id": "electric-shock",
+      "keywords": [
+        "electric shock",
+        "electrical shock",
+        "electrocuted",
+        "electrocution",
+        "electrical injury",
+        "live wire",
+        "power line"
+      ],
+      "region": "US",
+      "sections": [
+        {
+          "heading": "If you believe someone has had electric shock take the following steps:",
+          "level": 1,
+          "numbered": true,
+          "paragraphs": [],
+          "steps": [
+            "Look first. Don't touch. The person may still be in contact with the electrical source. Touching the person may pass the current through you.",
+            "Call or have someone else call 911 or emergency medical help.",
+            "Turn off the source of electricity if possible. If not, move the source away from you and the affected person using a non-conducting object made of cardboard, plastic or wood.",
+            "Once the person is free of the source of electricity, check the person's breathing and pulse. If either has stopped or seems dangerously slow or shallow, begin cardiopulmonary resuscitation (CPR) immediately.",
+            "If the person is faint or pale or shows other signs of shock, lay him or her down with the head slightly lower than the trunk of the body and the legs elevated.",
+            "Don't touch burns, break blisters, or remove burned clothing. Electrical shock may cause burns inside the body, so be sure the person is taken to a doctor."
+          ]
+        }
+      ],
+      "source": {
+        "attribution": "Text from the CDC website. Use of this material does not imply endorsement by CDC, ATSDR, HHS or the United States Government.",
+        "license": "Public domain (US federal government work)",
+        "publisher": "CDC",
+        "retrieved": "2026-11-01T09:00:54Z",
+        "revision": null,
+        "sha256": "24dc57afbce2f479275a2696abe2e44abac379d04fdadaa329ffc6d3b4242d48",
+        "title": "What to Do to Protect Yourself From Electrical Hazards",
+        "url": "https://www.cdc.gov/natural-disasters/response/what-to-do-protect-yourself-from-electrical-hazards.html"
+      },
+      "title": "Electric shock",
+      "urgent": true
     },
     {
       "category": "medical",
@@ -4097,5 +4139,5 @@
       "urgent": false
     }
   ],
-  "version": "2026.10.21"
+  "version": "2026.11.01"
 }

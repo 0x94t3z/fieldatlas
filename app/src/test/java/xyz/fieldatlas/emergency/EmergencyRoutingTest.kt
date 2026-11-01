@@ -329,4 +329,26 @@ class EmergencyRoutingTest {
         assertTrue(shown.toString(), "emergency:burns" in shown)
         assertFalse(shown.toString(), "emergency:cpr" in shown)
     }
+
+    @Test fun aReplyWithNoGuideStillSaysDoNotTouchAndPressOnTheWound() = runBlocking {
+        suspend fun reply(question: String): Pair<List<String>, String> {
+            val events = ResearchOrchestrator(Retriever { _, _, _ -> emptyList() }, Recording("unused"), emergencyGuides = { guides })
+                .research(question).toList()
+            return events.filterIsInstance<ResearchEvent.Sources>().flatMap { it.evidence }.map { it.documentId } to answer(events)
+        }
+        // No guide matches these, so the small model's no-guide reply answers: first the step that keeps the helper safe.
+        val (shocked, current) = reply("my brother was rewiring the garage and now hes lying on the floor twitching")
+        assertEquals(current, "emergency:electric-shock", shocked.first())
+        assertTrue(current, current.contains("- If electricity may be involved, look first and do not touch them while they may still be in " +
+            "contact with the source; turn off the power if you can [S1]."))
+        assertTrue(current, current.indexOf("do not touch them") < current.indexOf("start CPR"))
+        val (cut, wound) = reply("wife got her finger in the meat slicer at the deli the whole counter is covered and shes going grey")
+        assertTrue(cut.toString(), "emergency:severe-bleeding" in cut)
+        assertTrue(wound, wound.contains("If they are bleeding, cover the wound with a clean cloth and push down on it with your hands"))
+        // A nosebleed is pinched, not covered and pressed like a wound.
+        val (_, nose) = reply("nose has been bleeding for 25 minutes and wont stop, im 70 and on blood thinners")
+        assertFalse(nose, nose.contains("cover the wound"))
+        // Every citation points at a source that is listed, in order.
+        assertEquals(current, shocked.size, Regex("\\[S(\\d+)]").findAll(current).map { it.groupValues[1].toInt() }.distinct().count())
+    }
 }

@@ -6,7 +6,7 @@
   "speed": 1.0,
   "lang": "en"
  },
- "scriptSha256": "6aa16dbbe5e304c1740b77e3a8eff741be73ce746cb9e8a6fc029e3809f8d032",
+ "scriptSha256": "9996902ab3085585cd65bb3c38bd39b3bc04d71a596504f31967d11cbfeab7bd",
  "guides": {
   "altitude-sickness": {
    "file": "altitude-sickness.ogg",
@@ -1525,6 +1525,68 @@
     {
      "startMs": 229950,
      "shown": "Children should not take part in disaster cleanup work."
+    }
+   ]
+  },
+  "electric-shock": {
+   "file": "electric-shock.ogg",
+   "durationMs": 83943,
+   "segments": [
+    {
+     "startMs": 0,
+     "shown": "If this is an emergency, call your local emergency number first (112 works on mobile phones in many countries)."
+    },
+    {
+     "startMs": 8866,
+     "shown": "If you believe someone has had electric shock take the following steps:"
+    },
+    {
+     "startMs": 14339,
+     "shown": "Look first."
+    },
+    {
+     "startMs": 16220,
+     "shown": "Don't touch."
+    },
+    {
+     "startMs": 18062,
+     "shown": "The person may still be in contact with the electrical source."
+    },
+    {
+     "startMs": 23002,
+     "shown": "Touching the person may pass the current through you."
+    },
+    {
+     "startMs": 27049,
+     "shown": "Call or have someone else call 911 or emergency medical help."
+    },
+    {
+     "startMs": 32456,
+     "shown": "Turn off the source of electricity if possible."
+    },
+    {
+     "startMs": 36336,
+     "shown": "If not, move the source away from you and the affected person using a non-conducting object made of cardboard, plastic or wood."
+    },
+    {
+     "startMs": 45533,
+     "shown": "Once the person is free of the source of electricity, check the person's breathing and pulse."
+    },
+    {
+     "startMs": 52256,
+     "shown": "If either has stopped or seems dangerously slow or shallow, begin cardiopulmonary resuscitation (CPR) immediately."
+    },
+    {
+     "startMs": 61484,
+     "shown": "If the person is faint or pale or shows other signs of shock, lay him or her down with the head slightly lower than the trunk of the body and the legs elevated."
+    },
+    {
+     "startMs": 72171,
+     "shown": "Don't touch burns, break blisters, or remove burned clothing."
+    },
+    {
+     "startMs": 76787,
+     "shown": "Electrical shock may cause burns inside the body, so be sure the person is taken to a doctor."
     }
    ]
   },

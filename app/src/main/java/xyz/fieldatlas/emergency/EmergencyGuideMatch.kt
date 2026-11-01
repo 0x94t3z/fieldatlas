@@ -371,7 +371,7 @@ object EmergencyGuideMatch {
         "lyme", "rabies", "drowning", "hypothermia", "frostbite", "hyperthermia", "heatstroke", "dehydration", "diarrhea", "diarrhoea", "sunburn",
         "lightning", "earthquake", "quake", "aftershock", "tsunami", "flood", "wildfire", "bushfire", "hurricane", "typhoon",
         "cyclone", "tornado", "blackout", "blizzard", "defibrillator", "resuscitation", "giardia", "mayday", "unresponsive",
-        "stranded", "cardiopulmonary", "splint",
+        "stranded", "cardiopulmonary", "splint", "electrocuted", "electrocution",
         // Weather and water hazards people name directly ("caught in a thunderstorm").
         "thunder", "thunderstorm", "avalanche", "rip current", "flash flood",
     )
@@ -651,8 +651,28 @@ object EmergencyGuideMatch {
         Regex("\\btick bites?\\b") to "tick-bites",
     )
 
+    /**
+     * Any sign of blood or a wound, for the no-guide reply's conditional pressure line ("If they are bleeding …"). Broad on
+     * purpose: a reply that missed its guide should still say to press on a wound that is "filling the sock". Bleeding in
+     * pregnancy is not a wound to press on, and a nosebleed is pinched, not covered.
+     */
+    fun mayBeBleeding(question: String): Boolean = bleedingCue.containsMatchIn(question) && !pregnancyBleeding.containsMatchIn(question) &&
+        !noseBleed.containsMatchIn(question)
+
+    /** Any sign that electricity is involved, for the no-guide reply's conditional "do not touch them" line. Broad on purpose. */
+    fun mayInvolveCurrent(question: String): Boolean = currentCue.containsMatchIn(question) && !shockNotInjury.containsMatchIn(question)
+
+    private val bleedingCue = Regex("(?i)\\b(?:bleed\\w*|bled|blood\\w*|spurt\\w*|squirt(?:ing|ed)|gush\\w*|pouring|pumping|soaked|soaking|" +
+        "drenched|wounds?|gash\\w*|cut|cuts|slic\\w*|slashed|stab\\w*|impaled|puddle|torn open|laid open|split open|filling up)\\b")
+    private val currentCue = Regex("(?i)\\b(?:electrocut\\w*|electric\\w*|shocked|zapped|jolt\\w*|live wires?|power ?lines?|overhead (?:lines?|wires?)|" +
+        "high voltage|voltage|mains|sockets?|outlets?|wires?|wiring|rewir\\w*|cords?|cables?|fuse ?box(?:es)?|breakers?|third rail|" +
+        "(?:is|are|was|be) (?:still )?live|" +
+        "substations?|transformers?)\\b")
+
     fun describesFirstAidSituation(asked: String): Boolean = withoutExpiry(asked).let { question ->
-        aPerson.containsMatchIn(question) && bodySign.containsMatchIn(question) && !notFirstAid.containsMatchIn(question) &&
+        // Contact with a live current is the injury itself, with or without a body sign ("still touching the lamp").
+        aPerson.containsMatchIn(question) && (bodySign.containsMatchIn(question) || electricalContact.containsMatchIn(question)) &&
+            !notFirstAid.containsMatchIn(question) &&
             !notHappeningNow.containsMatchIn(question) && !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question))
     }
 
@@ -668,6 +688,11 @@ object EmergencyGuideMatch {
         // Sunburn is on the skin: "drank untreated lake water, now stomach cramps and a fever" took the lake for a sunny
         // day and the fever for a sunburn's (24 Oct).
         "sunburn" -> !sunOrSkin.containsMatchIn(question)
+        // A shock felt in the body is a nerve sign, not a current ("electric shocks down both arms when he bends his neck"
+        // after a tackle is a neck injury), and shock therapy is a treatment: this guide's first step is about a live source.
+        "electric-shock" -> shockNotInjury.containsMatchIn(question) && !electricalContact.containsMatchIn(question) ||
+            // "Goat keeps touching the electric fence": the guide's steps are for a person, and here there is none.
+            animalOnly.containsMatchIn(question) && !aHuman.containsMatchIn(question)
         // "Hiking through long grass, something struck my calf": a hike is not being lost; the guide needs the lost person.
         // Found after being lost, but shivering and confused: the cold, not the getting lost, is the danger now.
         "lost" -> !lostSign.containsMatchIn(question) || coldCasualty.containsMatchIn(question)
@@ -676,11 +701,14 @@ object EmergencyGuideMatch {
         "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
             airwayOpen.containsMatchIn(question)
         // Bleeding in pregnancy or from the vagina is not a wound to press on: the bleeding guides would say so.
-        // The severe bleeding guide (tourniquets, packing a wound) is not for a nosebleed or a small cut.
+        // The severe bleeding guide (tourniquets, packing a wound) is not for a nosebleed or a small cut, nor for a plant
+        // ("the leaves on my bleeding heart plant are turning yellow").
         "severe-bleeding" -> pregnancyBleeding.containsMatchIn(question) || noseBleed.containsMatchIn(question) ||
-            minorBleeding.containsMatchIn(question)
+            minorBleeding.containsMatchIn(question) || plantName.containsMatchIn(question) ||
+            plantTalk.containsMatchIn(question) && !bodyPart.containsMatchIn(question)
         "bleeding-control" -> pregnancyBleeding.containsMatchIn(question) || noseBleed.containsMatchIn(question) ||
-            minorBleeding.containsMatchIn(question)
+            minorBleeding.containsMatchIn(question) || plantName.containsMatchIn(question) ||
+            plantTalk.containsMatchIn(question) && !bodyPart.containsMatchIn(question)
         // A nosebleed with no blow to the head is not a head injury; someone pinned under a shelf has no broken bone to splint.
         "head-injury" -> noseBleed.containsMatchIn(question) && !hitHead.containsMatchIn(question)
         "fractures-sprains" -> crushInjury.containsMatchIn(question) && !brokenBone.containsMatchIn(question)
@@ -744,8 +772,9 @@ object EmergencyGuideMatch {
         "colds|cold (?:symptoms|sore|and flu|or flu)|runny nose|sneez\\w*)\\b")
     private val freezingWeather = Regex("(?i)\\b(?:freezing|frost\\w*|snow\\w*|ice|icy|below zero|minus \\d|outside (?:all |for )?(?:night|hours)|cold water|lake|river|sea)\\b")
     private val bleedingWords = Regex("(?i)\\b(?:bleed\\w*|blood\\w*|spotting|clots?|miscarr\\w*)\\b")
+    // "I'm 34 weeks and suddenly a gush of blood" (set 59) says the pregnancy in weeks alone; "2 weeks old" is a baby.
     private val pregnancyBleeding = Regex("(?i)\\b(pregnan\\w*|weeks? along|miscarr\\w*|vagina\\w*|down there|period|labou?r|contractions?|" +
-        "gave birth|after (?:the )?birth|postpartum)\\b")
+        "gave birth|after (?:the )?birth|postpartum|(?:i'?m|im|i am|she'?s|shes|she is|currently|at|about) \\d{1,2} ?(?:weeks?|wks?)\\b(?! old))\\b")
 
     // Quoting a reference about safety is different from asking for immediate help.
     // A personal situation always takes priority, including mixed research/help requests.
@@ -1152,6 +1181,80 @@ object EmergencyGuideMatch {
         "breathing (?:really |very |so |too |super )?fast[^.?!]{0,80}?\\btingl\\w*|tingl\\w*[^.?!]{0,80}?\\bbreathing (?:really |very |so |too |super )?fast)\\b")
 
     /**
+     * A wound with blood that will not stop: something that cuts or tears, and a flow, a puddle, a soaked cloth or "won't
+     * stop" (not "won't stop hurting"). A nosebleed, gums, a period or a pregnancy is not this guide's wound to press on.
+     */
+    private val severeBleedingTold = Regex("(?is)^(?!.*\\b(?:nose\\w*|gums?|tooth|teeth|periods?|pregnan\\w*|vagin\\w*|miscarr\\w*|menstru\\w*|" +
+        "stools?|poo|urine|pee|vomit\\w*|cough\\w*|ears?|plants?|flowers?|shrubs?|leaves|drank|swallow\\w*|ingest\\w*|ate|eaten|sips?|mouthfuls?)\\b)(?=.*\\b(?:cut|cuts|sliced|slashed|slit|gash\\w*|" +
+        "stab\\w*|impaled|gored|horns?|knife|knives|glass|bottle|mirror|blade|razor|saw|chainsaw|axe|grinder|secateurs|scissors|shears|mower|" +
+        "spikes?|slic\\w*|mandoline|studs|sheet metal|(?:laid|split|torn|ripped|wide) open|" +
+        "nails?|ripped|torn|gouged|punctured|chopped|wound\\w*|bleed\\w*|blood|lacerat\\w*)\\b).*\\b(?:spurt\\w*|squirt(?:ing|ed)|gush\\w*|pumping|" +
+        "pulsing|pouring|puddle|pool of|pooling|pissing|(?:still|keeps?|is) (?:running|pouring|coming out|flowing)|(?:goes|went|going|turning|turned|soaked) red|" +
+        "filling (?:up|with)|coming out (?:fast|quick\\w*|everywhere)|running down|soaking (?:his|her|my|their|the|through)|(?:dark|bright) red|" +
+        "(?:soaked|soaking|bled) (?:right )?through|(?:towels?|cloths?|bandages?|shirts?|t-shirts?|dressings?|gauze|rags?|socks?|napkins?|" +
+        "tissues?|jackets?|hoodies?) (?:(?:is|are|was|were|has|have|got|getting|already|been|now|completely|totally) )*(?:soaked|soaking|" +
+        "drenched|full of blood)|(?:won'?t|wont|doesn'?t|does not|will not|can'?t|cannot|isn'?t|is not) stop(?:ping)?\\b(?! (?:hurting|" +
+        "crying|itching|aching|throbbing|shaking|coughing|screaming|swelling|dripping|leaking|ringing|beeping|buzzing|talking|vomiting|" +
+        "sneezing|running)))"
+    )
+
+    private val animalOnly = Regex("(?i)\\b(?:goats?|cows?|cattle|sheep|horses?|ponies|pony|pigs?|dogs?|puppy|puppies|cats?|kittens?|" +
+        "chickens?|livestock|animals?|bulls?|donkeys?|alpacas?|llamas?|rabbits?|pets?)\\b")
+    /** A person, not counting "her" or "him", which can be an animal. */
+    private val aHuman = Regex("(?i)\\b(?:i|i'm|im|me|we|us|kid|kids|child|children|son|daughter|baby|toddler|man|woman|boy|girl|person|someone|" +
+        "somebody|friend|brother|sister|mum|mom|dad|husband|wife|partner|worker|guy|lady|teen\\w*|grand\\w*|uncle|aunt|neighbou?r|coworker|" +
+        "colleague|electrician|farmer|farmhand)\\b")
+    /** The plant called a bleeding heart, whatever body words its question shares ("heart"). */
+    private val plantName = Regex("(?i)\\bbleeding hearts?\\b")
+    /** A garden plant: sap from a pruned branch, leaves turning yellow. */
+    private val plantTalk = Regex("(?i)\\b(?:plants?|flowers?|shrubs?|leaves|petals?|seedlings?|bleeding hearts?|sap|bark|stems?)\\b")
+
+    /** Things a current runs through: "the electricity bill" and "the voltage of a AA battery" are not one. */
+    private const val CURRENT_THINGS = "cords?|wires?|wiring|cables?|sockets?|outlets?|plugs?|lamps?|power ?lines?|" +
+        "overhead (?:lines?|wires?|cables?)|third rail|substations?|pylons?|transformers?|appliances?|fences?|toasters?|kettles?|heaters?|" +
+        "chargers?|switch(?:es)?|fuse ?box(?:es)?|breakers?|extension (?:leads?|cords?)|power points?|light (?:fittings?|switch(?:es)?|" +
+        "sockets?)|bulbs?|washing machines?|dryers?|hair ?dryers?|straighteners|stoves?|ovens?|cookers?|hobs?|fridges?|freezers?|" +
+        "microwaves?|drills?|power tools?|pumps?|radios?|electrics|mains|trimmers?|(?:high[- ]voltage|hv) (?:cables?|lines?|batter(?:y|ies))|" +
+        "(?:underwater|pool) lights?"
+
+    /**
+     * Someone just hurt by a current, or still held by it: "got electrocuted", "got a jolt off the washing machine", "still
+     * touching the lamp", "touched a bare wire and now he's not moving", "a fork in the toaster", "the hair dryer fell in
+     * the bath". Shocked by news or a bill is not this, so a shock needs one of [CURRENT_THINGS] beside it.
+     */
+    private val electricalContact = Regex("(?is)\\b(?:got|was|were|been|just|is being|are being) electrocuted\\b|" +
+        "^(?=.*\\b(?:$CURRENT_THINGS)\\b).*\\b(?:" +
+        "(?:got|get|gets|was|were|been|just|keeps? getting|is getting|are getting) (?:badly |really |a bit |just |properly )?" +
+        "(?:shocked|zapped|jolted)" +
+        // Shocked by news, a bill or a price is surprise, whatever else the message mentions.
+        "(?! (?:by|at|to) (?:the |a |an |how |what |that |this |my |our )?(?:news|bill|bills|price|prices|cost|costs|amount|results?|state|size|" +
+        "way|fact|quote|invoice|how|what|that|it|this|them)\\b)|" +
+        "(?:got|had|took|getting|has had|have had|gave (?:me|him|her|them|us|my \\w+)) (?:an? |a bad |a nasty |a big |a proper |a huge )?" +
+        "(?:electric(?:al)? )?(?:shock|jolt|zap)\\b)|" +
+        "\\b(?:(?:still|is|are|keeps?) (?:touching|holding|gripping|stuck to|stuck on|in contact with)|stuck (?:to|on)|can'?t let go(?: of)?) " +
+        "(?:the |a |an |that |this |his |her |their |my )?(?:\\w+ )?(?:$CURRENT_THINGS)\\b|" +
+        "\\b(?:touched|touching|grabbed|grabbing|stepped on|bit|bitten|chewed|brushed|hit|sliced|cut through|cut) (?:the |a |an |that |this |his |her |their |my |some )?" +
+        "(?:\\w+ ){0,2}(?:$CURRENT_THINGS)\\b[^.?!]{0,80}\\b(?:fell|fallen|falls|collapsed|thrown|flung|knocked|not moving|unconscious|" +
+        "unresponsive|passed out|confused|burns?|burnt|burned|black mark|stuck|can'?t let go|numb\\w*|tingl\\w*|shaking|jerk\\w*|" +
+        "went down|twitch\\w*|went stiff|lying (?:there|up there|inside|on)|smok\\w*|" +
+        "screamed|not breathing)\\b|" +
+                "\\b(?:keys?|forks?|knives|knife|pins?|paperclips?|fingers?|screwdrivers?|nails?) (?:in|into|inside) (?:the |a |an )?" +
+        "(?:sockets?|outlets?|toasters?|plugs?|power points?)\\b|" +
+        "\\b(?:hair ?dryers?|radios?|heaters?|toasters?|phones?|chargers?|lamps?|straighteners|laptops?|extension (?:leads?|cords?)) " +
+        "(?:fell|dropped|has fallen|went|got knocked|was knocked|knocked) (?:in|into) (?:the )?(?:bath|tub|bathtub|pool|water|sink|hot tub)\\b"
+    )
+
+    /**
+     * A shock that is a feeling or a treatment, not a current: "shocks down both arms", "an electric shock feeling down to my
+     * pinky", "feels like an electric shock", "is electric shock therapy still used".
+     */
+    private val shockNotInjury = Regex("(?i)\\b(?:(?:electric(?:al)?[- ])?shocks?|zaps?|jolts?|tingl\\w*)\\s+(?:\\w+\\s+){0,2}" +
+        "(?:down|through|up|along|into|in|across|to)\\s+(?:to\\s+)?(?:my|his|her|their|both|the|one|each|either)\\b|" +
+        "\\bshock(?:ing)? (?:feelings?|sensations?|pains?)\\b|\\b(?:feels?|felt|feeling) like (?:an? )?(?:electric(?:al)?[- ])?(?:shocks?|zaps?)\\b|" +
+        "\\bshock-?like\\b|\\b(?:electric(?:al)?[- ]?)?shock (?:therapy|treatment)|\\belectroconvulsive\\b|\\bect\\b|\\bshock collars?\\b|" +
+        "\\btens (?:machine|unit)s?\\b|\\bstun guns?\\b|\\btasers?\\b")
+
+    /**
      * Signs told as people see them, in whatever inflection ("grabbing at his throat", "the sea has sucked right back",
      * "hair is literally standing up"), scored like one of the guide's own phrases. A guide's required context still
      * applies: a pounding headache is altitude sickness only at altitude.
@@ -1258,6 +1361,12 @@ object EmergencyGuideMatch {
         // A wound or a crash in the rain is the injury first: the bleeding guide stays.
         "hypothermia" to Regex("(?i)^(?!.*\\b(?:bleed\\w*|blood|crash\\w*|broken|bent|fractur\\w*|wound\\w*|cut)\\b)(?=.*\\b(?:overnight|all night|night (?:outside|out(?:doors)?|in the)|outside all night|in the (?:cold|snow|rain)|freezing|soaked|wet through)\\b).*" +
             "\\b(?:shiver\\w*|shaking|trembl\\w*|muddled|confus\\w*|drowsy|slurr\\w*|mumbl\\w*|cold to (?:the )?touch|ice cold)\\b"),
+        // A wound and blood that will not stop, told without the word "bleeding" ("cut his hand on broken glass, it's spurting
+        // and won't stop, the towel is soaked", set 57). Set 57 got no guide, and the 2B listed CPR and an auto-injector.
+        "severe-bleeding" to severeBleedingTold,
+        // Still in contact with the current, or just shocked by something electrical ("touched a frayed cord and got shocked,
+        // he's on the floor still touching the lamp", set 57): the first step is not to touch them.
+        "electric-shock" to electricalContact,
     )
     private val biteContext = mapOf(
         "snakebite" to Regex("(?i)\\b(snakes?|adder|viper|cobra|rattle\\w*|copperhead|cottonmouth|mamba|krait)\\b"),

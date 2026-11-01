@@ -925,4 +925,44 @@ class EmergencyGuideMatchTest {
         assertEquals("heat-illness", EmergencyGuideMatch.learningGuide("what's the difference between heat stroke and heat exhaustion", g)?.id)
         assertNull(EmergencyGuideMatch.learningGuide("what is the difference between a mammoth and a mastodon", g))
     }
+
+    @Test fun bloodThatWillNotStopIsSevereBleedingWithoutTheWord() {
+        // Set 57: no guide, and the 2B listed CPR, the recovery position and an auto-injector instead of pressure.
+        assertEquals("severe-bleeding", match("HELP my husband cut his hand on broken glass like 5 min ago its spurting and wont stop, the towel is soaked what do i do"))
+        assertEquals("severe-bleeding", match("mate put the angle grinder thru his thigh in the garage blood is pumping out in spurts ive got 2 tea towels on it and theyre soaked thru already"))
+        // Not a wound to press on, or not blood at all.
+        assertNotEquals("severe-bleeding", match("my sons paper cut wont stop hurting, what can i put on it"))
+        assertNotEquals("severe-bleeding", match("nose has been bleeding for 25 minutes and wont stop, im 70 and on blood thinners"))
+        assertNotEquals("severe-bleeding", match("i cut the water off but the tap wont stop dripping, what do i do"))
+        // Squirts of something swallowed are poisoning, and a bleeding heart is a plant.
+        assertEquals("poisoning", match("my 2 yr old drank hand sanitiser gel from the pump bottle by the door, maybe a few squirts"))
+        assertNull(match("why are the leaves on my bleeding heart plant turning yellow"))
+        assertNotEquals("severe-bleeding", match("my baby drank from the soap pump bottle, it was spurting all over her face"))
+        // A pregnancy told in weeks alone is still bleeding in pregnancy, not a wound for a tourniquet (set 59).
+        assertNotEquals("severe-bleeding", match("im 34 weeks and suddenly a gush of blood, no pain at all"))
+    }
+
+    @Test fun contactWithACurrentIsElectricShockAndAShockFeltInTheBodyIsNot() {
+        // Set 57: "got shocked … still touching the lamp" was not taken for first aid, and the 2B answered about cord repair.
+        val q = "my brother touched a frayed cord and got shocked hes on the floor still touching the lamp what do i do"
+        assertTrue(EmergencyGuideMatch.describesFirstAidSituation(q))
+        assertEquals("electric-shock", match(q))
+        assertEquals("electric-shock", match("my husband touched a live wire in the loft and got thrown back hes awake but shaking and theres a burn on his palm, the power is still on"))
+        // Told with no keyword: the shock and the thing it came from.
+        assertEquals("electric-shock", match("my dad got zapped by the toaster and now hes lying on the kitchen floor, what do i do"))
+        assertNotEquals("electric-shock", match("my mum was shocked by the price of the new kettle, what should i do"))
+        assertNotEquals("electric-shock", match("is electric shock therapy still used for depression and is it safe"))
+        // An animal on a fence, and wiring with the power off: nobody is in contact with a current.
+        assertNotEquals("electric-shock", match("goat keeps touching the electric fence and jumping back, will it hurt her"))
+        assertNotEquals("electric-shock", match("which wire is live and which is neutral when replacing a light switch, power is off"))
+        // Told by what happened rather than by a shock word.
+        assertEquals("electric-shock", match("hair dryer fell in the bath with my daughter in it"))
+        assertEquals("electric-shock", match("husband touched a bare wire in the attic and now hes not moving"))
+        // A nerve sign after a tackle, and being shocked by news, are not a current.
+        assertNotEquals("electric-shock", match("my son 14 got tackled hard at rugby and got up fine, but an hour later he says he gets electric shocks down both arms when he bends his neck"))
+        assertFalse(EmergencyGuideMatch.describesFirstAidSituation("i was shocked by the electricity bill this month, what should i do"))
+        assertNotEquals("electric-shock", match("i was shocked by the electricity bill this month, what should i do"))
+        // The lightning guide says its victims are safe to touch; a household current is not lightning.
+        assertNotEquals("lightning", match(q))
+    }
 }

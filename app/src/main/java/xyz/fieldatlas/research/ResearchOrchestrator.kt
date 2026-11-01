@@ -148,13 +148,29 @@ class ResearchOrchestrator(
         )))
     }
 
+    /**
+     * The no-guide reply: the gap, then only lines a saved guide supports, each cited to it in the order shown. Pressure on a
+     * wound and not touching someone near a live source are said whenever the question hints at them, so a message the
+     * matcher missed ("his sock is filling up", "the hedge trimmer cord, he went down") still gets the first step.
+     */
+    private fun noGuideReply(question: String): Pair<List<xyz.fieldatlas.emergency.EmergencyGuide>, String> {
+        val lines = buildList {
+            if (xyz.fieldatlas.emergency.EmergencyGuideMatch.mayInvolveCurrent(question)) add("electric-shock" to CURRENT_LINE)
+            if (xyz.fieldatlas.emergency.EmergencyGuideMatch.mayBeBleeding(question)) add("severe-bleeding" to BLEEDING_LINE)
+            add("cpr" to CPR_LINE)
+            add("recovery-position" to RECOVERY_LINE)
+            add("anaphylaxis" to INJECTOR_LINE)
+            if (xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)) add("poisoning-steps" to POISON_LINE)
+        }.mapNotNull { (id, line) -> emergencyGuides().firstOrNull { it.id == id }?.let { it to line } }
+        return lines.map { it.first } to
+            FIRST_AID_GAP + lines.mapIndexed { index, (_, line) -> "- $line [S${index + 1}].\n" }.joinToString("") + STAY_LINE
+    }
+
     /** First aid no saved guide covers: no treatment steps, the vetted basics as its sources. Reads neither the model nor the library. */
     private suspend fun FlowCollector<ResearchEvent>.emitNoGuideReply(question: String, startedAt: Long) {
-        val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
-        val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
-            .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
+        val (basics, text) = noGuideReply(question)
         emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
-        emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
+        emit(ResearchEvent.Token(text))
         emit(ResearchEvent.Complete(ResearchMetrics(
             retrievalMillis = 0,
             timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
@@ -1113,12 +1129,10 @@ class ResearchOrchestrator(
             val firstAidHere = firstAidQuestion && !inference.writesFirstAid && smallModelFirstAid != "memory"
             if (firstAidHere && smallModelFirstAid == "fallback") {
                 // No saved guide covers it and the model is not trusted to write first aid from memory: the call line, a
-                // plain statement of the gap, and only the basics the saved CPR, recovery-position and anaphylaxis guides support.
-                val swallowed = xyz.fieldatlas.emergency.GuideAnswerCheck.swallowedSomething(question)
-                val basics = (listOf("cpr", "recovery-position", "anaphylaxis") + (if (swallowed) listOf("poisoning-steps") else emptyList()))
-                    .mapNotNull { id -> emergencyGuides().firstOrNull { it.id == id } }
+                // plain statement of the gap, and only the basics the saved guides support (see noGuideReply).
+                val (basics, text) = noGuideReply(question)
                 emit(ResearchEvent.Sources(basics.map { xyz.fieldatlas.emergency.EmergencyGuideMatch.evidence(it) }))
-                emit(ResearchEvent.Token(FIRST_AID_GAP + (if (swallowed && basics.size == 4) POISON_LINE else "")))
+                emit(ResearchEvent.Token(text))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
                     timeToFirstTokenMillis = elapsed(startedAt, monotonicMillis()),
@@ -1659,15 +1673,23 @@ class ResearchOrchestrator(
         /** Opens every first-aid answer a model writes: the call is the app's, never left to the model. */
         /** The fallback for first aid no saved guide covers (measurement): no treatment steps the sources do not support. */
         const val FIRST_AID_GAP = "No first-aid guide saved on this phone covers this situation, so this answer gives no treatment steps for it. " +
-            "While you get help:\n\n" +
-            "- If the person is not breathing normally, start CPR: chest compressions with the heel of one hand on the centre of the chest [S1].\n" +
-            "- If they are unconscious but breathing, turn them onto their side in the recovery position [S2].\n" +
-            "- If they have an adrenaline auto-injector for a severe allergic reaction, give the injection right away [S3].\n" +
-            "- Stay with them and watch their breathing until help arrives."
+            "While you get help:\n\n"
+        // The electric shock guide (CDC): "Look first. Don't touch. The person may still be in contact with the electrical source"
+        // and "Turn off the source of electricity if possible". First, because touching them can pass the current on.
+        const val CURRENT_LINE = "If electricity may be involved, look first and do not touch them while they may still be in contact with the " +
+            "source; turn off the power if you can"
+        // The severe bleeding guide (FEMA): "Cover with a clean cloth and apply pressure by pushing down with hands. Keep pressure
+        // until medical help arrives." Set 57's spurting hand got CPR and an auto-injector, and nothing about pressure.
+        const val BLEEDING_LINE = "If they are bleeding, cover the wound with a clean cloth and push down on it with your hands, and keep " +
+            "pressing until help arrives"
+        const val CPR_LINE = "If the person is not breathing normally, start CPR: chest compressions with the heel of one hand on the centre of the chest"
+        const val RECOVERY_LINE = "If they are unconscious but breathing, turn them onto their side in the recovery position"
+        const val INJECTOR_LINE = "If they have an adrenaline auto-injector for a severe allergic reaction, give the injection right away"
         // The poisoning guide (NHS): "Call 999 or go to A&E if … someone else may have swallowed … something harmful" and
         // "Symptoms may take a few hours or days to start".
-        const val POISON_LINE = "\n- If they may have swallowed something harmful, call your local emergency number or go to hospital now, even if they " +
-            "seem fine: symptoms may take a few hours or days to start [S4]."
+        const val POISON_LINE = "If they may have swallowed something harmful, call your local emergency number or go to hospital now, even if they " +
+            "seem fine: symptoms may take a few hours or days to start"
+        const val STAY_LINE = "- Stay with them and watch their breathing until help arrives."
         const val CALL_FIRST = "**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n"
         const val KEYWORD_SEED = 17
         const val ATTACHMENT_CANDIDATES = 16
