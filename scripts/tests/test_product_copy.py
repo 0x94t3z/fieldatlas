@@ -24,8 +24,9 @@ def product_copy() -> str:
         source = path.read_text(encoding="utf-8")
         kotlin_literals.extend(
             literal for literal in re.findall(r'"(?:\\.|[^"\\])*"', source)
-            # This is punctuation-normalizing regex syntax, not visible product copy.
-            if literal not in (r'"\\s+([.,;:!?])"', r'" ([.,;:!?])"')
+            # Punctuation-normalizing and sentence-end regex syntax (passageExcerpt), not visible product copy.
+            if literal not in (r'"\\s+([.,;:!?])"', r'" ([.,;:!?])"',
+                               r'"[.!?][\"”’)]?\\s+(?=[A-Z0-9\"“(])"', r'"[.!?][\"”’)]?(?=\\s)"')
         )
     resources = (ROOT / "app/src/main/res/values/strings.xml").read_text(encoding="utf-8")
     return "\n".join(kotlin_literals) + "\n" + resources
