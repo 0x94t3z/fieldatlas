@@ -45,6 +45,19 @@
       "safeTxHash": "0x20b1e4700b89d570df4ac9795bd63b654418379640760a9484eafa717b006fd1",
       "nonce": 1,
       "tx": "0xeaed39c79413808d835259cd7901e2602d912e02a6665a0aabcee3e4233cbf4a"
+    },
+    {
+      "date": "2026-11-01",
+      "contributor": "realsmokingwiz",
+      "work": "Device report: Gemma 4 26B gave no answer on a 16 GB phone, which led to it no longer being offered in 1.4.3 and to the stall guard in 1.4.4",
+      "link": "https://github.com/0x94t3z/fieldatlas/blob/main/docs/releases/field-atlas-1.4.3.md",
+      "issue": 0,
+      "amount": 20000000,
+      "address": "0x68B8dD3d7d5CEdB72B40c4cF3152a175990D4599",
+      "status": "paid",
+      "safeTxHash": "0x6bebc0acb376f7b7c7d3f98f4a7047764d1ef6158caaa4fcd6732e155b39bd0c",
+      "nonce": 2,
+      "tx": "0xb953c25621d6ecbd65c4ce390ca933dd9068674115c34441a14ce6364a702222"
     }
   ]
 }
