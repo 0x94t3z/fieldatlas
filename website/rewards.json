@@ -68,10 +68,10 @@
       "issue": 6,
       "amount": 5000000,
       "address": "0x3fA92C59e7ADD64A3Bf1FB5BBbF32ee0758142bB",
-      "status": "proposed",
+      "status": "paid",
       "safeTxHash": "0xf0f570bac73cdb040205e34781ad28da24fc71ae9971524bc845f6fb7adf2812",
       "nonce": 3,
-      "tx": null
+      "tx": "0x2d3b670edfae227c5659efb759bc1d02be03e99ce80e25811259d527dc95c8d5"
     },
     {
       "date": "2026-11-01",
