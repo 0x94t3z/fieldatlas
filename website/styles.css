@@ -311,18 +311,36 @@ body { overflow-x: hidden; }
 .panel { position: relative; max-width: 560px; padding: 2.4rem; background: var(--panel); border: 1px solid #d3d8cb; border-radius: 16px;
   box-shadow: 0 30px 60px -28px #10261e66, 0 1px 0 #ffffff inset; }
 /* Corner brackets: a field-card look */
-.panel::before, .panel::after { content: ''; position: absolute; width: 18px; height: 18px; border: 2px solid var(--green); opacity: .55; pointer-events: none; }
-.panel::before { top: 10px; left: 10px; border-right: 0; border-bottom: 0; border-radius: 4px 0 0 0; }
-.panel::after { bottom: 10px; right: 10px; border-left: 0; border-top: 0; border-radius: 0 0 4px 0; }
 .panel-right { margin-left: auto; }
 .panel-wide { width: 100%; max-width: 1080px; margin-inline: auto; }   /* full width up to the cap; auto margins alone shrink-wrap it */
 .stage.hero { padding-top: 8rem; }
 .hero .panel { max-width: 600px; align-self: flex-start; }
 .hero h1 { font-size: clamp(3rem, 6.2vw, 5.6rem); }
-.hero .field-tag { position: static; display: inline-flex; margin-top: 1.4rem; box-shadow: none; }
-.hero .principles { align-self: flex-start; max-width: 600px; justify-content: flex-start; gap: .6rem; padding: 0; border: 0; }
-.hero .principles > span { padding: .55rem .85rem; border-radius: 999px; background: var(--hud); color: var(--hud-ink); font-size: .75rem; }
-.hero .principles .icon { color: #9fd2b4; }
+/* The bottom line, the same on the plain page and the island: the book line in plain words with its icon, then the
+   facts in monospace capitals. The island only recolours it for its dark ground. */
+.hero-facts { display: grid; gap: .6rem; align-self: flex-start; width: 100%; max-width: 600px; padding-top: 1rem; border-top: 1px solid var(--line); }
+.hero .field-tag { position: static; display: flex; align-items: center; gap: .55rem; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
+.hero .field-tag .tag-icon { width: auto; height: auto; background: none; color: var(--green); }
+.hero .field-tag .icon { width: 1rem; height: 1rem; }
+.hero .field-tag div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .35rem; }
+.hero .field-tag strong { color: var(--ink); font: 400 .85rem/1.4 Arial, Helvetica, sans-serif; }
+.hero .field-tag div > span { margin: 0; color: var(--muted); font-size: .85rem; }
+.hero .principles { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .3rem 0; max-width: none; margin: 0; padding: 0; border: 0;
+  font: 600 .72rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
+/* The dot hangs on the item before it, so a wrapped line never starts with one. Each fact moves to the next line
+   whole; only one too long for a line by itself (enlarged text on a narrow screen) wraps inside. */
+.hero .principles > span { display: inline; padding: 0; background: none; border-radius: 0; color: var(--muted); font-size: inherit; }
+.hero .principles > span:not(:last-child)::after { content: '·'; margin: 0 .75em; color: var(--green); }
+.hero .principles .icon { display: none; }
+/* On the plain page the copy sits in a card: the line under it takes the card's width and lines up with its text. */
+html:not(.game) .hero .panel, html:not(.game) .hero-facts { width: 100%; max-width: 560px; }
+html:not(.game) .hero-facts { padding-inline: 2.4rem; }
+@media (max-width: 760px) {
+  html:not(.game) .hero-facts { padding-inline: 1.5rem; }
+  .hero-facts { gap: .5rem; padding-top: .8rem; }
+  .hero .principles { font-size: .68rem; }
+  .hero .field-tag strong, .hero .field-tag div > span { font-size: .78rem; }
+}
 .setup-section, .download-section, .faq-section { display: flex; padding: 7rem 0 5rem; background: none; border: 0; border-radius: 0; }
 .setup-section .panel { display: grid; gap: 2rem; max-width: 620px; }
 .faq-panel { display: grid; grid-template-columns: .8fr 1.2fr; gap: 3rem; }
@@ -331,7 +349,6 @@ body { overflow-x: hidden; }
 .community-card { grid-template-columns: 1fr; gap: 22px; background: #f3f3ea; }
 .panel-dark { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2rem 3rem; align-items: center; max-width: 760px; margin-inline: auto;
   background: #174d3bf2; border-color: #2c6a53; color: var(--paper); }
-.panel-dark::before, .panel-dark::after { border-color: var(--amber); }
 .panel-dark .release-notice { grid-column: 1 / -1; margin: 0; padding-top: 1.4rem; border-top: 1px solid #46715d; font-size: .8125rem; }
 /* Collections as an inventory: each slot with a coloured edge */
 .collection-card { position: relative; border-width: 1px 1px 1px 4px; }
@@ -343,14 +360,12 @@ body { overflow-x: hidden; }
 .collection-card.biology { border-left-color: #3c7a55; }
 .collection-card .small-label { padding: .25rem .55rem; border-radius: 4px; background: var(--hud); color: var(--hud-ink); letter-spacing: .14em; }
 .site-footer.panel { max-width: none; margin-bottom: 48px; }
-.site-footer.panel::before, .site-footer.panel::after { display: none; }
 @media (max-width: 1000px) { .faq-panel, .panel-dark { grid-template-columns: 1fr; } }
 @media (max-width: 760px) {
   .site-header { padding: .7rem 1rem; border-radius: 0 0 12px 12px; }
   .stage, .setup-section, .download-section, .faq-section { min-height: 92vh; padding: 5.5rem 0 4rem; }
   .stage.hero { min-height: auto; padding: 1.5rem 0 4rem; }
   .panel { padding: 1.5rem; border-radius: 14px; }
-  .panel::before, .panel::after { width: 12px; height: 12px; }
   .value-grid, .collection-grid { grid-template-columns: minmax(0, 1fr); }   /* minmax: cards wrap rather than outgrow a narrow screen */
 }
 
@@ -440,7 +455,6 @@ html.game { scroll-snap-type: y proximity; }
 .game .stage.hero::before { content: ''; position: absolute; z-index: -1; top: -84px; bottom: -26px; left: calc(-1 * clamp(20px, 4.4vw, 64px)); width: max(70vw, 760px);
   pointer-events: none; background: linear-gradient(90deg, #0b1d16e0 0%, #0b1d16b8 34%, #0b1d1666 56%, #0b1d1600 80%); }
 .game .hero .panel { margin-block: auto; max-width: none; padding: 0; background: none; border: 0; box-shadow: none; pointer-events: auto; }
-.game .hero .panel::before, .game .hero .panel::after { display: none; }
 .game .hero .eyebrow { margin-bottom: 1.2rem; color: #b6cabb; }
 .game .hero .status-dot { background: #9fdcb5; }
 .game .hero h1 { margin-bottom: 1.2rem; color: #f5f2e9; font-size: clamp(3rem, 5.6vw, 5.4rem); text-shadow: 0 2px 30px #0b1d1666; }
@@ -459,21 +473,12 @@ html.game { scroll-snap-type: y proximity; }
 .game .hero .release-caption { margin: 0; color: #b6cabb; font-size: .8rem; }
 .game .hero .github-link { margin: 0; min-height: 40px; color: #f5f2e9; font-size: .82rem; }
 .game .hero .github-link:hover { color: #9fdcb5; }
-/* The bottom line: the book line in plain words with its icon, then the facts in the HUD's monospace capitals. */
-.game .hero-facts { display: grid; gap: .6rem; padding-top: 1rem; border-top: 1px solid #f5f2e924; pointer-events: auto; }
-.game .hero .principles .icon { display: none; }
-.game .hero .field-tag { display: flex; align-items: center; gap: .55rem; margin: 0; padding: 0; background: none; border: 0; box-shadow: none; }
-.game .hero .field-tag .tag-icon { width: auto; height: auto; background: none; color: #9fdcb5; }
-.game .hero .field-tag .icon { width: 1rem; height: 1rem; }
-.game .hero .field-tag div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .35rem; }
-.game .hero .field-tag strong { color: #f5f2e9; font: 400 .85rem/1.4 Arial, Helvetica, sans-serif; }
-.game .hero .field-tag div > span { margin: 0; color: var(--smoke-dim); font-size: .85rem; }
-.game .hero .principles { display: flex; flex-wrap: wrap; gap: .3rem 0; max-width: none; margin: 0; padding: 0; border: 0;
-  font: 600 .72rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; text-transform: uppercase; }
-.game .hero .principles > span { display: inline; padding: 0; background: none; border-radius: 0; color: var(--smoke-dim); font-size: inherit; }
-/* The dot hangs on the item before it, so a wrapped line never starts with one. */
-.game .hero .principles > span { white-space: nowrap; }
-.game .hero .principles > span:not(:last-child)::after { content: '·'; margin: 0 .75em; color: #9fdcb5; }
+/* The bottom line, recoloured for the dark ground. */
+.game .hero-facts { border-top-color: #f5f2e924; pointer-events: auto; }
+.game .hero .field-tag .tag-icon { color: #9fdcb5; }
+.game .hero .field-tag strong { color: #f5f2e9; }
+.game .hero .field-tag div > span, .game .hero .principles > span { color: var(--smoke-dim); }
+.game .hero .principles > span:not(:last-child)::after { color: #9fdcb5; }
 
 /* The sound offer: a small card under the speaker chip */
 .sound-ask { display: none; }
@@ -554,7 +559,6 @@ html.game { scroll-snap-type: y proximity; }
 .game .stage.is-open .panel-dark { width: min(720px, 100%); background: #143f30d1; border-color: #ffffff26; }
 /* Grid panels already space their children; the bar needs no margin of its own there. */
 .game .setup-section .popup-bar, .game .faq-panel .popup-bar, .game .panel-dark .popup-bar { margin-bottom: 0; }
-.game .stage.is-open > .panel::before, .game .stage.is-open > .panel::after { display: none; }
 .game .stage.is-open > .panel:focus { outline: none; }
 @keyframes popup-in { from { opacity: 0; transform: translateX(26px) scale(.985); } }
 .popup-bar { grid-column: 1 / -1; position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: .4rem; margin: 0 -2.1rem 1.6rem; padding: .65rem .65rem .65rem 2.1rem;
@@ -633,9 +637,6 @@ html.game { scroll-snap-type: y proximity; }
   .game .hero .button-primary { min-height: 48px; padding: .8rem 1.2rem; }
   .game .start-hint { min-height: 48px; padding: 0 1rem; font-size: .88rem; }
   .game .hero .hero-meta { margin-top: .6rem; gap: 0 1rem; }
-  .game .hero-facts { gap: .5rem; padding-top: .8rem; }
-  .game .hero .principles { font-size: .68rem; }
-  .game .hero .field-tag strong, .game .hero .field-tag div > span { font-size: .78rem; }
   .game .prompt { left: 12px; right: 12px; bottom: 12px; width: auto; flex-wrap: wrap; gap: .7rem; padding: .9rem; }
   .game .prompt-title { font-size: 1.15rem; }
   .game .prompt-actions { width: 100%; }
