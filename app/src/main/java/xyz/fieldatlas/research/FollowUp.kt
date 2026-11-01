@@ -98,6 +98,7 @@ object FollowUp {
             previous.trim() != root.trim() && ": " in previous -> previous.substringBefore(": ")
             else -> previous
         }.trim()
+        if (leavesEmergency(context, asked, answer)) return asked
         if (pointsBack.containsMatchIn(asked) || asked.split(' ').size <= SHORT_FOLLOW_UP) {
             answerName(previous, answer)?.let { named ->
                 // "roughly how many" or "how hot is it there" says little on its own: the earlier question comes
@@ -121,6 +122,32 @@ object FollowUp {
         }
         return context.trimEnd('?', '.', '!', ' ') + ": " + asked
     }
+
+    // Anything about the person, getting help or waiting for it stays with the emergency, whatever else it says.
+    private val aboutTheEmergency = Regex("(?i)\\b(?:he|she|him|her|his|hers|they|them|their|we|us|our|baby|kid|child|son|daughter|" +
+        "friend|wife|husband|mum|mom|dad|person|patient|victim|hospital|ambulance|paramedics?|doctor|emergency|911|112|999|call\\w*|wait\\w*|help\\w*)\\b")
+    private const val OWN_SUBJECT_TERMS = 4
+
+    /**
+     * Whether [asked], under a first-aid question, is a question of its own: its own subject in at least four words of
+     * its own, none from the emergency and almost none from its answer, nothing about the person or help, and no first
+     * aid in it. Read together, "kid left in the car in the sun 20 min, very red and hot and floppy: does it make sense to
+     * supplement chlorella and spirulina if one works out in the gym…" was first aid, and got the no-guide reply instead
+     * of an answer (reported from a 16 GB phone, 2 Nov 2026).
+     */
+    internal fun leavesEmergency(context: String, asked: String, answer: String): Boolean {
+        if (!xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(context) ||
+            xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(asked) || aboutTheEmergency.containsMatchIn(asked)) return false
+        val own = contentStems(asked)
+        if (own.size < OWN_SUBJECT_TERMS || own.any { it in contentStems(context) }) return false
+        val said = contentStems(answer)
+        return own.count { it in said } * 4 < own.size
+    }
+
+    // Five letters, so "supplements" meets "supplement" and "cramping" meets "cramps".
+    private fun contentStems(text: String): Set<String> = word.findAll(text.lowercase()).map { it.value }
+        .filter { it.length >= 3 && it !in sayLittle && it !in LEVIATHAN_STOPWORDS && it.any(Char::isLetter) }
+        .map { it.take(5) }.toSet()
 
     /**
      * Whether [question] opens with a name an earlier answer gave ("Tokyo: how many people live there") rather than

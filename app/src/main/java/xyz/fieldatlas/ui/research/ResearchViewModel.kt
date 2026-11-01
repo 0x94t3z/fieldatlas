@@ -428,8 +428,10 @@ class ResearchViewModel(
         run(readAs, asked = text.trim(), earlier = earlier, topic = state.topic ?: System.currentTimeMillis(), byVoice = askedByVoice(text),
             // An attached file's passages travel with the file itself, not as saved sources: after Continue the file
             // is no longer attached, and its words must not be quoted as the library's.
+            // A question of its own after an emergency carries none of the guide's passages (see FollowUp.leavesEmergency).
             carried = xyz.fieldatlas.research.TopicEvidence.Carried(text.trim(),
-                state.sources.filterNot { it.documentId.startsWith("attachment:") }, earlier))
+                if (readAs == text.trim().replace(Regex("\\s+"), " ")) emptyList()
+                else state.sources.filterNot { it.documentId.startsWith("attachment:") }, earlier))
     }
 
     /**

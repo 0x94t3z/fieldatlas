@@ -131,4 +131,24 @@ class FollowUpTest {
         val long = FollowUp.summary("Word ".repeat(120).trim() + ". Second sentence here.")
         assert(long.length <= 321 && long.endsWith("…")) { long }
     }
+
+    @Test fun aQuestionOfItsOwnAfterAnEmergencyIsNotReadAsFirstAid() {
+        val emergency = "kid left in the car in the sun 20 min, very red and hot and floppy"
+        val guide = "**Call your local emergency number now** (112 works on mobile phones in many countries).\n\n" +
+            "Heat exhaustion and heat stroke: shown as published by NOAA/National Weather Service [S1]. During extremely hot and " +
+            "humid weather, your body's ability to cool itself is challenged. Heat Stroke - Symptoms: Throbbing headache; " +
+            "confusion; slurred speech; nausea; dizziness; body temperature above 103°F; hot, red, dry or damp skin. First Aid: " +
+            "Call 911 or get the victim to a hospital immediately. Move the victim to a cooler, preferably air-conditioned, " +
+            "environment. Reduce body temperature with cool cloths or bath. Do NOT give fluids."
+        val own = "does it make sense to supplement chlorella and spirulina if one works out in the gym 4 times a wekk and goes to the sauna 4 times a week?"
+        assertEquals(own, FollowUp.readAs(emergency, own, answer = guide))
+        // About the emergency: the person, help, waiting, or its own words. These stay with it.
+        for (followUp in listOf("what can I do while waiting", "should we drive to the hospital or wait for an ambulance",
+                "is it safe to give her cold water to drink", "how long does heat stroke recovery usually take",
+                "does the air conditioning in a parked car stop this from happening"))
+            assertEquals(followUp, "$emergency: $followUp", FollowUp.readAs(emergency, followUp, answer = guide))
+        // Not after an emergency: read with the question before it, as always.
+        assertEquals("best vegan food in Lisbon: does it make sense to supplement chlorella and spirulina if one works out in the gym",
+            FollowUp.readAs("best vegan food in Lisbon", "does it make sense to supplement chlorella and spirulina if one works out in the gym"))
+    }
 }
