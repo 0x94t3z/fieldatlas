@@ -162,9 +162,30 @@ details[open] summary::after { content: '−'; }
 .platform-links a:hover, #copy-address:hover { background: var(--sage); }
 .platform-note, .copy-status { font-size: .625rem; line-height: 1.6; margin: 10px 0 0; }
 .copy-status:empty { margin: 0; }
+.contribute-card { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; padding: 26px 28px; background: #f0f1e9; display: grid; gap: 22px; }
+.contribute-card > div { min-width: 0; }
+.contribute-card h3 { font-size: 1.25rem; margin: 0 0 12px; letter-spacing: -.03em; }
+.contribute-lead { margin: 0 0 14px; font-size: .8125rem; line-height: 1.8; max-width: 62ch; }
+.contribute-facts { margin: 0; display: grid; border-top: 1px solid #ccd4c5; }
+.contribute-facts > div { display: grid; grid-template-columns: 9.5rem 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid #ccd4c5; }
+.contribute-facts dt { font-size: .75rem; font-weight: 600; }
+.contribute-facts dd { margin: 0; font-size: .8125rem; line-height: 1.65; }
+.contribute-facts code { font-size: .75rem; }
+.contribute-links { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-top: 16px; }
+.contribute-disclosure { margin: 14px 0 0; font-size: .75rem; line-height: 1.65; color: var(--muted); max-width: 60ch; }
+.rewards-pool { margin: 0 0 10px; font-size: .75rem; line-height: 1.6; overflow-wrap: anywhere; }
+#rewards-ledger { width: 100%; border-collapse: collapse; font-size: .75rem; }
+#rewards-ledger caption { text-align: left; font-size: .625rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-bottom: 8px; }
+.ledger-scroll { overflow-x: auto; }
+#rewards-ledger th, #rewards-ledger td { text-align: left; padding: 8px 10px 8px 0; border-top: 1px solid #ccd4c5; vertical-align: top; white-space: nowrap; }
+#rewards-ledger td[colspan] { white-space: normal; }
+#rewards-ledger abbr { text-decoration: none; }
+#rewards-ledger th { font-weight: 600; }
 .site-footer { border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: start; gap: 2rem; padding: 2rem 0 2.25rem; }
 @media (max-width: 850px) {
   .community-card { grid-template-columns: 1fr; gap: 22px; padding: 22px; }
+  .contribute-card { padding: 22px; }
+  .contribute-facts > div { grid-template-columns: 1fr; gap: 2px; }
 }
 .site-footer p { font-size: .75rem; margin: .6rem 0 0; }
 .footer-links { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; margin-top: -6px; }

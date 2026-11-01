@@ -1,0 +1,36 @@
+{
+  "about": "Contributor rewards ledger for Field Atlas. Rewards are paid in ATLAS (Base) from the pool wallet only, for accepted work. See CONTRIBUTING.md.",
+  "poolWallet": "0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2",
+  "policy": {
+    "branch": "main",
+    "chainId": 8453,
+    "token": "0xb462a5039a540883508ee37b5cf3999647557ba3",
+    "decimals": 18,
+    "poolSize": 1000000000,
+    "maxPerTask": 50000000,
+    "perPersonMonthly": 50000000,
+    "monthlyTotal": 100000000,
+    "maintainers": [
+      "0x94t3z"
+    ],
+    "maintainerIds": [
+      52822242
+    ]
+  },
+  "rewards": [
+    {
+      "date": "2026-11-01",
+      "contributor": "0x94t3z",
+      "contributorId": 52822242,
+      "work": "Payment test: 1,000 ATLAS sent back to the maintainer's wallet to check the payment path",
+      "link": "https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md#contributor-rewards",
+      "issue": 0,
+      "amount": 1000,
+      "address": "0xc698865c38eC12b475AA55764d447566dd54c758",
+      "status": "paid",
+      "safeTxHash": "0x15f75591afcdb55ca69ba8034483ca5168ba4c70ee0c113ebc35b0e5a1a6b37a",
+      "nonce": 0,
+      "tx": "0x7b66a06a05ed14de529ed0201de1530f0083935ad5c125a1b1b06a60e3a754aa"
+    }
+  ]
+}

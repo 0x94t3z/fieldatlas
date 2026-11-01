@@ -6,7 +6,7 @@ const dist = new URL('./dist/', root);
 await rm(dist, { recursive: true, force: true });
 await mkdir(new URL('assets/', dist), { recursive: true });
 await mkdir(new URL('vendor/', dist), { recursive: true });
-for (const file of ['index.html', 'styles.css', 'boot.js', 'game.js', 'world.js', 'audio.js', 'vendor/three.module.min.js', 'vendor/three.LICENSE', 'community.js', 'navigation.js', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'assets/atlas.svg', 'assets/compass.svg', 'assets/social-card.png', 'assets/social-icon.png', 'assets/bankr.svg', 'assets/dexscreener.png', 'assets/base.ico']) {
+for (const file of ['index.html', 'styles.css', 'boot.js', 'game.js', 'world.js', 'audio.js', 'vendor/three.module.min.js', 'vendor/three.LICENSE', 'community.js', 'contribute.js', 'rewards.json', 'navigation.js', 'favicon.ico', 'favicon.png', 'apple-touch-icon.png', 'assets/atlas.svg', 'assets/compass.svg', 'assets/social-card.png', 'assets/social-icon.png', 'assets/bankr.svg', 'assets/dexscreener.png', 'assets/base.ico']) {
   await copyFile(new URL(file, root), new URL(file, dist));
 }
 console.log(`Built ${new URL('dist/', root).pathname}`);

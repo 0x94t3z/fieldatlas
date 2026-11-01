@@ -34,6 +34,7 @@
   <link rel="modulepreload" href="vendor/three.module.min.js">
   <script type="module" src="game.js"></script>
   <script src="community.js" defer></script>
+  <script src="contribute.js" defer></script>
   <script src="navigation.js" defer></script>
 </head>
 <body>
@@ -161,7 +162,7 @@
           <div class="community-card">
             <div class="community-copy">
               <h2 id="community-title">Community token</h2>
-              <p>The Field Atlas dev didn’t launch this token. A third party launched it on Bankr, with creator fees going to the dev. No token is needed to use the app.</p>
+              <p>ATLAS was launched by the community on Bankr, with its creator fees and creator allocation going to the dev. Field Atlas adopted it to reward contributors; it did not create or sell it. No token is needed to use the app.</p>
               <div class="community-risk" role="note" aria-label="Token risk warning">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg>
                 <p>Not financial advice or a promise of ongoing token support. Tokens can lose all their value.</p>
@@ -180,6 +181,34 @@
               </div>
               <p class="platform-note">External platforms · Not required for the app</p>
               <p id="copy-status" class="copy-status" role="status" aria-live="polite"></p>
+            </div>
+          </div>
+          <div class="contribute-card" aria-labelledby="contribute-title">
+            <div class="contribute-copy">
+              <h3 id="contribute-title">Contributor rewards</h3>
+              <p class="contribute-lead">1,000,000,000 ATLAS was put into a separate pool wallet on 1 November 2026 for people who improve Field Atlas. It is paid out only for work that is accepted. Only the maintainer signs for it. It is kept apart so anyone can check its balance and payments, but it is not locked.</p>
+              <dl class="contribute-facts">
+                <div><dt>What counts</dt><dd>Merged pull requests, accepted collections, and wrong-answer, safety or device reports that lead to a fix.</dd></div>
+                <div><dt>Amount</dt><dd>Written on each GitHub issue labelled <code>reward</code> before work starts: usually 5 million ATLAS for a small fix or a phone timing report, 20 million for a feature, a speed fix or a report that leads to a fix, and 50 million for a knowledge collection.</dd></div>
+                <div><dt>Payment</dt><dd>To the Base address you leave on your pull request (or on your report, once it leads to a fix), from the pool wallet only.</dd></div>
+                <div><dt>Not rewarded</dt><dd>Posts, promotion and follower counts.</dd></div>
+                <div><dt>Safety</dt><dd>Nobody from Field Atlas will ever ask for a key, a seed phrase or a payment.</dd></div>
+              </dl>
+              <div class="contribute-links">
+                <a class="button button-primary" href="https://github.com/0x94t3z/fieldatlas/issues?q=is%3Aissue+is%3Aopen+label%3Areward">Open tasks</a>
+                <a class="text-link" href="https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md">Full rules</a>
+              </div>
+              <p class="contribute-disclosure">The dev’s wallets receive the ATLAS creator fees and the launch’s creator allocation (15 billion ATLAS vesting until 26 September 2027). 1 billion ATLAS from the dev’s holdings is in the separate contributor pool. The rest belongs to the dev, to use as they choose, including funding further work on Field Atlas.</p>
+            </div>
+            <div class="contribute-ledger">
+              <p id="rewards-pool" class="rewards-pool">Pool wallet (Safe on Base): <a href="https://basescan.org/address/0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2" target="_blank" rel="noopener noreferrer">0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2</a></p>
+              <div class="ledger-scroll" role="region" aria-label="Rewards paid" tabindex="0">
+                <table id="rewards-ledger">
+                  <caption>Rewards paid</caption>
+                  <thead><tr><th scope="col">Date</th><th scope="col">Who</th><th scope="col">Work</th><th scope="col">ATLAS</th><th scope="col"><abbr title="Transaction">Tx</abbr></th></tr></thead>
+                  <tbody><tr><td colspan="5">Every payment is listed in <a href="https://github.com/0x94t3z/fieldatlas/blob/main/website/rewards.json">rewards.json</a> on GitHub.</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

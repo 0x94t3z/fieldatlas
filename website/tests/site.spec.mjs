@@ -123,12 +123,57 @@ test('a shared section link opens that section and focuses it', async ({ page })
   await expect(dialog.locator('.collection-card')).toHaveCount(5);
 });
 
+test('the contributor card states the pool, the rules and the dev holding, and shows only valid ledger entries', async ({ page }) => {
+  const tx = '0x' + 'a'.repeat(64);
+  await page.route('**/rewards.json', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({
+    poolWallet: '0x1111111111111111111111111111111111111111',
+    rewards: [
+      { date: '2026-11-02', contributor: 'alice', work: 'Fix a crash', link: 'https://github.com/0x94t3z/fieldatlas/pull/1', amount: 1000000, tx },
+      { date: '2026-11-03', contributor: 'mallory', work: 'Elsewhere', link: 'https://example.com/', amount: 1, tx },
+    ] }) }));
+  await page.goto('/#community');
+  const card = page.locator('.contribute-card');
+  await expect(card.getByRole('heading', { name: 'Contributor rewards' })).toBeVisible();
+  await expect(card.locator('.contribute-lead')).toContainText('1,000,000,000 ATLAS');
+  await expect(card.locator('.contribute-lead')).toContainText('Only the maintainer signs for it. It is kept apart so anyone can check its balance and payments, but it is not locked.');
+  await expect(card.getByRole('link', { name: 'Open tasks' })).toHaveAttribute('href', /label%3Areward/);
+  await expect(card.getByRole('link', { name: 'Full rules' })).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/blob/main/CONTRIBUTING.md');
+  await expect(card.locator('.contribute-disclosure')).toContainText('The rest belongs to the dev, to use as they choose, including funding further work on Field Atlas.');
+  await expect(card.locator('.contribute-facts')).toContainText('Posts, promotion and follower counts.');
+  await expect(page.locator('#rewards-pool a')).toHaveAttribute('href', 'https://basescan.org/address/0x1111111111111111111111111111111111111111');
+  const rows = page.locator('#rewards-ledger tbody tr');
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText('alice');
+  await expect(rows.first()).toContainText('1,000,000');
+  await expect(rows.first().getByRole('link', { name: 'View' })).toHaveAttribute('href', `https://basescan.org/tx/${tx}`);
+});
+
+test('the pool wallet is shown in full and the ledger lists the payment test', async ({ page }) => {
+  await page.goto('/#community');
+  // In full, never shortened: shortened addresses are what look-alike addresses imitate.
+  await expect(page.locator('#rewards-pool')).toHaveText('Pool wallet (Safe on Base): 0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
+  await expect(page.locator('#rewards-pool a')).toHaveAttribute('href', 'https://basescan.org/address/0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
+  const row = page.locator('#rewards-ledger tbody tr').first();
+  await expect(row).toContainText('Payment test');
+  await expect(row).toContainText('1,000');
+  await expect(row.getByRole('link', { name: 'View' })).toHaveAttribute('href', 'https://basescan.org/tx/0x7b66a06a05ed14de529ed0201de1530f0083935ad5c125a1b1b06a60e3a754aa');
+});
+
+test('without JavaScript the card still names the full pool wallet', async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto('/#community');
+  await expect(page.locator('#rewards-pool')).toContainText('0x527C6fb80013882280CE4DB88E720F0fd8b1AEa2');
+  await expect(page.locator('.contribute-facts')).toContainText('Nobody from Field Atlas will ever ask for a key, a seed phrase or a payment.');
+  await context.close();
+});
+
 test('community links keep the supplied address, and copying works and reports failure', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await page.goto('/#community');
   const section = page.locator('#community');
   await expect(section.getByRole('heading', { name: 'Community token' })).toBeVisible();
-  await expect(section.locator('.community-copy > p')).toHaveText('The Field Atlas dev didn’t launch this token. A third party launched it on Bankr, with creator fees going to the dev. No token is needed to use the app.');
+  await expect(section.locator('.community-copy > p')).toHaveText('ATLAS was launched by the community on Bankr, with its creator fees and creator allocation going to the dev. Field Atlas adopted it to reward contributors; it did not create or sell it. No token is needed to use the app.');
   await expect(section.getByRole('note', { name: 'Token risk warning' })).toContainText('Tokens can lose all their value.');
   await expect(section.getByRole('link', { name: 'Bankr' })).toHaveAttribute('href', `https://bankr.bot/terminal/trade?out=${token}&chain=base`);
   await expect(section.getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', `https://dexscreener.com/base/${token}`);
