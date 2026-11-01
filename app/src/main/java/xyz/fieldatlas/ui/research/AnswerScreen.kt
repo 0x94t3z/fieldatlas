@@ -209,10 +209,7 @@ fun AnswerScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (state.earlier.isNotEmpty()) FollowUpLabel(state.earlier.size + 1)
-                        Text(
-                            text = state.shownQuestion.ifBlank { "Research result" },
-                            style = MaterialTheme.typography.headlineMedium,
-                        )
+                        QuestionTitle(state.shownQuestion.ifBlank { "Research result" })
                         // The files sent with this question: one pill under it while it runs, then first among the answer's facts.
                         if (running) SentFilesPill(state.submittedAttachments)
                         // While it runs, how the question is read, when that differs from the title: a follow-up read
@@ -755,3 +752,34 @@ private fun JumpToEndButton(listState: androidx.compose.foundation.lazy.LazyList
         }
     }
 }
+
+/**
+ * The question as the page's headline. One that would take more than three headline lines is set a size smaller and
+ * cut at three lines, with "Show full question" under it: a 136-character question took six lines, half the first
+ * screen, before the answer began (2 Nov 2026).
+ */
+@Composable
+private fun QuestionTitle(question: String) {
+    androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+        val headline = MaterialTheme.typography.headlineMedium
+        val smaller = MaterialTheme.typography.headlineSmall
+        val width = constraints.maxWidth
+        // Measured before drawing, so a long question never flashes at the large size first.
+        fun lines(style: androidx.compose.ui.text.TextStyle) =
+            measurer.measure(question, style, constraints = androidx.compose.ui.unit.Constraints(maxWidth = width)).lineCount
+        val long = remember(question, width, headline) { lines(headline) > TITLE_LINES }
+        val cut = long && remember(question, width, smaller) { lines(smaller) > TITLE_LINES }
+        var expanded by rememberSaveable(question) { mutableStateOf(false) }
+        Column {
+            Text(question, style = if (long) smaller else headline,
+                maxLines = if (cut && !expanded) TITLE_LINES else Int.MAX_VALUE, overflow = TextOverflow.Ellipsis)
+            if (cut) Box(Modifier.heightIn(min = 40.dp).clickable { expanded = !expanded }, contentAlignment = Alignment.CenterStart) {
+                Text(if (expanded) "Show less" else "Show full question", style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+private const val TITLE_LINES = 3
