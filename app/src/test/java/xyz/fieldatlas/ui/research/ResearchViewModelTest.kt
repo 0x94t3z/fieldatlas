@@ -61,6 +61,24 @@ class ResearchViewModelTest {
         assertEquals(ResearchPhase.Complete, state.phase)
     }
 
+    @Test fun theBestMatchIsShownWhileTheModelWorksAndFollowsTheSourcesItReads() {
+        val waiting = object : InferenceGateway {
+            override val state = MutableStateFlow<InferenceState>(InferenceState.Ready)
+            override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+            override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> =
+                flow { awaitCancellation() }
+            override suspend fun unload() = Unit
+        }
+        val viewModel = viewModel(Retriever { _, _, _ -> listOf(evidence) }, waiting)
+        viewModel.updateQuestion("Explain")
+        viewModel.submit()
+        val running = viewModel.uiState.value
+        assertTrue(running.phase != ResearchPhase.Complete)
+        assertEquals(running.sources.first(), running.preview)
+        assertEquals(running.preview, bestMatchSoFar(running))
+        viewModel.cancelResearch()
+    }
+
     @Test fun noEvidenceStillCompletesWithOfflineModelAnswer() {
         val viewModel = viewModel(
             Retriever { _, _, _ -> emptyList() },

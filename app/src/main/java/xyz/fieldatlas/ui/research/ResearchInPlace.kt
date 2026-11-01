@@ -321,6 +321,28 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
     }
 }
 
+/**
+ * The passage worth reading while the answer is prepared: the best match found so far, until the answer's own words
+ * appear on the page. Null when there is none, or while the run waits behind another question.
+ */
+internal fun bestMatchSoFar(state: ResearchUiState): Evidence? =
+    state.preview?.takeIf { state.waitingFor == null && draftAnswerPreview(state.answer).isBlank() }
+
+/** The best match so far, as its title, its opening sentences and where it is saved. */
+@Composable
+internal fun BestMatchSoFar(evidence: Evidence) {
+    val excerpt = remember(evidence.chunkId) { passageExcerpt(evidence.text) }
+    FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
+        Text("Best match so far", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(evidence.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)),
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(excerpt, style = MaterialTheme.typography.bodyMedium)
+        Text(xyz.fieldatlas.ui.sourcePresentation(evidence).let { if (it.isAttachment) it.metadata else xyz.fieldatlas.ui.sourceDisplayName(evidence.source) },
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 private val LINE_WIDTHS = listOf(0.96f, 1f, 0.88f, 1f, 0.62f, 1f, 0.94f, 1f, 0.71f)
 private const val PARAGRAPH_BREAK = 5
 

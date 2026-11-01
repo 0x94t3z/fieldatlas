@@ -307,7 +307,11 @@ class ResearchOrchestratorTest {
 
         assertTrue(events[0] is ResearchEvent.Searching)
         assertTrue(events.filterIsInstance<ResearchEvent.Searching>().isNotEmpty())
-        assertTrue(events[events.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
+        // Nothing but the preview of the best passage comes between the search and its sources.
+        val shown = events.filterNot { it is ResearchEvent.Preview }
+        assertTrue(shown[shown.indexOfFirst { it is ResearchEvent.Sources } - 1] is ResearchEvent.Searching)
+        assertEquals(evidence, events.filterIsInstance<ResearchEvent.Preview>().single().evidence)
+        assertTrue(events.indexOfFirst { it is ResearchEvent.Preview } < events.indexOfFirst { it is ResearchEvent.Sources })
         // Both drafts cite a source that does not exist; neither is shown. The answer falls back to a
         // model explanation labelled as unverified, beside the saved excerpt.
         val answer = events.filterIsInstance<ResearchEvent.Token>().last().text
@@ -357,7 +361,8 @@ class ResearchOrchestratorTest {
             override suspend fun unload() = Unit
         }
         ResearchOrchestrator(Retriever { _, _, _ -> listOf(evidence) }, gateway)
-            .research("Explain").take(4).toList()
+            // Searching, the best-match preview, Sources and the reading marker come first; the fifth is a model token.
+            .research("Explain").take(5).toList()
         assertTrue(cancelled)
     }
 

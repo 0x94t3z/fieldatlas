@@ -78,6 +78,8 @@ data class ResearchUiState(
     val startedAtNanos: Long? = null,
     val answer: String = "",
     val sources: List<Evidence> = emptyList(),
+    /** The best passage found so far, shown while the answer is researched; not a source until [sources] lists it. */
+    val preview: Evidence? = null,
     val keywords: List<String> = emptyList(),
     val phase: ResearchPhase = ResearchPhase.Idle,
     val retrievalProgress: Double = 0.0,
@@ -509,7 +511,12 @@ class ResearchViewModel(
                         retrievalVectorMatches = 0,
                         error = null,
                     )
-                    is ResearchEvent.Sources -> current.copy(sources = event.evidence)
+                    // The passages the answer is written from lead with the one the run settled on; the first search's top
+                    // hit was a side section ("Hanaoka Seishū — Popular culture" for "who was Hanaoka Seishu", 1 Nov).
+                    // Only where a preview was allowed: first aid never gets one.
+                    is ResearchEvent.Sources -> current.copy(sources = event.evidence,
+                        preview = current.preview?.let { event.evidence.firstOrNull() ?: it })
+                    is ResearchEvent.Preview -> current.copy(preview = event.evidence)
                     is ResearchEvent.Lead -> {
                         // Shown while the model is still reading its prompt; tokensWritten
                         // stays at zero so the prefill progress label remains visible.

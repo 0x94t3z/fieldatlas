@@ -69,6 +69,27 @@ fun draftAnswerPreview(answer: String, maxChars: Int = 650): String {
     return "…" + tail.substringAfter(' ', tail).trimStart()
 }
 
+/**
+ * The opening of a saved passage, for the best-match card shown while an answer is researched. Passages are cut from
+ * longer articles, so one may begin mid-word ("hem ascending and…"): it then starts at its first whole sentence. The
+ * end is the last sentence that fits, or a word followed by "…".
+ */
+fun passageExcerpt(text: String, maxChars: Int = 280): String {
+    var body = text.replace(Regex("\\s+"), " ").trim()
+    if (body.isEmpty()) return ""
+    val first = body.first()
+    val midSentence = text.first().isWhitespace() || !(first.isUpperCase() || first.isDigit() || first in "\"“(")
+    if (midSentence) {
+        Regex("[.!?][\"”’)]?\\s+(?=[A-Z0-9\"“(])").find(body)?.takeIf { it.range.last < maxChars }
+            ?.let { body = body.substring(it.range.last + 1) }
+    }
+    if (body.length <= maxChars) return body
+    val head = body.substring(0, maxChars)
+    val sentenceEnd = Regex("[.!?][\"”’)]?(?=\\s)").findAll(head).lastOrNull()?.range?.last
+    if (sentenceEnd != null && sentenceEnd >= maxChars / 2) return head.substring(0, sentenceEnd + 1)
+    return head.substringBeforeLast(' ').trimEnd(',', ';', ':', ' ') + "…"
+}
+
 /** A real answer excerpt for the Research card, without raw Markdown or citation syntax. */
 fun answerCardPreview(answer: String): String {
     val blocks = parseAnswerMarkdown(AnswerText.visible(answer))

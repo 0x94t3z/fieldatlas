@@ -11,6 +11,11 @@ sealed interface ResearchEvent {
     data class Searching(val query: String) : ResearchEvent
     data class Sources(val evidence: List<Evidence>) : ResearchEvent
     /**
+     * The best passage the search has found so far, shown while the rest of the run reads and writes. A preview only:
+     * it is not a source of the answer until [Sources] lists it.
+     */
+    data class Preview(val evidence: Evidence) : ResearchEvent
+    /**
      * Verbatim source text shown before model generation starts. It replaces any answer
      * text so far; later replace tokens repeat it. Consumers must not count it as a
      * generated token, or prefill progress would be hidden while the model is still reading.

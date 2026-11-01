@@ -639,6 +639,11 @@ class ResearchOrchestrator(
                 question = question,
             ).let { technicalFocus?.prioritize(it) ?: it }.take(resultLimit) else emptyList()
             if (!includeLibrary) _searchProgress.value = 1.0
+            // Something to read while the rest of the run looks further and the model reads: on 1 Nov the first words
+            // came 6-50 s after asking on the emulator. Not for first aid (a guide or the call line leads there, never a
+            // passage that merely shares words) or a place lookup (its rows are map fields, not prose).
+            if (!placesOnly && preferredGuideId == null && !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
+                evidence.firstOrNull()?.let { emit(ResearchEvent.Preview(it)) }
 
             if (includeLibrary && attachments.isEmpty() && !placesOnly && technicalFocus == null &&
                 retriever.hasEligiblePacks(question)) {
