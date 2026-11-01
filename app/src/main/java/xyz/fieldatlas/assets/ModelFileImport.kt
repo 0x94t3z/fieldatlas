@@ -110,10 +110,11 @@ object ModelFileImport {
     }
 
     /**
-     * Model files above this may never load on a phone, whatever its memory: on a 16 GB phone (2 Nov 2026) none over
-     * about 6.5 GB loaded in any app, which is why Gemma 4 26B (10.55 GB) never answered there.
+     * Model files above this may never load on a phone, whatever its memory: on a 16 GB phone (2 Nov 2026) the largest
+     * that loaded in any app was a 6.55 GB Gemma 3 12B (about 5 tokens a second), and nothing bigger did, which is why
+     * Gemma 4 26B (10.55 GB) never answered there.
      */
-    const val PHONE_FILE_CEILING_BYTES = 6_500_000_000L
+    const val PHONE_FILE_CEILING_BYTES = 6_600_000_000L
 
     /** The share of memory above which an unmeasured model may not load; the 4B (3 GB) still runs on a 6 GB phone. */
     const val LOAD_RISK_SHARE = 0.45
@@ -122,8 +123,8 @@ object ModelFileImport {
     fun sizeWarning(kind: ModelFileKind, memoryBytes: Long): String? {
         val bytes = (kind as? ModelFileKind.Own)?.bytes ?: return null
         val risky = bytes > PHONE_FILE_CEILING_BYTES || memoryBytes > 0 && bytes > memoryBytes * LOAD_RISK_SHARE
-        return if (!risky) null else "This model (${gb(bytes)}) may be too big to run on this phone. On a 16 GB phone, model " +
-            "files over about 6.5 GB did not load. If an answer never starts, choose a smaller model."
+        return if (!risky) null else "This model (${gb(bytes)}) may be too big to run on this phone. On a 16 GB phone, the largest " +
+            "model file that loaded was 6.55 GB. If an answer never starts, choose a smaller model."
     }
 
     fun mismatch(offer: ModelOffer): ModelFileRefusal = ModelFileRefusal("Not the published file",

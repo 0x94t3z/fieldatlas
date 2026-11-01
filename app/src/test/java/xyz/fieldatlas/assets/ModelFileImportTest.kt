@@ -126,12 +126,13 @@ class ModelFileImportTest {
     }
 
     @Test fun aLargeModelOfTheUsersOwnInstallsWithACautionNotARefusal() {
-        // The Wiz's 16 GB Oppo (2 Nov 2026): no model file over about 6.5 GB loaded, in any app.
+        // The Wiz's 16 GB Oppo (2 Nov 2026): a 6.55 GB Gemma 3 12B was the largest model file that loaded, in any app.
         val sixteen = 15_807_180_800L
         val ownGemma = ModelFileKind.Own(10_546_934_240L)
         assertNull(ModelFileImport.refusal(ownGemma, sixteen))
-        assertTrue(ModelFileImport.sizeWarning(ownGemma, sixteen)!!.contains("over about 6.5 GB did not load"))
-        assertNotNull(ModelFileImport.sizeWarning(ModelFileKind.Own(6_600_000_000L), 32_000_000_000L))
+        assertTrue(ModelFileImport.sizeWarning(ownGemma, sixteen)!!.contains("the largest model file that loaded was 6.55 GB"))
+        assertNotNull(ModelFileImport.sizeWarning(ModelFileKind.Own(6_700_000_000L), 32_000_000_000L))
+        assertNull(ModelFileImport.sizeWarning(ModelFileKind.Own(6_550_000_000L), sixteen))
         assertNull(ModelFileImport.sizeWarning(ModelFileKind.Own(4_920_000_000L), 12_530_000_000L))
         assertNull(ModelFileImport.sizeWarning(ModelFileKind.Tested(ModelOffers.larger), 6_010_000_000L))
     }
