@@ -68,8 +68,8 @@ android {
         applicationId = "xyz.fieldatlas"
         minSdk = 33
         targetSdk = 36
-        versionCode = 25
-        versionName = "1.4.4"
+        versionCode = 26
+        versionName = "1.4.5"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += "arm64-v8a" }
     }
