@@ -1,15 +1,16 @@
 diff --git a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-index 03ab96cfd..48e3b520a 100644
+index 03ab96cfd..b13299179 100644
 --- a/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
 +++ b/examples/llama.android/lib/src/main/cpp/ai_chat.cpp
-@@ -1,5 +1,6 @@
+@@ -1,5 +1,7 @@
  #include <android/log.h>
  #include <jni.h>
 +#include <algorithm>
++#include <atomic>
  #include <iomanip>
  #include <cmath>
  #include <string>
-@@ -9,6 +10,7 @@
+@@ -9,6 +11,7 @@
  #include "logging.h"
  #include "chat.h"
  #include "common.h"
@@ -17,7 +18,7 @@ index 03ab96cfd..48e3b520a 100644
  #include "llama.h"
  
  template<class T>
-@@ -25,12 +27,16 @@ static std::string join(const std::vector<T> &values, const std::string &delim)
+@@ -25,12 +28,16 @@ static std::string join(const std::vector<T> &values, const std::string &delim)
   * LLama resources: context, model, batch and sampler
   */
  constexpr int   N_THREADS_MIN           = 2;
@@ -36,7 +37,7 @@ index 03ab96cfd..48e3b520a 100644
  constexpr float DEFAULT_SAMPLER_TEMP    = 0.3f;
  
  static llama_model                      * g_model;
-@@ -39,9 +45,26 @@ static llama_batch                        g_batch;
+@@ -39,9 +46,28 @@ static llama_batch                        g_batch;
  static common_chat_templates_ptr          g_chat_templates;
  static common_sampler                   * g_sampler;
  
@@ -51,6 +52,8 @@ index 03ab96cfd..48e3b520a 100644
 +static std::vector<llama_token>          g_saved_prefix;
 +static std::vector<uint8_t>              g_saved_state;
 +static int                               g_reused_tokens     = 0;
++// Field Atlas: set from another thread to stop reading a prompt between batches (Stop, or the app's stall guard).
++static std::atomic<bool>                 g_abort_prompt{false};
 +
 +static void drop_saved_prefix() {
 +    g_saved_prefix.clear();
@@ -64,7 +67,7 @@ index 03ab96cfd..48e3b520a 100644
      // Set llama log handler to Android
      llama_log_set(aichat_android_log_callback, nullptr);
  
-@@ -53,13 +76,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
+@@ -53,13 +79,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unu
  
      // Initialize backends
      llama_backend_init();
@@ -99,7 +102,7 @@ index 03ab96cfd..48e3b520a 100644
  
      const auto *model_path = env->GetStringUTFChars(jmodel_path, 0);
      LOGd("%s: Loading model from: \n%s\n", __func__, model_path);
-@@ -104,9 +148,18 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
+@@ -104,9 +151,18 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
      return context;
  }
  
@@ -119,7 +122,7 @@ index 03ab96cfd..48e3b520a 100644
      return common_sampler_init(g_model, sparams);
  }
  
-@@ -116,12 +169,38 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
+@@ -116,12 +172,38 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobje
      auto *context = init_context(g_model);
      if (!context) { return 1; }
      g_context = context;
@@ -159,7 +162,7 @@ index 03ab96cfd..48e3b520a 100644
  static std::string get_backend() {
      std::vector<std::string> backends;
      for (size_t i = 0; i < ggml_backend_reg_count(); i++) {
-@@ -257,11 +336,14 @@ constexpr const char *ROLE_USER         = "user";
+@@ -257,11 +339,14 @@ constexpr const char *ROLE_USER         = "user";
  constexpr const char *ROLE_ASSISTANT    = "assistant";
  
  static std::vector<common_chat_msg> chat_msgs;
@@ -174,7 +177,7 @@ index 03ab96cfd..48e3b520a 100644
      system_prompt_position = 0;
      current_position = 0;
  
-@@ -290,10 +372,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
+@@ -290,10 +375,50 @@ static std::string chat_add_and_format(const std::string &role, const std::strin
      common_chat_msg new_msg;
      new_msg.role = role;
      new_msg.content = content;
@@ -228,7 +231,7 @@ index 03ab96cfd..48e3b520a 100644
      return formatted;
  }
  
-@@ -318,7 +440,10 @@ static int decode_tokens_in_batches(
+@@ -318,10 +443,18 @@ static int decode_tokens_in_batches(
          llama_batch &batch,
          const llama_tokens &tokens,
          const llama_pos start_pos,
@@ -240,7 +243,15 @@ index 03ab96cfd..48e3b520a 100644
      // Process tokens in batches using the global batch
      LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
      for (int i = 0; i < (int) tokens.size(); i += BATCH_SIZE) {
-@@ -346,39 +471,44 @@ static int decode_tokens_in_batches(
++        // Field Atlas: a prompt can take minutes to read on a slow phone; Stop must not wait for all of it.
++        if (g_abort_prompt.load()) {
++            LOGi("%s: prompt reading stopped on request after %d of %d tokens", __func__, i, (int) tokens.size());
++            return 1;
++        }
+         const int cur_batch_size = std::min((int) tokens.size() - i, BATCH_SIZE);
+         common_batch_clear(batch);
+         LOGv("%s: Preparing a batch size of %d starting at: %d", __func__, cur_batch_size, i);
+@@ -346,39 +479,44 @@ static int decode_tokens_in_batches(
              LOGe("%s: llama_decode failed w/ %d", __func__, decode_result);
              return 1;
          }
@@ -301,7 +312,7 @@ index 03ab96cfd..48e3b520a 100644
  
      // Handle context overflow
      const int max_batch_size = DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM;
-@@ -399,20 +529,52 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
+@@ -399,20 +537,53 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processSystemPrompt(
      return 0;
  }
  
@@ -346,6 +357,7 @@ index 03ab96cfd..48e3b520a 100644
      // Reset short-term states
      reset_short_term_states();
 +    g_reused_tokens = 0;
++    g_abort_prompt.store(false);
 +    const auto *const saved_prefix_chars = env->GetStringUTFChars(jsaved_prefix, nullptr);
 +    const std::string saved_prefix(saved_prefix_chars);
 +    env->ReleaseStringUTFChars(jsaved_prefix, saved_prefix_chars);
@@ -356,7 +368,7 @@ index 03ab96cfd..48e3b520a 100644
      std::string formatted_user_prompt(user_prompt);
  
      // Format user prompt if applicable
-@@ -424,9 +586,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -424,9 +595,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
  
      // Decode formatted user prompts
      auto user_tokens = common_tokenize(g_context, formatted_user_prompt, has_chat_template, has_chat_template);
@@ -366,7 +378,7 @@ index 03ab96cfd..48e3b520a 100644
  
      // Ensure user prompt doesn't exceed the context size by truncating if necessary.
      const int user_prompt_size = (int) user_tokens.size();
-@@ -437,15 +596,72 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
+@@ -437,15 +605,72 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
          LOGw("%s: User prompt too long! Skipped %d tokens!", __func__, skipped_tokens);
      }
  
@@ -442,7 +454,7 @@ index 03ab96cfd..48e3b520a 100644
      return 0;
  }
  
-@@ -531,7 +747,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
+@@ -531,7 +756,6 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
      jstring result = nullptr;
      if (is_valid_utf8(cached_token_chars.c_str())) {
          result = env->NewStringUTF(cached_token_chars.c_str());
@@ -450,7 +462,7 @@ index 03ab96cfd..48e3b520a 100644
  
          assistant_ss << cached_token_chars;
          cached_token_chars.clear();
-@@ -549,6 +764,7 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
+@@ -549,6 +773,7 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
      // Reset long-term & short-term states
      reset_long_term_states();
      reset_short_term_states();
@@ -458,10 +470,17 @@ index 03ab96cfd..48e3b520a 100644
  
      // Free up resources
      common_sampler_free(g_sampler);
-@@ -558,8 +774,132 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
+@@ -558,8 +783,139 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
      llama_model_free(g_model);
  }
  
++// Field Atlas: stop reading the current prompt at the next batch; processUserPrompt then fails as on a decode error.
++extern "C"
++JNIEXPORT void JNICALL
++Java_com_arm_aichat_internal_InferenceEngineImpl_requestAbortNative(JNIEnv *, jobject /*unused*/) {
++    g_abort_prompt.store(true);
++}
++
 +// Field Atlas: prompt tokens restored from the saved state in the last processUserPrompt call.
 +extern "C"
 +JNIEXPORT jint JNICALL
@@ -592,7 +611,7 @@ index 03ab96cfd..48e3b520a 100644
 +    return result;
 +}
 diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
-index 26c166872..728d22f77 100644
+index 26c166872..9572bb6f2 100644
 --- a/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
 +++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/InferenceEngine.kt
 @@ -4,6 +4,9 @@ import com.arm.aichat.InferenceEngine.State
@@ -605,7 +624,7 @@ index 26c166872..728d22f77 100644
  /**
   * Interface defining the core LLM inference operations.
   */
-@@ -27,8 +30,68 @@ interface InferenceEngine {
+@@ -27,8 +30,74 @@ interface InferenceEngine {
  
      /**
       * Sends a user prompt to the loaded model and returns a Flow of generated tokens.
@@ -618,6 +637,12 @@ index 26c166872..728d22f77 100644
 +
 +    /** Field Atlas addition: prompt tokens restored instead of read in the last [sendUserPrompt]. */
 +    fun reusedPromptTokens(): Int = 0
++
++    /**
++     * Field Atlas: stops the prompt being read (at its next batch) or the answer being written (at its next token), from
++     * any thread. The stopped [sendUserPrompt] flow then ends without further tokens and the engine is ready again.
++     */
++    fun abortGeneration() {}
 +
 +    /**
 +     * Field Atlas addition: live progress while the engine is *reading* (decoding) a prompt,
@@ -676,7 +701,7 @@ index 26c166872..728d22f77 100644
      /**
       * Runs a benchmark with the specified parameters.
 diff --git a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
-index a293796f9..961a1a04b 100644
+index a293796f9..1c0b1d714 100644
 --- a/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
 +++ b/examples/llama.android/lib/src/main/java/com/arm/aichat/internal/InferenceEngineImpl.kt
 @@ -3,9 +3,10 @@ package com.arm.aichat.internal
@@ -691,7 +716,7 @@ index a293796f9..961a1a04b 100644
  import kotlinx.coroutines.CancellationException
  import kotlinx.coroutines.CoroutineScope
  import kotlinx.coroutines.Dispatchers
-@@ -75,40 +76,62 @@ internal class InferenceEngineImpl private constructor(
+@@ -75,40 +76,64 @@ internal class InferenceEngineImpl private constructor(
              }
      }
  
@@ -737,6 +762,8 @@ index a293796f9..961a1a04b 100644
 +
 +    private external fun reusedPromptTokensNative(): Int
 +
++    private external fun requestAbortNative()
++
 +    private external fun resetConversationNative(systemPrompt: String): Int
 +
 +    private external fun setSamplerNative(seed: Int, repeatPenalty: Float)
@@ -765,7 +792,7 @@ index a293796f9..961a1a04b 100644
      private val _state =
          MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
      override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
-@@ -214,9 +237,43 @@ internal class InferenceEngineImpl private constructor(
+@@ -214,9 +239,48 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
       */
@@ -799,6 +826,11 @@ index a293796f9..961a1a04b 100644
 +        setSamplerNative(seed, repeatPenalty)
 +    }
 +
++    override fun abortGeneration() {
++        _cancelGeneration = true
++        requestAbortNative()
++    }
++
 +    override fun reusedPromptTokens(): Int =
 +        if (_state.value.isModelLoaded) reusedPromptTokensNative() else 0
 +
@@ -809,18 +841,25 @@ index a293796f9..961a1a04b 100644
      ): Flow<String> = flow {
          require(message.isNotEmpty()) { "User prompt discarded due to being empty!" }
          check(_state.value is InferenceEngine.State.ModelReady) {
-@@ -227,8 +284,9 @@ internal class InferenceEngineImpl private constructor(
+@@ -227,10 +291,16 @@ internal class InferenceEngineImpl private constructor(
              Log.i(TAG, "Sending user prompt...")
              _readyForSystemPrompt = false
              _state.value = InferenceEngine.State.ProcessingUserPrompt
 +            _promptProgress.value = null
++            // Field Atlas: a stop asked for during an earlier prompt applies to that prompt only.
++            _cancelGeneration = false
  
 -            processUserPrompt(message, predictLength).let { result ->
 +            processUserPrompt(message, predictLength, savedPrefix).let { result ->
                  if (result != 0) {
                      Log.e(TAG, "Failed to process user prompt: $result")
++                    // Field Atlas: the model is still loaded and usable; left in ProcessingUserPrompt, every later
++                    // prompt was refused.
++                    _state.value = InferenceEngine.State.ModelReady
                      return@flow
-@@ -262,6 +320,17 @@ internal class InferenceEngineImpl private constructor(
+                 }
+             }
+@@ -262,6 +332,17 @@ internal class InferenceEngineImpl private constructor(
      /**
       * Benchmark the model
       */

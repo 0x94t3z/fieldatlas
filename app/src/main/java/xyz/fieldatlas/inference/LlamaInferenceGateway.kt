@@ -4,10 +4,13 @@ import android.content.Context
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,10 @@ import kotlinx.coroutines.withTimeout
 class LlamaInferenceGateway internal constructor(
     private val engine: InferenceEngine,
     private val adapterScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    /** How long a turn may go with no prompt batch read and no word written before it is stopped. */
+    private val stallMillis: Long = STALL_MILLIS,
+    private val watchdogTickMillis: Long = WATCHDOG_TICK_MS,
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000L },
 ) : InferenceGateway {
     constructor(context: Context) : this(AiChat.getInferenceEngine(context.applicationContext))
 
@@ -135,9 +142,26 @@ class LlamaInferenceGateway internal constructor(
                 val generated = StringBuilder()
                 var pieces = 0
                 lastHitLimit = false
+                // Stall guard: a batch of the prompt read or a word written is progress. On 1 Nov a model gave no answer in
+                // over 50 minutes on a 16 GB phone with nothing on screen to say so. A 256-token batch takes about 90 s
+                // on a 6 GB phone with the 4B, so only far longer than that with neither counts as stuck.
+                val lastProgressAt = AtomicLong(nowMillis())
+                val stalled = AtomicBoolean(false)
+                val watchdog = adapterScope.launch {
+                    launch { engine.promptProgress.collect { lastProgressAt.set(nowMillis()) } }
+                    while (true) {
+                        delay(watchdogTickMillis)
+                        // Asked again on every tick: a stop sent just before the engine starts the prompt is not lost.
+                        if (stalled.get() || nowMillis() - lastProgressAt.get() >= stallMillis) {
+                            stalled.set(true)
+                            engine.abortGeneration()
+                        }
+                    }
+                }
                 try {
                     val safe = withoutControlTokens(prompt)
                     engine.sendUserPrompt(safe, maxTokens, safe.take(savedPrefixChars.coerceIn(0, safe.length))).collect { token ->
+                        lastProgressAt.set(nowMillis())
                         emit(token)
                         generated.append(token)
                         // The engine streams one piece per sampled token, so reaching the budget means it was cut off.
@@ -149,9 +173,18 @@ class LlamaInferenceGateway internal constructor(
                 } catch (stopped: GenerationLoopStopped) {
                     // Verbatim echo loop (seen with MiniCPM5-1B Q4): the second exact copy of
                     // a long stretch ended the turn; the stream so far is the whole answer.
+                } finally {
+                    watchdog.cancel()
                 }
                 mutableState.value = LlamaStateMapper.map(engine.state.value)
+                if (stalled.get()) throw GenerationStalledException()
+            } catch (error: GenerationStalledException) {
+                // The model is still loaded and the next question can use it; only this answer stops.
+                mutableState.value = LlamaStateMapper.map(engine.state.value)
+                throw error
             } catch (error: CancellationException) {
+                // Stop: the engine would otherwise read the rest of the prompt before noticing, holding up the next question.
+                engine.abortGeneration()
                 mutableState.value = if (engine.state.value is InferenceEngine.State.ModelReady) {
                     InferenceState.Ready
                 } else {
@@ -215,10 +248,17 @@ class LlamaInferenceGateway internal constructor(
 
     private class GenerationLoopStopped : Exception()
 
+    /** The turn made no progress for [stallMillis]; its message is what the person reads. */
+    class GenerationStalledException : IllegalStateException(STALLED_MESSAGE)
+
     private companion object {
         const val MIN_LOOP_CHARS = 48
         const val LOOP_WINDOW_CHARS = 320
         const val NATIVE_INIT_TIMEOUT_MS = 60_000L
+        const val STALL_MILLIS = 180_000L
+        const val WATCHDOG_TICK_MS = 1_000L
+        const val STALLED_MESSAGE = "The model stopped making progress for 3 minutes, so this answer was stopped. " +
+            "Try again; if it happens again, choose a smaller model in Library."
         const val DEFAULT_RESET_PROMPT = "You are a careful offline assistant."
     }
 }

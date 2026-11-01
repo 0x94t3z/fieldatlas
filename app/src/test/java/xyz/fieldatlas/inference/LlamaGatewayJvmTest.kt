@@ -72,6 +72,38 @@ class LlamaGatewayJvmTest {
         assertEquals(listOf(true), plain.repacks)
     }
 
+    @Test fun aTurnWithNoProgressIsStoppedAndTheModelStaysUsable() = runBlocking {
+        val engine = FakeEngine(readUntilStopped = true)
+        val gateway = LlamaInferenceGateway(engine, stallMillis = 150, watchdogTickMillis = 20)
+        gateway.load("/verified/model.gguf", "system")
+        val error = assertThrows(LlamaInferenceGateway.GenerationStalledException::class.java) {
+            runBlocking { gateway.generate("prompt", 8).toList() }
+        }
+        assertTrue(error.message!!.contains("stopped making progress"))
+        assertTrue(engine.aborts >= 1)
+        assertEquals(InferenceState.Ready, gateway.state.value)
+        // The next question runs on the same loaded model.
+        engine.readUntilStoppedOff()
+        assertEquals(listOf("one"), gateway.generate("prompt", 8).toList())
+    }
+
+    @Test fun aSlowPromptThatKeepsReadingIsNotStopped() = runBlocking {
+        // Six batches 60 ms apart against a 150 ms limit: slow, never stuck.
+        val engine = FakeEngine(readUntilStopped = true, progressSteps = 6, stepMillis = 60, promptProgress = MutableStateFlow(null))
+        val gateway = LlamaInferenceGateway(engine, stallMillis = 150, watchdogTickMillis = 20)
+        gateway.load("/verified/model.gguf", "system")
+        assertEquals(listOf("read"), gateway.generate("prompt", 8).toList())
+        assertEquals(0, engine.aborts)
+    }
+
+    @Test fun stopAsksTheEngineToStopReading() = runBlocking {
+        val engine = FakeEngine(waitAfterTokens = true)
+        val gateway = LlamaInferenceGateway(engine)
+        gateway.load("/verified/model.gguf", "system")
+        gateway.generate("prompt", 8).take(1).toList()
+        assertTrue(engine.aborts >= 1)
+    }
+
     @Test fun downstreamCancellationReturnsGatewayToReady() = runBlocking {
         val gateway = LlamaInferenceGateway(FakeEngine(waitAfterTokens = true))
         gateway.load("/verified/model.gguf", "system")
@@ -130,7 +162,16 @@ class LlamaGatewayJvmTest {
             kotlinx.coroutines.flow.MutableStateFlow(null),
         private val tokens: List<String> = listOf("one"),
         private val waitAfterTokens: Boolean = false,
+        /** Reads the prompt until stopped, reporting [progressSteps] batches first; then ends with no tokens, as the engine does. */
+        private var readUntilStopped: Boolean = false,
+        private val progressSteps: Int = 0,
+        private val stepMillis: Long = 0,
     ) : InferenceEngine {
+        fun readUntilStoppedOff() { readUntilStopped = false }
+        @Volatile var aborts = 0
+        @Volatile private var abortRequested = false
+        override fun abortGeneration() { aborts++; abortRequested = true }
+
         override val state = MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Initialized)
         val calls = mutableListOf<String>()
         val penalties = mutableListOf<Float>()
@@ -155,6 +196,22 @@ class LlamaGatewayJvmTest {
         override fun sendUserPrompt(message: String, predictLength: Int, savedPrefix: String): Flow<String> = flow {
             calls += "prefix:$savedPrefix"
             state.value = InferenceEngine.State.Generating
+            abortRequested = false
+            if (readUntilStopped) {
+                val started = System.currentTimeMillis()
+                var step = 0
+                while (!abortRequested) {
+                    Thread.sleep(5)
+                    if (step < progressSteps && System.currentTimeMillis() - started >= (step + 1) * stepMillis) {
+                        step++
+                        (promptProgress as MutableStateFlow).value = com.arm.aichat.PromptProgress(step * 256, progressSteps * 256)
+                        if (step == progressSteps) break
+                    }
+                }
+                state.value = InferenceEngine.State.ModelReady
+                if (!abortRequested) emit("read")
+                return@flow
+            }
             try {
                 tokens.take(predictLength).forEach { emit(it) }
                 if (waitAfterTokens) awaitCancellation()
