@@ -31,6 +31,20 @@
       "safeTxHash": "0x15f75591afcdb55ca69ba8034483ca5168ba4c70ee0c113ebc35b0e5a1a6b37a",
       "nonce": 0,
       "tx": "0x7b66a06a05ed14de529ed0201de1530f0083935ad5c125a1b1b06a60e3a754aa"
+    },
+    {
+      "date": "2026-11-01",
+      "contributor": "swiftbotlab",
+      "contributorId": 344366013,
+      "work": "Time Field Atlas 1.4.3 on a phone with 12 GB or more of memory",
+      "link": "https://github.com/0x94t3z/fieldatlas/pull/5",
+      "issue": 3,
+      "amount": 5000000,
+      "address": "0x2481E29895b43e87e547a50fB0BB5aa1E70585EB",
+      "status": "proposed",
+      "safeTxHash": "0x20b1e4700b89d570df4ac9795bd63b654418379640760a9484eafa717b006fd1",
+      "nonce": 1,
+      "tx": null
     }
   ]
 }
