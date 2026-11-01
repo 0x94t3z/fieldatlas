@@ -31,135 +31,79 @@ The app only goes online when you start a download or refresh the list of collec
 
 ## What it can do
 
-- **Look things up offline** in Wikipedia (English and Simple English), Wikivoyage travel guides,
-  and collections on biology and cryptography.
-- **Find places near you or near a landmark**, like a pharmacy, an ATM, a toilet, the best vegan
-  restaurants in the city you are in, or a hospital near the Colosseum, from OpenStreetMap and
-  Wikivoyage. Each place shows how far and which way, whether it is open, and an address large
-  enough to show a driver; a list of hospitals names the nearest one with an emergency department.
-- **Search 8.39 million passages on the phone.** The Encyclopedia and Biology collections are
-  searched by [Leviathan](https://github.com/elstongun/leviathan), a search engine built into the
-  app.
-- **Show its sources.** When a collection covers your question, the answer cites the passages it
-  used, and you can open each one.
-- **Keep a conversation going.** Ask a follow-up under an answer, by typing, speaking or adding a
-  file, and pick a topic up again later from History.
-- **Read answers aloud** with the phone's voice or a natural voice you can download once.
-- **Help in an emergency.** 52 first-aid and safety guides, each with a recorded reading, and the
-  emergency numbers of 242 countries are built in and work without any download. The call line and
-  the official guide open in seconds, even while another answer is being written. When no guide fits,
-  the reply still starts with the first step: do not touch someone near a live current, and press on
-  a wound that will not stop.
-- **Do some travel maths**, like fuel cost, currency at a given rate, time zones and water for a
-  group, when the question is worded the way its calculators expect. A word problem that gives its
-  own figures is worked from them; the model still gets some of these wrong.
-- **Show phrases** from Wikivoyage phrasebooks, in the local script with pronunciation.
+- **Look things up offline** in Wikipedia, Wikivoyage, and collections on biology and cryptography:
+  8.39 million passages, searched on the phone by [Leviathan](https://github.com/elstongun/leviathan).
+- **Show its sources.** Answers cite the passages they use, and you can open each one.
+- **Find places** near you or near a landmark, like a pharmacy, an ATM or a hospital, with distance,
+  direction and opening hours, from OpenStreetMap and Wikivoyage.
+- **Help in an emergency.** 52 official first-aid guides and the emergency numbers of 242 countries
+  are built in. They open in seconds, with the call line first.
+- **Keep a conversation going.** Ask a follow-up by typing, speaking or adding a file, and pick a
+  topic up later from History.
+- **Read answers aloud** with the phone's voice or a natural voice.
+- **Do travel maths** (fuel, currency, time zones) and show Wikivoyage phrases with pronunciation.
 
 ## How it works
 
 [![How a question becomes an answer on the phone: ask, answer directly, search, write, check and show](docs/images/fieldatlas-pipeline-animated.svg)](docs/how-it-works.md)
 
-A question the app can answer exactly, such as an emergency number, a first-aid guide, a sum or the
-nearest pharmacy, is answered by the app itself in seconds. Everything else is searched in the
-saved collections and written by the model your phone can hold. A subject few people write about,
-or one held by a specialist or imported collection, is read from the saved passages and cited, and so
-is a question for a single fact on Qwen3.5 4B. Figures are then checked against those passages, and the sources sit
-under the answer. [How it works, step by step](docs/how-it-works.md).
+Questions with an exact answer, like an emergency number, a first-aid guide, a sum or the nearest
+pharmacy, are answered by the app itself in seconds. Everything else is searched in your saved
+collections and written by the model on your phone, with its sources underneath.
+[Step by step](docs/how-it-works.md).
 
 ## Get started
 
 You need an Android 13 or later phone with an arm64 processor.
 
 1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk)
-   (about 100 MB). You can check it against its
-   [SHA-256 checksum](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk.sha256).
-2. Open the file and follow Android's prompts to install it.
-3. In setup, download the answer model it recommends: Qwen3.5 2B (1.4 GB) on phones with less than
-   8 GB of memory, or Qwen3.5 4B (3.0 GB) from 8 GB. A 6 GB phone can choose the 4B too; setup says it
-   is slow there.
-4. Add any collections you want. You can add more later in **Library**.
+   (about 100 MB, [SHA-256](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.3/fieldatlas.apk.sha256)).
+2. Open it and follow Android's prompts to install it.
+3. In setup, download the model it recommends: Qwen3.5 2B (1.4 GB) below 8 GB of memory, or
+   Qwen3.5 4B (3.0 GB) from 8 GB.
+4. Add the collections you want. You can add more later in **Library**.
 5. Turn on airplane mode and ask a question in **Research**.
 
-Finish the downloads before you go offline. A phone without a connection can import a `.fapack`
-file copied from another device: collections from Hugging Face
-([Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge),
-[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia)), and the model's own
-`.gguf` file, or a `.fapack` built as [MODELS.md](MODELS.md) describes, through **Import a file**. The [install guide](docs/installation.md) covers updates and older versions.
+No connection? Copy a collection (`.fapack`) or the model file (`.gguf`) from another device and
+choose **Import a file**. Collections are on Hugging Face:
+[Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) and
+[Encyclopedia](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia). The
+[install guide](docs/installation.md) covers updates; [MODELS.md](MODELS.md) covers model files.
 
 ## How good is it?
 
-We count how many questions get a **good answer** and how many problems the graders list per answer (**grader annotations**).
-Each question set is written blind and sealed before the app answers it. AI graders then score every
-answer from 0 to 10, without knowing which setup wrote it, usually in two rounds; web-researched
-reference answers are graded the same way as a yardstick. A good answer is one they score 7 or more in
-every round. Changes to how answers are written are tested this way; the fixes of October 24 (emergencies,
-the model recommended per phone, wording) were checked on the phone, not on a fresh graded set.
+We write new questions, seal them, and have AI graders score each answer from 0 to 10 without knowing
+which model wrote it. A **good answer** scores 7 or more in every round.
 
-![Good answers and average score on 160 sealed questions: Qwen3.5 2B 35 of 160 good (22%) and 40% of the reference score, Qwen3.5 4B 27 of 160 (17%) and 45%, Gemma 4 26B 115 of 160 (72%) and 77%](docs/images/fieldatlas-models-animated.svg)
+| Model | Good answers, 160 sealed questions | Problems noted per answer |
+| --- | ---: | ---: |
+| Qwen3.5 2B | 35 (22%) | 0.83 |
+| Qwen3.5 4B | 27 (17%) | 2.19 |
+| Gemma 4 26B, no longer offered | 115 (72%) | 0.38 |
 
-- **Gemma 4 26B, no longer offered since 1.4.3** (on a 16 GB phone it gave no answer in over 50 minutes;
-  it had only been timed on an emulator): a good answer to 115 of 160 new questions (72%) over four sealed
-  sets (37, 46, 49 and 51, answered 19 to 23 October: 27, 29, 25 and 34 of 40), 77% of the reference
-  answers' average score, with 0.38 grader annotations per answer. It reasons first, then answers from
-  what it knows.
-- **Qwen3.5 4B, recommended from 8 GB (a 6 GB phone can choose it):** 27 of 160 (17%; 8, 6, 5 and 8 of 40),
-  45% of the reference score, with 2.19 grader annotations per answer. It answers from what it knows, so
-  its answers are fuller but have more details to check; fewer of them reach 7 in every round, while its
-  average score is higher than the 2B's. The passages found are listed under each answer to check it. Since those sets were graded it reads
-  three saved notes for a question about a single fact, which took it from 38 to 66 good answers on 105 earlier sealed fact questions (36% to 63%; graded with
-  the two answers side by side), with grader annotations per answer down from 2.79 to 1.69.
-- **Qwen3.5 2B, recommended below 8 GB:** 35 of 160 (22%; 2, 11, 9 and 13 of 40), 40% of the reference
-  score, with 0.83 grader annotations per answer; its answers to sets 46, 49 and 51 were graded a day
-  after the others. It writes from the saved passages and cites them when its draft passes the check and
-  review, and otherwise gives a model explanation labelled as unverified (18 of its 40 answers on set 37).
-  On sets 46 to 51 it was good on single facts the collections hold (22 of 32) and poor at explanations
-  (1 of 22).
-- **Emergencies:** the models show the official guide as published, with the call line first. In 1.4.3,
-  on 90 new messages about bleeding, electric shocks and look-alikes, each labelled with the guide that
-  should open, the right guide opened for 59 against 37 in 1.4.2, with misleading guides down from 2 to 1
-  ([1.4.3 notes](docs/releases/current.md)). In 1.4.2 testing, Gemma 4 26B writing from the official
-  guide gave a good answer to 30 of 40 new first-aid situations (set 55), one judged unsafe. On 320 labelled questions, which the guide matcher was developed against, the
-  right guide opens 231 times with none misleading (the release's code).
-- **Saved sources add good answers.** The rebuilt Biology collection took the 2B from 2 to 6 good
-  answers (5% to 15%) on 40 longevity questions (18 October); reading the Encyclopedia for subjects few
-  people write about took the 4B from 2 to 7 (5% to 18%) on 40 such questions (20 October, one grading
-  round); reading notes for single facts took it from 38 to 66 of 105 (23 October)
-  ([how it works](docs/how-it-works.md)).
+- **The 2B** writes from your saved passages and cites them. It is good at facts the collections hold
+  and weak at explanations.
+- **The 4B** answers from what it knows, so its answers are fuller but have more to check. For a
+  single fact it reads the Encyclopedia first, which raised it from 38 to 66 good answers on 105 fact
+  questions.
+- **Emergencies.** In 1.4.3 the right guide opened for 59 of 90 new messages about bleeding, electric
+  shocks and look-alikes, up from 37.
 
-Every test behind 1.4.2, including emergencies and the phone checks, is on one page:
-[How Field Atlas 1.4.2 was tested](docs/testing-1.4.2.md). These are desktop runs of the app's own answering code. The graders and the reference answers come from AI models of one
-family, so treat these numbers as our own measurement, not an independent score; the share of the
-reference score is a judge's average, not a share of correct answers, and none of these numbers shows
-that the bounty's bar is met: that is for the judges. The questions and grades are
-published in [docs/fieldtest](docs/fieldtest/) (for some sets the grades only), and the
-[evaluation](docs/evaluation.md) explains each test, including changes that were tried and not
-adopted.
+These are our own measurements, not an independent score. The questions and grades are in
+[docs/fieldtest](docs/fieldtest/) (for some sets, the grades only); [how 1.4.2 was tested](docs/testing-1.4.2.md) and the
+[evaluation](docs/evaluation.md) explain each test.
 
 ## Good to know
 
-- **Speed, from asking to the complete answer**, on a 6 GB Redmi 13C in airplane mode (October 24,
-  [six questions](docs/testing-1.4.2.md#on-the-phone-and-the-emulator), three simple and three
-  complex, each asked twice): Qwen3.5 2B took 88 to 153 seconds for simple questions and 195 to 351
-  seconds for explanations, comparisons and trip plans. Qwen3.5 4B took 3 to 6 minutes, and one answer
-  took 47 minutes with Wi-Fi on and other apps open, which is why the 2B is recommended below 8 GB.
-  No 8 GB or 12 GB phone has been measured. Answers built from saved data (first-aid
-  guides, emergency numbers, places, sums) take seconds; a first-aid guide, an emergency number or the
-  no-guide reply also never waits for another answer to finish.
-- **Answers can be wrong.** Open the cited passages to check them. Nothing here is medical advice.
-- **No live data.** The models and collections are snapshots; a question about this year's events
-  or today's prices can get an out-of-date answer that does not say so.
-- Map listings, opening hours and menus can be out of date.
-- **Within the bounty's limits:** with all three models, every collection and the voice installed,
-  Android reports 47.58 GB of storage for the app on a 12 GB Android emulator (October 21); there, in
-  airplane mode, it used at most 6.8 GB of memory while answering with the 4B (October 18, on an earlier 1.4.2 build)
-  ([details](docs/evaluation.md#good-answers-and-storage-with-everything-installed-october-21)).
-- Tested on a Redmi 13C (6 GB, Android 13) with builds signed with a local test key, and on Android
-  emulators. The Redmi now carries build 23 signed that way, installed with its data kept and opened on
-  26 October; the timed and emergency checks on it used the 24 October builds. On a fresh emulator with no
-  Google apps, an earlier 1.4.2 file was set up only through the app and answered offline, and the first
-  release file (build 21) was installed over it, data kept, and answered offline; on a 12 GB emulator,
-  builds 22 and 23 were then installed in turn over build 21, data kept, and answered offline. Not yet tested on a
-  Pixel, on GrapheneOS, or on a real 8 GB or 12 GB phone.
+- **Speed.** On a 6 GB Redmi 13C, an answer takes about 1½ to 6 minutes with the 2B and 3 to 6
+  minutes with the 4B. Guides, emergency numbers, places and sums take seconds.
+  ([Timings](docs/testing-1.4.2.md#on-the-phone-and-the-emulator).)
+- **Answers can be wrong.** Check the cited passages. Nothing here is medical advice.
+- **No live data.** Models and collections are snapshots, so news, prices and opening hours can be
+  out of date.
+- **Storage.** The 2B with every collection takes about 34 GB.
+- **Tested on** a 6 GB Redmi 13C (Android 13) and Android emulators; 1.4.3 on an emulator only. Not
+  yet on a Pixel, GrapheneOS, or a real 8 GB or 12 GB phone.
 
 ## Collections
 
