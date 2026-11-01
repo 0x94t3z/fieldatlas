@@ -1,6 +1,29 @@
 # Release audit
 
-Updated 25 October 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1 and v1.4.2 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 1 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2 and v1.4.3 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.3 release (1 November 2026)
+
+Published on 1 November 2026 at 10:09 UTC as [v1.4.3](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.3),
+not a prerelease and marked latest, tag on `5195791` (the commit that points the website at it), with
+`fieldatlas.apk` and `fieldatlas.apk.sha256` attached. The APK was built from `0a77c80` in a clean clone with
+the pinned llama.cpp (`60081bb2b`) and its committed patch, the same diff as the working tree: version 1.4.3 (24),
+102,754,182 bytes, SHA-256 `22af65c85947f80833a3df237f179cc4275082d776397236d6c7a04ca550ddcd`, signed with the
+public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed
+after upload while the release was a draft and again from its public link without signing in; both match.
+
+A safety update: severe bleeding and electric shocks open their guides as people describe them, a CDC
+electric shock guide is added (52 guides, the other 51 unchanged byte for byte), the reply when no guide
+fits starts with the first step cited to its guide, and Gemma 4 26B is no longer offered (it gave no answer
+in over 50 minutes on a 16 GB phone). Before building: the JVM unit tests and release lint passed in the
+clean clone; the four Python suites passed (scripts 78, tools 262, packtool 12, benchmarks 10); the website
+tests passed (22); the offline packaging audit, native alignment and `zipalign -c -P 16 4` passed on the
+exact APK. On a fresh 12 GB Android 15 emulator in airplane mode the exact APK installed, imported Qwen3.5 2B
+from its file, and opened the severe bleeding and electric shock guides and the no-guide reply as described
+in the release notes; the guide matcher's own tests ran on Android's regex engine (5 of 5).
+
+Not checked: no real phone ran this build (the owner chose emulator-only checks for this release), and the
+routing measurement (59 against 37 of 90 labelled messages) is our own, on the guide matcher alone.
 
 ## v1.4.2 release (25 October 2026)
 
