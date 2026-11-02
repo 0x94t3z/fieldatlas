@@ -96,10 +96,10 @@
       "issue": 1,
       "amount": 5000000,
       "address": "0x2481E29895b43e87e547a50fB0BB5aa1E70585EB",
-      "status": "proposed",
+      "status": "paid",
       "safeTxHash": "0xd4f6dba949b1f0194d72fe2922434700097394d390138e18290b495e035dfa6c",
       "nonce": 5,
-      "tx": null
+      "tx": "0x0c5810bcd5b04294d1c9f47fc271e55cb29829426c0192fa78e5b34fb3466f26"
     }
   ]
 }
