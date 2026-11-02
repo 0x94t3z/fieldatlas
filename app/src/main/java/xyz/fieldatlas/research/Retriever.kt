@@ -65,6 +65,12 @@ fun interface Retriever {
     suspend fun article(article: String, limit: Int): List<Evidence> = emptyList()
 
     /**
+     * Leads ("— Overview") of articles whose title holds [year] and [kind] ("2016" and "election") and whose text
+     * names every one of [terms] ("trump"), shortest titles first: one year's event found without its exact name.
+     */
+    suspend fun eventLeads(year: String, kind: String, terms: List<String>, limit: Int): List<Evidence> = emptyList()
+
+    /**
      * How many saved passages mention [phrase], counted up to [cap]: a subject's readership as the collections see
      * it ("cast iron" in thousands, "Battle of Ramillies" in a few dozen). [cap] when unknown, so a subject whose
      * count cannot be had is taken as well known.

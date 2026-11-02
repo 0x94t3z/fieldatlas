@@ -218,6 +218,12 @@ class MultiKnowledgeRetriever(
             sections.filter(String::isNotBlank).joinToString(" OR ", transform = ::quoted) + "))", limit)
     }
 
+    override suspend fun eventLeads(year: String, kind: String, terms: List<String>, limit: Int): List<Evidence> {
+        if (year.isBlank() || kind.isBlank() || terms.none(String::isNotBlank)) return emptyList()
+        return matching("{title} : (" + quoted(year) + " AND " + quoted(kind) + " AND \"overview\") AND {text} : (" +
+            terms.filter(String::isNotBlank).joinToString(" AND ", transform = ::quoted) + ")", limit)
+    }
+
     override suspend fun airportOverviews(place: String, limit: Int): List<Evidence> {
         if (place.isBlank()) return emptyList()
         return matching("{title} : (\"airport\" AND \"overview\") AND {text} : " + quoted(place), limit)

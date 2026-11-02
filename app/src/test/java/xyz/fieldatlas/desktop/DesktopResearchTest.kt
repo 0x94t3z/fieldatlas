@@ -202,6 +202,13 @@ class DesktopResearchTest {
                 override suspend fun titled(phrase: String, sections: List<String>, limit: Int, anchored: Boolean): List<Evidence> =
                     multi.titled(phrase, sections, limit, anchored)
                 override suspend fun airportOverviews(place: String, limit: Int) = multi.airportOverviews(place, limit)
+                override suspend fun eventLeads(year: String, kind: String, terms: List<String>, limit: Int): List<Evidence> =
+                    multi.eventLeads(year, kind, terms, limit).also { evidence ->
+                        searches += buildJsonObject {
+                            put("query", "event: $year $kind ${terms.joinToString(" ")}"); put("limit", limit)
+                            put("candidates", Json.encodeToJsonElement(evidence))
+                        }
+                    }
                 override suspend fun headed(phrase: String, words: List<String>, limit: Int, sections: List<String>): List<Evidence> =
                     multi.headed(phrase, words, limit, sections)
                 override suspend fun sections(article: String, limit: Int): List<Evidence> = multi.sections(article, limit).also { evidence ->

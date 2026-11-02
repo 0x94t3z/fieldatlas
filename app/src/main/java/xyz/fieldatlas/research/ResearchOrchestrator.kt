@@ -939,6 +939,17 @@ class ResearchOrchestrator(
                 }
                 if (subjects.isNotEmpty()) evidence = (subjects + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
             }
+            // A year's event asked about without its article's name ("Trump's electoral votes in 2016") reads that article's
+            // lead, found by its title's year and kind of event and its text naming the question's words (see EventArticle).
+            if (attachments.isEmpty() && technicalFocus == null && travelPlace == null && phrasePicked.isEmpty() && topic == null) {
+                EventArticle.of(question)?.takeIf { ask -> (subjects + evidence.take(3)).none { EventArticle.covers(it, ask) } }?.let { ask ->
+                    val leads = retriever.eventLeads(ask.year, ask.kind, ask.terms, EVENT_CANDIDATES)
+                    EventArticle.pick(leads, ask)?.let { lead ->
+                        subjects.add(0, lead)
+                        evidence = (listOf(lead) + evidence).distinctBy { Triple(it.documentId, it.chunkId, it.source) }
+                    }
+                }
+            }
             // A follow-up read as a name the earlier answer gave ("Tokyo: how many people live there") reads that
             // name's own article whatever else the question looks like: a city's travel guide has no population,
             // and "how many people live there" names no article of its own.
@@ -1216,11 +1227,17 @@ class ResearchOrchestrator(
                 val citation = Regex("\\[S\\d+]")
                 val explained = if (knowledgeNotes == 0) AnswerText.mixed(raw, emptyList())
                     else "## " + AnswerText.MODEL_LABEL + "\n\n" + AnswerText.finalized(raw, first.sources.size).trim()
-                val cited = citation.findAll(explained).count()
-                val marked = SavedFactCheck.marks(question, explained, packed.sources)
+                // Read from notes, a date is given only as precisely as a note gives it, and a citation stays only where its passage
+                // states the sentence's figures (see NoteFacts).
+                val notesRead = if (knowledgeNotes > 0) packed.sources.take(knowledgeNotes).map { it.evidence.text } else emptyList()
+                val checked = if (notesRead.isEmpty()) explained else NoteFacts.withoutUnbackedCitations(NoteFacts.toNotedPrecision(explained, notesRead)) { n ->
+                    packed.sources.getOrNull(n - 1)?.evidence?.text }
+                val cited = citation.findAll(checked).count()
+                val marked = SavedFactCheck.marks(question, checked, packed.sources)
                 val markCount = citation.findAll(marked).count() - cited
-                // The call line for first aid no guide matched is added above this route, in research().
-                val shown = listOfNotNull(marked.trimEnd(), SavedFactCheck.note(question, raw, packed.sources),
+                // The call line for first aid no guide matched is added above this route, in research(). The differing-figure
+                // note checks a from-memory answer; one written from the notes would be checked against passages it never read.
+                val shown = listOfNotNull(marked.trimEnd(), if (notesRead.isEmpty()) SavedFactCheck.note(question, raw, packed.sources) else null,
                     SavedFactCheck.knowledgeNote(markCount, packed.sources.size, cited)).joinToString("\n\n")
                 emit(ResearchEvent.Token(shown, replace = true))
                 val audit = AnswerText.citationAudit(shown, packed.sources.size)
@@ -1747,6 +1764,8 @@ class ResearchOrchestrator(
         const val TRAVEL_CANDIDATES = 50
         const val TRAVEL_SLOTS = 2
         const val SUBJECT_CANDIDATES = 10
+        /** Event leads read to find one year's event: a year holds dozens of elections, few naming the asked words. */
+        const val EVENT_CANDIDATES = 50
         const val FALLBACK_OVERVIEWS = 2
         const val TOPIC_CANDIDATES = 50
         const val TOPIC_NAMES = 12

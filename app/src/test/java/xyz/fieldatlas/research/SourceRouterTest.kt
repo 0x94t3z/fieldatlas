@@ -36,6 +36,21 @@ class SourceRouterTest {
             listOf(src("wv-3", "Bolivia — Get in > By land")), factLookups = true))
     }
 
+    @Test fun aNameItsOriginOrAWinnerIsAFactLookup() {
+        val cowboys = listOf(ev("swp-31", "Dallas Cowboys — Overview"))
+        val notes = listOf(src("swp-31", "Dallas Cowboys — Overview"))
+        val famous = mapOf("Dallas Cowboys" to 1000)
+        for (q in listOf("why are the Dallas Cowboys considered America's team?", "why is chicago called the windy city",
+                "why do people call New York the Big Apple", "how did the Big Apple get its name",
+                "where does the name Big Apple come from", "who won the 1966 world cup final")) {
+            assertEquals(q, R, SourceRouter.notes(q, cowboys, notes, mentions = famous, factLookups = true))
+        }
+        // Why something happens is an explanation, whatever it names.
+        for (q in listOf("why are the Dallas Cowboys so popular", "why is the sky blue", "why did my team lose")) {
+            assertEquals(q, 0, SourceRouter.notes(q, cowboys, notes, mentions = famous, factLookups = true))
+        }
+    }
+
     @Test fun aLittleKnownSubjectOfTheFullEncyclopediaOrASpecialistCollectionIsRead() {
         val battle = listOf(ev("enw-77", "Battle of Ramillies — Overview"))
         assertEquals(R, SourceRouter.notes("who won the battle of ramillies and when", battle, listOf(src("enw-77", "Battle of Ramillies — Overview")), mentions = mapOf("Battle of Ramillies" to 31)))

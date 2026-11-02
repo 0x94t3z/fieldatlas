@@ -99,16 +99,21 @@ object SourceRouter {
     }
 
     /**
-     * "Who designed…", "when did…", "what year…", "how deep/tall/many…", "what is the deepest/capital/population…": one
-     * fact asked for, where recall slips on the figure. "How do vaccines…" and "what was the Meiji Restoration" ask for an
-     * explanation, and "how much should I tip" or "how long after a heart attack" for advice, which memory answers better
-     * than the passages found for them.
+     * "Who designed…", "who won…", "when did…", "what year…", "how deep/tall/many…", "what is the deepest/capital/population…",
+     * "why are the Dallas Cowboys called America's Team": one fact asked for, where recall slips on the figure or the
+     * story. From memory the 4B gave the Cowboys three Super Bowls and an AFL merger, and never the reason, while the
+     * Simple English article it was not shown says five and "often known as America's Team" (2 Nov). "How do
+     * vaccines…" and "what was the Meiji Restoration" ask for an explanation, and "how much should I tip" or "how long
+     * after a heart attack" for advice, which memory answers better than the passages found for them.
      */
     private val FACT_LOOKUP = Regex("(?i)^\\s*(?:who (?:designed|built|invented|discovered|founded|wrote|painted|composed|created|directed|" +
-        "first|was the first)\\b|when (?:did|was|were|is|does|do)\\b|(?:in )?(?:what|which) year\\b|how (?:deep|tall|high|long|far|old|big|large|" +
+        "first|was the first|won|wins)\\b|when (?:did|was|were|is|does|do)\\b|(?:in )?(?:what|which) year\\b|how (?:deep|tall|high|long|far|old|big|large|" +
         "many|much|heavy|fast)\\b(?! (?:should|do|does|can|must|will|would|could) (?:i|we|you|my|he|she|they)\\b| after\\b)|" +
         "what(?:'s|’s|s| is| was| are| were) the (?:deepest|tallest|highest|largest|biggest|longest|smallest|oldest|fastest|" +
-        "capital|population|height|depth|length|area|distance|date)\\b)")
+        "capital|population|height|depth|length|area|distance|date)\\b|" +
+        "why (?:do|did) (?:people|they|you|fans) call\\b|why (?:is|are|was|were) .{1,80}?\\b(?:called|known as|considered|nicknamed|named)\\b|" +
+        "how did .{1,60}?\\bget (?:its|their|his|her|the) (?:name|nickname)\\b|" +
+        "where (?:does|did) (?:the )?(?:name|nickname|word|term) .{1,60}?\\bcome from\\b)")
 
     /**
      * "How much rice do I need for 4 people", "how much does that cost?": the asker's own plan, or a follow-up whose
