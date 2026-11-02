@@ -108,8 +108,10 @@ object ModelOffers {
         repackMinimumMemoryBytes = 7_000_000_000L,
         // On a 6 GB Redmi 13C, mapped from its file, answers took 3 to 6 minutes in airplane mode (24 Oct, six questions asked twice)
         // and one took 47 minutes with Wi-Fi on and other apps awake, while Android was killing apps for memory.
-        // The 2B is the recommended choice below 8 GB; the 4B stays available there, with that warning.
-        recommendedMinimumMemoryBytes = 7_000_000_000L,
+        // The 2B is the recommended choice below 12 GB; the 4B stays available there, with that warning. On 12 GB phones
+        // contributors timed it at 27 s to 1.5 min (OnePlus 13R) and up to 5.5 min (POCO X6 Neo); fast answers from the saved
+        // passages come first (2 Nov 2026), so the 4B is recommended only where it is quick enough.
+        recommendedMinimumMemoryBytes = 11_000_000_000L,
         // From its own knowledge: 33.7% -> 41.8% on set 37, 39.8% -> 56-58% on set 34 (two blind rounds each).
         knowledgeFirst = true,
     )
@@ -158,7 +160,7 @@ object ModelOffers {
 
     /**
      * What setup offers this phone, best first: the largest model recommended for it, then the others it can load. On a
-     * 6 GB phone that is the 2B, then the 4B with its warning; from 8 GB the 4B, then the 2B as the faster choice.
+     * phone below 12 GB that is the 2B, then the 4B with its warning; from 12 GB the 4B, then the 2B as the faster choice.
      */
     fun forDevice(deviceMemoryBytes: Long): List<ModelOffer> =
         offered.filter { it.fits(deviceMemoryBytes) }

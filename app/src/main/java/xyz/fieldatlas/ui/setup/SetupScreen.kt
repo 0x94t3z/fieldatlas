@@ -173,7 +173,7 @@ fun SetupScreen(
                                 else -> "Field Atlas has not tested this model, so it will answer from your saved passages and cite them, with reasoning off."
                             })
                     } else if (model == null && modelChoices.size > 1) FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
-                        // The model recommended for this phone first: the 4B from 8 GB, the 2B below, where the 4B
+                        // The model recommended for this phone first: the 4B from 12 GB, the 2B below, where the 4B
                         // follows with its warning.
                         Column { modelChoices.forEachIndexed { index, offer ->
                             if (index > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp),

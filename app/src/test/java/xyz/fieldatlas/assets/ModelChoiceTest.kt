@@ -10,6 +10,7 @@ import org.junit.Test
 
 class ModelChoiceTest {
     private val eightGb = 7_500_000_000L
+    private val twelveGb = 11_760_000_000L
     private val sixGb = 6_008_807_424L
     private val fourGb = 3_790_000_000L
 
@@ -88,7 +89,9 @@ class ModelChoiceTest {
     }
 
     @Test fun aLargerModelThatFitsTakesOverOnceDownloaded() {
-        assertTrue(takesOver(ModelOffers.larger, ModelOffers.recommended.id, eightGb))
+        assertTrue(takesOver(ModelOffers.larger, ModelOffers.recommended.id, twelveGb))
+        // Below 12 GB the 4B is not recommended (since 1.4.7): downloaded, it waits in Library until chosen.
+        assertFalse(takesOver(ModelOffers.larger, ModelOffers.recommended.id, eightGb))
         // Nothing in use yet: the download is the model.
         assertTrue(takesOver(ModelOffers.recommended, null, eightGb))
         // The 2B fetched as a fallback while the 4B answers waits in Library.
