@@ -50,8 +50,14 @@ jobs:
           rm -r build/packs/starter
           ./scripts/build_starter_pack.sh
           cmp "$RUNNER_TEMP/first.fapack" build/packs/starter/fieldatlas-starter-1.0.0.fapack
-      - name: Test and assemble
-        run: ./gradlew --no-configuration-cache --max-workers=2 :app:testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease
+      - name: Test and assemble debug
+        run: ./gradlew --no-configuration-cache --max-workers=2 :app:testDebugUnitTest :app:lintRelease :app:assembleDebug
+      # R8 ran out of the daemon's 3 GB heap after the tests and lint had filled it (2 Nov). The release build gets a fresh
+      # daemon with 4 GB of the runner's 7; the stopped one frees its memory first.
+      - name: Assemble release
+        run: |
+          ./gradlew --stop
+          ./gradlew --no-configuration-cache --max-workers=2 -Dorg.gradle.jvmargs="-Xmx4g -Dfile.encoding=UTF-8" :app:assembleRelease
       - name: Audit release APK
         run: |
           ./scripts/verify_offline.sh app/build/outputs/apk/debug/app-debug.apk
