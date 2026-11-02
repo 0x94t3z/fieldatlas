@@ -23,6 +23,7 @@ import argparse
 import json
 import socket
 import sqlite3
+import struct
 import subprocess
 import sys
 import time
@@ -56,11 +57,17 @@ def main() -> int:
     parser.add_argument("--encoder", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--server", type=Path, default=ROOT / "build/desktop-llama/bin/llama-server")
+    parser.add_argument("--binary", action="store_true",
+                        help="write OUTPUT.ids (one chunk id a line) and OUTPUT.f16 (384 float16 values a row) "
+                             "instead of text, and resume from them after an interruption")
     args = parser.parse_args()
 
     port = free_port()
     server = subprocess.Popen([str(args.server), "-m", str(args.encoder), "--embedding", "--pooling", "cls",
                                "--embd-normalize", "2", "-c", "8192", "-b", "8192", "-ub", "512", "-np", "16",
+                               # The prompt cache is searched on every request; filled with one-off passages it
+                               # slows a long run about tenfold.
+                               "--cache-ram", "0",
                                "--host", "127.0.0.1", "--port", str(port)],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     endpoint = f"http://127.0.0.1:{port}"
@@ -74,12 +81,26 @@ def main() -> int:
                 time.sleep(0.5)
         else:
             raise SystemExit("embedding server did not start")
-        db = sqlite3.connect(str(args.database))
-        rows = db.execute("SELECT chunk_id, title, text FROM chunks_fts ORDER BY rowid").fetchall()
-        started, done = time.time(), 0
-        with open(args.output, "w") as out:
-            for i in range(0, len(rows), BATCH):
-                batch = rows[i:i + BATCH]
+        db = sqlite3.connect(args.database.resolve().as_uri() + "?mode=ro", uri=True)
+        total = db.execute("SELECT count(*) FROM chunks_fts").fetchone()[0]
+        skip = 0
+        if args.binary:
+            ids_path, f16_path = args.output.with_suffix(".ids"), args.output.with_suffix(".f16")
+            if ids_path.exists() and f16_path.exists():
+                skip = min(sum(1 for _ in open(ids_path)), f16_path.stat().st_size // (384 * 2))
+                # Drop a half-written last batch so both files end on the same row.
+                with open(ids_path, "r+") as f:
+                    lines = f.readlines()[:skip]; f.seek(0); f.writelines(lines); f.truncate()
+                with open(f16_path, "r+b") as f:
+                    f.truncate(skip * 384 * 2)
+            ids_out, vec_out = open(ids_path, "a"), open(f16_path, "ab")
+        else:
+            text_out = open(args.output, "w")
+        # Streamed in rowid order: a pack of millions of passages does not fit in memory at once.
+        cursor = db.execute("SELECT chunk_id, title, text FROM chunks_fts ORDER BY rowid LIMIT -1 OFFSET ?", (skip,))
+        started, done = time.time(), skip
+        try:
+            while batch := cursor.fetchmany(BATCH):
                 texts = [f"{title}\n{text}"[:MAX_CHARS] for _, title, text in batch]
                 try:
                     vectors = embed(endpoint, texts)
@@ -96,10 +117,18 @@ def main() -> int:
                 for (chunk_id, _, _), vector in zip(batch, vectors):
                     if len(vector) != 384:
                         raise SystemExit(f"unexpected dimension {len(vector)} for {chunk_id}")
-                    out.write(chunk_id + "\t" + ",".join(f"{v:.6f}" for v in vector) + "\n")
+                if args.binary:
+                    flat = [v for vector in vectors for v in vector]
+                    vec_out.write(struct.pack(f"<{len(flat)}e", *flat)); ids_out.write("".join(c + "\n" for c, _, _ in batch))
+                else:
+                    for (chunk_id, _, _), vector in zip(batch, vectors):
+                        text_out.write(chunk_id + "\t" + ",".join(f"{v:.6f}" for v in vector) + "\n")
                 done += len(batch)
                 if done % 2048 < BATCH:
-                    print(f"{done}/{len(rows)} chunks, {done / (time.time() - started):.0f}/s", flush=True)
+                    print(f"{done}/{total} chunks, {(done - skip) / (time.time() - started):.0f}/s", flush=True)
+        finally:
+            for f in ((ids_out, vec_out) if args.binary else (text_out,)):
+                f.close()
         print(f"wrote {done} vectors to {args.output}")
     finally:
         server.terminate()
