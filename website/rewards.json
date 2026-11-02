@@ -100,6 +100,32 @@
       "safeTxHash": "0xd4f6dba949b1f0194d72fe2922434700097394d390138e18290b495e035dfa6c",
       "nonce": 5,
       "tx": "0x0c5810bcd5b04294d1c9f47fc271e55cb29829426c0192fa78e5b34fb3466f26"
+    },
+    {
+      "date": "2026-11-02",
+      "contributor": "swiftbotlabs",
+      "work": "Safety report: cleaning fumes with a tight chest opened the heart attack guide, which led to the poisoning-guide fix in 1.4.6",
+      "link": "https://github.com/0x94t3z/fieldatlas/issues/8",
+      "issue": 0,
+      "amount": 20000000,
+      "address": "0x2481E29895b43e87e547a50fB0BB5aa1E70585EB",
+      "status": "paid",
+      "safeTxHash": "0x10162c10184d9f18b48157c087699e28ded4a346dbb5a24e0b4af8e028aee938",
+      "nonce": 6,
+      "tx": "0x7df5e66e14ea6907489642dfb2a03a7ccf553aeba0d7d3d4cf11aa0474cc6a01"
+    },
+    {
+      "date": "2026-11-02",
+      "contributor": "swiftbotlabs",
+      "work": "Safety report: a battery put in a child's mouth and gone opened no guide, which led to the swallowed-object fix in 1.4.6",
+      "link": "https://github.com/0x94t3z/fieldatlas/issues/9",
+      "issue": 0,
+      "amount": 20000000,
+      "address": "0x2481E29895b43e87e547a50fB0BB5aa1E70585EB",
+      "status": "paid",
+      "safeTxHash": "0x59f0a6a55551cfe0731f304c9e538447d98beb931fb8a9f08888e288aa530f7f",
+      "nonce": 7,
+      "tx": "0xe714a9882dac1cc954b2489d784c96c609cff20eb364d35907d3cddcb3e4a11e"
     }
   ]
 }
