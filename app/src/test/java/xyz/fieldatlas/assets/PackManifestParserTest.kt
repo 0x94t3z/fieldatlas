@@ -91,6 +91,26 @@ class PackManifestParserTest {
         assertEquals("encoder.gguf", embedding.encoderPath)
     }
 
+    private val meaningJson = embeddingJson.replace("\"quant\":\"int8-symmetric-per-vector\"", "\"quant\":\"ivf-pq\"")
+        .replace("\"table\":\"chunk_vectors\"", "\"table\":\"ivf_lists\"")
+        .replace("\"encoderSourceUrl\"", "\"clusters\":4096,\"subvectors\":96,\"probe\":32," +
+            "\"passagesFrom\":{\"id\":\"wikipedia-encyclopedia\",\"version\":\"2026.10.12-native-compressed-preview\"},\"encoderSourceUrl\"")
+
+    @Test fun parsesMeaningPackPointingAtOneExactPassagePack() {
+        val embedding = PackManifestParser.parse(knowledgeManifest(meaningJson).encodeToByteArray()).embedding!!
+        assertEquals(4096, embedding.clusters)
+        assertEquals(96, embedding.subvectors)
+        assertEquals(32, embedding.probe)
+        assertEquals(PackRef("wikipedia-encyclopedia", "2026.10.12-native-compressed-preview"), embedding.passagesFrom)
+    }
+
+    @Test fun clusterFieldsBelongToMeaningPacksOnly() {
+        rejects(knowledgeManifest(embeddingJson.replace("\"encoderSourceUrl\"", "\"clusters\":4,\"encoderSourceUrl\"")))
+        rejects(knowledgeManifest(meaningJson.replace("\"subvectors\":96", "\"subvectors\":100")))
+        rejects(knowledgeManifest(meaningJson.replace("\"probe\":32", "\"probe\":5000")))
+        rejects(knowledgeManifest(meaningJson.replace("\"id\":\"wikipedia-encyclopedia\"", "\"id\":\"../x\"")))
+    }
+
     @Test fun rejectsEmbeddingOnModelPack() =
         rejects(manifest().replace("\"artifacts\":", "\"embedding\": $embeddingJson, \"artifacts\":"))
 

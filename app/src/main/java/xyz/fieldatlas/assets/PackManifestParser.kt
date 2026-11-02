@@ -24,6 +24,7 @@ object PackManifestParser {
         "model", "dim", "quant", "normalized", "table", "count", "rejectBelow",
         "queryPrefix", "encoderPath", "encoderSha256", "encoderSourceUrl",
     )
+    private val meaningFields = setOf("clusters", "subvectors", "probe", "passagesFrom")
     private val hashPattern = Regex("[0-9a-f]{64}")
     private val identifierPattern = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
     private val tableNamePattern = Regex("[a-z][a-z0-9_]{0,63}")
@@ -97,7 +98,7 @@ object PackManifestParser {
 
     private fun parseEmbedding(element: JsonElement): PackEmbedding {
         val value = element.jsonObject
-        requireFields(value, embeddingFields, embeddingFields, "embedding")
+        requireFields(value, embeddingFields, embeddingFields + meaningFields, "embedding")
         val model = value.requiredNormalizedText("model", 120)
         val dim = value.requiredInt("dim")
         require(dim in 1..8192) { "embedding.dim must be between 1 and 8192" }
@@ -117,9 +118,27 @@ object PackManifestParser {
         val encoderSha = value.requiredText("encoderSha256")
         require(hashPattern.matches(encoderSha)) { "embedding.encoderSha256 must be lowercase hexadecimal" }
         val encoderUrl = value.requiredText("encoderSourceUrl")
+        val clusters = value["clusters"]?.let { value.requiredInt("clusters") }
+        val subvectors = value["subvectors"]?.let { value.requiredInt("subvectors") }
+        val probe = value["probe"]?.let { value.requiredInt("probe") }
+        val passagesFrom = value["passagesFrom"]?.jsonObject?.let { ref ->
+            requireFields(ref, setOf("id", "version"), setOf("id", "version"), "embedding.passagesFrom")
+            PackRef(ref.requiredText("id"), ref.requiredText("version")).also {
+                require(identifierPattern.matches(it.id) && identifierPattern.matches(it.version)) { "Invalid embedding.passagesFrom" }
+            }
+        }
+        if (quant == "ivf-pq") {
+            require(clusters != null && clusters in 1..65_536) { "embedding.clusters must be between 1 and 65536" }
+            require(subvectors != null && subvectors in 1..dim && dim % subvectors == 0) { "embedding.subvectors must divide dim" }
+            require(probe != null && probe in 1..clusters) { "embedding.probe must be between 1 and clusters" }
+        } else {
+            require(clusters == null && subvectors == null && probe == null && passagesFrom == null) {
+                "Cluster fields belong to ivf-pq embeddings only"
+            }
+        }
         return PackEmbedding(
             model, dim, quant, normalized, table, count, rejectBelow, queryPrefix,
-            encoderPath, encoderSha, encoderUrl,
+            encoderPath, encoderSha, encoderUrl, clusters, subvectors, probe, passagesFrom,
         )
     }
 

@@ -207,6 +207,34 @@ class KnowledgeDatabase private constructor(private val database: SQLiteConnecti
     }
 
     /**
+     * The passages a meaning pack's vectors point at, by this pack's `records` rowids, in [hits] order and scored
+     * with each hit's cosine (positive, higher = stronger, as [vectorSearch]). Rowids this pack does not hold are
+     * skipped. Empty for a pack without a records table: meaning packs are built only for Leviathan packs.
+     */
+    internal fun passagesByRecord(hits: List<Pair<Long, Double>>): List<Evidence> {
+        if (hits.isEmpty()) return emptyList()
+        val found = synchronized(database) {
+            val present = database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='records'").use { it.step() }
+            if (!present) return emptyList()
+            database.prepare("SELECT rowid, id, doc FROM records WHERE rowid IN (" + hits.joinToString(",") { "?" } + ")").use { row ->
+                hits.forEachIndexed { i, (rowid, _) -> row.bindLong(i + 1, rowid) }
+                val out = HashMap<Long, Pair<String, String>>()
+                while (row.step()) out[row.getLong(0)] = row.getText(1) to row.getText(2)
+                out
+            }
+        }
+        return hits.mapNotNull { (rowid, score) ->
+            val (chunkId, doc) = found[rowid] ?: return@mapNotNull null
+            runCatching {
+                val fields = Json.parseToJsonElement(doc).jsonObject
+                fun text(name: String) = fields[name]?.jsonPrimitive?.content.orEmpty()
+                Evidence(documentId = text("document_id"), chunkId = chunkId, title = text("title"),
+                    source = text("source"), text = text("text"), score = score)
+            }.getOrNull()?.takeIf { it.text.isNotBlank() }
+        }
+    }
+
+    /**
      * Places within a box around a point, from the optional rowid-aligned `place_points` table
      * (OpenStreetMap packs). Distances are great-circle kilometres; callers sort and cut.
      * A box crossing the antimeridian is searched as two longitude ranges. A place pack without

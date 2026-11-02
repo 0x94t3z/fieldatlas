@@ -36,7 +36,18 @@ data class PackEmbedding(
     val encoderPath: String,
     val encoderSha256: String,
     val encoderSourceUrl: String,
+    /** A meaning pack (quant "ivf-pq", table "ivf_lists"): how many clusters and code bytes per vector. */
+    val clusters: Int? = null,
+    val subvectors: Int? = null,
+    /** Clusters read for each question. */
+    val probe: Int? = null,
+    /** The pack whose passages the vectors point at, by its records rowids; null = this pack. */
+    val passagesFrom: PackRef? = null,
 )
+
+/** One exact installed pack: a meaning pack's rowids are valid only for the version they were built from. */
+@Serializable
+data class PackRef(val id: String, val version: String)
 
 @Serializable
 enum class PackType { MODEL, KNOWLEDGE, AUDIO }

@@ -104,7 +104,7 @@ class AppContainer(context: Context) {
     /** Why the model in use is not the one that was selected, until another model is chosen. */
     val modelNotice: StateFlow<String?> = mutableModelNotice.asStateFlow()
     private val catalogRepository = xyz.fieldatlas.assets.KnowledgeCatalogRepository(
-        appContext.assets.open("knowledge/catalog.json").bufferedReader().use { KnowledgeCatalog.parse(it.readText()) },
+        appContext.assets.open("knowledge/catalog-2.json").bufferedReader().use { KnowledgeCatalog.parse(it.readText()) },
         File(appContext.filesDir, "knowledge-catalog.json"),
         xyz.fieldatlas.assets.KnowledgeCatalogFetch()::fetch,
     )
@@ -472,28 +472,45 @@ class AppContainer(context: Context) {
     )
 
     private val retriever: MultiKnowledgeRetriever = MultiKnowledgeRetriever(
-        databaseFiles = { knowledgeSources().map { source -> source.first } },
-        packEmbeddings = { knowledgeSources().map { source -> source.second } },
-        packDiscoveries = { knowledgeSources().map { source -> source.third } },
+        databaseFiles = { knowledgeSources().map { source -> source.file } },
+        packEmbeddings = { knowledgeSources().map { source -> source.embedding } },
+        packDiscoveries = { knowledgeSources().map { source -> source.discovery } },
         embedForPack = { expected, text -> embedForSearch(expected, text) },
+        packMeanings = { knowledgeSources().map { source -> source.meaning } },
+    )
+
+    /** One searchable pack: its database, vectors, coverage, and the meaning pack built for this exact version. */
+    private data class KnowledgeSource(
+        val file: java.io.File,
+        val embedding: xyz.fieldatlas.assets.PackEmbedding?,
+        val discovery: xyz.fieldatlas.assets.PackDiscovery?,
+        val meaning: Pair<java.io.File, xyz.fieldatlas.assets.PackEmbedding>?,
     )
 
     /** Enabled knowledge packs and their local retrieval metadata in registry order. */
-    private fun knowledgeSources(): List<Triple<java.io.File, xyz.fieldatlas.assets.PackEmbedding?, xyz.fieldatlas.assets.PackDiscovery?>> =
+    private fun knowledgeSources(): List<KnowledgeSource> =
         packs.value.let { installed ->
         val activeEncoder = encoderPath(installed)
         val activeEmbedding = installed.firstOrNull { asset ->
             asset.embedding?.let { File(asset.rootPath, it.encoderPath).absolutePath == activeEncoder } == true
         }?.embedding
+        fun usable(embedding: xyz.fieldatlas.assets.PackEmbedding) =
+            activeEmbedding != null && xyz.fieldatlas.research.canShareQueryEncoder(embedding, activeEmbedding)
+        // A meaning pack holds no passages: it is searched through the pack it was built for, and only that version.
+        val meanings = installed.filter { asset ->
+            asset.type == PackType.KNOWLEDGE && asset.enabled && asset.embedding?.passagesFrom != null &&
+                xyz.fieldatlas.research.isMeaningLayout(asset.embedding) && usable(asset.embedding)
+        }
         installed
-            .filter { it.type == PackType.KNOWLEDGE && it.enabled }
+            .filter { it.type == PackType.KNOWLEDGE && it.enabled && it.embedding?.passagesFrom == null }
             .map { knowledge ->
-                Triple(
+                KnowledgeSource(
                     java.io.File(knowledge.rootPath, "content.sqlite"),
-                    knowledge.embedding?.takeIf { candidate ->
-                        activeEmbedding != null && xyz.fieldatlas.research.canShareQueryEncoder(candidate, activeEmbedding)
-                    },
+                    knowledge.embedding?.takeIf(::usable),
                     knowledge.discovery,
+                    meanings.firstOrNull { meaning ->
+                        meaning.embedding!!.passagesFrom == xyz.fieldatlas.assets.PackRef(knowledge.id, knowledge.version)
+                    }?.let { meaning -> java.io.File(meaning.rootPath, "content.sqlite") to meaning.embedding!! },
                 )
             }
         }

@@ -49,8 +49,14 @@ class MultiKnowledgeRetriever(
     private val packDiscoveries: () -> List<PackDiscovery?> = { emptyList() },
     private val embed: suspend (String) -> FloatArray? = { null },
     private val embedForPack: suspend (PackEmbedding, String) -> FloatArray? = { _, text -> embed(text) },
+    /**
+     * The meaning pack attached to each pack, INDEX-ALIGNED with [databaseFiles]: its content.sqlite and
+     * embedding, or null. Its vectors point at this pack's passages (see [MeaningIndex]).
+     */
+    private val packMeanings: () -> List<Pair<File, PackEmbedding>?> = { emptyList() },
 ) : Retriever, java.io.Closeable {
     private val opened = ConcurrentHashMap<String, KnowledgeDatabase>()
+    private val meaningStores = ConcurrentHashMap<String, MeaningIndex.Store>()
     /** Packs are searched in parallel; the query encoder is one model and runs one call at a time. */
     private val embedLock = Mutex()
 
@@ -58,12 +64,15 @@ class MultiKnowledgeRetriever(
     fun release(root: File) {
         val prefix = root.absolutePath.trimEnd('/') + "/"
         opened.keys.filter { it.startsWith(prefix) || it == root.absolutePath }.forEach { opened.remove(it)?.close() }
+        meaningStores.keys.filter { it.startsWith(prefix) }.forEach { meaningStores.remove(it)?.close() }
     }
 
     /** Owner must stop outstanding research before releasing its cached stores. */
     override fun close() {
         opened.values.forEach { it.close() }
         opened.clear()
+        meaningStores.values.forEach { it.close() }
+        meaningStores.clear()
     }
 
     override fun hasEligiblePacks(query: String): Boolean {
@@ -95,6 +104,7 @@ class MultiKnowledgeRetriever(
         if (FtsQuery.from(query) == null) return@withContext emptyList()
         val allFiles = databaseFiles()
         val embeddings = runCatching(packEmbeddings).getOrDefault(emptyList())
+        val meanings = runCatching(packMeanings).getOrDefault(emptyList())
         val discoveries = runCatching(packDiscoveries).getOrDefault(emptyList())
         // A place lookup gains nothing from reference or science packs, and those are the large
         // ones. Without any place pack installed, every pack is still searched.
@@ -147,8 +157,13 @@ class MultiKnowledgeRetriever(
                             // subject of an explanation: its million passages would crowd every other
                             // pack's matches and slow each search.
                             if (candidates == null && database.isArticleSections()) {
+                                // Its meaning pack still reads only a few clusters, so it answers on its own.
+                                val (run, hits) = meanings.getOrNull(index)
+                                    ?.let { meaning -> emptyList<Evidence>().withMeaningEvidence(database, meaning, query, limit) }
+                                    ?: (emptyList<Evidence>() to 0)
+                                vectorMatches.addAndGet(hits)
                                 report(slot, 1.0)
-                                return@runCatching emptyList()
+                                return@runCatching run
                             }
                             val ranking = FtsRetriever(database)
                             val keyword = if (candidates != null) {
@@ -160,9 +175,10 @@ class MultiKnowledgeRetriever(
                                     else "App title anchor; full saved passage; not a Leviathan hit")
                                 }
                             } else ranking.searchFocused(query, limit, destinations, technicalFocus) { inner -> report(slot, inner.fraction) }
-                            val embedding = embeddings.getOrNull(index)
-                                ?.takeIf { shouldSearchVectors(discovery, query, it.count) }
-                            val (run, hits) = keyword.withVectorEvidence(database, embedding, query, limit)
+                            // A meaning pack reads a few clusters, not every vector, so it needs no coverage gate.
+                            val (run, hits) = meanings.getOrNull(index)?.let { meaning -> keyword.withMeaningEvidence(database, meaning, query, limit) }
+                                ?: keyword.withVectorEvidence(database,
+                                    embeddings.getOrNull(index)?.takeIf { shouldSearchVectors(discovery, query, it.count) }, query, limit)
                             vectorMatches.addAndGet(hits)
                             report(slot, 1.0)
                             run
@@ -357,6 +373,47 @@ class MultiKnowledgeRetriever(
             .filter { evidence -> evidence.score >= embedding.rejectBelow }
         if (hits.isEmpty()) return this to 0
         return fuseVectorAhead(hits, this) to hits.size
+    }
+
+    /**
+     * Meaning-pack evidence for one pack: the closest clusters' passages, read from this pack by rowid, ahead of its
+     * keyword matches as [withVectorEvidence] places them. A meaning pack that cannot be opened leaves the keyword run.
+     */
+    private suspend fun List<Evidence>.withMeaningEvidence(
+        database: KnowledgeDatabase,
+        meaning: Pair<File, PackEmbedding>,
+        query: String,
+        limit: Int,
+    ): Pair<List<Evidence>, Int> {
+        val hits = meaningHits(database, meaning, query, limit)
+        if (hits.isEmpty()) return this to 0
+        return fuseVectorAhead(hits, this) to hits.size
+    }
+
+    /** A meaning pack's passages for [query], scored with their cosine, at or above the pack's rejectBelow. */
+    private suspend fun meaningHits(database: KnowledgeDatabase, meaning: Pair<File, PackEmbedding>, query: String, limit: Int): List<Evidence> {
+        val (file, embedding) = meaning
+        if (!isMeaningLayout(embedding)) return emptyList()
+        val store = meaningStores[file.absolutePath] ?: runCatching {
+            MeaningIndex.Store.open(file, embedding.dim, embedding.subvectors!!)
+        }.getOrNull()?.let { fresh -> meaningStores.putIfAbsent(file.absolutePath, fresh)?.also { fresh.close() } ?: fresh }
+            ?: return emptyList()
+        val vector = runCatching { embedLock.withLock { embedForPack(embedding, embedding.queryPrefix + query) } }.getOrNull()
+            ?: return emptyList()
+        if (vector.size != embedding.dim) return emptyList()
+        return database.passagesByRecord(store.index.search(vector, embedding.probe!!, limit).filter { (_, score) -> score >= embedding.rejectBelow })
+    }
+
+    override suspend fun meaningLeads(question: String, limit: Int): List<Evidence> = withContext(ioDispatcher) {
+        if (FtsQuery.from(question) == null) return@withContext emptyList()
+        val files = databaseFiles()
+        val meanings = runCatching(packMeanings).getOrDefault(emptyList())
+        files.indices.flatMap { index ->
+            val meaning = meanings.getOrNull(index) ?: return@flatMap emptyList()
+            runCatching {
+                meaningHits(opened.computeIfAbsent(files[index].absolutePath) { path -> open(File(path)) }, meaning, question, limit)
+            }.getOrDefault(emptyList())
+        }.sortedByDescending { it.score }.take(limit)
     }
 
     internal companion object {

@@ -27,6 +27,13 @@ class EmbeddingCompatibilityTest {
         assertTrue(canShareQueryEncoder(active.copy(table = "other_vectors", count = 999,
             rejectBelow = 0.6, queryPrefix = "search: ", encoderPath = "other.gguf"), active))
     }
+    @Test fun aMeaningPackSharesTheQueryVectorOfTheSameEncoder() {
+        val meaning = active.copy(quant = "ivf-pq", table = "ivf_lists", clusters = 1024, subvectors = 96, probe = 32)
+        assertTrue(canShareQueryEncoder(meaning, active))
+        assertTrue(isMeaningLayout(meaning))
+        assertFalse(isMeaningLayout(meaning.copy(probe = null)))
+        assertFalse(supportsVectorLayout(meaning))
+    }
     @Test fun unsupportedVectorLayoutsFallBackInsteadOfUsingFixedNativeTable() {
         assertTrue(supportsVectorLayout(active))
         assertFalse(supportsVectorLayout(active.copy(table = "other_vectors")))
