@@ -106,7 +106,7 @@ test('navigation links open their section at its stop', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
-  await page.getByRole('navigation').getByRole('link', { name: 'FAQ' }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'FAQ' }).click();
   await expect(page.getByRole('dialog', { name: 'Common questions.' })).toBeVisible();
   await expect(page).toHaveURL(/#faq$/);
   const question = page.locator('summary', { hasText: 'Does it really work offline?' });
@@ -276,7 +276,7 @@ for (const width of [320, 390, 820, 1440]) {
     await page.goto('/');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width <= 960) await page.getByRole('button', { name: 'Menu', exact: true }).click();
-    await expect(page.getByRole('navigation').getByRole('link', { name: 'FAQ' })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'FAQ' })).toBeVisible();
     await expect(page.locator('a.button', { hasText: 'Download for Android' }).first()).toBeVisible();
   });
 }
@@ -285,7 +285,7 @@ test('the phone menu closes on navigation and on Escape', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   const toggle = page.getByRole('button', { name: 'Menu', exact: true });
-  const nav = page.getByRole('navigation');
+  const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(nav).toBeHidden();
   await toggle.click();
@@ -340,7 +340,7 @@ test('navigation and FAQ work with JavaScript disabled', async ({ browser }) => 
   const context = await browser.newContext({ javaScriptEnabled: false, reducedMotion: 'reduce' });
   const page = await context.newPage();
   await page.goto(home);
-  await page.getByRole('navigation').getByRole('link', { name: 'How it works' }).click();
+  await page.getByRole('navigation', { name: 'Main navigation' }).getByRole('link', { name: 'How it works' }).click();
   await expect(page).toHaveURL(/#how-it-works$/);
   const question = page.locator('summary').filter({ hasText: 'Does it really work offline?' });
   await question.click();
