@@ -102,7 +102,18 @@ ATLAS may be used to thank contributors, under these rules:
   | An accepted knowledge collection, or a larger change agreed in its issue first | 50,000,000 |
 - **One person per task.** Comment "taking this" on the issue and wait to be assigned; only the one
   assigned person is paid. If there is no pull request within 7 days, the maintainer unassigns it and
-  the task opens up again.
+  the task opens up again. A pull request opened before its author is assigned is not paid.
+- **A real phone, shown.** A timing or device report must come from a real phone, not an emulator. When
+  the maintainer assigns the task, the assignment comment gives a code word. The pull request then adds,
+  besides the template's screenshots:
+  - a photo of the phone taken with another camera, showing Field Atlas open with the code word typed in
+    the question box, the phone's edge or back in view;
+  - a screen recording of under a minute: **Settings › About phone** (model and memory), then Field Atlas
+    **More** (version and phone), then the code word typed in the question box.
+
+  Every screenshot, photo and recording is uploaded to the pull request on GitHub (drag it into the
+  description); links to images hosted elsewhere are not accepted, since they can change. Black out the
+  phone number, serial number and IMEI wherever they show.
 - **To be paid,** put these two lines in your pull request's description, as plain lines (not inside a
   comment or a code block, or the check cannot see them). The pull request template has a place for them.
 

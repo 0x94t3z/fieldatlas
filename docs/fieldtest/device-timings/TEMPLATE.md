@@ -39,10 +39,19 @@ the pull request template.
 | 9 | 450 km trip, the car uses 7 litres per 100 km and fuel costs 1.80 per litre. How much will the fuel cost? | | |
 | 10 | hello | | |
 
-## Screenshots
+## Screenshots and proof
 
-Attach three screenshots to the pull request: question 1's finished answer with its time showing, **More** showing the
-app version, and the phone's **Settings › About phone** showing its memory (RAM).
+Upload these to the pull request on GitHub (drag them into the description; links to images hosted elsewhere are not
+accepted):
+
+- three screenshots: question 1's finished answer with its time showing, **More** showing the app version, and the
+  phone's **Settings › About phone** showing its memory (RAM);
+- a photo of the phone taken with another camera, showing Field Atlas open with the code word from the assignment
+  comment typed in the question box, the phone's edge or back in view;
+- a screen recording of under a minute: **Settings › About phone**, then Field Atlas **More**, then the code word
+  typed in the question box.
+
+Black out the phone number, serial number and IMEI wherever they show. An emulator's times are not accepted.
 
 ## Anything odd
 
