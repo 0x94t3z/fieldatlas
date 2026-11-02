@@ -942,6 +942,42 @@ class EmergencyGuideMatchTest {
         assertNotEquals("severe-bleeding", match("im 34 weeks and suddenly a gush of blood, no pain at all"))
     }
 
+    @Test fun cleaningFumesBreathedInNowArePoisoningNotAHeartAttack() {
+        // Issue #8: the chest sign alone took it to the heart attack guide, with nothing about the gas.
+        assertEquals("poisoning", match("i mixed bleach and ammonia cleaning the bathroom and my chest is tight"))
+        assertEquals("poisoning", match("my mum was cleaning the shower with bleach and a toilet cleaner and now shes coughing and dizzy"))
+        assertEquals("poisoning", match("we breathed in drain cleaner fumes in the tiny laundry room and my eyes and throat are burning"))
+        // One strong chemical in a closed space, felt in the chest or throat (set 63).
+        assertEquals("poisoning", match("my 6yo sprayed the mould remover in the closet with the door shut and hes coughing and crying"))
+        assertEquals("poisoning", match("my dad was adding the pool chemicals and breathed some in, now hes coughing and says his chest hurts"))
+        // A splash in the eye alone is the eye's.
+        assertNotEquals("poisoning", match("toilet cleaner splashed in my daughters eye shes screaming"))
+        assertNotEquals("poisoning", match("i was mixing bleach and toilet cleaner and it splashed in my eye, it burns so bad"))
+        // Nothing has happened yet, or no one is feeling it: no guide.
+        assertNotEquals("poisoning", match("is it safe to mix bleach and vinegar to clean mould"))
+        assertNull(match("why does bleach smell so strong"))
+        // A scene being written is nobody's emergency (set 64).
+        assertNotEquals("poisoning", match("writing a short story where a character breathes in chlorine gas, what would happen realistically"))
+        // A heart attack with no chemicals in it stays one.
+        assertEquals("heart-attack", match("my dad has a tight chest and his left arm hurts, hes sweating"))
+    }
+
+    @Test fun somethingPutInTheMouthAndNowGoneWasSwallowed() {
+        // Issue #9: never says swallowed, so it missed the guide and the 4B wrote the answer.
+        val q = "my 2 year old put a little round remote control battery in her mouth and it is gone"
+        assertTrue(GuideAnswerCheck.swallowedSomething(q))
+        assertEquals("poisoning", match(q))
+        assertEquals("poisoning", match("toddler had a magnet in his mouth a minute ago and now i cant find it"))
+        // Read before the ranked guides: "breathing ok" once sent this to the seizure guide (set 63).
+        assertEquals("poisoning", match("my son had a coin in his mouth, he coughed a couple times and now its gone. hes breathing ok now"))
+        // Choking now is the choking guide's, not a swallowed object's.
+        assertNotEquals("poisoning", match("she put a coin in her mouth and now shes gagging and coughing cant get her breath"))
+        assertEquals("choking", match("baby had a coin in her mouth and now its gone and shes choking, cant breathe"))
+        // Changing a battery, or taking a pill as meant, swallows nothing.
+        assertNull(match("how do i put a new battery in the tv remote, the old one is gone flat"))
+        assertFalse(GuideAnswerCheck.swallowedSomething("i put the pill in my mouth with water like the doctor said"))
+    }
+
     @Test fun contactWithACurrentIsElectricShockAndAShockFeltInTheBodyIsNot() {
         // Set 57: "got shocked … still touching the lamp" was not taken for first aid, and the 2B answered about cord repair.
         val q = "my brother touched a frayed cord and got shocked hes on the floor still touching the lamp what do i do"

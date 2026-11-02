@@ -30,6 +30,13 @@ class OnDeviceEmergencyRoutingTest {
         assertTrue(EmergencyGuideMatch.describesFirstAidSituation("my brother touched a frayed cord and got shocked hes on the floor still touching the lamp what do i do"))
     }
 
+    @Test fun fumesAndAThingGoneFromTheMouthRouteAsOnTheJvm() {
+        assertEquals("poisoning", match("i mixed bleach and ammonia cleaning the bathroom and my chest is tight"))
+        assertEquals("poisoning", match("my 2 year old put a little round remote control battery in her mouth and it is gone"))
+        assertEquals("heart-attack", match("my dad has a tight chest and his left arm hurts, hes sweating"))
+        assertNotEquals("poisoning", match("is it safe to mix bleach and vinegar to clean mould"))
+    }
+
     @Test fun lookAlikesStayAwayFromTheseGuides() {
         assertNotEquals("severe-bleeding", match("nose has been bleeding for 25 minutes and wont stop, im 70 and on blood thinners"))
         assertNotEquals("severe-bleeding", match("im 34 weeks and suddenly a gush of blood, no pain at all"))

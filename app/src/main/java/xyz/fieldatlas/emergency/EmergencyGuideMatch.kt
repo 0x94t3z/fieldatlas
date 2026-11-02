@@ -553,6 +553,10 @@ object EmergencyGuideMatch {
         // gives rescue breathing. Set 52's "4 or 5 breaths a minute, pupils tiny" got a memory answer with no call.
         (if (opioidSigns.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)) guides.firstOrNull { it.id == "opioid-overdose" } else null)
             ?: (if (describesArrest(question)) guides.firstOrNull { it.id == "cpr" } else null)
+            // Fumes from cleaning chemicals breathed in now: the poisoning guide, which covers breathing in something harmful.
+            // "I mixed bleach and ammonia cleaning the bathroom and my chest is tight" was shown the heart attack guide,
+            // with nothing about the gas (issue #8, 2 Nov).
+            ?: (if (breathedFumes(question) || goneFromTheMouth(question)) guides.firstOrNull { it.id == "poisoning" } else null)
             ?: rank(question, guides).firstOrNull()?.first
             // Only when nothing else fits: a fever with a fit is the seizure guide, with no wet nappies the dehydration one.
             ?: (if (childFever.containsMatchIn(question) && !onScreen.containsMatchIn(question)) {
@@ -573,6 +577,46 @@ object EmergencyGuideMatch {
         "\\s+(?:(?:in|on|at|since|back in|last|this|about|around|a|an)\\s+)?(?:(?:a|an|\\d+|few|couple of)\\s+)?" +
         "(?:january|february|march|april|may|june|july|august|september|october|november|december|(?:19|20)\\d{2}|year|month|week|spring|summer|autumn|fall|winter|" +
         "(?:months?|years?|weeks?) ago)\\b")
+    /**
+     * A strong cleaning chemical or two used together, or their fumes breathed in, and someone feeling it in the chest,
+     * throat or head now: not "is it safe to mix bleach and vinegar", which asks before anything has happened, not a past
+     * exposure, and not a splash in the eye alone, which the eye guide answers.
+     */
+    internal fun breathedFumes(question: String): Boolean =
+        (chemicalFumes.containsMatchIn(question) && (fumeSigns.containsMatchIn(question) || fumeExposure.containsMatchIn(question)) ||
+            strongChemical.containsMatchIn(question) && airwaySigns.containsMatchIn(question)) &&
+            !(eyeSplash.containsMatchIn(question) && !airwaySigns.containsMatchIn(question)) &&
+            !notHappeningNow.containsMatchIn(question) && !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question)) &&
+            !onScreen.containsMatchIn(question) && !fiction.containsMatchIn(question)
+    /** "Writing a short story where a character breathes in chlorine gas": a scene, not a person (set 64). */
+    private val fiction = Regex("(?i)\\b(?:writ\\w*|draft\\w*) (?:a|an|my|the|this) (?:short )?(?:story|novel|book|script|scene|screenplay|play|poem|fanfic\\w*)\\b|" +
+        "\\b(?:a|my|the|one) (?:fictional )?characters?\\b")
+    private const val CLEANING_CHEMICAL = "(?:bleach|ammonia|chlorine|chloramine|vinegar|acids?|drain (?:cleaner|unblocker|opener)s?|toilet cleaners?|oven cleaners?|" +
+        "degreasers?|mou?ld (?:remover|spray|killer)s?|pool (?:chemicals?|shock|chlorine)|chlorine tablets|cleaning (?:products?|stuff|chemicals?|sprays?)|cleaners?|chemicals?)"
+    private val chemicalFumes = Regex("(?i)\\b(?:mix(?:ed|ing)?|combin\\w*|put|pour\\w*|us(?:e|ed|ing)|clean\\w*)\\b[^.?!]{0,40}?\\b$CLEANING_CHEMICAL\\b[^.?!]{0,30}?\\b(?:and|with|into|plus)\\b" +
+        "[^.?!]{0,30}?\\b$CLEANING_CHEMICAL\\b|\\b(?:chlorine|chloramine|toxic|chemical|cleaner|cleaning|bleach|ammonia)\\s+(?:gas|fumes|vapou?rs?|smell)\\b|" +
+        "\\b(?:breath\\w*|inhal\\w*|sniff\\w*|smell\\w*)\\b[^.?!]{0,30}?\\b(?:fumes|vapou?rs?|steam|gas|$CLEANING_CHEMICAL)\\b")
+    private val fumeSigns = Regex("(?i)\\b(?:chest|cough\\w*|wheez\\w*|breath\\w*|short of breath|can'?t breathe|cant breathe|throat|eyes?|dizz\\w*|light-?headed|" +
+        "headache|nause\\w*|sick|vomit\\w*|throw\\w* up|faint\\w*|burn\\w*|sting\\w*|chok\\w*)\\b")
+    private val fumeExposure = Regex("(?i)\\b(?:i|i've|ive|we|we've|he|she|they|my \\w+|our \\w+)\\s+(?:just\\s+|accidentally\\s+)?" +
+        "(?:mixed|combined|breathed|inhaled|sniffed)\\b")
+    /** Household chemicals strong enough to hurt the airway when breathed: not vinegar or "a cleaner" on its own. */
+    private val strongChemical = Regex("(?i)\\b(?:bleach|ammonia|chlorine|chloramine|drain (?:cleaner|unblocker|opener)s?|toilet cleaners?|oven cleaners?|degreasers?|" +
+        "mou?ld (?:remover|spray|killer)s?|pool (?:chemicals?|shock)|chlorine tablets|caustic soda|lye|hydrochloric|muriatic)\\b")
+    /** What breathing it does: the chest, the throat, coughing, the head. Eyes alone are a splash. */
+    private val airwaySigns = Regex("(?i)\\b(?:cough\\w*|wheez\\w*|chest|can'?t breathe|cant breathe|can'?t get (?:my|his|her|their) breath|short of breath|" +
+        "breathless|struggling to breathe|throat|dizz\\w*|head (?:is )?spinning|light-?headed|nause\\w*|feels? sick|feeling sick|vomit\\w*|faint\\w*)\\b")
+    private val eyeSplash = Regex("(?i)\\b(?:splash\\w*|squirt\\w*|sprayed|got)\\b[^.?!]{0,40}?\\b(?:in|into) (?:my|his|her|their|the) eyes?\\b")
+
+    /**
+     * A small thing put in the mouth and now gone, told without "swallowed" (issue #9): the poisoning guide, which says to get
+     * help even if they seem fine, unless they are choking now, which the choking guide answers.
+     */
+    internal fun goneFromTheMouth(question: String): Boolean = GuideAnswerCheck.putInMouthThenGone(question) && !chokingNow.containsMatchIn(question) &&
+        !notHappeningNow.containsMatchIn(question) && !onScreen.containsMatchIn(question) && !fiction.containsMatchIn(question)
+    private val chokingNow = Regex("(?i)\\b(?:chok\\w*|gagg\\w*|can'?t breathe|cant breathe|can'?t get (?:his|her|their) breath|turning blue|blue lips|" +
+        "can'?t (?:cough|speak|talk|cry)|clutching (?:his|her|their) throat)\\b")
+
     /** Swallowed now and a worry about it: not "ate mushrooms in Italy, which kind were they" or "ate lunch and my battery died". */
     private fun swallowedNow(question: String): Boolean =
         GuideAnswerCheck.swallowedSomething(question) && (swallowConcern.containsMatchIn(question) || harmfulSwallowed.containsMatchIn(question)) &&

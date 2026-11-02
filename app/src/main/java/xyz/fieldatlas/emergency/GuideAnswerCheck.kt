@@ -72,8 +72,14 @@ object GuideAnswerCheck {
     fun swallowedSomething(question: String): Boolean {
         val q = question.lowercase(Locale.ROOT).replace('’', '\'')
         return (INGESTION.containsMatchIn(q) || DOUBLE_DOSE.containsMatchIn(q) || POISON_PLANT.containsMatchIn(q) || q.contains("overdos") ||
-            FOUND_WITH.containsMatchIn(q)) &&
+            FOUND_WITH.containsMatchIn(q) || MOUTH_THEN_GONE.containsMatchIn(q)) &&
             SITUATION.containsMatchIn(q) && !STUDY.containsMatchIn(q)
+    }
+
+    /** [MOUTH_THEN_GONE] alone: a small thing was in the mouth and is gone now. */
+    fun putInMouthThenGone(question: String): Boolean {
+        val q = question.lowercase(Locale.ROOT).replace('’', '\'')
+        return MOUTH_THEN_GONE.containsMatchIn(q) && SITUATION.containsMatchIn(q) && !STUDY.containsMatchIn(q)
     }
 
     /**
@@ -301,6 +307,18 @@ object GuideAnswerCheck {
     /** Found with an opened medicine or chemical and traces on the mouth or hands. */
     private val FOUND_WITH = Regex("\\bfound (my |our |the |a )?(\\w+ ){0,3}(with|holding|playing with|chewing|sucking)\\b.{0,80}\\b((lid|cap|top) (was )?(off|open)|" +
         "(round|around|on|in) (his|her|their) (mouth|lips|tongue)|empty|missing)\\b")
+    /**
+     * Put in the mouth and now gone: "my 2 year old put a little round remote control battery in her mouth and it is gone"
+     * never says swallowed, and missed the guide; the 4B then wrote the answer, once telling the parent to remove it
+     * (issue #9, 2 Nov).
+     */
+    private const val SMALL_THING = "(?:batter(?:y|ies)|magnets?|magnet balls|coins?|earrings?|studs?|rings?|pills?|tablets?|capsules?|buttons?|beads?|" +
+        "marbles?|screws?|nails?|pins?|tacks?|lego|keys?|charms?|pendants?|gems?)"
+    private const val IN_MOUTH = "(?:(?:in|into) (?:his|her|their|my|the baby's|its) mouths?|sucking on|chewing on|mouthing)"
+    private const val NOW_GONE = "(?:(?:is|it's|its|now|just) gone|gone now|gone\\b|disappeared|missing|vanished|nowhere|can't find|cant find|cannot find|" +
+        "isn't there|is not there|not there|there were \\d+ now \\d+|only \\d+ left)"
+    private val MOUTH_THEN_GONE = Regex("\\b$SMALL_THING\\b.{0,80}?\\b$IN_MOUTH\\b.{0,80}?\\b$NOW_GONE|\\b$IN_MOUTH\\b.{0,80}?\\b$SMALL_THING\\b.{0,60}?\\b$NOW_GONE|" +
+        "\\b(?:put|puts|stuck|popped|shoved|had|was chewing|was sucking|was holding)\\b.{0,60}\\b(?:in|into) (?:his|her|their|my|the baby's) mouth\\b.{0,40}\\b$NOW_GONE")
     /** A poisonous plant eaten by mistake ("picked wild garlic for a salad ... were lily of the valley"). */
     private val POISON_PLANT = Regex("\\b(?:lily of the valley|foxglove|hemlock|deadly nightshade|nightshade|yew|death cap|destroying angel|monkshood|aconite|oleander|castor beans?)\\b")
     /** A medicine taken twice or too much by mistake ("took his evening bisoprolol twice"); not "it took twice as long". */
