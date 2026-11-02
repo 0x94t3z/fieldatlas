@@ -13,6 +13,10 @@ model on most phones, and opens the right first-aid guide for four more kinds of
 - **Qwen3.5 2B is recommended below 12 GB of memory.** The 4B is recommended from 12 GB; on smaller phones it
   stays in Library, marked slow. Contributors timed the 4B at up to 5.5 minutes an answer on a 12 GB phone; a
   model you already use is not changed.
+- **Place lists read at a glance.** "Recommend vegan restaurants in Singapore" or "find hospital in Berlin" is
+  now one numbered list: each place's name, then what it is, its street and whether it is open now by the phone's
+  clock (for a hospital, whether the map records an emergency department). A tap opens the place: whether it is
+  open, its address large enough to show a driver, its hours and Open in maps.
 - **Four more emergencies open their guide.**
   - An object with no air going in ("baby has a coin stuck she cant cry or breathe lips going blue") opens choking.
   - A fuel burning in a closed space with someone unwell ("running the generator in the garage… everyone has a
