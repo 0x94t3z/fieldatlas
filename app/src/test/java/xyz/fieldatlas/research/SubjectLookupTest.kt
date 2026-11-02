@@ -11,6 +11,12 @@ import org.junit.Test
 import xyz.fieldatlas.text.MarkdownLiteral
 
 class SubjectLookupTest {
+    @Test fun aJudgementAskedForIsNotTheSubject() {
+        listOf("is it ok to drink from the faucet in hanoi", "is it safe to walk at night in lisbon", "is it rude to tip in japan").forEach { q ->
+            assertTrue(q, SubjectLookup.candidates(q, 1, SubjectLookup.looksUp(q)).none { it.text.lowercase() in setOf("ok", "safe", "rude") })
+        }
+    }
+
     @Test fun aCapitalTheInsideASentenceOpensAName() {
         // "Strokes" alone became the article "Stroke", and the notes were about the illness (2 Nov).
         val texts = SubjectLookup.candidates("when did The Strokes release Is This It", 1, lookup = true).map { it.text }

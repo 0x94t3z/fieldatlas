@@ -38,6 +38,9 @@ object SubjectLookup {
         // An aspect asked about is not the subject: "the advantages and drawbacks of electric cars".
         "advantages", "disadvantages", "drawbacks", "benefits", "pros", "cons", "downsides", "upsides", "risks", "dangers",
         "effects", "effect", "impact", "impacts", "consequences",
+        // A judgement asked for is not the subject: "is it ok to drink from the faucet in hanoi" is not about "OK".
+        "ok", "okay", "alright", "fine", "safe", "unsafe", "allowed", "legal", "illegal", "normal", "rude", "polite", "worth",
+        "possible", "advisable", "wise",
         // Casual spellings and emphasis: "whats the actual difference", "while the Eastern half survived".
         "whats", "while", "supposed",
         // An adverb narrows nothing: a "fully electric car" is an electric car.
