@@ -365,7 +365,8 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
     fun buildKnowledgeFirst(question: String, packed: PackedPrompt, notes: Int, framing: Framing? = null, thinking: Boolean = false,
         cite: Boolean = false, shaped: Boolean = !thinking, firstAidCare: Boolean = false): PackedPrompt {
         require(question.isNotBlank()) { "question must not be blank" }
-        val chosen = packed.sources.take(notes.coerceAtLeast(0))
+        // A section the question names by its heading is read first; each note shows the part with the asked words (NoteChoice).
+        val chosen = NoteChoice.order(question, packed.sources).take(notes.coerceAtLeast(0)).map { packed.sources[it] }
         var fixed = 0
         val prompt = buildString {
             if (!thinking) append(THINK_OFF)
@@ -377,7 +378,7 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
             if (chosen.isNotEmpty()) {
                 append("\n\nNOTES FROM THE OFFLINE LIBRARY (use only what is relevant and correct; never mention them):\n")
                 append(chosen.withIndex().joinToString("\n\n") { (i, it) ->
-                    (if (cite) "[S${i + 1}] " else "- ") + "${compactMetadata(it.evidence.title)}: ${takeWholeCodePoints(it.excerpt, KNOWLEDGE_NOTE_CHARS)}" })
+                    (if (cite) "[S${i + 1}] " else "- ") + "${compactMetadata(it.evidence.title)}: ${takeWholeCodePoints(NoteChoice.excerpt(question, it, KNOWLEDGE_NOTE_CHARS), KNOWLEDGE_NOTE_CHARS)}" })
             }
             append("\n\n")
             append(questionText(question, framing, "\n"))

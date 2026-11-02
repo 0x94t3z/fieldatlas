@@ -78,11 +78,11 @@ object SourceRouter {
     fun notes(question: String, subjects: List<Evidence>, sources: List<PromptSource>, articleRows: Map<String, Int> = emptyMap(),
         mentions: Map<String, Int> = emptyMap(), readImported: Boolean = false, factLookups: Boolean = false): Int {
         if (sources.isEmpty()) return 0
-        // A question for a date, a name or a measure, with the encyclopedia leading the passages: read, however famous the
+        // A question for a date, a name or a measure, with the encyclopedia among the leading passages: read, however famous the
         // subject. Straight from memory the 4B opened the Sydney Opera House on 26 October (20 October 1973) and missed the
         // deepest lake; with the notes it had both (blind, 23 Oct). A model that reasons first checks its own recall.
         if (factLookups && FACT_LOOKUP.containsMatchIn(question) && !ADVICE_OR_FOLLOW_UP.containsMatchIn(question) &&
-            from(mainstream + fullEdition, sources.first().evidence.documentId)) return READ_NOTES
+            sources.take(3).any { from(mainstream + fullEdition, it.evidence.documentId) }) return READ_NOTES
         // A rare subject the question names is read even beside a common one it also names: "who was Hanaoka Seishū,
         // what surgery did he perform" resolves "Surgery" too, and the sources are needed for the surgeon, not the surgery.
         val own = subjects.filter { named(it, question) }

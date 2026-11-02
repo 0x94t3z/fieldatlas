@@ -1226,10 +1226,12 @@ class ResearchOrchestrator(
                 // Read as notes, the passages' facts come back cited by the model; those citations are kept and audited.
                 val citation = Regex("\\[S\\d+]")
                 val explained = if (knowledgeNotes == 0) AnswerText.mixed(raw, emptyList())
-                    else "## " + AnswerText.MODEL_LABEL + "\n\n" + AnswerText.finalized(raw, first.sources.size).trim()
+                    // The model cites its notes as [S1]..[Sn]; each becomes the number of its passage in the list below.
+                    else "## " + AnswerText.MODEL_LABEL + "\n\n" + NoteChoice.renumber(AnswerText.finalized(raw, first.sources.size).trim(),
+                        NoteChoice.order(question, packed.sources).take(knowledgeNotes))
                 // Read from notes, a date is given only as precisely as a note gives it, and a citation stays only where its passage
                 // states the sentence's figures (see NoteFacts).
-                val notesRead = if (knowledgeNotes > 0) packed.sources.take(knowledgeNotes).map { it.evidence.text } else emptyList()
+                val notesRead = if (knowledgeNotes > 0) NoteChoice.order(question, packed.sources).take(knowledgeNotes).map { packed.sources[it].evidence.text } else emptyList()
                 val checked = if (notesRead.isEmpty()) explained else NoteFacts.withoutUnbackedCitations(NoteFacts.toNotedPrecision(explained, notesRead)) { n ->
                     packed.sources.getOrNull(n - 1)?.evidence?.text }
                 val cited = citation.findAll(checked).count()
