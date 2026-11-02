@@ -41,8 +41,10 @@ The 60 messages had been used while building the earlier 1.4.6 fix, so they are 
 
 ## Good to know
 
-- **Meaning-based search is coming as collections, not in this app update.** Indexes for the Encyclopedia,
-  Wikivoyage guides and Biology will appear in Library once they are published; 1.4.x already reads them.
+- **Encyclopedia: search by meaning** is a new collection in Library (244 MB download, 453 MB installed): the
+  opening of every Simple English Wikipedia article, found by what a question means even when it uses other
+  words. On an emulator, ten everyday questions took no longer to search with it installed. Meaning search for
+  the travel guides and Biology follows once it is fast enough; it added about 2.5 seconds a question.
 - **Tested on** a 12 GB Android emulator. Not yet on a real phone.
 - **Answers can be wrong.** Nothing here is medical advice. In an emergency, call your local emergency number.
 
