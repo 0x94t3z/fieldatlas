@@ -1190,7 +1190,9 @@ class ResearchOrchestrator(
                 // A model chosen for it reasons first: Gemma 4 26B got a time-zone sum wrong straight out and right
                 // after reasoning, and scored 82.5% against 77.5% of web-and-AI answers on set 33 (two blind rounds).
                 val thinking = inference.thinkingBudget.coerceAtLeast(0)
-                val first = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = thinking > 0, cite = knowledgeNotes > 0,
+                // A note the collection cut mid-word ("often known as \"Ame") reads on into its article's next chunk.
+                val notePacked = if (knowledgeNotes > 0) NoteChoice.continued(question, packed, knowledgeNotes) { retriever.article(it.title.substringBefore(" — "), NOTE_CONTINUATION_ROWS) } else packed
+                val first = PromptBuilder.buildKnowledgeFirst(question, notePacked, knowledgeNotes, framing, thinking = thinking > 0, cite = knowledgeNotes > 0,
                     firstAidCare = firstAidQuestion && (inference.writesFirstAid || firstAidHere && smallModelFirstAid == "careful"))
                 onEvidencePacked(first)
                 if (packed.sources.isNotEmpty()) emit(ResearchEvent.Sources(packed.sources.map { it.evidence }))
@@ -1213,7 +1215,7 @@ class ResearchOrchestrator(
                     // of the 16 set 42 questions it read notes for empty, and cut a set 33 answer after "Key facts:".
                     // Asked again with the thinking turn closed, it answers at once and in full.
                     written.clear()
-                    val direct = PromptBuilder.buildKnowledgeFirst(question, packed, knowledgeNotes, framing, thinking = false,
+                    val direct = PromptBuilder.buildKnowledgeFirst(question, notePacked, knowledgeNotes, framing, thinking = false,
                         cite = knowledgeNotes > 0, shaped = false, firstAidCare = firstAidQuestion && (inference.writesFirstAid || firstAidHere && smallModelFirstAid == "careful"))
                     write(inference.generate(direct.prompt, outputBudget, savedPrefixChars = direct.savedPrefixChars))
                 }
@@ -1231,7 +1233,7 @@ class ResearchOrchestrator(
                         NoteChoice.order(question, packed.sources).take(knowledgeNotes))
                 // Read from notes, a date is given only as precisely as a note gives it, and a citation stays only where its passage
                 // states the sentence's figures (see NoteFacts).
-                val notesRead = if (knowledgeNotes > 0) NoteChoice.order(question, packed.sources).take(knowledgeNotes).map { packed.sources[it].evidence.text } else emptyList()
+                val notesRead = if (knowledgeNotes > 0) NoteChoice.order(question, notePacked.sources).take(knowledgeNotes).map { notePacked.sources[it].evidence.text } else emptyList()
                 val checked = if (notesRead.isEmpty()) explained else NoteFacts.withoutUnbackedCitations(NoteFacts.toNotedPrecision(explained, notesRead)) { n ->
                     packed.sources.getOrNull(n - 1)?.evidence?.text }
                 val cited = citation.findAll(checked).count()
@@ -1768,6 +1770,8 @@ class ResearchOrchestrator(
         const val SUBJECT_CANDIDATES = 10
         /** Event leads read to find one year's event: a year holds dozens of elections, few naming the asked words. */
         const val EVENT_CANDIDATES = 50
+        /** Rows of an article read to find the chunk that continues a note cut mid-word. */
+        const val NOTE_CONTINUATION_ROWS = 8
         const val FALLBACK_OVERVIEWS = 2
         const val TOPIC_CANDIDATES = 50
         const val TOPIC_NAMES = 12

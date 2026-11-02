@@ -43,4 +43,23 @@ class NoteChoiceTest {
             NoteChoice.renumber("Released in October 2001 [S1]. Recorded in New York [S2].", listOf(3, 0, 1)))
         assertEquals("A claim .", NoteChoice.renumber("A claim [S5].", listOf(3, 0, 1)))
     }
+
+    @Test fun aNoteCutMidWordReadsOnIntoItsNextChunk() {
+        assertTrue(NoteChoice.cutMidWay("The Cowboys are often known as \"Ame"))
+        assertFalse(NoteChoice.cutMidWay("They won five Super Bowls."))
+        assertEquals("known as \"America's Team\".", NoteChoice.joined("known as \"Ame", "rica's Team\"."))
+        // Chunks that overlap keep the shared text once.
+        assertEquals("Trump received 304. Clinton received 227. Even though Trump lost the popular vote.",
+            NoteChoice.joined("Trump received 304. Clinton received 227. Even though Tru",
+                "Clinton received 227. Even though Trump lost the popular vote."))
+        val first = Evidence("swp-31", "swp-31-0000:0000", "Dallas Cowboys — Overview", "Saved collection", "The Cowboys are often known as \"Ame", 1.0)
+        val second = first.copy(chunkId = "swp-31-0000:0001", text = "rica's Team\". They play in Arlington.")
+        val packed = PackedPrompt("p", listOf(PromptSource("S1", first, first.text)))
+        val read = kotlinx.coroutines.runBlocking { NoteChoice.continued("why are the cowboys called americas team", packed, 3) { listOf(first, second) } }
+        assertEquals("The Cowboys are often known as \"America's Team\". They play in Arlington.", read.sources[0].evidence.text)
+        // Nothing to join, or no next chunk: the notes are as packed.
+        val done = PackedPrompt("p", listOf(PromptSource("S1", second, second.text)))
+        assertEquals(done, kotlinx.coroutines.runBlocking { NoteChoice.continued("q", done, 3) { listOf(first, second) } })
+        assertEquals(packed, kotlinx.coroutines.runBlocking { NoteChoice.continued("q", packed, 3) { listOf(first) } })
+    }
 }

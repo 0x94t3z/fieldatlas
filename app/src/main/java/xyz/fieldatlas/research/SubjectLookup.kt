@@ -185,7 +185,10 @@ object SubjectLookup {
                 run.isNotEmpty() && nextNames)
             val isNamed = m.range.first > 0 && w.first().isUpperCase()
             val measure = bare in measures && next?.lowercase() == "of"
-            val breaks = bare in framing || bare in emphasis && !isNamed || lookup && bare in lookupFraming && !isNamed ||
+            // "did The Strokes release": a capital "The" inside a sentence opens a name ("The Strokes", "The Who"); read
+            // without it, "Strokes" became the article "Stroke" and the notes were about the illness (2 Nov).
+            val namesThe = w == "The" && named(index) && words.getOrNull(index + 1)?.firstOrNull()?.isUpperCase() == true && adjacent(index)
+            val breaks = !namesThe && bare in framing || bare in emphasis && !isNamed || lookup && bare in lookupFraming && !isNamed ||
                 numeric && !keepsNumber || w.length < 2 && !keepsNumber && !(w.singleOrNull()?.isLetter() == true && nextNames) || measure
             if (breaks) {
                 if (run.isNotEmpty()) { runs += Run(run, before); run = ArrayList() }
@@ -254,7 +257,7 @@ object SubjectLookup {
             for (n in minOf(maxWords, r.size) downTo 1) for (start in 0..r.size - n) {
                 val words = if (n == 1) listOf(possessor(r[start])) else r.subList(start, start + n)
                 // A piece of a name never opens or closes with its connector ("of China").
-                if (words.first().lowercase() in connectors || words.last().lowercase() in connectors) continue
+                if (words.first().lowercase() in connectors && words.first() != "The" || words.last().lowercase() in connectors) continue
                 if (words.all { it.all(Char::isDigit) } || n == 1 && (lookup && words[0].lowercase() in generic || words[0].lowercase() in genericAlways)) continue
                 val trailing = r.subList(start + n, r.size)
                 // The words after a name that opens its phrase are its predicate ("the Black Death

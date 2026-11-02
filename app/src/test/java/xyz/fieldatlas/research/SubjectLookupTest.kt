@@ -11,6 +11,15 @@ import org.junit.Test
 import xyz.fieldatlas.text.MarkdownLiteral
 
 class SubjectLookupTest {
+    @Test fun aCapitalTheInsideASentenceOpensAName() {
+        // "Strokes" alone became the article "Stroke", and the notes were about the illness (2 Nov).
+        val texts = SubjectLookup.candidates("when did The Strokes release Is This It", 1, lookup = true).map { it.text }
+        assertTrue(texts.toString(), "The Strokes" in texts && texts.indexOf("The Strokes") < texts.indexOf("Stroke"))
+        assertTrue("The Beatles" in SubjectLookup.candidates("when did The Beatles break up", 1, lookup = true).map { it.text })
+        // A sentence's own opening "The" is no part of the name.
+        assertFalse(SubjectLookup.candidates("The Eiffel Tower is how tall", 1, lookup = true).any { it.text.startsWith("The ") })
+    }
+
     @Test fun aComparisonReadsTheArticleOfEachSubject() {
         // "Tell them apart" and "vs" ask for both sides, read from their own articles.
         assertTrue(SubjectLookup.leads("Cheetah vs leopard: how do you tell them apart on a safari?"))

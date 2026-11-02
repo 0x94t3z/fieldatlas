@@ -52,6 +52,40 @@ object NoteChoice {
         return sentences.drop(best).joinToString(" ")
     }
 
+    /** A passage that stops mid-word or mid-sentence: the collection's chunking cut it. */
+    internal fun cutMidWay(text: String): Boolean = text.trimEnd().lastOrNull()?.let { it.isLetterOrDigit() || it == ',' } == true
+
+    /** [cut] and the chunk that continues it, without the text the two share. */
+    internal fun joined(cut: String, next: String): String {
+        // The next chunk may begin with the cut one's last words, or with a sentence from inside it.
+        val tail = (minOf(cut.length, next.length) downTo 10).firstOrNull { cut.endsWith(next.take(it)) }
+        if (tail != null) return cut + next.drop(tail)
+        val probe = next.take(20)
+        val at = if (probe.length == 20) cut.indexOf(probe) else -1
+        return if (at >= 0) cut.substring(0, at) + next else cut.trimEnd() + next
+    }
+
+    /**
+     * [packed] with each note the model will read that the collection cut mid-way joined to its next chunk, found among
+     * [article]'s rows by document and chunk number. "Dallas Cowboys — Overview" ends 'The Cowboys are often known as
+     * "Ame' and its next chunk holds the rest of the line the question asks about (2 Nov).
+     */
+    suspend fun continued(question: String, packed: PackedPrompt, notes: Int, article: suspend (Evidence) -> List<Evidence>): PackedPrompt {
+        val read = order(question, packed.sources).take(notes).filter { cutMidWay(packed.sources[it].evidence.text) }
+        if (read.isEmpty()) return packed
+        val sources = packed.sources.toMutableList()
+        for (i in read) {
+            val evidence = sources[i].evidence
+            val number = evidence.chunkId.substringAfterLast(':').toIntOrNull() ?: continue
+            val rows = try { article(evidence) } catch (error: kotlinx.coroutines.CancellationException) { throw error } catch (error: Exception) { emptyList() }
+            val next = rows.firstOrNull {
+                it.documentId == evidence.documentId && it.chunkId.substringAfterLast(':').toIntOrNull() == number + 1
+            } ?: continue
+            sources[i] = sources[i].copy(evidence = evidence.copy(text = joined(evidence.text, next.text)))
+        }
+        return packed.copy(sources = sources)
+    }
+
     /** The model's [S1].. for its notes turned into the passages' own numbers; a note it was never shown is cited by nothing. */
     fun renumber(raw: String, shown: List<Int>): String = Regex("\\[S(\\d+)]").replace(raw) { m ->
         m.groupValues[1].toIntOrNull()?.let { shown.getOrNull(it - 1) }?.let { "[S${it + 1}]" } ?: ""
