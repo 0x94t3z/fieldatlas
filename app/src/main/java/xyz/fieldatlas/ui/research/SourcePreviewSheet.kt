@@ -247,8 +247,9 @@ internal fun SourcePreviewSheet(
                             Button(
                                 onClick = {
                                     val label = Uri.encode(place.name)
-                                    launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")),
-                                        "No maps app is installed. Copy the ${if (place.address != null) "address" else "coordinates"} instead.")
+                                    val missing = if (place.address == null) "No maps app is installed. Copy the coordinates instead."
+                                        else "No maps app is installed. Copy the address instead."
+                                    launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")), missing)
                                 },
                                 shape = FieldAtlasButtonShape,
                                 modifier = Modifier.weight(1f).heightIn(min = 52.dp),
