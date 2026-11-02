@@ -52,6 +52,7 @@ class KnowledgeCatalogFetch(
     }
 
     companion object {
-        const val CATALOG_URL = "https://raw.githubusercontent.com/0x94t3z/fieldatlas/main/app/src/main/assets/knowledge/catalog.json"
+        // catalog.json stays as 1.4.7 and earlier read it; catalog-2.json adds what needs 1.4.8 (meaning packs).
+        const val CATALOG_URL = "https://raw.githubusercontent.com/0x94t3z/fieldatlas/main/app/src/main/assets/knowledge/catalog-2.json"
     }
 }

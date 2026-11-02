@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "packs": [
+    {
+      "id": "wikipedia-encyclopedia",
+      "replaces": ["simplewiki", "wikipedia-en-vital"],
+      "version": "2026.10.12-native-compressed-preview",
+      "title": "Encyclopedia",
+      "description": "English and Simple English Wikipedia in one offline collection. 8.39 million passages; 10.64 GB download, 24.35 GB installed. Dated snapshots, not live information.",
+      "license": "CC-BY-SA-4.0",
+      "bytes": 10643533492,
+      "installedBytes": 24346003429,
+      "sha256": "7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/resolve/4a31af613133782cb6ba62d2a660a920e5a64cd6/encyclopedia-2026.10.12.fapack",
+      "recommended": true,
+      "category": "Encyclopedia"
+    },
+    {
+      "id": "encyclopedia-index",
+      "version": "2026.11.02-leviathan",
+      "title": "Encyclopedia: search by meaning",
+      "description": "The opening of every Simple English Wikipedia article (211,112 subjects), searched by meaning, so a question finds its subject even in other words · November 2026.",
+      "license": "CC-BY-SA-4.0 AND MIT",
+      "bytes": 244396881,
+      "installedBytes": 452896096,
+      "sha256": "2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan/encyclopedia-index-2026.11.02-leviathan.fapack",
+      "recommended": true,
+      "category": "Encyclopedia"
+    },
+    {
+      "id": "wikivoyage-guides",
+      "version": "2026.09.01-leviathan",
+      "title": "Travel guides",
+      "description": "31,672 Wikivoyage guides by section: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks · September 2026 snapshot.",
+      "license": "CC-BY-SA-4.0",
+      "bytes": 289828270,
+      "installedBytes": 660324352,
+      "sha256": "e67ab97828da0d73266e462b1bff08acd61125140cf797202806cd83234805de",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan/wikivoyage-guides-2026.09.01-leviathan.fapack",
+      "recommended": true,
+      "category": "Travel"
+    },
+    {
+      "id": "wikivoyage-places",
+      "version": "2026.09.1-leviathan",
+      "title": "Travel places",
+      "description": "Restaurants, hotels, sights, and shops · September 2026. Listings may be outdated.",
+      "license": "CC-BY-SA-4.0",
+      "bytes": 215077879,
+      "installedBytes": 650272768,
+      "sha256": "c94daea43ae042048b7427fefc50abcee10a554a5a80fc359cc4fe9a273e8c63",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-places/2026.09.1-leviathan/wikivoyage-places-2026.09.1-leviathan.fapack",
+      "recommended": true,
+      "category": "Places"
+    },
+    {
+      "id": "osm-vegan-places",
+      "version": "2026.10.05-leviathan",
+      "title": "Vegan places",
+      "description": "52,064 restaurants, cafés, and shops OpenStreetMap tags as fully vegan or with vegan options, worldwide, with near-me lookups · October 2026. Tags can be outdated.",
+      "license": "ODbL-1.0",
+      "bytes": 24183118,
+      "installedBytes": 76947456,
+      "sha256": "ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan/osm-vegan-places-2026.10.05-leviathan.fapack",
+      "recommended": true,
+      "category": "Places"
+    },
+    {
+      "id": "osm-essentials",
+      "version": "2026.10.05-leviathan",
+      "title": "Essentials",
+      "description": "2,981,023 pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels OpenStreetMap maps worldwide, with near-me lookups · October 2026. Details can be outdated.",
+      "license": "ODbL-1.0",
+      "bytes": 986143236,
+      "installedBytes": 3620782080,
+      "sha256": "f41811ed8fe4aa1883adb98a57cd75b60aaf30f918358eb3a5c391fc85f7e2d2",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-essentials/2026.10.05-leviathan/osm-essentials-2026.10.05-leviathan.fapack",
+      "recommended": false,
+      "category": "Places"
+    },
+    {
+      "id": "crypto-ethereum",
+      "version": "2026.10.05-leviathan",
+      "title": "Cryptography & Ethereum",
+      "description": "22,805 passages from the Ethereum Improvement Proposals and ERCs, the consensus specifications, NIST post-quantum standards and 123 Wikipedia articles, with local vector search · October 2026.",
+      "license": "CC0-1.0 AND CC-BY-SA-4.0 AND LicenseRef-US-Government-Work AND MIT",
+      "bytes": 59453558,
+      "installedBytes": 92226912,
+      "sha256": "3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan/crypto-ethereum-2026.10.05-leviathan.fapack",
+      "recommended": true,
+      "category": "Science"
+    },
+    {
+      "id": "world-knowledge-biology",
+      "version": "2026.10.18",
+      "title": "Biology & longevity",
+      "description": "900,714 passages from 48,286 open-access ageing and longevity papers, the OpenStax Biology 2e textbook, MedlinePlus health and genetics summaries and the Human Ageing Genomic Resources databases · October 2026. Not medical advice.",
+      "license": "CC-BY-4.0 AND CC-BY-3.0 AND CC0-1.0 AND LicenseRef-US-Government-Work",
+      "bytes": 1075685456,
+      "installedBytes": 2855220193,
+      "sha256": "e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18/world-knowledge-biology-2026.10.18.fapack",
+      "recommended": true,
+      "category": "Science"
+    }
+  ]
+}

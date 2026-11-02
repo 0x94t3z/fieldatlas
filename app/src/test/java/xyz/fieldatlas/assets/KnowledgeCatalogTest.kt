@@ -117,6 +117,14 @@ class KnowledgeCatalogTest {
         }
     }
 
+    @Test fun theNewerCatalogKeepsEveryOlderEntryUnchanged() {
+        // 1.4.7 and earlier read catalog.json; 1.4.8 reads catalog-2.json, which may only add packs older apps cannot use.
+        val older = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText()).packs
+        val newer = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog-2.json").readText()).packs
+        assertEquals(older, newer.filter { pack -> older.any { it.id == pack.id } })
+        assertTrue(newer.filterNot { pack -> older.any { it.id == pack.id } }.all { it.id.endsWith("-meaning") })
+    }
+
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
         val encyclopedia = catalog.packs.single { it.id == "wikipedia-encyclopedia" }
