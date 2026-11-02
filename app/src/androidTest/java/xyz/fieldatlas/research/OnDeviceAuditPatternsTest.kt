@@ -66,4 +66,19 @@ class OnDeviceAuditPatternsTest {
         assertEquals(false, EmergencyGuideMatch.embeddedObject("the pain went into my left arm"))
         assertEquals(false, EmergencyGuideMatch.embeddedObject("his bone is sticking out of his leg"))
     }
+
+    @Test fun factLookupsEventArticlesAndNoteFactsRunOnIcu() {
+        // SourceRouter's fact-lookup forms, EventArticle's kinds and NoteFacts' date and citation patterns, on ICU.
+        val cowboys = listOf(Evidence("swp-31", "swp-31-0000", "Dallas Cowboys — Overview", "Saved collection", "x", 1.0))
+        val note = listOf(PromptSource("S1", cowboys[0], "x"))
+        assertEquals(SourceRouter.READ_NOTES, SourceRouter.notes("why are the Dallas Cowboys considered America's team?", cowboys, note,
+            mentions = mapOf("Dallas Cowboys" to 1000), factLookups = true))
+        assertEquals(0, SourceRouter.notes("why are the Dallas Cowboys so popular", cowboys, note, mentions = mapOf("Dallas Cowboys" to 1000), factLookups = true))
+        assertEquals(EventArticle.Ask("2016", "election", listOf("trump")), EventArticle.of("how many electoral votes did Trump have in 2016?"))
+        assertEquals(null, EventArticle.of("who won the 1999 champions league final"))
+        val strokes = "Is This It was released in Australia in July 2001, and in the US in October 2001."
+        assertEquals("Released in October 2001.", NoteFacts.toNotedPrecision("Released on October 27, 2001.", listOf(strokes)))
+        assertEquals("Released in October 2001 [S2]. Label: Epitaph in 2004.",
+            NoteFacts.withoutUnbackedCitations("Released in October 2001 [S2]. Label: Epitaph in 2004 [S1].") { if (it == 2) strokes else "a live album" })
+    }
 }
