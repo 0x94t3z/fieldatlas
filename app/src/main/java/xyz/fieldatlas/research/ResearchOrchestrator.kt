@@ -634,6 +634,14 @@ class ResearchOrchestrator(
             val placesOnly = attachments.isEmpty() && VenueLookup.isPlaceLookup(question)
             val technicalFocus = if (attachments.isEmpty()) TechnicalRuleFocus.from(question) else null
             val destinations = if (includeLibrary && attachments.isEmpty()) retriever.destinations(question) else emptyList()
+            // Something to read at once, before the full search over every collection (2.6 s on the Mac, several times
+            // that on a phone): the question's subject or year's event, looked up by its title in milliseconds. The best
+            // apps "show the user a search result from the local database immediately" (Vitalik Buterin, 31 Oct 2026).
+            val previewable = includeLibrary && attachments.isEmpty() && !placesOnly && technicalFocus == null && preferredGuideId == null &&
+                ProposalLookup.named(question) == null &&
+                !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)
+            val quickPreview = if (previewable) quickSubject(question) else null
+            quickPreview?.let { emit(ResearchEvent.Preview(it)) }
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
                     _searchProgress.value = progress.fraction
@@ -646,7 +654,7 @@ class ResearchOrchestrator(
             // Something to read while the rest of the run looks further and the model reads: on 1 Nov the first words
             // came 6-50 s after asking on the emulator. Not for first aid (a guide or the call line leads there, never a
             // passage that merely shares words) or a place lookup (its rows are map fields, not prose).
-            if (!placesOnly && preferredGuideId == null && !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
+            if (quickPreview == null && !placesOnly && preferredGuideId == null && !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
                 evidence.firstOrNull()?.let { emit(ResearchEvent.Preview(it)) }
 
             if (includeLibrary && attachments.isEmpty() && !placesOnly && technicalFocus == null &&
@@ -1731,6 +1739,20 @@ class ResearchOrchestrator(
 
     private fun elapsed(start: Long, end: Long): Long = (end - start).coerceAtLeast(0)
 
+    /**
+     * The overview of the article a question names, or of the year's event it asks about, found by title alone: the
+     * first few subject phrases only, so it costs a handful of indexed lookups. Null when none is found.
+     */
+    private suspend fun quickSubject(question: String): Evidence? {
+        EventArticle.of(question)?.let { ask -> EventArticle.pick(retriever.eventLeads(ask.year, ask.kind, ask.terms, EVENT_CANDIDATES), ask)?.let { return it } }
+        val lookup = SubjectLookup.looksUp(question)
+        for (candidate in SubjectLookup.candidates(question, 1, lookup).take(QUICK_SUBJECT_PHRASES)) {
+            val found = SubjectLookup.overviewOf(candidate.text, retriever.titled(candidate.text, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES), question)
+            if (found != null && SubjectLookup.accepts(candidate, found)) return found
+        }
+        return null
+    }
+
     private companion object {
         /** Fixed before the sealed set 61 was scored (2 Nov 2026): 17 of the 18 guides it added there were right. */
         const val CLASSIFIER_THRESHOLD = 0.3
@@ -1770,6 +1792,8 @@ class ResearchOrchestrator(
         const val SUBJECT_CANDIDATES = 10
         /** Event leads read to find one year's event: a year holds dozens of elections, few naming the asked words. */
         const val EVENT_CANDIDATES = 50
+        /** Subject phrases tried by title before the full search: enough for "The Strokes", few enough to stay instant. */
+        const val QUICK_SUBJECT_PHRASES = 4
         /** Rows of an article read to find the chunk that continues a note cut mid-word. */
         const val NOTE_CONTINUATION_ROWS = 8
         const val FALLBACK_OVERVIEWS = 2

@@ -81,4 +81,13 @@ class OnDeviceAuditPatternsTest {
         assertEquals("Released in October 2001 [S2]. Label: Epitaph in 2004.",
             NoteFacts.withoutUnbackedCitations("Released in October 2001 [S2]. Label: Epitaph in 2004 [S1].") { if (it == 2) strokes else "a live album" })
     }
+
+    @Test fun answerSentencesRunOnIcu() {
+        val everest = "Mount Everest is the highest mountain on Earth. It is about 8,848 metres (29,029 feet) high. Mount Everest is on the line between two countries."
+        assertEquals("It is about 8,848 metres (29,029 feet) high.", AnswerSentence.pick("how tall is mount everest", everest))
+        assertEquals("The Cowboys are often known as \"America's Team\".", AnswerSentence.pick("why are the Dallas Cowboys considered Americas team",
+            "The Dallas Cowboys are an American Football team. The Cowboys are often known as \"America's Team\"."))
+        assertEquals("Trump received 304 electoral votes, while Clinton received 227.", AnswerSentence.pick("how many electoral votes did Trump have in 2016",
+            "The 2016 election was held on November 8, 2016. Trump received 304 electoral votes, while Clinton received 227."))
+    }
 }

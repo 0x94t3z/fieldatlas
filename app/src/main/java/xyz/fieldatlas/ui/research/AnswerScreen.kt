@@ -277,7 +277,7 @@ fun AnswerScreen(
                 if (running) {
                     // A follow-up shows how it is searched, with Edit, then the live status where its answer will appear.
                     item(key = "progress") { ResearchTrailStatus(state, typicalAnswerRange) }
-                    bestMatchSoFar(state)?.let { match -> item(key = "bestMatch") { BestMatchSoFar(match) } }
+                    bestMatchSoFar(state)?.let { match -> item(key = "bestMatch") { BestMatchSoFar(match, state.question) } }
                     item(key = "forthcoming") { ForthcomingAnswer(state) }
                     item(key = "sourcesSoFar") { SourcesSoFar(state) }
                 } else {

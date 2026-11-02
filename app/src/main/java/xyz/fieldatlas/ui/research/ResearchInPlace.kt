@@ -334,15 +334,24 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
 internal fun bestMatchSoFar(state: ResearchUiState): Evidence? =
     state.preview?.takeIf { state.waitingFor == null && draftAnswerPreview(state.answer).isBlank() }
 
-/** The best match so far, as its title, its opening sentences and where it is saved. */
+/**
+ * The best match so far, as its title, the sentence that answers the question when one plainly does (highlighted, so a
+ * count or a date can be read at once), otherwise its opening sentences, and where it is saved.
+ */
 @Composable
-internal fun BestMatchSoFar(evidence: Evidence) {
+internal fun BestMatchSoFar(evidence: Evidence, question: String = "") {
+    val answer = remember(evidence.chunkId, question) { xyz.fieldatlas.research.AnswerSentence.pick(question, evidence.text) }
     val excerpt = remember(evidence.chunkId) { passageExcerpt(evidence.text) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
         Text("Best match so far", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(evidence.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)),
             maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(excerpt, style = MaterialTheme.typography.bodyMedium)
+        if (answer != null) {
+            Surface(color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f), shape = MaterialTheme.shapes.small) {
+                Text(answer, Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight(560)))
+            }
+        } else Text(excerpt, style = MaterialTheme.typography.bodyMedium)
         Text(xyz.fieldatlas.ui.sourcePresentation(evidence).let { if (it.isAttachment) it.metadata else xyz.fieldatlas.ui.sourceDisplayName(evidence.source) },
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
