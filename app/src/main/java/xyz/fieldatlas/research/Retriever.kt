@@ -71,6 +71,12 @@ fun interface Retriever {
     suspend fun eventLeads(year: String, kind: String, terms: List<String>, limit: Int): List<Evidence> = emptyList()
 
     /**
+     * The passages closest in meaning to [question] in the meaning packs alone, strongest first, scored with their cosine:
+     * something to show at once when no article is named. Empty without a meaning pack.
+     */
+    suspend fun meaningLeads(question: String, limit: Int): List<Evidence> = emptyList()
+
+    /**
      * How many saved passages mention [phrase], counted up to [cap]: a subject's readership as the collections see
      * it ("cast iron" in thousands, "Battle of Ramillies" in a few dozen). [cap] when unknown, so a subject whose
      * count cannot be had is taken as well known.

@@ -1746,11 +1746,29 @@ class ResearchOrchestrator(
     private suspend fun quickSubject(question: String): Evidence? {
         EventArticle.of(question)?.let { ask -> EventArticle.pick(retriever.eventLeads(ask.year, ask.kind, ask.terms, EVENT_CANDIDATES), ask)?.let { return it } }
         val lookup = SubjectLookup.looksUp(question)
-        for (candidate in SubjectLookup.candidates(question, 1, lookup).take(QUICK_SUBJECT_PHRASES)) {
-            val found = SubjectLookup.overviewOf(candidate.text, retriever.titled(candidate.text, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES), question)
-            if (found != null && SubjectLookup.accepts(candidate, found)) return found
+        val titled = SubjectLookup.candidates(question, 1, lookup).take(QUICK_SUBJECT_PHRASES).firstNotNullOfOrNull { candidate ->
+            SubjectLookup.overviewOf(candidate.text, retriever.titled(candidate.text, listOf(SubjectLookup.SECTION), SUBJECT_CANDIDATES), question)
+                ?.takeIf { SubjectLookup.accepts(candidate, it) }
         }
-        return null
+        // The passages closest in meaning; of those, one whose title names what the question names ("Hanoi — Drink",
+        // not "Vietnam — Drink"), which may share no word with the question ("is it ok to drink from the faucet").
+        fun words(text: String) = Regex("[\\p{L}\\p{N}]+").findAll(QuestionText.foldAccents(text).lowercase()).map { it.value }
+        val asked = words(question).toSet()
+        fun subject(evidence: Evidence) = evidence.title.substringBefore(" — ")
+        val leads = retriever.meaningLeads(question, QUICK_MEANING_LEADS)
+        val named = leads.filter { lead -> words(subject(lead)).any { it.length >= 4 && it in asked } }
+            .maxByOrNull { it.score }?.takeIf { it.score >= QUICK_MEANING_NAMED_SCORE }
+        if (titled != null) {
+            // The title that holds more of the question wins: "Hanoi — Drink" (hanoi, drink) over "Drink — Overview" (drink).
+            // On a tie, a clearly close meaning match does; a named subject keeps its article otherwise.
+            fun covers(evidence: Evidence) = words(evidence.title).filter { it.length >= 4 }.toSet().count { it in asked }
+            return named?.takeIf {
+                covers(it) > covers(titled) ||
+                    // The same subject found both ways keeps the article the question named.
+                    covers(it) == covers(titled) && it.score >= QUICK_MEANING_SCORE && !subject(it).equals(subject(titled), ignoreCase = true)
+            } ?: titled
+        }
+        return named ?: leads.firstOrNull()?.takeIf { it.score >= QUICK_MEANING_SCORE }
     }
 
     private companion object {
@@ -1780,6 +1798,11 @@ class ResearchOrchestrator(
         const val STAY_LINE = "- Stay with them and watch their breathing until help arrives."
         const val CALL_FIRST = "**If this is an emergency, call your local emergency number first** (112 works on mobile phones in many countries).\n\n"
         const val KEYWORD_SEED = 17
+        /** Above the packs' 0.68 floor: a near miss in meaning ("This Is It" the song for The Strokes) scores 0.70-0.74. */
+        const val QUICK_MEANING_SCORE = 0.75
+        /** A passage titled with the place or subject the question names may score a little lower. */
+        const val QUICK_MEANING_NAMED_SCORE = 0.72
+        const val QUICK_MEANING_LEADS = 5
         const val ATTACHMENT_CANDIDATES = 16
         const val MUSEUM_SLOTS = 3
         // A proposal's summary can run over two chunks, or come as a Simple Summary plus an Abstract.
