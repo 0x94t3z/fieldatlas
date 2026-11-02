@@ -131,6 +131,11 @@ fun AnswerScreen(
     val placeCards = if (noModelReply) remember(state.answer, state.sources) {
         placeCardModels(presentation.blocks, state.sources)
     } else null
+    // A list with no landmark to measure from (a city's vegan restaurants) reads as grouped rows that say whether each
+    // place is open, with Read aloud as a small pill so the places lead the page.
+    val cityList = placeCards != null && placeCards.none { it.distance != null }
+    val hospitalList = placeCards != null && placeCards.all { it.hospital }
+    val placesNow = remember(state.answer) { java.time.LocalDateTime.now() }
     val missingSubjects = if (running) emptyList() else xyz.fieldatlas.research.EvidenceRelevance.missingComparisonSubjects(state.question, state.sources)
     // Reading aloud: an emergency guide plays its recording from a large button; any other finished answer can be listened to.
     val readAloud = LocalReadAloud.current
@@ -222,7 +227,14 @@ fun AnswerScreen(
                         // (owner, 22 Oct: the time had gone missing on those answers). One that read notes and cited them
                         // says so at the top like any cited answer (owner, 23 Oct: the 4B's fact answers cite [1] under a
                         // lone time pill).
-                        if (!running) FlowRow(
+                        // A place list keeps its top quiet: where it came from and how long it took in one grey line, Listen as an icon.
+                        if (!running && cityList) Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                            val cited = citedSourceGroups.size
+                            val took = (state.metrics?.totalMillis ?: state.savedMillis)?.let { if (it < 1_000) "under 1s" else formatResearchElapsed(it) }
+                            Text(listOfNotNull("$cited ${if (cited == 1) "source" else "sources"}", took).joinToString(" · "), Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (listenable && readAloud != null && readingHere == null) ReadAloudIconButton(onClick = listen)
+                        } else if (!running) FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                             itemVerticalAlignment = Alignment.CenterVertically,
@@ -266,8 +278,10 @@ fun AnswerScreen(
                         }
                         if (listenable && readAloud != null) {
                             if (readingHere == null) {
-                                val millis = remember(state.answer) { readAloud.answerMillis(state.answer) }
-                                ReadAloudButton(millis, label = "Read this answer aloud", compact = true, onClick = listen)
+                                if (!cityList) {
+                                    val millis = remember(state.answer) { readAloud.answerMillis(state.answer) }
+                                    ReadAloudButton(millis, label = "Read this answer aloud", compact = true, onClick = listen)
+                                }
                             } else LiveReading(readAloud, readKey) {
                                 AnswerPlayerBar(it, onBack = readAloud::back, onPause = readAloud::pause, onResume = readAloud::resume, onStop = readAloud::stop)
                             }
@@ -313,6 +327,27 @@ fun AnswerScreen(
                     val asked = state.shownQuestion.ifBlank { state.question }
                     if (intro.isNotEmpty()) item {
                         val (lead, notes) = remember(state.answer) { placeIntroParts(placeIntroText(state.answer)) }
+                        val cityLead = if (cityList) remember(state.answer) { placeCityLead(lead, notes, asked, placeCards.size) } else null
+                        if (cityLead != null) {
+                            // A "best" order's reasons are a tap away; the line says what was found and what comes first.
+                            var showOrder by rememberSaveable(state.answer) { mutableStateOf(false) }
+                            val ordered = remember(lead) { placeOrderSteps(lead) != null }
+                            PlaceLeadLine(cityLead, MaterialTheme.typography.bodyLarge.copy(fontFamily = FieldAtlasSans, fontWeight = FontWeight.Normal),
+                                onInfo = if (ordered) ({ showOrder = true }) else null)
+                            if (showOrder) xyz.fieldatlas.ui.theme.FieldAtlasInfoSheet("How these are ordered", onDismiss = { showOrder = false }) {
+                                Column(Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("There are no ratings offline. These are ordered by what the map and the travel guide record:",
+                                        style = MaterialTheme.typography.bodyMedium)
+                                    placeOrderSteps(lead).orEmpty().forEachIndexed { index, step ->
+                                        Text("${index + 1}. $step", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    placeMapDate(placeIntroText(state.answer))?.let {
+                                        Text("Map data: OpenStreetMap contributors, $it. Hours can be out of date.",
+                                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                        } else
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             // Regular weight, so the bold count ("**6 hospitals**") stands out from the rest of the sentence.
                             AnswerMarkdownRenderer(blocks = xyz.fieldatlas.ui.markdown.parseAnswerMarkdown(placeLead(lead, asked, placeCards.size)),
@@ -334,8 +369,9 @@ fun AnswerScreen(
                     }
                     val outroText = placeOutroText(state.answer)
                     // Health places: what to do in an emergency comes before the list, not in its small print.
-                    if (PLACE_EMERGENCY_LINE in outroText) item {
-                        val emergencyLine = hospitalEmergencyLine(placeCards)
+                    if (PLACE_EMERGENCY_LINE in outroText || cityList && hospitalList) item {
+                        // With no distances, "nearest" cannot be said; the note keeps only what to do.
+                        val emergencyLine = if (cityList) null else hospitalEmergencyLine(placeCards)
                         Surface(color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer,
                             shape = MaterialTheme.shapes.medium) {
                             Column {
@@ -363,11 +399,18 @@ fun AnswerScreen(
                         }
                     }
                     val showDiet = dietAsked.containsMatchIn(asked)
-                    items(placeCards.size, key = { "place:${placeCards[it].sourceIndex}" }) { index ->
+                    if (cityList) item(key = "placeList") {
+                        PlaceNumberedList(placeCards, asked, showDiet, placesNow, openPreview)
+                    } else items(placeCards.size, key = { "place:${placeCards[it].sourceIndex}" }) { index ->
                         PlaceCard(placeCards[index], openPreview, showDiet)
                     }
                     if (outro.isNotEmpty()) item {
-                        val footnote = remember(state.answer) { placeFootnote(outroText, placeMapDate(placeIntroText(state.answer))) }
+                        val footnote = remember(state.answer) {
+                            val mapDate = placeMapDate(placeIntroText(state.answer))
+                            if (cityList && hospitalList) "OpenStreetMap${mapDate?.let { ", $it" } ?: ""}. Emergency departments as mapped; they can be out of date."
+                            else if (cityList) "OpenStreetMap${mapDate?.let { ", $it" } ?: ""}. Open or closed by this phone's clock; hours can be out of date."
+                            else placeFootnote(outroText, mapDate)
+                        }
                         val full = outroText.replace(PLACE_EMERGENCY_LINE, "").trim()
                         var expanded by rememberSaveable(state.answer) { mutableStateOf(false) }
                         Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

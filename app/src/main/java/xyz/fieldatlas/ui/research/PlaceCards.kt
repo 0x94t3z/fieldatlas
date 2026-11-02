@@ -8,6 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -23,9 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import xyz.fieldatlas.research.Evidence
+import xyz.fieldatlas.research.OpeningHours
 import xyz.fieldatlas.ui.markdown.MarkdownBlock
 import xyz.fieldatlas.ui.markdown.MarkdownInline
 import xyz.fieldatlas.ui.theme.FieldAtlasIconTile
@@ -46,6 +56,8 @@ internal data class PlaceCardModel(
     val badgePositive: Boolean,
     val summary: String?,
     val hours: String,
+    /** The hours as the record writes them, which [placeOpenState] reads against the clock. */
+    val rawHours: String? = null,
     /** "Open now until 22:00" or "Closed now" when the answer checked the hours against the clock. */
     val openNow: String? = null,
     val checked: String,
@@ -190,6 +202,7 @@ internal fun placeCardModel(index: Int, evidence: Evidence, line: String = "", t
         badgePositive = vegan == "fully vegan",
         summary = listOfNotNull(kindLabel ?: fields["Description"]?.take(80), street).joinToString(" · ").takeIf(String::isNotBlank),
         hours = (fields["Hours in source"] ?: fields["Hours"])?.let(::readableHours) ?: "Hours not recorded",
+        rawHours = (fields["Hours in source"] ?: fields["Hours"])?.takeIf(String::isNotBlank),
         openNow = openNowText.find(line)?.value,
         checked = checkedDate?.let { "Checked $it" } ?: "No check date",
         distance = distance?.groupValues?.get(1),
@@ -290,6 +303,84 @@ internal fun placeFootnote(outro: String, mapDate: String?): String? {
     return "Straight-line distances from $origin. " + (mapDate?.let { "Map data $it; hours" } ?: "Hours") + " can be out of date."
 }
 
+/** What a city list's right-hand column says about one place: "Open" until when, "Closed" until when, or no hours. */
+internal data class PlaceOpenState(val word: String, val detail: String?, val tone: PlaceStatusTone)
+
+/**
+ * The record's own hours read against [now], this phone's clock. Null when the hours are written in a way the clock
+ * cannot be checked against ("by appointment"); the row then shows them as written.
+ */
+internal fun placeOpenState(rawHours: String?, now: java.time.LocalDateTime): PlaceOpenState? {
+    if (rawHours.isNullOrBlank()) return PlaceOpenState("Hours", "not recorded", PlaceStatusTone.Unknown)
+    return when (val state = OpeningHours.status(rawHours, now)) {
+        is OpeningHours.Status.Open -> PlaceOpenState("Open", state.until?.let { clockTime(it.hour, it.minute).let { t -> "until $t" } },
+            PlaceStatusTone.Open)
+        OpeningHours.Status.Closed -> PlaceOpenState("Closed", nextOpening(rawHours, now)?.let { at ->
+            val time = clockTime(at.hour, at.minute)
+            if (at.toLocalDate() == now.toLocalDate()) "opens $time"
+            else "opens ${at.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.ENGLISH)} $time"
+        }, PlaceStatusTone.Closed)
+        OpeningHours.Status.Unknown -> null
+    }
+}
+
+private fun clockTime(hour: Int, minute: Int) = "%02d:%02d".format(java.util.Locale.ROOT, hour, minute)
+
+// Quarter-hour steps find the next opening within a week; the minutes before that step are then walked back to its start.
+private fun nextOpening(hours: String, now: java.time.LocalDateTime): java.time.LocalDateTime? {
+    val start = now.withSecond(0).withNano(0)
+    var at = start
+    repeat(7 * 24 * 4) {
+        at = at.plusMinutes(15)
+        if (OpeningHours.status(hours, at) is OpeningHours.Status.Open) {
+            while (at.minusMinutes(1).isAfter(start) && OpeningHours.status(hours, at.minusMinutes(1)) is OpeningHours.Status.Open) {
+                at = at.minusMinutes(1)
+            }
+            return at
+        }
+    }
+    return null
+}
+
+private val bestOrderLead = Regex("^There are no ratings offline, so these are ordered by what the map and the travel guide record: (.+)$")
+private val listedIn = Regex("lists these (.+?) in (.+?)(?: as | \\(map data|:)")
+
+/**
+ * A "best" list's opening in one line ("**6 vegan restaurants** in Singapore, fully vegan first."), with its reasons a
+ * tap away in [placeOrderSteps]. Null for any other opening, which is shown as written.
+ */
+internal fun placeBestLead(lead: String, notes: String?, question: String, count: Int): String? {
+    val steps = placeOrderSteps(lead) ?: return null
+    val listed = notes?.let { listedIn.find(it) } ?: return null
+    val (noun, city) = listed.destructured
+    val counted = xyz.fieldatlas.research.VenueLookup.placeCount(question, count)
+        ?: "$count ${if (count == 1) "place" else noun.takeIf { it.endsWith("s") } ?: "places"}"
+    val vegan = "fully vegan or serving vegan options" in notes
+    val shown = if (vegan) counted.replaceFirst(" ", " vegan ") else counted
+    val order = if (steps.first().startsWith("Fully vegan")) ", fully vegan first." else "."
+    return "**$shown** in $city$order"
+}
+
+private val listedLead = Regex("^OpenStreetMap lists these (.+?) in (.+?)(?: as .+?)?(?: \\(map data as of [\\d-]+\\))?:$")
+
+/**
+ * The opening line of a list with no landmark: a "best" list's line ([placeBestLead]), or "**5 hospitals** in Berlin."
+ * for the map's plain "OpenStreetMap lists these hospitals in Berlin (map data as of …):". Null for any other opening.
+ */
+internal fun placeCityLead(lead: String, notes: String?, question: String, count: Int): String? {
+    placeBestLead(lead, notes, question, count)?.let { return it }
+    val listed = listedLead.matchEntire(lead.trim()) ?: return null
+    val (noun, city) = listed.destructured
+    val counted = xyz.fieldatlas.research.VenueLookup.placeCount(question, count) ?: "$count ${if (count == 1) "place" else noun}"
+    val shown = if ("fully vegan or serving vegan options" in lead) counted.replaceFirst(" ", " vegan ") else counted
+    return "**$shown** in $city."
+}
+
+/** The reasons for a "best" order, one step each: "Fully vegan places first", "Independent places before chains". */
+internal fun placeOrderSteps(lead: String): List<String>? = bestOrderLead.matchEntire(lead.trim())?.groupValues?.get(1)
+    ?.trimEnd('.')?.split(Regex(",\\s*(?:then |and )?"))?.map { it.trim().replaceFirstChar(Char::uppercaseChar) }
+    ?.filter(String::isNotBlank)?.takeIf { it.isNotEmpty() }
+
 /** The text after a place list: the lookup's notes on distances, hours and data credit. */
 internal fun placeOutroText(answer: String): String =
     answer.lines().let { lines -> lines.drop(lines.indexOfLast { it.trimStart().startsWith("- ") } + 1) }.joinToString("\n").trim()
@@ -361,7 +452,7 @@ internal fun PlaceCard(place: PlaceCardModel, onOpen: (Int) -> Unit, showDiet: B
 
 /** A dot and words, so the state never depends on colour alone. Red is not used here: it means health. */
 @Composable
-private fun PlaceStatusLine(text: String, tone: PlaceStatusTone) {
+internal fun PlaceStatusLine(text: String, tone: PlaceStatusTone) {
     val colors = MaterialTheme.colorScheme
     val (dot, ink) = when (tone) {
         PlaceStatusTone.Open -> colors.primary to colors.onPrimaryContainer
@@ -386,4 +477,99 @@ private fun PlaceChip(text: String, container: Color, icon: androidx.compose.ui.
             Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         }
     }
+}
+
+/**
+ * A list with no landmark to measure from ("vegan restaurants in Singapore"), read like a written answer: a number, the
+ * name (with "fully vegan" when a diet was asked), then what it is, where, and whether it is open, in one line. Each
+ * entry opens its place.
+ */
+@Composable
+internal fun PlaceNumberedList(places: List<PlaceCardModel>, question: String, showDiet: Boolean, now: java.time.LocalDateTime,
+                                onOpen: (Int) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column {
+        places.forEachIndexed { index, place ->
+            if (index > 0) HorizontalDivider(Modifier.padding(start = 28.dp), color = colors.outlineVariant.copy(alpha = 0.45f))
+            // The chevron and the full-width press say the entry opens; the number keeps the list readable as an answer.
+            Row(Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).clickable(onClickLabel = "Open ${place.name}") { onOpen(place.sourceIndex) }
+                .heightIn(min = 56.dp).padding(top = 10.dp, bottom = 10.dp, end = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("${index + 1}", Modifier.size(width = 20.dp, height = 22.dp), style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.ExtraBold, color = colors.onSurfaceVariant)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(androidx.compose.ui.text.buildAnnotatedString {
+                        append(place.name)
+                        if (showDiet && place.badgePositive) {
+                            append("  ")
+                            withStyle(androidx.compose.ui.text.SpanStyle(fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                                fontWeight = FontWeight.Bold, color = colors.onSecondaryContainer)) { append("fully vegan") }
+                        }
+                    }, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    val (status, open) = placeListStatus(place, placeOpenState(place.rawHours, now))
+                    Text(androidx.compose.ui.text.buildAnnotatedString {
+                        placeListKind(place, question)?.let { append(it); append(" · ") }
+                        // "opens Wed 10:00" wraps as one piece.
+                        val kept = status.replace(' ', '\u00A0')
+                        if (open) withStyle(androidx.compose.ui.text.SpanStyle(color = colors.primary, fontWeight = FontWeight.Bold)) { append(kept) }
+                        else append(kept)
+                    }, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(FieldAtlasIcons.ChevronRight, contentDescription = null, tint = colors.primary.copy(alpha = 0.75f),
+                    modifier = Modifier.align(Alignment.CenterVertically).size(20.dp))
+            }
+        }
+    }
+}
+
+// A kind the question already names is not said again on every line: "Japanese", not "Japanese restaurant", for restaurants.
+private val askedKinds = listOf("hospitals?" to "hospital", "restaurants?" to "restaurant", "caf[eé]s?" to "cafe", "bars?" to "bar", "hotels?" to "hotel", "hostels?" to "hostel")
+    .map { (words, noun) -> Regex("(?i)\\b(?:$words)\\b") to Regex("(?i)(?:^|\\s+)$noun$") }
+
+/** What it is and where, for one numbered line: "Japanese · Sam Leong Road 11" when restaurants were asked for. */
+internal fun placeListKind(place: PlaceCardModel, question: String): String? {
+    val kind = place.kindLabel?.let { label ->
+        // A bare "Hospital" in a list of hospitals says nothing; the street alone follows the name.
+        askedKinds.firstOrNull { (asked, _) -> asked.containsMatchIn(question) }?.second?.let { label.replace(it, "") }
+            ?.takeIf(String::isNotBlank) ?: label.takeUnless { askedKinds.any { (asked, noun) -> asked.containsMatchIn(question) && noun.matches(label) } }
+    } ?: if (place.guide) "Travel guide listing" else null
+    return listOfNotNull(kind, place.street).joinToString(" · ").takeIf(String::isNotBlank)
+}
+
+/**
+ * The opening line of a "best" list with its (i) at the end of the words, not across the screen; the whole line opens
+ * the reasons for the order, so the target is large enough to tap.
+ */
+@Composable
+internal fun PlaceLeadLine(lead: String, style: androidx.compose.ui.text.TextStyle, onInfo: (() -> Unit)?) {
+    val colors = MaterialTheme.colorScheme
+    val bold = Regex("^\\*\\*(.+?)\\*\\*(.*)$").matchEntire(lead)
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        if (bold != null) {
+            withStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) { append(bold.groupValues[1]) }
+            append(bold.groupValues[2])
+        } else append(lead)
+        // The last word travels with the icon, so the icon never sits on a line of its own.
+        if (onInfo != null) {
+            append("\u00A0")
+            appendInlineContent("info", "(how ordered)")
+        }
+    }
+    val info = androidx.compose.foundation.text.InlineTextContent(
+        androidx.compose.ui.text.Placeholder(20.sp, 20.sp, androidx.compose.ui.text.PlaceholderVerticalAlign.TextCenter)) {
+        Icon(FieldAtlasIcons.Info, contentDescription = null, tint = colors.primary, modifier = Modifier.fillMaxSize())
+    }
+    Text(text, Modifier.fillMaxWidth().then(if (onInfo != null) Modifier.clickable(onClickLabel = "How these places are ordered", onClick = onInfo) else Modifier)
+        .padding(vertical = 4.dp),
+        style = style, inlineContent = mapOf("info" to info))
+}
+
+/** "open until 14:00" (true: shown in green), "closed, opens Wed 10:00", "hours not recorded", or the hours as written. */
+internal fun placeListStatus(place: PlaceCardModel, open: PlaceOpenState?): Pair<String, Boolean> = if (place.hospital) {
+    // A hospital's line says what matters in an emergency, not its visiting hours.
+    place.status.first.replaceFirstChar(Char::lowercaseChar) to (place.status.second == PlaceStatusTone.Open)
+} else when (open?.tone) {
+    PlaceStatusTone.Open -> listOfNotNull("open", open.detail).joinToString(" ") to true
+    PlaceStatusTone.Closed -> listOfNotNull("closed", open.detail).joinToString(", ") to false
+    PlaceStatusTone.Unknown -> "hours not recorded" to false
+    else -> place.status.first.replaceFirstChar(Char::lowercaseChar) to false
 }

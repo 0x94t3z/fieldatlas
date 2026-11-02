@@ -1,6 +1,7 @@
 package xyz.fieldatlas.ui.research
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +65,18 @@ internal fun ReadAloudButton(seconds: Long?, label: String = "Read this guide al
             .copy(fontWeight = FontWeight.SemiBold), color = MaterialTheme.colorScheme.onPrimary)
         seconds?.let { Text("about ${roundedSeconds(it)}", style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)) }
+    }
+}
+
+/** Read aloud as a small round button at the end of an answer's source line, for a list whose places should lead. */
+@Composable
+internal fun ReadAloudIconButton(label: String = "Read this answer aloud", onClick: () -> Unit) {
+    Box(Modifier.size(48.dp).clickable(role = Role.Button, onClickLabel = label, onClick = onClick).semantics { contentDescription = label },
+        contentAlignment = Alignment.Center) {
+        Box(Modifier.size(38.dp).clip(RoundedCornerShape(50))
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+            Icon(Icons.AutoMirrored.Outlined.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(19.dp))
+        }
     }
 }
 

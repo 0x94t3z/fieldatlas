@@ -19,22 +19,24 @@ class PlacePreviewUiTest {
         "Destination: Cirebon\nPlace: Example pharmacy\nType: pharmacy\nAddress: 45475 Majalengka\n" +
             "Latitude: -6.75490\nLongitude: 108.31648\n$phone", 1.0)
 
-    @Test fun practicalActionsHaveAccessibleNamesAndKeepSourceNavigation() {
+    @Test fun practicalActionsHaveAccessibleNamesAndKeepTheFullSource() {
         var opened = -1
-        var next = -1
         compose.setContent { FieldAtlasTheme {
-            SourcePreviewSheet(listOf(place(), place()), 0, true, 1, {}, { opened = it }, { next = it })
+            SourcePreviewSheet(listOf(place(), place()), 0, true, 1, {}, { opened = it }, {})
         } }
-        compose.onNodeWithText("Cited in this answer").assertIsDisplayed()
-        listOf("Copy address", "Copy coordinates").forEach { label ->
-            compose.onNodeWithContentDescription(label).performScrollTo()
-                .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
-        }
+        // A place in the answer's list is cited by being there; the sheet shows what it is, not a pill.
+        compose.onNodeWithText("Cited in this answer").assertDoesNotExist()
+        compose.onNodeWithText("Pharmacy").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Copy address").performScrollTo()
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        // With an address to show, coordinates stay in the full source and in Open in maps.
+        compose.onNodeWithContentDescription("Copy coordinates").assertDoesNotExist()
         compose.onNodeWithText("Open in maps").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Call this place").assertDoesNotExist()
-        compose.onNodeWithText("Next source").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Call this place").assertDoesNotExist()
+        compose.onNodeWithText("No phone number on record.", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Next source").assertDoesNotExist()
         compose.onNodeWithText("Full source").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals(1, next); assertEquals(0, opened) }
+        compose.runOnIdle { assertEquals(0, opened) }
     }
 
     @Test fun darkLargeTextRetainsListingCloseAndOptionalPhoneAction() {
@@ -44,8 +46,8 @@ class PlacePreviewUiTest {
             }
         } }
         compose.onNodeWithText("Provided · not cited").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithContentDescription("Copy coordinates").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Call this place").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Copy address").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Call this place").performScrollTo().assertIsDisplayed()
         compose.onNodeWithContentDescription("Close preview").assertIsDisplayed()
         compose.onNodeWithText("Example pharmacy").assertIsDisplayed()
         compose.onNodeWithText("Full source").assertDoesNotExist()

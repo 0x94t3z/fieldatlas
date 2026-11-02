@@ -21,6 +21,24 @@ class SourcePreviewSheetTest {
         assertEquals("52.49863, 13.44263", place.facts.last().second)
     }
 
+    @Test fun aPlaceSheetSaysWhatItIsWhetherItIsOpenAndOnlyTheFactsThatHelp() {
+        val text = "Destination: Singapore\nCategory: Eat\nPlace: Veg-An\nType: restaurant\nVegan: fully vegan\nCuisine: japanese\n" +
+            "Address: Sam Leong Road 11, 207903\nHours in source: We-Su 10:00-14:00\nLatitude: 1.309092\nLongitude: 103.857011\n" +
+            "Map data snapshot: 2026-10-02 (© OpenStreetMap contributors)"
+        val evidence = Evidence("osm-place-n1", "osm-place-n1:0000", "Singapore — Veg-An", "https://www.openstreetmap.org/node/1", text, 0.0)
+        val place = placeSheetContent(text)!!
+        val card = placeCardModel(0, evidence)!!
+        assertEquals("Japanese restaurant · fully vegan", placeSheetSubtitle(card))
+        assertEquals("Open · until 14:00" to PlaceStatusTone.Open, placeSheetStatus(card, java.time.LocalDateTime.of(2026, 11, 1, 12, 30)))
+        assertEquals("Closed · opens Wed 10:00" to PlaceStatusTone.Closed,
+            placeSheetStatus(card, java.time.LocalDateTime.of(2026, 11, 1, 15, 0)))
+        assertEquals(listOf("Vegan", "Hours"), placeSheetFacts(place).map { it.first })
+        assertEquals("OpenStreetMap, 2 Oct 2026. No phone number on record.", placeSheetFoot(evidence, place))
+        // No address to show: the coordinates are the way to find it.
+        val noAddress = placeSheetContent(text.replace("Address: Sam Leong Road 11, 207903\n", ""))!!
+        assertEquals("Coordinates", placeSheetFacts(noAddress).last().first)
+    }
+
     @Test fun ordinaryPassagesAreNotPlaces() {
         assertNull(placeSheetContent("Photosynthesis is a process in which green plants make their own food."))
         assertNull(placeSheetContent("Place: Somewhere\nAddress: Main Street"))

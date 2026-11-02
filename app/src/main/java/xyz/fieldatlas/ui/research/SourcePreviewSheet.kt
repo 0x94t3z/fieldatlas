@@ -97,6 +97,41 @@ internal fun placeSheetContent(text: String): PlaceSheetContent? {
     return PlaceSheetContent(name, facts, byLabel["Address"], byLabel["Phone"], lat, lon)
 }
 
+/** What a place is, once: "Japanese restaurant · fully vegan". */
+internal fun placeSheetSubtitle(card: PlaceCardModel): String? =
+    listOfNotNull(card.kindLabel ?: if (card.guide) "Travel guide listing" else null, card.badge?.lowercase())
+        .joinToString(" · ").takeIf(String::isNotBlank)
+
+/** The sheet's one status line: open or closed now by this phone's clock, a hospital's emergency department, or the hours. */
+internal fun placeSheetStatus(card: PlaceCardModel, now: java.time.LocalDateTime): Pair<String, PlaceStatusTone>? {
+    if (card.hospital) return card.status
+    val open = placeOpenState(card.rawHours, now) ?: return null
+    return when (open.tone) {
+        PlaceStatusTone.Open -> listOfNotNull("Open", open.detail).joinToString(" · ") to open.tone
+        PlaceStatusTone.Closed -> listOfNotNull("Closed", open.detail).joinToString(" · ") to open.tone
+        else -> null
+    }
+}
+
+// Shown elsewhere on the sheet: what it is under the name, the address in its own card, the check date at the foot.
+private val placeSheetHidden = setOf("Destination", "Type", "Cuisine", "Address", "Last checked")
+
+/** The few facts under the address, coordinates only for a place with no address to show. */
+internal fun placeSheetFacts(place: PlaceSheetContent): List<Pair<String, String>> =
+    place.facts.filter { (label, _) -> label !in placeSheetHidden && (label != "Coordinates" || place.address == null) }
+
+/** "OpenStreetMap, 2 Oct 2026. Last checked 2023-05-06. No phone number on record." */
+internal fun placeSheetFoot(evidence: Evidence, place: PlaceSheetContent): String {
+    val fields = evidence.text.lines().associate { it.substringBefore(": ").trim() to it.substringAfter(": ", "").trim() }
+    val snapshot = fields["Map data snapshot"]?.let { placeMapDate("(map data as of ${it.take(10)})") }
+    val source = if (evidence.documentId.startsWith("osm")) "OpenStreetMap" else sourceDisplayName(evidence.source)
+    return listOfNotNull(
+        source + (snapshot?.let { ", $it" } ?: "") + ".",
+        fields["Listing last checked"]?.takeIf(String::isNotBlank)?.let { "Last checked $it." },
+        if (place.phone == null) "No phone number on record." else null,
+    ).joinToString(" ")
+}
+
 /** Text shared by "Copy answer with sources": the answer, then each source with its link. */
 internal fun answerWithSources(question: String, answer: String, sources: List<Evidence>): String = buildString {
     if (question.isNotBlank()) append(question.trim()).append("\n\n")
@@ -126,6 +161,7 @@ internal fun SourcePreviewSheet(
 ) {
     val evidence = sources.getOrNull(index) ?: return
     val place = placeSheetContent(evidence.text)
+    val placeCard = if (place != null) remember(evidence) { placeCardModel(index, evidence) } else null
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     fun copy(label: String, value: String) {
@@ -152,7 +188,7 @@ internal fun SourcePreviewSheet(
             Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 // A place shows its kind (solid red for health, the one place in focus); any other source its number.
-                val placeKind = if (place != null) placeCardModel(index, evidence)?.kind else null
+                val placeKind = placeCard?.kind
                 if (placeKind != null) {
                     val (icon, tone) = placeTile(placeKind, focused = true)
                     xyz.fieldatlas.ui.theme.FieldAtlasIconTile(icon, size = 40.dp, tone = tone)
@@ -169,11 +205,21 @@ internal fun SourcePreviewSheet(
                         overflow = if (sourcePresentation(evidence).isAttachment) androidx.compose.ui.text.style.TextOverflow.MiddleEllipsis
                             else androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(
-                        sourcePresentation(evidence).takeIf { it.isAttachment }?.metadata
+                        // A place says what it is ("Japanese restaurant · fully vegan"), not the website it came from.
+                        placeCard?.let(::placeSheetSubtitle)
+                            ?: sourcePresentation(evidence).takeIf { it.isAttachment }?.metadata
                             ?: sourceDisplayName(evidence.source),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // Whether it is open sits with the name, in words.
+                    placeCard?.let { card -> remember(card) { placeSheetStatus(card, java.time.LocalDateTime.now()) } }?.let { (text, tone) ->
+                        // Only "Open" is bold green; anything else reads as quietly as the line above it.
+                        val open = tone == PlaceStatusTone.Open
+                        Text(text, Modifier.padding(top = 2.dp), style = if (open) MaterialTheme.typography.labelLarge else MaterialTheme.typography.bodySmall,
+                            fontWeight = if (open) FontWeight.Bold else FontWeight.Normal,
+                            color = if (open) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
                 xyz.fieldatlas.ui.theme.FieldAtlasCloseButton(onDismiss, "Close preview")
             }
@@ -181,52 +227,48 @@ internal fun SourcePreviewSheet(
                 Column(Modifier.weight(1f, fill = false).fillMaxWidth().verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp).padding(top = 12.dp, bottom = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // A place in the answer's own list needs no "cited" pill; one only provided still says so.
+                    if (place == null || !cited) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (cited) FieldAtlasStatusPill("Cited in this answer", StatusTone.Positive, icon = FieldAtlasIcons.Citation)
                         else FieldAtlasStatusPill("Provided · not cited")
                     }
                     if (place != null) {
                         place.address?.let { address -> PlaceAddressCard(place.name, address) { copy("Address", address) } }
-                        Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
-                            shape = RoundedCornerShape(12.dp)) {
-                            Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                // The address has its own card above, large and with copy.
-                                place.facts.filterNot { (label, _) -> label == "Address" && place.address != null }.forEach { (label, value) ->
-                                    val copyValue = when (label) {
-                                        "Address" -> place.address
-                                        "Coordinates" -> "%.6f, %.6f".format(java.util.Locale.ROOT, place.lat, place.lon)
-                                        else -> null
-                                    }
-                                    PlaceDetailRow(label, value, copyValue?.let { { copy(label, it) } })
+                        // Only what helps someone decide to go: hours, diet, access. What it is sits under the name, the
+                        // date at the foot, and coordinates only when there is no address to show.
+                        val facts = placeSheetFacts(place)
+                        if (facts.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            facts.forEach { (label, value) ->
+                                val copyValue = if (label == "Coordinates") "%.6f, %.6f".format(java.util.Locale.ROOT, place.lat, place.lon) else null
+                                PlaceDetailRow(label, value, copyValue?.let { { copy(label, it) } })
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = {
+                                    val label = Uri.encode(place.name)
+                                    launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")),
+                                        "No maps app is installed. Copy the ${if (place.address != null) "address" else "coordinates"} instead.")
+                                },
+                                shape = FieldAtlasButtonShape,
+                                modifier = Modifier.weight(1f).heightIn(min = 52.dp),
+                            ) {
+                                Icon(FieldAtlasIcons.Map, contentDescription = null, modifier = Modifier.size(20.dp))
+                                Text("Open in maps", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
+                            }
+                            place.phone?.let { phone ->
+                                OutlinedButton(onClick = {
+                                    launch(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' })),
+                                        "No phone app is available.")
+                                }, shape = FieldAtlasButtonShape, modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                    .semantics { contentDescription = "Call this place" }) {
+                                    Icon(FieldAtlasIcons.Call, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Text("Call", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
                                 }
                             }
                         }
-                        Button(
-                            onClick = {
-                                val label = Uri.encode(place.name)
-                                launch(Intent(Intent.ACTION_VIEW, Uri.parse("geo:${place.lat},${place.lon}?q=${place.lat},${place.lon}($label)")),
-                                    "No maps app is installed. Copy the coordinates instead.")
-                            },
-                            shape = FieldAtlasButtonShape,
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                        ) {
-                            Icon(FieldAtlasIcons.Map, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Text("Open in maps", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
-                        }
-                        place.phone?.let { phone ->
-                            OutlinedButton(onClick = {
-                                launch(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + phone.filter { it.isDigit() || it == '+' })),
-                                    "No phone app is available.")
-                            }, shape = FieldAtlasButtonShape, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                                Icon(FieldAtlasIcons.Call, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Text("Call this place", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
-                            }
-                        }
-                        // Never "install this app": at the moment of need the phone is often offline.
-                        Text("Opens in a maps app on this phone, if one is installed; with its maps downloaded, directions work offline. " +
-                            "Check hours and listing details before you go.",
-                            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(placeSheetFoot(evidence, place), style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
                             // Plain text, never Markdown: saved passages cannot add links or citations.
@@ -237,7 +279,13 @@ internal fun SourcePreviewSheet(
                             else "Original saved text. The model's wording is not verified against it.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // A place's list is its navigation: the full record stays one quiet tap away.
+                    if (place != null) onOpenFull?.let { open ->
+                        TextButton(onClick = { open(index) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Icon(FieldAtlasIcons.Document, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Text("Full source", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.labelLarge)
+                        }
+                    } else Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (nextIndex != null) {
                             OutlinedButton(onClick = { onNext(nextIndex) }, shape = FieldAtlasButtonShape,
                                 modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text("Next source", style = MaterialTheme.typography.labelLarge) }
@@ -246,11 +294,7 @@ internal fun SourcePreviewSheet(
                             Icon(FieldAtlasIcons.Document, contentDescription = null, modifier = Modifier.size(18.dp))
                             Text("Full source", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.labelLarge)
                         }
-                        // A place already has its main action (maps) above; one filled button per sheet.
-                        if (onOpenFull == null) Unit
-                        else if (place != null) OutlinedButton(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
-                            modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
-                        else Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
+                        if (onOpenFull != null) Button(onClick = { onOpenFull(index) }, shape = FieldAtlasButtonShape,
                             modifier = Modifier.weight(1f).heightIn(min = 48.dp), content = openFull)
                     }
                 }

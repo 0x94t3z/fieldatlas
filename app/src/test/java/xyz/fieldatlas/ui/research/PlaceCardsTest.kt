@@ -37,6 +37,53 @@ class PlaceCardsTest {
         assertEquals("No check date", cards[1].checked)
     }
 
+    @Test fun aBestCityListOpensWithOneLineAndKeepsItsReasonsAsSteps() {
+        val question = "best vegan restaurants in Berlin"
+        val answer = VenueLookup.answer(question, listOf(grill, daizu))!!
+        val (lead, notes) = placeIntroParts(placeIntroText(answer.answer))
+        assertEquals("**2 vegan restaurants** in Berlin, fully vegan first.", placeBestLead(lead, notes, question, 2))
+        val steps = placeOrderSteps(lead)!!
+        assertEquals("Fully vegan places first", steps.first())
+        assertEquals("Independent places before chains", steps.last())
+        assertNull(placeBestLead("Nearest saved places to Shibuya Crossing:", null, question, 2))
+    }
+
+    @Test fun aCityListSaysWhetherEachPlaceIsOpenByThePhonesClock() {
+        val sundayNoon = java.time.LocalDateTime.of(2026, 11, 1, 12, 30)
+        assertEquals(PlaceOpenState("Open", "until 14:00", PlaceStatusTone.Open), placeOpenState("We-Su 10:00-14:00", sundayNoon))
+        assertEquals(PlaceOpenState("Closed", "opens Wed 10:00", PlaceStatusTone.Closed),
+            placeOpenState("We-Su 10:00-14:00", sundayNoon.withHour(15)))
+        assertEquals(PlaceOpenState("Closed", "opens 17:30", PlaceStatusTone.Closed),
+            placeOpenState("11:30-15:00,17:30-21:30", sundayNoon.withHour(16)))
+        // Hours that run past midnight close the next day.
+        assertEquals(PlaceOpenState("Open", "until 02:00", PlaceStatusTone.Open), placeOpenState("Mo-Su 10:00-02:00", sundayNoon.withHour(1)))
+        assertEquals(PlaceOpenState("Hours", "not recorded", PlaceStatusTone.Unknown), placeOpenState(null, sundayNoon))
+        assertNull(placeOpenState("by appointment", sundayNoon))
+    }
+
+    @Test fun aNumberedEntrySaysWhetherThePlaceIsOpenInWords() {
+        val card = placeCardModel(0, daizu)!!
+        val sunday = java.time.LocalDateTime.of(2026, 11, 1, 12, 30)
+        assertEquals("open until 14:00" to true, placeListStatus(card, placeOpenState("We-Su 10:00-14:00", sunday)))
+        assertEquals("closed, opens Wed 10:00" to false, placeListStatus(card, placeOpenState("We-Su 10:00-14:00", sunday.withHour(15))))
+        assertEquals("hours not recorded" to false, placeListStatus(card, placeOpenState(null, sunday)))
+    }
+
+    @Test fun aNumberedLineDoesNotRepeatTheKindTheQuestionNamed() {
+        val card = placeCardModel(0, daizu)!!
+        assertEquals("Ramen · Falckensteinstraße\u00A036", placeListKind(card, "recommend vegan restaurants in berlin"))
+        assertEquals("Ramen restaurant · Falckensteinstraße\u00A036", placeListKind(card, "vegan food in berlin"))
+    }
+
+    @Test fun aCityHospitalListSaysHowManyAndEachEmergencyDepartment() {
+        assertEquals("**5 hospitals** in Berlin.",
+            placeCityLead("OpenStreetMap lists these hospitals in Berlin (map data as of 2026-10-02):", null, "find hospital in berlin", 5))
+        val hospital = placeCardModel(0, place("9", "St. Joseph Hospital", "", listOf("Address: Wüsthoffstraße 15, 12101 Berlin",
+            "Emergency department: yes"), category = "Health").let { it.copy(text = it.text.replace("Type: restaurant", "Type: hospital")) })!!
+        assertEquals("Wüsthoffstraße\u00A015", placeListKind(hospital, "find hospital in berlin"))
+        assertEquals("emergency department" to true, placeListStatus(hospital, null))
+    }
+
     @Test fun nearbyCardsCarryDistanceAndDirection() {
         val pharmacy = place("3", "Panorama Apotheke", "", listOf("Address: Panoramastraße 1, 10178 Berlin"), category = "Health")
             .let { it.copy(text = it.text.replace("Type: restaurant", "Type: pharmacy").replace("Vegan: \n", "")) }
