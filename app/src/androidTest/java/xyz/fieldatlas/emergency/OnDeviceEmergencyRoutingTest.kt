@@ -37,6 +37,13 @@ class OnDeviceEmergencyRoutingTest {
         assertNotEquals("poisoning", match("is it safe to mix bleach and vinegar to clean mould"))
     }
 
+    @Test fun chokingCarbonMonoxideAndChemicalInjuriesRouteAsOnTheJvm() {
+        assertEquals("choking", match("baby has a coin stuck she cant cry or breathe lips going blue"))
+        assertEquals("carbon-monoxide", match("running the generator in the garage cause power is out and now everyone has a headache and feels sleepy"))
+        assertEquals("eye-injury", match("toilet cleaner bottle squirted right in my eye, burns so bad i cant open it"))
+        assertEquals("burns", match("drain cleaner splashed on my hand and arm, skin going white and slimy and burning"))
+    }
+
     @Test fun lookAlikesStayAwayFromTheseGuides() {
         assertNotEquals("severe-bleeding", match("nose has been bleeding for 25 minutes and wont stop, im 70 and on blood thinners"))
         assertNotEquals("severe-bleeding", match("im 34 weeks and suddenly a gush of blood, no pain at all"))

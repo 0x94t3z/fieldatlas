@@ -978,6 +978,28 @@ class EmergencyGuideMatchTest {
         assertFalse(GuideAnswerCheck.swallowedSomething("i put the pill in my mouth with water like the doctor said"))
     }
 
+    @Test fun anObjectWithNoAirIsChoking() {
+        assertEquals("choking", match("baby has a coin stuck she cant cry or breathe lips going blue"))
+        assertEquals("choking", match("she put a coin in her mouth and now shes gagging and coughing cant get her breath"))
+        // Winded by a ball is not choking on one.
+        assertNotEquals("choking", match("got hit in the chest by a cricket ball and cant breathe properly"))
+    }
+
+    @Test fun aFuelBurningInAClosedSpaceWithSomeoneUnwellIsCarbonMonoxide() {
+        assertEquals("carbon-monoxide", match("running the generator in the garage cause power is out and now everyone has a headache and feels sleepy"))
+        assertEquals("carbon-monoxide", match("gas heater in the tent all night, woke up confused and my friend wont wake up properly"))
+    }
+
+    @Test fun aChemicalInTheEyeIsAnEyeInjuryAndOneBurningTheSkinIsABurn() {
+        assertEquals("eye-injury", match("toilet cleaner splashed in my daughters eye shes screaming"))
+        assertEquals("eye-injury", match("toilet cleaner bottle squirted right in my eye, burns so bad i cant open it"))
+        assertEquals("burns", match("drain cleaner splashed on my hand and arm, skin going white and slimy and burning"))
+        assertEquals("burns", match("wet cement got in my boot all day at the site, now my shin has raw red patches that sting like hell"))
+        // Fumes with a tight chest stay with poisoning; a stain on clothes is no injury.
+        assertEquals("poisoning", match("teenager mixed vinegar and bleach in the tub, says chest tight and eyes burn"))
+        assertNull(match("bleach left white spots on my jeans, can i fix them"))
+    }
+
     @Test fun contactWithACurrentIsElectricShockAndAShockFeltInTheBodyIsNot() {
         // Set 57: "got shocked … still touching the lamp" was not taken for first aid, and the 2B answered about cord repair.
         val q = "my brother touched a frayed cord and got shocked hes on the floor still touching the lamp what do i do"

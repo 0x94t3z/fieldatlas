@@ -552,11 +552,21 @@ object EmergencyGuideMatch {
         // Pinpoint pupils, or naloxone already in hand, with slow breathing or no waking: the naloxone guide, which also
         // gives rescue breathing. Set 52's "4 or 5 breaths a minute, pupils tiny" got a memory answer with no call.
         (if (opioidSigns.containsMatchIn(question) && !notHappeningNow.containsMatchIn(question)) guides.firstOrNull { it.id == "opioid-overdose" } else null)
+            // An object in the airway with no air going in: the choking guide, before any other reading of "can't breathe"
+            // ("baby has a coin stuck she cant cry or breathe lips going blue" opened no guide, 2 Nov).
+            ?: (if (chokingOnObject(question)) guides.firstOrNull { it.id == "choking" } else null)
             ?: (if (describesArrest(question)) guides.firstOrNull { it.id == "cpr" } else null)
+            // A fuel burning in a closed space and someone sick, drowsy or hard to wake: carbon monoxide ("generator in the
+            // garage… everyone has a headache" opened no guide; "gas heater in the tent… wont wake up properly" opened CPR).
+            ?: (if (carbonMonoxideNow(question)) guides.firstOrNull { it.id == "carbon-monoxide" } else null)
             // Fumes from cleaning chemicals breathed in now: the poisoning guide, which covers breathing in something harmful.
             // "I mixed bleach and ammonia cleaning the bathroom and my chest is tight" was shown the heart attack guide,
             // with nothing about the gas (issue #8, 2 Nov).
             ?: (if (breathedFumes(question) || goneFromTheMouth(question)) guides.firstOrNull { it.id == "poisoning" } else null)
+            // A household chemical in the eye, or a corrosive one burning the skin: the eye and burns guides ("toilet cleaner
+            // squirted right in my eye" opened severe bleeding, "wet cement… raw red patches that sting" insect stings).
+            ?: (if (chemicalInEye(question)) guides.firstOrNull { it.id == "eye-injury" } else null)
+            ?: (if (chemicalOnSkin(question)) guides.firstOrNull { it.id == "burns" } else null)
             ?: rank(question, guides).firstOrNull()?.first
             // Only when nothing else fits: a fever with a fit is the seizure guide, with no wet nappies the dehydration one.
             ?: (if (childFever.containsMatchIn(question) && !onScreen.containsMatchIn(question)) {
@@ -616,6 +626,39 @@ object EmergencyGuideMatch {
         !notHappeningNow.containsMatchIn(question) && !onScreen.containsMatchIn(question) && !fiction.containsMatchIn(question)
     private val chokingNow = Regex("(?i)\\b(?:chok\\w*|gagg\\w*|can'?t breathe|cant breathe|can'?t get (?:his|her|their) breath|turning blue|blue lips|" +
         "can'?t (?:cough|speak|talk|cry)|clutching (?:his|her|their) throat)\\b")
+
+    private fun now(question: String) = !notHappeningNow.containsMatchIn(question) && !onScreen.containsMatchIn(question) &&
+        !fiction.containsMatchIn(question) && !(pastEvent.containsMatchIn(question) && !happeningNow.containsMatchIn(question))
+
+    internal fun chokingOnObject(question: String): Boolean = smallObject.containsMatchIn(question) && noAir.containsMatchIn(question) &&
+        !winded.containsMatchIn(question) && !airOpen.containsMatchIn(question) && now(question)
+    /** "A fish bone is stuck, i can breathe and talk": the airway is open, and back blows are not for them. */
+    private val airOpen = Regex("(?i)\\b(?:can|able to|still) (?:breathe|talk|speak)\\b|\\b(?:breathing|talking) (?:fine|ok|okay|normally)\\b")
+    /** "Hit in the chest by a ball and can't breathe": winded, not choking. */
+    private val winded = Regex("(?i)\\b(?:hit|struck|kicked|punched|winded|knocked|landed on|fell on)\\b")
+    private val smallObject = Regex("(?i)\\b(?:coins?|toy|ball|marble|grape|sweet|candy|lolly|button|bead|battery|bone|food|piece of|chunk of|lego|nut|peanut|popcorn|cap|lid)\\b")
+    private val noAir = Regex("(?i)\\b(?:can'?t (?:breathe|cry|talk|speak|cough|make a sound)|cant (?:breathe|cry|talk|speak|cough)|" +
+        "no sound|lips? (?:are |is |going |turning )?blue|turning blue|going blue|hands? (?:at|on|round|around) (?:his|her|their) (?:throat|neck)|" +
+        "choking|chokes|gagging|can'?t get (?:his|her|their|my) breath|cant get (?:his|her|their|my) breath)\\b")
+
+    internal fun carbonMonoxideNow(question: String): Boolean = fuelSource.containsMatchIn(question) && closedSpace.containsMatchIn(question) &&
+        coSigns.containsMatchIn(question) && now(question)
+    private val fuelSource = Regex("(?i)\\b(?:generator|gas heater|space heater|kerosene|paraffin|propane heater|patio heater|charcoal|barbecue|bbq|camp ?stove|" +
+        "gas stove|boiler|furnace|wood ?burner|car (?:engine )?running|engine running|exhaust)\\b")
+    private val closedSpace = Regex("(?i)\\b(?:garage|tent|bedroom|room|basement|cellar|cabin|caravan|camper|van|car|shed|kitchen|indoors|inside|closed|shut)\\b")
+    private val coSigns = Regex("(?i)\\b(?:headaches?|dizz\\w*|sleepy|drowsy|confus\\w*|nause\\w*|sick|vomit\\w*|threw up|throwing up|faint\\w*|" +
+        "passed out|collaps\\w*|won'?t wake|wont wake|can'?t wake|cant wake|hard to wake|unconscious|weak|short of breath)\\b")
+
+    internal fun chemicalInEye(question: String): Boolean = eyeChemical.containsMatchIn(question) && intoEye.containsMatchIn(question) && now(question)
+    private val eyeChemical = Regex("(?i)\\b(?:cleaner|bleach|ammonia|detergent|pods?|dishwasher|liquid|chemicals?|acid|lye|caustic|oven spray|spray|cement|lime|" +
+        "disinfectant|chlorine|soap)\\b")
+    private val intoEye = Regex("(?i)\\b(?:in|into|on)\\s+(?:(?:my|his|her|their|the|our|your)\\s+)?(?:\\w+'?s\\s+)?(?:\\w+\\s+)?eyes?\\b")
+
+    internal fun chemicalOnSkin(question: String): Boolean = corrosive.containsMatchIn(question) && skinPart.containsMatchIn(question) &&
+        skinHarm.containsMatchIn(question) && !intoEye.containsMatchIn(question) && now(question)
+    private val corrosive = Regex("(?i)\\b(?:drain cleaner|oven cleaner|toilet cleaner|bleach|acid|lye|caustic|cement|concrete|lime|ammonia|chemicals?|descaler|rust remover|paint stripper)\\b")
+    private val skinPart = Regex("(?i)\\b(?:hands?|arms?|legs?|shins?|feet|foot|knees?|skin|face|fingers?|wrists?|chest|back|neck|thighs?|ankles?|boots?)\\b")
+    private val skinHarm = Regex("(?i)\\b(?:burn\\w*|sting\\w*|raw|blister\\w*|peel\\w*|white and|red and|slimy|itch\\w*|sore)\\b")
 
     /** Swallowed now and a worry about it: not "ate mushrooms in Italy, which kind were they" or "ate lunch and my battery died". */
     private fun swallowedNow(question: String): Boolean =
