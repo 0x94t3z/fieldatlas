@@ -18,7 +18,7 @@ from 24 to 34 and routes that would be wrong to follow from 3 to 1, and of 2,438
 reported ones changed route. With Qwen3.5 4B, name-origin and winner questions read the saved encyclopedia, a year's
 event is found by its article, dates are kept to the precision of the passage and citations only where the passage
 states the figures; on a sealed set of 60 new fact questions, the 12 answers that changed were rated good 5 times
-against once (two blind grading rounds), with wrong facts per answer down from 3.04 to 1.67. Two later changes (the
+against once (two blind grading rounds), with wrong facts per answer down from 3.04 to 1.67. Three later changes (the
 part of a long note that holds the asked words, a note cut mid-word read on into its next chunk, and "The" kept in a
 name) were checked on four reported questions only. A long question is cut at three lines with Show full question.
 Before building: the JVM unit tests (1,788) and release lint passed in the clean clone; the four Python suites passed
