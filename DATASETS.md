@@ -9,6 +9,7 @@ The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-bui
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
 | Encyclopedia (`wikipedia-encyclopedia`) | 2026.10.12-native-compressed-preview | 10,643,533,492 | `7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59` | Simple English Wikipedia CirrusSearch dump, 29 December 2025; English Wikipedia vital articles by section, read 6 October 2026; English Wikipedia CirrusSearch content index, 4 October 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/tree/4a31af613133782cb6ba62d2a660a920e5a64cd6) |
+| Encyclopedia: search by meaning (`encyclopedia-index`) | 2026.11.02-leviathan | 244,396,881 | `2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db` | The Simple English Wikipedia lead sections of the Encyclopedia above (CirrusSearch dump, 29 December 2025), with bge-small-en-v1.5 vectors | CC BY-SA 4.0, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan) |
 | Travel guides (`wikivoyage-guides`) | 2026.09.01-leviathan | 289,828,270 | `e67ab97828da0d73266e462b1bff08acd61125140cf797202806cd83234805de` | English Wikivoyage pages-articles dump, 1 September 2026, one passage per section | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan) |
 | Travel places (`wikivoyage-places`) | 2026.09.1-leviathan | 215,077,879 | `c94daea43ae042048b7427fefc50abcee10a554a5a80fc359cc4fe9a273e8c63` | English Wikivoyage pages-articles dump, 1 September 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/wikivoyage-places/2026.09.1-leviathan) |
 | Vegan places (`osm-vegan-places`) | 2026.10.05-leviathan | 24,183,118 | `ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan) |
@@ -335,6 +336,21 @@ SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its 
 the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
+
+## Encyclopedia: search by meaning (November 2)
+
+`tools/packs/build_encyclopedia_index_pack.py` copies the 211,112 Simple English Wikipedia lead
+sections out of the installed Encyclopedia (chunk ids from `swp-` ending `:0000`, titles ending
+" — Overview") byte for byte: document id, chunk id, title, source and text are checked by digest
+against the Encyclopedia pack, so the app merges each passage with its Encyclopedia copy and shows
+it once. `tools/packs/embed_pack.py` encodes every passage with the bge-small-en-v1.5 encoder of the
+Cryptography & Ethereum pack (MIT), `tools/packs/build_vector_pack.py` adds the vectors, and the
+pack is packaged with Leviathan 0.2.0 like the Encyclopedia. The `.fapack` (`encyclopedia-index`,
+version `2026.11.02-leviathan`) is 244,396,881 bytes, 452,896,096 bytes installed, SHA-256
+`2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db`; its licence field is
+`CC-BY-SA-4.0 AND MIT`. It is hosted on
+[Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan).
+On an Android emulator, ten everyday questions took no longer to search with it installed than without.
 
 ## Biology & longevity (October 18)
 

@@ -16,6 +16,19 @@
       "category": "Encyclopedia"
     },
     {
+      "id": "encyclopedia-index",
+      "version": "2026.11.02-leviathan",
+      "title": "Encyclopedia: search by meaning",
+      "description": "The opening of every Simple English Wikipedia article (211,112 subjects), searched by meaning, so a question finds its subject even in other words · November 2026.",
+      "license": "CC-BY-SA-4.0 AND MIT",
+      "bytes": 244396881,
+      "installedBytes": 452896096,
+      "sha256": "2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan/encyclopedia-index-2026.11.02-leviathan.fapack",
+      "recommended": true,
+      "category": "Encyclopedia"
+    },
+    {
       "id": "wikivoyage-guides",
       "version": "2026.09.01-leviathan",
       "title": "Travel guides",

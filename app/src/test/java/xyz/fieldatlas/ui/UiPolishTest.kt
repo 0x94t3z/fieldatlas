@@ -106,7 +106,7 @@ class UiPolishTest {
         val library = installed.sortedWith(knowledgeOrder({ knowledgeCategory(it.id, declared[it.id].orEmpty()) },
             { it.toAssetCardModel().title })).map { it.id }
         assertEquals(discover, library)
-        assertEquals(listOf("wikipedia-encyclopedia", "osm-essentials", "wikivoyage-places", "osm-vegan-places",
+        assertEquals(listOf("wikipedia-encyclopedia", "encyclopedia-index", "osm-essentials", "wikivoyage-places", "osm-vegan-places",
             "wikivoyage-guides", "world-knowledge-biology", "crypto-ethereum"), discover)
     }
 }

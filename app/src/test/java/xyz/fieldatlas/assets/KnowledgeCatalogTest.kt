@@ -119,8 +119,7 @@ class KnowledgeCatalogTest {
 
     @Test fun wikimediaDownloadsMatchBuiltArtifactsAndCategories() {
         val catalog = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
-        val encyclopedia = catalog.packs.single { it.category == "Encyclopedia" }
-        assertEquals("wikipedia-encyclopedia", encyclopedia.id)
+        val encyclopedia = catalog.packs.single { it.id == "wikipedia-encyclopedia" }
         assertEquals("2026.10.12-native-compressed-preview", encyclopedia.version)
         assertEquals(10_643_533_492L, encyclopedia.bytes)
         assertEquals(24_346_003_429L, encyclopedia.installedBytes)
@@ -129,6 +128,14 @@ class KnowledgeCatalogTest {
         assertTrue(encyclopedia.url.startsWith("https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/resolve/"))
         assertTrue(encyclopedia.url.endsWith("/encyclopedia-2026.10.12.fapack"))
         assertTrue(catalog.packs.none { it.id in setOf("simplewiki", "wikipedia-en-vital") })
+        // The meaning-search companion sits with the Encyclopedia in Library, pinned to its upload.
+        val meaning = catalog.packs.single { it.id == "encyclopedia-index" }
+        assertEquals("Encyclopedia: search by meaning", meaning.title)
+        assertEquals("Encyclopedia", meaning.category)
+        assertEquals(244_396_881L, meaning.bytes)
+        assertEquals(452_896_096L, meaning.installedBytes)
+        assertEquals("2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db", meaning.sha256)
+        assertTrue(meaning.url.endsWith("/encyclopedia-index/2026.11.02-leviathan/encyclopedia-index-2026.11.02-leviathan.fapack"))
         val guides = catalog.packs.single { it.id == "wikivoyage-guides" }
         assertEquals(289_828_270L, guides.bytes)
         assertEquals(660_324_352L, guides.installedBytes)
