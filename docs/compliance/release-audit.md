@@ -1,6 +1,36 @@
 # Release audit
 
-Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4 and v1.4.5 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5 and v1.4.6 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.6 release (2 November 2026)
+
+Published on 2 November 2026 at 13:39 UTC as [v1.4.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.6),
+not a prerelease and marked latest, tag on `b72b9b0` (the commit that points the website at it), with
+`fieldatlas.apk` and `fieldatlas.apk.sha256` attached. The APK was built from `c705f56` in a clean clone with
+the pinned llama.cpp (`60081bb2b`) and its committed patch: version 1.4.6 (27), 103,562,123 bytes, SHA-256
+`ef502b1c514fc3e99a22d8d20c627a2ad369d8bbbb27e407599146bf21de8499`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload and again from
+its public link without signing in; both match. No app code changed between `c705f56` and the tag.
+
+A safety and accuracy update. Cleaning-product fumes breathed in now, and a small object put in the mouth and now
+gone, open the poisoning guide (reported in #8 and #9); on a sealed set of 60 new routing messages, right routes went
+from 24 to 34 and routes that would be wrong to follow from 3 to 1, and of 2,438 earlier test messages only the two
+reported ones changed route. With Qwen3.5 4B, name-origin and winner questions read the saved encyclopedia, a year's
+event is found by its article, dates are kept to the precision of the passage and citations only where the passage
+states the figures; on a sealed set of 60 new fact questions, the 12 answers that changed were rated good 5 times
+against once (two blind grading rounds), with wrong facts per answer down from 3.04 to 1.67. Two later changes (the
+part of a long note that holds the asked words, a note cut mid-word read on into its next chunk, and "The" kept in a
+name) were checked on four reported questions only. A long question is cut at three lines with Show full question.
+Before building: the JVM unit tests (1,788) and release lint passed in the clean clone; the four Python suites passed
+at the release commit (scripts 78, tools 262 with 12 skipped, packtool 12, benchmarks 10); the offline packaging audit,
+native alignment and `zipalign -c -P 16 4` passed on the exact APK; the on-device pattern tests (11) passed on the
+12 GB Android emulator. The website tests passed except one phone-menu test that also fails on the 1.4.5 site and is
+unrelated to this release. On that emulator in airplane mode the exact APK installed over a 1.4.6 preview (itself over
+1.4.5) with its data, and its More screen showed 1.4.6; the preview builds of the same code opened the poisoning guide
+for both reported messages in under a second, answered 304 for the 2016 electoral votes and gave the 2001 regional
+release months for The Strokes' first album.
+
+Not checked: no real phone ran this build (the owner chose emulator-only checks).
 
 ## v1.4.5 release (1 November 2026)
 
