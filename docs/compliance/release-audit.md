@@ -2,6 +2,28 @@
 
 Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5 and v1.4.6 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
+## v1.4.7 release (2 November 2026)
+
+Published on 2 November 2026 at 20:40 UTC as [v1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7),
+not a prerelease and marked latest, tag on `fa769f7`, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached.
+The APK was built from `fa769f7` in a clean clone with the pinned llama.cpp and its committed patch: version 1.4.7
+(28), 103,587,835 bytes, SHA-256 `90f46701b3abaddf17994bf4a8c54618539229a4da3f2d4349d0100b489c1a4c`, signed with
+the public release certificate (`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed
+before upload and again from its public link without signing in; both match.
+
+A speed and safety update: the article a question names is shown within about a second with the answering sentence
+marked; Qwen3.5 2B is recommended below 12 GB of memory; choking, carbon monoxide, eye and chemical burn messages open
+their guides; place lists are one numbered list with whether each place is open now; and the catalog offers
+Encyclopedia: search by meaning (`encyclopedia-index` 2026.11.02-leviathan, hosted at Hugging Face commit
+`192878b4`, size and SHA-256 checked there).
+
+Before building: the JVM unit tests and release lint passed in the clean clone; the offline packaging audit, native
+alignment and `zipalign -c -P 16 4` passed on the exact APK, which was installed on the 12 GB Android emulator and
+showed 1.4.7. Of the Python suites, packtool (12), benchmarks (10) and tools (262, 12 skipped) passed at the release
+commit; the scripts suite (78) failed one product-copy check, which read the `!=` of a condition written inside a
+message string as an exclamation mark. The message itself has none; the condition was moved out of the string after
+the release, with no change in behaviour. Not tested on a real phone.
+
 ## v1.4.6 release (2 November 2026)
 
 Published on 2 November 2026 at 13:39 UTC as [v1.4.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.6),
