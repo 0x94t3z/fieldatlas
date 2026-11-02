@@ -1,61 +1,54 @@
-# Field Atlas 1.4.6
+# Field Atlas 1.4.7
 
-A safety and accuracy update. Field Atlas answers questions on your Android phone without an internet
-connection; 1.4.6 opens the poisoning guide for two kinds of emergency it missed, reads the right part of
-the saved encyclopedia for short fact questions, and makes very long questions easier to read.
+A speed and safety update. Field Atlas answers questions on your Android phone without an internet connection;
+1.4.7 shows the saved article that answers a question within about a second, recommends the smaller and faster
+model on most phones, and opens the right first-aid guide for four more kinds of emergency.
 
 ## What's new
 
-- **Two emergencies now open the poisoning guide.** Fumes from cleaning products, such as "i mixed bleach
-  and ammonia cleaning the bathroom and my chest is tight", opened the heart attack guide (#8). A small thing
-  put in the mouth and now gone, such as "my 2 year old put a little round remote control battery in her
-  mouth and it is gone", opened no guide, so the model wrote the answer (#9). Both now show the call line and
-  the NHS poisoning guide in under a second. A splash in the eye, choking, or a question before anything has
-  happened ("is it safe to mix bleach and vinegar") keep their own routes. Thanks to swiftbotlabs for both
-  reports.
-- **Short fact questions read the right passage.** With Qwen3.5 4B:
-  - "Why is X called Y", "who won", and where a name comes from are now looked up in the saved
-    encyclopedia instead of answered from memory.
-  - A question about one year's event finds that event's article: "how many electoral votes did Trump have
-    in 2016" now answers 304, from the article on the 2016 election.
-  - A note longer than the model reads now shows the part with the asked words, and a passage the collection
-    split mid-word reads on into its next part.
-  - A section the question names by its heading is read first, and a band named with "The" ("The Strokes")
-    is looked up by that name, not as a word ("stroke").
-- **Dates and citations stay with the passage.** A date the model gives to the day where the passage gives
-  only the month is shown to the month, and a citation is kept only where its passage states the figures of
-  that sentence.
-- **Long questions are easier to read.** A question longer than three lines is set a size smaller and cut at
-  three lines, with **Show full question**.
+- **The answer comes up first.** Before the full search runs, the article the question names (or the year's
+  event it asks about) is looked up by its title and shown at once, with the sentence that answers marked:
+  "how tall is mount everest" shows "It is about 8,848 metres (29,029 feet) high" while the model is still to
+  write. The model's own answer follows as before.
+- **Qwen3.5 2B is recommended below 12 GB of memory.** The 4B is recommended from 12 GB; on smaller phones it
+  stays in Library, marked slow. Contributors timed the 4B at up to 5.5 minutes an answer on a 12 GB phone; a
+  model you already use is not changed.
+- **Four more emergencies open their guide.**
+  - An object with no air going in ("baby has a coin stuck she cant cry or breathe lips going blue") opens choking.
+  - A fuel burning in a closed space with someone unwell ("running the generator in the garage… everyone has a
+    headache") opens carbon monoxide.
+  - A household chemical in the eye opens eye injury; a corrosive one burning the skin opens burns.
+
+  Someone who can still breathe and talk, a question asked before anything has happened, and a scene in a story
+  keep their own routes.
 
 ## How much better?
 
-Our own measurements, not an independent score:
+Our own measurements on an Android emulator, not an independent score:
 
-| | 1.4.5 | 1.4.6 |
+| | 1.4.6 | 1.4.7 |
 |---|---|---|
-| Emergency messages routed right, on 60 new messages written for this test | 24 of 60 | 34 of 60 |
-| Of those, a guide that would be wrong to follow | 3 | 1 |
-| Earlier test messages (2,438) whose guide changed | | 2, the two reported ones |
-| Fact answers with the 4B rated good, among the 12 of 60 new questions whose answer changed | 1 of 12 | 5 of 12 |
-| Wrong facts per changed answer | 3.04 | 1.67 |
+| Something to read after asking a fact question | after the full search, a few seconds | about 1 second, with the answer marked |
+| Emergency messages routed right, on 60 messages written for testing | 35 of 60 | 43 of 60 |
+| Of those, a guide that would be wrong to follow | 1 | 1 |
+| Earlier test messages (2,438) whose guide changed | | 4, all from no guide to the right one |
 
-The fact measurement was made before the last two changes (the passage cut and "The" names); those were
-checked on four questions a tester reported, on an emulator. The 2B answers fact questions as before.
+The 60 messages had been used while building the earlier 1.4.6 fix, so they are not a fresh test.
 
 ## Good to know
 
-- **The model still answers from memory where the saved passages do not say it**, and can still be wrong.
+- **Meaning-based search is coming as collections, not in this app update.** Indexes for the Encyclopedia,
+  Wikivoyage guides and Biology will appear in Library once they are published; 1.4.x already reads them.
 - **Tested on** a 12 GB Android emulator. Not yet on a real phone.
 - **Answers can be wrong.** Nothing here is medical advice. In an emergency, call your local emergency number.
 
 ## Install
 
 1. Download `fieldatlas.apk` below (Android 13 or later, arm64). `fieldatlas.apk.sha256` lets you check it.
-2. Open it and allow the installation. It updates 1.4.5 and keeps your data.
+2. Open it and allow the installation. It updates 1.4.6 and keeps your data.
 
 ## More detail
 
-- [1.4.5 release notes](field-atlas-1.4.5.md)
-- [Every change since 1.4.5](https://github.com/0x94t3z/fieldatlas/compare/v1.4.5...v1.4.6)
+- [1.4.6 release notes](field-atlas-1.4.6.md)
+- [Every change since 1.4.6](https://github.com/0x94t3z/fieldatlas/compare/v1.4.6...v1.4.7)
 - [Install guide](../installation.md)

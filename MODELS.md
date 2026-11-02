@@ -7,8 +7,8 @@ A **model** is the large local file that lets Field Atlas generate answers: the 
 | App | Model to use | Where to get instructions |
 | --- | --- | --- |
 | [Public signed v1.1.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.1.10) | Qwen3 1.7B | [Model instructions at the v1.1.10 tag](https://github.com/0x94t3z/fieldatlas/blob/v1.1.10/MODELS.md) |
-| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.6) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
-| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) to [v1.4.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.6) from 6 GB | Qwen3.5 4B, optional in 1.4.0, recommended from 8 GB since 1.4.2, including 12 GB phones since 1.4.3 (offered on 6 GB, marked slow) | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
+| [v1.2.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.2.0) to [v1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7) | Qwen3.5 2B, the default | Download in setup, or the build steps below |
+| [v1.4.0](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.0) on a phone with 8 GB of memory or more, and [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) to [v1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7) from 6 GB | Qwen3.5 4B, optional in 1.4.0, recommended from 8 GB in 1.4.2 to 1.4.6 and from 12 GB since 1.4.7 (offered on smaller phones, marked slow) | Download in setup or Library; see the [notes below](#qwen35-4b-in-v140-and-v142) |
 | [v1.4.2](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.2) only, on a phone with 12 GB of memory | Gemma 4 26B-A4B (UD-Q2_K_XL), offered first in setup; no longer offered from v1.4.3 | An installed or imported copy is still recognised; see [Gemma 4 26B in v1.4.2](#gemma-4-26b-in-v142) |
 
 No model pack is bundled with the APK or attached to the public release. Version 1.2.0 can instead download the recommended pinned GGUF directly during setup, verify its exact size and SHA-256, and install it in app-private storage. From v1.4.2, a phone that cannot download can import the model's `.gguf` itself, downloaded on another device from the link below; building a `.fapack` is optional and needs a computer. Once installed, the model runs without internet; a knowledge pack is optional and adds inspectable local sources. The other model definitions below are alternatives for developers, not a claim that they all passed the full phone benchmark.
@@ -79,7 +79,7 @@ answers went from 38 to 66 and grader annotations per answer from 2.79 to 1.69
 It has not been timed on an 8 GB phone. On a 6 GB Redmi 13C, read from its file, answers took 3 to
 6 minutes from asking to the complete answer (six questions asked twice in airplane mode, October 24), and one took
 47 minutes with Wi-Fi on and other apps open while Android was closing apps for memory; that is why
-the 2B is recommended below 8 GB. A phone that already uses it keeps it and can choose it in Library. Its pinned
+the 2B was recommended below 8 GB; since 1.4.7 it is recommended below 12 GB, after contributors timed the 4B at up to 5.5 minutes an answer on a 12 GB phone. A phone that already uses it keeps it and can choose it in Library. Its pinned
 file and pack are described in
 [`models/compact-qwen3.5-4b.example.json`](models/compact-qwen3.5-4b.example.json) and in the
 [1.4.0 model notes](https://github.com/0x94t3z/fieldatlas/blob/v1.4.0/MODELS.md#optional-larger-model).
