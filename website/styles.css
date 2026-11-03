@@ -161,6 +161,9 @@ details[open] summary::after { content: '−'; }
 .platform-links a span { margin-left: auto; color: var(--muted); }
 .platform-links a:hover, #copy-address:hover { background: var(--sage); }
 .platform-note, .copy-status { font-size: .625rem; line-height: 1.6; margin: 10px 0 0; }
+.second-token { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+#second-token-address { min-width: 0; width: 100%; background: transparent; border: 0; color: var(--ink); font: .8125rem monospace; padding: 12px 0; text-overflow: ellipsis; }
+.second-token-note { font-size: .75rem; line-height: 1.7; margin: 10px 0 0; }
 .copy-status:empty { margin: 0; }
 .contribute-card { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; padding: 28px; background: #f0f1e9; display: grid; gap: 28px; }
 .contribute-card > div { min-width: 0; }
