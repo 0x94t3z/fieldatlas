@@ -9,13 +9,16 @@ The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-bui
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
 | Encyclopedia (`wikipedia-encyclopedia`) | 2026.10.12-native-compressed-preview | 10,643,533,492 | `7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59` | Simple English Wikipedia CirrusSearch dump, 29 December 2025; English Wikipedia vital articles by section, read 6 October 2026; English Wikipedia CirrusSearch content index, 4 October 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/tree/4a31af613133782cb6ba62d2a660a920e5a64cd6) |
+| Encyclopedia: search by meaning (`encyclopedia-meaning`) | 2026.11.03 | 888,091,697 | `bccd7a189c8b8e48f3f84194a8c627858b37d6e5713adf17ddea01172fd9a78b` | bge-small-en-v1.5 vectors of every Encyclopedia passage, clustered and compressed; no text (1.4.8 and later) | CC BY-SA 4.0, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a/encyclopedia-meaning/2026.11.03) |
 | Encyclopedia: search by meaning (`encyclopedia-index`) | 2026.11.02-leviathan | 244,396,881 | `2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db` | The Simple English Wikipedia lead sections of the Encyclopedia above (CirrusSearch dump, 29 December 2025), with bge-small-en-v1.5 vectors | CC BY-SA 4.0, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan) |
 | Travel guides (`wikivoyage-guides`) | 2026.09.01-leviathan | 289,828,270 | `e67ab97828da0d73266e462b1bff08acd61125140cf797202806cd83234805de` | English Wikivoyage pages-articles dump, 1 September 2026, one passage per section | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan) |
+| Travel guides: search by meaning (`wikivoyage-guides-meaning`) | 2026.11.03 | 76,458,856 | `eae1a1e88b81ef658fbb2f79cc3cd142228a73d405fc3f90a91b6b3386cea6d8` | bge-small-en-v1.5 vectors of every Travel guides passage, clustered and compressed; no text (1.4.8 and later) | CC BY-SA 4.0, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a/wikivoyage-guides-meaning/2026.11.03) |
 | Travel places (`wikivoyage-places`) | 2026.09.1-leviathan | 215,077,879 | `c94daea43ae042048b7427fefc50abcee10a554a5a80fc359cc4fe9a273e8c63` | English Wikivoyage pages-articles dump, 1 September 2026 | CC BY-SA 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/wikivoyage-places/2026.09.1-leviathan) |
 | Vegan places (`osm-vegan-places`) | 2026.10.05-leviathan | 24,183,118 | `ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan) |
 | Essentials (`osm-essentials`) | 2026.10.05-leviathan | 986,143,236 | `f41811ed8fe4aa1883adb98a57cd75b60aaf30f918358eb3a5c391fc85f7e2d2` | OpenStreetMap via Overpass, 2 October 2026 | ODbL 1.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/osm-essentials/2026.10.05-leviathan) |
 | Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05-leviathan | 59,453,558 | `3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan) |
 | Biology & longevity (`world-knowledge-biology`) | 2026.10.18 | 1,075,685,456 | `e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66` | 48,286 open-access ageing and longevity papers from PubMed Central, read 18 October 2026; OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026, and Genetics summaries, 18 October 2026; Human Ageing Genomic Resources, 13 and 18 October 2026 | CC BY 4.0, CC0 1.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18) |
+| Biology & longevity: search by meaning (`biology-meaning`) | 2026.11.03 | 133,028,790 | `55ba2a229d0842233de44d59ba557cdacf18f64fe0642c68bad3ab247edb18ea` | bge-small-en-v1.5 vectors of every Biology & longevity passage, clustered and compressed; no text (1.4.8 and later) | CC BY 4.0, CC BY 3.0, CC0 1.0, US Government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a/biology-meaning/2026.11.03) |
 
 **Where to download.** Every collection is hosted on Hugging Face, in
 [Field Atlas Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) and
@@ -351,6 +354,35 @@ version `2026.11.02-leviathan`) is 244,396,881 bytes, 452,896,096 bytes installe
 `CC-BY-SA-4.0 AND MIT`. It is hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan).
 On an Android emulator, ten everyday questions took no longer to search with it installed than without.
+
+## Search by meaning (November 3)
+
+Field Atlas 1.4.8 reads a second catalog, `app/src/main/assets/knowledge/catalog-2.json`, which lists
+everything in `catalog.json` plus three meaning packs that 1.4.7 and earlier cannot install. A meaning
+pack holds no text: for every passage of one exact collection edition it keeps a bge-small-en-v1.5
+vector (the encoder of the Cryptography & Ethereum pack, MIT), grouped into clusters and compressed
+to 96 bytes, with the rowid of the passage in that edition. The phone compares a question with the
+cluster centres, reads the 32 closest clusters and scores their passages from one lookup table, then
+reads the passages from the collection already installed. Library offers a meaning pack only when that
+exact edition is installed.
+
+`tools/packs/embed_pack.py --binary` encodes the passages and `tools/packs/build_meaning_pack.py`
+builds the pack (spherical k-means centres, residual product quantization with 96 subvectors of 256
+codewords). Checked against exact search: for 30 real travel questions the travel guides pack returned
+the best passage in its top 10 every time, and for Biology the best match was kept for all of 100 nudged
+passage vectors used as questions (80% of the exact top 10). The Encyclopedia pack uses the same settings
+and has not been checked against exact search.
+
+| Meaning pack | Passages of | Vectors | Clusters | Bytes | Installed bytes | SHA-256 |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| `encyclopedia-meaning` | `wikipedia-encyclopedia` 2026.10.12-native-compressed-preview | 8,386,572 | 4,096 | 888,091,697 | 888,087,904 | `bccd7a189c8b8e48f3f84194a8c627858b37d6e5713adf17ddea01172fd9a78b` |
+| `wikivoyage-guides-meaning` | `wikivoyage-guides` 2026.09.01-leviathan | 363,815 | 1,024 | 76,458,856 | 76,457,312 | `eae1a1e88b81ef658fbb2f79cc3cd142228a73d405fc3f90a91b6b3386cea6d8` |
+| `biology-meaning` | `world-knowledge-biology` 2026.10.18 | 900,714 | 2,048 | 133,028,790 | 133,027,168 | `55ba2a229d0842233de44d59ba557cdacf18f64fe0642c68bad3ab247edb18ea` |
+
+All three are hosted on
+[Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a), version
+`2026.11.03`. In `catalog-2.json` the Encyclopedia meaning pack replaces the November 2 `encyclopedia-index`
+(the opening of each Simple English article), which `catalog.json` still lists for 1.4.7.
 
 ## Biology & longevity (October 18)
 

@@ -16,6 +16,21 @@
       "category": "Encyclopedia"
     },
     {
+      "id": "encyclopedia-meaning",
+      "version": "2026.11.03",
+      "title": "Encyclopedia: search by meaning",
+      "description": "Finds passages anywhere in the Encyclopedia (8,386,572 of them) by what a question means, even when it uses other words. Needs the Encyclopedia · November 2026.",
+      "license": "CC-BY-SA-4.0 AND MIT",
+      "bytes": 888091697,
+      "installedBytes": 888087904,
+      "sha256": "bccd7a189c8b8e48f3f84194a8c627858b37d6e5713adf17ddea01172fd9a78b",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/encyclopedia-meaning/2026.11.03/encyclopedia-meaning-2026.11.03.fapack",
+      "recommended": true,
+      "category": "Encyclopedia",
+      "replaces": ["encyclopedia-index"],
+      "requires": {"id": "wikipedia-encyclopedia", "version": "2026.10.12-native-compressed-preview"}
+    },
+    {
       "id": "encyclopedia-index",
       "version": "2026.11.02-leviathan",
       "title": "Encyclopedia: search by meaning",
@@ -40,6 +55,20 @@
       "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan/wikivoyage-guides-2026.09.01-leviathan.fapack",
       "recommended": true,
       "category": "Travel"
+    },
+    {
+      "id": "wikivoyage-guides-meaning",
+      "version": "2026.11.03",
+      "title": "Travel guides: search by meaning",
+      "description": "Finds sections of the travel guides (363,815 of them) by what a question means, even when it uses other words. Needs Travel guides · November 2026.",
+      "license": "CC-BY-SA-4.0 AND MIT",
+      "bytes": 76458856,
+      "installedBytes": 76457312,
+      "sha256": "eae1a1e88b81ef658fbb2f79cc3cd142228a73d405fc3f90a91b6b3386cea6d8",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/wikivoyage-guides-meaning/2026.11.03/wikivoyage-guides-meaning-2026.11.03.fapack",
+      "recommended": true,
+      "category": "Travel",
+      "requires": {"id": "wikivoyage-guides", "version": "2026.09.01-leviathan"}
     },
     {
       "id": "wikivoyage-places",
@@ -105,6 +134,20 @@
       "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18/world-knowledge-biology-2026.10.18.fapack",
       "recommended": true,
       "category": "Science"
+    },
+    {
+      "id": "biology-meaning",
+      "version": "2026.11.03",
+      "title": "Biology & longevity: search by meaning",
+      "description": "Finds passages in Biology & longevity (900,714 of them) by what a question means, even when it uses other words. Needs Biology & longevity · November 2026.",
+      "license": "CC-BY-4.0 AND CC-BY-3.0 AND CC0-1.0 AND LicenseRef-US-Government-Work AND MIT",
+      "bytes": 133028790,
+      "installedBytes": 133027168,
+      "sha256": "55ba2a229d0842233de44d59ba557cdacf18f64fe0642c68bad3ab247edb18ea",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/biology-meaning/2026.11.03/biology-meaning-2026.11.03.fapack",
+      "recommended": true,
+      "category": "Science",
+      "requires": {"id": "world-knowledge-biology", "version": "2026.10.18"}
     }
   ]
 }
