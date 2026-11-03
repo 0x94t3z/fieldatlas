@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.7/fieldatlas.apk">Download for Android</a></strong> ·
+  <strong><a href="https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.8/fieldatlas.apk">Download for Android</a></strong> ·
   <a href="#watch-it-work">Demo</a> ·
   <a href="#for-developers">Docs</a> ·
   <a href="https://github.com/0x94t3z/fieldatlas">Source</a>
@@ -20,7 +20,7 @@
   <a href="#for-developers"><img src="https://img.shields.io/badge/inference-llama.cpp-174D3B?style=flat-square" alt="Inference: llama.cpp"></a>
 </p>
 
-<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7">v1.4.7 · Release</a> · Works offline after setup · No account required</p>
+<p align="center"><a href="https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.8">v1.4.8 · Release</a> · Works offline after setup · No account required</p>
 
 ---
 
@@ -56,8 +56,8 @@ collections and written by the model on your phone, with its sources underneath.
 
 You need an Android 13 or later phone with an arm64 processor.
 
-1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.7/fieldatlas.apk)
-   (about 100 MB, [SHA-256](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.7/fieldatlas.apk.sha256)).
+1. [Download the app](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.8/fieldatlas.apk)
+   (about 100 MB, [SHA-256](https://github.com/0x94t3z/fieldatlas/releases/download/v1.4.8/fieldatlas.apk.sha256)).
 2. Open it and follow Android's prompts to install it.
 3. In setup, download the model it recommends: Qwen3.5 2B (1.4 GB) below 12 GB of memory, or
    Qwen3.5 4B (3.0 GB) from 12 GB.
@@ -102,7 +102,7 @@ These are our own measurements, not an independent score. The questions and grad
 - **No live data.** Models and collections are snapshots, so news, prices and opening hours can be
   out of date.
 - **Storage.** The 2B with every collection takes about 34 GB.
-- **Tested on** a 6 GB Redmi 13C (Android 13) and Android emulators; 1.4.3 to 1.4.7 on an emulator only. Not
+- **Tested on** a 6 GB Redmi 13C (Android 13) and Android emulators; 1.4.3 to 1.4.8 on an emulator only. Not
   yet on a Pixel, GrapheneOS, or a real 8 GB or 12 GB phone.
 
 ## Collections
@@ -120,6 +120,10 @@ All collections are optional and download inside the app from Hugging Face
 | Essentials | 986 MB (3.62 GB installed) | Pharmacies, hospitals, ATMs, toilets, water, stations and more from OpenStreetMap |
 | Cryptography & Ethereum | 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards |
 | Biology & longevity | 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers, a biology textbook, health and genetics summaries, ageing databases |
+
+With 1.4.8, the Encyclopedia, Travel guides and Biology & longevity each have an optional **search by meaning**
+download (889 MB, 77 MB and 134 MB) that finds their passages by what a question means. It holds no text and
+works with the collection already installed, so Library offers it once that collection is on the phone.
 
 Sources, checksums and licences for each one are in [DATASETS.md](DATASETS.md#collections-the-app-offers).
 The default model and every collection together take about 33.7 GB.
@@ -147,7 +151,8 @@ of version 1.2.0 on a 4 GB Infinix in airplane mode, and the [first public demo]
 
 | Version | What changed |
 | --- | --- |
-| [1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7) (latest) | A speed and safety update: the saved article that answers comes up within about a second with the answering sentence marked, Qwen3.5 2B is recommended below 12 GB, and choking, carbon monoxide and chemical injuries open their guides. [Release notes](docs/releases/current.md) |
+| [1.4.8](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.8) (latest) | Search by meaning for the Encyclopedia, travel guides and Biology: three optional downloads find passages by what a question means, and the first card can be the closest passage in meaning. [Release notes](docs/releases/current.md) |
+| [1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7) | A speed and safety update: the saved article that answers comes up within about a second with the answering sentence marked, Qwen3.5 2B is recommended below 12 GB, and choking, carbon monoxide and chemical injuries open their guides. [Release notes](docs/releases/field-atlas-1.4.7.md) |
 | [1.4.6](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.6) | A safety and accuracy update: cleaning fumes and a small thing gone from the mouth open the poisoning guide, short fact questions read the right saved passage, dates and citations stay with the passage, and long questions are cut at three lines. [Release notes](docs/releases/field-atlas-1.4.6.md) |
 | [1.4.5](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.5) | A safety update: more emergencies open their guide (a small classifier after the keyword rules), a new question after an emergency is answered as one, a jump-to-end button on long answers, and a warning for very large imported models. [Release notes](docs/releases/field-atlas-1.4.5.md) |
 | [1.4.4](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.4) | A speed update: the best saved passage shows within seconds while an answer is researched, greetings are answered at once, and an answer stuck for 3 minutes stops with a message. Answers are unchanged. [Release notes](docs/releases/field-atlas-1.4.4.md) |
