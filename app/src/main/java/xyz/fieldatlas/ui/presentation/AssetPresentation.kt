@@ -196,7 +196,7 @@ fun knowledgeCategory(id: String, declared: String = ""): KnowledgeCategory =
     KnowledgeCategory.entries.firstOrNull { it.label.equals(declared.trim(), ignoreCase = true) } ?: when {
         id.startsWith("osm-") || id == "wikivoyage-places" || id == "wikivoyage-eat" -> KnowledgeCategory.Places
         id.startsWith("wikivoyage") -> KnowledgeCategory.Travel
-        id.startsWith("wikipedia") || id.startsWith("simplewiki") || id.startsWith("everyday-reference") ||
+        id.startsWith("wikipedia") || id.startsWith("encyclopedia") || id.startsWith("simplewiki") || id.startsWith("everyday-reference") ||
             id.startsWith("general-reference") -> KnowledgeCategory.Encyclopedia
         "wiktionary" in id || "phrasebook" in id -> KnowledgeCategory.Language
         "wikibooks" in id || "how-to" in id -> KnowledgeCategory.HowTo

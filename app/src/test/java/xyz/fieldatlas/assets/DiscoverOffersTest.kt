@@ -49,6 +49,18 @@ class DiscoverOffersTest {
         assertTrue(offers.fresh.isEmpty())
     }
 
+    @Test fun aMeaningPackIsOfferedOnlyWithTheEditionItSearches() {
+        val newer = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog-2.json").readText()).packs
+        val meaning = newer.filter { it.requires != null }
+        assertTrue(meaning.isNotEmpty())
+        assertTrue(discoverOffers(newer, emptyList()).fresh.none { it.requires != null })
+        meaning.forEach { pack ->
+            val base = newer.single { it.id == pack.requires!!.id && it.version == pack.requires.version }
+            assertTrue(pack.id, pack in discoverOffers(newer, listOf(installed(base))).fresh)
+            assertTrue(pack.id, pack !in discoverOffers(newer, listOf(installed(base, version = "2020.01.01"))).fresh)
+        }
+    }
+
     @Test fun anOldEditionKeptSwitchedOffAfterAnUpdateBringsNothingBack() {
         val places = shipped.packs.single { it.id == "wikivoyage-places" }
         val kept = installed(beforeLeviathan.single { it.id == "wikivoyage-places" }, enabled = false)

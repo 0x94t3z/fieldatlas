@@ -1,60 +1,49 @@
-# Field Atlas 1.4.7
+# Field Atlas 1.4.8
 
-A speed and safety update. Field Atlas answers questions on your Android phone without an internet connection;
-1.4.7 shows the saved article that answers a question within about a second, recommends the smaller and faster
-model on most phones, and opens the right first-aid guide for four more kinds of emergency.
+Search by meaning for every reading collection. Field Atlas answers questions on your Android phone without an
+internet connection; 1.4.8 finds passages in the Encyclopedia, the travel guides and Biology by what a question
+means, even when it uses other words, and shows the closest one within about a second.
 
 ## What's new
 
-- **The answer comes up first.** Before the full search runs, the article the question names (or the year's
-  event it asks about) is looked up by its title and shown at once, with the sentence that answers marked:
-  "how tall is mount everest" shows "It is about 8,848 metres (29,029 feet) high" while the model is still to
-  write. The model's own answer follows as before.
-- **Qwen3.5 2B is recommended below 12 GB of memory.** The 4B is recommended from 12 GB; on smaller phones it
-  stays in Library, marked slow. Contributors timed the 4B at up to 5.5 minutes an answer on a 12 GB phone; a
-  model you already use is not changed.
-- **Place lists read at a glance.** "Recommend vegan restaurants in Singapore" or "find hospital in Berlin" is
-  now one numbered list: each place's name, then what it is, its street and whether it is open now by the phone's
-  clock (for a hospital, whether the map records an emergency department). A tap opens the place: whether it is
-  open, its address large enough to show a driver, its hours and Open in maps.
-- **Four more emergencies open their guide.**
-  - An object with no air going in ("baby has a coin stuck she cant cry or breathe lips going blue") opens choking.
-  - A fuel burning in a closed space with someone unwell ("running the generator in the garage… everyone has a
-    headache") opens carbon monoxide.
-  - A household chemical in the eye opens eye injury; a corrosive one burning the skin opens burns.
-
-  Someone who can still breathe and talk, a question asked before anything has happened, and a scene in a story
-  keep their own routes.
+- **Search by meaning for the Encyclopedia, travel guides and Biology.** Three new downloads in Library, one for
+  each collection: Encyclopedia (889 MB), Travel guides (77 MB) and Biology & longevity (134 MB). Each finds
+  passages by meaning across the whole collection: all 8,386,572 Encyclopedia passages, 363,815 travel guide
+  sections and 900,714 Biology passages. They hold no text of their own; each points into the collection already
+  on the phone, so the Encyclopedia gains meaning search without a second copy of its 24 GB. Library offers each
+  one once its collection is installed.
+- **The first card uses meaning too.** The passage shown within about a second can now be the closest one in
+  meaning: "is it ok to drink from the faucet in hanoi" shows the Drink section of the Hanoi guide, and "how do i get
+  from the airport to bangkok by bus" shows Bangkok's Get in by bus section. The card stays while the answer is
+  written instead of switching to the search's top passage.
+- **Questions that ask for a judgement keep their subject.** In "is it ok to drink from the faucet in hanoi" or
+  "is it rude to tip in japan", the words "ok" and "rude" are no longer looked up as articles of their own.
 
 ## How much better?
 
 Our own measurements on an Android emulator, not an independent score:
 
-| | 1.4.6 | 1.4.7 |
+| | Without meaning packs | With all three |
 |---|---|---|
-| Something to read after asking a fact question | after the full search, a few seconds | about 1 second, with the answer marked |
-| Emergency messages routed right, on 60 messages written for testing | 35 of 60 | 43 of 60 |
-| Of those, a guide that would be wrong to follow | 1 | 1 |
-| Earlier test messages (2,438) whose guide changed | | 4, all from no guide to the right one |
-
-The 60 messages had been used while building the earlier 1.4.6 fix, so they are not a fresh test.
+| Search time, median of 10 everyday questions | 2.3 s | 2.5 s |
+| Slowest search of the 10 | 10.4 s | 8.0 s |
+| Questions worded differently from the guide that found the right section (travel guides, 10 questions, on a Mac) | 6 of 10 | 10 of 10 |
 
 ## Good to know
 
-- **Encyclopedia: search by meaning** is a new collection in Library (244 MB download, 453 MB installed): the
-  opening of every Simple English Wikipedia article, found by what a question means even when it uses other
-  words. On an emulator, ten everyday questions took no longer to search with it installed. Meaning search for
-  the travel guides and Biology follows once it is fast enough; it added about 2.5 seconds a question.
+- **The earlier "Encyclopedia: search by meaning"** (the opening of each Simple English article, 244 MB) is no
+  longer offered: the new Encyclopedia download covers every passage. A phone that has it keeps it; it can be
+  deleted in Library.
 - **Tested on** a 12 GB Android emulator. Not yet on a real phone.
 - **Answers can be wrong.** Nothing here is medical advice. In an emergency, call your local emergency number.
 
 ## Install
 
 1. Download `fieldatlas.apk` below (Android 13 or later, arm64). `fieldatlas.apk.sha256` lets you check it.
-2. Open it and allow the installation. It updates 1.4.6 and keeps your data.
+2. Open it and allow the installation. It updates 1.4.7 and keeps your data.
 
 ## More detail
 
-- [1.4.6 release notes](field-atlas-1.4.6.md)
-- [Every change since 1.4.6](https://github.com/0x94t3z/fieldatlas/compare/v1.4.6...v1.4.7)
+- [1.4.7 release notes](field-atlas-1.4.7.md)
+- [Every change since 1.4.7](https://github.com/0x94t3z/fieldatlas/compare/v1.4.7...v1.4.8)
 - [Install guide](../installation.md)

@@ -19,6 +19,10 @@ data class KnowledgeCatalog(val schemaVersion: Int, val packs: List<KnowledgeCat
                     pack.replaces.all { it != pack.id && it.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}")) }) {
                     "Invalid superseded collection ids"
                 }
+                require(pack.requires == null || (pack.requires.id != pack.id &&
+                    listOf(pack.requires.id, pack.requires.version).all { it.matches(Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,127}")) })) {
+                    "Invalid required collection"
+                }
                 require(pack.title.isNotBlank() && pack.description.isNotBlank() && pack.license.isNotBlank()) {
                     "Pack description or license is missing"
                 }
@@ -52,6 +56,8 @@ data class KnowledgeCatalogEntry(
     val installedBytes: Long? = null,
     /** Superseded download listings only. Never deletes or disables installed data. */
     val replaces: List<String> = emptyList(),
+    /** A meaning pack's passage pack: it is useless without that exact edition, so Discover waits for it. */
+    val requires: PackRef? = null,
 )
 
 /** Additional disk space for a staged download plus extraction, matching admission. */
@@ -103,12 +109,16 @@ data class DiscoverOffers(val fresh: List<KnowledgeCatalogEntry>, val updates: L
  * Splits the catalog into what Discover may offer. A collection already on the phone is offered again only as an
  * update, and only when the catalog's edition is later than every edition installed. The same edition, an earlier
  * one, or one that cannot be ordered against it (an old catalog saved on the phone, say) is never offered: someone
- * who has the newest packs sees nothing to download.
+ * who has the newest packs sees nothing to download. A pack that requires another is offered only once that exact
+ * edition is on the phone.
  */
 fun discoverOffers(catalog: List<KnowledgeCatalogEntry>, installed: List<InstalledAsset>): DiscoverOffers {
     val knowledge = installed.filter { it.type == PackType.KNOWLEDGE }
-    val fresh = catalog.filter { candidate -> knowledge.none { it.id == candidate.id } }
-    val updates = catalog.filter { candidate ->
+    val usable = catalog.filter { candidate ->
+        candidate.requires?.let { needed -> knowledge.any { it.id == needed.id && it.version == needed.version } } ?: true
+    }
+    val fresh = usable.filter { candidate -> knowledge.none { it.id == candidate.id } }
+    val updates = usable.filter { candidate ->
         val editions = knowledge.filter { it.id == candidate.id }
         editions.isNotEmpty() && editions.all { (compareEditions(candidate.version, it.version) ?: 0) > 0 }
     }

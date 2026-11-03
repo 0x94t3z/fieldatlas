@@ -243,7 +243,10 @@ fun SetupScreen(
                 }
                 // One card, A to Z by name. Three rows show until "See all" is tapped, so the step stays short however
                 // many collections the catalog grows to; a collection downloading or importing always keeps its row.
-                val sortedKnowledge = availableKnowledge.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
+                // A meaning pack waits until the collection it searches is on the phone, as in Discover.
+                val sortedKnowledge = availableKnowledge.filter { pack ->
+                    pack.requires?.let { needed -> packs.any { it.type == PackType.KNOWLEDGE && it.id == needed.id && it.version == needed.version } } ?: true
+                }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.title })
                 if (sortedKnowledge.isNotEmpty()) item(key = "setup-knowledge") {
                     val active = { pack: KnowledgeCatalogEntry -> knowledgeDownloadKey == "${pack.id}:${pack.version}" ||
                         (importing && importingPack?.type == PackType.KNOWLEDGE && importingPack.id == pack.id) }
