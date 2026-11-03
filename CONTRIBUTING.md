@@ -78,6 +78,13 @@ to use the app.** Nothing here is financial advice or says anything about its pr
 separate contributor pool. The rest belongs to the dev, to use as they choose, including funding further
 work on Field Atlas.
 
+**A second token.** On 3 November 2026 the maintainer launched a separate token, also named ATLAS, on
+Robinhood Chain through Pons (contract `0xe7eeD5f62d4813073Ff38784dc775e723dfc165c`). It is not the Base
+ATLAS and does not pay contributor rewards. Its 2% creator fee goes to the maintainer's wallet
+`0xc698865c38eC12b475AA55764d447566dd54c758` and funds building Field Atlas: tools, servers, maintenance,
+testing and app store publishing. The maintainer bought 112,707,299 of its 1,000,000,000 tokens at launch
+for 0.22 ETH. No token is needed to use the app, and nothing here says anything about its price.
+
 ATLAS may be used to thank contributors, under these rules:
 
 - **One pool pays.** 1,000,000,000 ATLAS was put into a separate, public pool wallet on 1 November 2026,
