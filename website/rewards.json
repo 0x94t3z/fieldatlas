@@ -136,10 +136,10 @@
       "issue": 7,
       "amount": 5000000,
       "address": "0x0A66a9dEF221Efc698b6bbecA82cAE6729A8aba8",
-      "status": "proposed",
+      "status": "paid",
       "safeTxHash": "0x1707888ce15c871bafcb8f59edf6fb5387849f463ff8e34c9d58ef3430317906",
       "nonce": 8,
-      "tx": null
+      "tx": "0x0996728887c6c5e927e98d204a16cec500d4840b0b5d834015de6674dfddb5ec"
     }
   ]
 }
