@@ -80,13 +80,13 @@ work on Field Atlas.
 
 **A second token.** On 3 November 2026 the maintainer launched a separate token, also named ATLAS, on
 Robinhood Chain through Pons (contract `0xe7eeD5f62d4813073Ff38784dc775e723dfc165c`). It is not the Base
-ATLAS and does not pay contributor rewards. Its 2% creator fee goes to the maintainer's wallet
-`0xc698865c38eC12b475AA55764d447566dd54c758` and funds building Field Atlas: tools, servers, maintenance,
-testing and app store publishing. The maintainer bought 112,707,299 of its 1,000,000,000 tokens at launch
-for 0.22 ETH and 16,830,285 more the same day, then burned all 129,537,584 on 3 November 2026
-([79,537,584](https://robinhoodchain.blockscout.com/tx/0x9c878e918db33da6a85eadffeb04df6aa8ecc626db53caec4430c93fa93201eb),
-[50,000,000](https://robinhoodchain.blockscout.com/tx/0x799065760fa3bdfeddab2a3ec0794e355e8002e56683c39ef9a7b0ff0920265c))
-and holds none of it. No token is needed to use the app, and nothing here says anything about its price.
+ATLAS and does not pay contributor rewards. Its 2% creator fee goes to the maintainer and funds building
+Field Atlas. The launch was funded by selling Base ATLAS. The maintainer's wallets are
+`0xc698865c38eC12b475AA55764d447566dd54c758` (main), `0x72d14fb194624b835a91b914e8dbc2abac250a6a` (Bankr,
+receives the Base creator fees) and `0xA06e309E264C9D3b77CE6CD91AC992ba1D719756` (second wallet); their
+holdings and trades in both tokens are public on [Basescan](https://basescan.org) and the
+[Robinhood Chain explorer](https://robinhoodchain.blockscout.com). No token is needed to use the app, and
+nothing here says anything about its price.
 
 ATLAS may be used to thank contributors, under these rules:
 
