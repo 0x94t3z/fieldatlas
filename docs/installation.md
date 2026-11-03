@@ -2,7 +2,7 @@
 
 [Back to the overview](../README.md)
 
-The current release is **v1.4.7**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B (recommended below 12 GB of memory) or Qwen3.5 4B (recommended from 12 GB; a smaller phone can choose it, slow there), installed separately by download or by importing the model file (`.gguf`) or a model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
+The current release is **v1.4.8**, for Android 13+ ARM64 devices. It uses Qwen3.5 2B (recommended below 12 GB of memory) or Qwen3.5 4B (recommended from 12 GB; a smaller phone can choose it, slow there), installed separately by download or by importing the model file (`.gguf`) or a model `.fapack`. **Finish model setup before going offline.** The 2B model is about 1.4 GB; the APK and optional collections need additional storage. Answers can be inaccurate; read the known limitations.
 
 ## Choose your path
 
@@ -18,14 +18,14 @@ Check the version in **More**. Do not follow Qwen3.5 instructions for a 1.1.10 A
 
 1. Download `fieldatlas.apk` and `fieldatlas.apk.sha256` from [v1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7). Verify the checksum if possible.
 2. Open the APK on an Android 13+ ARM64 phone. Allow installation from the app opening the APK if Android asks.
-3. In setup, download the model it recommends (Qwen3.5 4B from 12 GB of memory, Qwen3.5 2B otherwise), or import the model file: download the `.gguf` linked in the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.7/MODELS.md) on any device, copy it to the phone and choose **Import a file**. A file Field Atlas tested is checked byte for byte and keeps its tested settings; any other GGUF model installs as your own, untested, when the phone has the memory for it.
+3. In setup, download the model it recommends (Qwen3.5 4B from 12 GB of memory, Qwen3.5 2B otherwise), or import the model file: download the `.gguf` linked in the [model guide at this release](https://github.com/0x94t3z/fieldatlas/blob/v1.4.8/MODELS.md) on any device, copy it to the phone and choose **Import a file**. A file Field Atlas tested is checked byte for byte and keeps its tested settings; any other GGUF model installs as your own, untested, when the phone has the memory for it.
 4. Optionally download or import a knowledge collection, and the Supertonic 3 reading voice (about 146 MB). A model is required; collections provide saved passages for their covered topics.
 5. Start research once the model is installed. Allow time for first model preparation.
 6. Open source citations to inspect actual passages. An unverified model explanation is not proof that the saved sources support it.
 
 After setup, turn on airplane mode and turn Wi-Fi off to try offline research. This release has network permission for explicit downloads and catalog refresh, not remote inference. Download resume after a dropped connection was checked on a phone for 1.4.1. Android's per-app traffic counters showed no data sent or received during research on a 6 GB test phone, in airplane mode and with Wi-Fi on (October 24); no packet capture was made.
 
-## What setup offers in 1.4.7
+## What setup offers in 1.4.8
 
 The app needs **only an installed model** to answer questions. The 52 emergency guides and the
 emergency-number table for 242 countries ship inside the app and work before any download. Setup
@@ -41,6 +41,10 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 | Essentials | about 986 MB (3.62 GB installed) | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
 | Cryptography & Ethereum | about 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
 | Biology & longevity | about 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers from PubMed Central, OpenStax Biology 2e, MedlinePlus health and genetics summaries and ageing databases; not medical advice |
+
+Library also offers a **search by meaning** download for the Encyclopedia (about 889 MB), Travel guides (about
+77 MB) and Biology & longevity (about 134 MB), once that collection is installed. Each finds the collection's
+passages by what a question means; it holds no text of its own.
 
 A collection installed in a newer version takes over from the older one, which stays installed
 and switched off until you delete it in Library.
