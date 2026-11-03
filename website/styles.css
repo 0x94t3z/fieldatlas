@@ -147,22 +147,21 @@ details[open] summary::after { content: '−'; }
 .token-chain { display: inline-flex; align-items: center; gap: 6px; background: #e3e9dd; padding: 4px 9px; border-radius: 4px; letter-spacing: 0; text-transform: none; color: var(--ink); }
 .token-chain img { width: 14px; height: 14px; flex-shrink: 0; }
 .token-address-row { position: relative; display: flex; align-items: center; min-height: 46px; border: 1px solid #ccd4c5; border-radius: 5px; background: #fafbf6; padding: 0 4px 0 14px; }
-#token-address { min-width: 0; width: 100%; background: transparent; border: 0; color: var(--ink); font: .875rem monospace; padding: 12px 0; }
-#token-address.address-compact:not(:focus) { color: transparent; }
+#token-address, #second-token-address { min-width: 0; width: 100%; background: transparent; border: 0; color: var(--ink); font: .875rem monospace; padding: 12px 0; }
+#token-address.address-compact:not(:focus), #second-token-address.address-compact:not(:focus) { color: transparent; }
 .token-short { position: absolute; left: 14px; font: .875rem monospace; pointer-events: none; }
-#token-address:focus + .token-short { display: none; }
-#copy-address { flex-shrink: 0; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--green); cursor: pointer; }
-#copy-address .icon { width: 18px; height: 18px; }
-#copy-address .copy-check, #copy-address.is-copied .copy-glyph { display: none; }
-#copy-address.is-copied .copy-check { display: inline-block; color: #21714d; stroke-width: 2.2; }
+#token-address:focus + .token-short, #second-token-address:focus + .token-short { display: none; }
+#copy-address, #copy-second-address { flex-shrink: 0; min-width: 44px; min-height: 44px; border: 0; background: transparent; color: var(--green); cursor: pointer; }
+#copy-address .icon, #copy-second-address .icon { width: 18px; height: 18px; }
+#copy-address .copy-check, #copy-address.is-copied .copy-glyph, #copy-second-address .copy-check, #copy-second-address.is-copied .copy-glyph { display: none; }
+#copy-address.is-copied .copy-check, #copy-second-address.is-copied .copy-check { display: inline-block; color: #21714d; stroke-width: 2.2; }
 .platform-links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
 .platform-links a { flex: 1 1 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 10px; border: 1px solid #ccd4c5; border-radius: 5px; font-size: .75rem; text-decoration: none; white-space: nowrap; }
 .platform-links img { width: 20px; height: 20px; flex-shrink: 0; }
 .platform-links a span { margin-left: auto; color: var(--muted); }
-.platform-links a:hover, #copy-address:hover { background: var(--sage); }
+.platform-links a:hover, #copy-address:hover, #copy-second-address:hover { background: var(--sage); }
 .platform-note, .copy-status { font-size: .625rem; line-height: 1.6; margin: 10px 0 0; }
 .second-token { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
-#second-token-address { min-width: 0; width: 100%; background: transparent; border: 0; color: var(--ink); font: .8125rem monospace; padding: 12px 0; text-overflow: ellipsis; }
 .second-token-note { font-size: .75rem; line-height: 1.7; margin: 10px 0 0; }
 .copy-status:empty { margin: 0; }
 .contribute-card { margin-top: 18px; border: 1px solid var(--line); border-radius: 8px; padding: 28px; background: #f0f1e9; display: grid; gap: 28px; }

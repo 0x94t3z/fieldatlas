@@ -238,9 +238,11 @@ test('community links keep the supplied address, and copying works and reports f
   await expect(section.getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', `https://dexscreener.com/base/${token}`);
   // The dev's second token on Robinhood Chain is listed apart from the Base token, with its disclosure.
   await expect(page.locator('#second-token-address')).toHaveValue('0xe7eeD5f62d4813073Ff38784dc775e723dfc165c');
+  await page.locator('#copy-second-address').click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('0xe7eeD5f62d4813073Ff38784dc775e723dfc165c');
   await expect(section.locator('.second-token-note')).toContainText('launched by the dev on Pons');
   await expect(section.getByRole('link', { name: 'Pons' })).toHaveAttribute('href', 'https://ponsfamily.com/launchpad/0xe7eed5f62d4813073ff38784dc775e723dfc165c');
-  const copy = page.getByRole('button', { name: 'Copy full contract address' });
+  const copy = page.getByRole('button', { name: 'Copy full contract address', exact: true });
   await copy.click();
   await expect(copy.locator('.copy-check')).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(token);
@@ -350,7 +352,7 @@ test('navigation and FAQ work with JavaScript disabled', async ({ browser }) => 
   await question.click();
   await expect(question.locator('..')).toHaveAttribute('open', '');
   await expect(page.locator('#token-address')).toHaveValue(token);
-  await expect(page.getByRole('button', { name: 'Copy full contract address' })).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Copy full contract address', exact: true })).toBeHidden();
   await expect(page.locator('a.button', { hasText: 'Download for Android' }).first()).toHaveAttribute('href', apk);
   await context.close();
 });

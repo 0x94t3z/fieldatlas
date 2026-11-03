@@ -1,9 +1,6 @@
-// Optional clipboard enhancement; the full address remains available without JS.
-const copyButton = document.querySelector('#copy-address');
-const address = document.querySelector('#token-address');
-const shortAddress = document.querySelector('.token-short');
-const copyStatus = document.querySelector('#copy-status');
-if (copyButton && address && shortAddress && copyStatus && navigator.clipboard?.writeText) {
+// Optional clipboard enhancement; the full addresses remain available without JS.
+function enableCopy(copyButton, address, shortAddress, copyStatus) {
+  if (!copyButton || !address || !shortAddress || !copyStatus || !navigator.clipboard?.writeText) return;
   copyButton.hidden = false;
   shortAddress.hidden = false;
   address.classList.add('address-compact');
@@ -27,4 +24,9 @@ if (copyButton && address && shortAddress && copyStatus && navigator.clipboard?.
       copyButton.disabled = false;
     }
   });
+}
+
+for (const [button, input, status] of [['#copy-address', '#token-address', '#copy-status'], ['#copy-second-address', '#second-token-address', '#second-copy-status']]) {
+  const address = document.querySelector(input);
+  enableCopy(document.querySelector(button), address, address?.parentElement.querySelector('.token-short'), document.querySelector(status));
 }
