@@ -143,7 +143,7 @@ details[open] summary::after { content: '−'; }
 .community-risk { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px; border: 1px solid #e2d6be; border-radius: 5px; background: #f7f2e7; }
 .community-risk .icon { width: 18px; height: 18px; color: #805520; }
 .community-risk p { color: #65491f; font-size: .75rem; line-height: 1.65; }
-.token-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: .625rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.token-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: .625rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .token-chain { display: inline-flex; align-items: center; gap: 6px; background: #e3e9dd; padding: 4px 9px; border-radius: 4px; letter-spacing: 0; text-transform: none; color: var(--ink); }
 .token-chain img { width: 14px; height: 14px; flex-shrink: 0; }
 .token-address-row { position: relative; display: flex; align-items: center; min-height: 46px; border: 1px solid #ccd4c5; border-radius: 5px; background: #fafbf6; padding: 0 4px 0 14px; }
