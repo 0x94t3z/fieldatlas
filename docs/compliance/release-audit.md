@@ -2,6 +2,29 @@
 
 Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5 and v1.4.6 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
 
+## v1.4.8 release (3 November 2026)
+
+Published on 3 November 2026 at 13:02 UTC as [v1.4.8](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.8),
+not a prerelease and marked latest, tag on `d244b1d`, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached.
+The APK was built from `54e8d86` in a clean clone with the pinned llama.cpp and its committed patch; `d244b1d` only
+updates the install guide. Version 1.4.8 (29), 103,606,084 bytes, SHA-256
+`fe43dd66df71f1c299546378231512ed6ec7983343354a6f0d4e9f4aa2b27f2c`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload and again from its
+public link without signing in; both match.
+
+Search by meaning for the Encyclopedia, travel guides and Biology: 1.4.8 reads `catalog-2.json`, which adds three
+meaning packs (`encyclopedia-meaning`, `wikivoyage-guides-meaning`, `biology-meaning`, version 2026.11.03, hosted at
+Hugging Face commit `835614ae`, sizes and SHA-256 checked from their public links) to everything `catalog.json`
+lists; Library offers each only with the exact collection edition it was built for. The first card can be the
+closest passage in meaning and stays while the answer is written. `catalog.json`, which 1.4.7 and earlier read, is
+unchanged.
+
+Before building: the JVM unit tests (1,809) and release lint passed in the clean clone; the offline packaging audit,
+native alignment and `zipalign -c -P 16 4` passed on the exact APK, which was installed on the 12 GB Android emulator
+and showed 1.4.8. The Python suites passed at the release commit: scripts (78), packtool (12), benchmarks (10) and
+tools (262, 12 skipped). On the emulator, the median search time of ten everyday questions was 2.3 s without the
+meaning packs and 2.5 s with all three. Not tested on a real phone.
+
 ## v1.4.7 release (2 November 2026)
 
 Published on 2 November 2026 at 20:40 UTC as [v1.4.7](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.7),
