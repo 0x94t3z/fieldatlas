@@ -235,7 +235,8 @@ test('community links keep the supplied address, and copying works and reports f
   await expect(section.locator('.community-copy > p')).toHaveText('ATLAS was launched by the community on Bankr, with its creator fees and creator allocation going to the dev. Field Atlas adopted it to reward contributors; it did not create or sell it. No token is needed to use the app.');
   await expect(section.getByRole('note', { name: 'Token risk warning' })).toContainText('Tokens can lose all their value.');
   await expect(section.getByRole('link', { name: 'Bankr' })).toHaveAttribute('href', `https://bankr.bot/terminal/trade?out=${token}&chain=base`);
-  await expect(section.getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', `https://dexscreener.com/base/${token}`);
+  await expect(section.locator('.platform-links').first().getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', `https://dexscreener.com/base/${token}`);
+  await expect(section.locator('.second-token').getByRole('link', { name: 'Dex Screener' })).toHaveAttribute('href', 'https://dexscreener.com/robinhood/0xe7eed5f62d4813073ff38784dc775e723dfc165c');
   // The dev's second token on Robinhood Chain is listed apart from the Base token, with its disclosure.
   await expect(page.locator('#second-token-address')).toHaveValue('0xe7eeD5f62d4813073Ff38784dc775e723dfc165c');
   await page.locator('#copy-second-address').click();
