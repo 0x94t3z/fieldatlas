@@ -331,6 +331,13 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
  * The passage worth reading while the answer is prepared: the best match found so far, until the answer's own words
  * appear on the page. Null when there is none, or while the run waits behind another question.
  */
+/**
+ * The card once the answer's sources are known: a preview picked for the question stays; a first search hit gives way
+ * to the passage the run settled on. Null stays null: first aid never gets a card.
+ */
+internal fun previewAfterSources(state: ResearchUiState, sources: List<Evidence>): Evidence? =
+    state.preview?.let { if (state.previewChosen) it else sources.firstOrNull() ?: it }
+
 internal fun bestMatchSoFar(state: ResearchUiState): Evidence? =
     state.preview?.takeIf { state.waitingFor == null && draftAnswerPreview(state.answer).isBlank() }
 

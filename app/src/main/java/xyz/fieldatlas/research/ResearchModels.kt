@@ -12,9 +12,11 @@ sealed interface ResearchEvent {
     data class Sources(val evidence: List<Evidence>) : ResearchEvent
     /**
      * The best passage the search has found so far, shown while the rest of the run reads and writes. A preview only:
-     * it is not a source of the answer until [Sources] lists it.
+     * it is not a source of the answer until [Sources] lists it. A [chosen] preview was picked for the question (its
+     * named article, or the closest passage in meaning) and stays; otherwise [Sources] replaces it with the passage the
+     * run settled on.
      */
-    data class Preview(val evidence: Evidence) : ResearchEvent
+    data class Preview(val evidence: Evidence, val chosen: Boolean = false) : ResearchEvent
     /**
      * Verbatim source text shown before model generation starts. It replaces any answer
      * text so far; later replace tokens repeat it. Consumers must not count it as a

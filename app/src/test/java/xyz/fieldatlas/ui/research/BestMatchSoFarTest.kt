@@ -39,4 +39,15 @@ class BestMatchSoFarTest {
         assertNull(bestMatchSoFar(searching.copy(waitingFor = "an earlier question")))
         assertNull(bestMatchSoFar(ResearchUiState(phase = ResearchPhase.Searching)))
     }
+
+    @Test fun aCardPickedForTheQuestionStaysWhenTheSourcesArrive() {
+        val drink = Evidence("wv-hanoi", "wv-hanoi:12", "Hanoi — Drink", "https://en.wikivoyage.org/wiki/Hanoi", "Bia hơi is abundant.", 0.73)
+        val general = Evidence("swp-drink", "swp-drink:0000", "Drink — Overview", "https://simple.wikipedia.org/wiki/Drink", "A drink is a liquid.", 1.0)
+        val searching = ResearchUiState(phase = ResearchPhase.Searching, preview = drink)
+        assertEquals(drink, previewAfterSources(searching.copy(previewChosen = true), listOf(general, drink)))
+        // A first search hit is replaced by the passage the run settled on.
+        assertEquals(general, previewAfterSources(searching, listOf(general, drink)))
+        assertEquals(drink, previewAfterSources(searching, emptyList()))
+        assertNull(previewAfterSources(ResearchUiState(phase = ResearchPhase.Searching), listOf(general)))
+    }
 }

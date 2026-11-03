@@ -641,7 +641,7 @@ class ResearchOrchestrator(
                 ProposalLookup.named(question) == null &&
                 !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question)
             val quickPreview = if (previewable) quickSubject(question) else null
-            quickPreview?.let { emit(ResearchEvent.Preview(it)) }
+            quickPreview?.let { emit(ResearchEvent.Preview(it, chosen = true)) }
             var evidence = if (includeLibrary) EvidenceRelevance.keep(
                 retriever.searchForQuestion(question, question, candidateLimit, placesOnly) { progress ->
                     _searchProgress.value = progress.fraction
