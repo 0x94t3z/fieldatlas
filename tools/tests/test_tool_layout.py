@@ -17,6 +17,7 @@ class ToolLayoutTests(unittest.TestCase):
             "tools/packs/index_pack_for_leviathan.py",
             "tools/android/build_leviathan_native.py",
             "tools/evaluation/compare_research_runs.py",
+            "tools/evaluation/reader_bench.py",
             "tools/maintenance/plan_library_storage.py",
             "tools/maintenance/check_release_links.py",
             "scripts/research/check_claim_support.py",
