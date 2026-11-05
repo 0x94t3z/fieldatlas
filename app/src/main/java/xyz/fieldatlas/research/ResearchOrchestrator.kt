@@ -1685,6 +1685,8 @@ class ResearchOrchestrator(
         if (xyz.fieldatlas.emergency.EmergencyGuideMatch.happenedBefore(question)) return null
         val (label, probability) = emergencyClassifier()?.classify(question) ?: return null
         if (label in CLASSIFIER_NEVER || probability < CLASSIFIER_THRESHOLD) return null
+        // The rules' exclusions bind the classifier too: "my baby has rsv and cant breathe" read as choking (issue #16).
+        if (xyz.fieldatlas.emergency.EmergencyGuideMatch.rulesOut(label, question)) return null
         // "Her waters just broke on the ferry" read as pregnancy bleeding: labour has no guide, so that one needs blood.
         if (label == "pregnancy-bleeding" && !CLASSIFIER_BLOOD.containsMatchIn(question)) return null
         return emergencyGuides().firstOrNull { it.id == label }

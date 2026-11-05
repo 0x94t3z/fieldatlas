@@ -276,8 +276,7 @@ object GuideAnswerCheck {
             // A ligature: minutes matter and the person may still be alive (issue #14). "Hanging" needs a neck or a
             // person found: "hanging out", "hanging a picture" and "hanging upside down" describe no neck.
             "\\b(?:strangl\\w*|strangulat\\w*|ligature|noose)\\b|" +
-            "\\b(?:found|find|see|saw|discovered?)\\b[^.?!]{0,30}?\\b(?:hanging|hanged|hung)\\b|" +
-            "\\b(?:hanging|hanged|hung)\\b[^.?!]{0,25}?\\b(?:by (?:the|his|her|their) neck|from (?:a |the )?(?:rope|noose|beam|rafter|rafters|ligature|cord|belt|hook|ceiling))\\b|" +
+            "\\b${EmergencyGuideMatch.FOUND_PERSON_HANGING}|\\b(?:hanging|hanged|hung) by (?:the|his|her|their) neck\\b|${EmergencyGuideMatch.PERSON_SUSPENDED}|" +
             "\\b(?:cord|rope|belt|wire|shoelace|scarf)\\s+(?:around|round|about)\\s+(?:his|her|their|the)\\s+neck\\b|" +
             "\\bepi-?pens?\\b|\\bauto-?injector\\b|\\b(allergic reaction|anaphylactic)\\b|\\bthroat (feels |is |getting )?(tight|tightening|closing|swelling)\\b|" +
             "\\bburied (by|under|in)\\b|\\bavalanche\\b|\\bsmoke (in|is|coming|everywhere|filling)\\b|\\b(on fire|in flames|up in flames)\\b|" +
