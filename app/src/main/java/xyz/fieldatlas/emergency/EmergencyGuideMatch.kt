@@ -80,7 +80,7 @@ object EmergencyGuideMatch {
             "no helmet", "pupils", "one pupil", "same questions over and over", "asking the same questions"),
         // Falling through ice: the water rescue first (from safe ground), then warming the person.
         "drowning" to listOf("fell through the ice", "fallen through the ice", "falls through the ice", "through the ice",
-            "was underwater", "under water", "face down in the water", "face down in the pool", "face down in the bath", "face down",
+            "was underwater", "under water", "face down in the water", "face down in the pool", "face down in the bath",
             "can't swim", "cant swim", "fell overboard", "fell off the boat", "car went into the river", "car went into the water",
             "car is sinking", "its sinking", "it's sinking", "swept away", "pulled him out of the water", "pulled her out of the water"),
         "hypothermia" to listOf("fell in a cold", "fell into a cold", "cold river", "cold lake", "freezing water",
@@ -291,7 +291,6 @@ object EmergencyGuideMatch {
         "face down in the water",
         "face down in the pool",
         "face down in the bath",
-        "face down",
         "can't swim",
         "cant swim",
         "fell overboard",
@@ -434,7 +433,7 @@ object EmergencyGuideMatch {
     private const val LIGHTNING_BONUS = 3
 
     /** Someone who can faint or stop responding, unlike the tomato plants and cakes that also "collapse". */
-    private const val PERSON = "he|she|they|someone|somebody|anyone|everyone|friend|child|kid|baby|toddler|son|daughter|wife|husband|" +
+    internal const val PERSON = "he|she|they|someone|somebody|anyone|everyone|friend|child|kid|baby|toddler|son|daughter|wife|husband|" +
         "partner|mom|mum|dad|mother|father|grandma|grandpa|grandmother|grandfather|brother|sister|person|man|woman|boy|girl|" +
         "guy|lady|people|patient|hiker|tourist|runner|player|worker"
 
@@ -457,6 +456,102 @@ object EmergencyGuideMatch {
     )
     /** In a heat collapse these are the fever, the cooling and the sips of water, not hypothermia, a burn or water safety. */
     private val heatTerms = setOf("body temperature", "cold water", "cool water", "cold", "wet", "water", "drink", "drinking water")
+
+    /**
+     * A person shaking and the ground not: "she's on the floor shaking and can't respond" is a seizure, and the earthquake
+     * guide's drop-cover-hold-on steps answer nothing (issue #18). The ground itself may be named instead.
+     */
+    private val personShaking = Regex("(?i)\\b(?:$PERSON|i|i'm|im|me|they|them|she'?s|he'?s|they'?re)\\b[^.?!]{0,40}?\\b(?:shaking|shakes|jerking|convuls\\w*|fitting|seiz\\w*|trembling)\\b|" +
+        "\\b(?:shaking|jerking|convuls\\w*)\\b[^.?!]{0,40}?\\b(?:on the (?:floor|ground|sofa|bed|couch|pavement)|in the (?:street|road)|next to me)\\b|" +
+        "\\b(?:on the (?:floor|ground)|in the street)\\b[^.?!]{0,30}?\\b(?:shaking|jerking)\\b")
+    /**
+     * A convulsion, not a shiver: "shaky, sweaty and not making sense" is low blood sugar, and "out all night and shaking"
+     * is the cold. The seizure guide needs the jerking, the fit, the foam, or a person shaking where they fell.
+     */
+    private val convulsionNow = Regex("(?i)\\b(?:convuls\\w*|jerking|jerks|jerking all over|fitting|having a fit|seizing|seizure|" +
+        "foaming (?:at the mouth|from the mouth)|foaming|eyes rolled|whole body (?:is )?(?:jerking|shaking|convulsing)|" +
+        "uncontrollable (?:shaking|jerking)|shaking all over|rigid and shaking)\\b|" +
+        "\\b(?:on the (?:floor|ground)|on the pavement|in the street)\\b[^.?!]{0,30}?\\b(?:shaking|jerking|fitting|convulsing)\\b|" +
+        "\\b(?:shaking|jerking)\\b[^.?!]{0,30}?\\b(?:can'?t|cant|cannot|not|won'?t|wont) (?:respond|responding|answer|wake)\\b")
+    private val groundMoving = Regex("(?i)" +
+        // "On the floor shaking" is where a person is; the ground is the subject only when nothing puts a person on it.
+        "(?<!on the )(?<!on )(?<!to the )\\b(?:ground|floor|house|building|flat|room|walls?|windows?|shelves|ceiling|furniture|bed|everything)\\b\\s*" +
+        "(?:is |was |were |has been |had been |started |keeps |kept |stopped |began |just |won'?t stop |wouldn'?t stop )?(?:to )?" +
+        "(?:shak\\w*|trembl\\w*|moving|moved|rattl\\w*|sway\\w*|rock\\w*)\\b")
+    private val groundShaking = Regex("(?i)\\b(?:earthquake|quake|aftershock|tremor)\\b|${groundMoving.pattern.removePrefix("(?i)")}")
+    /** Signs only a person shows: "shaking and foaming after the earthquake" is a fit, not the ground moving. */
+    private val fitSign = Regex("(?i)\\b(?:foam\\w*|froth\\w*|convuls\\w*|jerking|fitting|having a fit|seizing|seizure|eyes rolled)\\b")
+    /** The quake is what the message is about: the ground named, unless a fit is told and the ground is not moving now. */
+    private fun quakeTold(question: String) = groundShaking.containsMatchIn(question) &&
+        !(fitSign.containsMatchIn(question) && !groundMoving.containsMatchIn(question))
+    /**
+     * "Suddenly can't speak" or "can't talk" with a face or a limb: the stroke signs (issue #16). Without one of the other
+     * signs it stays an airway description, which the choking rule may answer.
+     */
+    private val speechLost = Regex("(?i)\\b(?:(?:can'?t|cant|cannot|unable to|no longer|stopped being able to) (?:speak|talk)|" +
+        "(?:speech|voice) (?:is |has )?(?:slurred|gone|funny|thick)|slurr\\w* (?:speech|words|when)|words? (?:come out|sound) (?:slurred|wrong|funny))\\b")
+    private val faceSign = Regex("(?i)\\b(?:face|facial|mouth|smile|lips)\\b[^.?!]{0,25}?\\b(?:droop\\w*|dropped|sag\\w*|sagging|fallen|funny|numb|lopsided|" +
+        "one side|twisted|slid|sliding|asymmetric|doesn'?t move|not moving)\\b|\\bface (?:looks |is )?(?:funny|odd|wrong|lopsided|asymmetric)\\b")
+    private val limbSign = Regex("(?i)\\b(?:arm|arms|leg|legs|hand|hands|side|foot)\\b[^.?!]{0,25}?\\b(?:weak\\w*|numb\\w*|heavy|limp|floppy|dead|" +
+        "dropping|dragging|won'?t move|wont move|can'?t move|cant move|cannot move|can'?t lift|cant lift|not moving|useless)\\b")
+    private val strokeNow = { question: String -> speechLost.containsMatchIn(question) && (faceSign.containsMatchIn(question) || limbSign.containsMatchIn(question)) }
+    /**
+     * A swelling face or throat with no air: anaphylaxis, where the adrenaline injector is the step that matters. The
+     * choking steps (back blows, thrusts) are for an object in the airway, not for a swelling one (issue #16).
+     */
+    private val swellingNow = Regex("(?i)\\b(?:face|facial|lips?|tongue|throat|eyes?|eyelids?|neck)\\b[^.?!]{0,25}?\\b(?:swell\\w*|swollen|puff\\w*|puffy|" +
+        "burning|tight\\w*|closing|closed up|hives)\\b|\\bhives\\b|\\b(?:throat|airway) (?:is |feels |getting )?(?:tight|tightening|closing|swelling)\\b")
+    private val breathLost = Regex("(?i)\\b(?:(?:can'?t|cant|cannot|struggling to|unable to|hard to|trouble) (?:breathe|breathing)|" +
+        "(?:no|barely any) air|gasping|wheez\\w*|cannot get (?:my|his|her|their) breath)\\b")
+    private val allergyNow = { question: String -> swellingNow.containsMatchIn(question) && breathLost.containsMatchIn(question) }
+    /** Something in the airway, told as such: the choking rules are for this and not for a swelling throat. */
+    private val chokingTold = Regex("(?i)\\b(?:chok\\w*|cough\\w*|grabbing (?:his|her|their|at his|at her) throat|hands? (?:at|on|round|around) " +
+        "(?:his|her|their) throat|clutching (?:his|her|their) throat|something (?:stuck|caught) in (?:his|her|my|their) throat|" +
+        "stuck in (?:his|her|my|their) throat|food (?:stuck|went down wrong)|piece of food|went down (?:the )?wrong (?:way|pipe)|wrong pipe|" +
+        "airway|swallowed (?:a|an|the|some)|can'?t (?:cough|make a sound)|no sound)\\b")
+    /**
+     * High blood sugar, or a reading that is high: the hypo guide's first step is sugar, the opposite of what this needs
+     * (issue #15). A reading of 300 mg/dL or more, or ketones, counts.
+     */
+    private val highSugar = Regex("(?i)\\b(?:high blood sugar|blood sugar (?:is |was |at |of |reading |reads |reading of |of )?(?:[3-9]\\d\\d|\\d{4,})|" +
+        "(?:sugar|glucose|meter|reading|level) (?:is |was |at |of |reads |said |says )?(?:[3-9]\\d\\d|\\d{4,})|" +
+        "hyperglyc\\w+|ketoacidosis|\\bdka\\b|ketones? (?:in|on) (?:his|her|my|their)? ?(?:blood|urine|breath)|pear[- ]drop breath|high sugar)\\b")
+    /**
+     * A temperature that is dangerously high: 104 F, 40 C, a fever of 40. Warming this person is the wrong direction, so the
+     * hypothermia guide is ruled out and the heat guide answers (issue #17).
+     */
+    private val highTemperature = Regex("(?i)\\b(?:(?:his|her|their|my|your|body|baby'?s|child'?s|core) (?:temperature|temp)|fever|thermometer)\\b" +
+        "[^.?!]{0,20}?\\b(?:10[3-9](?:\\.\\d)?|1[01]\\d(?:\\.\\d)?|4[0-3](?:\\.\\d)?)\\b|" +
+        // No air is 103 F or more, so a bare reading that high is a body or a heatwave; a bare 40 can be a cold night.
+        "\\b(?:temperature|temp)\\b[^.?!]{0,20}?\\b(?:10[3-9]|1[01]\\d)(?:\\.\\d)?\\b|\\b(?:10[4-9]|1[01]\\d)\\s*(?:°|degrees?)?\\s*(?:f|fahrenheit)\\b|" +
+        "\\b(?:4[0-3](?:\\.\\d)?)\\s*(?:°|degrees?)?\\s*(?:c|celsius|centigrade)\\b")
+    /**
+     * A ligature or a strangled neck: a life threat with the CPR guide's steps, whatever the question adds (issue #14).
+     * The bare word is not enough: "hanging a picture", "hanging out" and "hanging upside down on the monkey bars" are
+     * none of them a neck. What counts is a ligature word, a person found hanging, or a body suspended by the neck.
+     */
+    private val hangingNow = Regex("(?i)\\b(?:strangl\\w*|strangulat\\w*|ligature|noose|hung (?:himself|herself|themselves)|" +
+        "hanging (?:himself|herself|themselves)|tied (?:a|the) (?:rope|cord|belt)|" +
+        "(?:cord|rope|belt|wire|shoelace|scarf)\\s+(?:around|round|about)\\s+(?:his|her|their|the)\\s+neck)\\b|" +
+        // "found my brother hanging": the person is what was found, so "hanging" describes them. "Found my keys hanging on
+        // the hook", "saw my son hanging upside down on the monkey bars" and "hanging out" are no neck.
+        "\\b$FOUND_PERSON_HANGING|" +
+        // A body suspended: "hanging from a rope", "hanging by the neck", "hung from the rafters".
+        "\\b(?:hanging|hanged|hung) by (?:the|his|her|their) neck\\b|$PERSON_SUSPENDED")
+    /** A person, not an object, found or seen hanging; shared with the call-line check. */
+    internal const val FOUND_PERSON_HANGING = "(?:found|find|discovered?|see|saw)\\s+(?:(?:my|our|his|her|their|a|the)\\s+)?(?:$PERSON|him|her|them)\\b" +
+        "[^.?!]{0,20}?\\b(?:hanging|hanged|hung)\\b(?!\\s+(?:out|around|about|up|upside|on|onto|off|over|with|" +
+        "from (?:a |the )?(?:monkey|bars?|branch|tree|ledge|edge|roof|cliff|window|rail\\w*))\\b)"
+    internal const val PERSON_SUSPENDED = "\\b(?:$PERSON|him|her|them)\\b[^.?!]{0,25}?\\b(?:hanging|hanged|hung)\\b[^.?!]{0,25}?" +
+        "\\bfrom (?:a |the )?(?:rope|noose|beam|rafters?|ligature|cord|belt|hook|ceiling)\\b"
+    /**
+     * Found face down on land and still: CPR at once, where the drowning guide's water rescue wastes the minutes
+     * (issue #19). A person has to be what was found — "found my phone face down in the grass" is not a casualty.
+     */
+    private val faceDownStill = Regex("(?i)\\b(?:found|find|saw|see|discovered?)\\b[^.?!]{0,25}?" +
+        "\\b(?:my |his |her |their |the )?(?:$PERSON)\\b[^.?!]{0,25}?\\bface[- ]down\\b|" +
+        "\\b(?:$PERSON|him|her|them)\\b[^.?!]{0,25}?\\bface[- ]down\\b[^.?!]{0,40}?\\b(?:not moving|isn'?t moving|" +
+        "not responding|unresponsive|not breathing|blue|lips? (?:are |is )?blue|won'?t wake|wont wake|gone|limp|cold)\\b")
 
     /**
      * No breathing, no pulse, no response: whatever led to it, CPR comes first. "Not responding to
@@ -556,6 +651,13 @@ object EmergencyGuideMatch {
             // ("baby has a coin stuck she cant cry or breathe lips going blue" opened no guide, 2 Nov).
             ?: (if (chokingOnObject(question)) guides.firstOrNull { it.id == "choking" } else null)
             ?: (if (describesArrest(question)) guides.firstOrNull { it.id == "cpr" } else null)
+            // Hanging or strangulation: the weight off, the ligature off, then CPR. The issue that found this had the guide
+            // matcher return nothing and the model advise preserving the scene (#14).
+            ?: (if (hangingNow.containsMatchIn(question) && now(question)) guides.firstOrNull { it.id == "cpr" } else null)
+            // Found face down on land, not moving: the CPR steps, not the water rescue (issue #19).
+            ?: (if (faceDownStill.containsMatchIn(question) && !inWater.containsMatchIn(question) && now(question)) {
+                guides.firstOrNull { it.id == "cpr" }
+            } else null)
             // A fuel burning in a closed space and someone sick, drowsy or hard to wake: carbon monoxide ("generator in the
             // garage… everyone has a headache" opened no guide; "gas heater in the tent… wont wake up properly" opened CPR).
             ?: (if (carbonMonoxideNow(question)) guides.firstOrNull { it.id == "carbon-monoxide" } else null)
@@ -677,8 +779,11 @@ object EmergencyGuideMatch {
         "^(?=.*\\b(?:naloxone|narcan|nyxoid|prenoxad)\\b)(?=.*\\b(?:gave|given|used|sprayed|injected|second|another|nodd\\w*|breathing|wake|waking|came round)\\b).*")
     private val feverFit = Regex("(?i)\\b(?:convuls\\w*|seizure\\w*|fitting|having a fit|jerking|twitching|eyes rolled)\\b")
 
-    /** A baby or child with a fever ("my baby has a fever of 39°C"): the fever guide, with when to call 111 or 999. */
-    private val childFever = Regex("(?i)^(?!.*\\bhay ?fever\\b)(?=.*\\b(?:baby|babies|newborn|infant|toddler|child|son|daughter|kid|\\d+[- ](?:week|month|day)s?[- ]old)\\b" +
+    /**
+     * A baby or child with a fever ("my baby has a fever of 39°C"): the fever guide, with when to call 111 or 999.
+     * Ages are given as "3 year old" as well as "6 month old", and both of those are children.
+     */
+    private val childFever = Regex("(?i)^(?!.*\\bhay ?fever\\b)(?=.*\\b(?:baby|babies|newborn|infant|toddler|child|son|daughter|kid|\\d+[- ](?:week|month|day|year|yr)s?[- ]old)\\b" +
         "[^.?!]{0,60}\\b(?:fever|feverish|high temperature|temperature (?:of|is)|temp (?:of|is)|\\d{2}(?:\\.\\d)? ?°? ?c\\b|(?:3[89]|4[01])\\.\\d\\b|feels hot|burning up|hot to (?:the )?touch)).*")
 
     /**
@@ -764,7 +869,15 @@ object EmergencyGuideMatch {
     }
 
     /** A guide whose steps would be wrong for this question, whatever its words share with it. */
-    private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = when (guide.id) {
+    /**
+     * Whether a guide's own rule-outs exclude it for this question: the emergency classifier's pick must not reopen a guide
+     * the rules closed ("my baby has rsv and cant breathe" is not choking, whichever reads it).
+     */
+    fun rulesOut(guideId: String, question: String): Boolean = ruledOut(guideId, withoutExpiry(question))
+
+    private fun ruledOut(guide: EmergencyGuide, question: String): Boolean = ruledOut(guide.id, question)
+
+    private fun ruledOut(id: String, question: String): Boolean = when (id) {
         // A place's tap water is that place's travel advice, not water to treat.
         "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
             waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question) ||
@@ -785,8 +898,12 @@ object EmergencyGuideMatch {
         "lost" -> !lostSign.containsMatchIn(question) || coldCasualty.containsMatchIn(question)
         // "A fish bone is stuck, I can breathe and talk but it hurts": the airway is open. The choking steps (back
         // blows, abdominal thrusts) are for someone who cannot breathe, speak or cough.
-        "choking" -> !airwayObject.containsMatchIn(question) && otherBreathingCause.containsMatchIn(question) ||
-            airwayOpen.containsMatchIn(question)
+        "choking" -> !airwayObject.containsMatchIn(question) && (otherBreathingCause.containsMatchIn(question) ||
+            breathingIllness.containsMatchIn(question)) ||
+            airwayOpen.containsMatchIn(question) ||
+            // A swelling face or a lost voice with no object in the airway is anaphylaxis or a stroke, not choking (issue #16):
+            // back blows and thrusts are the wrong steps and cost the minutes those two need.
+            (!chokingTold.containsMatchIn(question) && (strokeNow(question) || allergyNow(question)))
         // Bleeding in pregnancy or from the vagina is not a wound to press on: the bleeding guides would say so.
         // The severe bleeding guide (tourniquets, packing a wound) is not for a nosebleed or a small cut, nor for a plant
         // ("the leaves on my bleeding heart plant are turning yellow").
@@ -805,8 +922,15 @@ object EmergencyGuideMatch {
         "poisoning" -> foodPoisoning.containsMatchIn(question) && !swallowedThing.containsMatchIn(question)
         // A diver's dizziness, tingling and aching after a fast ascent is decompression sickness, not a stroke; the
         // stroke guide's "note the time, call" steps would miss the oxygen and the chamber.
-        "stroke" -> diving.containsMatchIn(question)
-        "frostbite", "hypothermia" -> headCold.containsMatchIn(question) && !freezingWeather.containsMatchIn(question)
+        "stroke" -> diving.containsMatchIn(question) || chokingSaid.containsMatchIn(question)
+        // A reading of 300 or more, ketones or "high blood sugar": the hypo guide would say to eat sugar (issue #15).
+        "low-blood-sugar" -> highSugar.containsMatchIn(question) && !lowSugarSaid.containsMatchIn(question)
+        // A person shuddering on the floor is a seizure, not the ground moving (issue #18).
+        "earthquake" -> (convulsionNow.containsMatchIn(question) || faceDownStill.containsMatchIn(question)) && !quakeTold(question)
+        "frostbite" -> headCold.containsMatchIn(question) && !freezingWeather.containsMatchIn(question)
+        // 104 F with confusion is heat stroke until shown otherwise; warming them would do harm (issue #17).
+        "hypothermia" -> (headCold.containsMatchIn(question) || highTemperature.containsMatchIn(question)) &&
+            !freezingWeather.containsMatchIn(question)
         // Headache, flashing lights and puffy hands at 35 weeks are not bleeding: the bleeding guide was shown for them.
         "pregnancy-bleeding" -> !bleedingWords.containsMatchIn(question)
         // A sting that "burns like crazy" is a sting; a pan, a stove or a bin on fire with nobody burned is a fire to put
@@ -825,6 +949,13 @@ object EmergencyGuideMatch {
         "campylobacter|reheated|leftovers?|gone off|out of date|past its date)\\b")
     private val swallowedThing = Regex("(?i)\\b(?:swallow\\w*|overdos\\w*|pills?|tablets?|bleach|chemical\\w*|detergent|antifreeze|" +
         "batter(?:y|ies)|poison(?:ed|ous)|mushrooms?|berries|plant|cleaner|medicine|paracetamol|acetaminophen|ibuprofen)\\b")
+    /** "Choking at dinner and his face looks funny" is choking: back blows first, whatever the face shows. */
+    private val chokingSaid = Regex("(?i)\\b(?:chok(?:ing|es|ed)|heimlich)\\b(?! up\\b)")
+    /** Too much insulin or a reading said to be low: the hypo guide stands, whatever an earlier high reading was. */
+    private val lowSugarSaid = Regex("(?i)\\bhypo\\b|\\blow (?:blood )?sugar|\\bsugars? (?:is |are |went |gone |going )?(?:low|dropp\\w*|crash\\w*)\\b|" +
+        "\\b(?:too much|extra|double|wrong) (?:dose of )?insulin\\b|\\binsulin overdose\\b")
+    /** An illness behind the breathing trouble ("my baby has rsv and cant breathe", issue #16): not an object to dislodge. */
+    private val breathingIllness = Regex("(?i)\\b(?:rsv|croup|bronchiolit\\w*|pneumonia|covid|flu|virus|viral|infection|a cold|chest infection)\\b")
     private val diving = Regex("(?i)\\b(?:scuba|div(?:e|es|ed|ing)|diver|ascen(?:t|ded|ding)|came up (?:too )?(?:fast|quick\\w*)|surfaced|" +
         "decompression|the bends|dive computer|depth of \\d+)\\b")
     /** Something burning: "the oil in the frying pan just caught fire", "the toaster is on fire", "bin on fire". */
@@ -1118,6 +1249,22 @@ object EmergencyGuideMatch {
             // "Grabbing at his throat", "one side of her face has slid down", "the sea has sucked right back": the sign in
             // the words people use for it, inflected as they say it, names the guide like one of its own phrases.
             if (signsOf[guide.id]?.containsMatchIn(question) == true) {
+                score += 4
+                specific = true
+                describedBySigns += guide.id
+            }
+            // Signs that name the guide in the words people use for them but that need two parts to hold (issues #16–#18):
+            // a lost voice with a drooping face, a swollen face with no air, a person shuddering on the floor, a fever of 40.
+            val twoPartSign = when (guide.id) {
+                "stroke" -> strokeNow(question)
+                "anaphylaxis" -> allergyNow(question)
+                "seizures" -> convulsionNow.containsMatchIn(question) && !quakeTold(question)
+                // A temperature of 40 is heat illness in an adult, but a child's fever belongs to the fever guide:
+                // "my 3 year old has a fever of 40" is a fever to bring down and watch, not heat to cool.
+                "heat-illness" -> highTemperature.containsMatchIn(question) && !childFever.containsMatchIn(question)
+                else -> false
+            }
+            if (twoPartSign) {
                 score += 4
                 specific = true
                 describedBySigns += guide.id

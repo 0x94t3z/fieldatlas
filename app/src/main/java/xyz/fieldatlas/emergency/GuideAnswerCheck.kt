@@ -273,6 +273,11 @@ object GuideAnswerCheck {
             "\\bwaters (have )?(gone|broken|broke)\\b|\\bin labou?r\\b|\\bbaby'?s head\\b|\\bcrowning\\b|\\bfloppy\\b|\\bagoni[sz]ing\\b|\\bclammy\\b|" +
             "\\bpregnan\\w*\\b.{0,60}\\b(?:bleed\\w*|blood)\\b|\\b(?:bleed\\w*|blood)\\b.{0,60}\\bpregnan\\w*\\b|" +
             "\\b(?:won't|wont|doesn't|not) respond\\w*\\b|\\bcollapsed\\b|" +
+            // A ligature: minutes matter and the person may still be alive (issue #14). "Hanging" needs a neck or a
+            // person found: "hanging out", "hanging a picture" and "hanging upside down" describe no neck.
+            "\\b(?:strangl\\w*|strangulat\\w*|ligature|noose)\\b|" +
+            "\\b${EmergencyGuideMatch.FOUND_PERSON_HANGING}|\\b(?:hanging|hanged|hung) by (?:the|his|her|their) neck\\b|${EmergencyGuideMatch.PERSON_SUSPENDED}|" +
+            "\\b(?:cord|rope|belt|wire|shoelace|scarf)\\s+(?:around|round|about)\\s+(?:his|her|their|the)\\s+neck\\b|" +
             "\\bepi-?pens?\\b|\\bauto-?injector\\b|\\b(allergic reaction|anaphylactic)\\b|\\bthroat (feels |is |getting )?(tight|tightening|closing|swelling)\\b|" +
             "\\bburied (by|under|in)\\b|\\bavalanche\\b|\\bsmoke (in|is|coming|everywhere|filling)\\b|\\b(on fire|in flames|up in flames)\\b|" +
             // NHS "call 999" signs that no bundled guide covers, which set 50 left with "if this is an emergency": legs gone
