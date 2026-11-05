@@ -1023,4 +1023,12 @@ class EmergencyGuideMatchTest {
         // The lightning guide says its victims are safe to touch; a household current is not lightning.
         assertNotEquals("lightning", match(q))
     }
+
+    @Test fun someoneWhoFellInAndIsShiveringIsWarmedNotGivenWaterToTreat() {
+        assertEquals("hypothermia", match("fell in the river, water temperature was 40 degrees, now shivering hard"))
+        assertEquals("hypothermia", match("my son fell into the lake and now hes shivering and his lips are blue"))
+        assertEquals("drowning", match("we pulled her out of the river and shes not breathing"))
+        assertEquals("safe-drinking-water", match("is river water safe to drink if i boil it"))
+        assertEquals("safe-drinking-water", match("the river water is cloudy how do i purify it"))
+    }
 }

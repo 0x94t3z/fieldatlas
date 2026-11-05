@@ -596,6 +596,11 @@ object EmergencyGuideMatch {
             "\\b(?:[1-4]|one|two|three|four) breaths? in (?:20|30|60) seconds\\b|" +
             "\\b(?:[1-8]|one|two|three|four|five|six|seven|eight) breaths? (?:in|per|a|each) (?:a |one |the )?(?:whole |full |single )?minute\\b|\\blong (?:long )?pauses? between (?:breaths|them|each)\\b",
     )
+    /** Fell into water and now shivering or muddled, still breathing: warm them (the hypothermia guide). */
+    private fun coldFromWater(question: String) = fellInWater.containsMatchIn(question) && coldCasualty.containsMatchIn(question) &&
+        !noBreath.containsMatchIn(question)
+    private val fellInWater = Regex("(?i)\\b(?:fell|fallen|falls|falling|slipped|went|gone|tumbled|capsized)\\b[^.?!]{0,10}\\b(?:in|into|under)\\b" +
+        "[^.?!]{0,12}\\b(?:river|lake|sea|ocean|pond|creek|stream|canal|water|loch|reservoir|surf)\\b")
     private val coldCasualty = Regex("(?i)\\b(?:shiver\\w*|shaking|trembl\\w*|muddled|mumbl\\w*|slurr\\w*|confus\\w*|hypotherm\\w*|frostbit\\w*)\\b")
     private val stillBreathing = Regex("(?i)\\b(?:breathing|breathes|snoring|snores)\\b|\\bchest (?:is )?(?:going|moving|rising) up and down\\b")
     private val noBreath = Regex(
@@ -879,7 +884,10 @@ object EmergencyGuideMatch {
 
     private fun ruledOut(id: String, question: String): Boolean = when (id) {
         // A place's tap water is that place's travel advice, not water to treat.
-        "safe-drinking-water" -> tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
+        // Someone who fell in and is shivering is a cold casualty, not water to treat: "fell in the river, water temperature
+        // was 40 degrees, now shivering hard" matched "river water" and opened the purifying steps (6 Nov).
+        "safe-drinking-water" -> coldFromWater(question) ||
+            tapWater.containsMatchIn(question) && !waterToTreat.containsMatchIn(question) ||
             waterStorage.containsMatchIn(question) && !treatNow.containsMatchIn(question) ||
             // Already drank it and now ill: how to treat water is no answer for the sick person ("my son drank stream water
             // on our hike and now he is vomiting and confused" was shown the purifying steps, 24 Oct). The dehydration guide
@@ -1259,6 +1267,7 @@ object EmergencyGuideMatch {
                 "stroke" -> strokeNow(question)
                 "anaphylaxis" -> allergyNow(question)
                 "seizures" -> convulsionNow.containsMatchIn(question) && !quakeTold(question)
+                "hypothermia" -> coldFromWater(question)
                 // A temperature of 40 is heat illness in an adult, but a child's fever belongs to the fever guide:
                 // "my 3 year old has a fever of 40" is a fever to bring down and watch, not heat to cool.
                 "heat-illness" -> highTemperature.containsMatchIn(question) && !childFever.containsMatchIn(question)
