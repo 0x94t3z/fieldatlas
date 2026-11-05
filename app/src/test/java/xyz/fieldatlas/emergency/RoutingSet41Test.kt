@@ -2,6 +2,7 @@ package xyz.fieldatlas.emergency
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -23,9 +24,14 @@ class RoutingSet41Test {
 
     @Test fun aLigatureIsALifeThreatThatOpensTheCprGuide() {
         assertEquals("cpr", match("found my brother hanging"))
+        assertEquals("cpr", match("found my brother hanging from a rope in the garage"))
         assertEquals("cpr", match("my neighbour has strangled himself with a cord in the garage, hes on the floor"))
         // A rope that is not round a neck is not this.
         assertNull(match("how much rope do i need to hang a hammock between two trees"))
+        // The bare word "hanging" is not a neck: a picture, a chat and a game on the monkey bars are not ligatures.
+        assertNotEquals("cpr", match("i was hanging a picture and fell off the ladder, my wrist really hurts"))
+        assertNotEquals("cpr", match("my friend and i were hanging out when he started having chest pain"))
+        assertNotEquals("cpr", match("my son is hanging upside down on the monkey bars and his nose is bleeding"))
     }
 
     @Test fun highBloodSugarDoesNotOpenTheHypoGuide() {
@@ -53,8 +59,10 @@ class RoutingSet41Test {
     @Test fun aDangerouslyHotPersonDoesNotGetTheWarmingGuide() {
         assertEquals("heat-illness", match("his body temperature is 104 and hes not making sense"))
         assertEquals("heat-illness", match("my mom has a fever of 40 and is shivering uncontrollably"))
-        // A feverish child is still the fever guide, and real cold is still hypothermia.
+        // A feverish child is still the fever guide, even at 40 where an adult is heat illness.
         assertEquals("fever-children", match("my baby has a fever of 39, what do i do"))
+        assertEquals("fever-children", match("my 3 year old has a fever of 40 and is shivering"))
+        assertEquals("fever-children", match("my 3-year-old has a fever of 40 and is shivering"))
         assertEquals("hypothermia", match("he fell through the ice into freezing water and now hes shivering and confused"))
     }
 
@@ -70,6 +78,8 @@ class RoutingSet41Test {
     @Test fun faceDownOnLandOpensCprAndNotTheDrowningGuide() {
         assertEquals("cpr", match("i found my baby face down in the crib and hes not moving"))
         assertEquals("cpr", match("i found my dad face down on the kitchen floor"))
+        // Face down needs a person: an object lying face down is not a casualty.
+        assertNull(match("found my phone face down in the grass"))
         // In the water the rescue steps are still the water ones.
         assertEquals("drowning", match("pulled him out of the pool face down in the water and hes not breathing"))
     }

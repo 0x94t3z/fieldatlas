@@ -273,9 +273,12 @@ object GuideAnswerCheck {
             "\\bwaters (have )?(gone|broken|broke)\\b|\\bin labou?r\\b|\\bbaby'?s head\\b|\\bcrowning\\b|\\bfloppy\\b|\\bagoni[sz]ing\\b|\\bclammy\\b|" +
             "\\bpregnan\\w*\\b.{0,60}\\b(?:bleed\\w*|blood)\\b|\\b(?:bleed\\w*|blood)\\b.{0,60}\\bpregnan\\w*\\b|" +
             "\\b(?:won't|wont|doesn't|not) respond\\w*\\b|\\bcollapsed\\b|" +
-            // A ligature: minutes matter and the person may still be alive (issue #14).
-            "\\b(?:found|find|see|saw|he|she|they|my \\w+|someone|somebody|brother|sister|friend|dad|mom|mum|son|daughter|husband|wife|partner|kid|child|baby|man|woman|guy)\\b[^.?!]{0,40}?\\b(?:hanging|hanged|hung (?:himself|herself))\\b|" +
-            "\\bstrangl\\w*|\\bstrangulat\\w*|\\bligature\\b|\\bnoose\\b|" +
+            // A ligature: minutes matter and the person may still be alive (issue #14). "Hanging" needs a neck or a
+            // person found: "hanging out", "hanging a picture" and "hanging upside down" describe no neck.
+            "\\b(?:strangl\\w*|strangulat\\w*|ligature|noose)\\b|" +
+            "\\b(?:found|find|see|saw|discovered?)\\b[^.?!]{0,30}?\\b(?:hanging|hanged|hung)\\b|" +
+            "\\b(?:hanging|hanged|hung)\\b[^.?!]{0,25}?\\b(?:by (?:the|his|her|their) neck|from (?:a |the )?(?:rope|noose|beam|rafter|rafters|ligature|cord|belt|hook|ceiling))\\b|" +
+            "\\b(?:cord|rope|belt|wire|shoelace|scarf)\\s+(?:around|round|about)\\s+(?:his|her|their|the)\\s+neck\\b|" +
             "\\bepi-?pens?\\b|\\bauto-?injector\\b|\\b(allergic reaction|anaphylactic)\\b|\\bthroat (feels |is |getting )?(tight|tightening|closing|swelling)\\b|" +
             "\\bburied (by|under|in)\\b|\\bavalanche\\b|\\bsmoke (in|is|coming|everywhere|filling)\\b|\\b(on fire|in flames|up in flames)\\b|" +
             // NHS "call 999" signs that no bundled guide covers, which set 50 left with "if this is an emergency": legs gone

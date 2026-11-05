@@ -517,11 +517,26 @@ object EmergencyGuideMatch {
     private val highTemperature = Regex("(?i)\\b(?:body temperature|temperature|temp|fever|degree[s]?)\\b[^.?!]{0,20}?\\b(?:10[3-9](?:\\.\\d)?|1[01]\\d(?:\\.\\d)?|" +
         "4[0-3](?:\\.\\d)?)\\b|\\b(?:10[4-9]|1[01]\\d)\\s*(?:°|degrees?)?\\s*(?:f|fahrenheit)\\b|" +
         "\\b(?:4[0-3](?:\\.\\d)?)\\s*(?:°|degrees?)?\\s*(?:c|celsius|centigrade)\\b")
-    /** A ligature or a strangled neck: a life threat with the CPR guide's steps, whatever the question adds (issue #14). */
-    private val hangingNow = Regex("(?i)\\b(?:hanging|hanged|hung (?:himself|herself|themselves)|strangl\\w*|strangulat\\w*|ligature|" +
-        "noose|tied (?:a|the) (?:rope|cord|belt)|cord (?:around|round) (?:his|her|their) neck|rope (?:around|round) (?:his|her|their) neck)\\b")
-    /** Found face down on land and still: CPR at once, where the drowning guide's water rescue wastes the minutes (issue #19). */
-    private val faceDownStill = Regex("(?i)\\b(?:found|find)\\b[^.?!]{0,25}?\\bface[- ]down\\b|\\bface[- ]down\\b[^.?!]{0,40}?\\b(?:not moving|isn'?t moving|" +
+    /**
+     * A ligature or a strangled neck: a life threat with the CPR guide's steps, whatever the question adds (issue #14).
+     * The bare word is not enough: "hanging a picture", "hanging out" and "hanging upside down on the monkey bars" are
+     * none of them a neck. What counts is a ligature word, a person found hanging, or a body suspended by the neck.
+     */
+    private val hangingNow = Regex("(?i)\\b(?:strangl\\w*|strangulat\\w*|ligature|noose|hung (?:himself|herself|themselves)|" +
+        "hanging (?:himself|herself|themselves)|tied (?:a|the) (?:rope|cord|belt)|" +
+        "(?:cord|rope|belt|wire|shoelace|scarf)\\s+(?:around|round|about)\\s+(?:his|her|their|the)\\s+neck)\\b|" +
+        // "found my brother hanging": the person is what was found, so "hanging" describes them, not an object.
+        "\\b(?:found|find|see|saw|discovered?)\\b[^.?!]{0,30}?\\b(?:hanging|hanged|hung)\\b|" +
+        // A body suspended: "hanging from a rope", "hanging by the neck", "hung from the rafters".
+        "\\b(?:hanging|hanged|hung)\\b[^.?!]{0,25}?\\b(?:by (?:the|his|her|their) neck|" +
+        "from (?:a |the )?(?:rope|noose|beam|rafter|rafters|ligature|cord|belt|hook|ceiling))\\b")
+    /**
+     * Found face down on land and still: CPR at once, where the drowning guide's water rescue wastes the minutes
+     * (issue #19). A person has to be what was found — "found my phone face down in the grass" is not a casualty.
+     */
+    private val faceDownStill = Regex("(?i)\\b(?:found|find|saw|see|discovered?)\\b[^.?!]{0,25}?" +
+        "\\b(?:my |his |her |their |the )?(?:$PERSON)\\b[^.?!]{0,25}?\\bface[- ]down\\b|" +
+        "\\bface[- ]down\\b[^.?!]{0,40}?\\b(?:not moving|isn'?t moving|" +
         "not responding|unresponsive|not breathing|blue|lips? (?:are |is )?blue|won'?t wake|wont wake|gone|limp|cold)\\b")
 
     /**
@@ -750,8 +765,11 @@ object EmergencyGuideMatch {
         "^(?=.*\\b(?:naloxone|narcan|nyxoid|prenoxad)\\b)(?=.*\\b(?:gave|given|used|sprayed|injected|second|another|nodd\\w*|breathing|wake|waking|came round)\\b).*")
     private val feverFit = Regex("(?i)\\b(?:convuls\\w*|seizure\\w*|fitting|having a fit|jerking|twitching|eyes rolled)\\b")
 
-    /** A baby or child with a fever ("my baby has a fever of 39°C"): the fever guide, with when to call 111 or 999. */
-    private val childFever = Regex("(?i)^(?!.*\\bhay ?fever\\b)(?=.*\\b(?:baby|babies|newborn|infant|toddler|child|son|daughter|kid|\\d+[- ](?:week|month|day)s?[- ]old)\\b" +
+    /**
+     * A baby or child with a fever ("my baby has a fever of 39°C"): the fever guide, with when to call 111 or 999.
+     * Ages are given as "3 year old" as well as "6 month old", and both of those are children.
+     */
+    private val childFever = Regex("(?i)^(?!.*\\bhay ?fever\\b)(?=.*\\b(?:baby|babies|newborn|infant|toddler|child|son|daughter|kid|\\d+[- ](?:week|month|day|year|yr)s?[- ]old)\\b" +
         "[^.?!]{0,60}\\b(?:fever|feverish|high temperature|temperature (?:of|is)|temp (?:of|is)|\\d{2}(?:\\.\\d)? ?°? ?c\\b|(?:3[89]|4[01])\\.\\d\\b|feels hot|burning up|hot to (?:the )?touch)).*")
 
     /**
@@ -1211,7 +1229,9 @@ object EmergencyGuideMatch {
                 "stroke" -> strokeNow(question)
                 "anaphylaxis" -> allergyNow(question)
                 "seizures" -> convulsionNow.containsMatchIn(question) && !groundShaking.containsMatchIn(question)
-                "heat-illness" -> highTemperature.containsMatchIn(question)
+                // A temperature of 40 is heat illness in an adult, but a child's fever belongs to the fever guide:
+                // "my 3 year old has a fever of 40" is a fever to bring down and watch, not heat to cool.
+                "heat-illness" -> highTemperature.containsMatchIn(question) && !childFever.containsMatchIn(question)
                 else -> false
             }
             if (twoPartSign) {
