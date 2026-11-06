@@ -1,6 +1,28 @@
 # Release audit
 
-Updated 2 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5 and v1.4.6 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+Updated 6 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5, v1.4.6, v1.4.7, v1.4.8 and v1.4.9 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags; older local audit drafts are archived under ignored `build/private/archive/repo-cleanup/`.
+
+## v1.4.9 release (6 November 2026)
+
+Published on 6 November 2026 at 02:06 UTC as [v1.4.9](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.9),
+not a prerelease and marked latest, tag on `38d29a6`, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached.
+The APK was built from `0136e9d` in the working tree, whose llama.cpp submodule was the pinned commit plus the
+committed patch and nothing else; the commits after `0136e9d` change only the README, the release notes, the website
+and the install guide. Version 1.4.9 (30), 103,616,596 bytes, SHA-256
+`0e84f8e383b61667e00877ca16bf0be47734afa4372664316dd524fdb6f7c803`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload and again from its
+public link without signing in; both match.
+
+A safety release: emergency questions from issues #14 to #19 open the right first-aid guide (pull request #23 with
+`2c888cb`, and `54fed7e` for someone who fell in cold water). The rules that rule a guide out also bind the question
+classifier. Our labelled set of 320 emergency questions: 233 open a right guide (232 on 1.4.8), none opens a guide
+marked unsafe for the question, and the 13 wordings from the reports go from 0 to 13 right.
+
+Before building: the JVM unit tests (1,817) passed. The offline packaging audit, native alignment and
+`zipalign -c -P 16 4` passed on the exact APK, which was installed over 1.4.8 on the 12 GB Android emulator with its
+data kept, and the 13 report wordings were asked in the app: each showed the call line and the right guide. The
+Python suites passed at the release commit: scripts (78), packtool (12), benchmarks (10) and tools (266, 12 skipped).
+Not tested on a real phone.
 
 ## v1.4.8 release (3 November 2026)
 
