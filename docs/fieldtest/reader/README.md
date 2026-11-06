@@ -71,6 +71,35 @@ llama.cpp on a Mac, with thinking off and temperature 0. Its answers are in
 
 Most of its misses state the right facts but cite no passage.
 
+## Submissions
+
+Each submission is run the same way as the baseline: llama.cpp at the app's pinned commit on a Mac, thinking off,
+temperature 0, on the dev set and on the sealed set. A blind read then grades both models' sealed answers from 0 to
+10 against the passages, with the order of the two answers hidden. Running the baseline again this way gives the
+same 36.7% and 36.8% as before.
+
+### lufiaq: Qwen3.5 2B fine-tune (6 November 2026)
+
+[`lufiaq/fieldatlas-reader-qwen3.5-2b-gguf`](https://huggingface.co/lufiaq/fieldatlas-reader-qwen3.5-2b-gguf) at
+commit `79f01c4f`, Q4_K_M, SHA-256 `42052067f9d2512d1a1df72a2f66b0a15fb6038d612d3cc2e2daf5728f16541b`, Apache-2.0.
+
+| Measure | Qwen3.5 2B | lufiaq |
+|---|---|---|
+| Correct, sealed set (68) | 36.8% | 86.8% |
+| Correct, dev set (60) | 36.7% | 71.7% |
+| Key facts found, sealed | 88.4% | 93.0% |
+| Gaps admitted, sealed | 81.0% | 95.2% |
+| False refusals, sealed | 34.2% | 15.8% |
+| Answers with a number from nowhere, sealed | 1.5% | 0.0% |
+| Answers citing a missing passage, sealed | 0.0% | 1.5% |
+| Blind read, mean score out of 10 | 5.66 | 8.43 |
+| Blind read, answers scored 7 or more | 27 of 68 | 59 of 68 |
+| Blind read, answers with a claim the passages do not support | 27 | 2 |
+| Blind read, unsafe answers | 2 | 0 |
+
+The fine-tune was better on 53 sealed questions, worse on 5 and level on 10. Its training data contains no dev
+question and no dev passage. Speed on a 6 GB Android phone is not measured yet.
+
 ## Licences
 
 Passages keep the `source` link of the page or paper they come from. Encyclopedia and travel-guide text is from
