@@ -27,7 +27,10 @@ rather than a Python package; the tests do not need it.
 The USDA process-time tables are read separately from `pdftotext -layout`, one passage per table,
 cells joined with " | " under their altitude, jar-size and process-time headers. A table is kept
 only whole, when every cell sits under a header column and every row is proven against the
-publisher's line; the others are left out and counted in extract-report.json.
+publisher's line; the others are left out and counted in extract-report.json. HTML tables are kept
+whole the same way, from their rows. Plain reading order flattens a table into one cell per
+paragraph and can drop a cell, shifting later numbers into the wrong column, so runs of such cells
+are left out of the prose (drop_table_fragments): table content enters the pack only whole.
 
 Every passage is the source's own text, selected and never rewritten. The only changes are
 whitespace (line breaks and runs of spaces become one space), joining a word hyphenated across a
@@ -196,7 +199,7 @@ ATP_ONLY = re.compile(
 GARBLED = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\ufffd]|6HSWHPEHU|\(37\(0%\(5")
 NAV = re.compile(
     r"(?i)(?:\bOn This Page\b|\bRelated Pages?\b|\bSkip to (?:main )?content\b|\bShare (?:this|on)\b|"
-    r"\bPrint this page\b|\bPage last (?:reviewed|updated)\b|\bLast Reviewed:|\bSign up for\b|\bFollow us\b|"
+    r"\bPrint this page\b|\bDownload (?:Infographic|PDF)\b|\bPage last (?:reviewed|updated)\b|\bLast Reviewed:|\bSign up for\b|\bFollow us\b|"
     r"\bAn official website of the United States government\b|\bExit Notification\b|\bClick here\b)")
 
 
@@ -227,9 +230,10 @@ def squash(text: str) -> str:
 
 
 def proof_key(text: str) -> str:
-    """What the verbatim proof compares: the text without whitespace or hyphens. Every word,
-    letter, digit and punctuation mark must survive in the same order."""
-    return re.sub(r"[\s\-\u2010\u2011\u00ad\u200b\ufffd]+", "", text)
+    """What the verbatim proof compares: the text without whitespace, hyphens or "|" (the
+    separator between table cells). Every word, letter, digit and other punctuation mark must
+    survive in the same order."""
+    return re.sub(r"[\s\-\u2010\u2011\u00ad\u200b\ufffd|]+", "", text)
 
 
 def require_pdftotext() -> None:
@@ -329,7 +333,66 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
                 paragraph = join_lines(block, vocabulary)
                 paragraphs.append(("h" if is_heading(paragraph) else "p", paragraph))
                 block = []
+    paragraphs, stats["table_fragments_dropped"] = drop_table_fragments(paragraphs)
     return group_sections(source, paragraphs), stats
+
+
+
+# ---------------------------------------------------------------------------- table fragments in reading order
+
+# Words that are table furniture in the USDA guides: units, jar sizes, column headers.
+TABLE_WORDS = {"min", "lb", "ft", "cup", "cups", "pint", "pints", "quart", "quarts", "half-pints", "or", "and",
+               "hot", "raw", "style", "of", "pack", "jar", "size", "process", "time", "above", "altitudes",
+               "at", "canner", "pressure", "(psi)", "psi", "oz", "°f", "tsp", "tbsp", "lbs"}
+NUMBERISH = re.compile(r"^[\d.,/%°–\-]+(?:ft|lb|min|°F)?[.,;:]?$")
+
+
+def tabular_score(paragraph: str) -> float:
+    """Share of tokens that are numbers, fractions, units or table headers; 0 without a number."""
+    tokens = paragraph.replace("–", "– ").split()
+    if not tokens:
+        return 0.0
+    numbers = sum(1 for token in tokens if NUMBERISH.match(token))
+    if not numbers:
+        return 0.0  # "Pressure canners" is a heading, not a cell
+    hits = numbers + sum(1 for token in tokens if token.lower().strip(".,;:") in TABLE_WORDS)
+    return hits / len(tokens)
+
+
+def is_cell(paragraph: str) -> bool:
+    """A table cell that reading order set on its own: mostly numbers and units, or a label of at
+    most three words with no sentence punctuation ("Light", "Very Light", "Jar Size Pints")."""
+    if TABLE_TITLE.match(paragraph) or tabular_score(paragraph) >= 0.5:
+        return True
+    return len(paragraph.split()) <= 3 and not re.search(r"[.!?:;]$", paragraph)
+
+
+def drop_table_fragments(paragraphs: list[tuple[str, str]]) -> tuple[list[tuple[str, str]], int]:
+    """Plain reading order flattens a table into one cell per paragraph and can lose a cell, which
+    shifts every number after it into the wrong column ("Light 20 5-3/4 1-1/2 2-1/4" for
+    "Light 20 5-3/4 1-1/2 9 2-1/4"). Tables enter the pack only whole, from the layout reading
+    (process_tables); here every run of cells is left out: three or more cells, two of them mostly
+    numbers, with at most one other paragraph between two of them, that paragraph included when it
+    is short enough to be a cell of words. A lone paragraph that is mostly numbers, or a table
+    title, is left out too; a lone short label stays, since it may be a heading."""
+    flags = [is_cell(text) for _, text in paragraphs]
+    drop = [False] * len(paragraphs)
+    run = []
+    for i in [i for i, flag in enumerate(flags) if flag] + [None]:
+        if run and (i is None or i - run[-1] > 2):
+            numeric = sum(1 for j in run if tabular_score(paragraphs[j][1]) >= 0.5)
+            if len(run) >= 3 and numeric >= 2:
+                for j in range(run[0], run[-1] + 1):
+                    # A cell of words ("Very sweet fruit. Try a small amount ...") stays with its table.
+                    if flags[j] or len(paragraphs[j][1]) < 120:
+                        drop[j] = True
+            run = []
+        if i is not None:
+            run.append(i)
+    for i, (_, text) in enumerate(paragraphs):
+        if tabular_score(text) >= 0.5 or TABLE_TITLE.match(text):
+            drop[i] = True
+    return [item for item, gone in zip(paragraphs, drop) if not gone], sum(drop)
 
 
 
@@ -478,8 +541,25 @@ def html_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict
         node.decompose()
     for br in root.find_all("br"):
         br.replace_with("\n")
-    paragraphs, stats = [], {"blocks": 0, "link_only_dropped": 0}
-    for node in root.find_all(BLOCKS):
+    paragraphs, stats = [], {"blocks": 0, "link_only_dropped": 0, "tables": 0}
+    for node in root.find_all(BLOCKS + ["table"]):
+        if node.name == "table":
+            # A table stays whole, a row per line with its cells joined by " | ", header row first,
+            # so no number is read away from its row and column headings.
+            rows = []
+            for tr in node.find_all("tr"):
+                cells = [squash(cell.get_text(" ")) for cell in tr.find_all(["th", "td"])]
+                if any(cells):
+                    rows.append(" | ".join(cells))
+            caption = node.find("caption")
+            if caption and squash(caption.get_text(" ")):
+                rows.insert(0, squash(caption.get_text(" ")))
+            if rows:
+                stats["tables"] += 1
+                paragraphs.append(("p", "\n".join(rows)))
+            continue
+        if node.find_parent("table"):
+            continue  # read with its table
         if node.name in ("li", "td", "th", "div") and node.find(BLOCKS):
             continue  # the inner blocks are read on their own
         lines = [squash(line) for line in node.get_text().split("\n")]
@@ -577,7 +657,7 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
             stats.update(table_stats)
             for number, table in enumerate(tables):
                 problems = check_passage(source["id"], table["text"])
-                unproven = [row for row in table["text"].split("\n") if proof_key(row.replace("|", " ")) not in layout_reference]
+                unproven = [row for row in table["text"].split("\n") if proof_key(row) not in layout_reference]
                 if unproven:
                     problems.append("NOT VERBATIM")
                 if problems:

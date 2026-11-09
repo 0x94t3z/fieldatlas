@@ -364,26 +364,32 @@ Text is *selected* and never reworded. The PDFs are read with poppler's `pdftote
 line-break hyphenation (joined only for words the same source spells unbroken) and running page
 headers are the only changes, and every paragraph and list item is proven against the whole source's
 text before it is kept. First aid, medicine and dosing, and the identification of wild plants, fungi
-or animals as food are refused paragraph by paragraph (152 paragraphs and list items; 46 more were
-too short, page navigation or page fragments that failed the proof); the
+or animals as food are refused paragraph by paragraph (144 paragraphs and list items; 23 more were
+too short, page navigation or a page fragment that failed the proof); the
 emergency guides keep answering those, and they open from the question alone, before any collection
-is searched. The USDA process-time tables are kept as rows of cells under their altitude, jar-size
-and process-time headers, from `pdftotext -layout`: 169 of 250 tables, each kept only whole and only
-when every cell sits under a header column and every row is proven against the publisher's line; the
-other 81, where the layout mixes in page text, are left out. 964 passages: 505 USDA, 215 ATP 3-50.21,
-92 NWS, 76 CDC, 75 FEMA and 1 USGS. Thirty test questions were sealed before the build
+is searched. Tables enter the collection only whole, each row on its own line with its cells joined
+by " | " under the table's headers. The USDA process-time tables come from `pdftotext -layout`:
+169 of 250 tables, each kept only when every cell sits under a header column and every row is
+proven against the publisher's line; the other 81, where the layout mixes in page text, are left
+out. The CDC well-disinfection tables come from their HTML rows. Plain reading order flattens a
+table into one cell per paragraph and can lose a cell, which shifts the numbers after it into the
+wrong column, so every such run of cells is left out of the prose (3,062 cells, including the
+ingredient amounts of some recipes). A separate check reads the finished pack and finds every table
+row, cell for cell, as a row of the source (`pdftotext -layout` or the page's HTML), and no line
+outside a table that is mostly numbers and units. 856 passages: 397 USDA, 215 ATP 3-50.21, 92 NWS,
+76 CDC, 75 FEMA and 1 USGS. Thirty test questions were sealed before the build
 ([questions](fieldtest/practical-skills.jsonl), SHA-256
 `131d9882a4c78a5eea7060ad37e044ee4ebafa8fb4cd8e56e9224ff82fa61469`).
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.09-leviathan | 901,574 | `9371274b02f25b51f7e39f5767bda6f7f80f8b1cda6025b47a6365aac0c82103` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.09-leviathan | 854,483 | `8e272da43c07cf3be3dc81fe66d797a1817f7703ae8e37b04c44cd25f4bfd60d` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
 
-The keyword-only build (`practical-skills`, version `2026.11.09`, schema 1) is 1,572,292 bytes,
-SHA-256 `d890e8746ee69ba29ab6c40e16ed8555e6847aafbf7be8fdaabc6b9e35b5553e`, and rebuilds byte for
+The keyword-only build (`practical-skills`, version `2026.11.09`, schema 1) is 1,473,988 bytes,
+SHA-256 `8d3c1837bc69a8035cc7ee0c7b1f484224ff155118933915efaa9e81f57312d1`, and rebuilds byte for
 byte from the locked sources. `2026.11.09-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
---compressed`) and installs to 2,551,659 bytes; the Leviathan index is not byte-identical between
+--compressed`) and installs to 2,396,011 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
 inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
 `LicenseRef-US-Government-Work`) beside them. It has no meaning-search vectors.

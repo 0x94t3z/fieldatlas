@@ -113,6 +113,41 @@ class PracticalSkillsProcessTableTest(unittest.TestCase):
         self.assertIsNone(practical.align_row([(9, "Hot"), (10, "Cold")], columns))
 
 
+class PracticalSkillsTableFragmentTest(unittest.TestCase):
+    """Flattened table cells from plain reading order, as they reached the 2026.11.09 build."""
+    SYRUP = ["10", "6-1/2", "3/4", "10-1/2", "1-1/4", "Light", "20", "5-3/4", "1-1/2", "2-1/4",
+             "Very sweet fruit. Try a small amount the first time to see if your family likes it.",
+             "Medium", "30", "5-1/4", "2-1/4", "8-1/4", "3-3/4"]
+    ASPARAGUS = ["6,001\u2013 8,000 ft", "Pints", "30 min", "11 lb", "12 lb", "13 lb", "14 lb", "Quarts", "40",
+                 "11", "12", "13", "14",
+                 "Recommended process time for Asparagus in a weighted-gauge pressure canner Style of Pack",
+                 "Pints", "30 min", "10 lb", "15 lb"]
+    CRAB_APPLES = ["0\u2013 1,000 ft 15 min", "1,001\u2013 3,000 ft 20", "3,001\u2013 6,000 ft 20", "Above 6,000 ft 25",
+                   "20", "25", "30", "35", "Fruit and Fruit Products",
+                   "Recommended process time for Spiced Apple Rings in a boiling-water canner", "Jar Size Pints",
+                   "0\u2013 1,000 ft 20 min", "1,001\u2013 3,000 ft 25", "3,001\u2013 6,000 ft 30"]
+    PROSE = ("Bring clear water to a rolling boil for 1 minute (at elevations above 6,500 feet, "
+             "boil for 3 minutes).")
+
+    def test_flattened_tables_are_dropped(self):
+        for cells in (self.SYRUP, self.ASPARAGUS, self.CRAB_APPLES):
+            paragraphs = [("p", "Fill hot jars with the fruit and cover with hot syrup, leaving 1/2-inch headspace.")] + \
+                [("p", c) for c in cells] + [("p", "Remove air bubbles and adjust headspace if needed.")]
+            kept, dropped = practical.drop_table_fragments(paragraphs)
+            texts = [text for _, text in kept]
+            self.assertEqual(texts, [paragraphs[0][1], paragraphs[-1][1]], texts)
+            self.assertEqual(dropped, len(cells))
+
+    def test_prose_with_numbers_is_kept(self):
+        paragraphs = [("p", self.PROSE), ("p", "Let the boiled water cool."), ("p", "Store the boiled water in clean sanitized containers with tight covers.")]
+        self.assertFalse(practical.is_cell(self.PROSE))
+        self.assertEqual(practical.drop_table_fragments(paragraphs), (paragraphs, 0))
+
+    def test_a_lone_heading_is_kept(self):
+        paragraphs = [("h", "Pressure canners"), ("p", "Pressure canners for use in the home have been extensively redesigned in recent years.")]
+        self.assertEqual(practical.drop_table_fragments(paragraphs), (paragraphs, 0))
+
+
 class PracticalSkillsQuestionsTest(unittest.TestCase):
     def test_the_sealed_question_file_is_unchanged(self):
         path = ROOT / "docs/fieldtest/practical-skills.jsonl"
