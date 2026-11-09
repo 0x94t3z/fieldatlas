@@ -31,6 +31,11 @@ publisher's line; the others are left out and counted in extract-report.json. HT
 whole the same way, from their rows. Plain reading order flattens a table into one cell per
 paragraph and can drop a cell, shifting later numbers into the wrong column, so runs of such cells
 are left out of the prose (drop_table_fragments): table content enters the pack only whole.
+The USDA Guides 2 to 7 set recipes in boxes beside the text, so their food entries and recipes are
+read whole from the layout reading too (layout_entries). A recipe goes in whole, with every
+ingredient amount, its yield and its procedure, or not at all (recipe_problem); a recipe, food
+entry or table is one search chunk. Web-page chrome (language links, review dates, menu labels on
+three or more pages) is left out.
 
 Every passage is the source's own text, selected and never rewritten. The only changes are
 whitespace (line breaks and runs of spaces become one space), joining a word hyphenated across a
@@ -199,8 +204,11 @@ ATP_ONLY = re.compile(
 GARBLED = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\ufffd]|6HSWHPEHU|\(37\(0%\(5")
 NAV = re.compile(
     r"(?i)(?:\bOn This Page\b|\bRelated Pages?\b|\bSkip to (?:main )?content\b|\bShare (?:this|on)\b|"
-    r"\bPrint this page\b|\bDownload (?:Infographic|PDF)\b|\bPage last (?:reviewed|updated)\b|\bLast Reviewed:|\bSign up for\b|\bFollow us\b|"
-    r"\bAn official website of the United States government\b|\bExit Notification\b|\bClick here\b)")
+    r"\bPrint this page\b|\bDownload (?:Infographic|PDF)\b|\bPage last (?:reviewed|updated)\b|\bLast Reviewed:|\bSign up for (?:email|e-mail|our|updates|the newsletter)\b|\bFollow us\b|"
+    r"\bAn official website of the United States government\b|\bExit Notification\b|\bClick here\b|"
+    r"^Available in (?:English|Spanish|[A-Z][a-z]+(?:,| and))|\bAvailable in English\b|^(?:Fact sheets?|Languages?|"
+    r"Print|Share|Resources|Related (?:Links|Resources)|More Information|Sources?|Content Source:?|Español|English)$|"
+    r"\bPage last reviewed\b|\bLast updated\b|^Print$|\bView (?:all|PDF)\b|^Download\b|\bBack to top\b)")
 
 
 def check_passage(source_id: str, text: str) -> list[str]:
@@ -461,7 +469,8 @@ def process_tables(source: dict, raw: bytes) -> tuple[list[dict], dict]:
                     blank += 1 if rows else 0
                     i += 1
                     continue
-                if TABLE_TITLE.match(squash(lines[i])) or (squash(lines[i]).isupper() and len(squash(lines[i])) > 5):
+                if (TABLE_TITLE.match(squash(lines[i])) or (squash(lines[i]).isupper() and len(squash(lines[i])) > 5)
+                        or re.match(r"(?:Yield|Procedure|Quantity|Quality|Caution)\b", squash(lines[i]))):
                     break  # the next table, or the next food's heading ("CARROTS—SLICED OR DICED")
                 blank = 0
                 rows.append(table_cells(lines[i]))
@@ -494,6 +503,148 @@ def process_tables(source: dict, raw: bytes) -> tuple[list[dict], dict]:
             stats["tables_kept"] += 1
             tables.append({"page": number, "heading": title, "text": title + "\n" + body})
     return tables, stats
+
+
+
+# ---------------------------------------------------------------------------- USDA food entries and recipes
+
+AMOUNT_UNITS = (r"cups?|c\.|tbsp|tsp|teaspoons?|tablespoons?|lbs?|pounds?|quarts?|qts?|pints?|oz|ounces?|gallons?|"
+                r"cloves?|sticks?|heads?|medium|large|small|cans?|packages?|pkgs?|box(?:es)?|cubes?|whole|bunch(?:es)?|"
+                r"stalks?|dozen|pieces?|ears?|liters?|mL|g\b|grams?")
+AMOUNT_LINE = re.compile(r"(?im)^\s*(?:\d+(?:[-/]\d+)*|one|two|three|four|five|six|eight|ten|twelve)\b[^\n]*?\b(?:" + AMOUNT_UNITS + r")\b")
+RECIPE_SIGNS = re.compile(r"Yield:|(?i:\b(?:all|remaining|other|the|these) ingredients\b)")
+
+
+def recipe_problem(text: str) -> str | None:
+    """A recipe goes in whole or not at all: in canning and pickling the proportions (the vinegar,
+    the acid) are what make it safe, so a yield or procedure without its ingredient amounts is
+    refused. A recipe is text with a "Yield:" or a procedure that refers to the ingredients; it
+    needs two or more ingredient lines with amounts, one per line, before its Yield/Procedure."""
+    if not RECIPE_SIGNS.search(text):
+        return None
+    cuts = [i for i in (text.find("Yield:"), text.find("Procedure:")) if i >= 0]
+    head = text[:min(cuts)] if cuts else ""
+    if len(AMOUNT_LINE.findall(head)) < 2:
+        return "recipe without its ingredient amounts"
+    return None
+
+
+ENTRY_HEAD = re.compile(r"^[A-Z0-9][A-Z0-9 ,.'’()/&%*\-\u2013\u2014]{3,}$")
+PAGE_NUMBER = re.compile(r"^\s*(?:\d|[ivx]+|\d-\d+)\s*$")
+
+
+def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
+    """Each food entry or recipe of a USDA guide, read whole from `pdftotext -layout`.
+
+    The guides set recipes in boxes beside the text, so plain reading order interleaves one
+    recipe's ingredients with another's procedure. The layout reading keeps a recipe's lines
+    together. An entry runs from its capitalised name ("PICKLED PEPPER-ONION RELISH") to the next
+    name or process table. Page furniture is removed: page numbers, the chapter tab printed in the
+    margin of a line, and the side label repeating the entry's name. An entry is kept whole or not
+    at all: it is refused if any line still holds a second column (a gap of five or more spaces or
+    text run together with a table), if any part is out of scope, or if it is a recipe without its
+    ingredient amounts. Returns the entries, stats, and the cleaned layout text for the proof."""
+    pages = layout_pages(raw)
+    plain_words = set("\n".join(pdf_pages(raw)).split())
+    lines, cleaned = [], []
+    for page in pages:
+        for line in page.replace("\u00a0", " ").replace("\ufffd", " ").split("\n"):
+            line = line.rstrip()
+            if PAGE_NUMBER.match(line):
+                continue
+            line = re.sub(r" {6,}(?:\d|\d-\d+)$", "", line)  # the margin tab on a text line
+            stripped = line.strip()
+            indent = len(line) - len(line.lstrip())
+            # The side label: a short title-case name set far in from the margin, alone on its line.
+            if (stripped and indent >= 10 and "  " not in stripped and len(stripped.split()) <= 7
+                    and not re.search(r"[.:;,]$", stripped) and not TABLE_TITLE.match(stripped)
+                    and stripped[:1].isupper() and not stripped.isupper()):
+                continue
+            lines.append(line)
+            cleaned.append(stripped)
+    stats = {"entries": 0, "entries_kept": 0, "entries_rejected": []}
+    entries, current, name = [], [], None
+    def close():
+        if name is not None:
+            entries.append((name, current[:]))
+    in_table = False
+    for line in lines + [""]:
+        stripped = line.strip()
+        if TABLE_TITLE.match(stripped):
+            close(); current.clear(); name = None; in_table = True
+            continue
+        if ENTRY_HEAD.match(stripped) and len(line) - len(line.lstrip()) <= 10 and not re.fullmatch(r"[\d\s,.\-\u2013/]+", stripped):
+            close(); current.clear(); name = stripped; in_table = False
+            continue
+        if in_table or name is None:
+            continue
+        current.append(line)
+    close()
+    vocabulary = set(w.lower() for w in re.findall(r"[A-Za-z]{3,}", "\n".join(cleaned)))
+    out = []
+    for name, body in entries:
+        stats["entries"] += 1
+        problems = []
+        def collides(l):
+            # Words run together with a neighbouring box ("theKenbutter"); a word the plain reading
+            # also prints whole ("MacIntosh") is the publisher's own.
+            return any(m.group(0) not in plain_words for m in re.finditer(r"\S*[a-z]{2,}[A-Z][a-z]\S*", l)) or \
+                re.search(r"\b(?:of Pack|Jar Size|Process Time|Altitudes of|Canner Pressure)\b", l)
+        if any(re.search(r"\S {5,}\S", l.strip()) or collides(l) for l in body):
+            problems.append("second column on a line")
+        # Paragraphs: ingredient lines one per line; prose joined; a blank line or a field label
+        # ("Procedure:", "Yield:") starts a new paragraph.
+        paragraphs, block = [], []
+        def flush():
+            if block:
+                paragraphs.append(join_lines(block, vocabulary))
+                block.clear()
+        for l in body + [""]:
+            s = squash(l)
+            if not s:
+                flush()
+            elif AMOUNT_LINE.match(s) and not any(p.startswith(("Yield:", "Procedure:")) for p in paragraphs) and not block:
+                paragraphs.append(s)
+            elif re.match(r"(?:Procedure|Yield|Quantity|Quality|Caution|Hot pack|Raw pack|Variation|Note)\b", s):
+                flush()
+                block.append(s)
+            else:
+                block.append(s)
+        text = name + "\n\n" + "\n\n".join(p for p in paragraphs if p)
+        if len(text) < 200 or not paragraphs:
+            continue  # a name with nothing under it (a list heading), not an entry
+        problem = recipe_problem(text)
+        if problem:
+            problems.append(problem)
+        if any(check_passage(source["id"], p) for p in [name] + paragraphs):
+            problems.append("out of scope or navigation: " + "; ".join(
+                q for p in [name] + paragraphs for q in check_passage(source["id"], p))[:200])
+        if problems:
+            stats["entries_rejected"].append({"name": name, "problems": problems})
+            continue
+        stats["entries_kept"] += 1
+        out.append({"heading": name.title() if name.isupper() else name, "text": text})
+    # A procedure that sends the reader to another recipe ("Follow the directions for Cantaloupe
+    # Pickles") is whole only if that recipe is in the pack too.
+    while True:
+        kept_names = {e["heading"].lower() for e in out}
+        orphans = [e for e in out if any(ref.lower() not in kept_names for ref in recipe_references(e["text"]))]
+        if not orphans:
+            break
+        for e in orphans:
+            out.remove(e)
+            stats["entries_kept"] -= 1
+            stats["entries_rejected"].append({"name": e["heading"], "problems": ["refers to a recipe that is not in the pack"]})
+    return out, stats, "\n".join(cleaned)
+
+
+RECIPE_REFERENCE = re.compile(r"(?i)\b(?:follow|use) (?:the )?(?:directions|procedure|instructions|steps) (?:for|given for) ([A-Z][\w'’ ,-]*?[a-z])(?=[,.;:]| using| except| but| and substitut| weighing| with)")
+
+
+def recipe_references(text: str) -> list[str]:
+    """The other recipes a procedure tells the reader to follow."""
+    procedure = text[text.find("Procedure:"):] if "Procedure:" in text else ""
+    return [m.group(1).strip() for m in RECIPE_REFERENCE.finditer(procedure)]
 
 
 def group_sections(source: dict, paragraphs: list[tuple[str, str]]) -> list[tuple[str, str]]:
@@ -531,6 +682,8 @@ HTML_DROP = ("script, style, noscript, template, svg, img, picture, figure, figc
 
 
 BLOCKS = ["h1", "h2", "h3", "h4", "p", "li", "td", "th", "div"]
+HTML_SKIP_HEADINGS = re.compile(r"(?i)^(?:resources?|sources?|references?|related (?:pages|links|resources)|"
+                                r"(?:for )?more information|fact sheets?|languages?)$")
 
 
 def html_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]:
@@ -576,7 +729,9 @@ def html_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict
             paragraphs.append(("h", text))
         else:
             paragraphs.extend(("p", line) for line in lines)
-    return group_sections(source, paragraphs), stats
+    # Link lists and references at the foot of a page ("Resources", "Sources") are not guidance.
+    skip = [text for kind, text in paragraphs if kind == "h" and HTML_SKIP_HEADINGS.match(text)]
+    return group_sections({**source, "exclude_sections": source.get("exclude_sections", []) + skip}, paragraphs), stats
 
 
 def passages_for(source: dict, sections: list[tuple[str, str]]) -> list[dict]:
@@ -622,9 +777,23 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
     if output.exists():
         raise ValueError("Output already exists; choose a new directory")
     documents, rejected, report = [], [], {"sources": {}, "pdftotext": pdftotext_version()}
+    # Site chrome: a short line printed on three or more of the web pages ("Tornadoes, Wind, Hail",
+    # "Winter Resources") labels the site's menus, not the page's guidance.
+    seen_on = {}
+    for source in sources:
+        if source["kind"] == "html":
+            sections, _ = html_sections(source, read_cached(cache, lock, source["id"]))
+            for line in {line for _, body in sections for line in re.split(r"\n+", body)}:
+                seen_on.setdefault(line, set()).add(source["id"])
+    chrome = {line for line, where in seen_on.items() if len(where) >= 3 and len(line) < 60}
+    report["site_chrome_lines"] = sorted(chrome)
     for source in sources:
         raw = read_cached(cache, lock, source["id"])
         sections, stats = (pdf_sections if source["kind"] == "pdf" else html_sections)(source, raw)
+        if source.get("pdf", {}).get("layout_entries"):
+            # Food entries and recipes come whole from the layout reading below; plain reading
+            # order would interleave the recipe boxes.
+            sections = []
         reference = proof_key(reference_text(source, raw))
         kept = 0
         for index, passage in enumerate(passages_for(source, sections)):
@@ -634,6 +803,9 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
             for paragraph in passage["text"].split("\n\n"):
                 items = []  # a list item is checked, and left out, on its own
                 for item in paragraph.split("\n"):
+                    if source["kind"] == "html" and item in chrome:
+                        rejected.append({"source": source["id"], "heading": heading, "problems": ["site chrome"], "text": item})
+                        continue
                     problems = check_passage(source["id"], item)
                     if proof_key(item) not in reference:
                         problems.append("NOT VERBATIM")
@@ -644,6 +816,10 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
                 if items:
                     chosen.append("\n".join(items))
             text = "\n\n".join(chosen)
+            problem = recipe_problem(text)
+            if problem:
+                rejected.append({"source": source["id"], "heading": heading, "problems": [problem], "text": text[:400]})
+                continue
             if len(text) < MIN_PASSAGE:
                 if text:
                     rejected.append({"source": source["id"], "heading": heading, "problems": ["too short"], "text": text})
@@ -651,12 +827,28 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
             kept += 1
             documents.append({"document_id": f"{source['id']}-{index:04d}", "title": f"{source['title']} — {heading}",
                               "source": lock["sources"][source["id"]]["url"], "license": LICENSE, "text": text})
+        if source.get("pdf", {}).get("layout_entries"):
+            entries, entry_stats, layout_text = layout_entries(source, raw)
+            stats.update(entry_stats)
+            layout_reference = proof_key(layout_text)
+            for number, entry in enumerate(entries):
+                unproven = [p for p in entry["text"].split("\n\n") if proof_key(p) not in layout_reference]
+                if unproven:
+                    rejected.append({"source": source["id"], "heading": entry["heading"], "problems": ["NOT VERBATIM"], "text": unproven[0][:400]})
+                    stats["entries_kept"] -= 1
+                    continue
+                kept += 1
+                documents.append({"document_id": f"{source['id']}-entry-{number:03d}",
+                                  "title": f"{source['title']} — {entry['heading']}",
+                                  "source": lock["sources"][source["id"]]["url"], "license": LICENSE, "text": entry["text"]})
         if source.get("pdf", {}).get("process_tables"):
             layout_reference = proof_key("\n".join(layout_pages(raw)))
             tables, table_stats = process_tables(source, raw)
             stats.update(table_stats)
             for number, table in enumerate(tables):
                 problems = check_passage(source["id"], table["text"])
+                if recipe_problem(table["text"]):
+                    problems.append(recipe_problem(table["text"]))
                 unproven = [row for row in table["text"].split("\n") if proof_key(row) not in layout_reference]
                 if unproven:
                     problems.append("NOT VERBATIM")
@@ -737,10 +929,20 @@ def add_attribution(artifacts, text: str) -> None:
         f"{sha(data)}  ATTRIBUTION.txt\n{sha(pack.read_bytes())}  {pack.name}\n", encoding="ascii", newline="\n")
 
 
+def whole_or_paragraph_chunks(document):
+    """A recipe, food entry or table is one chunk, so a search never finds a procedure without
+    its ingredient amounts or a row without its headers; other passages are split between
+    paragraphs as the general reference builder splits them."""
+    from packtool.chunking import Chunk
+    from tools.packs.build_general_reference import paragraph_chunks
+    if "-entry-" in document.document_id or "-table-" in document.document_id:
+        return [Chunk(f"{document.document_id}:0000", document.document_id, document.title, document.source, document.text)]
+    return paragraph_chunks(document)
+
+
 def build(sources_path: Path, cache: Path, output: Path, version: str) -> None:
     from tools.packs.stream_pack import build_pack_streaming
     from tools.packs.fapack_convert import verify_pack
-    from tools.packs.build_general_reference import paragraph_chunks
     if output.exists():
         raise ValueError("Output already exists; choose a new build directory")
     sources = load_sources(sources_path)
@@ -752,7 +954,7 @@ def build(sources_path: Path, cache: Path, output: Path, version: str) -> None:
         coverage_summary="Home canning, food and water safety, storm, flood and quake readiness, shelter, fire, rescue signals, weather signs and navigation.",
         example_questions=["How much lemon juice goes in a quart of canned tomatoes?",
                            "How much water should I store per person?", "How do I find north with a stick's shadow?"],
-        coverage_level="focused", fts_tokenizer="porter unicode61", chunker=paragraph_chunks)
+        coverage_level="focused", fts_tokenizer="porter unicode61", chunker=whole_or_paragraph_chunks)
     credits = attribution(sources, lock)
     add_attribution(artifacts, credits)
     verify_pack(artifacts.pack)

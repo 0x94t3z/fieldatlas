@@ -148,6 +148,39 @@ class PracticalSkillsTableFragmentTest(unittest.TestCase):
         self.assertEqual(practical.drop_table_fragments(paragraphs), (paragraphs, 0))
 
 
+class PracticalSkillsRecipeTest(unittest.TestCase):
+    # Passage usda-canning-guide-6-0024 of the first 2026.11.09 build: a yield and a procedure whose
+    # ingredient list the cell filter had removed ("Mix all remaining ingredients").
+    INCOMPLETE = 'Yield: About 9 half-pints Procedure: Select your favorite pepper. Caution: If you select hot peppers, wear plastic or rubber gloves and do not touch your face while handling or cutting hot peppers. If you do not wear gloves, wash hands thoroughly with soap and water before touching your face or eyes. Peppers may be left whole. Large peppers may be quartered. Wash, slash two to four slits in each pepper, and blanch in boiling water or blister skins on tough-skinned hot peppers using one of these two methods: Oven or broiler method to blister skins – Place peppers in a hot oven (400°F) or under a broiler for 6 to 8 minutes until skins blister. Range-top method to blister skins – Cover hot burner (either gas or electric) with heavy wire mesh. Place peppers on burner for several minutes until skins blister. After blistering skins, place peppers in a pan and cover with a damp cloth. (This will make peeling Marinated Peppers the peppers easier.) Cool several minutes; peel off skins. Flatten whole peppers. Mix all remaining ingredients in a saucepan and heat to boiling. Place 1/4 garlic clove (optional) and 1/4 teaspoon salt in each hot half-pint jar or 1/2 teaspoon per pint. Fill hot jars with peppers. Add hot, wellmixed oil/pickling solution over peppers, leaving 1/2-inch headspace. Remove air bubbles and adjust headspace if needed. Wipe rims of jars with a dampened clean paper towel. Adjust lids and process.'
+    # Cantaloupe Pickles, No Sugar Added, read whole from the layout reading.
+    WHOLE = 'CANTALOUPE PICKLES, NO SUGAR ADDED\n\n6 lbs of one-inch cantaloupe cubes (about 3 medium underripe* cantaloupe)\n\n1 tsp crushed red pepper flakes\n\n2 one-inch cinnamon sticks\n\n2 tsp ground cloves\n\n1 tsp ground ginger\n\n4-1/2 cups cider vinegar (5%)\n\n2 cups water\n\n3 cups Splenda®\n\n*Select cantaloupe that are full size but almost fully green and firm to the touch in all areas including the stem area.\n\nYield: About 4 pint jars\n\nProcedure: Follow the directions for Cantaloupe Pickles, weighing out 6 pounds of prepared cantaloupe cubes instead and substituting Splenda® when sugar would be added.'
+
+    def test_a_recipe_without_its_amounts_is_refused(self):
+        self.assertEqual(practical.recipe_problem(self.INCOMPLETE), "recipe without its ingredient amounts")
+
+    def test_a_whole_recipe_passes(self):
+        self.assertIsNone(practical.recipe_problem(self.WHOLE))
+
+    def test_a_procedure_naming_the_ingredients_needs_them(self):
+        self.assertIsNotNone(practical.recipe_problem("Procedure: Combine all ingredients and boil gently for 30 minutes."))
+        self.assertIsNone(practical.recipe_problem("Procedure: Wash jars in hot soapy water and keep them hot until filled."))
+
+    def test_a_procedure_that_follows_another_recipe_names_it(self):
+        self.assertEqual(practical.recipe_references(self.WHOLE), ["Cantaloupe Pickles"])
+        self.assertEqual(practical.recipe_references("Procedure: Wash and chop vegetables."), [])
+
+
+class PracticalSkillsWebChromeTest(unittest.TestCase):
+    def test_page_chrome_is_refused(self):
+        for text in ("Available in English, Spanish, and Vietnamese.", "Available in English and Spanish.",
+                     "Page last reviewed: May 13, 2024", "Download Infographic PDF: English | Español", "Print"):
+            self.assertIn("navigation boilerplate", practical.check_passage("cdc-water-make-safe", text), text)
+
+    def test_guidance_that_mentions_signing_up_is_kept(self):
+        self.assertEqual(practical.check_passage("fema-are-you-ready",
+                         "Sign up for alerts on current avalanche danger, snowpack, and mountain weather conditions."), [])
+
+
 class PracticalSkillsQuestionsTest(unittest.TestCase):
     def test_the_sealed_question_file_is_unchanged(self):
         path = ROOT / "docs/fieldtest/practical-skills.jsonl"

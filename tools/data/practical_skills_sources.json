@@ -52,7 +52,8 @@
           "^\\d-\\d+$",
           "^(?:Guide \\d|Page|Index of Foods)$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
@@ -70,7 +71,8 @@
           "^\\d-\\d+$",
           "^(?:Guide \\d|Page|Index of Foods)$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
@@ -88,7 +90,8 @@
           "^\\d-\\d+$",
           "^(?:Guide \\d|Page|Index of Foods)$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
@@ -106,7 +109,8 @@
           "^\\d-\\d+$",
           "^(?:Guide \\d|Page|Index of Foods)$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
@@ -124,7 +128,8 @@
           "^\\d-\\d+$",
           "^(?:Guide \\d|Page|Index of Foods)$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
@@ -143,7 +148,8 @@
           "^(?:Guide \\d|Page|Index of Foods)$",
           "^Jams and Jellies$"
         ],
-        "process_tables": true
+        "process_tables": true,
+        "layout_entries": true
       },
       "default_heading": "Introduction"
     },
