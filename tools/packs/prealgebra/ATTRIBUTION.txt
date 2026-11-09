@@ -1,0 +1,23 @@
+Mathematics & statistics from OpenStax
+
+This collection is built from the book:
+
+Prealgebra 2e
+Senior Contributing Authors: Lynn Marecek and MaryAnne Anthony-Smith
+Contributing Author: Andrea Honeycutt Mathis
+OpenStax, Rice University
+https://openstax.org/details/books/prealgebra-2e
+
+The text is OpenStax's own, kept whole, one passage per numbered book
+section; formulas are carried as LaTeX converted from the book's MathML.
+No OpenStax logo is used.
+
+Licence: Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+Source revision: openstax/osbooks-prealgebra-bundle at commit
+7fcdabf0364f3b308c0190557dfc961b579b374c (19 February 2026), the last
+revision on main before OpenStax moved Prealgebra 2e to CC BY-NC-SA on
+12 March 2026. A CC licence cannot be taken back, so the text published
+before that change stays CC BY 4.0.
+
+only the pinned revision is used, not later revisions
