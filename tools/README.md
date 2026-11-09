@@ -199,6 +199,7 @@ versions. Network-backed fetch commands are separate from offline pack assembly.
 | `build_wikivoyage_places_pack.py` | the same pinned English Wikivoyage dump | keyword-only See, Do, Eat, Drink, Sleep, and Buy listings |
 | `build_osm_vegan_pack.py` | Overpass API responses (archived with SHA-256) | worldwide OpenStreetMap places tagged fully vegan or with vegan options (ODbL) |
 | `build_osm_essentials_pack.py` | Overpass API responses (archived with SHA-256) | worldwide pharmacies, hospitals, clinics, ATMs, currency exchange, toilets, drinking water, police, embassies, stations, supermarkets and hostels, with a category per place for near-me lookups (ODbL) |
+| `build_practical_skills_pack.py` | US federal guides listed in `tools/data/practical_skills_sources.json` (USDA, FEMA, CDC, NWS, USGS, ATP 3-50.21), locked with SHA-256 | the Practical skills KNOWLEDGE pack: passages quoted verbatim, USDA process-time tables as rows, first aid, dosing and wild food refused (needs `pdftotext` from poppler-utils) |
 | `e2e_battery.py` | fapacks + llama-server | full-pipeline answer battery (planner → retrieval → prompt → answer) |
 | `index_pack_for_leviathan.py` | a schema-1 `content.sqlite` + a verified Leviathan 0.2.0 binary | the upstream Leviathan index; place packs also get a `places[]` filter (each listing's destination and its parents, lowercase without accents) for searches within one city |
 | `build_dual_search_pack.py` | `content.sqlite` + its Leviathan index | one DB with both posting indexes over one copy of the text; `place_points` and `chunk_vectors` are carried unchanged |
@@ -261,6 +262,16 @@ python3 tools/packs/build_wikipedia_pack.py build --spool build/wikipedia/simple
 # Travel guides by section ("Japan — Buy > Cash") from the pinned pages-articles dump above.
 python3 tools/packs/build_wikivoyage_guides_pack.py --dump enwikivoyage-20260901-pages-articles.xml.bz2 \
   --out build/wikivoyage-guides-sections --version 2026.09.01
+
+# Practical skills: fetch locks every US federal source (publisher, edition, URL, fetch time, SHA-256);
+# build is offline, re-checks the lock, proves every paragraph and table row verbatim against the
+# source, refuses first aid, medicine, dosing and wild food, and writes ATTRIBUTION.txt inside the
+# pack and beside it. PDFs are read with pdftotext (apt install poppler-utils / brew install poppler).
+python3 tools/packs/build_practical_skills_pack.py fetch --cache build/practical-skills/cache
+python3 tools/packs/build_practical_skills_pack.py build --cache build/practical-skills/cache \
+  --output build/practical-skills/out --version 2026.11.09
+# then the Leviathan index, as for the other collections (see "Leviathan search" below), on
+# build/practical-skills/out/pack/content.sqlite, packaged with package_search_upgrade.py.
 
 # Cryptography & Ethereum: fetch pins every source (EIP/ERC/spec commits, NIST PDFs, Wikipedia
 # revisions) in a lock; build checks the lock, then embed_pack.py and build_vector_pack.py add vectors.

@@ -96,6 +96,23 @@ class PracticalSkillsSelectionTest(unittest.TestCase):
             path.unlink(missing_ok=True)
 
 
+class PracticalSkillsProcessTableTest(unittest.TestCase):
+    HEADER = "         Style        Jar          Process      0–          2,001–"
+
+    def test_cells_keep_their_columns(self):
+        columns = [start for start, _ in practical.table_cells(self.HEADER)]
+        self.assertEqual(practical.align_row(practical.table_cells("         Hot          Pints        30\ufffdmin       11\ufffdlb        12\ufffdlb"), columns),
+                         ["Hot", "Pints", "30 min", "11 lb", "12 lb"])
+        # A row with no style keeps its jar size under "Jar", not under "Style".
+        self.assertEqual(practical.align_row(practical.table_cells("                      Quarts       35           11           12"), columns),
+                         ["", "Quarts", "35", "11", "12"])
+
+    def test_a_slipped_cell_rejects_the_row(self):
+        columns = [start for start, _ in practical.table_cells(self.HEADER)]
+        self.assertIsNone(practical.align_row(practical.table_cells("         Hot                   Pints   30 min"), columns))
+        self.assertIsNone(practical.align_row([(9, "Hot"), (10, "Cold")], columns))
+
+
 class PracticalSkillsQuestionsTest(unittest.TestCase):
     def test_the_sealed_question_file_is_unchanged(self):
         path = ROOT / "docs/fieldtest/practical-skills.jsonl"

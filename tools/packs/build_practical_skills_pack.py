@@ -21,6 +21,14 @@ Usage:
 URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. `extract` and `build`
 never touch the network: they check every cached byte against the lock first.
 
+`extract` and `build` read the PDFs with poppler's `pdftotext` (poppler-utils), a system tool
+rather than a Python package; the tests do not need it.
+
+The USDA process-time tables are read separately from `pdftotext -layout`, one passage per table,
+cells joined with " | " under their altitude, jar-size and process-time headers. A table is kept
+only whole, when every cell sits under a header column and every row is proven against the
+publisher's line; the others are left out and counted in extract-report.json.
+
 Every passage is the source's own text, selected and never rewritten. The only changes are
 whitespace (line breaks and runs of spaces become one space), joining a word hyphenated across a
 line break, and dropping running page headers and footers. `extract` proves this: each passage,
@@ -224,10 +232,18 @@ def proof_key(text: str) -> str:
     return re.sub(r"[\s\-\u2010\u2011\u00ad\u200b\ufffd]+", "", text)
 
 
+def require_pdftotext() -> None:
+    import shutil
+    if shutil.which("pdftotext") is None:
+        raise SystemExit("pdftotext (poppler-utils) is required to read the PDF sources: "
+                         "apt install poppler-utils, or brew install poppler")
+
+
 def pdf_pages(raw: bytes) -> list[str]:
     """Poppler's pdftotext in reading order (pypdf splits words in ATP 3-50.21: "car e")."""
     import subprocess
     import tempfile
+    require_pdftotext()
     with tempfile.TemporaryDirectory(prefix="fieldatlas-practical-") as temp:
         source = Path(temp) / "in.pdf"
         source.write_bytes(raw)
@@ -314,6 +330,107 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
                 paragraphs.append(("h" if is_heading(paragraph) else "p", paragraph))
                 block = []
     return group_sections(source, paragraphs), stats
+
+
+
+# ---------------------------------------------------------------------------- USDA process tables
+
+TABLE_TITLE = re.compile(r"(?i)^(?:Table \d+\.\s*)?Recommended process times? for\b")
+
+
+def layout_pages(raw: bytes) -> list[str]:
+    import subprocess
+    import tempfile
+    require_pdftotext()
+    with tempfile.TemporaryDirectory(prefix="fieldatlas-practical-") as temp:
+        source = Path(temp) / "in.pdf"
+        source.write_bytes(raw)
+        result = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", str(source), "-"], check=True,
+                                capture_output=True, timeout=300)
+    return result.stdout.decode("utf-8").split("\f")
+
+
+def table_cells(line: str) -> list[tuple[int, str]]:
+    """Cells with their start columns. Columns are separated by runs of two or more spaces in
+    poppler's layout output; the replacement character is a one-column space glyph."""
+    line = line.replace(" ", " ").replace("�", " ").rstrip()
+    return [(m.start(), re.sub(r" +", " ", m.group(0))) for m in re.finditer(r"\S+(?: \S+)*", line)]
+
+
+def align_row(cells: list[tuple[int, str]], columns: list[int], slack: int = 6) -> list[str] | None:
+    """Put each cell under the header column it starts beneath; None when a cell sits under no
+    column or two cells under one (the columns slipped)."""
+    out = [""] * len(columns)
+    for start, text in cells:
+        nearest = min(range(len(columns)), key=lambda c: abs(columns[c] - start))
+        if abs(columns[nearest] - start) > slack or out[nearest]:
+            return None
+        out[nearest] = text
+    while out and not out[-1]:
+        out.pop()
+    return out
+
+
+def process_tables(source: dict, raw: bytes) -> tuple[list[dict], dict]:
+    """The USDA process-time tables as text rows, one passage per table.
+
+    A table is kept only whole: its title, the altitude header, the "Jar Size" header and every
+    row, each row with no more cells than the header has columns (a longer row means the columns
+    slipped). Cells are joined with " | "; the verbatim proof ignores the separator, so every row
+    must still read, cell by cell, as one line of the publisher's table."""
+    tables, stats = [], {"tables_found": 0, "tables_kept": 0, "tables_rejected": []}
+    for number, page in enumerate(layout_pages(raw), start=1):
+        lines = page.split("\n")
+        i = 0
+        while i < len(lines):
+            first = squash(lines[i])
+            if not TABLE_TITLE.match(first):
+                i += 1
+                continue
+            stats["tables_found"] += 1
+            title, i = first, i + 1
+            # The title may wrap onto one more line ("... in a" / "dial-gauge pressure canner").
+            if i < len(lines) and squash(lines[i]) and len(table_cells(lines[i])) == 1 and title.endswith((" a", " an")):
+                title, i = f"{title} {squash(lines[i])}", i + 1
+            rows, blank = [], 0
+            while i < len(lines) and blank < 2:
+                if not squash(lines[i]):
+                    blank += 1 if rows else 0
+                    i += 1
+                    continue
+                if TABLE_TITLE.match(squash(lines[i])) or (squash(lines[i]).isupper() and len(squash(lines[i])) > 5):
+                    break  # the next table, or the next food's heading ("CARROTS—SLICED OR DICED")
+                blank = 0
+                rows.append(table_cells(lines[i]))
+                i += 1
+            problems = []
+            header = max(rows[:4], key=len, default=[])
+            columns = [start for start, _ in header]
+            # The guide's page number and chapter tab ("4-9", "4") print in the right margin, on
+            # the table's lines; they are page furniture, not cells.
+            if columns:
+                margin = max(start + len(text) for start, text in header) + 8
+                rows = [[c for c in cells if not (c[0] > margin and re.fullmatch(r"\d(?:-\d+)?", c[1]))] for cells in rows]
+                rows = [cells for cells in rows if cells]
+            spanning = re.compile(r"(?i)(?:at )?altitudes? of$")  # "Canner Pressure (PSI) at Altitudes of" spans the altitude columns
+            aligned = ([[cells[0][1]] if len(cells) == 1 and spanning.search(cells[0][1]) else align_row(cells, columns)
+                        for cells in rows] if len(columns) >= 3 else [None])
+            if any(row is None for row in aligned):
+                problems.append("a cell sits under no header column")
+            text_rows = [" | ".join(row) for row in aligned if row is not None]
+            body = "\n".join(text_rows)
+            if not re.search(r"(?i)altitudes? of", body) or not re.search(r"\bft\b", body):
+                problems.append("no altitude header")
+            if not re.search(r"(?i)\bJar\b", body) or not re.search(r"(?i)\bSize\b", body):
+                problems.append("no jar size header")
+            if not any(re.search(r"\d+ min|\d+ lb", r) for r in text_rows):
+                problems.append("no data rows")
+            if problems:
+                stats["tables_rejected"].append({"page": number, "title": title, "problems": problems})
+                continue
+            stats["tables_kept"] += 1
+            tables.append({"page": number, "heading": title, "text": title + "\n" + body})
+    return tables, stats
 
 
 def group_sections(source: dict, paragraphs: list[tuple[str, str]]) -> list[tuple[str, str]]:
@@ -454,6 +571,23 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
             kept += 1
             documents.append({"document_id": f"{source['id']}-{index:04d}", "title": f"{source['title']} — {heading}",
                               "source": lock["sources"][source["id"]]["url"], "license": LICENSE, "text": text})
+        if source.get("pdf", {}).get("process_tables"):
+            layout_reference = proof_key("\n".join(layout_pages(raw)))
+            tables, table_stats = process_tables(source, raw)
+            stats.update(table_stats)
+            for number, table in enumerate(tables):
+                problems = check_passage(source["id"], table["text"])
+                unproven = [row for row in table["text"].split("\n") if proof_key(row.replace("|", " ")) not in layout_reference]
+                if unproven:
+                    problems.append("NOT VERBATIM")
+                if problems:
+                    rejected.append({"source": source["id"], "heading": table["heading"], "problems": problems, "text": table["text"][:400]})
+                    stats["tables_kept"] -= 1
+                    continue
+                kept += 1
+                documents.append({"document_id": f"{source['id']}-table-{number:03d}",
+                                  "title": f"{source['title']} — {table['heading']}",
+                                  "source": lock["sources"][source["id"]]["url"], "license": LICENSE, "text": table["text"]})
         report["sources"][source["id"]] = {**stats, "sections": len(sections), "passages": kept}
         if kept == 0:
             raise ValueError(f"{source['id']}: no passage survived; the extraction is broken")
@@ -535,9 +669,7 @@ def build(sources_path: Path, cache: Path, output: Path, version: str) -> None:
     artifacts = build_pack_streaming(
         output / "passages" / "documents.jsonl", output / "pack", PACK_ID, version, TITLE, LICENSE,
         [lock["sources"][s["id"]]["url"] for s in sources],
-        coverage_summary="Home canning and food safety, getting a home ready for floods, storms and earthquakes, "
-                         "safe water, shelter, fire, signalling for rescue, reading the weather and basic navigation, "
-                         "quoted from USDA, FEMA, CDC, NOAA/NWS, USGS and US Army guides.",
+        coverage_summary="Home canning, food and water safety, storm, flood and quake readiness, shelter, fire, rescue signals, weather signs and navigation.",
         example_questions=["How much lemon juice goes in a quart of canned tomatoes?",
                            "How much water should I store per person?", "How do I find north with a stick's shadow?"],
         coverage_level="focused", fts_tokenizer="porter unicode61", chunker=paragraph_chunks)
@@ -545,6 +677,8 @@ def build(sources_path: Path, cache: Path, output: Path, version: str) -> None:
     add_attribution(artifacts, credits)
     verify_pack(artifacts.pack)
     (output / "ATTRIBUTION.txt").write_text(credits, encoding="utf-8", newline="\n")
+    # Beside the unpacked manifest too, so package_search_upgrade.py carries it into the Leviathan version.
+    (artifacts.pack.parent / "ATTRIBUTION.txt").write_text(credits, encoding="utf-8", newline="\n")
     (output / "sources.lock.json").write_bytes(canonical(lock))
     data = artifacts.pack.read_bytes()
     if len(data) >= 100 * 1000 * 1000:

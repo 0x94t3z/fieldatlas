@@ -340,6 +340,54 @@ the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
 
+## Practical skills (November 9)
+
+`tools/packs/build_practical_skills_pack.py` builds a focused collection of practical how-to guidance
+quoted from works of the US federal government, listed in `tools/data/practical_skills_sources.json`
+and locked at fetch time (publisher, title, edition, URL, fetch time and SHA-256 of every file):
+
+- USDA, Complete Guide to Home Canning (Agriculture Information Bulletin No. 539, revised 2015):
+  the introduction and Guides 1 to 7, read from the National Center for Home Food Preservation,
+  which distributes the USDA's files.
+- FEMA, Are You Ready? An In-Depth Guide to Citizen Preparedness (P-2064, September 2020), without
+  its active shooter, cyberattack, financial, nuclear and pandemic sections.
+- CDC pages on making, storing and finding safe water, disinfecting wells, keeping food safe after
+  an emergency, home-canned foods and botulism, and flood safety.
+- National Weather Service safety pages on floods, lightning, thunderstorms, hurricanes, tornadoes,
+  winter weather and heat, with their watch and warning pages.
+- USGS Fact Sheet 2025-3050 (version 1.1), its "Preparing for Future Earthquakes" section.
+- US Army ATP 3-50.21 Survival (September 2018), chapters 1, 3, 5, 6, 7 and 8 and appendix A.
+  Chapter 2 (survival medicine) and chapter 4 (food: wild plants, trapping, butchering) are never
+  read; passages on water from plants and on weapons are refused.
+
+Text is *selected* and never reworded. The PDFs are read with poppler's `pdftotext`; whitespace,
+line-break hyphenation (joined only for words the same source spells unbroken) and running page
+headers are the only changes, and every paragraph and list item is proven against the whole source's
+text before it is kept. First aid, medicine and dosing, and the identification of wild plants, fungi
+or animals as food are refused paragraph by paragraph (152 paragraphs and list items; 46 more were
+too short, page navigation or page fragments that failed the proof); the
+emergency guides keep answering those, and they open from the question alone, before any collection
+is searched. The USDA process-time tables are kept as rows of cells under their altitude, jar-size
+and process-time headers, from `pdftotext -layout`: 169 of 250 tables, each kept only whole and only
+when every cell sits under a header column and every row is proven against the publisher's line; the
+other 81, where the layout mixes in page text, are left out. 964 passages: 505 USDA, 215 ATP 3-50.21,
+92 NWS, 76 CDC, 75 FEMA and 1 USGS. Thirty test questions were sealed before the build
+([questions](fieldtest/practical-skills.jsonl), SHA-256
+`131d9882a4c78a5eea7060ad37e044ee4ebafa8fb4cd8e56e9224ff82fa61469`).
+
+| Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
+| --- | --- | ---: | --- | --- | --- | --- |
+| Practical skills (`practical-skills`) | 2026.11.09-leviathan | 901,574 | `9371274b02f25b51f7e39f5767bda6f7f80f8b1cda6025b47a6365aac0c82103` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+
+The keyword-only build (`practical-skills`, version `2026.11.09`, schema 1) is 1,572,292 bytes,
+SHA-256 `d890e8746ee69ba29ab6c40e16ed8555e6847aafbf7be8fdaabc6b9e35b5553e`, and rebuilds byte for
+byte from the locked sources. `2026.11.09-leviathan` holds the same passages with a Leviathan 0.2.0
+index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
+--compressed`) and installs to 2,551,659 bytes; the Leviathan index is not byte-identical between
+runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
+inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
+`LicenseRef-US-Government-Work`) beside them. It has no meaning-search vectors.
+
 ## Encyclopedia: search by meaning (November 2)
 
 `tools/packs/build_encyclopedia_index_pack.py` copies the 211,112 Simple English Wikipedia lead
