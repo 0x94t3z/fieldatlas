@@ -340,7 +340,7 @@ the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
 
-## Practical skills (November 9)
+## Practical skills (November 10)
 
 `tools/packs/build_practical_skills_pack.py` builds a focused collection of practical how-to guidance
 quoted from works of the US federal government, listed in `tools/data/practical_skills_sources.json`
@@ -372,10 +372,17 @@ links, page-review dates, menu labels printed on three or more of the pages) is 
 The USDA guides set recipes in boxes beside the text, so their food entries and recipes are read
 from `pdftotext -layout`, one passage each, from the capitalised name to the next name or table. A
 recipe goes in whole (name, every ingredient line with its amount, yield and procedure) or not at
-all, because in canning and pickling the proportions are what make it safe: 81 of 143 entries are
-kept, 37 of them recipes with a yield. The others are left out: 38 where a line still holds a second
-column or text run together with a table, 11 recipes whose ingredient amounts could not be read
-with them, 7 out of scope, and 2 whose procedure follows another recipe that is not in the pack.
+all, because in canning and pickling the proportions are what make it safe. Where a photo label is
+printed into an entry's text ("Pumpkin and Winter Squash" inside the pumpkin procedure), it is found
+by its smaller type and its place between two text lines in poppler's word boxes, taken out only
+when its words are the entry's own name, and the entry is kept only if it then reads word for word
+in both the plain and the layout reading; 6 entries come back this way. A recipe or food entry
+must also carry its procedure: a process table printed beside an entry ends it at the table's
+title, and such an entry is left out rather than kept without its procedure. 81 of 143 entries are
+kept, 40 of them recipes with a yield. The others are left out: 30 where a line still holds a
+second column or text run together with a table, 9 cut short by a process table, 5 out of scope, 2
+recipes whose ingredient amounts could not be read with them, and 2 whose procedure follows another
+recipe that is not in the pack; the other 14 capitalised names have no text under them.
 Tables, too, enter only whole, each row on its own line with its cells joined by " | " under the
 table's headers: 168 of the 250 USDA process-time tables, each kept only when every cell sits
 under a header column and every row is proven against the publisher's line, and the CDC
@@ -390,11 +397,11 @@ amounts, and no page chrome. 770 passages: 315 USDA, 215 ATP 3-50.21, 92 NWS, 72
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.09-leviathan | 777,134 | `98d4222da0883e3acdab7541eedce29409a72c3a79bfa71a563ff3a432fdf095` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.10-leviathan | 780,615 | `de1542a7d94e2f8af294a67121dc2adaed55e66f7fb940e5fb8caa666c21dd3f` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
 
-The keyword-only build (`practical-skills`, version `2026.11.09`, schema 1) is 1,347,012 bytes,
-SHA-256 `c483d829cc79c953ffd688d5139a205eb94d8bd016462a28fbb4e8e9dded13ac`, and rebuilds byte for
-byte from the locked sources. `2026.11.09-leviathan` holds the same passages with a Leviathan 0.2.0
+The keyword-only build (`practical-skills`, version `2026.11.10`, schema 1) is 1,347,012 bytes,
+SHA-256 `611ef1b196b64d4b86d8056bd13ec243a33693b3115a5b9670030380e52ab7a9`, and rebuilds byte for
+byte from the locked sources. `2026.11.10-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
 --compressed`) and installs to 2,174,827 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`

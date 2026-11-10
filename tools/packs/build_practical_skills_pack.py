@@ -15,7 +15,7 @@ Usage:
   python3 tools/packs/build_practical_skills_pack.py extract --cache build/practical-skills/cache \
       --output build/practical-skills/passages
   python3 tools/packs/build_practical_skills_pack.py build   --cache build/practical-skills/cache \
-      --output build/practical-skills/out --version 2026.11.09
+      --output build/practical-skills/out --version 2026.11.10
 
 `fetch` downloads each source once, politely, and records publisher, title, edition, URL, final
 URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. `extract` and `build`
@@ -33,8 +33,12 @@ paragraph and can drop a cell, shifting later numbers into the wrong column, so 
 are left out of the prose (drop_table_fragments): table content enters the pack only whole.
 The USDA Guides 2 to 7 set recipes in boxes beside the text, so their food entries and recipes are
 read whole from the layout reading too (layout_entries). A recipe goes in whole, with every
-ingredient amount, its yield and its procedure, or not at all (recipe_problem); a recipe, food
-entry or table is one search chunk. Web-page chrome (language links, review dates, menu labels on
+ingredient amount, its yield and its procedure, or not at all (recipe_problem, entry_problem); a
+recipe, food entry or table is one search chunk. Where a photo label is printed into an entry's
+text, the layout reading runs it into the entry's lines; the label is found by its type and place
+in the word boxes (`pdftotext -tsv`), taken out only when it is the entry's own name, and the
+entry is kept only if it then reads word for word in both the plain and the layout reading
+(recover_entry). Web-page chrome (language links, review dates, menu labels on
 three or more pages) is left out.
 
 Every passage is the source's own text, selected and never rewritten. The only changes are
@@ -529,25 +533,252 @@ def recipe_problem(text: str) -> str | None:
     return None
 
 
+AMOUNT = re.compile(r"(?i)(?:\b\d+(?:[-/]\d+)*|[\u00bc-\u00be\u2153\u2154])\s*(?:" + AMOUNT_UNITS + r")\b")
+
+
+def entry_problem(text: str) -> str | None:
+    """A food entry or recipe cut short is refused. A process table printed beside an entry ends
+    the entry where the table's title stands, so its procedure can be left behind: a recipe (two or
+    more amounts: "4 lbs", "1/2 cup") or a food entry ("Quantity:", "Quality:", "Important:")
+    must carry its "Procedure:"."""
+    if "Procedure:" in text:
+        return None
+    if re.search(r"(?m)^(?:Quantity|Quality|Important):", text):
+        return "food entry without its procedure"
+    if len(AMOUNT.findall(text)) >= 2:
+        return "recipe without its procedure"
+    return None
+
+
 ENTRY_HEAD = re.compile(r"^[A-Z0-9][A-Z0-9 ,.'’()/&%*\-\u2013\u2014]{3,}$")
 PAGE_NUMBER = re.compile(r"^\s*(?:\d|[ivx]+|\d-\d+)\s*$")
 
 
-def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
-    """Each food entry or recipe of a USDA guide, read whole from `pdftotext -layout`.
+def tsv_words(raw: bytes) -> list[dict]:
+    """Every word of the PDF with its page and box, from poppler's `pdftotext -tsv`, in the same
+    reading order as the plain reading."""
+    import subprocess
+    import tempfile
+    require_pdftotext()
+    with tempfile.TemporaryDirectory(prefix="fieldatlas-practical-") as temp:
+        source = Path(temp) / "in.pdf"
+        source.write_bytes(raw)
+        result = subprocess.run(["pdftotext", "-tsv", "-enc", "UTF-8", str(source), "-"], check=True,
+                                capture_output=True, timeout=300)
+    if len(result.stdout) > 64 * 1024 * 1024:
+        raise ValueError("Word boxes exceed 64 MiB")
+    return parse_tsv(result.stdout.decode("utf-8"))
 
-    The guides set recipes in boxes beside the text, so plain reading order interleaves one
+
+def parse_tsv(text: str) -> list[dict]:
+    words = []
+    for row in text.split("\n")[1:]:
+        cells = row.split("\t")
+        if len(cells) < 12 or cells[0] != "5":  # level 5 is a word; a word can hold a tab ("jars\t\t")
+            continue
+        page, (x, y, w, h) = int(cells[1]), (float(v) for v in cells[6:10])
+        words.append({"page": page, "x": x, "y": y, "w": w, "h": h, "text": "\t".join(cells[11:])})
+    return words
+
+
+LABEL_JOINERS = {"and", "or", "with", "of", "in", "the", "a"}
+
+
+def fold(text: str) -> str:
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)).lower()
+
+
+def figure_labels(words: list[dict]) -> list[dict]:
+    """The photo labels of the USDA guides ("Pumpkin and Winter Squash"), from the word boxes.
+
+    A label is set in a smaller type than the running text, and its words sit between two
+    consecutive lines of running text, inside them horizontally: not on any text line, so not a
+    second column. Words close together on one page form one label. Only letters, hyphens, commas
+    and apostrophes: a number is never a label."""
+    from collections import Counter
+    if not words:
+        return []
+    body_height = Counter(round(w["h"], 2) for w in words).most_common(1)[0][0]
+    body = sorted((w for w in words if 0.97 * body_height <= w["h"] <= 1.05 * body_height),
+                  key=lambda w: (w["page"], w["y"]))
+    lines = []  # running-text lines: page, top, left, right
+    for w in body:
+        last = lines[-1] if lines else None
+        if last and last["page"] == w["page"] and abs(w["y"] - last["y"]) <= 0.25 * body_height:
+            last["left"], last["right"] = min(last["left"], w["x"]), max(last["right"], w["x"] + w["w"])
+        else:
+            lines.append({"page": w["page"], "y": w["y"], "left": w["x"], "right": w["x"] + w["w"]})
+    by_page = {}
+    for line in lines:
+        by_page.setdefault(line["page"], []).append(line)
+    candidates = []
+    for index, w in enumerate(words):
+        if not 0.6 * body_height <= w["h"] < 0.965 * body_height:
+            continue
+        if not re.fullmatch(r"[A-Za-z\u00c0-\u024f\u2019'\u00ae,\-\ufffd]+", w["text"]):
+            continue
+        page_lines = by_page.get(w["page"], [])
+        for above, below in zip(page_lines, page_lines[1:]):
+            if (above["y"] + 0.25 * body_height < w["y"] < below["y"] - 0.1 * body_height
+                    and below["y"] - above["y"] <= 1.5 * body_height
+                    and any(line["left"] - 2 <= w["x"] <= line["right"] for line in (above, below))):
+                candidates.append(index)
+                break
+    groups = []
+    for index in candidates:
+        w = words[index]
+        for group in groups:
+            if words[group[0]]["page"] == w["page"] and any(
+                    abs(words[o]["y"] - w["y"]) <= 2 * body_height
+                    and words[o]["x"] - 3 * body_height <= w["x"] <= words[o]["x"] + words[o]["w"] + 3 * body_height
+                    for o in group):
+                group.append(index)
+                break
+        else:
+            groups.append([index])
+    labels = []
+    for group in groups:
+        ordered = sorted(group, key=lambda i: (round(words[i]["y"]), words[i]["x"]))
+        parts = [p for i in ordered for p in re.split(r"[ \ufffd]+", words[i]["text"]) if p]
+        if 1 <= len(parts) <= 7:
+            labels.append({"page": words[group[0]]["page"], "indices": sorted(group), "words": parts,
+                           "text": " ".join(parts)})
+    return labels
+
+
+def label_names_entry(label: str, name: str) -> bool:
+    """A label is the entry's own name when every content word of it is a word of the entry's
+    name ("Pumpkin and Winter Squash" for PUMPKINS AND WINTER SQUASH—CUBED)."""
+    name_words = re.findall(r"[a-z]+", fold(name))
+    content = [w for w in re.findall(r"[a-z]+", fold(label)) if w not in LABEL_JOINERS]
+    return bool(content) and all(
+        any(w == n or (min(len(w), len(n)) >= 4 and (w.startswith(n) or n.startswith(w))) for n in name_words)
+        for w in content)
+
+
+def second_column(line: str, plain_words: set[str]) -> bool:
+    """A line holding a second column: a gap of five or more spaces, words run together with a
+    neighbouring box ("theKenbutter"; a word the plain reading also prints whole, "MacIntosh",
+    is the publisher's own), or a process table's header words."""
+    return bool(re.search(r"\S {5,}\S", line.strip()) or any(
+        m.group(0) not in plain_words for m in re.finditer(r"\S*[a-z]{2,}[A-Z][a-z]\S*", line)) or
+        re.search(r"\b(?:of Pack|Jar Size|Process Time|Altitudes of|Canner Pressure)\b", line))
+
+
+def find_label(rows: list[str], words: list[str], allowed: set[int]) -> list[tuple[int, int, int]] | None:
+    """Where a label's words sit in an entry's layout lines, in order: each word at the start of a
+    token or run onto the end of a lower-case word ("FillMeat"), never inside a word, and each
+    within two lines of the one before. Returns (line, start, end) per word, or None."""
+    def at(row, word, start):
+        for m in re.finditer(re.escape(word), rows[row][start:]):
+            s = start + m.start()
+            before = rows[row][s - 1] if s else " "
+            if before == " " or (before.islower() and word[:1].isupper()):
+                return s
+        return None
+    for first in sorted(allowed):
+        spans, row, col = [], first, 0
+        for word in words:
+            hit = None
+            for r in range(row, min(row + 3, len(rows))):
+                if r not in allowed:
+                    continue
+                s = at(r, word, col if r == row else 0)
+                if s is not None:
+                    hit = (r, s, s + len(word))
+                    break
+            if hit is None or (not spans and hit[0] != first):
+                break
+            spans.append(hit)
+            row, col = hit[0], hit[2]
+        if len(spans) == len(words):
+            return spans
+    return None
+
+
+def recover_entry(name: str, rows: list[str], pages: list[int], removed_before: list[list[tuple[int, str]]],
+                  labels: list[dict], plain_words: set[str]) -> tuple[list[str] | None, dict[int, str], list[dict], str]:
+    """An entry refused for a second column gets one more chance when that second column is the
+    entry's own photo label (figure_labels, label_names_entry). The label's words are blanked where
+    they stand in the layout lines, the rest of the printed line the label pushed aside is joined
+    back onto its line, and every line is checked again: a line that still holds a second column
+    and is not beside the label refuses the entry. The caller then proves the text against the
+    plain reading without the label words. Returns the new lines (or None), the blanked lines by
+    position, the labels removed, and the reason."""
+    # The longest label first, so "Pickle Relish" cannot take the start of "Pickled Corn Relish".
+    own = sorted((label for label in labels if label["page"] in set(pages) and label_names_entry(label["text"], name)),
+                 key=lambda label: -len(label["words"]))
+    if not own:
+        return None, {}, [], "a second column that is not this entry's photo label"
+    flagged = {k for k, row in enumerate(rows) if second_column(row, plain_words)}
+    work, blanked, zone, used = rows[:], set(), set(), []
+    for label in own:
+        beside = [k for k in range(len(rows)) if pages[k] == label["page"]
+                  and any(page == label["page"] and squash(text) == label["text"] for page, text in removed_before[k])]
+        if beside:  # the label stood alone on its line and was removed with the side labels
+            zone.update({beside[0] - 1, beside[0]})
+            used.append(label)
+            continue
+        near = {k for k in range(len(rows)) if pages[k] == label["page"] and any(abs(k - f) <= 2 for f in flagged)}
+        spans = find_label(work, label["words"], near)
+        if spans is None:
+            continue
+        for row, start, end in spans:
+            work[row] = work[row][:start] + " " * (end - start) + work[row][end:]
+            blanked.add(row)
+        zone.update(blanked | {min(blanked) - 1} | {k + 1 for k in blanked})
+        used.append(label)
+    if not used:
+        return None, {}, [], "the photo label is not where the second column is"
+    if flagged - zone:
+        return None, {}, used, "a second column away from the photo label"
+    indents = [len(r) - len(r.lstrip()) for r in rows if len(r.strip()) >= 40]
+    base = max(set(indents), key=indents.count) if indents else 0
+    out, out_zone = [], []
+    for k, row in enumerate(work):
+        if k in blanked and not row.strip():
+            continue
+        indent = len(row) - len(row.lstrip())
+        if (k in blanked or k - 1 in blanked) and out and row.strip() and indent > base + 2:
+            out[-1] = out[-1].rstrip() + " " + row.strip()
+            out_zone[-1] = True
+            continue
+        out.append(row)
+        out_zone.append(k in zone)
+    for row, beside in zip(out, out_zone):
+        if second_column(row, plain_words) and not (beside and not re.search(
+                r"\b(?:of Pack|Jar Size|Process Time|Altitudes of|Canner Pressure)\b", row)
+                and not any(m.group(0) not in plain_words for m in re.finditer(r"\S*[a-z]{2,}[A-Z][a-z]\S*", row))):
+            return None, {}, used, "a second column left after removing the photo label"
+    return out, {k: work[k] for k in blanked}, used, "photo label removed"
+
+
+def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
+    """Each food entry or recipe of a USDA guide, read whole from `pdftotext -layout` (see
+    entries_from_layout)."""
+    return entries_from_layout(source, layout_pages(raw), "\n".join(pdf_pages(raw)), tsv_words(raw))
+
+
+def entries_from_layout(source: dict, pages: list[str], plain: str, words: list[dict]) -> tuple[list[dict], dict, str]:
+    """The guides set recipes in boxes beside the text, so plain reading order interleaves one
     recipe's ingredients with another's procedure. The layout reading keeps a recipe's lines
     together. An entry runs from its capitalised name ("PICKLED PEPPER-ONION RELISH") to the next
     name or process table. Page furniture is removed: page numbers, the chapter tab printed in the
     margin of a line, and the side label repeating the entry's name. An entry is kept whole or not
     at all: it is refused if any line still holds a second column (a gap of five or more spaces or
     text run together with a table), if any part is out of scope, or if it is a recipe without its
-    ingredient amounts. Returns the entries, stats, and the cleaned layout text for the proof."""
-    pages = layout_pages(raw)
-    plain_words = set("\n".join(pdf_pages(raw)).split())
-    lines, cleaned = [], []
-    for page in pages:
+    ingredient amounts.
+
+    One exception, proven twice: when the second column is the entry's own photo label, printed
+    into the procedure in smaller type (recover_entry), the label's words are taken out where they
+    stand and the line is joined again. Such an entry is kept only if every paragraph, and the run
+    of paragraphs the label touched, reads word for word in the plain reading with only those
+    label words taken out, and in the layout reading with only those label words blanked.
+    Returns the entries, stats, and the cleaned layout text for the proof."""
+    plain_words = set(plain.split())
+    lines, cleaned, line_pages, removed_before = [], [], [], [[]]
+    for number, page in enumerate(pages, start=1):
         for line in page.replace("\u00a0", " ").replace("\ufffd", " ").split("\n"):
             line = line.rstrip()
             if PAGE_NUMBER.match(line):
@@ -559,16 +790,19 @@ def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
             if (stripped and indent >= 10 and "  " not in stripped and len(stripped.split()) <= 7
                     and not re.search(r"[.:;,]$", stripped) and not TABLE_TITLE.match(stripped)
                     and stripped[:1].isupper() and not stripped.isupper()):
+                removed_before[-1].append((number, stripped))
                 continue
             lines.append(line)
             cleaned.append(stripped)
-    stats = {"entries": 0, "entries_kept": 0, "entries_rejected": []}
+            line_pages.append(number)
+            removed_before.append([])
+    stats = {"entries": 0, "entries_kept": 0, "entries_rejected": [], "entries_recovered": []}
     entries, current, name = [], [], None
     def close():
         if name is not None:
             entries.append((name, current[:]))
     in_table = False
-    for line in lines + [""]:
+    for index, line in enumerate(lines + [""]):
         stripped = line.strip()
         if TABLE_TITLE.match(stripped):
             close(); current.clear(); name = None; in_table = True
@@ -578,20 +812,32 @@ def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
             continue
         if in_table or name is None:
             continue
-        current.append(line)
+        current.append(index)
     close()
     vocabulary = set(w.lower() for w in re.findall(r"[A-Za-z]{3,}", "\n".join(cleaned)))
+    labels, label_problem = [], None
+    if words:
+        if proof_key(" ".join(w["text"] for w in words)) != proof_key(plain):
+            label_problem = "the word boxes do not read as the plain reading"
+        else:
+            labels = figure_labels(words)
+    blanked_text = {}  # heading -> {line index: the line with its photo label blanked}
     out = []
-    for name, body in entries:
+    for name, indexes in entries:
         stats["entries"] += 1
-        problems = []
-        def collides(l):
-            # Words run together with a neighbouring box ("theKenbutter"); a word the plain reading
-            # also prints whole ("MacIntosh") is the publisher's own.
-            return any(m.group(0) not in plain_words for m in re.finditer(r"\S*[a-z]{2,}[A-Z][a-z]\S*", l)) or \
-                re.search(r"\b(?:of Pack|Jar Size|Process Time|Altitudes of|Canner Pressure)\b", l)
-        if any(re.search(r"\S {5,}\S", l.strip()) or collides(l) for l in body):
+        body = [lines[i] for i in indexes]
+        problems, removed, blanks, recovered = [], [], {}, False
+        if any(second_column(l, plain_words) for l in body):
             problems.append("second column on a line")
+            if label_problem:
+                problems.append(label_problem)
+            else:
+                rows, blanks, removed, reason = recover_entry(
+                    name, body, [line_pages[i] for i in indexes], [removed_before[i] for i in indexes], labels, plain_words)
+                if rows is None:
+                    problems.append(reason)
+                else:
+                    body, problems, recovered = rows, [], True
         # Paragraphs: ingredient lines one per line; prose joined; a blank line or a field label
         # ("Procedure:", "Yield:") starts a new paragraph.
         paragraphs, block = [], []
@@ -613,15 +859,33 @@ def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
         text = name + "\n\n" + "\n\n".join(p for p in paragraphs if p)
         if len(text) < 200 or not paragraphs:
             continue  # a name with nothing under it (a list heading), not an entry
-        problem = recipe_problem(text)
-        if problem:
-            problems.append(problem)
+        if recovered:
+            # The proof, twice. Plain reading: the word boxes in reading order (the same text as
+            # the plain reading, checked above) with only the label's words taken out; every
+            # paragraph, and every two paragraphs that follow each other, must read there word
+            # for word. Layout reading: extract() proves the entry against the layout text, in
+            # which only the label's words are blanked (layout_text below).
+            dropped = {i for label in removed for i in label["indices"]}
+            plain_reference = proof_key(" ".join(w["text"] for i, w in enumerate(words) if i not in dropped))
+            # Two paragraphs may stand on either side of a page number, page furniture the layout
+            # reading drops too ("into" / 6-26 / "1/2-inch cubes").
+            if (any(proof_key(p) not in plain_reference for p in paragraphs)
+                    or not all(re.search(re.escape(proof_key(a)) + r"(?:\d+-\d+|\d+|[ivx]+)?" + re.escape(proof_key(b)),
+                                         plain_reference) for a, b in zip(paragraphs, paragraphs[1:]))):
+                problems = ["second column on a line",
+                            "photo label removed, but the text does not read word for word in the plain reading"]
+        for problem in (recipe_problem(text), entry_problem(text)):
+            if problem:
+                problems.append(problem)
         if any(check_passage(source["id"], p) for p in [name] + paragraphs):
             problems.append("out of scope or navigation: " + "; ".join(
                 q for p in [name] + paragraphs for q in check_passage(source["id"], p))[:200])
         if problems:
             stats["entries_rejected"].append({"name": name, "problems": problems})
             continue
+        if recovered:
+            stats["entries_recovered"].append({"name": name, "labels": [label["text"] for label in removed]})
+            blanked_text[name.title() if name.isupper() else name] = {indexes[k]: row.strip() for k, row in blanks.items()}
         stats["entries_kept"] += 1
         out.append({"heading": name.title() if name.isupper() else name, "text": text})
     # A procedure that sends the reader to another recipe ("Follow the directions for Cantaloupe
@@ -635,6 +899,14 @@ def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
             out.remove(e)
             stats["entries_kept"] -= 1
             stats["entries_rejected"].append({"name": e["heading"], "problems": ["refers to a recipe that is not in the pack"]})
+    # The layout text for extract()'s proof: a recovered entry's lines with only its label blanked.
+    kept = {e["heading"] for e in out}
+    stats["entries_recovered"] = [r for r in stats["entries_recovered"]
+                                  if (r["name"].title() if r["name"].isupper() else r["name"]) in kept]
+    for heading, rows in blanked_text.items():
+        if heading in kept:
+            for index, row in rows.items():
+                cleaned[index] = row
     return out, stats, "\n".join(cleaned)
 
 
@@ -979,7 +1251,7 @@ def main() -> int:
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     parser.add_argument("--cache", type=Path, default=ROOT / "build/practical-skills/cache")
     parser.add_argument("--output", type=Path, default=ROOT / "build/practical-skills/out")
-    parser.add_argument("--version", default="2026.11.09")
+    parser.add_argument("--version", default="2026.11.10")
     args = parser.parse_args()
     if args.action == "fetch":
         fetch(args.sources, args.cache)
