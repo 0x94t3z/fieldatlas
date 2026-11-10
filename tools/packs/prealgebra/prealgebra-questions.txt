@@ -1,0 +1,33 @@
+Field Atlas test questions for the OpenStax Prealgebra 2e collection (issue #26)
+Thirty questions, written before the build. The SHA-256 of this file is posted on issue #26.
+
+1. What is 48,326 rounded to the nearest thousand?
+2. What is the prime factorization of 504?
+3. What is the least common multiple of 12 and 18?
+4. Translate the phrase "five more than twice a number" into an algebraic expression, using n for the number.
+5. Evaluate 3 + 6 x (5 + 4) / 3 - 7 using the order of operations.
+6. What is the absolute value of -27?
+7. What is -8 + 5 - (-3)?
+8. What is (-4) x (-6) / 2?
+9. The temperature was 15 degrees below zero in the morning and rose 9 degrees by noon. What was the temperature at noon, in degrees?
+10. What is 3/4 + 5/6, as a fraction in simplest form?
+11. What is 7/9 divided by 14/27?
+12. Simplify the complex fraction (1/2) / (3/4).
+13. Write 0.375 as a fraction in simplest form.
+14. Round 12.647 to the nearest hundredth.
+15. What is 3.6 x 0.04?
+16. What is 45% of 120?
+17. What percent of 80 is 20?
+18. A jacket is priced at $64 and is on sale for 25% off. What is the sale price?
+19. Which property of real numbers says that a + b = b + a for all real numbers a and b?
+20. Simplify 5(x + 3) - 2x.
+21. Solve for x: x + 9 = 23.
+22. Solve for y: 4y = 36.
+23. Solve for a: 3a - 5 = 16.
+24. Solve for p: p/5 + 2 = 8.
+25. The perimeter of a rectangle is 50 cm and its length is 15 cm. What is its width?
+26. What is the area of a triangle with base 14 inches and height 9 inches?
+27. Add the polynomials (3x^2 + 2x - 5) + (x^2 - 4x + 7).
+28. Multiply the monomials (2x) x (-3x^2).
+29. What is the slope of the line through the points (1, 2) and (4, 8)?
+30. What are the x-intercept and the y-intercept of the line 2x + 3y = 12?
