@@ -1,6 +1,45 @@
 # Release audit
 
-Updated 6 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5, v1.4.6, v1.4.7, v1.4.8 and v1.4.9 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags.
+Updated 11 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5, v1.4.6, v1.4.7, v1.4.8, v1.4.9 and v1.4.10 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags.
+
+## v1.4.10 release (11 November 2026)
+
+Published on 11 November 2026 at 02:47 UTC as [v1.4.10](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.10),
+not a prerelease and marked latest, tag on `3197493`, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached.
+The APK was built from `3b44eac` in the working tree, whose llama.cpp submodule was the pinned commit plus the
+committed patch and nothing else; the commits after `3b44eac` change only the README, the release notes, the website
+and the install guide. Version 1.4.10 (31), 103,674,781 bytes, SHA-256
+`98a0355f2c546161b0b767c3f245a5056bb46ff06b0c09950c8d9bdfde7477b5`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload, from the draft
+and again from its public link without signing in; all match.
+
+A small safety release (`ad63096`): a bundled model of 66 KB reads whether a message is about someone in trouble now,
+and when the keyword rules pass such a message over, the answer opens with the call line. The answer under the line,
+the routes and the guides are those of 1.4.9. On a fresh check of 170 messages, urgent messages whose answer opened
+with no call line went from 18 of 80 to 1 of 80, and 2 of 90 messages that are not urgent were given the line. Across
+7,276 messages answered by the app's own code with and without the model, every answer was the same or the same with
+the line above it. `55f7213` adds an answer path for a model trained to read passages; no model the app offers uses
+it.
+
+What was reviewed and cut before release: independent reviewers read the change in five rounds. The first design also
+sent such a message to the emergency reply in place of its answer and dropped a rule match the model scored very low;
+both were removed, the first because the model reads ordinary trouble ("I lost my passport while travelling in
+Bangkok") as an emergency, the second because it scored "My friend Chad is hurt badly. What is the ambulance number?"
+at 0.09. A calculator for everyday sums written in plain words was also built and removed: reviewers found confident
+wrong answers (a bill split "between me and 3 friends"). The model's notes are in
+`tools/emergency-classifier/README.md`.
+
+Known limits: the answer under the line is as weak as before (for a baby in a hot locked car the smaller model quotes
+an unrelated passage); 21 of 38 ordinary-trouble messages a reviewer wrote get the line; one urgent message of the
+fresh check, read as a place question, still gets none.
+
+Before building: the JVM unit tests (1,839) and lint passed. The offline packaging audit, native alignment and
+`zipalign -c -P 16 4` passed on the exact APK, which was installed on the 12 GB Android emulator over the build
+before it, with its data kept, and answered a greeting and a collapse (the CPR guide) as expected. A build of the same source (it differs from the published APK only in the file that records the commit)
+was asked in the app with both models: the hot-car message and the lost passport opened with the line above their
+answers, a collapse opened the CPR guide in under a second, and an ordinary fact and a greeting got no line. The
+Python suites passed at the release commit: scripts (78), packtool
+(12), benchmarks (10) and tools (273, 12 skipped); the website tests (27) passed. Not tested on a real phone.
 
 ## v1.4.9 release (6 November 2026)
 
