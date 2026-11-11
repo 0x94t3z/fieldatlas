@@ -100,8 +100,10 @@ fun AnswerScreen(
     // "model-generated" and "not verified against sources" labels would be wrong there.
     val noModelReply = !isInputNotice && state.metrics?.generatedTokenCount == 0
     // The app's own "not enough evidence" reply is not a model answer, whatever ran before it.
-    val withheld = !running && (state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
-        state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE)
+    // Also under a call line: "If this is an emergency…" above it does not make it an answer.
+    val reply = xyz.fieldatlas.research.AnswerText.withoutCallLine(state.answer).trim()
+    val withheld = !running && (reply == xyz.fieldatlas.research.CitedExplanation.GAP ||
+        reply == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE)
     val calculated = noModelReply && state.answer.contains("_Calculated on this phone._")
     val workedFromQuestion = state.metrics?.workedFromQuestion == true
     val suggestTravel = travelCollectionAvailable && Regex(
@@ -152,7 +154,10 @@ fun AnswerScreen(
     val guideId = if (running) null else state.sources.singleOrNull()?.documentId
         ?.takeIf { it.startsWith("emergency:") && (state.answer.startsWith("**If this is an emergency") ||
             state.answer.startsWith("**Call your local emergency number now")) }?.removePrefix("emergency:")
-    val listenable = !running && guideId == null && state.answer.isNotBlank() && !withheld && !isInputNotice
+    // Under a call line there is still the line to hear, as before.
+    val nothingToHear = state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.GAP ||
+        state.answer.trim() == xyz.fieldatlas.research.CitedExplanation.UNAVAILABLE
+    val listenable = !running && guideId == null && state.answer.isNotBlank() && !nothingToHear && !isInputNotice
     DisposableEffect(readKey) { onDispose { if (readAloud?.state?.value?.key == readKey) readAloud.stop() } }
     // The natural voice takes a few seconds to load on an older phone: do it while the answer is being read.
     androidx.compose.runtime.LaunchedEffect(readKey, listenable) { if (listenable) readAloud?.prepareNatural() }

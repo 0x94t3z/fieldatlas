@@ -567,6 +567,10 @@ class AppContainer(context: Context) {
     private val emergencyClassifier: xyz.fieldatlas.emergency.EmergencyClassifier? by lazy {
         runCatching { appContext.assets.open("emergency/classifier.bin").use { xyz.fieldatlas.emergency.EmergencyClassifier.read(it.readBytes()) } }.getOrNull()
     }
+    /** The bundled reading of whether a message is about someone in trouble now (66 KB); absent rather than fatal if unreadable. */
+    private val urgency: xyz.fieldatlas.emergency.EmergencyClassifier? by lazy {
+        runCatching { appContext.assets.open("emergency/urgent.bin").use { xyz.fieldatlas.emergency.EmergencyClassifier.read(it.readBytes()) } }.getOrNull()
+    }
     /** Reads guides and answers aloud: the guides' recordings, or the phone's voice. */
     val readAloud: xyz.fieldatlas.speech.ReadAloud by lazy { xyz.fieldatlas.speech.ReadAloud(appContext, provisioningMutex) { emergencyGuides } }
 
@@ -625,7 +629,7 @@ class AppContainer(context: Context) {
     // Whether answers come from the model's own knowledge is decided per model when it loads (ModelOffer.knowledgeFirst).
     private val researchOrchestrator = ResearchOrchestrator(retriever, inference, location = deviceLocation::current, locationProblem = { deviceLocation.lastProblem },
         readImportedCollections = true,
-        emergencyGuides = { emergencyGuides }, emergencyClassifier = { emergencyClassifier }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
+        emergencyGuides = { emergencyGuides }, emergencyClassifier = { emergencyClassifier }, urgency = { question -> urgency?.probability(question, "urgent") }, emergencyNumbers = { emergencyNumbers }, prefillSpeed = prefillSpeed,
         articleDepth = true)
 
     /** Questions the app answers itself, so they can run before (or without) the model; decided where they are answered. */

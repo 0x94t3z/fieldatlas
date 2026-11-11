@@ -2,6 +2,16 @@ package xyz.fieldatlas.research
 
 object AnswerText {
     const val MODEL_LABEL = "Model explanation—not verified against saved sources"
+    private val callLines = listOf("**If this is an emergency, call your local emergency number first**", "**Call your local emergency number now**")
+
+    /**
+     * [answer] without the call line the app put above it (GuideAnswerCheck.callLine). The line alone is not an answer:
+     * what is under it decides whether anything was answered, withheld or still to come.
+     */
+    fun withoutCallLine(answer: String): String {
+        val text = answer.trimStart()
+        return if (callLines.any(text::startsWith)) text.substringAfter("\n\n", "") else answer
+    }
     private val quoteLine = Regex("^(?:[-*]\\s+)?[\"“](.+)[\"”]\\s*((?:\\[(?:S)?[0-9]+]\\s*)*)[.!]?\\s*$", RegexOption.IGNORE_CASE)
     private val inlineSourceHeading = Regex("(?im)^\\s*(?:#{1,6}\\s*)?(?:\\*\\*)?From saved sources(?:\\*\\*)?\\s*:(?:\\*\\*)?\\s*(?=[\"“])")
     private val danglingAttribution = Regex("(?i)according to sources?\\s+(?:\\[(?:S)?[0-9]+]\\s*)+,\\s*")

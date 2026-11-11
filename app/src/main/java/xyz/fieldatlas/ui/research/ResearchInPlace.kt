@@ -293,7 +293,10 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
     val still = stillMotion()
     val written by animateFloatAsState(if (stage == 2) state.tokensWritten / TOKENS_PER_LINE else 0f,
         animationSpec = tween(if (still) 0 else 600), label = "Written")
-    val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(state.answer)) }
+    // A call line the app put above an answer still to come is shown, and the answer's place fills under it as usual.
+    val callLine = state.answer.trim().takeIf { it.isNotEmpty() && xyz.fieldatlas.research.AnswerText.withoutCallLine(state.answer).isBlank() }
+    val callLineBlocks = remember(callLine) { callLine?.let(::parseAnswerMarkdown).orEmpty() }
+    val draftBlocks = remember(state.answer) { parseAnswerMarkdown(draftAnswerPreview(if (callLine == null) state.answer else "")) }
     val sources = state.sources.size
     val caption = when {
         // The few paths that stream show their words as they come; the finished answer adds its sources and checks.
@@ -304,6 +307,8 @@ internal fun ForthcomingAnswer(state: ResearchUiState) {
         else -> "Shown once it is checked against your ${if (sources == 1) "source" else "$sources sources"}."
     }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
+        if (callLineBlocks.isNotEmpty())
+            AnswerMarkdownRenderer(blocks = callLineBlocks, sourceCount = 0, onCitation = {}, modifier = Modifier.fillMaxWidth())
         if (draftBlocks.isNotEmpty()) {
             AnswerMarkdownRenderer(blocks = draftBlocks, sourceCount = 0, onCitation = {}, modifier = Modifier.fillMaxWidth())
         } else {
@@ -339,7 +344,8 @@ internal fun previewAfterSources(state: ResearchUiState, sources: List<Evidence>
     state.preview?.let { if (state.previewChosen) it else sources.firstOrNull() ?: it }
 
 internal fun bestMatchSoFar(state: ResearchUiState): Evidence? =
-    state.preview?.takeIf { state.waitingFor == null && draftAnswerPreview(state.answer).isBlank() }
+    // A call line above an answer still to come does not take the card's place.
+    state.preview?.takeIf { state.waitingFor == null && draftAnswerPreview(xyz.fieldatlas.research.AnswerText.withoutCallLine(state.answer)).isBlank() }
 
 /**
  * The best match so far, as its title, the sentence that answers the question when one plainly does (highlighted, so a

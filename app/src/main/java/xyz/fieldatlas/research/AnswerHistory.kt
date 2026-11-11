@@ -113,7 +113,8 @@ class AnswerHistoryStore(
 
     fun record(question: String, answer: String, sources: List<String>, evidence: List<Evidence> = emptyList(),
                topic: Long? = null, readAs: String? = null, durationMs: Long? = null, metrics: ResearchMetrics? = null) {
-        if (answer.isBlank()) return
+        // A run stopped before its first word may hold only the app's call line.
+        if (AnswerText.withoutCallLine(answer).isBlank()) return
         val entry = AnswerRecord(
             question = question.trim(),
             answer = answer,

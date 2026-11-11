@@ -36,6 +36,11 @@ class BestMatchSoFarTest {
         assertEquals(match, bestMatchSoFar(searching))
         assertEquals(match, bestMatchSoFar(searching.copy(phase = ResearchPhase.Generating, sources = listOf(match))))
         assertNull(bestMatchSoFar(searching.copy(answer = "The tower was built in 1889.")))
+        // The app's call line above an answer still to come does not take the card's place; the answer's first words do.
+        val call = xyz.fieldatlas.emergency.GuideAnswerCheck.callLine("my car broke down on the highway at night", guideFound = false)
+        assertEquals(match, bestMatchSoFar(searching.copy(answer = call)))
+        assertEquals(match, bestMatchSoFar(searching.copy(answer = call.trim())))
+        assertNull(bestMatchSoFar(searching.copy(answer = call + "Stay in the car")))
         assertNull(bestMatchSoFar(searching.copy(waitingFor = "an earlier question")))
         assertNull(bestMatchSoFar(ResearchUiState(phase = ResearchPhase.Searching)))
     }

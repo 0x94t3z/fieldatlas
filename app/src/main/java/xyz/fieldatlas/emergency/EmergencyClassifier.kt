@@ -25,6 +25,18 @@ class EmergencyClassifier private constructor(
 
     /** The most likely label for [text] ("none" when no guide fits) and its probability. */
     fun classify(text: String): Pair<String, Double> {
+        val p = probabilities(text)
+        val best = p.indices.maxBy { p[it] }
+        return labels[best] to p[best]
+    }
+
+    /** How likely [label] is for [text], or null when this model has no such label or gives no usable number. */
+    fun probability(text: String, label: String): Double? {
+        val index = labels.indexOf(label)
+        return if (index < 0) null else probabilities(text)[index].takeIf { it.isFinite() }
+    }
+
+    private fun probabilities(text: String): DoubleArray {
         val x = features(text, dim)
         val scores = DoubleArray(labels.size) { y ->
             var sum = 0.0
@@ -34,13 +46,12 @@ class EmergencyClassifier private constructor(
         }
         val max = scores.max()
         var total = 0.0
-        var best = 0
         for (y in scores.indices) {
             scores[y] = exp(scores[y] - max)
             total += scores[y]
-            if (scores[y] > scores[best]) best = y
         }
-        return labels[best] to scores[best] / total
+        for (y in scores.indices) scores[y] /= total
+        return scores
     }
 
     companion object {

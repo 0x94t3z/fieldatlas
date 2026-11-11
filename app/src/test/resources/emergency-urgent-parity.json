@@ -1,0 +1,698 @@
+[
+{
+"q": "Where can a vegan get dinner in Budapest?",
+"p": 0.01353
+},
+{
+"q": "What is a smart contract?",
+"p": 0.0037
+},
+{
+"q": "Melbourne with a 3 and an 8 year old and the forecast is rain all weekend. What can we do with them?",
+"p": 0.20739
+},
+{
+"q": "British passport, going to India for 3 weeks. How long does the e-visa take, and can I leave overland to Nepal and come back on it?",
+"p": 0.04136
+},
+{
+"q": "what are the main sights in kyoto?",
+"p": 0.007
+},
+{
+"q": "Do omega-3 fish oil supplements actually prevent heart attacks? What have the big randomised trials found?",
+"p": 0.01655
+},
+{
+"q": "why do my ears pop on planes, and why does it hurt more when we're landing?",
+"p": 5e-05
+},
+{
+"q": "what is the national animal of scotland",
+"p": 0.00162
+},
+{
+"q": "how many bones are in the adult human body",
+"p": 0.06834
+},
+{
+"q": "my dad suddenly cant get his words out right and one side of his face is drooping, what is happening and what do i do",
+"p": 0.99859
+},
+{
+"q": "esim vs physical sim card for travelling, whats the difference and which is better",
+"p": 0.00012
+},
+{
+"q": "what year did nelson mandela become president of south africa",
+"p": 0.00476
+},
+{
+"q": "Where in Munich is the Hofbräuhaus and which U-Bahn stop is closest?",
+"p": 0.02665
+},
+{
+"q": "when did chernobyl happen and which reactor blew up",
+"p": 0.00854
+},
+{
+"q": "what happened to the aral sea? why did it shrink so much and has any of it come back?",
+"p": 0.00556
+},
+{
+"q": "What clinical evidence exists for the senolytic combination dasatinib plus quercetin in humans, and which conditions have the early trials looked at?",
+"p": 0.00418
+},
+{
+"q": "whats a normal resting heart rate for an adult, and when is it too high or too low",
+"p": 0.00361
+},
+{
+"q": "The vet gave us tablets for our dog: one every 8 hours, 21 in the pack. We gave the first one at 7:30 pm on Tuesday. If we stick exactly to the schedule, what day and time do we give the last one?",
+"p": 0.23684
+},
+{
+"q": "the oil in the frying pan just caught fire in our airbnb kitchen, flames going up to the hood. water? what do i do",
+"p": 0.96291
+},
+{
+"q": "We just pulled someone out of a lake and he's not breathing. No signal for an ambulance. How do I do CPR properly?",
+"p": 0.98444
+},
+{
+"q": "what was the pantelegraph, who built it, when did it run commercially, and between which cities?",
+"p": 0.00047
+},
+{
+"q": "how does pesäpallo differ from baseball in the way the ball is pitched, and who invented it and when?",
+"p": 0.01912
+},
+{
+"q": "a woman in the queue next to me fainted, fell straight down, now she's coming round but pale and sweaty. should i sit her up or keep her lying down",
+"p": 0.99986
+},
+{
+"q": "im on my own and choking on a piece of chicken, can't speak or cough properly. how do i do the heimlich on myself",
+"p": 0.85018
+},
+{
+"q": "whats the gulf stream, how does it affect europes weather, and could it really stop",
+"p": 0.00069
+},
+{
+"q": "my 4 yr old ate some red berries off a bush in the park, no idea what they are. my mother says make her drink salty water so she throws them up. should i",
+"p": 0.99552
+},
+{
+"q": "who was jean baptiste point du sable and what does he have to do with chicago",
+"p": 0.05394
+},
+{
+"q": "First time in Istanbul, 4 nights. Should I stay in Sultanahmet, Beyoğlu or Kadıköy? We want to walk to sights but also have good food at night.",
+"p": 0.10575
+},
+{
+"q": "The hotel in Bali quotes 1,250,000 rupiah a night, and that already includes 21% tax and service. What's the room rate before tax, and how much are 3 nights in euros if 1 euro is 17,600 rupiah?",
+"p": 0.00348
+},
+{
+"q": "mum has had a water infection for 3 days, now shes shivering, confused, her skin looks blotchy and she hasnt peed since breakfast. the GP is closed, can it wait till monday",
+"p": 0.99328
+},
+{
+"q": "how do the netherlands keep land thats below sea level from flooding",
+"p": 0.0367
+},
+{
+"q": "my wife fell asleep on the sofa after her night shift and i cant rouse her at all, even shouting. shes breathing deep and regular and her colour is normal. is it ok to put a pillow under her head",
+"p": 0.99995
+},
+{
+"q": "my 5yo ate a couple of shiny black berries off the bush by the school gate, someone said deadly nightshade?? hes chatty and fine but his pupils look really big. can we wait and see",
+"p": 0.98972
+},
+{
+"q": "boyfriend has type 1, were on the beach and his meter says 52, hes sweaty and talking slow. all we have is a full sugar iced coffee with cream and a banana. which one and how much",
+"p": 0.99016
+},
+{
+"q": "how does a compass work, and why doesn't it point exactly to the north pole?",
+"p": 8e-05
+},
+{
+"q": "Taking the train from Kandy to Ella in Sri Lanka. How do I get a reserved seat, and do they sell out weeks ahead? Is 2nd class fine?",
+"p": 0.02003
+},
+{
+"q": "I sent USDC on Arbitrum to my exchange deposit address but the exchange only supports Ethereum mainnet for that coin. Is it gone forever or can it be recovered?",
+"p": 0.00924
+},
+{
+"q": "How does a microwave oven heat food?",
+"p": 0.00372
+},
+{
+"q": "sliced my palm open with a kitchen knife its pumping blood everywhere and soaking thru the tea towel",
+"p": 0.98092
+},
+{
+"q": "a big metal shelving unit fell on my dad hes pinned under it says he cant breathe properly and i cant lift it on my own",
+"p": 0.99938
+},
+{
+"q": "why does carbon monoxide make people sleepy instead of making them cough like smoke does",
+"p": 0.00471
+},
+{
+"q": "the whole hotel in kathmandu is shaking and swaying the lamps are swinging and stuff is falling off the shelves im on the 6th floor",
+"p": 0.99743
+},
+{
+"q": "day 4 of the trek were at 4300m and my brother has had a thumping headache since yesterday now hes puking and walking like hes drunk and wont wake up properly",
+"p": 0.99828
+},
+{
+"q": "my 3 yr old drowned in bath tub now not breathing please hurry",
+"p": 0.97633
+},
+{
+"q": "teenage son climbed on the train and touched the overhead wire",
+"p": 0.97786
+},
+{
+"q": "jerking legs arms tongue bitten foam",
+"p": 0.94026
+},
+{
+"q": "baby has high temp and the soft spot on head is sunken",
+"p": 0.99816
+},
+{
+"q": "i think a bee went in my shirt and got me 3 times",
+"p": 0.99081
+},
+{
+"q": "shivering uncontrollably and feel tired, is this dangerous",
+"p": 0.94235
+},
+{
+"q": "storm building over the hills and we still have 3 miles to the trailhead",
+"p": 0.97099
+},
+{
+"q": "we dug into the snow bank but its wet inside, what now",
+"p": 0.99069
+},
+{
+"q": "lightning hit a tree in our yard, small fire",
+"p": 0.94878
+},
+{
+"q": "coughing so hard on a piece of meat, he's still breathing tho, should i hit him",
+"p": 0.98823
+},
+{
+"q": "student fell in PE, says wrist hurts lots and its puffy, im the teacher what do i do now",
+"p": 0.99789
+},
+{
+"q": "grandma took her friends pills by mistake, now very sleepy and slow breathing",
+"p": 0.99942
+},
+{
+"q": "my teen got hit with a skateboard and a tooth is totally out",
+"p": 0.93048
+},
+{
+"q": "my partner felt a sharp prick in the beach shower and saw something crawl away, foot going numb and tingly",
+"p": 0.9961
+},
+{
+"q": "elderly mother wandered outside in the night, found her, fingers dark and ice cold",
+"p": 0.99748
+},
+{
+"q": "cooked my back at the beach and now i have chills and fever",
+"p": 0.99515
+},
+{
+"q": "driving on a bridge when it started swaying and jolting",
+"p": 0.96658
+},
+{
+"q": "spinning dust and debris heading toward the farm",
+"p": 0.97461
+},
+{
+"q": "jeans soaking red after i fell off my bike onto a metal post, feeling faint",
+"p": 0.99617
+},
+{
+"q": "cant stop yawning and feel sick after hitting my head on a low beam at work",
+"p": 0.99746
+},
+{
+"q": "poison",
+"p": 0.3205
+},
+{
+"q": "ok so we were hanging out and he did a line of what he said was ketamine but it was probably cut with fentanyl because hes out cold, breathing super shallow, lips kinda blue, we have narcan from the pharmacy",
+"p": 0.98477
+},
+{
+"q": "lyme bug on me",
+"p": 0.87535
+},
+{
+"q": "hot skin no sweat confused",
+"p": 0.99474
+},
+{
+"q": "kid has diarrhea and weve been drinking from the river, how do i make it safer",
+"p": 0.99714
+},
+{
+"q": "water rushing down the street like a river and my car is parked there",
+"p": 0.99769
+},
+{
+"q": "ice storm knocked the lines down, house getting cold, pipes might freeze",
+"p": 0.96291
+},
+{
+"q": "razor cut on shin from shaving, small but bleeding 20 min nonstop",
+"p": 0.94408
+},
+{
+"q": "can heart trouble feel like heartburn? pain under breastbone, sweaty",
+"p": 0.94755
+},
+{
+"q": "sitting up straight doesnt help, still breathless and wheezy",
+"p": 0.98647
+},
+{
+"q": "sunscreen ran into my eyes on the beach burning so much",
+"p": 0.92386
+},
+{
+"q": "stray cat at the beach market scratched and bit my leg",
+"p": 0.97344
+},
+{
+"q": "saya muntah dan diare terus, sangat lemas, what drink",
+"p": 0.7623
+},
+{
+"q": "phone dead, no idea where i am, is following a creek downhill a good idea",
+"p": 0.71307
+},
+{
+"q": "heard sirens, fire on the mountain near our house",
+"p": 0.96981
+},
+{
+"q": "stuck in a snowdrift with a toddler in the back seat",
+"p": 0.98227
+},
+{
+"q": "partner has severe tummy pain, rigid belly, fainted once, now pale and sweaty, pulse racing",
+"p": 0.99637
+},
+{
+"q": "mum on the phone suddenly started talking gibberish then went quiet, she lives alone",
+"p": 0.97426
+},
+{
+"q": "cgm alarm says 2.5 my child is sleepy but can swallow",
+"p": 0.96586
+},
+{
+"q": "kids slept in the room next to the garage where the car was warming up, now theyre lethargic",
+"p": 0.93157
+},
+{
+"q": "elderly man on a park bench, breathing, not responding, lips a normal colour",
+"p": 0.94192
+},
+{
+"q": "my husband became drowsy and confused after we hiked up to 4000m, we have no oxygen",
+"p": 0.99526
+},
+{
+"q": "snapped a branch into my calf while bushwhacking, wound is shallow but dirty",
+"p": 0.9871
+},
+{
+"q": "should i go up a tall concrete building or try to get inland, the warning says 15 minutes",
+"p": 0.87829
+},
+{
+"q": "should i cover it with cling film or a plaster, the blister is the size of a coin",
+"p": 0.61377
+},
+{
+"q": "toddler swelling round the mouth and coughing nonstop after trying peanut for the first time",
+"p": 0.96967
+},
+{
+"q": "my toddler kicked me hard in the belly, 28 weeks, now some blood",
+"p": 0.98882
+},
+{
+"q": "bite on my ankle, blister forming and skin going black around it",
+"p": 0.99866
+},
+{
+"q": "she's breathing but coughing pink froth after being underwater",
+"p": 0.99784
+},
+{
+"q": "pitched our tent on a hilltop and a storm came in at night",
+"p": 0.95913
+},
+{
+"q": "what does V and X mean made on the ground",
+"p": 0.70581
+},
+{
+"q": "high floor apartment during hurricane where do we shelter",
+"p": 0.94486
+},
+{
+"q": "my toddler is a hurricane, living room looks like a war zone",
+"p": 0.32218
+},
+{
+"q": "tripped the breaker using the hair dryer and microwave at the same time, normal?",
+"p": 0.55079
+},
+{
+"q": "why did the hindenburg catch fire",
+"p": 0.00344
+},
+{
+"q": "what causes lightning",
+"p": 0.06048
+},
+{
+"q": "how do snakes make venom",
+"p": 0.01714
+},
+{
+"q": "what's the difference between weather and climate",
+"p": 0.00584
+},
+{
+"q": "what herbs are toxic to cats, i want to grow a kitchen garden",
+"p": 0.05974
+},
+{
+"q": "the walking dead which season is best",
+"p": 0.00874
+},
+{
+"q": "do i need a bear canister in yosemite backcountry",
+"p": 0.09472
+},
+{
+"q": "do earthquake straps for bookshelves actually work",
+"p": 0.00478
+},
+{
+"q": "sneezing when i look at the sun, why does that happen",
+"p": 0.00738
+},
+{
+"q": "what does 'sink or swim' mean",
+"p": 0.0115
+},
+{
+"q": "ferry from padang bai to lombok what time they leave and is fast boat ok in rainy season",
+"p": 0.02492
+},
+{
+"q": "how do i tell braxton hicks from real contractions",
+"p": 0.04981
+},
+{
+"q": "baby hiccups in womb normal? feels like rhythmic kicks",
+"p": 0.2678
+},
+{
+"q": "what is the difference between gps and gnss on phone",
+"p": 0.00723
+},
+{
+"q": "dengue fever symptoms list for my school project",
+"p": 0.10011
+},
+{
+"q": "camping stove gas canister or liquid fuel for cold weather",
+"p": 0.07556
+},
+{
+"q": "my cold is almost gone just bit runny nose still, can i go back to gym",
+"p": 0.31728
+},
+{
+"q": "fell off skateboard last month, elbow scab finally gone, skin bit darker",
+"p": 0.14895
+},
+{
+"q": "boyfriend started jerking in his sleep, now hes snoring loud and wont wake up properly, theres blood from biting his tongue",
+"p": 0.99825
+},
+{
+"q": "golf course, thunder rumbling closer and the only cover is one big lone tree",
+"p": 0.98763
+},
+{
+"q": "husband eating popcorn on the sofa now clutching his neck, face going purple, no sound coming out at all",
+"p": 0.99958
+},
+{
+"q": "kid picked up a little snake at the campsite and it bit his finger, finger going purple, should we cut it",
+"p": 0.99818
+},
+{
+"q": "stranded on a sandbar after the tide came in, i have a mirror and a red jacket, how do i get anyones attention",
+"p": 0.9536
+},
+{
+"q": "stepped off the curb wrong, foot rolled under me, outside of my ankle swelling like a golf ball cant stand on it",
+"p": 0.999
+},
+{
+"q": "my sons fingers are white and stiff after building a snow fort with no gloves, he says they feel like wood",
+"p": 0.99569
+},
+{
+"q": "whole area blacked out and its getting cold, can i use our gas camping stove inside to heat the room",
+"p": 0.99857
+},
+{
+"q": "my toddler fell into the glass coffee table deep gash on her forehead gushing",
+"p": 0.99352
+},
+{
+"q": "chainsaw kicked back into my dads thigh its pumping out in spurts and his jeans are soaked what do i do",
+"p": 0.992
+},
+{
+"q": "old man in the supermarket car park fell and his leg is bleeding heavily, i think a varicose vein burst",
+"p": 0.99369
+},
+{
+"q": "hand got caught in the meat slicer at work, deli floor all red n slippery, thumb half hanging off",
+"p": 0.958
+},
+{
+"q": "ferry from athens to santorini how long does it take and is the fast one bumpy",
+"p": 0.04705
+},
+{
+"q": "australia customs, do i have to declare wooden souvenirs and hiking boots with mud on",
+"p": 0.21742
+},
+{
+"q": "angkor wat sunrise - which gate should we go in to beat the crowds",
+"p": 0.03133
+},
+{
+"q": "im gluten free by choice, how do i explain that in italian at a restaurant",
+"p": 0.01149
+},
+{
+"q": "pickpockets in barcelona, where should i keep my phone on las ramblas",
+"p": 0.06514
+},
+{
+"q": "freestanding tent or trekking pole tent for the scottish highlands, its always windy there",
+"p": 0.11504
+},
+{
+"q": "niseko or hakuba for powder in february",
+"p": 0.01426
+},
+{
+"q": "my parents are in their 70s, would they manage a river cruise on the mekong",
+"p": 0.03247
+},
+{
+"q": "faroe islands or lofoten for photography in september",
+"p": 0.00161
+},
+{
+"q": "how many blank pages do i need in my passport for south africa",
+"p": 0.00618
+},
+{
+"q": "flying into lukla, how often do flights get cancelled for weather and how many buffer days should i plan",
+"p": 0.01526
+},
+{
+"q": "tip for a liveaboard dive crew in egypt",
+"p": 0.00862
+},
+{
+"q": "how deep is the mariana trench and whats the pressure down there",
+"p": 0.01913
+},
+{
+"q": "black death, how many ppl died in europe",
+"p": 0.0171
+},
+{
+"q": "diff between fission and fusion",
+"p": 0.1761
+},
+{
+"q": "how do solar panels turn light into electricty",
+"p": 0.08188
+},
+{
+"q": "compare btc and eth",
+"p": 0.35004
+},
+{
+"q": "what is a cold wallet",
+"p": 0.01432
+},
+{
+"q": "substitute for buttermilk",
+"p": 0.0312
+},
+{
+"q": "how to prune a mango tree",
+"p": 0.05412
+},
+{
+"q": "how does the safety car work in f1 after a crash",
+"p": 0.0123
+},
+{
+"q": "what does cold feet mean",
+"p": 0.01957
+},
+{
+"q": "my manager fires off emails at midnight, do i have to reply",
+"p": 0.46908
+},
+{
+"q": "how many kb in a gb",
+"p": 0.03031
+},
+{
+"q": "is it true you shouldnt swim for 30 min after eating or youll drown? always wondered if my grandma made that up",
+"p": 0.08103
+},
+{
+"q": "explain shock (the medical kind) like im 12",
+"p": 0.02523
+},
+{
+"q": "are those foil blankets actually any good",
+"p": 0.00366
+},
+{
+"q": "where can i buy contact lens solution in bangkok",
+"p": 0.01577
+},
+{
+"q": "Do I need to declare my antidepressants at customs in Singapore",
+"p": 0.01162
+},
+{
+"q": "normal body temp, is it 37 or 36.6",
+"p": 0.0128
+},
+{
+"q": "my grandad takes warfarin and is doing great, what foods should we avoid cooking for him at xmas",
+"p": 0.11239
+},
+{
+"q": "stiff shoulder from an old rugby injury, healed years ago. yoga or physio?",
+"p": 0.02972
+},
+{
+"q": "remember the ambulance crew who helped my nan last winter, she's home and well. how do i find out which station to send a card to",
+"p": 0.10191
+},
+{
+"q": "david attenborough thing showed a wildebeest with a broken leg left behind, do injured animals ever recover in the wild",
+"p": 0.1968
+},
+{
+"q": "biology exam q: explain why a snake's venom causes paralysis",
+"p": 0.00203
+},
+{
+"q": "Nan is having pain between her shoulder blades and jaw ache, she feels breathless and sick. She is 81.",
+"p": 0.99874
+},
+{
+"q": "think nan muddled her tablets and took a whole week of heart pills this morning, shes a bit dizzy and pulse feels slow. skip tomorrows dose?",
+"p": 0.98672
+},
+{
+"q": "my brother is lying dead still with tummy pain says any movement is unbearable, his stomach is rigid and hes sweating",
+"p": 0.97559
+},
+{
+"q": "mum suddenly doesnt know where she is or who i am she was normal this morning shes hot and shaky",
+"p": 0.89832
+},
+{
+"q": "friend in bali had fever 4 days now bleeding gums, bad tummy pain, vomiting and cold clammy skin",
+"p": 0.99244
+},
+{
+"q": "there is a big shard of glass stuck deep in my daughters foot bleeding around it",
+"p": 0.98289
+},
+{
+"q": "hot oil splashed up my forearm when frying, patch bigger than my hand blistering",
+"p": 0.96815
+},
+{
+"q": "cat bit my hand last night now its red hot swollen and a red line is going up my arm",
+"p": 0.9973
+},
+{
+"q": "my ring finger is swelling round my wedding ring gone purple and numb cant get it off",
+"p": 0.99667
+},
+{
+"q": "i think my toddler ate a coin battery, shes drooling, refusing food and has a croaky cry",
+"p": 0.98032
+},
+{
+"q": "lift stopped and its filling with smoke smell we are 4 people inside",
+"p": 0.96073
+},
+{
+"q": "i stepped over a log and theres a big snake coiled a foot from my leg hissing, im frozen",
+"p": 0.98938
+}
+]

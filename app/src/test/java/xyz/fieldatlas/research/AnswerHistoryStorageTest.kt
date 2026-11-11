@@ -26,6 +26,17 @@ class AnswerHistoryStorageTest {
         runBlocking { assertEquals(130, reopened.diagnosticsEntryCount()) }
     }
 
+    @Test fun aRunStoppedWithOnlyTheCallLineSavesNothing() = withDir { dir ->
+        val store = AnswerHistoryStore(File(dir, "answers.json"), synchronousWrites = true)
+        runBlocking { store.ensureLoaded() }
+        val call = xyz.fieldatlas.emergency.GuideAnswerCheck.callLine("my car broke down on the highway at night", guideFound = false)
+        store.record("question", call, emptyList())
+        store.record("question", "", emptyList())
+        assertEquals(0, store.records.value.size)
+        store.record("question", call + "Stay in the car.", emptyList())
+        assertEquals(call + "Stay in the car.", store.records.value.single().answer)
+    }
+
     @Test fun lowFreeSpaceIsReported() = withDir { dir ->
         val store = AnswerHistoryStore(File(dir, "answers.json"), synchronousWrites = true, freeSpace = { 120L * 1024 * 1024 })
         runBlocking { store.ensureLoaded() }

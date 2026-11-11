@@ -24,6 +24,8 @@ class ResearchOrchestrator(
     private val emergencyGuides: () -> List<xyz.fieldatlas.emergency.EmergencyGuide> = { emptyList() },
     /** Reads a first-aid message the keyword matcher finds no guide for; null where none is bundled (tests). */
     private val emergencyClassifier: () -> xyz.fieldatlas.emergency.EmergencyClassifier? = { null },
+    /** How likely a message is about someone in trouble now (0 to 1), read beside the keyword rules; null where no model is bundled (tests). */
+    private val urgency: (String) -> Double? = { null },
     /** How many of the passages closest in meaning a passage reader is always handed first; 0 hands it only the rules' choice. */
     private val closestFirst: Int = PromptBuilder.CLOSEST_FIRST,
     /** Bundled emergency telephone numbers by country; "what number do I call in Japan?" is answered from these. */
@@ -259,6 +261,12 @@ class ResearchOrchestrator(
             if (numbers == null && guide == null && attachments.isEmpty() && phrase == null &&
                 xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
                 return leading(xyz.fieldatlas.emergency.GuideAnswerCheck.callLine(question, guideFound = false, cautious = !inference.writesFirstAid), core)
+            // A message the rules pass over that reads as someone in trouble now keeps its answer and opens with the call
+            // line: the rules alone gave a baby in a hot locked car, an oil fire and stroke signs on waking no call line
+            // (10 Nov 2026).
+            // Not on a follow-up: the answer it follows already opened with the line, or was a guide.
+            if (numbers == null && guide == null && attachments.isEmpty() && phrase == null && topic == null && readsUrgent(question))
+                return leadingAnAnswer(xyz.fieldatlas.emergency.GuideAnswerCheck.callLine(question, guideFound = false), core)
             return if (numbers == null) core else leading(numbers + "\n\n", core)
         }
         if (calculation.complete) return flow {
@@ -358,6 +366,21 @@ class ResearchOrchestrator(
                 is ResearchEvent.Token -> if (event.replace) ResearchEvent.Token(lead + event.text, replace = true) else event
                 else -> event
             })
+        }
+    }
+
+    /** [leading], taken back when the run ends with nothing under it: the line alone is not an answer. */
+    private fun leadingAnAnswer(lead: String, core: Flow<ResearchEvent>): Flow<ResearchEvent> = flow {
+        var shown = ""
+        leading(lead, core).collect { event ->
+            when (event) {
+                is ResearchEvent.Lead -> shown = event.text.removePrefix(lead)
+                is ResearchEvent.Token -> shown = if (event.replace) event.text.removePrefix(lead) else shown + event.text
+                is ResearchEvent.Complete, is ResearchEvent.Failed, is ResearchEvent.InsufficientEvidence ->
+                    if (AnswerText.visible(shown).isBlank()) emit(ResearchEvent.Token("", replace = true))
+                else -> Unit
+            }
+            emit(event)
         }
     }
 
@@ -1717,6 +1740,26 @@ class ResearchOrchestrator(
         return emergencyGuides().firstOrNull { it.id == label }
     }
 
+    /**
+     * Whether a learned reading of the whole message is sure someone is in trouble now, for a message the keyword rules
+     * pass over. It only adds the call line above the answer and changes no route: the reading also scored "I lost my
+     * passport in Bangkok, what do I do now" at 0.85, and that answer must stay. A word or two says too little to be
+     * read ("no" scored 0.99); every emergency it found that the rules had missed ran to six words or more. A question
+     * asked to learn is not someone in trouble now. A question the app answers itself, or reads as asking for a place,
+     * is left as it is: "where are we right now?" scored 0.83.
+     */
+    private fun readsUrgent(question: String): Boolean {
+        val likely = runCatching { urgency(question) }.getOrNull()?.takeIf { it.isFinite() } ?: return false
+        return likely >= URGENT_ALONE && question.trim().split(Regex("\\s+")).size >= URGENT_ALONE_WORDS &&
+            !xyz.fieldatlas.emergency.GuideAnswerCheck.learning(question) && !answersItself(question)
+    }
+
+    /** Whether the app has an answer of its own for [question]: a greeting, a phrase, a sum, a saved fact, a place or the phone's position. */
+    private fun answersItself(question: String): Boolean =
+        QuestionRequirements.response(question, hasAttachments = false) != null || phraseRequest(question) != null ||
+            Calculators.solve(question) != null || StructuredFieldLookup.ask(question) != null || VenueLookup.isWhereAmI(question) ||
+            VenueLookup.isNearMe(question) || VenueLookup.isPlaceLookup(question) || VenueLookup.landmark(question) != null
+
     private fun guideFor(question: String, topic: TopicEvidence.Carried?): xyz.fieldatlas.emergency.EmergencyGuide? {
         val guides = emergencyGuides()
         if (topic != null) xyz.fieldatlas.emergency.EmergencyGuideMatch.match(topic.asked, guides)?.let {
@@ -1802,6 +1845,10 @@ class ResearchOrchestrator(
         /** Fixed before the sealed set 61 was scored (2 Nov 2026): 17 of the 18 guides it added there were right. */
         const val CLASSIFIER_THRESHOLD = 0.3
         val CLASSIFIER_NEVER = setOf("none", "safe-drinking-water", "signaling")
+        /** A message the rules pass over opens with the call line when the learned reading is at least this sure. */
+        const val URGENT_ALONE = 0.7
+        /** And only when it has at least this many words to read. */
+        const val URGENT_ALONE_WORDS = 4
         val CLASSIFIER_BLOOD = Regex("(?i)\\b(?:blood|bloody|bleed\\w*|spotting|clots?|haemorrhag\\w*|hemorrhag\\w*)\\b")
         /** Opens every first-aid answer a model writes: the call is the app's, never left to the model. */
         /** The fallback for first aid no saved guide covers (measurement): no treatment steps the sources do not support. */

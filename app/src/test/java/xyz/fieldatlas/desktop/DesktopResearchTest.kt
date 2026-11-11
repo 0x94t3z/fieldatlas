@@ -261,7 +261,14 @@ class DesktopResearchTest {
             val numbers = EmergencyNumbers.book(File("src/main/assets/emergency/numbers.json").readText())
             // A fixed test position stands in for the phone's GPS fix.
             val position = config["location"]?.jsonArray?.let { GeoPoint(it[0].jsonPrimitive.double, it[1].jsonPrimitive.double) }
-            ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides }, emergencyNumbers = { numbers }, location = { position },
+            // The app's two bundled readers of an emergency message: the guide classifier, and whether someone is in trouble
+            // now. FIELDATLAS_DESKTOP_URGENCY=0 measures with the keyword rules alone.
+            fun bundled(name: String) = File("src/main/assets/emergency/$name").takeIf { it.isFile }
+                ?.let { xyz.fieldatlas.emergency.EmergencyClassifier.read(it.readBytes()) }
+            val guideClassifier = bundled("classifier.bin")
+            val urgency = if (System.getenv("FIELDATLAS_DESKTOP_URGENCY") == "0") null else bundled("urgent.bin")
+            ResearchOrchestrator(recordingRetriever, gateway, emergencyGuides = { guides }, emergencyClassifier = { guideClassifier },
+                urgency = { asked -> urgency?.probability(asked, "urgent") }, emergencyNumbers = { numbers }, location = { position },
                 // A phone's learned reading speed (estimated tokens per second), so the desktop run
                 // packs the evidence that phone would; unset keeps the unknown-phone default.
                 prefillSpeed = InMemoryPrefillSpeed(System.getenv("FIELDATLAS_DESKTOP_PREFILL_TPS")?.toDoubleOrNull()),

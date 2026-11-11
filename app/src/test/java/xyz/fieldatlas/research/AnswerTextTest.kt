@@ -170,4 +170,19 @@ class AnswerTextTest {
         assertEquals("Answer", AnswerText.visible("Answer<|chan"))
         assertEquals("Answer", AnswerText.visible("Answer<thi"))
     }
+
+    @Test fun aCallLineAloneIsNotAnAnswer() {
+        val line = xyz.fieldatlas.emergency.GuideAnswerCheck.callLine("where is the bus stop", guideFound = false)
+        val now = xyz.fieldatlas.emergency.GuideAnswerCheck.callLine("my husband collapsed and is not breathing", guideFound = false)
+        assertTrue(line.startsWith("**If this is an emergency") && now.startsWith("**Call your local emergency number now"))
+        for (call in listOf(line, now)) {
+            assertEquals("", AnswerText.withoutCallLine(call))
+            assertEquals("", AnswerText.withoutCallLine(call.trim()))
+            assertEquals("Take bus 7 [S1].", AnswerText.withoutCallLine(call + "Take bus 7 [S1]."))
+            assertEquals(CitedExplanation.GAP, AnswerText.withoutCallLine(call + CitedExplanation.GAP))
+        }
+        // Any other answer is left as it is, bold opening or not.
+        assertEquals("**Short answer:** yes.\n\nMore.", AnswerText.withoutCallLine("**Short answer:** yes.\n\nMore."))
+        assertEquals("", AnswerText.withoutCallLine(""))
+    }
 }
