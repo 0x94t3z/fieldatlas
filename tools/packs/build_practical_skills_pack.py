@@ -15,7 +15,7 @@ Usage:
   python3 tools/packs/build_practical_skills_pack.py extract --cache build/practical-skills/cache \
       --output build/practical-skills/passages
   python3 tools/packs/build_practical_skills_pack.py build   --cache build/practical-skills/cache \
-      --output build/practical-skills/out --version 2026.11.10
+      --output build/practical-skills/out --version 2026.11.11
 
 `fetch` downloads each source once, politely, and records publisher, title, edition, URL, final
 URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. `extract` and `build`
@@ -335,7 +335,8 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
                 block.append(line)
             elif block and len(block) >= 4 and sorted(len(b) for b in block)[len(block) // 2] < 22:
                 # A table cell per line: poppler's reading order loses the rows, so a processing
-                # time could be read against the wrong altitude. Tables are left out, not rebuilt.
+                # time could be read against the wrong altitude. The block is left out here;
+                # process_tables reads the table whole from the layout reading or leaves it out.
                 stats["table_blocks_dropped"] = stats.get("table_blocks_dropped", 0) + 1
                 block = []
             elif block:
@@ -1156,9 +1157,10 @@ def attribution(sources: list[dict], lock: dict) -> str:
         "Every passage is quoted from a work of the United States federal government, which is not",
         "subject to copyright in the United States (17 U.S.C. 105). Licence: LicenseRef-US-Government-Work.",
         "Passages are selected, never reworded: only whitespace, line-break hyphenation and running page",
-        "headers and footers were changed. Tables, figures, first aid, medicine and dosing, and the",
-        "identification of wild plants, fungi or animals as food are left out. ATP 3-50.21 is read without",
-        "chapter 2 (survival medicine) and chapter 4 (food). No publisher endorses Field Atlas.",
+        "headers and footers were changed. A table is kept only whole, every row on its own line under its",
+        "headers with its cells joined by \" | \", or left out. Figures, first aid, medicine and dosing, and",
+        "the identification of wild plants, fungi or animals as food are left out. ATP 3-50.21 is read",
+        "without chapter 2 (survival medicine) and chapter 4 (food). No publisher endorses Field Atlas.",
         "",
         "Sources (publisher | title | edition | URL | fetched UTC | SHA-256 of the file read):",
     ]

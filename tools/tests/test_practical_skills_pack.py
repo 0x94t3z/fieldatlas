@@ -545,6 +545,37 @@ def missing_links(section: str, base: Path) -> tuple[list[str], int]:
     return [t for t in targets if not (base / t).is_file()], len(targets)
 
 
+def tables_said_left_out(text: str) -> list[str]:
+    """Sentences that list tables among what is left out (the pack keeps whole tables)."""
+    import re
+    return re.findall(r"[^.]*\btables?\b(?:,| and| or)[^.]*\b(?:are|is) (?:left out|omitted|excluded|refused)[^.]*\.",
+                      " ".join(text.split()), flags=re.IGNORECASE)
+
+
+class PracticalSkillsAttributionTest(unittest.TestCase):
+    OLD = ("Passages are selected, never reworded: only whitespace, line-break hyphenation and running page "
+           "headers and footers were changed. Tables, figures, first aid, medicine and dosing, and the "
+           "identification of wild plants, fungi or animals as food are left out.")
+
+    def credits(self):
+        sources = practical.load_sources(ROOT / "tools/data/practical_skills_sources.json")
+        lock = {"sources": {s["id"]: {"url": s["url"], "fetched": "2026-11-09T00:00:00Z", "sha256": "0" * 64}
+                            for s in sources}}
+        return " ".join(practical.attribution(sources, lock).split())
+
+    def test_the_credits_say_a_table_is_kept_only_whole(self):
+        text = self.credits()
+        self.assertEqual(tables_said_left_out(text), [])
+        self.assertIn('A table is kept only whole, every row on its own line under its headers with its cells '
+                      'joined by " | ", or left out.', text)
+        self.assertIn("Figures, first aid, medicine and dosing, and the identification of wild plants, fungi or "
+                      "animals as food are left out.", text)
+
+    def test_the_old_sentence_is_caught(self):
+        self.assertEqual(len(tables_said_left_out(self.OLD)), 1)
+        self.assertEqual(len(tables_said_left_out("Tables and figures are omitted.")), 1)
+
+
 class PracticalSkillsDatasetsLinkTest(unittest.TestCase):
     def test_every_relative_link_in_the_section_names_a_file(self):
         missing, read = missing_links(practical_section((ROOT / "DATASETS.md").read_text(encoding="utf-8")), ROOT)
