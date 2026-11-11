@@ -272,6 +272,11 @@ python3 tools/packs/build_practical_skills_pack.py build --cache build/practical
   --output build/practical-skills/out --version 2026.11.10
 # then the Leviathan index, as for the other collections (see "Leviathan search" below), on
 # build/practical-skills/out/pack/content.sqlite, packaged with package_search_upgrade.py.
+# The lock of the build listed in DATASETS.md is committed as tools/data/practical_skills_sources.lock.json.
+# A fresh fetch read the same bytes when every source id has the same sha256 in both locks; this prints
+# the ids that differ (an empty list when none do):
+python3 -c 'import json, sys; a, b = (json.load(open(p))["sources"] for p in sys.argv[1:]); print(sorted(i for i in a.keys() | b.keys() if a.get(i, {}).get("sha256") != b.get(i, {}).get("sha256")))' \
+  tools/data/practical_skills_sources.lock.json build/practical-skills/cache/sources.lock.json
 
 # Cryptography & Ethereum: fetch pins every source (EIP/ERC/spec commits, NIST PDFs, Wikipedia
 # revisions) in a lock; build checks the lock, then embed_pack.py and build_vector_pack.py add vectors.

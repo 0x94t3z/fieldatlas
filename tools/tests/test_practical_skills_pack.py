@@ -576,6 +576,35 @@ class PracticalSkillsAttributionTest(unittest.TestCase):
         self.assertEqual(len(tables_said_left_out("Tables and figures are omitted.")), 1)
 
 
+def lock_problems(lock: dict, ids: list[str]) -> list[str]:
+    import re
+    entries = lock.get("sources", {})
+    problems = [f"missing {i}" for i in ids if i not in entries]
+    problems += [f"not listed {i}" for i in entries if i not in ids]
+    problems += [f"sha256 {i}" for i, e in entries.items() if not re.fullmatch(r"[0-9a-f]{64}", str(e.get("sha256")))]
+    return problems
+
+
+class PracticalSkillsLockTest(unittest.TestCase):
+    def load(self):
+        ids = [s["id"] for s in practical.load_sources(ROOT / "tools/data/practical_skills_sources.json")]
+        lock = json.loads((ROOT / "tools/data/practical_skills_sources.lock.json").read_bytes())
+        return lock, ids
+
+    def test_the_committed_lock_covers_every_source(self):
+        lock, ids = self.load()
+        self.assertGreater(len(ids), 0)
+        self.assertEqual(lock["license"], practical.LICENSE)
+        self.assertEqual(lock_problems(lock, ids), [])
+
+    def test_a_missing_source_or_a_bad_hash_is_caught(self):
+        lock, ids = self.load()
+        broken = json.loads(json.dumps(lock))
+        del broken["sources"][ids[0]]
+        broken["sources"][ids[1]]["sha256"] = "0" * 63
+        self.assertEqual(lock_problems(broken, ids), [f"missing {ids[0]}", f"sha256 {ids[1]}"])
+
+
 class PracticalSkillsDatasetsLinkTest(unittest.TestCase):
     def test_every_relative_link_in_the_section_names_a_file(self):
         missing, read = missing_links(practical_section((ROOT / "DATASETS.md").read_text(encoding="utf-8")), ROOT)
