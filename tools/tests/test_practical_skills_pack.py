@@ -531,5 +531,30 @@ class PracticalSkillsQuestionsTest(unittest.TestCase):
         self.assertEqual(len(rows), 30)
 
 
+def practical_section(markdown: str) -> str:
+    start = markdown.index("\n## Practical skills")
+    end = markdown.find("\n## ", start + 1)
+    return markdown[start:] if end < 0 else markdown[start:end]
+
+
+def missing_links(section: str, base: Path) -> tuple[list[str], int]:
+    """Relative Markdown links in the section that name no file under base, and how many were read."""
+    import re
+    targets = [t.split("#")[0] for t in re.findall(r"\]\(([^)\s]+)\)", section)
+               if not re.match(r"[a-z][a-z0-9+.-]*:|#", t)]
+    return [t for t in targets if not (base / t).is_file()], len(targets)
+
+
+class PracticalSkillsDatasetsLinkTest(unittest.TestCase):
+    def test_every_relative_link_in_the_section_names_a_file(self):
+        missing, read = missing_links(practical_section((ROOT / "DATASETS.md").read_text(encoding="utf-8")), ROOT)
+        self.assertGreater(read, 0)
+        self.assertEqual(missing, [])
+
+    def test_a_link_relative_to_the_wrong_folder_is_found(self):
+        section = "\n## Practical skills\n([questions](fieldtest/practical-skills.jsonl)) [ok](docs/fieldtest/practical-skills.jsonl)"
+        self.assertEqual(missing_links(section, ROOT), (["fieldtest/practical-skills.jsonl"], 2))
+
+
 if __name__ == "__main__":
     unittest.main()

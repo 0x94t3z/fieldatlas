@@ -392,7 +392,7 @@ check reads the finished pack and finds every table row, cell for cell, as a row
 line outside a table or recipe that is mostly numbers and units, no recipe without its ingredient
 amounts, and no page chrome. 770 passages: 315 USDA, 215 ATP 3-50.21, 92 NWS, 72 CDC, 75 FEMA and
 1 USGS. Thirty test questions were sealed before the build
-([questions](fieldtest/practical-skills.jsonl), SHA-256
+([questions](docs/fieldtest/practical-skills.jsonl), SHA-256
 `131d9882a4c78a5eea7060ad37e044ee4ebafa8fb4cd8e56e9224ff82fa61469`).
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
