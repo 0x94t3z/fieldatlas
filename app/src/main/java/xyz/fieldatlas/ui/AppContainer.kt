@@ -365,6 +365,7 @@ class AppContainer(context: Context) {
                 gateway.thinkingBudget = offer?.thinkingBudget ?: 0
                 gateway.knowledgeFirst = offer?.knowledgeFirst ?: false
                 gateway.writesFirstAid = offer?.writesFirstAid ?: false
+                gateway.readsPassages = offer?.readsPassages ?: false
             }
             loaded = true
         } finally {

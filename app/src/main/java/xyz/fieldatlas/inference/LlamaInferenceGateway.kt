@@ -110,6 +110,9 @@ class LlamaInferenceGateway internal constructor(
     /** Set by the app for the loaded model (see ModelOffer.writesFirstAid). */
     override var writesFirstAid: Boolean = false
 
+    /** Set by the app for the loaded model (see ModelOffer.readsPassages). */
+    override var readsPassages: Boolean = false
+
     /** Set by the app before a load (see ModelOffer.repackWeights). */
     var repackWeights: Boolean = true
 
@@ -121,6 +124,9 @@ class LlamaInferenceGateway internal constructor(
 
     override fun explainEvidence(prompt: String, maxTokens: Int, savedPrefixChars: Int): Flow<String> =
         generateWithSampling(prompt, maxTokens, null, -1, savedPrefixChars, 1.0f)
+
+    override fun readPassages(prompt: String, maxTokens: Int, systemPrompt: String, savedPrefixChars: Int): Flow<String> =
+        generateWithSampling(prompt, maxTokens, systemPrompt, -1, savedPrefixChars, 1.0f)
 
     private fun generateWithSampling(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int,
         savedPrefixChars: Int, repeatPenalty: Float, thinking: Boolean = false): Flow<String> = flow {

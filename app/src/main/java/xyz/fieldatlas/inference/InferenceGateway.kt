@@ -42,6 +42,16 @@ interface InferenceGateway {
     /** Whether the loaded model writes first-aid answers from the official guide (see ModelOffer.writesFirstAid). */
     val writesFirstAid: Boolean get() = false
 
+    /** Whether the loaded model was trained to answer from numbered passages and cite them (see ModelOffer.readsPassages). */
+    val readsPassages: Boolean get() = false
+
+    /**
+     * One answer written from the numbered passages in [prompt] by a model trained for it, under the [systemPrompt]
+     * it was trained with. Like [explainEvidence], it may repeat a passage's exact terms and figures.
+     */
+    fun readPassages(prompt: String, maxTokens: Int, systemPrompt: String, savedPrefixChars: Int = 0): Flow<String> =
+        generate(prompt, maxTokens, systemPrompt = systemPrompt, savedPrefixChars = savedPrefixChars)
+
     /** Like [generate], with the model's thinking turn open: its reasoning streams first, between the template's marks. */
     fun think(prompt: String, maxTokens: Int, savedPrefixChars: Int = 0): Flow<String> =
         generate(prompt, maxTokens, savedPrefixChars = savedPrefixChars)

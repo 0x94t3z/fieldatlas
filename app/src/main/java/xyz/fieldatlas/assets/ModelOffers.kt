@@ -37,6 +37,12 @@ data class ModelOffer(
      */
     val writesFirstAid: Boolean = false,
     /**
+     * Whether this model was trained to answer from numbered passages, cite them and say when they do not answer. Its
+     * answer is written in one turn and shown as it is written; a model without that training has its draft reviewed
+     * in a second turn before it is shown.
+     */
+    val readsPassages: Boolean = false,
+    /**
      * Whether llama.cpp copies this model's weights into its faster in-memory layouts when loading. The copy cannot be
      * reclaimed by Android: Gemma's took 5.9 GB on a 12 GB phone and got the app killed while loading; mapped from the
      * file instead it needed 0.56 GB and wrote just as fast (13.6 against 13.8 tokens a second).

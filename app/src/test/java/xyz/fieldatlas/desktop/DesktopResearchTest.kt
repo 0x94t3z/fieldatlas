@@ -60,6 +60,28 @@ class DesktopResearchTest {
                 check(vector.sumOf { (it * it).toDouble() } in 0.98..1.02)
             }
         }.orEmpty()
+        // Meaning packs, each attached to the database it was built for, with questions encoded live by a local encoder
+        // server: the search the phone runs since 1.4.8.
+        val meanings = config["meanings"]?.jsonArray.orEmpty().associate { entry ->
+            val o = entry.jsonObject
+            File(o.getValue("database").jsonPrimitive.content).canonicalFile to
+                (File(o.getValue("meaning").jsonPrimitive.content).canonicalFile to Json.decodeFromJsonElement<PackEmbedding>(o.getValue("embedding")))
+        }
+        val embedEndpoint = config["embedEndpoint"]?.jsonPrimitive?.content
+        check(meanings.isEmpty() || (embedEndpoint != null && vectorFixture == null && meanings.keys.all { it in databases }))
+        val encoded = java.util.concurrent.ConcurrentHashMap<String, FloatArray>()
+        fun encode(text: String): FloatArray = encoded.getOrPut(text) {
+            val connection = java.net.URI(embedEndpoint!! + "/v1/embeddings").toURL().openConnection() as java.net.HttpURLConnection
+            try {
+                connection.requestMethod = "POST"; connection.doOutput = true
+                connection.connectTimeout = 5_000; connection.readTimeout = 60_000
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.outputStream.use { it.write(buildJsonObject { put("input", text) }.toString().toByteArray(Charsets.UTF_8)) }
+                check(connection.responseCode == 200) { "Encoder HTTP ${connection.responseCode}" }
+                connection.inputStream.bufferedReader().use { Json.parseToJsonElement(it.readText()).jsonObject }
+                    .getValue("data").jsonArray.first().jsonObject.getValue("embedding").jsonArray.map { it.jsonPrimitive.float }.toFloatArray()
+            } finally { connection.disconnect() }
+        }
         if (vectorFixture != null) {
             check(vectorDatabase in databases)
             check(sha256(vectorDatabase!!) == vectorFixture.getValue("databaseSha256").jsonPrimitive.content)
@@ -94,7 +116,8 @@ class DesktopResearchTest {
                     add("Uses current app orchestration, relevance gate, prompt packing, and answer attribution directly.")
                     if (experiment != null) add("Experimental single-pack Leviathan general search; specialized routes delegate to app. Full passages verified before normal prompt packing. Not Android or production adoption; rank is not comparable BM25 confidence.")
                     add(if (manualEvidence == null) "Uses automatic keyword retrieval." else "Retrieval bypassed with manually selected passages; not a retrieval score or guaranteed sufficient evidence.")
-                    add(if (vectorFixture == null) "Keyword-only: vector encoder not enabled. Not full Android inference parity."
+                    add(if (meanings.isNotEmpty()) "Keyword search plus meaning packs with live question encoding, as on the phone since 1.4.8."
+                        else if (vectorFixture == null) "Keyword-only: vector encoder not enabled. Not full Android inference parity."
                         else "Real vector search/fusion with frozen encoder queries; no live desktop encoding. Missing query fixtures use keyword fallback. Not Android inference parity.")
                     add("Desktop backend, fixed answer seed 17, non-streaming; app first-token/count metrics are not comparable.")
                     add(if (attachedFiles == null) "Native repetition-loop stopping, UI, attachments/OCR and device resources are not tested here."
@@ -144,9 +167,13 @@ class DesktopResearchTest {
                 packEmbeddings = { databases.map { if (it == vectorDatabase) embedding else null } },
                 packDiscoveries = { databases.map { if (it == vectorDatabase) discovery else null } },
                 embedForPack = { expected, text ->
-                    check(expected == embedding)
-                    queryVectors[text]
+                    if (meanings.values.any { it.second == expected }) encode(text)
+                    else {
+                        check(expected == embedding)
+                        queryVectors[text]
+                    }
                 },
+                packMeanings = { databases.map { meanings[it] } },
             )
             val searches = mutableListOf<JsonObject>()
             val experimental = experiment?.let { manifest ->
@@ -251,6 +278,8 @@ class DesktopResearchTest {
                 guideAnswerChecks = System.getenv("FIELDATLAS_DESKTOP_GUIDE_CHECK") == "1",
                 // Measurement: FIELDATLAS_DESKTOP_SMALL_FIRST_AID=careful|cited for first aid no guide matched.
                 smallModelFirstAid = System.getenv("FIELDATLAS_DESKTOP_SMALL_FIRST_AID")?.takeIf { it.isNotBlank() } ?: "fallback",
+                // FIELDATLAS_DESKTOP_CLOSEST_FIRST=0 hands a passage reader only the passages the rules chose.
+                closestFirst = System.getenv("FIELDATLAS_DESKTOP_CLOSEST_FIRST")?.toIntOrNull() ?: PromptBuilder.CLOSEST_FIRST,
                 onEvidencePacked = { packedPrompt = it.prompt }).research(question, attachments = attachments,
                 // The app's "Also use my collections" switch; FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES=1 turns it on.
                 libraryWithFiles = System.getenv("FIELDATLAS_DESKTOP_LIBRARY_WITH_FILES") == "1",
@@ -272,6 +301,9 @@ class DesktopResearchTest {
             answeredSources[seed to question] = sources
             shown[seed to question] = AnswerText.finalized(answer.toString(), sources.size)
             if (metrics == null || error != null) failures++
+            // FIELDATLAS_DESKTOP_MEANING_LEADS=N also records the N closest meaning matches of all packs, untouched by any
+            // rule: the plain search the app's own choice of passages is measured against.
+            val meaningLeads = System.getenv("FIELDATLAS_DESKTOP_MEANING_LEADS")?.toIntOrNull()?.let { multi.meaningLeads(question, it) }
             rows += buildJsonObject {
                 put("question", question)
                 if (listed != question) put("listed", listed)
@@ -283,6 +315,7 @@ class DesktopResearchTest {
                 put("experimentalSearches", JsonArray(experimental?.traces.orEmpty()))
                 put("sources", Json.encodeToJsonElement(sources))
                 put("calls", JsonArray(gateway.calls))
+                meaningLeads?.let { put("meaningLeads", Json.encodeToJsonElement(it)) }
                 packedPrompt?.let { put("packedPrompt", it) }
                 put("visibleAnswer", AnswerText.finalized(answer.toString(), sources.size))
                 put("metrics", Json.encodeToJsonElement(metrics))

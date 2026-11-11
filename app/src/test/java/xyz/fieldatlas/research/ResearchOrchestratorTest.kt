@@ -384,6 +384,70 @@ class ResearchOrchestratorTest {
         first.cancel()
     }
 
+    /** A model trained to read passages: every turn is recorded with the system turn it ran under. */
+    private fun passageReader(turns: MutableList<Pair<String, String?>>, reviews: MutableList<String>, vararg pieces: String) = object : InferenceGateway {
+        override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
+        override val readsPassages = true
+        override suspend fun load(modelPath: String, systemPrompt: String) = Unit
+        override suspend fun unload() = Unit
+        override fun reviewEvidence(prompt: String, savedPrefixChars: Int): Flow<String> = flow { reviews += prompt; emit("SUPPORTED") }
+        override fun generate(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, savedPrefixChars: Int): Flow<String> = flow {
+            turns += prompt to systemPrompt
+            pieces.forEach { emit(it) }
+        }
+    }
+
+    @Test fun aPassageReaderAnswersInOneTurnInTheFormItWasTrainedOn() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val turns = mutableListOf<Pair<String, String?>>(); val reviews = mutableListOf<String>()
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) },
+            passageReader(turns, reviews, "A boat floats because it displaces ", "its own weight of water [S1]."))
+            .research("Why do boats float?").toList()
+        // One turn: no review, no repair. The prompt is tools/evaluation/reader_bench.py's, word for word.
+        assertEquals(turns.toString(), 1, turns.size)
+        assertTrue(reviews.isEmpty())
+        assertEquals("You answer questions offline from the numbered passages you are given.", turns.single().second)
+        assertEquals("Answer the question using only the passages below. End each sentence that uses a passage with its number, " +
+            "like [S2]. If the passages do not answer the question, say \"The saved sources don't say.\" and stop. If they " +
+            "answer only part of it, answer that part and say what they don't cover. Never add medical or first-aid steps " +
+            "that are not in the passages. Keep it under 150 words.\n\nPASSAGES:\n[S1] Boat — Buoyancy\n" + boats.text +
+            "\n\nQUESTION: Why do boats float?", turns.single().first)
+        // The answer is on screen as it is written, not held back as a draft.
+        val tokens = events.filterIsInstance<ResearchEvent.Token>()
+        assertTrue(tokens.any { it.replace && it.text == "A boat floats because it displaces " })
+        assertTrue(events.none { it is ResearchEvent.Drafting })
+        assertEquals("A boat floats because it displaces its own weight of water [S1].", tokens.last().text)
+        assertEquals(setOf("S1"), (events.last() as ResearchEvent.Complete).metrics.citedSourceIds)
+    }
+
+    @Test fun aPassageReaderThatFindsNoAnswerSaysSoAndIsNotAskedFromMemory() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val turns = mutableListOf<Pair<String, String?>>(); val reviews = mutableListOf<String>()
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) },
+            passageReader(turns, reviews, "The saved sources don't say."))
+            .research("Why do boats float in salt water more easily?").toList()
+        assertEquals(turns.toString(), 1, turns.size)
+        assertTrue(reviews.isEmpty())
+        // The gap is said plainly: no second turn from memory, and no excerpts the reader has just found no answer in.
+        assertEquals(CitedExplanation.GAP, events.filterIsInstance<ResearchEvent.Token>().last().text)
+        assertTrue((events.last() as ResearchEvent.Complete).metrics.citedSourceIds.isEmpty())
+    }
+
+    @Test fun aPassageReaderWhoseAnswerCitesNothingIsNotShown() = runBlocking {
+        val boats = Evidence("boat", "boat:0", "Boat — Buoyancy", "Local",
+            "A boat floats because it displaces a weight of water equal to its own weight.", -1.0)
+        val turns = mutableListOf<Pair<String, String?>>(); val reviews = mutableListOf<String>()
+        val events = ResearchOrchestrator(Retriever { _, _, _ -> listOf(boats) },
+            passageReader(turns, reviews, "Boats float because wood is lighter than water."))
+            .research("Why do boats float?").toList()
+        assertEquals(turns.toString(), 1, turns.size)
+        // An answer that cites nothing is not shown; the passage is, labelled as an excerpt and not as an answer.
+        val shown = events.filterIsInstance<ResearchEvent.Token>().last().text
+        assertTrue(shown, "lighter than water" !in shown && "not a generated explanation" in shown)
+    }
+
     private fun knowledgeModel(prompts: MutableList<String>, reviews: MutableList<String>, reply: String, knows: Boolean = false) = object : InferenceGateway {
         override val state = kotlinx.coroutines.flow.MutableStateFlow<InferenceState>(InferenceState.Ready)
         override val knowledgeFirst = knows

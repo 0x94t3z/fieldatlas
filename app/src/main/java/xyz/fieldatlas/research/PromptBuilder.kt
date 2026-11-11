@@ -314,6 +314,72 @@ The person asking is offline, with no internet and maybe no phone signal. Never 
         return packed.copy(prompt = prompt, mixedAnswer = false, savedPrefixChars = opening.length)
     }
 
+    /** The system turn a passage reader was trained under (tools/evaluation/reader_bench.py, SYSTEM). */
+    const val READER_SYSTEM = "You answer questions offline from the numbered passages you are given."
+
+    // The instructions a passage reader was trained and measured with (tools/evaluation/reader_bench.py, INSTRUCTIONS).
+    // A reader is given these words exactly: its training tied citing and admitting gaps to them.
+    private const val READER_INSTRUCTIONS = "Answer the question using only the passages below. End each sentence that uses a " +
+        "passage with its number, like [S2]. If the passages do not answer the question, say \"The saved sources don't say.\" " +
+        "and stop. If they answer only part of it, answer that part and say what they don't cover. Never add medical or " +
+        "first-aid steps that are not in the passages. Keep it under 150 words."
+
+    /**
+     * The selected excerpts as a passage reader was trained to read them (see ModelOffer.readsPassages): the fixed
+     * instructions, each passage under its number and title, then the question. A follow-up is asked as typed, under
+     * the conversation it continues.
+     */
+    internal fun buildReader(question: String, packed: PackedPrompt): PackedPrompt {
+        val opening = READER_INSTRUCTIONS + "\n\nPASSAGES:\n"
+        val passages = packed.sources.joinToString("\n\n") { "[${it.citationId}] ${compactMetadata(it.evidence.title)}\n${it.excerpt}" }
+        val asked = packed.framing?.let { it.conversation.trim() + "\n\nQUESTION: " + it.asked.trim() } ?: ("QUESTION: " + question.trim())
+        return packed.copy(prompt = opening + passages + "\n\n" + asked, mixedAnswer = false, savedPrefixChars = opening.length)
+    }
+
+    /**
+     * How many of the closest passages lead. On 183 questions of a broad sample (10 Nov 2026, blind graders reading the
+     * passages), the reader's passages held the answer for 122 with three first and for 114 with the rules' choice alone.
+     */
+    internal const val CLOSEST_FIRST = 3
+    // About what a phone reads today (the passages of a broad sample averaged 3,700 characters), and one passage's share.
+    private const val CLOSEST_ROOM_CHARS = 4_200
+    private const val CLOSEST_PASSAGE_CHARS = 1_200
+
+    /**
+     * [packed] with [closest], the passages nearest the question in meaning, ahead of the ones the rules chose; those
+     * follow in their order while they fit. The rules pick by titles, word overlap and the kind of question, and drop a
+     * near passage that fails one of them ("what is the hardest natural mineral" lost every match to the rule for
+     * definitions); with no rules at all, search handed over the answer as often as with them.
+     */
+    internal fun closestFirst(question: String, packed: PackedPrompt, closest: List<Evidence>, contextTokenBudget: Int): PackedPrompt {
+        fun id(item: Evidence) = Triple(item.documentId, item.chunkId, item.source)
+        val leads = closest.distinctBy(::id).mapNotNull { item ->
+            wholeSentences(EvidenceRelevance.passageText(item.text).trim(), CLOSEST_PASSAGE_CHARS).takeIf(String::isNotBlank)?.let { item to it }
+        }
+        if (leads.isEmpty()) return packed
+        val budget = (contextTokenBudget.toLong() * CHARS_PER_TOKEN * EVIDENCE_PERCENT / 100).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        // Never less room than the rules' own passages took: a phone that reads slowly keeps its shorter prompt.
+        val room = maxOf(packed.sources.sumOf { it.excerpt.length }, minOf(budget, CLOSEST_ROOM_CHARS))
+        var used = leads.sumOf { it.second.length }
+        val taken = leads.map { id(it.first) }.toSet()
+        val rest = packed.sources.filter { source ->
+            val fits = id(source.evidence) !in taken && used + source.excerpt.length <= room
+            if (fits) used += source.excerpt.length
+            fits
+        }
+        val sources = (leads.map { (item, text) -> PromptSource("", item, text) } + rest)
+            .mapIndexed { index, source -> source.copy(citationId = "S${index + 1}") }
+        return render(question, sources, sources.size, packed.framing).copy(mixedAnswer = packed.mixedAnswer)
+    }
+
+    /** [text] up to [maxChars], ending where a sentence ends when one ends in its second half, else at a word. */
+    private fun wholeSentences(text: String, maxChars: Int): String {
+        if (text.length <= maxChars) return text
+        val cut = text.substring(0, maxChars)
+        val sentence = maxOf(cut.lastIndexOf(". "), cut.lastIndexOf("? "), cut.lastIndexOf("! "), cut.lastIndexOf('\n'))
+        return if (sentence >= maxChars / 2) cut.substring(0, sentence + 1).trimEnd() else cut.substringBeforeLast(' ').trimEnd()
+    }
+
     private fun render(question: String, sources: List<PromptSource>, retrievedCount: Int, framing: Framing? = null): PackedPrompt {
         var fixed = 0
         val prompt = buildString {

@@ -85,6 +85,12 @@ internal class DesktopGateway(
     // The app sets this per model (ModelOffer.writesFirstAid); FIELDATLAS_DESKTOP_WRITES_FIRST_AID=1 stands in for Gemma's.
     override val writesFirstAid: Boolean = System.getenv("FIELDATLAS_DESKTOP_WRITES_FIRST_AID") == "1"
 
+    // The app sets this per model (ModelOffer.readsPassages); FIELDATLAS_DESKTOP_READER=1 stands in for a reader's.
+    override val readsPassages: Boolean = System.getenv("FIELDATLAS_DESKTOP_READER") == "1"
+
+    override fun readPassages(prompt: String, maxTokens: Int, systemPrompt: String, savedPrefixChars: Int): Flow<String> =
+        request(prompt, maxTokens, systemPrompt, -1, 1.0)
+
     override var lastHitLimit: Boolean = false
         private set
 
@@ -95,7 +101,11 @@ internal class DesktopGateway(
         request(prompt, maxTokens, null, -1, 1.0)
 
     private fun request(prompt: String, maxTokens: Int, systemPrompt: String?, seed: Int, repeatPenalty: Double, thinking: Boolean = false): Flow<String> = flow {
-        if (retrievalOnly && maxTokens > RETRIEVAL_ONLY_MAX_TOKENS) { emit("INSUFFICIENT_EVIDENCE"); return@flow }
+        if (retrievalOnly && maxTokens > RETRIEVAL_ONLY_MAX_TOKENS) {
+            // The prompt the model would have read is kept, so the passages it was to be given can be judged.
+            calls += buildJsonObject { put("skippedPrompt", prompt); put("maxTokens", maxTokens) }
+            emit("INSUFFICIENT_EVIDENCE"); return@flow
+        }
         val request = buildJsonObject {
             put("messages", buildJsonArray {
                 add(buildJsonObject { put("role", "system"); put("content", systemPrompt ?: system) })

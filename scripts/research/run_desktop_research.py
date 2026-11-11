@@ -72,6 +72,7 @@ def main():
     parser.add_argument("--attachments", type=Path, help="JSON mapping exact questions to lists of text files to attach, as on the phone")
     parser.add_argument("--follow-ups", type=Path, help='JSON mapping a follow-up as read ({"after": earlier question, "asked": the follow-up as typed}); it reads the earlier answer\'s sources, as on the phone')
     parser.add_argument("--vector-fixture", type=Path, help="Diagnostic frozen query embeddings and matching vector-pack manifest; does not bypass retrieval")
+    parser.add_argument("--meaning-pack", action="append", type=Path, help="Unpacked meaning pack folder (manifest.json, content.sqlite, encoder.gguf) for one of the databases; repeat for several. Questions are encoded live, as on the phone")
     parser.add_argument("--location", help="Test GPS position LAT,LON for near-me questions, as the phone's fix")
     parser.add_argument("--answer-policy", choices=["app", "source-only", "source-partial", "evidence-first", "bounded-summary"], default="app", help="Diagnostic policy override; source-only uses the existing app strict policy")
     parser.add_argument("--server", type=Path, default=ROOT / "build/desktop-llama/bin/llama-server")
@@ -134,6 +135,35 @@ def main():
             parser.error("Vector fixture database does not match an enabled database")
         config["vectorFixture"] = fixture
         config["provenance"]["vectorFixtureSha256"] = hashlib.sha256(args.vector_fixture.read_bytes()).hexdigest()
+    encoder = None
+    if args.meaning_pack:
+        # A meaning pack is searched through the exact pack it was built for; the manifest beside each database names it.
+        editions = {}
+        for database in databases:
+            manifest = database.parent / "manifest.json"
+            if manifest.is_file():
+                data = json.loads(manifest.read_text())
+                editions[(data["id"], data["version"])] = database
+        meanings = []
+        for folder in args.meaning_pack:
+            folder = folder.resolve()
+            embedding = json.loads((folder / "manifest.json").read_text())["embedding"]
+            source = embedding["passagesFrom"]
+            database = editions.get((source["id"], source["version"]))
+            if database is None:
+                parser.error(f"No database is the edition {source} that {folder.name} was built for")
+            pack_encoder = folder / embedding["encoderPath"]
+            if hashlib.sha256(pack_encoder.read_bytes()).hexdigest() != embedding["encoderSha256"]:
+                parser.error(f"Encoder of {folder.name} does not match its manifest")
+            if encoder is not None and embedding["encoderSha256"] != meanings[0]["embedding"]["encoderSha256"]:
+                parser.error("Meaning packs must share one encoder")
+            encoder = encoder or pack_encoder
+            meanings.append({"database": str(database), "meaning": str(folder / "content.sqlite"), "embedding": embedding})
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", args.port + 1))
+        config["meanings"] = meanings
+        config["embedEndpoint"] = f"http://127.0.0.1:{args.port + 1}"
+        config["provenance"]["meaningPacks"] = [str(folder) for folder in args.meaning_pack]
     if args.location:
         lat, lon = (float(part) for part in args.location.split(","))
         config["location"] = [lat, lon]
@@ -177,7 +207,25 @@ def main():
     output.write_text(json.dumps({"status": "STARTING", "qualityVerdict": "UNSCORED", "provenance": config["provenance"]}, indent=2))
     with (output.parent / "server.log").open("w") as log:
         process = subprocess.Popen(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT)
+        # The question encoder, served as tools/packs/embed_pack.py serves it for passages: CLS pooling, L2-normalized.
+        embedder = subprocess.Popen([str(server), "-m", str(encoder), "--embedding", "--pooling", "cls", "--embd-normalize", "2",
+                                     "--host", "127.0.0.1", "--port", str(args.port + 1), "-c", "2048", "-np", "4", "--cache-ram", "0"],
+                                    cwd=ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) if encoder else None
         try:
+            if embedder is not None:
+                deadline = time.monotonic() + 60
+                while True:
+                    if embedder.poll() is not None:
+                        raise RuntimeError("Encoder server exited")
+                    try:
+                        with urllib.request.urlopen(config["embedEndpoint"] + "/health", timeout=2) as response:
+                            if response.status == 200:
+                                break
+                    except (urllib.error.URLError, TimeoutError):
+                        pass
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Encoder server did not become ready within 60 seconds")
+                    time.sleep(0.5)
             deadline = time.monotonic() + 120
             while True:
                 if process.poll() is not None:
@@ -213,12 +261,15 @@ def main():
             output.write_text(json.dumps(report, indent=2))
             raise
         finally:
-            process.terminate()
-            try:
-                process.wait(timeout=15)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+            for running in (process, embedder):
+                if running is None:
+                    continue
+                running.terminate()
+                try:
+                    running.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    running.kill()
+                    running.wait()
 
 
 if __name__ == "__main__":

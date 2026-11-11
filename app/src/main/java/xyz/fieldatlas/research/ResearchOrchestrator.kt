@@ -24,6 +24,8 @@ class ResearchOrchestrator(
     private val emergencyGuides: () -> List<xyz.fieldatlas.emergency.EmergencyGuide> = { emptyList() },
     /** Reads a first-aid message the keyword matcher finds no guide for; null where none is bundled (tests). */
     private val emergencyClassifier: () -> xyz.fieldatlas.emergency.EmergencyClassifier? = { null },
+    /** How many of the passages closest in meaning a passage reader is always handed first; 0 hands it only the rules' choice. */
+    private val closestFirst: Int = PromptBuilder.CLOSEST_FIRST,
     /** Bundled emergency telephone numbers by country; "what number do I call in Japan?" is answered from these. */
     private val emergencyNumbers: () -> xyz.fieldatlas.emergency.NumberBook? = { null },
     /** Learned prompt-reading speed; sizes file evidence to the phone. */
@@ -672,11 +674,20 @@ class ResearchOrchestrator(
             // place lookups keep their own sources).
             if (includeLibrary && !placesOnly) evidence = TopicEvidence.merge(evidence, topic, resultLimit, carriedAhead)
 
+            // A passage reader is handed the passages closest to the question in meaning first, whatever the rules here
+            // make of them; the passages the rules choose follow in the room left (PromptBuilder.closestFirst). Not for
+            // first aid, places, exact rules, phrases or the person's own files, which keep their own sources.
+            val closest = if (closestFirst > 0 && inference.readsPassages && includeLibrary && attachments.isEmpty() && !placesOnly &&
+                technicalFocus == null && phraseAsk == null && preferredGuideId == null && !xyz.fieldatlas.emergency.GuideAnswerCheck.firstAidQuestion(question))
+                retriever.meaningLeads(question, closestFirst).map { it.copy(matchedBy = it.matchedBy ?: "concept match ${"%.2f".format(it.score)}") }
+            else emptyList()
+
             // Query planning is a fallback, not a tax on every lookup. Exact/title/vector hits
             // answer immediately; only a weak first pass spends one short model turn finding
             // synonyms. This removes the two 96-token planning turns that dominated phone time.
             var keywords = emptyList<String>()
-            if (attachments.isEmpty() && evidence.isEmpty() && phraseAsk == null && technicalFocus == null && retriever.hasEligiblePacks(question) &&
+            // With close passages in hand the reader has something to read: no model turn is spent on finding synonyms.
+            if (attachments.isEmpty() && evidence.isEmpty() && closest.isEmpty() && phraseAsk == null && technicalFocus == null && retriever.hasEligiblePacks(question) &&
                 !EvidenceRelevance.isShortCausalQuestion(question) &&
                 !EvidenceRelevance.missingRequestedIdentifier(question, evidence) &&
                 !EvidenceRelevance.missingNamedMechanism(question, evidence)) {
@@ -1085,7 +1096,7 @@ class ResearchOrchestrator(
                 ?.let { PromptBuilder.Framing(it.asked, FollowUp.conversation(it.earlier)) }
             // Ranked candidates beyond what fits are cheap; packing keeps only what the budget allows.
             val selection = if (attachments.isNotEmpty()) AttachmentEvidence.select(question, attachments, maxOf(ATTACHMENT_CANDIDATES, attachments.size)) else null
-            val packed = if (selection != null) {
+            val packedByRules = if (selection != null) {
                 AttachmentEvidence.pack(question, selection, evidence,
                     minOf(8192, inference.contextWindowTokens) - inference.promptOverheadTokens - outputBudget,
                     evidenceTokens = PrefillSpeed.fileEvidenceTokens(prefillSpeed.tokensPerSecond), includeLibrary = includeLibrary)
@@ -1101,6 +1112,7 @@ class ResearchOrchestrator(
                     prefillSpeed.tokensPerSecond, framing,
                     searchLead = searchLead?.takeIf { lead -> evidence.any { it.documentId == lead.documentId && it.chunkId == lead.chunkId } })
             }
+            val packed = PromptBuilder.closestFirst(question, packedByRules, closest, contextTokenBudget)
             onEvidencePacked(packed)
             DeviceEvidenceGap.response(question, packed.sources.map { it.evidence.copy(text = it.excerpt) })?.let { gap ->
                 emit(ResearchEvent.Token(gap))
@@ -1278,8 +1290,12 @@ class ResearchOrchestrator(
             // their literal behavior. Never expose an unvalidated streaming draft.
             // The reply a rejected cited draft would have had, kept in case no route below answers.
             var unconfirmed: String? = null
+            // A model trained to read passages (ModelOffer.readsPassages) writes the cited answer in one turn, shown as it
+            // is written. The checks below that need no model still apply; the review and repair turns are not run. The
+            // person's own files keep the reviewed draft: the reader was trained on passages from the collections.
+            val reader = inference.readsPassages && attachments.isEmpty()
             if (packed.sources.isNotEmpty() && phraseAsk == null && !CitedExplanation.explicitlyRequestsQuotes(question)) {
-                val explanation = PromptBuilder.explain(question, packed)
+                val explanation = if (reader) PromptBuilder.buildReader(question, packed) else PromptBuilder.explain(question, packed)
                 onEvidencePacked(explanation)
                 emit(ResearchEvent.Token(""))
                 val draft = StringBuilder()
@@ -1290,20 +1306,24 @@ class ResearchOrchestrator(
                 var partial = false
                 // A model that fails here (out of memory, a native error) leaves the draft unconfirmed: the
                 // question still gets the saved-text routes below, as it did before cited explanations.
+                val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
                 try {
-                inference.explainEvidence(explanation.prompt, CitedExplanation.outputBudget(question, outputBudget),
-                    savedPrefixChars = explanation.savedPrefixChars).collect { token ->
+                val budget = CitedExplanation.outputBudget(question, outputBudget)
+                (if (reader) inference.readPassages(explanation.prompt, budget, PromptBuilder.READER_SYSTEM, explanation.savedPrefixChars)
+                    else inference.explainEvidence(explanation.prompt, budget, savedPrefixChars = explanation.savedPrefixChars)).collect { token ->
                     if (first == null) first = monotonicMillis()
                     tokens++
                     draft.append(token)
-                    emit(ResearchEvent.Drafting(tokens))
+                    // What streams passes the same removals as the final text below.
+                    if (reader) emit(ResearchEvent.Token(AnswerChecks.removeDoses(
+                        AnswerChecks.removeOnlineAdvice(draft.toString(), question), question, selectedEvidence), replace = true))
+                    else emit(ResearchEvent.Drafting(tokens))
                 }
                 // Only the part of the prompt the engine read counts: a restored evidence block costs no reading time.
                 first?.let { at ->
                     val read = if (inference.reusedPromptTokens > 0) explanation.prompt.substring(explanation.savedPrefixChars) else explanation.prompt
                     prefillSpeed.tokensPerSecond = PrefillSpeed.update(prefillSpeed.tokensPerSecond, TokenEstimate.of(read), at - generationStart)
                 }
-                val selectedEvidence = packed.sources.map { it.evidence.copy(text = it.excerpt) }
                 val dosed = AnswerChecks.removeDoses(AnswerChecks.removeOfflineNarration(
                     AnswerChecks.removeOnlineAdvice(draft.toString(), question), question), question, selectedEvidence)
                 // The app's own notes ("amounts of medicine are left out…") carry no citation; they are set aside
@@ -1322,7 +1342,7 @@ class ResearchOrchestrator(
                 // An answer from the person's own files is not sent to the model's review: on 24 sealed file questions
                 // (set 31) the review rejected most correct drafts ("your T-score is -2.7 [S1]"), and the file is in
                 // front of the person to check. The citation, scope and dose checks above still apply.
-                val reviewed = attachments.isEmpty() || includeLibrary
+                val reviewed = !reader && (attachments.isEmpty() || includeLibrary)
                 if (reviewed && finished != CitedExplanation.UNAVAILABLE && finished != CitedExplanation.GAP) {
                     val review = StringBuilder()
                     emit(ResearchEvent.Drafting(tokens, checking = true))
@@ -1331,7 +1351,7 @@ class ResearchOrchestrator(
                     // Fail closed on an ambiguous, truncated or negative verdict.
                     if (!CitedExplanation.reviewPassed(review.toString())) finished = CitedExplanation.UNAVAILABLE
                 }
-                if (finished == CitedExplanation.UNAVAILABLE) {
+                if (finished == CitedExplanation.UNAVAILABLE && !reader) {
                     // One bounded repair attempt; never reveal the rejected draft.
                     val retry = StringBuilder()
                     val repairShape = if (packed.sources.size > 1 && EvidenceRelevance.conceptualComparisonSubjects(question).size == 2)
@@ -1499,7 +1519,10 @@ class ResearchOrchestrator(
             // model paraphrase can strengthen an observed condition into an operating
             // rule even when its attribution is labelled unverified. Specialized routes
             // above and model-only/attachment/phrase/guide paths keep their behavior.
-            if (attachments.isEmpty() && phraseAsk == null && travelPlace == null && !topicGuideRead) {
+            // A passage reader that read these excerpts and found no answer in them is taken at its word: on 60 questions
+            // (10 Nov 2026) the excerpts shown after its "the sources don't say" were off the subject every time.
+            val readerFoundNothing = reader && unconfirmed == CitedExplanation.GAP
+            if (attachments.isEmpty() && phraseAsk == null && travelPlace == null && !topicGuideRead && !readerFoundNothing) {
                 GroundedKnowledgeAnswer.answer(question, packed)?.let { grounded ->
                     emit(ResearchEvent.Token(grounded))
                     val audit = AnswerText.citationAudit(grounded, packed.sources.size)
@@ -1517,7 +1540,9 @@ class ResearchOrchestrator(
             // After a rejected draft, only a mixed answer may be generated again: its model part is
             // labelled unverified. A strictly cited answer (places, for one) would repeat the
             // rejected claim with citations that look checked, so it stops with the gap instead.
-            unconfirmed?.takeIf { !packed.mixedAnswer }?.let { reply ->
+            // A passage reader that found no answer in the passages is not asked again from its own memory either: the
+            // saved-text routes above still answer, and otherwise the gap is said plainly.
+            unconfirmed?.takeIf { reader || !packed.mixedAnswer }?.let { reply ->
                 emit(ResearchEvent.Token(reply, replace = true))
                 emit(ResearchEvent.Complete(ResearchMetrics(
                     retrievalMillis = elapsed(startedAt, retrievalFinishedAt),
