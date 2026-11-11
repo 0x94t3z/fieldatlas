@@ -397,16 +397,18 @@ amounts, and no page chrome. 770 passages: 315 USDA, 215 ATP 3-50.21, 92 NWS, 72
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.10-leviathan | 780,615 | `de1542a7d94e2f8af294a67121dc2adaed55e66f7fb940e5fb8caa666c21dd3f` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.11-leviathan | 780,673 | `9e70bbc3e8229ce363d1736aadcc11d3477c25a451a819d43a69e842aed7ae5d` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
 
-The keyword-only build (`practical-skills`, version `2026.11.10`, schema 1) is 1,347,012 bytes,
-SHA-256 `611ef1b196b64d4b86d8056bd13ec243a33693b3115a5b9670030380e52ab7a9`, and rebuilds byte for
-byte from the locked sources. `2026.11.10-leviathan` holds the same passages with a Leviathan 0.2.0
+The keyword-only build (`practical-skills`, version `2026.11.11`, schema 1) is 1,347,121 bytes,
+SHA-256 `573d68c4db6cd412511420183faafaa252b6affa1ddca385761bbeaf8bb3afa0`, and rebuilds byte for
+byte from the locked sources. `2026.11.11-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
---compressed`) and installs to 2,174,827 bytes; the Leviathan index is not byte-identical between
+--compressed`) and installs to 2,174,936 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
 inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
-`LicenseRef-US-Government-Work`) beside them. It has no meaning-search vectors.
+`LicenseRef-US-Government-Work`) beside them; the lock of this build is
+[tools/data/practical_skills_sources.lock.json](tools/data/practical_skills_sources.lock.json). It has no
+meaning-search vectors.
 
 ## Encyclopedia: search by meaning (November 2)
 
