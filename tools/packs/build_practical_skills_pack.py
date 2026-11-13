@@ -6,7 +6,9 @@ safe water; shelter; fire; signalling for rescue; reading the weather; basic nav
 Out of scope, and refused by `check_passage`: first aid, medicine and dosing, and identifying
 wild plants, fungi or animals as food. ATP 3-50.21 is read without chapter 1 (an overview with no
 procedure), chapter 2 (survival medicine) and chapter 4 (food: wild plants, trapping, butchering),
-and without its field-expedient weapons (spears, clubs, bows and arrows, throwing sticks, slings).
+without its field-expedient weapons (spears, clubs, bows and arrows, throwing sticks, slings), without
+water from plants (it needs plant identification), and without table 3-1, which plain reading order
+gives cell by cell (drop_spans in the source list: whole runs of lines, start to end, across pages).
 
 Sources are listed in tools/data/practical_skills_sources.json, each a work of the US federal
 government (LicenseRef-US-Government-Work).
@@ -16,7 +18,7 @@ Usage:
   python3 tools/packs/build_practical_skills_pack.py extract --cache build/practical-skills/cache \
       --output build/practical-skills/passages
   python3 tools/packs/build_practical_skills_pack.py build   --cache build/practical-skills/cache \
-      --output build/practical-skills/out --version 2026.11.13
+      --output build/practical-skills/out --version 2026.11.14
 
 `fetch` downloads each source once, politely, and records publisher, title, edition, URL, final
 URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. A body shorter than
@@ -301,8 +303,11 @@ def bullet_glyph(text: str) -> str:
     """ATP 3-50.21 sets its list bullets in a symbol font that poppler maps to the C1 control
     character U+0083. It only ever stands where the page prints a bullet, so it is read as "•",
     in every reading of every source alike (the proof compares like with like), and a bullet
-    starts its own line as in the other sources."""
-    return text.replace("\u0083", "\u2022")
+    starts its own line as in the other sources. Its first-level bullet comes through as a "z" set
+    alone before the item ("z Purification tablets."); a lone "z" opening a line before a capital or
+    a digit is that bullet, never a word, and is read as "•" too."""
+    text = text.replace("\u0083", "\u2022")
+    return re.sub(r"(?m)^([ \t]*)z (?=[A-Z0-9\u201c\"(])", "\\1\u2022 ", text)
 
 
 def pdftotext_version() -> str:
@@ -354,6 +359,10 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
     exclude = rules.get("exclude_pages", [])
     vocabulary = set(w.lower() for w in re.findall(r"[A-Za-z]{3,}", "\n".join(pages)))
     paragraphs, stats = [], {"pages": len(pages), "pages_used": 0, "lines_dropped": 0}
+    # A span runs from a line its first pattern matches to the line its second matches (kept), across
+    # pages: a table read cell by cell, or a run of numbered paragraphs left out whole.
+    spans = [(re.compile(a), re.compile(b)) for a, b in rules.get("drop_spans", [])]
+    in_span, span_seen = None, [False] * len(spans)
     named = {h.lower() for h in source.get("keep_sections", []) + source.get("exclude_sections", [])}
     for number, page in enumerate(pages, start=1):
         if not in_ranges(number, include) or in_ranges(number, exclude):
@@ -362,6 +371,17 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
         block = []
         for line in page.splitlines() + [""]:
             line = squash(line)
+            if line and in_span is None:
+                for k, (start, _) in enumerate(spans):
+                    if start.search(line):
+                        in_span, span_seen[k] = k, True
+                        break
+            if line and in_span is not None:
+                if spans[in_span][1].search(line):
+                    in_span = None
+                else:
+                    stats["lines_in_dropped_spans"] = stats.get("lines_in_dropped_spans", 0) + 1
+                    continue
             if line and (DOT_LEADER.search(line) or any(r.search(line) for r in drop)):
                 stats["lines_dropped"] += 1
                 continue
@@ -380,6 +400,8 @@ def pdf_sections(source: dict, raw: bytes) -> tuple[list[tuple[str, str]], dict]
                 paragraph = join_lines(block, vocabulary)
                 paragraphs.append(("h" if is_heading(paragraph) else "p", paragraph))
                 block = []
+    if in_span is not None or not all(span_seen):
+        raise ValueError(f"{source['id']}: a drop_spans rule did not open and close (rule would not hold)")
     paragraphs, stats["table_fragments_dropped"] = drop_table_fragments(paragraphs)
     return group_sections(source, paragraphs), stats
 
@@ -585,7 +607,10 @@ def entry_problem(text: str) -> str | None:
     return None
 
 
-ENTRY_HEAD = re.compile(r"^[A-Z0-9][A-Z0-9 ,.'’()/&%*\-\u2013\u2014]{3,}$")
+# A capitalised entry name, which may end in a lower-case note in brackets ("CHILE SALSA (Hot
+# Tomato-Pepper Sauce)", "TOMATOES—CRUSHED (with no added liquid)"). Without the bracket rule such a
+# name was read as text, so its recipe ran on inside the entry before it.
+ENTRY_HEAD = re.compile(r"^[A-Z0-9][A-Z0-9 ,.'’()/&%*\-\u2013\u2014]{3,}(?: \([^()]{2,60}\))?$")
 PAGE_NUMBER = re.compile(r"^\s*(?:\d|[ivx]+|\d-\d+)\s*$")
 
 
@@ -1088,7 +1113,8 @@ def reference_text(source: dict, raw: bytes) -> str:
 
 # Contents pages, table footnotes ("* This amount is also adequate..."), and text that sends the
 # reader to a table ("according to the ingredients in the table").
-PROSE_NEEDS_TABLE = re.compile(r"(?i)\bTable of Contents\b|^\*|\b(?:the|this|following|above|below) table\b|\btable (?:below|above)\b")
+PROSE_NEEDS_TABLE = re.compile(r"(?i)\bTable of Contents\b|^\*|\b(?:the|this|following|above|below) table\b(?! sugar| salt)|"
+                               r"\btable (?:below|above)\b")
 
 
 def general_prose(sections: list[tuple[str, str]], prose_lines: list[str]) -> tuple[list[tuple[str, str]], dict]:
@@ -1330,7 +1356,7 @@ def main() -> int:
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     parser.add_argument("--cache", type=Path, default=ROOT / "build/practical-skills/cache")
     parser.add_argument("--output", type=Path, default=ROOT / "build/practical-skills/out")
-    parser.add_argument("--version", default="2026.11.13")
+    parser.add_argument("--version", default="2026.11.14")
     args = parser.parse_args()
     if args.action == "fetch":
         fetch(args.sources, args.cache)

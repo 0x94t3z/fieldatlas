@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 import unittest
@@ -691,7 +692,7 @@ class PracticalSkillsReview2ScopeTest(unittest.TestCase):
         tadd = practical.group_sections(sources["nws-flood-tadd"], [
             ("h", "1. Use of Turn Around Don't Drown® in Road Signs"), ("p", "Signs warn drivers."),
             ("h", "2. Use of Turn Around Don't Drown® Phrase on Social Media"), ("p", "This limited permission is given."),
-            ("h", "3. External Use of Turn Around Don't Drown® Phrase"), ("p", "Mark.Glaudemans@noaa.gov")])
+            ("h", "3. External Use of Turn Around Don't Drown® Phrase"), ("p", "Jane.Doe@example.gov")])
         self.assertEqual(tadd, [("1. Use of Turn Around Don't Drown® in Road Signs", "Signs warn drivers.")])
         intro = practical.group_sections(sources["usda-canning-intro"], [
             ("h", "Complete Guide to"), ("p", "Acknowledgments The creation of an Extension Service Center."),
@@ -744,3 +745,67 @@ class PracticalSkillsGuideProseTest(unittest.TestCase):
         for paragraph in text.split("\n\n"):
             self.assertNotIn(practical.proof_key(paragraph), entry_keys)
             self.assertIsNone(practical.recipe_problem(paragraph))
+
+
+class PracticalSkillsReview3Test(unittest.TestCase):
+    def test_the_atp_first_level_bullet_reads_as_a_bullet(self):
+        self.assertEqual(practical.bullet_glyph("z Purification tablets.\n  z Step 1. Push"), "• Purification tablets.\n  • Step 1. Push")
+        for text in ("z z z", "zinc and z values", "the z axis"):  # not a bullet: left as it is
+            self.assertEqual(practical.bullet_glyph(text), text)
+        atp = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}["army-atp-3-50-21"]["pdf"]
+        self.assertTrue(any(re.search(r, "z z z") for r in atp["drop_lines"]))  # the empty figure bullets
+
+    def test_a_capitalised_name_may_end_in_a_note_in_brackets(self):
+        for name in ("CHILE SALSA (Hot Tomato-Pepper Sauce)", "TOMATOES—CRUSHED (with no added liquid)", "RECIPES"):
+            self.assertTrue(practical.ENTRY_HEAD.match(name), name)
+        for line in ("Chile Salsa (Hot Tomato-Pepper Sauce)", "CHILE SALSA (Hot) and (mild)", "IMPORTANT: Follow the directions"):
+            self.assertFalse(practical.ENTRY_HEAD.match(line), line)
+
+    def test_table_sugar_is_not_a_table(self):
+        sections, stats = practical.general_prose([("Syrups", "Other sweeteners: light corn syrups may replace up to half the table sugar.")],
+                                                  ["Other sweeteners: light corn syrups may replace up to half the table sugar."])
+        self.assertEqual(stats["prose_paragraphs_kept"], 1)
+        self.assertTrue(practical.PROSE_NEEDS_TABLE.search("Use the amounts given in the table below."))  # control
+
+    def test_a_drop_span_runs_across_pages_and_fails_closed(self):
+        pages = ["3-7. Carry water in any container.\n\nTable 3-1. Means to make potable water\nx Snow and ice\nx Melt and purify",
+                 "Table 3-1. Means to make potable water (continued)\nx Ground\n3-8. Store water containers upside down in the cold."]
+        source = {"id": "army-atp-3-50-21", "kind": "pdf", "pdf": {"drop_spans": [["^Table 3-1\\. Means to make potable water", "^3-8\\. "]]}}
+        with mock.patch.object(practical, "pdf_pages", return_value=pages):
+            sections, stats = practical.pdf_sections(source, b"")
+        text = "\n\n".join(body for _, body in sections)
+        self.assertIn("3-7. Carry water in any container.", text)
+        self.assertIn("3-8. Store water containers upside down in the cold.", text)
+        self.assertNotIn("Snow and ice", text)
+        self.assertNotIn("Ground", text)
+        broken = {**source, "pdf": {"drop_spans": [["^Table 9-9\\.", "^3-8\\. "]]}}
+        with mock.patch.object(practical, "pdf_pages", return_value=pages):
+            with self.assertRaises(ValueError):
+                practical.pdf_sections(broken, b"")
+
+    def test_the_source_list_leaves_out_what_review_3_named(self):
+        sources = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}
+        spans = sources["army-atp-3-50-21"]["pdf"]["drop_spans"]
+        self.assertIn(["^WATER FROM PLANTS$", "^BELOW-GROUND SOLAR STILL$"], spans)
+        self.assertIn(["^Table 3-1\\. Means to make potable water", "^3-8\\. "], spans)
+        self.assertIn("Ingredients Added to Each Cup of Strained Juice", sources["usda-canning-guide-7"]["exclude_sections"])
+
+
+@unittest.skipUnless((CACHE / "sources.lock.json").exists() and shutil.which("pdftotext"),
+                     "needs the fetched sources (FIELDATLAS_PRACTICAL_CACHE) and pdftotext")
+class PracticalSkillsReview3SourcesTest(unittest.TestCase):
+    def test_water_from_plants_and_table_3_1_are_out_and_the_salsa_rule_is_in(self):
+        lock = json.loads((CACHE / "sources.lock.json").read_bytes())
+        sources = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}
+        atp = practical.read_cached(CACHE, lock, "army-atp-3-50-21")
+        text = "\n\n".join(body for _, body in practical.pdf_sections(sources["army-atp-3-50-21"], atp)[0])
+        for gone in ("3-17. Green bamboo", "3-23. Water trees", "x Snow and ice", "Melt and purify", "Means to make potable water"):
+            self.assertNotIn(gone, text)
+        for kept in ("3-8. Water containers in a cold weather environment", "3-28. To make a belowground solar still"):
+            self.assertIn(kept, text)
+        raw = practical.read_cached(CACHE, lock, "usda-canning-guide-3")
+        entries, _, layout_text = practical.layout_entries(sources["usda-canning-guide-3"], raw)
+        rule = next(e["text"] for e in entries if e["heading"] == "Recipes")
+        self.assertIn("The only changes you can safely make in these salsa recipes", rule)
+        self.assertIn(practical.proof_key(rule.split("\n\n", 1)[1]), practical.proof_key(layout_text))
+        self.assertNotIn("Yield:", rule)  # the rule alone, not the next recipe

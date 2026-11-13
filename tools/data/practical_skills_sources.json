@@ -155,7 +155,11 @@
         "process_tables": true,
         "layout_entries": true
       },
-      "default_heading": "Introduction"
+      "default_heading": "Introduction",
+      "exclude_sections": [
+        "Ingredients Added to Each Cup of Strained Juice"
+      ],
+      "notes": "\"Ingredients Added to Each Cup of Strained Juice\" is a table's header, not a heading for text: the step read under it belongs to a jelly procedure whose amounts are in that table."
     },
     {
       "id": "fema-are-you-ready",
@@ -545,10 +549,21 @@
           "^Chapter \\d+$",
           "^(?:\\d+|A)-\\d+$",
           "[\\x00-\\x08\\x0b-\\x1f]",
-          "6HSWHPEHU"
+          "6HSWHPEHU",
+          "^z(?: z)*$"
+        ],
+        "drop_spans": [
+          [
+            "^Table 3-1\\. Means to make potable water",
+            "^3-8\\. "
+          ],
+          [
+            "^WATER FROM PLANTS$",
+            "^BELOW-GROUND SOLAR STILL$"
+          ]
         ]
       },
-      "notes": "Chapter 2 (survival medicine, PDF pages 19-54) and chapter 4 (food: wild plants, trapping, butchering, fish; pages 71-116) are never read; the glossary, references and index (221-228) are left out. Chapter 1 (overview, pages 13-18) is left out too: it sets out survival doctrine and has no procedure. Arrow points, throwing sticks, bows and arrows and slings with sling shots and the sap (chapter 8, paragraphs 8-25 to 8-37, and the end of 8-31 carried over the page) are left out by their paragraph numbers, and the scope filter refuses archery and throwing sticks anywhere, like spears and clubs; the bow and drill of chapter 5 (fire) and the rescue sling of appendix A stay.",
+      "notes": "Chapter 2 (survival medicine, PDF pages 19-54) and chapter 4 (food: wild plants, trapping, butchering, fish; pages 71-116) are never read; the glossary, references and index (221-228) are left out. Chapter 1 (overview, pages 13-18) is left out too: it sets out survival doctrine and has no procedure. Arrow points, throwing sticks, bows and arrows and slings with sling shots and the sap (chapter 8, paragraphs 8-25 to 8-37, and the end of 8-31 carried over the page) are left out by their paragraph numbers, and the scope filter refuses archery and throwing sticks anywhere, like spears and clubs; the bow and drill of chapter 5 (fire) and the rescue sling of appendix A stay. Table 3-1 (means to make potable water) is left out: plain reading order gives it cell by cell. Water from plants (paragraphs 3-16 to 3-27, up to the below-ground solar still) is left out whole: it needs plant identification.",
       "default_heading": "Water",
       "drop_paragraphs": [
         "(?m)^8-(?:2[5-9]|3[0-7])\\. ",
