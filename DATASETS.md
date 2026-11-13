@@ -344,28 +344,33 @@ Cryptography & Ethereum; later builds offer its `-leviathan` version, which carr
 
 `tools/packs/build_practical_skills_pack.py` builds a focused collection of practical how-to guidance
 quoted from works of the US federal government, listed in `tools/data/practical_skills_sources.json`
-and locked at fetch time (publisher, title, edition, URL, fetch time and SHA-256 of every file):
+and locked at fetch time (publisher, title, edition, URL, fetch time and SHA-256 of every file). A
+download shorter than the server's Content-Length, or a PDF without its closing `%%EOF`, is refused
+and never locked:
 
 - USDA, Complete Guide to Home Canning (Agriculture Information Bulletin No. 539, revised 2015):
-  the introduction and Guides 1 to 7, read from the National Center for Home Food Preservation,
-  which distributes the USDA's files.
+  the introduction (without its acknowledgments) and Guides 1 to 7, read from the National Center
+  for Home Food Preservation, which distributes the USDA's files.
 - FEMA, Are You Ready? An In-Depth Guide to Citizen Preparedness (P-2064, September 2020), without
   its active shooter, cyberattack, financial, nuclear and pandemic sections.
 - CDC pages on making, storing and finding safe water, disinfecting wells, keeping food safe after
   an emergency, home-canned foods and botulism, and flood safety.
 - National Weather Service safety pages on floods, lightning, thunderstorms, hurricanes, tornadoes,
-  winter weather and heat, with their watch and warning pages.
+  winter weather and heat, with their watch and warning pages; the licence terms for using the
+  phrase "Turn Around Don't Drown" are left out.
 - USGS Fact Sheet 2025-3050 (version 1.1), its "Preparing for Future Earthquakes" section.
-- US Army ATP 3-50.21 Survival (September 2018), chapters 1, 3, 5, 6, 7 and 8 and appendix A.
-  Chapter 2 (survival medicine) and chapter 4 (food: wild plants, trapping, butchering) are never
-  read; passages on water from plants and on weapons are refused.
+- US Army ATP 3-50.21 Survival (September 2018), chapters 3, 5, 6, 7 and 8 and appendix A.
+  Chapter 1 (an overview of survival doctrine, with no procedure), chapter 2 (survival medicine)
+  and chapter 4 (food: wild plants, trapping, butchering) are never read; passages on water from
+  plants and on weapons (spears, clubs, bows and arrows, throwing sticks, slings) are left out;
+  the bow and drill that lights a fire (chapter 5) and the rescue sling of appendix A stay.
 
 Text is *selected* and never reworded. The PDFs are read with poppler's `pdftotext`; whitespace,
 line-break hyphenation (joined only for words the same source spells unbroken), running page
 headers, page numbers and the chapter tabs printed in the margin are the only changes, and every
 paragraph and list item is proven against the source's text before it is kept. First aid, medicine
 and dosing, and the identification of wild plants, fungi or animals as food are refused paragraph by
-paragraph (133 paragraphs and list items); the emergency guides keep answering those, and they open
+paragraph (67 paragraphs and list items in this build); the emergency guides keep answering those, and they open
 from the question alone, before any collection is searched. Web-page chrome (language and download
 links, page-review dates, menu labels printed on three or more of the pages) is left out.
 
@@ -383,6 +388,12 @@ kept, 40 of them recipes with a yield. The others are left out: 30 where a line 
 second column or text run together with a table, 9 cut short by a process table, 5 out of scope, 2
 recipes whose ingredient amounts could not be read with them, and 2 whose procedure follows another
 recipe that is not in the pack; the other 14 capitalised names have no text under them.
+Guides 2, 3, 6 and 7 also open with general text that their entries rely on: the acidification
+rule for tomatoes, syrups for fruit, containers, weights and salts for fermenting. 11 such
+paragraphs are kept, each taken from the plain reading and proven again in the layout reading's
+lines that belong to no entry and no table, so a recipe box that reading order splices into the
+text cannot come in with it; a step that reads its amounts from a table, a table's footnotes and
+the contents pages are left out. Guides 4 and 5 go from their contents straight to their entries.
 Tables, too, enter only whole, each row on its own line with its cells joined by " | " under the
 table's headers: 168 of the 250 USDA process-time tables, each kept only when every cell sits
 under a header column and every row is proven against the publisher's line, and the CDC
@@ -390,20 +401,20 @@ well-disinfection tables from their HTML rows. A recipe, food entry or table is 
 a search never returns a procedure without its amounts or a row without its headers. A separate
 check reads the finished pack and finds every table row, cell for cell, as a row of the source, no
 line outside a table or recipe that is mostly numbers and units, no recipe without its ingredient
-amounts, and no page chrome. 770 passages: 315 USDA, 215 ATP 3-50.21, 92 NWS, 72 CDC, 75 FEMA and
+amounts, and no page chrome. 753 passages: 322 USDA, 195 ATP 3-50.21, 88 NWS, 72 CDC, 75 FEMA and
 1 USGS. Thirty test questions were sealed before the build
 ([questions](docs/fieldtest/practical-skills.jsonl), SHA-256
 `131d9882a4c78a5eea7060ad37e044ee4ebafa8fb4cd8e56e9224ff82fa61469`).
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.11-leviathan | 780,673 | `9e70bbc3e8229ce363d1736aadcc11d3477c25a451a819d43a69e842aed7ae5d` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.13-leviathan | 759,268 | `a2c985b0a4dd9e106c0baa4c50a6e9d36c865aede9a6ebf8d341ee18cf3f958c` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
 
-The keyword-only build (`practical-skills`, version `2026.11.11`, schema 1) is 1,347,121 bytes,
-SHA-256 `573d68c4db6cd412511420183faafaa252b6affa1ddca385761bbeaf8bb3afa0`, and rebuilds byte for
-byte from the locked sources. `2026.11.11-leviathan` holds the same passages with a Leviathan 0.2.0
+The keyword-only build (`practical-skills`, version `2026.11.13`, schema 1) is 1,318,449 bytes,
+SHA-256 `3863942af8f2a689b7cefdde5ed888d0e95b36183ae99be4646ac3e1fa225b2c`, and rebuilds byte for
+byte from the locked sources. `2026.11.13-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
---compressed`) and installs to 2,174,936 bytes; the Leviathan index is not byte-identical between
+--compressed`) and installs to 2,133,976 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
 inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
 `LicenseRef-US-Government-Work`) beside them; the lock of this build is
