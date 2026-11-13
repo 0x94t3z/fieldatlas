@@ -4,8 +4,9 @@
 Scope: home canning and food safety; getting a home ready for floods, storms and earthquakes;
 safe water; shelter; fire; signalling for rescue; reading the weather; basic navigation.
 Out of scope, and refused by `check_passage`: first aid, medicine and dosing, and identifying
-wild plants, fungi or animals as food. ATP 3-50.21 is read without chapter 2 (survival medicine)
-and without chapter 4 (food: wild plants, trapping, butchering) or its field-expedient weapons.
+wild plants, fungi or animals as food. ATP 3-50.21 is read without chapter 1 (an overview with no
+procedure), chapter 2 (survival medicine) and chapter 4 (food: wild plants, trapping, butchering),
+and without its field-expedient weapons (spears, clubs, bows and arrows, throwing sticks, slings).
 
 Sources are listed in tools/data/practical_skills_sources.json, each a work of the US federal
 government (LicenseRef-US-Government-Work).
@@ -15,10 +16,11 @@ Usage:
   python3 tools/packs/build_practical_skills_pack.py extract --cache build/practical-skills/cache \
       --output build/practical-skills/passages
   python3 tools/packs/build_practical_skills_pack.py build   --cache build/practical-skills/cache \
-      --output build/practical-skills/out --version 2026.11.11
+      --output build/practical-skills/out --version 2026.11.13
 
 `fetch` downloads each source once, politely, and records publisher, title, edition, URL, final
-URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. `extract` and `build`
+URL, fetch time (UTC), HTTP status, bytes and SHA-256 in sources.lock.json. A body shorter than
+its Content-Length, or a PDF without its closing %%EOF, is refused and never locked. `extract` and `build`
 never touch the network: they check every cached byte against the lock first.
 
 `extract` and `build` read the PDFs with poppler's `pdftotext` (poppler-utils), a system tool
@@ -38,7 +40,10 @@ recipe, food entry or table is one search chunk. Where a photo label is printed 
 text, the layout reading runs it into the entry's lines; the label is found by its type and place
 in the word boxes (`pdftotext -tsv`), taken out only when it is the entry's own name, and the
 entry is kept only if it then reads word for word in both the plain and the layout reading
-(recover_entry). Web-page chrome (language links, review dates, menu labels on
+(recover_entry). The general text those guides open with (the acidification rule for tomatoes,
+syrups, fermenting containers and salts) comes from the plain reading, a paragraph kept only if it
+also reads word for word in the layout reading's lines outside every entry and table
+(general_prose). Web-page chrome (language links, review dates, menu labels on
 three or more pages) is left out.
 
 Every passage is the source's own text, selected and never rewritten. The only changes are
@@ -125,17 +130,33 @@ def http_get(url: str, browser: bool) -> tuple[bytes, int, str, str]:
         raw = response.read(MAX_BYTES + 1)
         status, final = response.status, response.geturl()
         content_type = response.headers.get("Content-Type", "")
+        declared = response.headers.get("Content-Length")
     if len(raw) > MAX_BYTES:
         raise ValueError(f"Response exceeded {MAX_BYTES} bytes: {url}")
+    check_complete(raw, declared, url)
     final_parts = urllib.parse.urlsplit(final)
     if final_parts.scheme != "https" or final_parts.netloc not in HOSTS:
         raise ValueError(f"Redirected off the allow-list: {url}")
     return raw, status, final, content_type
 
 
+def check_complete(raw: bytes, declared: str | None, url: str) -> None:
+    """A body cut short must never reach the lock. The server's Content-Length, when it sends
+    one, must equal the bytes read (no Content-Encoding is requested, so they are the same
+    bytes). A cut can also come without a Content-Length (chunked transfer), so a PDF must
+    still end with its %%EOF marker, checked in looks_like."""
+    if declared is None:
+        return
+    if not declared.strip().isdigit():
+        raise ValueError(f"Unreadable Content-Length {declared!r}: {url}")
+    if int(declared) != len(raw):
+        raise ValueError(f"Short read: {len(raw):,} of {int(declared):,} bytes: {url}")
+
+
 def looks_like(kind: str, raw: bytes) -> bool:
     if kind == "pdf":
-        return raw.startswith(b"%PDF-")
+        # %%EOF closes every complete PDF; a cut body has no trailer (after it only whitespace).
+        return raw.startswith(b"%PDF-") and b"%%EOF" in raw[-1024:]
     head = raw[:4096].lstrip().lower()
     return head.startswith(b"<!doctype html") or head.startswith(b"<html")
 
@@ -201,11 +222,16 @@ WILD_FOOD = re.compile(
     r"(?i)\b(?:edible|edibility|inedible|mushrooms?|fung(?:i|us|al)|forag\w*|wild plants?|berr(?:y|ies)|"
     r"insects? (?:as|for) food|grubs?|snares?|traps?|trapping|butcher\w*|game animals?|"
     r"fish(?:ing| hooks?)|nuts? and seeds?|universal edibility|survival food|procure food)\b")
-# ATP 3-50.21 only: water from plants needs plant identification; chapter 8 also arms the reader.
+# ATP 3-50.21 only: water from plants needs plant identification; chapter 8 also arms the reader
+# (spears, clubs, archery, throwing sticks). "Bow", "arrow" and "sling" are not words to refuse on:
+# chapter 5 lights a fire with a bow and drill, a compass has a magnetic arrow and appendix A ties a
+# rescue sling. So chapter 8's arrow, bow, sling and sap paragraphs are left out by their numbers in
+# the source list (drop_paragraphs).
 ATP_ONLY = re.compile(
     r"(?i)\b(?:vines?|coconuts?|bananas?|plantains?|cact(?:us|i)|transpiration|green vegetation|"
-    r"plant (?:parts?|life|identification)|safe plants?|weapons?|spears?|clubs?|bolas?|slingshots?)\b")
-GARBLED = re.compile(r"[\x00-\x08\x0b-\x1f\x7f\ufffd]|6HSWHPEHU|\(37\(0%\(5")
+    r"plant (?:parts?|life|identification)|safe plants?|weapons?|spears?|clubs?|bolas?|slingshots?|"
+    r"archery|fletching|throwing sticks?|rabbit sticks?)\b")
+GARBLED = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\ufffd]|6HSWHPEHU|\(37\(0%\(5")
 NAV = re.compile(
     r"(?i)(?:\bOn This Page\b|\bRelated Pages?\b|\bSkip to (?:main )?content\b|\bShare (?:this|on)\b|"
     r"\bPrint this page\b|\bDownload (?:Infographic|PDF)\b|\bPage last (?:reviewed|updated)\b|\bLast Reviewed:|\bSign up for (?:email|e-mail|our|updates|the newsletter)\b|\bFollow us\b|"
@@ -265,10 +291,18 @@ def pdf_pages(raw: bytes) -> list[str]:
         source.write_bytes(raw)
         result = subprocess.run(["pdftotext", "-enc", "UTF-8", str(source), "-"], check=True,
                                 capture_output=True, timeout=300)
-    text = result.stdout.decode("utf-8")
+    text = bullet_glyph(result.stdout.decode("utf-8"))
     if len(text) > 20 * 1024 * 1024:
         raise ValueError("Extracted text exceeds 20 MiB")
     return text.split("\f")
+
+
+def bullet_glyph(text: str) -> str:
+    """ATP 3-50.21 sets its list bullets in a symbol font that poppler maps to the C1 control
+    character U+0083. It only ever stands where the page prints a bullet, so it is read as "•",
+    in every reading of every source alike (the proof compares like with like), and a bullet
+    starts its own line as in the other sources."""
+    return text.replace("\u0083", "\u2022")
 
 
 def pdftotext_version() -> str:
@@ -423,7 +457,7 @@ def layout_pages(raw: bytes) -> list[str]:
         source.write_bytes(raw)
         result = subprocess.run(["pdftotext", "-layout", "-enc", "UTF-8", str(source), "-"], check=True,
                                 capture_output=True, timeout=300)
-    return result.stdout.decode("utf-8").split("\f")
+    return bullet_glyph(result.stdout.decode("utf-8")).split("\f")
 
 
 def table_cells(line: str) -> list[tuple[int, str]]:
@@ -568,7 +602,7 @@ def tsv_words(raw: bytes) -> list[dict]:
                                 capture_output=True, timeout=300)
     if len(result.stdout) > 64 * 1024 * 1024:
         raise ValueError("Word boxes exceed 64 MiB")
-    return parse_tsv(result.stdout.decode("utf-8"))
+    return parse_tsv(bullet_glyph(result.stdout.decode("utf-8")))
 
 
 def parse_tsv(text: str) -> list[dict]:
@@ -755,13 +789,14 @@ def recover_entry(name: str, rows: list[str], pages: list[int], removed_before: 
     return out, {k: work[k] for k in blanked}, used, "photo label removed"
 
 
-def layout_entries(source: dict, raw: bytes) -> tuple[list[dict], dict, str]:
+def layout_entries(source: dict, raw: bytes, prose: list[str] | None = None) -> tuple[list[dict], dict, str]:
     """Each food entry or recipe of a USDA guide, read whole from `pdftotext -layout` (see
     entries_from_layout)."""
-    return entries_from_layout(source, layout_pages(raw), "\n".join(pdf_pages(raw)), tsv_words(raw))
+    return entries_from_layout(source, layout_pages(raw), "\n".join(pdf_pages(raw)), tsv_words(raw), prose)
 
 
-def entries_from_layout(source: dict, pages: list[str], plain: str, words: list[dict]) -> tuple[list[dict], dict, str]:
+def entries_from_layout(source: dict, pages: list[str], plain: str, words: list[dict],
+                        prose: list[str] | None = None) -> tuple[list[dict], dict, str]:
     """The guides set recipes in boxes beside the text, so plain reading order interleaves one
     recipe's ingredients with another's procedure. The layout reading keeps a recipe's lines
     together. An entry runs from its capitalised name ("PICKLED PEPPER-ONION RELISH") to the next
@@ -776,7 +811,10 @@ def entries_from_layout(source: dict, pages: list[str], plain: str, words: list[
     stand and the line is joined again. Such an entry is kept only if every paragraph, and the run
     of paragraphs the label touched, reads word for word in the plain reading with only those
     label words taken out, and in the layout reading with only those label words blanked.
-    Returns the entries, stats, and the cleaned layout text for the proof."""
+    Returns the entries, stats, and the cleaned layout text for the proof. If `prose` is a list,
+    the lines that belong to no entry and no table (a guide's general text before its first entry,
+    such as the acidification rule for tomatoes) are appended to it, as the layout witness for
+    general_prose()."""
     plain_words = set(plain.split())
     lines, cleaned, line_pages, removed_before = [], [], [], [[]]
     for number, page in enumerate(pages, start=1):
@@ -811,7 +849,11 @@ def entries_from_layout(source: dict, pages: list[str], plain: str, words: list[
         if ENTRY_HEAD.match(stripped) and len(line) - len(line.lstrip()) <= 10 and not re.fullmatch(r"[\d\s,.\-\u2013/]+", stripped):
             close(); current.clear(); name = stripped; in_table = False
             continue
-        if in_table or name is None:
+        if in_table:
+            continue
+        if name is None:
+            if prose is not None and index < len(cleaned):
+                prose.append(cleaned[index])
             continue
         current.append(index)
     close()
@@ -1044,6 +1086,38 @@ def reference_text(source: dict, raw: bytes) -> str:
     return soup.get_text(" ")
 
 
+# Contents pages, table footnotes ("* This amount is also adequate..."), and text that sends the
+# reader to a table ("according to the ingredients in the table").
+PROSE_NEEDS_TABLE = re.compile(r"(?i)\bTable of Contents\b|^\*|\b(?:the|this|following|above|below) table\b|\btable (?:below|above)\b")
+
+
+def general_prose(sections: list[tuple[str, str]], prose_lines: list[str]) -> tuple[list[tuple[str, str]], dict]:
+    """The general text of a USDA guide that sets its recipes in boxes (guides 2-7): what every
+    entry relies on, such as the acidification rule for tomatoes. A paragraph of the plain
+    reading is kept only if it also reads word for word in the layout reading's lines that belong
+    to no entry and no table (entries_from_layout). Plain reading order can splice a recipe box
+    into the text beside it; such a paragraph has no match in the layout reading and is left out
+    whole, as is any paragraph that is part of an entry. Recipes come only from the entries."""
+    witness = proof_key("\n".join(prose_lines))
+    out, stats = [], {"prose_paragraphs_kept": 0, "prose_paragraphs_dropped": 0, "prose_paragraphs_need_a_table": 0}
+    for heading, body in sections:
+        kept = []
+        for paragraph in body.split("\n\n"):
+            key = proof_key(paragraph)
+            if PROSE_NEEDS_TABLE.search(paragraph):
+                # A table's footnote, or a step that reads its amounts from a table: the tables of
+                # these guides come only whole (process_tables), so the text is not left without one.
+                stats["prose_paragraphs_need_a_table"] += 1
+            elif key and key in witness:
+                kept.append(paragraph)
+                stats["prose_paragraphs_kept"] += 1
+            else:
+                stats["prose_paragraphs_dropped"] += 1
+        if kept:
+            out.append((heading, "\n\n".join(kept)))
+    return out, stats
+
+
 def extract(sources_path: Path, cache: Path, output: Path) -> dict:
     sources = load_sources(sources_path)
     lock = json.loads((cache / "sources.lock.json").read_bytes())
@@ -1065,8 +1139,12 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
         sections, stats = (pdf_sections if source["kind"] == "pdf" else html_sections)(source, raw)
         if source.get("pdf", {}).get("layout_entries"):
             # Food entries and recipes come whole from the layout reading below; plain reading
-            # order would interleave the recipe boxes.
-            sections = []
+            # order would interleave the recipe boxes. Only the guide's general text stays from
+            # the plain reading, each paragraph proven again in the layout reading.
+            prose_lines = []
+            entries, entry_stats, layout_text = layout_entries(source, raw, prose_lines)
+            sections, prose_stats = general_prose(sections, prose_lines)
+            stats.update(prose_stats)
         reference = proof_key(reference_text(source, raw))
         kept = 0
         for index, passage in enumerate(passages_for(source, sections)):
@@ -1101,7 +1179,6 @@ def extract(sources_path: Path, cache: Path, output: Path) -> dict:
             documents.append({"document_id": f"{source['id']}-{index:04d}", "title": f"{source['title']} — {heading}",
                               "source": lock["sources"][source["id"]]["url"], "license": LICENSE, "text": text})
         if source.get("pdf", {}).get("layout_entries"):
-            entries, entry_stats, layout_text = layout_entries(source, raw)
             stats.update(entry_stats)
             layout_reference = proof_key(layout_text)
             for number, entry in enumerate(entries):
@@ -1253,7 +1330,7 @@ def main() -> int:
     parser.add_argument("--sources", type=Path, default=DEFAULT_SOURCES)
     parser.add_argument("--cache", type=Path, default=ROOT / "build/practical-skills/cache")
     parser.add_argument("--output", type=Path, default=ROOT / "build/practical-skills/out")
-    parser.add_argument("--version", default="2026.11.10")
+    parser.add_argument("--version", default="2026.11.13")
     args = parser.parse_args()
     if args.action == "fetch":
         fetch(args.sources, args.cache)

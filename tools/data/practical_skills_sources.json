@@ -17,7 +17,11 @@
           "^(?:Guide \\d|Page|Index of Foods)$"
         ]
       },
-      "default_heading": "Introduction"
+      "default_heading": "Introduction",
+      "drop_paragraphs": [
+        "^Acknowledgments\\b"
+      ],
+      "notes": "The acknowledgments (who wrote and funded the guide) are left out; they are not guidance."
     },
     {
       "id": "usda-canning-guide-1",
@@ -279,7 +283,12 @@
       "edition": "web page as fetched",
       "url": "https://www.weather.gov/safety/flood-turn-around-dont-drown",
       "kind": "html",
-      "topic": "flood"
+      "topic": "flood",
+      "exclude_sections": [
+        "2. Use of Turn Around Don't Drown® Phrase on Social Media",
+        "3. External Use of Turn Around Don't Drown® Phrase"
+      ],
+      "notes": "The page's sections 2 and 3 set the licence terms for using the phrase (and name the official who grants it); they are not flood guidance and are left out."
     },
     {
       "id": "nws-flood-watch-warning",
@@ -513,10 +522,6 @@
       "pdf": {
         "pages": [
           [
-            13,
-            18
-          ],
-          [
             55,
             70
           ],
@@ -527,7 +532,7 @@
         ],
         "exclude_pages": [
           [
-            19,
+            13,
             54
           ],
           [
@@ -543,7 +548,12 @@
           "6HSWHPEHU"
         ]
       },
-      "notes": "Chapter 2 (survival medicine, PDF pages 19-54) and chapter 4 (food: wild plants, trapping, butchering, fish; pages 71-116) are never read; the glossary, references and index (221-228) are left out."
+      "notes": "Chapter 2 (survival medicine, PDF pages 19-54) and chapter 4 (food: wild plants, trapping, butchering, fish; pages 71-116) are never read; the glossary, references and index (221-228) are left out. Chapter 1 (overview, pages 13-18) is left out too: it sets out survival doctrine and has no procedure. Arrow points, throwing sticks, bows and arrows and slings with sling shots and the sap (chapter 8, paragraphs 8-25 to 8-37, and the end of 8-31 carried over the page) are left out by their paragraph numbers, and the scope filter refuses archery and throwing sticks anywhere, like spears and clubs; the bow and drill of chapter 5 (fire) and the rescue sling of appendix A stay.",
+      "default_heading": "Water",
+      "drop_paragraphs": [
+        "(?m)^8-(?:2[5-9]|3[0-7])\\. ",
+        "^or plunge it deep under the coals in the ashes"
+      ]
     }
   ]
 }

@@ -618,3 +618,129 @@ class PracticalSkillsDatasetsLinkTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PracticalSkillsFetchCompleteTest(unittest.TestCase):
+    """Review 2: a body cut short must not be locked (the first ATP fetch stopped at 12.9 of 23.8 MB)."""
+
+    def test_a_short_read_is_refused(self):
+        with self.assertRaises(ValueError):
+            practical.check_complete(b"x" * 10, "24", "https://pubs.usgs.gov/a.pdf")
+
+    def test_a_whole_body_passes(self):
+        practical.check_complete(b"x" * 24, "24", "https://pubs.usgs.gov/a.pdf")  # positive control
+        practical.check_complete(b"x" * 24, None, "https://pubs.usgs.gov/a.pdf")  # chunked: no header
+
+    def test_http_get_compares_the_header_with_the_bytes(self):
+        class Response:
+            status = 200
+            def __init__(self, body, length):
+                self.body, self.headers = body, {"Content-Type": "application/pdf", "Content-Length": length}
+            def read(self, limit):
+                return self.body[:limit]
+            def geturl(self):
+                return "https://pubs.usgs.gov/a.pdf"
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        body = b"%PDF-1.7\n" + b"0" * 100 + b"\n%%EOF\n"
+        with mock.patch("urllib.request.urlopen", return_value=Response(body, str(len(body)))):
+            self.assertEqual(practical.http_get("https://pubs.usgs.gov/a.pdf", False)[0], body)
+        with mock.patch("urllib.request.urlopen", return_value=Response(body[:40], str(len(body)))):
+            with self.assertRaises(ValueError):
+                practical.http_get("https://pubs.usgs.gov/a.pdf", False)
+
+    def test_a_pdf_without_its_trailer_is_refused(self):
+        whole = b"%PDF-1.7\n" + b"0" * 5000 + b"\n%%EOF\n"
+        self.assertTrue(practical.looks_like("pdf", whole))
+        self.assertFalse(practical.looks_like("pdf", whole[:3000]))
+
+
+class PracticalSkillsReview2ScopeTest(unittest.TestCase):
+    def test_bow_arrow_throwing_stick_and_sling_are_left_out_of_the_manual(self):
+        for text in ("The throwing stick, commonly known as the rabbit stick, is very effective against small game.",
+                     "Figure 8-5. Throwing stick Archery Equipment", "Fletching improves the arrow's flight."):
+            self.assertTrue(any(p.startswith("atp exclusion") for p in practical.check_passage("army-atp-3-50-21", text)), text)
+        atp = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}["army-atp-3-50-21"]
+        sections = practical.group_sections({**atp, "pages": None}, [
+            ("h", "Survival Equipment"),
+            ("p", "OTHER EXPEDIENT WEAPONS\n8-26. Isolated persons can make other weapons."),
+            ("p", "8-29. To make a bow, select a hardwood stick about three feet long."),
+            ("p", "or plunge it deep under the coals in the ashes, being careful not to burn or scorch the wood.\n8-32. You must notch the ends of the arrows."),
+            ("p", "8-35. Make a sling by tying two pieces of cordage."), ("p", "8-37. A sapp is made by filling a sock part way with rocks."),
+            ("p", "8-38. Many materials are strong enough to use as cordage and lashing.")])
+        self.assertEqual(sections, [("Survival Equipment", "8-38. Many materials are strong enough to use as cordage and lashing.")])
+        # Positive controls: a bow and drill lights a fire, a compass has an arrow, a sling can lift a person.
+        for text in ("5-51. The bow should be a strong, green stick about 3/4 inch in diameter.",
+                     "Since the magnetic arrow points to magnetic north, pay special attention to the declination diagram.",
+                     "A-15. The French bowline is sometimes used as a sling for lifting people."):
+            self.assertEqual(practical.check_passage("army-atp-3-50-21", text), [], text)
+
+    def test_the_atp_bullet_glyph_reads_as_a_bullet(self):
+        self.assertEqual(practical.bullet_glyph("night.\x83 Look for water"), "night.• Look for water")
+        self.assertEqual(practical.join_lines(["Signs of water:", "• Green grass."], set()), "Signs of water:\n• Green grass.")
+        self.assertIn("garbled text layer", practical.check_passage("army-atp-3-50-21", "night.\x83 Look"))  # unmapped C1 is refused
+
+    def test_the_source_list_leaves_out_what_review_2_named(self):
+        sources = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}
+        atp = sources["army-atp-3-50-21"]["pdf"]
+        for page in (13, 18):  # chapter 1, the overview
+            self.assertTrue(practical.in_ranges(page, atp["exclude_pages"]), page)
+            self.assertFalse(practical.in_ranges(page, atp["pages"]), page)
+        tadd = practical.group_sections(sources["nws-flood-tadd"], [
+            ("h", "1. Use of Turn Around Don't Drown® in Road Signs"), ("p", "Signs warn drivers."),
+            ("h", "2. Use of Turn Around Don't Drown® Phrase on Social Media"), ("p", "This limited permission is given."),
+            ("h", "3. External Use of Turn Around Don't Drown® Phrase"), ("p", "Mark.Glaudemans@noaa.gov")])
+        self.assertEqual(tadd, [("1. Use of Turn Around Don't Drown® in Road Signs", "Signs warn drivers.")])
+        intro = practical.group_sections(sources["usda-canning-intro"], [
+            ("h", "Complete Guide to"), ("p", "Acknowledgments The creation of an Extension Service Center."),
+            ("p", "Caution: All home-canned foods should be canned according to the procedures in this Guide.")])
+        self.assertEqual(intro, [("Complete Guide to", "Caution: All home-canned foods should be canned according to the procedures in this Guide.")])
+
+
+class PracticalSkillsGeneralProseTest(unittest.TestCase):
+    """Guides 2-7: their general text, proven in both readings; never a spliced recipe box."""
+    ACID = ("Acidification: To ensure safe acidity in whole, crushed, or juiced tomatoes, add 2 tablespoons of "
+            "bottled lemon juice or 1/2 teaspoon of citric acid per quart of tomatoes.")
+    WITNESS = ["General", "Acidification: To ensure safe acidity in whole, crushed, or juiced tomatoes, add 2 tablespoons",
+               "of bottled lemon juice or 1/2 teaspoon of citric acid per quart of tomatoes.",
+               "Quality: Select only disease-free, preferably vine-ripened, firm fruit for canning."]
+
+    def test_a_paragraph_in_both_readings_is_kept(self):
+        sections, stats = practical.general_prose([("Tomatoes", self.ACID)], self.WITNESS)
+        self.assertEqual(sections, [("Tomatoes", self.ACID)])
+        self.assertEqual(stats["prose_paragraphs_kept"], 1)
+
+    def test_a_paragraph_spliced_with_a_recipe_box_is_left_out(self):
+        spliced = self.ACID + " 7 qts peeled, cored, chopped tomatoes 4 cups seeded, chopped long green chiles"
+        sections, stats = practical.general_prose([("Tomatoes", spliced + "\n\nTOMATO JUICE Quantity: 23 pounds")], self.WITNESS)
+        self.assertEqual(sections, [])
+        self.assertEqual(stats["prose_paragraphs_dropped"], 2)
+
+    def test_text_that_needs_a_table_is_left_out(self):
+        for text in ("Measure fruit juice, sugar, and lemon juice according to the ingredients in the table.",
+                     "* This amount is also adequate for a 4-quart load.",
+                     "Selecting, Preparing, and Canning Tomatoes and Tomato Products Table of Contents"):
+            sections, stats = practical.general_prose([("Jelly", text)], [text])  # in both readings, still out
+            self.assertEqual(sections, [], text)
+            self.assertEqual(stats["prose_paragraphs_need_a_table"], 1)
+
+
+@unittest.skipUnless((CACHE / "sources.lock.json").exists() and shutil.which("pdftotext"),
+                     "needs the fetched sources (FIELDATLAS_PRACTICAL_CACHE) and pdftotext")
+class PracticalSkillsGuideProseTest(unittest.TestCase):
+    def test_the_tomato_acidification_rule_is_in_and_no_recipe_leaks(self):
+        lock = json.loads((CACHE / "sources.lock.json").read_bytes())
+        sources = {s["id"]: s for s in practical.load_sources(practical.DEFAULT_SOURCES)}
+        raw = practical.read_cached(CACHE, lock, "usda-canning-guide-3")
+        prose = []
+        entries, _, _ = practical.layout_entries(sources["usda-canning-guide-3"], raw, prose)
+        sections, stats = practical.general_prose(practical.pdf_sections(sources["usda-canning-guide-3"], raw)[0], prose)
+        text = "\n\n".join(body for _, body in sections)
+        self.assertIn("add 2 tablespoons of bottled lemon juice or 1/2 teaspoon of citric acid per quart of tomatoes", text)
+        self.assertGreater(stats["prose_paragraphs_dropped"], 20)  # the entries' own paragraphs stay with the entries
+        entry_keys = {practical.proof_key(p) for e in entries for p in e["text"].split("\n\n")[1:]}
+        for paragraph in text.split("\n\n"):
+            self.assertNotIn(practical.proof_key(paragraph), entry_keys)
+            self.assertIsNone(practical.recipe_problem(paragraph))
