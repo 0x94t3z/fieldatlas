@@ -363,19 +363,22 @@ and never locked:
   Chapter 1 (an overview of survival doctrine, with no procedure), chapter 2 (survival medicine)
   and chapter 4 (food: wild plants, trapping, butchering) are never read; passages on water from
   plants and on weapons (spears, clubs, bows and arrows, throwing sticks, slings) are left out;
-  the bow and drill that lights a fire (chapter 5) and the rescue sling of appendix A stay.
+  the bow and drill that lights a fire (chapter 5) and the rescue sling of appendix A stay. Water
+  from plants (paragraphs 3-16 to 3-27) and table 3-1, which plain reading order gives cell by
+  cell, are left out whole, by spans of lines named in the source list.
 
 Text is *selected* and never reworded. The PDFs are read with poppler's `pdftotext`; whitespace,
 line-break hyphenation (joined only for words the same source spells unbroken), running page
 headers, page numbers and the chapter tabs printed in the margin are the only changes, and every
 paragraph and list item is proven against the source's text before it is kept. First aid, medicine
 and dosing, and the identification of wild plants, fungi or animals as food are refused paragraph by
-paragraph (67 paragraphs and list items in this build); the emergency guides keep answering those, and they open
+paragraph (66 paragraphs and list items in this build); the emergency guides keep answering those, and they open
 from the question alone, before any collection is searched. Web-page chrome (language and download
 links, page-review dates, menu labels printed on three or more of the pages) is left out.
 
 The USDA guides set recipes in boxes beside the text, so their food entries and recipes are read
-from `pdftotext -layout`, one passage each, from the capitalised name to the next name or table. A
+from `pdftotext -layout`, one passage each, from the capitalised name (which may end in a note in
+brackets, "CHILE SALSA (Hot Tomato-Pepper Sauce)") to the next name or table. A
 recipe goes in whole (name, every ingredient line with its amount, yield and procedure) or not at
 all, because in canning and pickling the proportions are what make it safe. Where a photo label is
 printed into an entry's text ("Pumpkin and Winter Squash" inside the pumpkin procedure), it is found
@@ -383,17 +386,20 @@ by its smaller type and its place between two text lines in poppler's word boxes
 when its words are the entry's own name, and the entry is kept only if it then reads word for word
 in both the plain and the layout reading; 6 entries come back this way. A recipe or food entry
 must also carry its procedure: a process table printed beside an entry ends it at the table's
-title, and such an entry is left out rather than kept without its procedure. 81 of 143 entries are
-kept, 40 of them recipes with a yield. The others are left out: 30 where a line still holds a
-second column or text run together with a table, 9 cut short by a process table, 5 out of scope, 2
-recipes whose ingredient amounts could not be read with them, and 2 whose procedure follows another
-recipe that is not in the pack; the other 14 capitalised names have no text under them.
-Guides 2, 3, 6 and 7 also open with general text that their entries rely on: the acidification
-rule for tomatoes, syrups for fruit, containers, weights and salts for fermenting. 11 such
-paragraphs are kept, each taken from the plain reading and proven again in the layout reading's
+title, and such an entry is left out rather than kept without its procedure. 88 of 150 entries are
+kept, 43 of them recipes with a yield; one is the salsa rule set under "RECIPES" ("The only changes
+you can safely make in these salsa recipes are ..."). The others are left out: 30 where a line
+still holds a second column or text run together with a table, 10 cut short by a process table, 5
+out of scope, 1 recipe whose ingredient amounts could not be read with it, and 2 whose procedure
+follows another recipe that is not in the pack; the other 14 capitalised names have no text under
+them.
+Guides 2, 3 and 6 also open with general text that their entries rely on: the acidification rule
+for tomatoes, syrups for fruit (with other sweeteners), containers, weights and salts for
+fermenting. 11 such paragraphs are kept, each taken from the plain reading and proven again in the layout reading's
 lines that belong to no entry and no table, so a recipe box that reading order splices into the
 text cannot come in with it; a step that reads its amounts from a table, a table's footnotes and
-the contents pages are left out. Guides 4 and 5 go from their contents straight to their entries.
+the contents pages are left out ("table sugar" is not a table). Guide 7's general text takes its
+amounts from a table and stays out; Guides 4 and 5 go from their contents straight to their entries.
 Tables, too, enter only whole, each row on its own line with its cells joined by " | " under the
 table's headers: 168 of the 250 USDA process-time tables, each kept only when every cell sits
 under a header column and every row is proven against the publisher's line, and the CDC
@@ -401,20 +407,20 @@ well-disinfection tables from their HTML rows. A recipe, food entry or table is 
 a search never returns a procedure without its amounts or a row without its headers. A separate
 check reads the finished pack and finds every table row, cell for cell, as a row of the source, no
 line outside a table or recipe that is mostly numbers and units, no recipe without its ingredient
-amounts, and no page chrome. 753 passages: 322 USDA, 195 ATP 3-50.21, 88 NWS, 72 CDC, 75 FEMA and
+amounts, and no page chrome. 754 passages: 329 USDA, 189 ATP 3-50.21, 88 NWS, 72 CDC, 75 FEMA and
 1 USGS. Thirty test questions were sealed before the build
 ([questions](docs/fieldtest/practical-skills.jsonl), SHA-256
 `131d9882a4c78a5eea7060ad37e044ee4ebafa8fb4cd8e56e9224ff82fa61469`).
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.13-leviathan | 759,268 | `a2c985b0a4dd9e106c0baa4c50a6e9d36c865aede9a6ebf8d341ee18cf3f958c` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.14-leviathan | 760,921 | `918361a30e7520ac8c14fcf9fb258e70fd3db96139128033812be7c781c8e77b` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
 
-The keyword-only build (`practical-skills`, version `2026.11.13`, schema 1) is 1,318,449 bytes,
-SHA-256 `3863942af8f2a689b7cefdde5ed888d0e95b36183ae99be4646ac3e1fa225b2c`, and rebuilds byte for
-byte from the locked sources. `2026.11.13-leviathan` holds the same passages with a Leviathan 0.2.0
+The keyword-only build (`practical-skills`, version `2026.11.14`, schema 1) is 1,322,545 bytes,
+SHA-256 `3450448d7fbc93c018ad8a096994bec5318e78153c9daa04441d2ac995dff8a4`, and rebuilds byte for
+byte from the locked sources. `2026.11.14-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
---compressed`) and installs to 2,133,976 bytes; the Leviathan index is not byte-identical between
+--compressed`) and installs to 2,150,360 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
 inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
 `LicenseRef-US-Government-Work`) beside them; the lock of this build is

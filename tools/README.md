@@ -269,7 +269,7 @@ python3 tools/packs/build_wikivoyage_guides_pack.py --dump enwikivoyage-20260901
 # pack and beside it. PDFs are read with pdftotext (apt install poppler-utils / brew install poppler).
 python3 tools/packs/build_practical_skills_pack.py fetch --cache build/practical-skills/cache
 python3 tools/packs/build_practical_skills_pack.py build --cache build/practical-skills/cache \
-  --output build/practical-skills/out --version 2026.11.13
+  --output build/practical-skills/out --version 2026.11.14
 # then the Leviathan index, as for the other collections (see "Leviathan search" below), on
 # build/practical-skills/out/pack/content.sqlite, packaged with package_search_upgrade.py.
 # The lock of the build listed in DATASETS.md is committed as tools/data/practical_skills_sources.lock.json.
