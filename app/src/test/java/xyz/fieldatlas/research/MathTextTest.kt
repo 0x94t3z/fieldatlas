@@ -36,6 +36,37 @@ class MathTextTest {
         assertEquals("1/3 = 0.3\u0305", MathText.readable("1/3 = 0.\\overline{3}"))
     }
 
+    @Test fun stackedLayoutsReadAsOneLineOfSteps() {
+        // As the Prealgebra collection writes worked steps and column sums; the layout's name used to show.
+        assertEquals("m = rise/run; m = 3/3; m = 1", MathText.readable(
+            "\$\\begin{matrix} \\\\ m = \\frac{\\text{rise}}{\\text{run}} \\\\ m = \\frac{3}{3} \\\\ m = 1 \\end{matrix}\$"))
+        assertEquals("3(9 + 0.25); 27 + 0.75; 27.75", MathText.readable(
+            "\$\$\\begin{matrix} 3(9 & + & 0.25) \\\\ 27 & + & 0.75 \\\\  & 27.75 &  \\end{matrix}\$\$"))
+        // The rule under a sum has no text form; the carried digit stays.
+        assertEquals("8³7; 93; +89; 269", MathText.readable(
+            "\$\\begin{matrix} {8}^{3}7 \\\\ 93 \\\\ {+89}_{\\text{____}} \\\\ 269 \\end{matrix}\$"))
+        assertEquals("47; ×100; 00; 000; 4700; 4,700", MathText.readable(
+            "\$\\begin{matrix} 47 \\\\ {\\times100}_{\\text{_____}} \\\\ 00 \\\\ " +
+                "{\\begin{matrix} 000 \\\\ 4700 \\end{matrix}}_{\\text{_____}} \\\\ 4,700 \\end{matrix}\$"))
+        assertEquals("x = 1; y = 2", MathText.readable("\\[\\begin{array}{rcl} x & = & 1 \\\\ y & = & 2 \\end{array}\\]"))
+        // Copied without math marks, and one that never closes.
+        assertEquals("So 15; × 4; 60 is the product.", MathText.readable("So \\begin{matrix} 15 \\\\ \\times 4 \\\\ 60 \\end{matrix} is the product."))
+        assertEquals("a + b", MathText.readable("\$\\begin{matrix} a + b\$"))
+    }
+
+    @Test fun moneyInsideAFormulaStaysMoney() {
+        assertEquals("Divide: \$3.99÷24.", MathText.readable("Divide: \$\\text{\$3.99}\\div24.\$"))
+        assertEquals("17·\$0.10=\$1.70; number·value=total value", MathText.readable(
+            "\$\$\\begin{matrix} 17\\cdot\\text{\$0.10}=\\text{\$1.70} \\\\ \\text{number}\\cdot\\text{value}=\\text{total value} \\end{matrix}\$\$"))
+    }
+
+    @Test fun blanksAndTightOperators() {
+        assertEquals("7 __ 9", MathText.readable("\$7 \\text{__} 9\$"))
+        assertEquals("a·0=0 and 0·a=0", MathText.readable("\$a\\cdot0=0\$ and \$0\\cdot a=0\$"))
+        assertEquals("3 × a", MathText.readable("\$3 \\times a\$"))
+        assertEquals("sin x", MathText.readable("\$\\sin x\$"))
+    }
+
     @Test fun formulasWithoutMathMarks() {
         assertEquals("CO₂ and H₂O", MathText.readable("CO_2 and H_2O"))
         assertEquals("Ca₃(PO₄)₂", MathText.readable("Ca_3(PO_4)_2"))

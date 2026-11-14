@@ -18,7 +18,8 @@ object MathText {
     private val inlineDollars = Regex("(?<![\\\\$\\w])\\$(?=\\S)([^$\\n]{1,300}?)(?<=\\S)\\$(?!\\$)")
     private val looksLikeMath = Regex("\\\\[A-Za-z]|[_^{}]")
     private val chemicalSubscript = Regex("(?<=[A-Z]|[A-Z][a-z]|\\))_\\{?(\\d{1,2})\\}?")
-    private val bareCommand = Regex("\\\\(text|mathrm|ce|frac|times|cdot|rightarrow|to|approx|leq|geq|neq|degree|circ|pm|overline)\\b")
+    private val moneyInText = Regex("(\\\\text\\{)\\$(?=\\d)")
+    private val bareCommand = Regex("\\\\(text|mathrm|ce|frac|times|cdot|rightarrow|to|approx|leq|geq|neq|degree|circ|pm|overline|begin)\\b")
 
     fun readable(text: String): String {
         if ('$' !in text && '\\' !in text && '_' !in text) return text
@@ -27,7 +28,9 @@ object MathText {
         }
     }
 
-    private fun readableLine(line: String): String {
+    private fun readableLine(source: String): String {
+        // An amount of money inside a formula ("$\text{$3.99}\div24$") is not the end of the formula.
+        val line = moneyInText.replace(source, "$1$MONEY")
         var out = displayDollars.replace(line) { convert(it.groupValues[1]) }
         out = bracketed.replace(out) { convert(it.groupValues[1].ifEmpty { it.groupValues[2] }) }
         out = inlineDollars.replace(out) { match ->
@@ -36,7 +39,7 @@ object MathText {
         }
         // LaTeX written without math marks: only the common commands, so other backslashes stay.
         if (bareCommand.containsMatchIn(out)) out = convert(out, keepSpaces = true)
-        return chemicalSubscript.replace(out) { script(it.groupValues[1], SUBSCRIPTS) ?: it.value }
+        return chemicalSubscript.replace(out) { script(it.groupValues[1], SUBSCRIPTS) ?: it.value }.replace(MONEY, '$')
     }
 
     /** One math expression as plain text. */
@@ -57,11 +60,17 @@ object MathText {
                     c == '{' -> { pos++; out.append(expression(stopAtBrace = true)); if (pos < source.length) pos++ }
                     c == '}' -> pos++
                     c == '\\' -> out.append(command())
+                    c == '_' && pos + 1 < source.length && source[pos + 1] == '_' -> {
+                        // A blank to fill in ("7 __ 9"), kept as written.
+                        while (pos < source.length && source[pos] == '_') { out.append('_'); pos++ }
+                    }
                     c == '_' || c == '^' -> {
                         pos++
                         val argument = argument()
                         val table = if (c == '_') SUBSCRIPTS else SUPERSCRIPTS
                         when {
+                            // The rule under a column sum ("{+ 8,596}_{\text{_____}}") has no text form.
+                            c == '_' && argument.isNotBlank() && argument.all { it == '_' || it == ' ' } -> Unit
                             c == '^' && argument.trim() in setOf("°", "\\circ", "circ") -> out.append('°')
                             else -> out.append(script(argument, table) ?: (if (c == '_') "_" else "^") +
                                 if (argument.length == 1) argument else "($argument)")
@@ -118,18 +127,78 @@ object MathText {
                 // A repeating decimal ("0.58\\overline{3}"): the bar goes over each character it covers.
                 // The reading font has no overline, so the phone's own font draws these characters.
                 "overline", "bar" -> argument().trim().map { if (it == ' ') " " else "$it$OVERLINE" }.joinToString("")
+                "begin" -> environment(argument().trim())
+                "end" -> { argument(); "" }
                 "left", "right", "big", "Big", "bigl", "bigr", "displaystyle", "limits" -> ""
                 "quad", "qquad" -> " "
                 else -> (SYMBOLS[name] ?: name).also { symbol ->
                     // LaTeX drops the space after a command name: "\\Delta G" is ΔG, a quantity, while an
                     // operator ("3 \\times 10") keeps its spacing on both sides.
-                    if (symbol.length == 1 && symbol[0].isLetter()) {
+                    // An operator written tight on its left ("0\\cdot a") is tight on its right too.
+                    val tightOperator = symbol.length == 1 && name in SYMBOLS && start >= 2 && source[start - 2] != ' '
+                    if (symbol.length == 1 && (symbol[0].isLetter() || tightOperator)) {
                         var next = pos
                         while (next < source.length && source[next] == ' ') next++
                         if (next > pos && next < source.length && source[next].isLetter()) pos = next
                     }
                 }
             }
+        }
+
+        /**
+         * A stacked layout (worked steps or a column sum between `\begin{matrix}` and `\end{matrix}`)
+         * as one line of text, its rows set apart by "; ". Text cannot keep the columns, so cells are
+         * spaced.
+         */
+        fun environment(name: String): String {
+            val bodyStart = pos
+            var depth = 0
+            var i = pos
+            var bodyEnd = -1
+            while (i < source.length) {
+                if (source[i] != '\\') { i++; continue }
+                when {
+                    source.startsWith("\\begin{", i) -> { depth++; i += 7 }
+                    source.startsWith("\\end{", i) -> {
+                        if (depth == 0) { bodyEnd = i; break }
+                        depth--; i += 5
+                    }
+                    else -> i += 2 // an escaped character is never a brace or a row break
+                }
+            }
+            if (bodyEnd < 0) return "" // never closed: the rest reads as ordinary math
+            val close = source.indexOf('}', bodyEnd)
+            pos = if (close < 0) source.length else close + 1
+            var body = source.substring(bodyStart, bodyEnd)
+            // The column letters of an array ("{rcl}") are not content.
+            if (name.startsWith("array")) body = body.trimStart().let { if (it.startsWith("{")) it.substringAfter('}') else it }
+            return rows(body).map { Parser(it).expression().replace(Regex("[ \\t]{2,}"), " ").trim() }
+                .filter(String::isNotEmpty).joinToString("; ")
+        }
+
+        /** [body] cut at its own row breaks, its own column marks as spaces; a nested layout stays whole. */
+        private fun rows(body: String): List<String> {
+            val rows = mutableListOf<String>()
+            val row = StringBuilder()
+            var braces = 0
+            var nested = 0
+            var i = 0
+            while (i < body.length) {
+                val c = body[i]
+                val top = braces == 0 && nested == 0
+                when {
+                    c == '\\' && body.startsWith("\\begin{", i) -> { nested++; row.append("\\begin"); i += 6 }
+                    c == '\\' && body.startsWith("\\end{", i) -> { nested--; row.append("\\end"); i += 4 }
+                    c == '\\' && top && body.startsWith("\\\\", i) -> { rows += row.toString(); row.clear(); i += 2 }
+                    c == '\\' -> { row.append(body, i, minOf(i + 2, body.length)); i += 2 }
+                    c == '{' -> { braces++; row.append(c); i++ }
+                    c == '}' -> { braces--; row.append(c); i++ }
+                    c == '&' && top -> { row.append(' '); i++ }
+                    else -> { row.append(c); i++ }
+                }
+            }
+            rows += row.toString()
+            return rows
         }
     }
 
@@ -150,6 +219,7 @@ object MathText {
     }
 
     private const val OVERLINE = '\u0305'
+    private const val MONEY = '\uE000' // stands in for a "$" that is money, while the math marks are read
 
     private val SUBSCRIPTS = mapOf('0' to '₀', '1' to '₁', '2' to '₂', '3' to '₃', '4' to '₄', '5' to '₅',
         '6' to '₆', '7' to '₇', '8' to '₈', '9' to '₉', '+' to '₊', '-' to '₋', '=' to '₌', '(' to '₍', ')' to '₎',
