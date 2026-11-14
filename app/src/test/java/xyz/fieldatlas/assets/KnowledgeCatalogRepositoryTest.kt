@@ -293,8 +293,8 @@ class KnowledgeCatalogRepositoryTest {
 
     @Test fun apkCatalogSurvivesOlderSixTopicCacheAndRefreshOffline() = runBlocking {
         val bundled = KnowledgeCatalog.parse(File("src/main/assets/knowledge/catalog.json").readText())
-        // An older cache: before the crypto and meaning-search packs were added.
-        val old = bundled.packs.filterNot { it.id in setOf("crypto-ethereum", "encyclopedia-index") }
+        // An older cache: before the crypto, meaning-search and practical skills packs were added.
+        val old = bundled.packs.filterNot { it.id in setOf("crypto-ethereum", "encyclopedia-index", "practical-skills") }
             .map { pack ->
                 when (pack.id) {
                     "osm-essentials", "osm-vegan-places", "wikivoyage-guides" ->

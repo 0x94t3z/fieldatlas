@@ -19,6 +19,7 @@ The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-bui
 | Cryptography & Ethereum (`crypto-ethereum`) | 2026.10.05-leviathan | 59,453,558 | `3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014` | EIPs, ERCs and consensus specifications at pinned commits; NIST FIPS 203/204/205, SP 800-208, IR 8547; 123 Wikipedia articles at pinned revisions | CC0 1.0, CC BY-SA 4.0, US government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan) |
 | Biology & longevity (`world-knowledge-biology`) | 2026.10.18 | 1,075,685,456 | `e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66` | 48,286 open-access ageing and longevity papers from PubMed Central, read 18 October 2026; OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026, and Genetics summaries, 18 October 2026; Human Ageing Genomic Resources, 13 and 18 October 2026 | CC BY 4.0, CC0 1.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18) |
 | Biology & longevity: search by meaning (`biology-meaning`) | 2026.11.03 | 133,028,790 | `55ba2a229d0842233de44d59ba557cdacf18f64fe0642c68bad3ab247edb18ea` | bge-small-en-v1.5 vectors of every Biology & longevity passage, clustered and compressed; no text (1.4.8 and later) | CC BY 4.0, CC BY 3.0, CC0 1.0, US Government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a/biology-meaning/2026.11.03) |
+| Practical skills (`practical-skills`) | 2026.11.14-leviathan | 760,913 | `19f5c8be66f4955fc99d0a70d47abe47edcb7980df3c9da83c46e679d53079f9` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 13 November 2026 | US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack) |
 | Mathematics & statistics (`openstax-maths-stats`) | 0.1.0 | 3,232,356 | `c87484527d6d666296a874d947b10c7352aaddbbf9d2f40f36668222fbd6cf78` | OpenStax Prealgebra 2e, one passage per numbered section, extracted from openstax/osbooks-prealgebra-bundle at pinned commit 7fcdabf0364f3b308c0190557dfc961b579b374c (19 February 2026), read 9 November 2026 | CC BY 4.0 | Not yet hosted: built from this repository with tools/packs/build_prealgebra_pack.py (issue #26) |
 
 **Where to download.** Every collection is hosted on Hugging Face, in
@@ -416,18 +417,19 @@ amounts, and no page chrome. 754 passages: 329 USDA, 189 ATP 3-50.21, 88 NWS, 72
 
 | Collection (id) | Version | Bytes | SHA-256 | Source and snapshot | Licence | Download |
 | --- | --- | ---: | --- | --- | --- | --- |
-| Practical skills (`practical-skills`) | 2026.11.14-leviathan | 760,921 | `918361a30e7520ac8c14fcf9fb258e70fd3db96139128033812be7c781c8e77b` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 9 November 2026 | US government work | Not yet hosted |
+| Practical skills (`practical-skills`) | 2026.11.14-leviathan | 760,913 | `19f5c8be66f4955fc99d0a70d47abe47edcb7980df3c9da83c46e679d53079f9` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 13 November 2026 | US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack) |
 
 The keyword-only build (`practical-skills`, version `2026.11.14`, schema 1) is 1,322,545 bytes,
-SHA-256 `3450448d7fbc93c018ad8a096994bec5318e78153c9daa04441d2ac995dff8a4`, and rebuilds byte for
+SHA-256 `94aec7bfb59b4ea88db04987e0eaf8fd21d057aab32fbc25c5da6d6b0f396651`, and rebuilds byte for
 byte from the locked sources. `2026.11.14-leviathan` holds the same passages with a Leviathan 0.2.0
 index (`index_pack_for_leviathan.py`, `build_dual_search_pack.py`, `package_search_upgrade.py
 --compressed`) and installs to 2,150,360 bytes; the Leviathan index is not byte-identical between
 runs, so a rebuild has the same passages but a different SHA-256. Both carry `ATTRIBUTION.txt`
 inside, and the build writes `ATTRIBUTION.txt` and `sources.lock.json` (licence
 `LicenseRef-US-Government-Work`) beside them; the lock of this build is
-[tools/data/practical_skills_sources.lock.json](tools/data/practical_skills_sources.lock.json). It has no
-meaning-search vectors.
+[tools/data/practical_skills_sources.lock.json](tools/data/practical_skills_sources.lock.json). The hosted file
+was built by the maintainer from a fetch on 13 November 2026, and that fetch's lock is the one committed and the one
+beside the file on Hugging Face. It has no meaning-search vectors.
 
 ## Encyclopedia: search by meaning (November 2)
 

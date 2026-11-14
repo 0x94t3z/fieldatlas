@@ -2,6 +2,7 @@ package xyz.fieldatlas.assets
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -162,6 +163,21 @@ class KnowledgeCatalogTest {
         assertEquals("3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014", pack.sha256)
         assertEquals("Science", pack.category)
         assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan/crypto-ethereum-2026.10.05-leviathan.fapack", pack.url)
+    }
+
+    @Test fun practicalSkillsDownloadMatchesHostedArtifactInBothCatalogs() {
+        for (name in listOf("catalog.json", "catalog-2.json")) {
+            val pack = KnowledgeCatalog.parse(File("src/main/assets/knowledge/$name").readText()).packs.single { it.id == "practical-skills" }
+            assertEquals("2026.11.14-leviathan", pack.version)
+            assertEquals(760_913L, pack.bytes)
+            assertEquals(2_150_360L, pack.installedBytes)
+            assertEquals("19f5c8be66f4955fc99d0a70d47abe47edcb7980df3c9da83c46e679d53079f9", pack.sha256)
+            assertEquals("LicenseRef-US-Government-Work", pack.license)
+            assertEquals("How-to", pack.category)
+            // Not marked recommended while the collection is new.
+            assertFalse(pack.recommended)
+            assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack", pack.url)
+        }
     }
 
     @Test fun rejectsDuplicateAndInsecureEntries() {

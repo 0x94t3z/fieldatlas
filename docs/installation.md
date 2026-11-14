@@ -41,6 +41,7 @@ download catalog ([sizes, sources and checksums](../DATASETS.md#collections-the-
 | Essentials | about 986 MB (3.62 GB installed) | OpenStreetMap pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels, worldwide |
 | Cryptography & Ethereum | about 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards and related Wikipedia articles |
 | Biology & longevity | about 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers from PubMed Central, OpenStax Biology 2e, MedlinePlus health and genetics summaries and ageing databases; not medical advice |
+| Practical skills | about 0.8 MB (2.2 MB installed) | Home canning, safe water, getting ready for floods, storms and earthquakes, shelter, fire and navigation, quoted from USDA, FEMA, CDC, National Weather Service, USGS and US Army guides; not first aid or medical advice |
 
 Library also offers a **search by meaning** download for the Encyclopedia (about 889 MB), Travel guides (about
 77 MB) and Biology & longevity (about 134 MB), once that collection is installed. Each finds the collection's
