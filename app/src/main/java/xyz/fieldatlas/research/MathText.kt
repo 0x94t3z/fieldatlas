@@ -18,7 +18,7 @@ object MathText {
     private val inlineDollars = Regex("(?<![\\\\$\\w])\\$(?=\\S)([^$\\n]{1,300}?)(?<=\\S)\\$(?!\\$)")
     private val looksLikeMath = Regex("\\\\[A-Za-z]|[_^{}]")
     private val chemicalSubscript = Regex("(?<=[A-Z]|[A-Z][a-z]|\\))_\\{?(\\d{1,2})\\}?")
-    private val bareCommand = Regex("\\\\(text|mathrm|ce|frac|times|cdot|rightarrow|to|approx|leq|geq|neq|degree|circ|pm)\\b")
+    private val bareCommand = Regex("\\\\(text|mathrm|ce|frac|times|cdot|rightarrow|to|approx|leq|geq|neq|degree|circ|pm|overline)\\b")
 
     fun readable(text: String): String {
         if ('$' !in text && '\\' !in text && '_' !in text) return text
@@ -115,6 +115,9 @@ object MathText {
                     val radicand = argument().trim()
                     (script(index, SUPERSCRIPTS) ?: index) + "√" + grouped(radicand)
                 }
+                // A repeating decimal ("0.58\\overline{3}"): the bar goes over each character it covers.
+                // The reading font has no overline, so the phone's own font draws these characters.
+                "overline", "bar" -> argument().trim().map { if (it == ' ') " " else "$it$OVERLINE" }.joinToString("")
                 "left", "right", "big", "Big", "bigl", "bigr", "displaystyle", "limits" -> ""
                 "quad", "qquad" -> " "
                 else -> (SYMBOLS[name] ?: name).also { symbol ->
@@ -145,6 +148,8 @@ object MathText {
         if (trimmed.isEmpty() || trimmed.any { it !in table }) return null
         return trimmed.map(table::getValue).joinToString("")
     }
+
+    private const val OVERLINE = '\u0305'
 
     private val SUBSCRIPTS = mapOf('0' to '₀', '1' to '₁', '2' to '₂', '3' to '₃', '4' to '₄', '5' to '₅',
         '6' to '₆', '7' to '₇', '8' to '₈', '9' to '₉', '+' to '₊', '-' to '₋', '=' to '₌', '(' to '₍', ')' to '₎',

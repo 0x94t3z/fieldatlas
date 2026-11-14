@@ -26,6 +26,16 @@ class MathTextTest {
         assertEquals("v_(best)", MathText.readable("\$v_{best}\$"))
     }
 
+    @Test fun repeatingDecimalsKeepTheirBar() {
+        // As the Prealgebra collection writes them; the command name used to show ("0.58overline3").
+        assertEquals("0.583\u0305 is a repeating decimal", MathText.readable("\$0.58\\overline{3}\$ is a repeating decimal"))
+        assertEquals("written 1.3\u0305.", MathText.readable("written \$1.\\overline{3}.\$"))
+        assertEquals("0.4\u03055\u0305", MathText.readable("\$0.\\overline{45}\$"))
+        assertEquals("0.7\u03051\u03054\u03052\u03058\u03055\u0305", MathText.readable("\\(0.\\overline{714285}\\)"))
+        // Copied without math marks.
+        assertEquals("1/3 = 0.3\u0305", MathText.readable("1/3 = 0.\\overline{3}"))
+    }
+
     @Test fun formulasWithoutMathMarks() {
         assertEquals("CO₂ and H₂O", MathText.readable("CO_2 and H_2O"))
         assertEquals("Ca₃(PO₄)₂", MathText.readable("Ca_3(PO_4)_2"))

@@ -24,6 +24,11 @@ class SpeechTextTest {
         assertEquals("It is 1063 feet tall.", SpeechText.spoken("It is 1,063 ft tall."))
     }
 
+    @Test fun repeatingDecimalsAreSaidAsRepeating() {
+        assertEquals("One third is 0.3 repeating.", SpeechText.spoken("One third is 0.3\u0305."))
+        assertEquals("5 elevenths is 0.45 repeating, not 0.45.", SpeechText.spoken("5 elevenths is 0.4\u03055\u0305, not 0.45."))
+    }
+
     @Test fun timesReadTheWayPeopleSayThem() {
         assertEquals("It opens 9 30 to 5 pm.", SpeechText.spoken("It opens 9:30–17:00."))
         assertEquals("Back at 8 o'clock.", SpeechText.spoken("Back at 8:00."))

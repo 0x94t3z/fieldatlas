@@ -125,6 +125,8 @@ object SpeechText {
     /** The words a voice should say for [text]. */
     fun spoken(text: String): String {
         var t = plain(text)
+        // A bar over repeating decimal digits ("0.583\u0305") is a mark no voice can say.
+        t = t.replace(Regex("((?:\\d\u0305)+)")) { it.value.replace("\u0305", "") + " repeating" }.replace("\u0305", "")
         // Numbers people dial, said digit by digit: always the common emergency numbers, any number after "call" or "dial".
         t = t.replace(Regex("(?i)\\b(call|dial|phone|ring|text|number)( (?:the |a |an )?(?:\\w+ ){0,2}?)(\\d[\\d -]{1,14}\\d)\\b")) {
             it.groupValues[1] + it.groupValues[2] + digits(it.groupValues[3])
