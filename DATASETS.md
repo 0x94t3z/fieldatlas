@@ -20,7 +20,7 @@ The 1.4.0 release measurements ([sets 4 to 6](docs/evaluation.md#140-release-bui
 | Biology & longevity (`world-knowledge-biology`) | 2026.10.18 | 1,075,685,456 | `e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66` | 48,286 open-access ageing and longevity papers from PubMed Central, read 18 October 2026; OpenStax Biology 2e at a pinned revision; MedlinePlus health topic summaries, 10 October 2026, and Genetics summaries, 18 October 2026; Human Ageing Genomic Resources, 13 and 18 October 2026 | CC BY 4.0, CC0 1.0, CC BY 3.0, US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18) |
 | Biology & longevity: search by meaning (`biology-meaning`) | 2026.11.03 | 133,028,790 | `55ba2a229d0842233de44d59ba557cdacf18f64fe0642c68bad3ab247edb18ea` | bge-small-en-v1.5 vectors of every Biology & longevity passage, clustered and compressed; no text (1.4.8 and later) | CC BY 4.0, CC BY 3.0, CC0 1.0, US Government work, MIT (encoder) | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/835614ae13dae3aa8066ce58e673e0aff67d0a9a/biology-meaning/2026.11.03) |
 | Practical skills (`practical-skills`) | 2026.11.14-leviathan | 760,913 | `19f5c8be66f4955fc99d0a70d47abe47edcb7980df3c9da83c46e679d53079f9` | USDA Complete Guide to Home Canning (2015), FEMA Are You Ready? (2020), CDC, NWS and USGS pages and fact sheets, ATP 3-50.21 (2018), fetched 13 November 2026 | US government work | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack) |
-| Mathematics & statistics (`openstax-maths-stats`) | 0.1.0 | 3,232,356 | `c87484527d6d666296a874d947b10c7352aaddbbf9d2f40f36668222fbd6cf78` | OpenStax Prealgebra 2e, one passage per numbered section, extracted from openstax/osbooks-prealgebra-bundle at pinned commit 7fcdabf0364f3b308c0190557dfc961b579b374c (19 February 2026), read 9 November 2026 | CC BY 4.0 | Not yet hosted: built from this repository with tools/packs/build_prealgebra_pack.py (issue #26) |
+| Mathematics: Prealgebra (`openstax-maths-stats`) | 0.1.1-leviathan | 1,601,662 | `18b66f6bb4fe3ea02495f3cc126c3a80ff3ad8f296491899c78e07a52e5ae545` | OpenStax Prealgebra 2e, its 60 numbered sections with their glossaries, extracted from openstax/osbooks-prealgebra-bundle at pinned commit 7fcdabf0364f3b308c0190557dfc961b579b374c (19 February 2026) | CC BY 4.0 | [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/b528aa8c6b759f2c97e58c61d90067241554db59/openstax-maths-stats/0.1.1-leviathan/openstax-maths-stats-0.1.1-leviathan.fapack) |
 
 **Where to download.** Every collection is hosted on Hugging Face, in
 [Field Atlas Knowledge Packs](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge) and
@@ -342,6 +342,35 @@ SHA-256 `b34a374145eba8fd19e118a274b045a09361af596b1ffae2aba808481b62dcd7`; its 
 the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
+
+## Mathematics: Prealgebra (November 14)
+
+`tools/packs/extract_openstax_prealgebra.py` reads OpenStax *Prealgebra 2e* from a checkout of
+`openstax/osbooks-prealgebra-bundle` at commit `7fcdabf0364f3b308c0190557dfc961b579b374c` (19 February
+2026). At that commit the repository's `LICENSE` and the book's own metadata say CC BY 4.0; the
+publisher changed both to CC BY-NC-SA on 12 March 2026, and no later revision is used. The 60 numbered
+sections are kept whole, in the book's words, each followed by its glossary; the preface, the chapter
+introductions and the appendices are left out. Formulas are LaTeX converted from the book's MathML,
+tables are one row to a line, and images are left out with their captions and descriptions kept. The
+corpus is committed as `tools/packs/prealgebra/corpus.jsonl` (SHA-256
+`8cdc11cd558c6da9058c3def92c9c55fcf6dfe3209eadd9fbde54a6591369a75`) and rebuilds byte for byte from that
+commit.
+
+`tools/packs/build_prealgebra_pack.py` builds the keyword-only pack (`openstax-maths-stats`, version
+`0.1.1`, schema 1): 3,147,817 bytes, SHA-256
+`ae12501c3a804666d715077fc24e5f4392663cdc744270824c65de94c1882dfc` with SQLite 3.53.4 (another SQLite
+version writes the same passages into different bytes). `0.1.1-leviathan`, the hosted file, holds the
+same 1,368 passages with a Leviathan 0.2.0 index and installs to 4,302,080 bytes. Both carry
+`ATTRIBUTION.txt` inside. It has no meaning-search vectors.
+
+Version 0.1.0, built for [issue #26](https://github.com/0x94t3z/fieldatlas/issues/26), was never hosted.
+Before hosting, four faults were fixed in the extraction: the glossaries were missing (39 sections,
+108 definitions); in 221 formulas a command ran into the next letter (`2\pir` for `2\pi r`); the
+circled letters that label the parts of a question lost their circles in the pack and are now written
+"(a)", "(b)"; and the bar over a repeating decimal is now `\overline{...}`. The pack also takes the
+collection's own id in place of a numbered module id, carries its credits inside, and starts each
+passage at the start of a line or a word. The answers run in `tools/packs/prealgebra/` was made on
+0.1.0.
 
 ## Practical skills (November 10)
 

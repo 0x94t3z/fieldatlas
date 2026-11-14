@@ -121,6 +121,7 @@ All collections are optional and download inside the app from Hugging Face
 | Cryptography & Ethereum | 59 MB (92 MB installed) | Ethereum proposals and specifications, NIST post-quantum standards |
 | Biology & longevity | 1.08 GB (2.86 GB installed) | 48,286 open-access ageing and longevity papers, a biology textbook, health and genetics summaries, ageing databases |
 | Practical skills | 0.8 MB (2.2 MB installed) | Home canning, safe water, storms, floods, shelter, fire and navigation, quoted from US federal guides |
+| Mathematics: Prealgebra | 1.6 MB (4.3 MB installed) | OpenStax Prealgebra 2e: arithmetic, fractions, decimals, percents, equations, geometry and graphs, with worked examples |
 
 With 1.4.8, the Encyclopedia, Travel guides and Biology & longevity each have an optional **search by meaning**
 download (889 MB, 77 MB and 134 MB) that finds their passages by what a question means. It holds no text and

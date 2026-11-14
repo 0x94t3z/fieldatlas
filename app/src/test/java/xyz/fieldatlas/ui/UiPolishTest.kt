@@ -107,6 +107,6 @@ class UiPolishTest {
             { it.toAssetCardModel().title })).map { it.id }
         assertEquals(discover, library)
         assertEquals(listOf("wikipedia-encyclopedia", "encyclopedia-index", "osm-essentials", "wikivoyage-places", "osm-vegan-places",
-            "wikivoyage-guides", "practical-skills", "world-knowledge-biology", "crypto-ethereum"), discover)
+            "wikivoyage-guides", "practical-skills", "world-knowledge-biology", "crypto-ethereum", "openstax-maths-stats"), discover)
     }
 }

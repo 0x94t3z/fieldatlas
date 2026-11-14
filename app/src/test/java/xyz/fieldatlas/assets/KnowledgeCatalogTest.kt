@@ -180,6 +180,22 @@ class KnowledgeCatalogTest {
         }
     }
 
+    @Test fun prealgebraDownloadMatchesHostedArtifactInBothCatalogs() {
+        for (name in listOf("catalog.json", "catalog-2.json")) {
+            val pack = KnowledgeCatalog.parse(File("src/main/assets/knowledge/$name").readText()).packs.single { it.id == "openstax-maths-stats" }
+            assertEquals("0.1.1-leviathan", pack.version)
+            assertEquals("Mathematics: Prealgebra", pack.title)
+            assertEquals(1_601_662L, pack.bytes)
+            assertEquals(4_302_080L, pack.installedBytes)
+            assertEquals("18b66f6bb4fe3ea02495f3cc126c3a80ff3ad8f296491899c78e07a52e5ae545", pack.sha256)
+            assertEquals("CC-BY-4.0", pack.license)
+            assertEquals("Science", pack.category)
+            // Not marked recommended while the collection is new.
+            assertFalse(pack.recommended)
+            assertEquals("https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/b528aa8c6b759f2c97e58c61d90067241554db59/openstax-maths-stats/0.1.1-leviathan/openstax-maths-stats-0.1.1-leviathan.fapack", pack.url)
+        }
+    }
+
     @Test fun rejectsDuplicateAndInsecureEntries() {
         val valid = """{"id":"biology","version":"1","title":"Biology","description":"Notes","license":"CC0","bytes":100,"sha256":"${"a".repeat(64)}","url":"https://example.org/biology.fapack"}"""
         assertThrows(IllegalArgumentException::class.java) {

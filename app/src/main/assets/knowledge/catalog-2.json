@@ -161,6 +161,19 @@
       "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack",
       "recommended": false,
       "category": "How-to"
+    },
+    {
+      "id": "openstax-maths-stats",
+      "version": "0.1.1-leviathan",
+      "title": "Mathematics: Prealgebra",
+      "description": "Arithmetic, fractions, percents, algebra. OpenStax Prealgebra 2e in 60 sections with worked examples, exercises and glossaries, formulas written as LaTeX · February 2026 revision.",
+      "license": "CC-BY-4.0",
+      "bytes": 1601662,
+      "installedBytes": 4302080,
+      "sha256": "18b66f6bb4fe3ea02495f3cc126c3a80ff3ad8f296491899c78e07a52e5ae545",
+      "url": "https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/b528aa8c6b759f2c97e58c61d90067241554db59/openstax-maths-stats/0.1.1-leviathan/openstax-maths-stats-0.1.1-leviathan.fapack",
+      "recommended": false,
+      "category": "Science"
     }
   ]
 }
