@@ -1,5 +1,8 @@
 # Answers run for the Prealgebra collection (issue #26)
 
+This run was made on the first build, 0.1.0. The hosted collection is a later build; `DATASETS.md`
+lists what changed.
+
 The 30 sealed test questions are in `prealgebra-questions.txt` in this
 directory. Their SHA-256 is
 `929c6063086d1897332cb3775f3b3d6f5e77f5ff0a54518662e453f83d003571`, the

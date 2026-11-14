@@ -18,6 +18,8 @@ Conversion rules (CNXML -> plain text):
   * MathML carries no LaTeX alttext in the bundle, so formulas are kept as
     LaTeX produced by a deterministic MathML -> LaTeX conversion
     ($...$ inline, $$...$$ for display equations).
+  * The circled letters that label the parts of a question are written
+    "(a)", "(b)", and the bar over a repeating decimal as \\overline{...}.
   * Images are not embedded (the pack is text). A figure contributes its
     caption and, when present, the image's alt text as "[Image: ...]".
   * Tables become one line per row, cells joined with " | ".
@@ -75,6 +77,10 @@ _MO_MAP = {
     "\u2032": "'", "\u2033": "''",
 }
 _MI_MAP = {"\u03c0": r"\pi", "\u0394": r"\Delta", "\u03b8": r"\theta"}
+_BAR = re.compile("[\u2013\u2014\u00af\u203e_-]+")
+# The book labels the parts of a question with circled letters. The pack format folds a circled
+# letter to the bare letter ("are a counting numbers? b whole numbers?"), so they are written "(a)".
+_CIRCLED = re.compile("[\u24d0-\u24e9]")
 
 
 def _kids(el):
@@ -86,13 +92,24 @@ def _flat(el):
     return re.sub(r"\s+", " ", "".join(el.itertext())).strip()
 
 
+def _cat(parts) -> str:
+    """Join converted pieces. A command name that runs into a letter is another command or none
+    ("\\pi" + "r" would read "\\pir", "\\cdot" + "s" the ellipsis "\\cdots"), so a space is put between them."""
+    out = ""
+    for part in parts:
+        if part and part[0].isalpha() and re.search(r"\\[A-Za-z]+$", out):
+            out += " "
+        out += part
+    return out
+
+
 def mathml_to_latex(el) -> str:
     tag = el.tag.rsplit("}", 1)[-1]
     children = _kids(el)
     if tag == "math":
-        return "".join(mathml_to_latex(c) for c in children)
+        return _cat(mathml_to_latex(c) for c in children)
     if tag in ("mrow", "mstyle", "mpadded"):
-        return "".join(mathml_to_latex(c) for c in children)
+        return _cat(mathml_to_latex(c) for c in children)
     if tag == "mn":
         return _flat(el)
     if tag == "mi":
@@ -112,28 +129,28 @@ def mathml_to_latex(el) -> str:
         return ""
     if tag == "mfrac":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return r"\frac{%s}{%s}" % (mathml_to_latex(children[0]),
                                    mathml_to_latex(children[1]))
     if tag == "msup":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return "{%s}^{%s}" % (mathml_to_latex(children[0]),
                               mathml_to_latex(children[1]))
     if tag == "msub":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return "{%s}_{%s}" % (mathml_to_latex(children[0]),
                               mathml_to_latex(children[1]))
     if tag == "msubsup":
         if len(children) != 3:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return "{%s}_{%s}^{%s}" % tuple(mathml_to_latex(c) for c in children)
     if tag == "msqrt":
-        return r"\sqrt{%s}" % "".join(mathml_to_latex(c) for c in children)
+        return r"\sqrt{%s}" % _cat(mathml_to_latex(c) for c in children)
     if tag == "mroot":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return r"\sqrt[%s]{%s}" % (mathml_to_latex(children[1]),
                                    mathml_to_latex(children[0]))
     if tag == "mfenced":
@@ -142,23 +159,26 @@ def mathml_to_latex(el) -> str:
         body = ",".join(mathml_to_latex(c) for c in children)
         return r"\left%s %s \right%s" % (open_c, body, close_c)
     if tag == "menclose":
-        inner = "".join(mathml_to_latex(c) for c in children)
+        inner = _cat(mathml_to_latex(c) for c in children)
         if "radical" in (el.get("notation") or ""):
             return r"\sqrt{%s}" % inner
         return inner  # longdiv etc.: keep the content, drop the layout rule
     if tag == "munder":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return "{%s}_{%s}" % (mathml_to_latex(children[0]),
                               mathml_to_latex(children[1]))
     if tag == "mover":
         if len(children) != 2:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
+        if _BAR.fullmatch(_flat(children[1])):
+            # A bar over the digits of a repeating decimal ("1.3" with the 3 barred).
+            return r"\overline{%s}" % mathml_to_latex(children[0])
         return "{%s}^{%s}" % (mathml_to_latex(children[0]),
                               mathml_to_latex(children[1]))
     if tag == "munderover":
         if len(children) != 3:
-            return "".join(mathml_to_latex(c) for c in children)
+            return _cat(mathml_to_latex(c) for c in children)
         return "{%s}_{%s}^{%s}" % tuple(mathml_to_latex(c) for c in children)
     if tag == "mtable":
         rows = []
@@ -167,7 +187,7 @@ def mathml_to_latex(el) -> str:
             rows.append(" & ".join(cells))
         return r"\begin{matrix} %s \end{matrix}" % (r" \\ ".join(rows))
     if tag in ("mtr", "mtd"):
-        return "".join(mathml_to_latex(c) for c in children)
+        return _cat(mathml_to_latex(c) for c in children)
     if tag == "semantics":
         return mathml_to_latex(children[0]) if children else ""
     if tag == "maction":
@@ -175,7 +195,7 @@ def mathml_to_latex(el) -> str:
     if tag == "annotation":
         return ""
     # Unknown MathML element: keep its content rather than dropping math.
-    return "".join(mathml_to_latex(c) for c in children) or _flat(el)
+    return _cat(mathml_to_latex(c) for c in children) or _flat(el)
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +334,9 @@ def module_to_text(content_el, resolve_link=None) -> str:
     s.flush()
     text = "\n".join(s.lines)
     text = re.sub(r"\n{3,}", "\n\n", text)
+    text = _CIRCLED.sub(lambda m: "(%s)" % chr(ord(m.group()) - 0x24d0 + ord("a")), text)
+    # One temperature is typed with the ordinal sign in place of the degree sign.
+    text = text.replace("\u00ba", "\u00b0")
     return text.strip()
 
 
@@ -422,6 +445,13 @@ def main():
             sec_no += 1
             _, _, content, doc_root = module_info(mid)
             text = module_to_text(content, resolve_link=make_resolver(doc_root))
+            glossary = doc_root.find(f"{{{CNXML}}}glossary")
+            if glossary is not None:
+                # The glossary stands beside the content in the source, not inside it; the book
+                # prints it at the end of the section under this heading.
+                terms = module_to_text(glossary, resolve_link=make_resolver(doc_root))
+                if terms:
+                    text += "\n\nGlossary\n" + terms
             slug = f"{ch_no}-{sec_no}-{kebab(title)}"
             rows.append({
                 "document_id": f"openstax-prealgebra-{mid}",
