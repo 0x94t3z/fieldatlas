@@ -1,0 +1,574 @@
+{
+  "schema": 1,
+  "license": "LicenseRef-US-Government-Work",
+  "sources": [
+    {
+      "id": "usda-canning-intro",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning: Introduction",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/INTRO_HomeCanrev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ]
+      },
+      "default_heading": "Introduction",
+      "drop_paragraphs": [
+        "^Acknowledgments\\b"
+      ],
+      "notes": "The acknowledgments (who wrote and funded the guide) are left out; they are not guidance."
+    },
+    {
+      "id": "usda-canning-guide-1",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 1: Principles of Home Canning",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE01_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$",
+          "^Principles of Home Canning$"
+        ],
+        "process_tables": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-2",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 2: Selecting, Preparing, and Canning Fruit and Fruit Products",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE02_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-3",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 3: Selecting, Preparing, and Canning Tomatoes and Tomato Products",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE03_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-4",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 4: Selecting, Preparing, and Canning Vegetables and Vegetable Products",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE04_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-5",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 5: Preparing and Canning Poultry, Red Meats, and Seafoods",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE05_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-6",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 6: Preparing and Canning Fermented Foods and Pickled Vegetables",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE06_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction"
+    },
+    {
+      "id": "usda-canning-guide-7",
+      "publisher": "U.S. Department of Agriculture",
+      "title": "Complete Guide to Home Canning, Guide 7: Preparing and Canning Jams and Jellies",
+      "edition": "Agriculture Information Bulletin No. 539, revised 2015",
+      "url": "https://nchfp.uga.edu/papers/guide/GUIDE07_HomeCan_rev0715.pdf",
+      "kind": "pdf",
+      "topic": "canning",
+      "pdf": {
+        "drop_lines": [
+          "^\\d$",
+          "^\\d-\\d+$",
+          "^(?:Guide \\d|Page|Index of Foods)$",
+          "^Jams and Jellies$"
+        ],
+        "process_tables": true,
+        "layout_entries": true
+      },
+      "default_heading": "Introduction",
+      "exclude_sections": [
+        "Ingredients Added to Each Cup of Strained Juice"
+      ],
+      "notes": "\"Ingredients Added to Each Cup of Strained Juice\" is a table's header, not a heading for text: the step read under it belongs to a jelly procedure whose amounts are in that table."
+    },
+    {
+      "id": "fema-are-you-ready",
+      "publisher": "Federal Emergency Management Agency",
+      "title": "Are You Ready? An In-Depth Guide to Citizen Preparedness",
+      "edition": "P-2064, September 2020 (Ready.gov file of November 2021)",
+      "url": "https://www.ready.gov/sites/default/files/2021-11/are-you-ready-guide.pdf",
+      "kind": "pdf",
+      "topic": "preparedness",
+      "pdf": {
+        "pages": [
+          [
+            5,
+            36
+          ]
+        ],
+        "drop_lines": [
+          "^(?:\\d+|[ivx]+) Ready\\.gov$",
+          "^•$"
+        ]
+      },
+      "exclude_sections": [
+        "Active Shooter",
+        "Cyberattack",
+        "Financial Preparedness",
+        "Nuclear Explosion",
+        "Pandemics"
+      ],
+      "default_heading": "Prepare for Disasters"
+    },
+    {
+      "id": "cdc-water-make-safe",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "Making Water Safe in an Emergency",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/water-emergency/about/index.html",
+      "kind": "html",
+      "topic": "water"
+    },
+    {
+      "id": "cdc-water-store",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "How to Create and Store an Emergency Water Supply",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/water-emergency/about/how-to-create-and-store-an-emergency-water-supply.html",
+      "kind": "html",
+      "topic": "water"
+    },
+    {
+      "id": "cdc-water-find",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "How to Find Clean Water in an Emergency",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/water-emergency/about/how-to-find-clean-water-in-an-emergency.html",
+      "kind": "html",
+      "topic": "water"
+    },
+    {
+      "id": "cdc-water-wells",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "How to Disinfect Wells After an Emergency",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/water-emergency/about/how-to-disinfect-wells-after-an-emergency.html",
+      "kind": "html",
+      "topic": "water"
+    },
+    {
+      "id": "cdc-food-after-emergency",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "Keep Food Safe After a Disaster or Emergency",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/food-safety/foods/keep-food-safe-after-emergency.html",
+      "kind": "html",
+      "topic": "food-safety"
+    },
+    {
+      "id": "cdc-botulism-home-canned",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "Home-Canned Foods and Botulism",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/botulism/prevention/home-canned-foods.html",
+      "kind": "html",
+      "topic": "canning"
+    },
+    {
+      "id": "cdc-floods-safety",
+      "publisher": "Centers for Disease Control and Prevention",
+      "title": "Flood Safety",
+      "edition": "web page as fetched",
+      "url": "https://www.cdc.gov/floods/safety/index.html",
+      "kind": "html",
+      "topic": "flood"
+    },
+    {
+      "id": "nws-flood-before",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Flood Safety: Before a Flood",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/flood-before",
+      "kind": "html",
+      "topic": "flood"
+    },
+    {
+      "id": "nws-flood-during",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Flood Safety: During a Flood",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/flood-during",
+      "kind": "html",
+      "topic": "flood"
+    },
+    {
+      "id": "nws-flood-after",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Flood Safety: After a Flood",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/flood-after",
+      "kind": "html",
+      "topic": "flood"
+    },
+    {
+      "id": "nws-flood-tadd",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Turn Around Don't Drown",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/flood-turn-around-dont-drown",
+      "kind": "html",
+      "topic": "flood",
+      "exclude_sections": [
+        "2. Use of Turn Around Don't Drown® Phrase on Social Media",
+        "3. External Use of Turn Around Don't Drown® Phrase"
+      ],
+      "notes": "The page's sections 2 and 3 set the licence terms for using the phrase (and name the official who grants it); they are not flood guidance and are left out."
+    },
+    {
+      "id": "nws-flood-watch-warning",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Flood Watch vs. Warning",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/flood-watch-warning",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "nws-lightning-overview",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Lightning Safety Overview",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/lightning-safety-overview",
+      "kind": "html",
+      "topic": "lightning"
+    },
+    {
+      "id": "nws-lightning-outdoors",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Lightning Safety When Outdoors",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/lightning-outdoors",
+      "kind": "html",
+      "topic": "lightning"
+    },
+    {
+      "id": "nws-lightning-indoors",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Lightning Safety When Indoors",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/lightning-indoors",
+      "kind": "html",
+      "topic": "lightning"
+    },
+    {
+      "id": "nws-thunderstorm-prepare",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Thunderstorm Safety: Prepare",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/thunderstorm-prepare",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-thunderstorm-during",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Thunderstorm Safety: During",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/thunderstorm-during",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-thunderstorm-after",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Thunderstorm Safety: After",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/thunderstorm-after",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-thunderstorm-ww",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Severe Thunderstorm Watch vs. Warning",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/thunderstorm-ww",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "nws-hurricane-plan",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Hurricane Safety: Plan",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/hurricane-plan",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-hurricane-action",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Hurricane Safety: Take Action",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/hurricane-action",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-hurricane-after",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Hurricane Safety: After",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/hurricane-after",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-hurricane-ww",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Hurricane Watch vs. Warning",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/hurricane-ww",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "nws-tornado-prepare",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Tornado Safety: Prepare",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/tornado-prepare",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-tornado-during",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Tornado Safety: During",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/tornado-during",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-tornado-after",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Tornado Safety: After",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/tornado-after",
+      "kind": "html",
+      "topic": "storm"
+    },
+    {
+      "id": "nws-tornado-ww",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Tornado Watch vs. Warning",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/tornado-ww",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "nws-winter-before",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Winter Weather Safety: Before",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/winter-before",
+      "kind": "html",
+      "topic": "winter"
+    },
+    {
+      "id": "nws-winter-during",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Winter Weather Safety: During",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/winter-during",
+      "kind": "html",
+      "topic": "winter"
+    },
+    {
+      "id": "nws-winter-after",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Winter Weather Safety: After",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/winter-after",
+      "kind": "html",
+      "topic": "winter"
+    },
+    {
+      "id": "nws-winter-ww",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Winter Weather Watches, Warnings and Advisories",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/winter-ww",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "nws-heat-during",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Heat Safety Tips and Resources",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/heat-during",
+      "kind": "html",
+      "topic": "heat"
+    },
+    {
+      "id": "nws-heat-ww",
+      "publisher": "National Weather Service (NOAA)",
+      "title": "Heat Watch vs. Warning",
+      "edition": "web page as fetched",
+      "url": "https://www.weather.gov/safety/heat-ww",
+      "kind": "html",
+      "topic": "weather"
+    },
+    {
+      "id": "usgs-fs-2025-3050",
+      "publisher": "U.S. Geological Survey",
+      "title": "Earthquake Probabilities and Hazards in the U.S. Pacific Northwest (Fact Sheet 2025-3050)",
+      "edition": "Version 1.1, September 30, 2025",
+      "url": "https://pubs.usgs.gov/fs/2025/3050/fs20253050.pdf",
+      "kind": "pdf",
+      "topic": "earthquake",
+      "keep_sections": [
+        "Preparing for Future Earthquakes"
+      ],
+      "exclude_sections": [
+        "Acknowledgments"
+      ],
+      "drop_paragraphs": [
+        "\\[Also available at",
+        "accessed \\w+ \\d{4} at",
+        "^Photograph",
+        "^By [A-Z]",
+        "^[A-Z][\\w'’-]+, (?:[A-Z]\\.){1,3}"
+      ]
+    },
+    {
+      "id": "army-atp-3-50-21",
+      "publisher": "Headquarters, Department of the Army",
+      "title": "ATP 3-50.21 Survival",
+      "edition": "September 2018 (current, status ACTIVE on armypubs.army.mil, read 2026-11-09)",
+      "url": "https://armypubs.army.mil/epubs/DR_pubs/DR_a/pdf/web/ARN12086_ATP%203-50x21%20FINAL%20WEB%202.pdf",
+      "kind": "pdf",
+      "topic": "survival",
+      "browser_user_agent": true,
+      "pdf": {
+        "pages": [
+          [
+            55,
+            70
+          ],
+          [
+            117,
+            220
+          ]
+        ],
+        "exclude_pages": [
+          [
+            13,
+            54
+          ],
+          [
+            71,
+            116
+          ]
+        ],
+        "drop_lines": [
+          "ATP 3-50\\.21",
+          "^Chapter \\d+$",
+          "^(?:\\d+|A)-\\d+$",
+          "[\\x00-\\x08\\x0b-\\x1f]",
+          "6HSWHPEHU",
+          "^z(?: z)*$"
+        ],
+        "drop_spans": [
+          [
+            "^Table 3-1\\. Means to make potable water",
+            "^3-8\\. "
+          ],
+          [
+            "^WATER FROM PLANTS$",
+            "^BELOW-GROUND SOLAR STILL$"
+          ]
+        ]
+      },
+      "notes": "Chapter 2 (survival medicine, PDF pages 19-54) and chapter 4 (food: wild plants, trapping, butchering, fish; pages 71-116) are never read; the glossary, references and index (221-228) are left out. Chapter 1 (overview, pages 13-18) is left out too: it sets out survival doctrine and has no procedure. Arrow points, throwing sticks, bows and arrows and slings with sling shots and the sap (chapter 8, paragraphs 8-25 to 8-37, and the end of 8-31 carried over the page) are left out by their paragraph numbers, and the scope filter refuses archery and throwing sticks anywhere, like spears and clubs; the bow and drill of chapter 5 (fire) and the rescue sling of appendix A stay. Table 3-1 (means to make potable water) is left out: plain reading order gives it cell by cell. Water from plants (paragraphs 3-16 to 3-27, up to the below-ground solar still) is left out whole: it needs plant identification.",
+      "default_heading": "Water",
+      "drop_paragraphs": [
+        "(?m)^8-(?:2[5-9]|3[0-7])\\. ",
+        "^or plunge it deep under the coals in the ashes"
+      ]
+    }
+  ]
+}
