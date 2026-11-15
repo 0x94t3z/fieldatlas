@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f2e9">
+  <title>de cent packs · Field Atlas library</title>
+  <meta name="description" content="Every collection in the Field Atlas library.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://www.getfieldatlas.com/depack/">
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/depack/depack.css">
+  <script src="/depack/depack.js" defer></script>
+</head>
+<body>
+  <svg width="0" height="0" class="sprite" aria-hidden="true">
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v15M3 4c4-1 6 0 9 1 3-1 5-2 9-1v15c-4-1-6 0-9 1-3-1-5-2-9-1Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14Zm5 12 4.5 4.5"/></symbol>
+    <symbol id="i-cross" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5v8m-4-4h8"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+    <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0Zm6-3c0-2 2-2 2-4m3 4c0-2 2-2 2-4"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="m3 6 6-2 6 2 6-2v14l-6 2-6-2-6 2ZM9 4v14m6-12v14"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.5 3.5 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5 1 1 1.5 2 1.5 3 1.5-2 1.5-5 1.5-8Z"/></symbol>
+    <symbol id="i-leaf" viewBox="0 0 24 24"><path d="M20 3C7 2 2 9 6 16s15 1 14-13ZM4 21 16 8"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7Zm0 10v10M3 7l9 5 9-5"/></symbol>
+    <symbol id="i-sum" viewBox="0 0 24 24"><path d="M4 7h6M7 4v6m7-3h6M5 15l4 4m0-4-4 4m9-3h6m-6 3h6"/></symbol>
+    <symbol id="i-speech" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4Z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7Zm0 0v4h4"/></symbol>
+  </svg>
+  <main>
+    <header class="masthead">
+      <div class="title">
+        <picture><source srcset="/assets/depack.png" media="(prefers-reduced-motion: reduce)"><img class="logo" src="/assets/depack.gif" width="96" height="96" alt=""></picture>
+        <div>
+          <h1>de cent packs</h1>
+          <p class="sub">Every collection in the <a href="/">Field Atlas</a> library.</p>
+        </div>
+      </div>
+      <dl class="totals">
+        <div><dt>Collections</dt><dd data-total="count">10</dd></div>
+        <div><dt>Download</dt><dd data-total="download">13.54 GB</dd></div>
+        <div><dt>Installed</dt><dd data-total="installed">32.76 GB</dd></div>
+      </dl>
+      <p class="how">In the app, open Library and tap a collection. A file from this page goes in with Library, then Import.</p>
+    </header>
+
+    <form class="controls" role="search" hidden>
+      <div class="searchbox">
+        <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+        <label class="visually-hidden" for="q">Search the library</label>
+        <input id="q" type="text" inputmode="search" enterkeyhint="search" placeholder="Try water, hospital, vegan, algebra" autocomplete="off" spellcheck="false">
+        <button type="button" class="clear" id="clear" aria-label="Clear search" hidden><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+        <kbd aria-hidden="true">/</kbd>
+      </div>
+      <div class="chips" role="group" aria-label="Category"><button type="button" class="chip" data-category="all" aria-pressed="true">All <span>10</span></button><button type="button" class="chip" data-category="Encyclopedia" aria-pressed="false">Encyclopedia <span>2</span></button><button type="button" class="chip" data-category="Places" aria-pressed="false">Places <span>3</span></button><button type="button" class="chip" data-category="Travel" aria-pressed="false">Travel <span>1</span></button><button type="button" class="chip" data-category="How-to" aria-pressed="false">How-to <span>1</span></button><button type="button" class="chip" data-category="Science" aria-pressed="false">Science <span>3</span></button></div>
+      <p class="status" id="status" aria-live="polite"></p>
+    </form>
+
+    <div class="empty" id="empty" hidden>
+      <p>No collection matches that. Try one word, or <button type="button" id="reset">clear the filters</button>.</p>
+    </div>
+
+
+    <div class="library">
+      <!-- packs:start -->
+      <section class="group" aria-labelledby="group-encyclopedia">
+        <h2 id="group-encyclopedia">Encyclopedia <span class="count">2</span></h2>
+        <div class="shelf">
+          <article class="book" id="wikipedia-encyclopedia" data-category="Encyclopedia" data-bytes="10643533492" data-text="encyclopedia wikipedia in english english and simple english wikipedia in one offline collection. 8.39 million passages. dated snapshots, not live information. encyclopedia wiki wikipedia facts history people cc by-sa 4.0 encyclopedia: search by meaning finds passages anywhere in the encyclopedia (8,386,572 of them) by what a question means, even when it uses other words. needs the encyclopedia. november 2026.">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-book"/></svg>
+              <h3>Encyclopedia</h3>
+              <p class="line">Wikipedia in English</p>
+            </div>
+            <div class="take">
+              <p class="size">10.64 GB<span class="wifi">Use Wi-Fi</span></p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-encyclopedia/resolve/4a31af613133782cb6ba62d2a660a920e5a64cd6/encyclopedia-2026.10.12.fapack" aria-label="Download Encyclopedia, 10.64 GB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>English and Simple English Wikipedia in one offline collection. 8.39 million passages. Dated snapshots, not live information.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>24.35 GB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY-SA 4.0</dd></div>
+                  <div><dt>Version</dt><dd>2026.10.12-native-compressed-preview</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>7d41d7fbe0419d703b03d3788a55109217ef57e6fac7754165cc8ccc37654d59</code></dd></div>
+                </dl>
+                <p class="addon">Add-on: search by meaning. Finds passages anywhere in the Encyclopedia (8,386,572 of them) by what a question means, even when it uses other words. <a href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/encyclopedia-meaning/2026.11.03/encyclopedia-meaning-2026.11.03.fapack">Download, 888 MB</a></p>
+              </div>
+            </details>
+          </article>
+          <article class="book" id="encyclopedia-index" data-category="Encyclopedia" data-bytes="244396881" data-text="encyclopedia: search by meaning every subject, found by meaning the opening of every simple english wikipedia article (211,112 subjects), searched by meaning, so a question finds its subject even in other words. november 2026. encyclopedia wiki wikipedia facts history people cc by-sa 4.0 + mit">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-search"/></svg>
+              <h3>Encyclopedia: search by meaning</h3>
+              <p class="line">Every subject, found by meaning</p>
+            </div>
+            <div class="take">
+              <p class="size">244 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/192878b42620bc21c4c87f7c22f86d507c6924d8/encyclopedia-index/2026.11.02-leviathan/encyclopedia-index-2026.11.02-leviathan.fapack" aria-label="Download Encyclopedia: search by meaning, 244 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>The opening of every Simple English Wikipedia article (211,112 subjects), searched by meaning, so a question finds its subject even in other words. November 2026.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>453 MB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY-SA 4.0 + MIT</dd></div>
+                  <div><dt>Version</dt><dd>2026.11.02-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>2207866f20c6f51904ef39728ee4d52401dfa8b88ed2bcc42f84f2c8cf5f74db</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="group-places">
+        <h2 id="group-places">Places <span class="count">3</span></h2>
+        <div class="shelf">
+          <article class="book" id="osm-essentials" data-category="Places" data-bytes="986143236" data-text="essentials pharmacies, hospitals, atms 2,981,023 pharmacies, hospitals, atms, toilets, drinking water, stations, supermarkets and hostels openstreetmap maps worldwide, with near-me lookups. october 2026. details can be outdated. places near me nearby map location city odbl">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-cross"/></svg>
+              <h3>Essentials</h3>
+              <p class="line">Pharmacies, hospitals, ATMs</p>
+            </div>
+            <div class="take">
+              <p class="size">986 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-essentials/2026.10.05-leviathan/osm-essentials-2026.10.05-leviathan.fapack" aria-label="Download Essentials, 986 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>2,981,023 pharmacies, hospitals, ATMs, toilets, drinking water, stations, supermarkets and hostels OpenStreetMap maps worldwide, with near-me lookups. October 2026. Details can be outdated.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>3.62 GB</dd></div>
+                  <div><dt>Licence</dt><dd>ODbL</dd></div>
+                  <div><dt>Version</dt><dd>2026.10.05-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>f41811ed8fe4aa1883adb98a57cd75b60aaf30f918358eb3a5c391fc85f7e2d2</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+          <article class="book" id="wikivoyage-places" data-category="Places" data-bytes="215077879" data-text="travel places food, hotels, sights restaurants, hotels, sights, and shops. september 2026. listings may be outdated. places near me nearby map location city cc by-sa 4.0">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-pin"/></svg>
+              <h3>Travel places</h3>
+              <p class="line">Food, hotels, sights</p>
+            </div>
+            <div class="take">
+              <p class="size">215 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-places/2026.09.1-leviathan/wikivoyage-places-2026.09.1-leviathan.fapack" aria-label="Download Travel places, 215 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>Restaurants, hotels, sights, and shops. September 2026. Listings may be outdated.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>650 MB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY-SA 4.0</dd></div>
+                  <div><dt>Version</dt><dd>2026.09.1-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>c94daea43ae042048b7427fefc50abcee10a554a5a80fc359cc4fe9a273e8c63</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+          <article class="book" id="osm-vegan-places" data-category="Places" data-bytes="24183118" data-text="vegan places vegan food and shops 52,064 restaurants, cafes, and shops openstreetmap tags as fully vegan or with vegan options, worldwide, with near-me lookups. october 2026. tags can be outdated. places near me nearby map location city odbl">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-bowl"/></svg>
+              <h3>Vegan places</h3>
+              <p class="line">Vegan food and shops</p>
+            </div>
+            <div class="take">
+              <p class="size">24 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/osm-vegan-places/2026.10.05-leviathan/osm-vegan-places-2026.10.05-leviathan.fapack" aria-label="Download Vegan places, 24 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>52,064 restaurants, cafés, and shops OpenStreetMap tags as fully vegan or with vegan options, worldwide, with near-me lookups. October 2026. Tags can be outdated.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>77 MB</dd></div>
+                  <div><dt>Licence</dt><dd>ODbL</dd></div>
+                  <div><dt>Version</dt><dd>2026.10.05-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>ace29e1c28492f88ed2c5f8dad58260ba3bbf6ea00fb21606ec720475c9ede7d</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="group-travel">
+        <h2 id="group-travel">Travel <span class="count">1</span></h2>
+        <div class="shelf">
+          <article class="book" id="wikivoyage-guides" data-category="Travel" data-bytes="289828270" data-text="travel guides getting around, money, safety 31,672 wikivoyage guides by section: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks. september 2026 snapshot. travel trip holiday city country visa transport cc by-sa 4.0 travel guides: search by meaning finds sections of the travel guides (363,815 of them) by what a question means, even when it uses other words. needs travel guides. november 2026.">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-map"/></svg>
+              <h3>Travel guides</h3>
+              <p class="line">Getting around, money, safety</p>
+            </div>
+            <div class="take">
+              <p class="size">290 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/wikivoyage-guides/2026.09.01-leviathan/wikivoyage-guides-2026.09.01-leviathan.fapack" aria-label="Download Travel guides, 290 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>31,672 Wikivoyage guides by section: getting in and around, money, safety, health, etiquette, travel topics and phrasebooks. September 2026 snapshot.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>660 MB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY-SA 4.0</dd></div>
+                  <div><dt>Version</dt><dd>2026.09.01-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>e67ab97828da0d73266e462b1bff08acd61125140cf797202806cd83234805de</code></dd></div>
+                </dl>
+                <p class="addon">Add-on: search by meaning. Finds sections of the travel guides (363,815 of them) by what a question means, even when it uses other words. <a href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/wikivoyage-guides-meaning/2026.11.03/wikivoyage-guides-meaning-2026.11.03.fapack">Download, 76 MB</a></p>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="group-how-to">
+        <h2 id="group-how-to">How-to <span class="count">1</span></h2>
+        <div class="shelf">
+          <article class="book" id="practical-skills" data-category="How-to" data-bytes="760913" data-text="practical skills canning, safe water, shelter and fire canning, safe water, shelter and fire. 754 passages quoted from usda, fema, cdc, national weather service, usgs and us army guides, also covering storms, floods, earthquakes and navigation. november 2026. how-to survival emergency outdoors camping us government work">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-flame"/></svg>
+              <h3>Practical skills</h3>
+              <p class="line">Canning, safe water, shelter and fire</p>
+            </div>
+            <div class="take">
+              <p class="size">761 KB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/c7d623e43d4c35db9036db8b21e4e47f5f70a0d3/practical-skills/2026.11.14-leviathan/practical-skills-2026.11.14-leviathan.fapack" aria-label="Download Practical skills, 761 KB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>Canning, safe water, shelter and fire. 754 passages quoted from USDA, FEMA, CDC, National Weather Service, USGS and US Army guides, also covering storms, floods, earthquakes and navigation. November 2026.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>2.2 MB</dd></div>
+                  <div><dt>Licence</dt><dd>US government work</dd></div>
+                  <div><dt>Version</dt><dd>2026.11.14-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>19f5c8be66f4955fc99d0a70d47abe47edcb7980df3c9da83c46e679d53079f9</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+      <section class="group" aria-labelledby="group-science">
+        <h2 id="group-science">Science <span class="count">3</span></h2>
+        <div class="shelf">
+          <article class="book" id="world-knowledge-biology" data-category="Science" data-bytes="1075685456" data-text="biology &amp; longevity biology, health, ageing 900,714 passages from 48,286 open-access ageing and longevity papers, the openstax biology 2e textbook, medlineplus health and genetics summaries and the human ageing genomic resources databases. october 2026. not medical advice. science study school learn cc by 4.0 + cc by 3.0 + cc0 + us government work biology &amp; longevity: search by meaning finds passages in biology &amp; longevity (900,714 of them) by what a question means, even when it uses other words. needs biology &amp; longevity. november 2026.">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-leaf"/></svg>
+              <h3>Biology &amp; longevity</h3>
+              <p class="line">Biology, health, ageing</p>
+            </div>
+            <div class="take">
+              <p class="size">1.08 GB<span class="wifi">Use Wi-Fi</span></p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/7629d755538d1ed2296d5f90ca584fbfdd6ae908/world-knowledge-biology/2026.10.18/world-knowledge-biology-2026.10.18.fapack" aria-label="Download Biology &amp; longevity, 1.08 GB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>900,714 passages from 48,286 open-access ageing and longevity papers, the OpenStax Biology 2e textbook, MedlinePlus health and genetics summaries and the Human Ageing Genomic Resources databases. October 2026. Not medical advice.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>2.86 GB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY 4.0 + CC BY 3.0 + CC0 + US government work</dd></div>
+                  <div><dt>Version</dt><dd>2026.10.18</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>e12287e4ea0a208876131ecec9d73fc45da1322db123c8721a5e6033478e4f66</code></dd></div>
+                </dl>
+                <p class="addon">Add-on: search by meaning. Finds passages in Biology &amp; longevity (900,714 of them) by what a question means, even when it uses other words. <a href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/835614ae13dae3aa8066ce58e673e0aff67d0a9a/biology-meaning/2026.11.03/biology-meaning-2026.11.03.fapack">Download, 133 MB</a></p>
+              </div>
+            </details>
+          </article>
+          <article class="book" id="crypto-ethereum" data-category="Science" data-bytes="59453558" data-text="cryptography &amp; ethereum ethereum and cryptography 22,805 passages from the ethereum improvement proposals and ercs, the consensus specifications, nist post-quantum standards and 123 wikipedia articles, with local vector search. october 2026. science study school learn cc0 + cc by-sa 4.0 + us government work + mit">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-cube"/></svg>
+              <h3>Cryptography &amp; Ethereum</h3>
+              <p class="line">Ethereum and cryptography</p>
+            </div>
+            <div class="take">
+              <p class="size">59 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05-leviathan/crypto-ethereum-2026.10.05-leviathan.fapack" aria-label="Download Cryptography &amp; Ethereum, 59 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>22,805 passages from the Ethereum Improvement Proposals and ERCs, the consensus specifications, NIST post-quantum standards and 123 Wikipedia articles, with local vector search. October 2026.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>92 MB</dd></div>
+                  <div><dt>Licence</dt><dd>CC0 + CC BY-SA 4.0 + US government work + MIT</dd></div>
+                  <div><dt>Version</dt><dd>2026.10.05-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>3457240f1c309da8dec2273d683eecf7480f3e3a638f8e6c7595a7800d1dd014</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+          <article class="book" id="openstax-maths-stats" data-category="Science" data-bytes="1601662" data-text="mathematics: prealgebra arithmetic, fractions, percents, algebra arithmetic, fractions, percents, algebra. openstax prealgebra 2e in 60 sections with worked examples, exercises and glossaries, formulas written as latex. february 2026 revision. science study school learn cc by 4.0">
+            <div class="cover">
+              <svg class="icon stamp" aria-hidden="true"><use href="#i-sum"/></svg>
+              <h3>Mathematics: Prealgebra</h3>
+              <p class="line">Arithmetic, fractions, percents, algebra</p>
+            </div>
+            <div class="take">
+              <p class="size">1.6 MB</p>
+              <a class="get" href="https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/resolve/b528aa8c6b759f2c97e58c61d90067241554db59/openstax-maths-stats/0.1.1-leviathan/openstax-maths-stats-0.1.1-leviathan.fapack" aria-label="Download Mathematics: Prealgebra, 1.6 MB"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg>Download</a>
+            </div>
+            <details>
+              <summary>Details</summary>
+              <div class="more">
+                <p>Arithmetic, fractions, percents, algebra. OpenStax Prealgebra 2e in 60 sections with worked examples, exercises and glossaries, formulas written as LaTeX. February 2026 revision.</p>
+                <dl>
+                  <div><dt>Installed</dt><dd>4.3 MB</dd></div>
+                  <div><dt>Licence</dt><dd>CC BY 4.0</dd></div>
+                  <div><dt>Version</dt><dd>0.1.1-leviathan</dd></div>
+                  <div><dt>SHA-256</dt><dd><code>18b66f6bb4fe3ea02495f3cc126c3a80ff3ad8f296491899c78e07a52e5ae545</code></dd></div>
+                </dl>
+              </div>
+            </details>
+          </article>
+        </div>
+      </section>
+      <!-- packs:end -->
+    </div>
+  </main>
+
+  <dialog class="card" id="card" aria-labelledby="card-title">
+    <div class="card-head">
+      <p class="card-kicker" id="card-kicker"></p>
+      <h2 id="card-title"></h2>
+      <button type="button" class="close" id="card-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="card-body" id="card-body"></div>
+  </dialog>
+
+  <footer class="foot">
+    <a href="/">Field Atlas</a>
+    <a href="https://github.com/0x94t3z/fieldatlas">GitHub</a>
+  </footer>
+</body>
+</html>
