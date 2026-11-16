@@ -1,0 +1,29 @@
+Mathematics: Introductory Statistics collection for Field Atlas (`openstax-maths-introstats`).
+
+This collection is built from the book:
+
+Introductory Statistics 2e
+Senior Contributing Authors: Barbara Illowsky and Susan Dean
+OpenStax, Rice University
+https://openstax.org/details/books/introductory-statistics-2e
+
+The text is OpenStax's own, kept whole, one passage per numbered book
+section, each followed by its glossary, plus the two appendices that hold
+the formula tables: Appendix F (Mathematical Phrases, Symbols, and
+Formulas) and Appendix H (Tables; the book itself only links out to the
+NIST tables there). Changes made: formulas are carried as LaTeX converted
+from the book's MathML, tables are written one row to a line, the circled
+letters that label the parts of a question are written "(a)", "(b)", and
+images are left out (their captions and descriptions are kept).
+The preface, the chapter introductions and the other six appendices are
+not included. No OpenStax logo is used, and OpenStax does not endorse
+Field Atlas.
+
+Licence: Creative Commons Attribution 4.0 International (CC BY 4.0).
+
+Source revision: openstax/osbooks-introductory-statistics-bundle at commit
+50ec91749080bb040b57bb40c34337cacc994cba (17 March 2026), the last
+revision on main before OpenStax moved Introductory Statistics 2e to
+CC BY-NC-SA on 19 March 2026. A CC licence cannot be taken back, so the
+text published before that change stays CC BY 4.0. Only the pinned
+revision is used, not later revisions.
