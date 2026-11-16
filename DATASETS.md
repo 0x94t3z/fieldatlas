@@ -372,6 +372,39 @@ collection's own id in place of a numbered module id, carries its credits inside
 passage at the start of a line or a word. The answers run in `tools/packs/prealgebra/` was made on
 0.1.0.
 
+## Mathematics: Introductory Statistics (November 16)
+
+`tools/packs/extract_openstax_introstats.py` reads OpenStax *Introductory Statistics 2e* from a
+checkout of `openstax/osbooks-introductory-statistics-bundle` at commit
+`50ec91749080bb040b57bb40c34337cacc994cba` (17 March 2026). At that commit the repository's `LICENSE`
+and the book's own metadata say CC BY 4.0; the publisher changed both to CC BY-NC-SA on 19 March
+2026, and no later revision is used. The 80 numbered sections are kept whole, in the book's words,
+each followed by its glossary (38 sections carry one, 133 definitions in total), with 235 worked
+examples and 1,881 exercises; the preface, the chapter introductions and six appendices are left
+out. Two appendices are kept, because they hold the formula tables: Appendix F (Mathematical
+Phrases, Symbols, and Formulas) and Appendix H (Tables; the book itself only links out to the NIST
+tables there). Formulas are LaTeX converted from the book's MathML, tables are one row to a line,
+and images are left out with their captions and descriptions kept. The corpus is committed as
+`tools/packs/introstats/corpus.jsonl` (1,499,607 bytes, SHA-256
+`bd073cdc920228a63f5d5c9b5ab31108136516b161ac1de5293275ed43f7f755`) and rebuilds byte for byte from
+that commit.
+
+`tools/packs/build_introstats_pack.py` builds the keyword-only pack (`openstax-maths-introstats`,
+version `0.1.0`, schema 1): 3,426,546 bytes, SHA-256
+`6684e28191584f9343c3a4e5c1178eba350c94d31bf68d8b31d128ddce938354` with SQLite 3.45.1 (another
+SQLite version writes the same passages into different bytes). It holds 1,522 passages and installs
+to 3,425,706 bytes. It carries `ATTRIBUTION.txt` inside. It has no meaning-search vectors. The pack
+takes its own id rather than the `openstax-maths-stats` id of the Prealgebra pack, so this build
+never disturbs the hosted Prealgebra pack: issue #24 proposes one collection holding all three
+books, and merging this book into that collection's next version is a maintainer decision. The
+answers run in `tools/packs/introstats/` was made on 0.1.0: five statistics questions, 5/5 correct
+with citations to the teaching sections, and a separate retrieval check put the teaching section in
+the top three hits for 11 of 12 ordinary questions (the regression-equation section's first passage
+ranks fourth).
+
+Version 0.1.0 was built for the POIDH bounty
+[Base #1554](https://poidh.xyz/base/bounty/1554) and is not yet hosted.
+
 ## Practical skills (November 10)
 
 `tools/packs/build_practical_skills_pack.py` builds a focused collection of practical how-to guidance
