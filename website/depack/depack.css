@@ -1,109 +1,140 @@
-/* de cent packs: the Field Atlas library as shelves of cloth-bound books. */
+/* de cent packs: the Field Atlas library as shelves of cloth-bound books, on deep forest green. */
 :root {
-  --paper: #f5f2e9;
-  --raised: #fbfaf5;
-  --ink: #203b30;
-  --muted: #5d6a60;
-  --green: #174d3b;
-  --sage: #e5eadc;
-  --amber: #8f6316;        /* text and focus rings: 4.7:1 on paper */
-  --foil: #e6c67e;         /* gold stamping on the covers */
-  --cream: #f6eedb;        /* text on the covers */
+  --ground: #173b2e;       /* page */
+  --raised: #1f4a3a;       /* search box, dialogs, steps */
+  --tile: #24503f;         /* chips, totals, quiet buttons */
+  --tile-hover: #2d5d4a;
+  --deep: #10261e;         /* dialog headers */
+  --ink: #f3ecd8;          /* text on green */
+  --muted: #b8c6b9;
+  --gold: #e6c67e;         /* accents, counts, focus rings */
+  --cta: #e3b45a;          /* every button: the main site's call-to-action gold */
+  --cta-hover: #f0c776;
+  --cta-ink: #10261e;
+  --cream: #f6eedb;        /* text on cloth covers */
+  --paper-ink: #203b30;    /* text on the paper Wanted books */
+  --paper-muted: #4f5b52;
+  --paper-accent: #735010;
   --serif: Georgia, 'Times New Roman', serif;
   --sans: Arial, Helvetica, sans-serif;
   --mono: ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 1rem/1.55 var(--sans); }
-a { color: var(--green); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 1rem/1.55 var(--sans); }
+a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 [hidden] { display: none !important; }
 .sprite { position: absolute; }
 .icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 main, .foot { max-width: 62rem; margin: 0 auto; padding-inline: 1.25rem; }
 main { padding-block: 1.5rem 3rem; }
+/* One gold for every button; quiet controls stay on the green tiles. */
+.get, .send, .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.75rem; padding: 0 1.1rem; border: 0; border-radius: 999px; background: var(--cta); color: var(--cta-ink); font: inherit; font-weight: 700; font-size: .88rem; text-decoration: none; white-space: nowrap; cursor: pointer; }
+.get:hover, .send:hover:not(:disabled), .btn:hover { background: var(--cta-hover); }
+.get .icon, .btn .icon { width: 1rem; height: 1rem; stroke-width: 2; }
 
 /* ---------- Masthead ---------- */
-.title { display: flex; align-items: center; gap: 1.25rem; margin-top: 1.5rem; }
-.logo { display: block; width: 5.5rem; height: 5.5rem; border-radius: 1rem; image-rendering: pixelated; }
+.title { display: flex; align-items: center; gap: 1.1rem; margin-top: 1.5rem; }
+.logo { display: block; width: 5.5rem; height: 5.5rem; image-rendering: pixelated; }
 h1 { margin: 0; font: 400 clamp(2.4rem, 7vw, 3.6rem)/1 var(--serif); letter-spacing: -.035em; text-wrap: balance; }
 .sub { margin: .55rem 0 0; color: var(--muted); }
-.sub a { color: var(--ink); }
-.totals { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.75rem 0 0; }
-.totals div { padding: .7rem 1.1rem; background: var(--sage); border-radius: .75rem; }
+.tabs { display: flex; gap: .3rem; width: fit-content; margin: 1.5rem 0 0; padding: .3rem; background: var(--tile); border-radius: 999px; }
+.tab { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0 1.25rem; border-radius: 999px; color: var(--ink); text-decoration: none; font-size: .95rem; }
+.tab:hover { background: var(--tile-hover); }
+.tab[aria-current="page"] { background: var(--cta); color: var(--cta-ink); font-weight: 700; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-top: 1.5rem; }
+.bar .tabs { margin: 0; }
+.wallet-button { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 1.1rem; border: 0; border-radius: 999px; background: var(--tile); color: var(--ink); font: inherit; font-size: .92rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+#wallet-label { max-width: 16ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#wallet-title { overflow-wrap: anywhere; }
+.wallet-button:hover { background: var(--tile-hover); }
+.wallet-button .icon { color: var(--gold); }
+/* A small lamp beside the address: green on Base, gold when the wallet sits on another network. */
+.wallet-button[data-state="base"]::before, .wallet-button[data-state="other"]::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: #7fd3a1; }
+.wallet-button[data-state="other"]::before { background: var(--cta); }
+.facts { display: grid; gap: .5rem; margin: 0 0 .9rem; }
+.facts div { display: flex; justify-content: space-between; gap: 1rem; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; font-variant-numeric: tabular-nums; text-align: right; }
+.refunds { display: grid; gap: .5rem; margin-bottom: .9rem; }
+.refunds:empty { display: none; }
+.refund { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .6rem .8rem; background: var(--tile); border-radius: .75rem; font-size: .9rem; }
+.refund span { min-width: 0; overflow-wrap: anywhere; }
+#wallet-account { display: grid; gap: .6rem; }
+#wallet-account[hidden] { display: none; }
+.quiet-button { min-height: 2.75rem; border: 0; border-radius: 999px; background: var(--tile); color: var(--ink); font: inherit; font-size: .92rem; cursor: pointer; }
+.quiet-button:hover:not(:disabled) { background: var(--tile-hover); }
+.quiet-button:disabled { opacity: .5; cursor: default; }
+.totals { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.5rem 0 0; }
+.totals div { padding: .7rem 1.1rem; background: var(--tile); border-radius: .75rem; }
 .totals dt { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .totals dd { margin: .1rem 0 0; font: 400 1.5rem/1.2 var(--serif); font-variant-numeric: tabular-nums; }
 .how { margin: 1rem 0 0; font-size: .92rem; color: var(--muted); max-width: 40rem; }
 
 /* ---------- Search ---------- */
-.controls { position: sticky; top: 0; z-index: 2; margin: 2rem -1.25rem 0; padding: .9rem 1.25rem .6rem; display: grid; gap: .7rem; background: var(--paper); }
-.searchbox { display: flex; align-items: center; gap: .6rem; max-width: 40rem; padding: 0 .9rem; background: var(--raised); border: 1px solid #b9c2b5; border-radius: 999px; color: var(--muted); box-shadow: 0 1px 2px rgb(32 59 48 / 6%); }
-.searchbox:focus-within { border-color: var(--ink); outline: 2px solid var(--amber); outline-offset: 2px; }
+.controls { position: sticky; top: 0; z-index: 2; margin: 2rem -1.25rem 0; padding: .9rem 1.25rem .6rem; display: grid; gap: .7rem; background: var(--ground); }
+.searchbox { display: flex; align-items: center; gap: .6rem; max-width: 40rem; padding: 0 .9rem; background: var(--raised); border: 1px solid rgb(243 236 216 / 18%); border-radius: 999px; color: var(--muted); }
+.searchbox:focus-within { border-color: var(--ink); outline: 2px solid var(--gold); outline-offset: 2px; }
 .searchbox input { flex: 1; min-width: 0; padding: .8rem 0; border: 0; background: none; color: var(--ink); font: inherit; font-size: 1.05rem; outline: none; }
-.searchbox input::placeholder { color: #687368; }
+.searchbox input::placeholder { color: #a6b6a9; }
 .clear { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; margin-right: -.6rem; border: 0; border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
-.clear:hover { background: var(--sage); color: var(--ink); }
+.clear:hover { background: var(--tile); color: var(--ink); }
 .clear .icon { width: 1rem; height: 1rem; }
-kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--paper); border-radius: .3rem; color: var(--muted); }
+kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--tile); border-radius: .3rem; color: var(--muted); }
 .chips { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; margin-inline: -1.25rem; padding: .1rem 1.25rem; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; min-height: 2.75rem; padding: .4rem 1rem; border: 0; border-radius: 999px; background: var(--sage); color: var(--ink); font: inherit; font-size: .9rem; cursor: pointer; }
+.chip { flex-shrink: 0; min-height: 2.75rem; padding: .4rem 1rem; border: 0; border-radius: 999px; background: var(--tile); color: var(--ink); font: inherit; font-size: .9rem; cursor: pointer; }
 .chip span { color: var(--muted); font-variant-numeric: tabular-nums; margin-left: .15rem; }
-.chip:hover { background: #d9e0cd; }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-.chip[aria-pressed="true"] span { color: #b9c7bd; }
+.chip:hover { background: var(--tile-hover); }
+.chip[aria-pressed="true"] { background: var(--cta); color: var(--cta-ink); font-weight: 700; }
+.chip[aria-pressed="true"] span { color: #4a3d1e; }
 /* Space is kept for the count, so the bar does not jump when a search starts matching less. */
 .status { margin: 0; min-height: 1.3em; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-.empty { margin-top: 2rem; padding: 2rem 1.5rem; background: var(--sage); border-radius: 1rem; color: var(--muted); text-align: center; }
+.empty { margin-top: 2rem; padding: 2rem 1.5rem; background: var(--tile); border-radius: 1rem; color: var(--muted); text-align: center; }
 .empty p { margin: 0; }
-.empty button { font: inherit; color: var(--green); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.empty button { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* ---------- Shelves ---------- */
 .library { display: grid; gap: 3rem; margin-top: 1.75rem; }
 .group h2 { display: flex; align-items: baseline; gap: .55rem; margin: 0 0 1rem; font: 400 1.6rem/1.2 var(--serif); letter-spacing: -.02em; }
-.count { font: 700 .8rem/1 var(--sans); color: var(--amber); font-variant-numeric: tabular-nums; }
+.count { font: 700 .8rem/1 var(--sans); color: var(--gold); font-variant-numeric: tabular-nums; }
 /* Every book on a shelf is the same height; a longer title takes room from the empty top of its cover. */
 .shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1.25rem; align-items: stretch; }
 
 /* A book: cloth cover with a darker spine on the left and gold stamping. */
 .book {
-  --cloth: #3b4a44;
+  --cloth: #3b5a4e;
   position: relative; display: flex; flex-direction: column; min-width: 0;
   color: var(--cream); background: var(--cloth);
   border-radius: .3rem .85rem .85rem .3rem;
-  box-shadow: inset .55rem 0 0 rgb(0 0 0 / 22%), inset .65rem 0 0 rgb(255 255 255 / 7%), 0 1px 1px rgb(32 59 48 / 18%), 0 8px 18px -10px rgb(32 59 48 / 55%);
+  box-shadow: inset .55rem 0 0 rgb(0 0 0 / 22%), inset .65rem 0 0 rgb(255 255 255 / 7%), 0 0 0 1px rgb(255 255 255 / 6%), 0 14px 26px -12px rgb(0 0 0 / 70%);
   transition: transform .18s ease, box-shadow .18s ease;
 }
-.book:hover { transform: translateY(-3px); box-shadow: inset .55rem 0 0 rgb(0 0 0 / 22%), inset .65rem 0 0 rgb(255 255 255 / 7%), 0 1px 1px rgb(32 59 48 / 18%), 0 16px 24px -12px rgb(32 59 48 / 60%); }
-.book[data-category="Encyclopedia"] { --cloth: #1e4a3b; }
-.book[data-category="Places"] { --cloth: #7a3024; }
-.book[data-category="Travel"] { --cloth: #1f4a62; }
-.book[data-category="Language"] { --cloth: #4a3a6a; }
-.book[data-category="How-to"] { --cloth: #6a4710; }
-.book[data-category="Science"] { --cloth: #50304e; }
+.book:hover { transform: translateY(-3px); box-shadow: inset .55rem 0 0 rgb(0 0 0 / 22%), inset .65rem 0 0 rgb(255 255 255 / 7%), 0 0 0 1px rgb(255 255 255 / 8%), 0 20px 30px -12px rgb(0 0 0 / 75%); }
+/* Cloth colours are kept lighter than the ground so each book stands off the page. */
+.book[data-category="Encyclopedia"] { --cloth: #2c6a52; }
+.book[data-category="Places"] { --cloth: #8a3a2c; }
+.book[data-category="Travel"] { --cloth: #2a5f7c; }
+.book[data-category="Language"] { --cloth: #5a4880; }
+.book[data-category="How-to"] { --cloth: #7d5614; }
+.book[data-category="Science"] { --cloth: #643c62; }
 .cover { flex: 1; padding: 1.25rem 1.25rem 1rem 1.75rem; min-height: 10.25rem; display: flex; flex-direction: column; }
-.stamp { width: 1.6rem; height: 1.6rem; color: var(--foil); stroke-width: 1.4; }
+.stamp { width: 1.6rem; height: 1.6rem; color: var(--gold); stroke-width: 1.4; }
 .book h3 { margin: auto 0 0; padding-top: 1.5rem; font: 400 1.3rem/1.2 var(--serif); letter-spacing: -.01em; text-wrap: balance; overflow-wrap: anywhere; }
 .line { margin: .3rem 0 0; font-size: .88rem; color: rgb(246 238 219 / 78%); }
 .take { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .7rem 1rem .7rem 1.75rem; background: rgb(0 0 0 / 16%); }
 .size { margin: 0; font-size: .9rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.wifi { display: block; font-size: .72rem; color: var(--foil); }
-.get { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0 1rem; border-radius: 999px; background: var(--cream); color: var(--ink); font-weight: 700; font-size: .88rem; text-decoration: none; white-space: nowrap; }
-.get { gap: .4rem; }
-.get .icon { width: 1rem; height: 1rem; stroke-width: 2; }
-.get:hover { background: #fff; }
-.book :focus-visible { outline-color: var(--foil); }
+.wifi { display: block; font-size: .72rem; color: var(--gold); }
 .book details { padding: 0 1rem .35rem 1.75rem; }
 .book summary { display: inline-block; padding: .6rem 0; cursor: pointer; font-size: .82rem; color: rgb(246 238 219 / 82%); list-style: none; text-decoration: underline; text-decoration-color: rgb(246 238 219 / 35%); text-underline-offset: 3px; }
 .book summary:hover { color: var(--cream); text-decoration-color: currentColor; }
 .book summary::-webkit-details-marker { display: none; }
 /* With the script, the whole cover opens the catalogue card too. */
-.has-card .cover { cursor: pointer; }
+.has-card .library .cover { cursor: pointer; }
 .more { display: grid; gap: .8rem; padding-bottom: 1rem; font-size: .88rem; }
-
-/* ---------- Catalogue card (the Details dialog) ---------- */
 .more p { margin: 0; }
 .more dl { margin: 0; display: grid; gap: .35rem; }
 .more dl div { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .75rem; }
@@ -112,18 +143,66 @@ kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--paper
 .more code { font: .8rem/1.45 var(--mono); }
 .addon { padding: .7rem .9rem; border-radius: .5rem; background: rgb(0 0 0 / 14%); }
 .addon a { color: inherit; font-weight: 700; }
-.card { width: min(34rem, calc(100vw - 2rem)); padding: 0; border: 0; border-radius: 1rem; background: var(--raised); color: var(--ink); box-shadow: 0 30px 60px -20px rgb(20 38 30 / 55%); }
-.card::backdrop { background: rgb(16 38 30 / 45%); backdrop-filter: blur(2px); }
-.card-head { position: relative; padding: 1.4rem 3.75rem 1rem 1.5rem; background: var(--cloth, var(--ink)); color: var(--cream); }
-.card-kicker { margin: 0 0 .25rem; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--foil); }
+
+/* ---------- Dialogs: the catalogue card and Add ETH ---------- */
+.card { width: min(34rem, calc(100vw - 2rem)); padding: 0; border: 0; border-radius: 1rem; background: var(--raised); color: var(--ink); box-shadow: 0 30px 60px -20px rgb(0 0 0 / 70%); }
+.card::backdrop { background: rgb(6 18 13 / 60%); backdrop-filter: blur(2px); }
+.card-head { position: relative; padding: 1.4rem 3.75rem 1rem 1.5rem; background: var(--cloth, var(--deep)); color: var(--cream); }
+.card-kicker { margin: 0 0 .25rem; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--gold); }
 .card h2 { margin: 0; font: 400 1.6rem/1.15 var(--serif); letter-spacing: -.02em; }
 .close { position: absolute; top: .7rem; right: .7rem; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border: 0; border-radius: 50%; background: rgb(255 255 255 / 12%); color: var(--cream); cursor: pointer; }
 .close:hover { background: rgb(255 255 255 / 22%); }
 .card-body { padding: 1.25rem 1.5rem 1.5rem; }
 .card-body .more { font-size: .95rem; padding: 0; }
 .card-body .more dt { color: var(--muted); opacity: 1; }
-.card-body .addon { background: var(--sage); }
-.card-body .addon a { color: var(--green); }
+.card-body .addon { background: var(--tile); }
+
+/* ---------- Wanted ---------- */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; margin: 1.75rem 0 0; padding: 0; list-style: none; }
+.steps li { display: grid; grid-template-columns: auto 1fr; gap: .2rem .75rem; align-items: start; padding: 1rem 1.1rem; background: var(--raised); border-radius: .9rem; }
+.steps .icon { grid-row: span 2; width: 1.6rem; height: 1.6rem; margin-top: .1rem; color: var(--gold); }
+.steps b { font: 400 1.15rem/1.2 var(--serif); }
+.steps p { margin: 0; font-size: .88rem; color: var(--muted); }
+.wanted { margin-top: 2.5rem; }
+.wanted h2 { display: flex; align-items: baseline; gap: .55rem; margin: 0 0 1rem; font: 400 1.6rem/1.2 var(--serif); letter-spacing: -.02em; }
+.quiet { margin: 0; padding: 1.5rem; background: var(--tile); border-radius: 1rem; color: var(--muted); }
+/* An unwritten book: bare paper boards and ink lettering against the green. */
+.wanted-book { --cloth: #efe7d1; color: var(--paper-ink); }
+.wanted-book.is-voting { --cloth: #e8dcb8; }
+.wanted-book.is-paid { --cloth: #d7decb; }
+.kicker { margin: 0; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: var(--paper-accent); font-weight: 700; }
+.is-paid .kicker { color: #174d3b; }
+.wanted-book .line { color: var(--paper-muted); font-variant-numeric: tabular-nums; }
+.wanted-book .take { background: rgb(32 59 48 / 7%); }
+.wanted-book :focus-visible { outline-color: var(--paper-accent); }
+.onpoidh { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: .88rem; color: var(--paper-ink); }
+.ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 1.25rem 1.4rem; background: var(--tile); border-radius: 1rem; }
+.ask h3 { margin: 0; font: 400 1.3rem/1.2 var(--serif); }
+.ask p { margin: .2rem 0 0; color: var(--muted); font-size: .9rem; }
+.ask .btn { min-height: 2.9rem; padding: 0 1.25rem; font-size: .92rem; }
+.wanted-book .byline { margin: .35rem 0 0; font-size: .78rem; color: var(--paper-muted); overflow-wrap: anywhere; }
+.ask-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.1rem; }
+.quiet-link { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: .92rem; color: var(--ink); }
+.field { display: grid; gap: .35rem; font-size: .88rem; color: var(--muted); }
+.field input, .field textarea { width: 100%; padding: .7rem .9rem; border: 1px solid rgb(243 236 216 / 22%); border-radius: .75rem; background: var(--deep); color: var(--ink); font: inherit; font-size: 1rem; line-height: 1.45; }
+.field textarea { resize: vertical; min-height: 6rem; }
+.field input:focus, .field textarea:focus { outline: 2px solid var(--gold); outline-offset: 2px; border-color: var(--ink); }
+.field input::placeholder, .field textarea::placeholder { color: #8fa292; }
+.rules { margin: 2.5rem 0 0; max-width: 40rem; font-size: .85rem; color: var(--muted); }
+.give .card-head { background: var(--deep); }
+.give-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: .9rem; }
+.pot { margin: 0; color: var(--muted); font-variant-numeric: tabular-nums; }
+.amount { display: flex; align-items: baseline; gap: .6rem; padding: .2rem 1rem; background: var(--deep); border: 1px solid rgb(243 236 216 / 22%); border-radius: .75rem; }
+.amount:focus-within { border-color: var(--ink); outline: 2px solid var(--gold); outline-offset: 2px; }
+.amount input { flex: 1; width: 100%; min-width: 0; padding: .55rem 0; border: 0; background: none; color: var(--ink); font: 400 1.9rem/1.2 var(--serif); font-variant-numeric: tabular-nums; outline: none; }
+.amount span { color: var(--muted); font-size: .9rem; white-space: nowrap; }
+.presets, .wallets { display: flex; flex-wrap: wrap; gap: .4rem; }
+.preset, .wallet { min-height: 2.75rem; padding: .4rem 1rem; border: 0; border-radius: 999px; background: var(--tile); color: var(--ink); font: inherit; font-size: .9rem; font-variant-numeric: tabular-nums; cursor: pointer; }
+.preset:hover, .wallet:hover { background: var(--tile-hover); }
+.send { min-height: 3rem; font-size: 1rem; }
+.send:disabled { opacity: .5; cursor: default; }
+.give-status { margin: 0; font-size: .92rem; }
+.fine { margin: 0; font-size: .82rem; color: var(--muted); }
 
 .foot { display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem 1.5rem; padding-block: 1rem 2.5rem; font-size: .9rem; }
 .foot a { padding-block: .7rem; }
@@ -132,6 +211,9 @@ kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--paper
   .controls { position: static; }
   .chips { mask-image: linear-gradient(to right, #000 85%, transparent); }
   kbd { display: none; }
+  .tabs, .bar .tabs, .wallet-button { width: 100%; }
+  .wallet-button { justify-content: center; }
+  .tab { flex: 1; }
   .shelf { grid-template-columns: 1fr; gap: 1rem; }
   .cover { min-height: 0; }
   .book h3 { padding-top: 1rem; }
@@ -139,6 +221,7 @@ kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--paper
   .totals div { flex: 1 1 0; min-width: 0; padding: .55rem .7rem; }
   .totals dt { font-size: .62rem; letter-spacing: .08em; }
   .totals dd { font-size: 1.2rem; }
+  .steps { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
   .book, .book:hover { transition: none; transform: none; }

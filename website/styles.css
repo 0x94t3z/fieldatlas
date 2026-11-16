@@ -105,6 +105,19 @@ p { color: var(--muted); line-height: 1.7; margin: 0 0 1rem; }
 .collection-bottom > span:last-child { display: flex; align-items: center; gap: .4rem; }
 .collection-bottom .icon { width: .9rem; height: .9rem; }
 .collection-card .collection-note { font-size: .8125rem; margin: 1.1rem 0 0; }
+/* The Library pages' forest green and gold, so the hand-off to them reads as one place. */
+.collections-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem 1.5rem; margin: 1.4rem 0 0; padding: 1.4rem 1.6rem; border-radius: 8px; background: #173b2e; color: #f3ecd8; }
+.collections-more > div:first-child { flex: 1 1 18rem; min-width: 0; }
+.collections-more h3 { margin: 0 0 .3rem; font-family: Georgia, serif; font-weight: 400; font-size: 1.5rem; color: #f3ecd8; }
+.collections-more p { margin: 0; font-size: .9rem; color: #b8c6b9; }
+.collections-more-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.collections-more .button { min-height: 46px; padding: .7rem 1.25rem; border-radius: 999px; }
+.collections-more-library { background: #e3b45a; color: #10261e; }
+.collections-more-library:hover { background: #f0c776; }
+.collections-more-wanted { color: #f3ecd8; box-shadow: inset 0 0 0 1px #f3ecd866; }
+.collections-more-wanted:hover { background: #ffffff14; }
+.collections-more :focus-visible { outline: 2px solid #e3b45a; outline-offset: 3px; }
+@media (max-width: 560px) { .collections-more-actions { width: 100%; } .collections-more .button { flex: 1 1 100%; } }
 .collections-footnote { font-size: .8rem; margin: 1.4rem 0 0; text-align: center; }
 .collections-footnote a { display: inline-block; padding: .5rem 0; }
 code { font-size: .95em; }

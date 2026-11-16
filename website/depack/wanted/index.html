@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#173b2e">
+  <title>de cent packs</title>
+  <meta name="description" content="Collections people are paying to have made for the Field Atlas library.">
+  <meta name="robots" content="noindex">
+  <link rel="canonical" href="https://www.getfieldatlas.com/depack/wanted/">
+  <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="stylesheet" href="/depack/depack.css">
+  <script src="/depack/bounties.js" defer></script>
+</head>
+<body>
+  <svg width="0" height="0" class="sprite" aria-hidden="true">
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-speech" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4Z"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7.5v9M14.5 9.5h-3.5a1.5 1.5 0 0 0 0 3h2a1.5 1.5 0 0 1 0 3H9.5"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16Zm10-13 3 3"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 7h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a1 1 0 0 1-1-1V6a2 2 0 0 1 2-2h11v3"/><path d="M16 13.5h1.5"/></symbol>
+  </svg>
+  <main>
+    <header class="masthead">
+      <div class="title">
+        <picture><source srcset="/assets/depack-mark.png" media="(prefers-reduced-motion: reduce)"><img class="logo" src="/assets/depack-mark.gif" width="88" height="88" alt=""></picture>
+        <div>
+          <h1>de cent packs</h1>
+          <p class="sub">Collections people are paying to have made.</p>
+        </div>
+      </div>
+      <div class="bar">
+        <nav class="tabs" aria-label="de cent packs">
+          <a class="tab" href="/depack/">Library</a>
+          <a class="tab" href="/depack/wanted/" aria-current="page">Wanted</a>
+        </nav>
+        <button type="button" class="wallet-button" id="wallet-button" hidden><svg class="icon" aria-hidden="true"><use href="#i-wallet"/></svg><span id="wallet-label">Connect wallet</span></button>
+      </div>
+      <dl class="totals" id="totals" hidden>
+        <div><dt>Open</dt><dd data-total="open"></dd></div>
+        <div><dt>Pooled</dt><dd data-total="pooled"></dd></div>
+        <div><dt>Paid out</dt><dd data-total="paid"></dd></div>
+      </dl>
+    </header>
+
+    <ol class="steps">
+      <li><svg class="icon" aria-hidden="true"><use href="#i-speech"/></svg><b>Ask</b><p>Name the collection you are missing and link its openly licensed sources, so others can fund it.</p></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-coin"/></svg><b>Start or fund</b><p>Anyone starts a bounty for a missing collection, or adds ETH on Base to one.</p></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg><b>Make</b><p>Build the pack and claim on poidh. Paid once it passes review and a two-day vote.</p></li>
+    </ol>
+
+    <section class="wanted" id="wanted" data-issuer="0xc698865c38eC12b475AA55764d447566dd54c758" aria-labelledby="open-title">
+      <h2 id="open-title">Open <span class="count" id="open-count"></span></h2>
+      <p class="quiet" id="open-note" hidden></p>
+      <noscript><p class="quiet">Open bounties are read from Base with JavaScript. They are also listed on <a href="https://poidh.xyz">poidh</a>.</p></noscript>
+      <div class="shelf" id="open-shelf"></div>
+      <div class="ask">
+        <div>
+          <h3>Missing a collection?</h3>
+          <p>Ask for it, or start a bounty for it.</p>
+        </div>
+        <div class="ask-actions">
+          <a class="quiet-link" href="https://github.com/0x94t3z/fieldatlas/issues/new?template=collection.md">Ask for it</a>
+          <button type="button" class="btn" id="start-open" hidden><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Start a bounty</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="wanted" id="paid" aria-labelledby="paid-title" hidden>
+      <h2 id="paid-title">Paid</h2>
+      <div class="shelf" id="paid-shelf"></div>
+    </section>
+
+    <p class="rules">Every collection uses openly licensed sources and passes the same checks as the rest of the library before it is paid. ETH goes to the poidh contract on Base, never to this site.</p>
+  </main>
+
+  <dialog class="card give" id="give" aria-labelledby="give-title">
+    <div class="card-head">
+      <p class="card-kicker">Add ETH</p>
+      <h2 id="give-title"></h2>
+      <button type="button" class="close" id="give-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <form class="card-body give-body">
+      <p class="pot" id="give-pot"></p>
+      <label class="visually-hidden" for="give-amount">Amount in ETH</label>
+      <div class="amount">
+        <input id="give-amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.001">
+        <span>ETH on Base</span>
+      </div>
+      <div class="presets" role="group" aria-label="Amount">
+        <button type="button" class="preset" data-eth="0.001">0.001</button>
+        <button type="button" class="preset" data-eth="0.005">0.005</button>
+        <button type="button" class="preset" data-eth="0.01">0.01</button>
+      </div>
+      <div class="wallets" id="give-wallets" hidden></div>
+      <button type="submit" class="send" id="give-send">Add ETH</button>
+      <p class="give-status" id="give-status" aria-live="polite"></p>
+      <p class="fine">It goes from your wallet to the <a id="give-poidh" href="https://poidh.xyz">poidh</a> bounty contract. You can take it back there until voting starts.</p>
+    </form>
+  </dialog>
+
+  <dialog class="card give" id="start" aria-labelledby="start-title">
+    <div class="card-head">
+      <p class="card-kicker">Start a bounty</p>
+      <h2 id="start-title">A collection you want made</h2>
+      <button type="button" class="close" id="start-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <form class="card-body give-body" id="start-form" novalidate>
+      <label class="field">
+        <span>Collection</span>
+        <input id="start-name" type="text" maxlength="80" autocomplete="off" placeholder="First aid in Swahili" required>
+      </label>
+      <label class="field">
+        <span>What it should cover, and from which sources</span>
+        <textarea id="start-about" rows="4" maxlength="1500" placeholder="Red Cross first-aid steps in Swahili, from openly licensed guides." required></textarea>
+      </label>
+      <label class="visually-hidden" for="start-amount">Reward in ETH</label>
+      <div class="amount">
+        <input id="start-amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.005">
+        <span>ETH on Base</span>
+      </div>
+      <div class="presets" role="group" aria-label="Reward">
+        <button type="button" class="preset" data-eth="0.002">0.002</button>
+        <button type="button" class="preset" data-eth="0.005">0.005</button>
+        <button type="button" class="preset" data-eth="0.01">0.01</button>
+      </div>
+      <div class="wallets" id="start-wallets" hidden></div>
+      <button type="submit" class="send" id="start-send">Start the bounty</button>
+      <p class="give-status" id="start-status" aria-live="polite"></p>
+      <p class="fine">It goes from your wallet to the poidh bounty contract on Base, and others can add to it. You pick the winning claim, on poidh. It shows on this page after a short review.</p>
+    </form>
+  </dialog>
+
+  <dialog class="card give" id="wallet" aria-labelledby="wallet-title">
+    <div class="card-head">
+      <p class="card-kicker">Wallet</p>
+      <h2 id="wallet-title">Connect a wallet</h2>
+      <button type="button" class="close" id="wallet-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="card-body give-body">
+      <div class="wallets" id="wallet-wallets" hidden></div>
+      <div id="wallet-account" hidden>
+        <dl class="facts">
+          <div id="wallet-address-row" hidden><dt>Address</dt><dd id="wallet-address"></dd></div>
+          <div><dt>Network</dt><dd id="wallet-network"></dd></div>
+          <div><dt>Ready to withdraw</dt><dd id="wallet-balance"></dd></div>
+          <div id="wallet-locked-row" hidden><dt>In your bounties</dt><dd id="wallet-locked"></dd></div>
+        </dl>
+        <div class="refunds" id="wallet-refunds"></div>
+        <button type="button" class="send" id="wallet-send" hidden>Withdraw</button>
+        <button type="button" class="quiet-button" id="wallet-disconnect">Disconnect</button>
+      </div>
+      <p class="give-status" id="wallet-status" aria-live="polite"></p>
+      <p class="fine">poidh holds paid rewards, cancelled bounties and refunds as a balance until you withdraw it to your wallet.</p>
+    </div>
+  </dialog>
+
+  <dialog class="card give" id="cancel" aria-labelledby="cancel-title">
+    <div class="card-head">
+      <p class="card-kicker">Cancel bounty</p>
+      <h2 id="cancel-title"></h2>
+      <button type="button" class="close" id="cancel-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="card-body give-body">
+      <p class="pot" id="cancel-what"></p>
+      <div class="wallets" id="cancel-wallets" hidden></div>
+      <button type="button" class="send" id="cancel-send">Cancel the bounty</button>
+      <button type="button" class="quiet-button" id="cancel-keep">Keep it</button>
+      <p class="give-status" id="cancel-status" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <footer class="foot">
+    <a href="/">Field Atlas</a>
+    <a href="https://github.com/0x94t3z/fieldatlas">GitHub</a>
+  </footer>
+</body>
+</html>

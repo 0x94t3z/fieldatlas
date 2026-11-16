@@ -121,6 +121,8 @@ test('a shared section link opens that section and focuses it', async ({ page })
   await expect(dialog).toBeVisible();
   await expect(dialog).toBeFocused();
   await expect(dialog.locator('.collection-card')).toHaveCount(5);
+  await expect(dialog.getByRole('link', { name: 'Browse the Library' })).toHaveAttribute('href', '/depack/');
+  await expect(dialog.getByRole('link', { name: 'See what is wanted' })).toHaveAttribute('href', '/depack/wanted/');
 });
 
 test('the contributor card states the pool, the rules and the dev holding, and shows only valid ledger entries', async ({ page }) => {
