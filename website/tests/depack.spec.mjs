@@ -6,7 +6,17 @@ const POIDH = '0x5555fa783936c260f77385b4e153b9725fef1719';
 const SUFFIX = '62635f64696579366f69670b0080218021802180218021802180218021';
 
 // Answers the page's Base RPC calls from the fixture, by function selector, and records every call.
-async function fakeBase(page, { joinRevert = null, joinError = null, createRevert = null, cancelRevert = null, byUser = poidh.byUser, code = {} } = {}) {
+// An ABI-encoded string, as a contract returns one.
+const abiString = text => {
+  const bytes = Buffer.from(text, 'utf8');
+  return `0x${'20'.padStart(64, '0')}${bytes.length.toString(16).padStart(64, '0')}${bytes.toString('hex').padEnd(Math.ceil(bytes.length / 32) * 64, '0')}`;
+};
+const word = address => `0x${address.slice(2).toLowerCase().padStart(64, '0')}`;
+const BASENAME_RESOLVER = '0xc6d566a56a1aff6508b41f6c90ff131615583bcd';
+
+// basename: { owner, name, pointsTo } gives that wallet a name in Base's reverse registrar, and the name's forward
+// record points to pointsTo. Every other wallet has no Basename.
+async function fakeBase(page, { joinRevert = null, joinError = null, createRevert = null, cancelRevert = null, byUser = poidh.byUser, code = {}, basename = null } = {}) {
   const calls = [];
   await page.route('https://mainnet.base.org/**', async route => {
     const body = route.request().postDataJSON();
@@ -17,6 +27,10 @@ async function fakeBase(page, { joinRevert = null, joinError = null, createRever
       if (method === 'eth_getCode') return { jsonrpc: '2.0', id, result: code[params[0].toLowerCase()] ?? '0x' };
       const data = params[0].data;
       const selector = data.slice(2, 10);
+      // Basename lookups: nameForAddr, then the registry's resolver(node), then that resolver's addr(node).
+      if (selector === '4ec3bd23') return { jsonrpc: '2.0', id, result: abiString(basename && data.slice(34, 74) === basename.owner.slice(2).toLowerCase() ? basename.name : '') };
+      if (selector === '0178b8bf') return { jsonrpc: '2.0', id, result: word(BASENAME_RESOLVER) };
+      if (selector === '3b3b57de') return { jsonrpc: '2.0', id, result: word(basename?.pointsTo ?? '0x0000000000000000000000000000000000000000') };
       const arg = data.length >= 74 ? String(BigInt(`0x${data.slice(10, 74)}`)) : '';
       const pick = table => (table[arg] ?? table.default);
       if (selector === '2b9234b9') {
@@ -169,6 +183,21 @@ test('without the script every collection is listed', async ({ browser }) => {
   await context.close();
 });
 
+// Total layout shift on the page so far, from the browser's own measure.
+const watchShifts = page => page.addInitScript(() => {
+  window.layoutShift = 0;
+  new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.layoutShift += entry.value; }).observe({ type: 'layout-shift', buffered: true });
+});
+
+test('the library does not jump when its script arrives late', async ({ page }) => {
+  await watchShifts(page);
+  await page.route('**/depack/depack.js', async route => { await new Promise(r => setTimeout(r, 400)); await route.continue(); });
+  await page.goto('/depack/');
+  await expect(page.locator('.controls')).toBeVisible();
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => window.layoutShift)).toBeLessThan(0.02);
+});
+
 const joinData = id => `0xa9b2c6eb${id.toString(16).padStart(64, '0')}${SUFFIX}`;
 
 test('the Wanted page lists bounties and adds ETH through the visitor\'s wallet, with the builder code', async ({ page }) => {
@@ -313,6 +342,38 @@ test('when Base cannot be reached the Wanted page says so', async ({ page }) => 
   // Asking and starting a bounty both stay available even when the list cannot be read.
   await expect(page.locator('.ask .quiet-link')).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/issues/new?template=collection.md');
   await expect(page.locator('#start-open')).toBeVisible();
+});
+
+test('the Wanted page keeps its layout while Base is read', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain');
+  await watchShifts(page);
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page);
+  // Base answers slowly, as it does on a phone network.
+  await page.route('https://mainnet.base.org/**', async route => { await new Promise(r => setTimeout(r, 300)); await route.fallback(); });
+  await page.goto('/depack/wanted/');
+  await expect(page.locator('#totals')).toBeVisible();
+  await expect(page.locator('#start-open')).toBeVisible();
+  await expect(page.locator('#open-shelf .book')).toHaveCount(4);
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.layoutShift)).toBeLessThan(0.05);
+});
+
+test('coming back to Wanted shows the last list at once, even before Base answers', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain');
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page);
+  await page.goto('/depack/wanted/');
+  await expect(page.locator('#open-shelf .book')).toHaveCount(4);
+  await page.click('.tab >> text=Library');
+  await expect(page).toHaveURL(/\/depack\/$/);
+  // Base is now unreachable: the remembered list still shows, with a plain note that it could not be refreshed.
+  await page.unroute('https://mainnet.base.org/**');
+  await page.route('https://mainnet.base.org/**', route => route.abort());
+  await page.click('.tab >> text=Wanted');
+  await expect(page.locator('#open-shelf h3')).toHaveText(['Bird calls of Borneo', 'Tide tables for the Moluccas', 'First aid in Swahili', 'Road signs of Indonesia']);
+  await expect(page.locator('[data-total="pooled"]')).toHaveText('0.0423 ETH');
+  await expect(page.locator('#open-note')).toContainText('Base could not be reached just now.');
 });
 
 test('a wallet with more than ten bounties still shows the older ones made for the page', async ({ page }) => {
@@ -530,6 +591,51 @@ test('the creator withdraws their poidh balance from the wallet panel', async ({
   const tx = await page.evaluate(() => window.walletCalls.find(c => c.method === 'eth_sendTransaction').params[0]);
   expect(tx.data).toBe(`0x3ccfd60b${SUFFIX}`);
   expect(BigInt(tx.value)).toBe(0n);
+});
+
+// namehash('example.base.eth'), from cast.
+const EXAMPLE_BASE_NODE = '544fb56f7a5c9c55ad3c84d026096291b12b005763e17b3534d36380c0417d8b';
+const ensReply = (page, name) => page.route('https://ethereum-rpc.publicnode.com/**', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ jsonrpc: '2.0', id: 1, result: name ? poidh.ens : poidh.ensNone }) }));
+
+test('a wallet with a Basename shows it ahead of its ENS name, once the name points back to the wallet', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
+  await page.unroute('https://mainnet.base.org/**');
+  const calls = await fakeBase(page, { basename: { owner: OWNER, name: 'example.base.eth', pointsTo: OWNER } });
+  await ensReply(page, true);
+  await page.addInitScript(fakeWallet, { account: OWNER });
+  await page.goto('/depack/wanted/');
+  await page.click('#wallet-button');
+  await expect(page.locator('#wallet-label')).toHaveText('example.base.eth');
+  await expect(page.locator('#wallet-title')).toHaveText('example.base.eth');
+  await expect(page.locator('#wallet-address')).toHaveText('0xc698…c758');
+  const reads = calls.filter(c => c.method === 'eth_call').map(c => c.params[0]);
+  expect(reads.find(r => r.data.startsWith('0x4ec3bd23')).to).toBe('0x0000000000d8e504002cc26e3ec46d81971c1664');
+  expect(reads.find(r => r.data.startsWith('0x0178b8bf'))).toEqual({ to: '0xb94704422c2a1e396835a571837aa5ae53285a95', data: `0x0178b8bf${EXAMPLE_BASE_NODE}` });
+  expect(reads.find(r => r.data.startsWith('0x3b3b57de'))).toEqual({ to: BASENAME_RESOLVER, data: `0x3b3b57de${EXAMPLE_BASE_NODE}` });
+});
+
+test('a Basename that points to another wallet is not shown, and the ENS name is used instead', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page, { basename: { owner: OWNER, name: 'example.base.eth', pointsTo: '0x2222222222222222222222222222222222222222' } });
+  await ensReply(page, true);
+  await page.addInitScript(fakeWallet, { account: OWNER });
+  await page.goto('/depack/wanted/');
+  await page.click('#wallet-button');
+  await expect(page.locator('#wallet-label')).toHaveText('example.eth');
+});
+
+test('a wallet with neither name keeps its short address', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
+  await page.unroute('https://mainnet.base.org/**');
+  const calls = await fakeBase(page);
+  await page.addInitScript(fakeWallet, { account: OWNER });
+  await page.goto('/depack/wanted/');
+  await page.click('#wallet-button');
+  await expect(page.locator('#wallet-balance')).toHaveText('0.005 ETH');
+  await expect.poll(() => calls.some(c => c.method === 'eth_call' && c.params[0].data.startsWith('0x4ec3bd23'))).toBe(true);
+  await expect(page.locator('#wallet-label')).toHaveText('0xc698…c758');
+  await expect(page.locator('#wallet-address-row')).toBeHidden();
 });
 
 test('a wallet that already allowed the site reconnects without a prompt, and disconnect forgets it', async ({ page }) => {

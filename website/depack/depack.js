@@ -54,7 +54,6 @@
   if (chips.some((chip) => chip.dataset.category === params.get('category'))) category = params.get('category');
 
   const reset = () => { query.value = ''; category = 'all'; apply(); query.focus(); };
-  form.hidden = false;
   form.addEventListener('submit', (event) => { event.preventDefault(); query.blur(); });
   query.addEventListener('input', () => apply());
   clear.addEventListener('click', () => { query.value = ''; apply(); query.focus(); });

@@ -53,8 +53,9 @@ test('the Wanted page reads only Base and ENS and pays only the poidh contract, 
     .find(header => header.key === 'Content-Security-Policy').value;
   assert.match(policy, /connect-src 'self' https:\/\/mainnet\.base\.org https:\/\/ethereum-rpc\.publicnode\.com;/);
   assert.deepEqual([...new Set(js.match(/https:\/\/[a-z.-]+/g))].sort(), ['https://basescan.org', 'https://ethereum-rpc.publicnode.com', 'https://mainnet.base.org', 'https://poidh.xyz', 'https://www.getfieldatlas.com']);
-  // PoidhV3 on Base, the only address funds can go to, and the ENS Universal Resolver, which is only read.
-  assert.deepEqual([...new Set(js.match(/0x[0-9a-f]{40}/gi))].sort(), ['0x5555fa783936c260f77385b4e153b9725fef1719', '0xeeeeeeee14d718c2b47d9923deab1335e144eeee']);
+  // PoidhV3 on Base, the only address funds can go to; the rest are name lookups that are only read: ENS's reverse
+  // registrar on Base, the Basenames registry, and the ENS Universal Resolver.
+  assert.deepEqual([...new Set(js.match(/0x[0-9a-f]{40}/gi))].sort(), ['0x0000000000d8e504002cc26e3ec46d81971c1664', '0x5555fa783936c260f77385b4e153b9725fef1719', '0xb94704422c2a1e396835a571837aa5ae53285a95', '0xeeeeeeee14d718c2b47d9923deab1335e144eeee']);
   assert.match(js, /fetch\(ENS_RPC[^\n]*method: 'eth_call'/);
   assert.doesNotMatch(js, /to: ENS_RESOLVER[^\n]*eth_sendTransaction|eth_sendTransaction[^\n]*ENS_RESOLVER/);
   const suffix = Buffer.from(js.match(/BUILDER_SUFFIX = '([0-9a-f]+)'/)[1], 'hex');

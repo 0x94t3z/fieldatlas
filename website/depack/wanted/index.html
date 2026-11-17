@@ -37,12 +37,12 @@
           <a class="tab" href="/depack/">Library</a>
           <a class="tab" href="/depack/wanted/" aria-current="page">Wanted</a>
         </nav>
-        <button type="button" class="wallet-button" id="wallet-button" hidden><svg class="icon" aria-hidden="true"><use href="#i-wallet"/></svg><span id="wallet-label">Connect wallet</span></button>
+        <button type="button" class="wallet-button js-only" id="wallet-button"><svg class="icon" aria-hidden="true"><use href="#i-wallet"/></svg><span id="wallet-label">Connect wallet</span></button>
       </div>
-      <dl class="totals" id="totals" hidden>
-        <div><dt>Open</dt><dd data-total="open"></dd></div>
-        <div><dt>Pooled</dt><dd data-total="pooled"></dd></div>
-        <div><dt>Paid out</dt><dd data-total="paid"></dd></div>
+      <dl class="totals js-only" id="totals">
+        <div><dt>Open</dt><dd data-total="open">…</dd></div>
+        <div><dt>Pooled</dt><dd data-total="pooled">…</dd></div>
+        <div><dt>Paid out</dt><dd data-total="paid">…</dd></div>
       </dl>
     </header>
 
@@ -56,7 +56,7 @@
       <h2 id="open-title">Open <span class="count" id="open-count"></span></h2>
       <p class="quiet" id="open-note" hidden></p>
       <noscript><p class="quiet">Open bounties are read from Base with JavaScript. They are also listed on <a href="https://poidh.xyz">poidh</a>.</p></noscript>
-      <div class="shelf" id="open-shelf"></div>
+      <div class="shelf" id="open-shelf" data-loading></div>
       <div class="ask">
         <div>
           <h3>Missing a collection?</h3>
@@ -64,7 +64,7 @@
         </div>
         <div class="ask-actions">
           <a class="quiet-link" href="https://github.com/0x94t3z/fieldatlas/issues/new?template=collection.md">Ask for it</a>
-          <button type="button" class="btn" id="start-open" hidden><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Start a bounty</button>
+          <button type="button" class="btn js-only" id="start-open"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Start a bounty</button>
         </div>
       </div>
     </section>

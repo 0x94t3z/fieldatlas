@@ -9,8 +9,11 @@
   const POIDH = '0x5555fa783936c260f77385b4e153b9725fef1719'; // PoidhV3, source verified on Sourcify
   // ERC-8021 attribution: "bc_diey6oig", its length, schema 0, then the 16-byte marker.
   const BUILDER_SUFFIX = '62635f64696579366f69670b0080218021802180218021802180218021';
-  // ENS names live on Ethereum. The Universal Resolver returns a wallet's primary name only after checking that the
-  // name resolves back to that wallet, so a name someone merely points at another address never shows here.
+  // A connected wallet shows its Basename, read on Base, and otherwise its ENS name, read on Ethereum.
+  // ENS's reverse registrar on Base (L2ReverseRegistrar, source verified) and the Basenames registry.
+  const BASE_REVERSE = '0x0000000000d8e504002cc26e3ec46d81971c1664';
+  const BASE_REGISTRY = '0xb94704422c2a1e396835a571837aa5ae53285a95';
+  // The ENS Universal Resolver returns a primary name only after checking that the name resolves back to the wallet.
   const ENS_RPC = 'https://ethereum-rpc.publicnode.com';
   const ENS_RESOLVER = '0xeeeeeeee14d718c2b47d9923deab1335e144eeee';
   const MIN_WEI = 10n ** 13n; // the contract's MIN_CONTRIBUTION, 0.00001 ETH
@@ -157,22 +160,22 @@
   const ZERO = /^0x0{40}$/;
   // Bounties anyone started from this page show once their number is on the reviewed list, which keeps spam
   // and scam text off the site; the page owner's own bounties show straight away.
-  async function reviewed(skip) {
-    let ids = [];
-    try {
-      const response = await fetch('/depack/wanted.json');
-      if (response.ok) ids = ((await response.json()).approved ?? []).map((id) => BigInt(id)).filter((id) => !skip.has(id));
-    } catch {
-      return [];
-    }
+  const approvedList = () => fetch('/depack/wanted.json')
+    .then((response) => (response.ok ? response.json() : {}))
+    .then((data) => (data.approved ?? []).map((id) => BigInt(id)))
+    .catch(() => []);
+  async function reviewed(approved, skip) {
+    const ids = (await approved).filter((id) => !skip.has(id));
     if (!ids.length) return [];
     const replies = await rpc(ids.map((id) => call(SEL.bounty, uintArg(id))));
     return replies.flatMap((reply) => (reply?.result ? [decodeBounty(reader(reply.result), 0)] : []));
   }
 
   async function load() {
+    // The reviewed list downloads while the chain is read.
+    const approved = approvedList();
     const own = (await allBounties()).filter((b) => b.issuer.toLowerCase() === issuer);
-    const others = await reviewed(new Set(own.map((b) => b.id)));
+    const others = await reviewed(approved, new Set(own.map((b) => b.id)));
     // Cancelled bounties stay in the data, off the shelves, so their contributors can still take their ETH back here.
     const mine = [...own, ...others].filter((b) => !ZERO.test(b.issuer) && b.description.includes(MARKER));
     if (!mine.length) return [];
@@ -274,6 +277,20 @@
     note.hidden = false;
   };
 
+  const STASH = `depack-wanted-v1-${issuer}`;
+  const stash = (list) => {
+    try { sessionStorage.setItem(STASH, JSON.stringify(list, (key, value) => (typeof value === 'bigint' ? { $big: value.toString() } : value))); } catch { /* not kept */ }
+  };
+  const stashed = () => {
+    try {
+      const text = sessionStorage.getItem(STASH);
+      return text ? JSON.parse(text, (key, value) => (typeof value?.$big === 'string' ? BigInt(value.$big) : value)) : null;
+    } catch {
+      return null;
+    }
+  };
+  const refresh = () => load().then((list) => { stash(list); render(list); });
+
   let lastList = null;
   function render(list) {
     lastList = list;
@@ -292,6 +309,7 @@
     totals.querySelector('[data-total="pooled"]').textContent = eth(sum(live));
     totals.querySelector('[data-total="paid"]').textContent = eth(sum(list.filter((b) => b.state === 'paid')));
     totals.hidden = false;
+    document.getElementById('open-shelf').removeAttribute('data-loading');
     refreshWallet();
   }
 
@@ -315,18 +333,87 @@
   const remembered = () => { try { return localStorage.getItem('depack-wallet'); } catch { return null; } };
   const watched = new WeakSet();
 
+  // Keccak-256, for the ENS namehash that checks a Basename points back to its wallet. BigInt lanes keep it short;
+  // it runs a handful of times per visit.
+  const keccak256 = (() => {
+    const mask = (1n << 64n) - 1n;
+    const rotl = (x, n) => ((x << BigInt(n)) | (x >> BigInt(64 - n))) & mask;
+    const ROT = [0, 1, 62, 28, 27, 36, 44, 6, 55, 20, 3, 10, 43, 25, 39, 41, 45, 15, 21, 8, 18, 2, 61, 56, 14];
+    const RC = [];
+    for (let i = 0, R = 1; i < 24; i++) {
+      let rc = 0n;
+      for (let j = 0; j < 7; j++) {
+        R = ((R << 1) ^ ((R >> 7) * 0x71)) % 256;
+        if (R & 2) rc ^= 1n << BigInt((1 << j) - 1);
+      }
+      RC.push(rc);
+    }
+    const permute = (A) => {
+      for (let round = 0; round < 24; round++) {
+        const C = [0, 1, 2, 3, 4].map((x) => A[x] ^ A[x + 5] ^ A[x + 10] ^ A[x + 15] ^ A[x + 20]);
+        for (let x = 0; x < 5; x++) {
+          const D = C[(x + 4) % 5] ^ rotl(C[(x + 1) % 5], 1);
+          for (let y = 0; y < 25; y += 5) A[x + y] ^= D;
+        }
+        const B = new Array(25);
+        for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) B[y + 5 * ((2 * x + 3 * y) % 5)] = rotl(A[x + 5 * y], ROT[x + 5 * y]);
+        for (let y = 0; y < 25; y += 5) for (let x = 0; x < 5; x++) A[x + y] = B[x + y] ^ (~B[((x + 1) % 5) + y] & mask & B[((x + 2) % 5) + y]);
+        A[0] ^= RC[round];
+      }
+    };
+    return (bytes) => {
+      const A = new Array(25).fill(0n);
+      const padded = new Uint8Array(Math.floor(bytes.length / 136) * 136 + 136);
+      padded.set(bytes);
+      padded[bytes.length] ^= 0x01;
+      padded[padded.length - 1] ^= 0x80;
+      for (let off = 0; off < padded.length; off += 136) {
+        for (let i = 0; i < 17; i++) {
+          let lane = 0n;
+          for (let b = 7; b >= 0; b--) lane = (lane << 8n) | BigInt(padded[off + i * 8 + b]);
+          A[i] ^= lane;
+        }
+        permute(A);
+      }
+      return Uint8Array.from({ length: 32 }, (_, i) => Number((A[i >> 3] >> BigInt(8 * (i & 7))) & 0xffn));
+    };
+  })();
+  const namehash = (name) => Array.from(name.split('.').reverse().reduce((node, label) => {
+    const both = new Uint8Array(64);
+    both.set(node);
+    both.set(keccak256(new TextEncoder().encode(label)), 32);
+    return keccak256(both);
+  }, new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join('');
+
+  const readAt = (to, data) => ['eth_call', [{ to, data }, 'latest']];
+  // Spaces, control and direction-override characters could make one name look like another.
+  const safeName = (name) => (/^[^\s\p{Cc}\u200b-\u200f\u202a-\u202e\u2066-\u2069]{1,80}$/u.test(name) ? name : null);
+  async function baseName(address) {
+    const [reply] = await rpc([readAt(BASE_REVERSE, `0x4ec3bd23${pad(address.slice(2))}`)]); // nameForAddr(address)
+    if (!reply?.result || reply.result === '0x') return null;
+    const r = reader(reply.result);
+    const name = safeName(r.string(r.num(0)));
+    if (!name?.endsWith('.base.eth')) return null;
+    // Any wallet can claim any name in reverse, so the name shows only if it also points back to this wallet.
+    const node = namehash(name);
+    const [found] = await rpc([readAt(BASE_REGISTRY, `0x0178b8bf${node}`)]); // resolver(bytes32)
+    const resolver = found?.result ? reader(found.result).address(0) : null;
+    if (!resolver || ZERO.test(resolver)) return null;
+    const [back] = await rpc([readAt(resolver, `0x3b3b57de${node}`)]); // addr(bytes32)
+    return back?.result && reader(back.result).address(0) === address ? name : null;
+  }
+  async function ensName(address) {
+    // reverse(bytes address, uint256 coinType 60 for Ethereum)
+    const data = `0x5d78a217${pad('40')}${pad('3c')}${pad('14')}${address.slice(2).padEnd(64, '0')}`;
+    const response = await fetch(ENS_RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: ENS_RESOLVER, data }, 'latest'] }) });
+    const r = reader((await response.json()).result);
+    return safeName(r.string(r.num(0)));
+  }
   const names = new Map();
-  function ensName(address) {
+  function walletName(address) {
     if (!names.has(address)) {
-      names.set(address, (async () => {
-        // reverse(bytes address, uint256 coinType 60 for Ethereum)
-        const data = `0x5d78a217${pad('40')}${pad('3c')}${pad('14')}${address.slice(2).padEnd(64, '0')}`;
-        const response = await fetch(ENS_RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_call', params: [{ to: ENS_RESOLVER, data }, 'latest'] }) });
-        const r = reader((await response.json()).result);
-        const name = r.string(r.num(0));
-        // Spaces, control and direction-override characters could make one name look like another.
-        return /^[^\s\p{Cc}\u200b-\u200f\u202a-\u202e\u2066-\u2069]{1,80}$/u.test(name) ? name : null;
-      })().catch(() => { names.delete(address); return null; }));
+      names.set(address, (async () => (await baseName(address).catch(() => null)) ?? ensName(address))()
+        .catch(() => { names.delete(address); return null; }));
     }
     return names.get(address);
   }
@@ -347,7 +434,7 @@
     accountName = null;
     if (account) {
       const asked = account;
-      ensName(asked).then((name) => { if (name && account === asked) { accountName = name; showAccount(); } });
+      walletName(asked).then((name) => { if (name && account === asked) { accountName = name; showAccount(); } });
     }
     try { onBase = account ? (await provider.request({ method: 'eth_chainId' })) === CHAIN : false; } catch { onBase = false; }
     remember(account ? [...announced.values()].find((w) => w.provider === provider)?.rdns : null);
@@ -565,7 +652,7 @@
       const done = await pay(giveFlow, { data: `${SEL.join}${uintArg(target.id)}`, wei, page: { href: poidhUrl(target.id), text: 'poidh' } });
       if (!done) return;
       giveFlow.say('Added. Thank you.', done.receiptLink);
-      load().then(render).catch(() => {});
+      refresh().catch(() => {});
     });
   });
 
@@ -581,8 +668,8 @@
     onOpen: { returnFocus: () => startOpen?.focus() },
   });
 
+  if (startOpen) startOpen.hidden = typeof startFlow.dialog?.showModal !== 'function';
   if (startOpen && typeof startFlow.dialog?.showModal === 'function') {
-    startOpen.hidden = false;
     startOpen.addEventListener('click', () => {
       if (!busy) { startFlow.wallets.hidden = true; startFlow.say(''); }
       startFlow.refresh();
@@ -662,15 +749,15 @@
         const done = await pay(walletFlow, { data: `${SEL.refund}${uintArg(b.id)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' } });
         if (!done) return;
         walletFlow.say('Taken back into your poidh balance. Withdraw it below.', done.receiptLink);
-        load().then(render).catch(() => {});
+        refresh().catch(() => {});
       }));
       return el('div', { className: 'refund' }, el('span', { textContent: `${eth(wei)} from ${b.name}, cancelled` }), take);
     }));
     walletFlow.refresh();
   }
 
+  if (walletButton) walletButton.hidden = typeof walletFlow.dialog?.showModal !== 'function';
   if (walletButton && typeof walletFlow.dialog?.showModal === 'function') {
-    walletButton.hidden = false;
     wireDialog(walletFlow, () => walletButton.focus());
     walletButton.addEventListener('click', async () => {
       walletFlow.say('');
@@ -732,7 +819,7 @@
         });
         if (!done) return;
         cancelFlow.say('Cancelled. Your ETH is in your poidh balance; withdraw it from the wallet button at the top.', done.receiptLink);
-        load().then(render).catch(() => {});
+        refresh().catch(() => {});
       });
     });
   }
@@ -753,5 +840,12 @@
   }
 
   quiet('Reading the open bounties from Base.');
-  load().then(render).catch(() => quiet('Base could not be reached just now. The bounties are also on', { href: 'https://poidh.xyz', text: 'poidh' }));
+  // A return to this page during the visit shows the last list at once; a fresh read from Base then replaces it.
+  const cached = stashed();
+  if (cached) render(cached);
+  refresh().catch(() => {
+    document.getElementById('open-shelf').removeAttribute('data-loading');
+    if (!cached) document.getElementById('totals').hidden = true;
+    quiet('Base could not be reached just now. The bounties are also on', { href: 'https://poidh.xyz', text: 'poidh' });
+  });
 })();

@@ -26,6 +26,15 @@ body { margin: 0; background: var(--ground); color: var(--ink); font: 1rem/1.55 
 a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
 :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 [hidden] { display: none !important; }
+/* Parts that need the script take their place from the first paint, so nothing jumps when it runs;
+   without scripting they are left out. The open shelf keeps one book's height while Base is read. */
+@media (scripting: none) { .js-only, .shelf[data-loading] { display: none !important; } }
+.shelf[data-loading] { min-height: 14rem; }
+/* Library and Wanted are two pages: the browser cross-fades between them and keeps the header in place. */
+@view-transition { navigation: auto; }
+.masthead .title { view-transition-name: depack-title; }
+.tabs { view-transition-name: depack-tabs; }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
 .sprite { position: absolute; }
 .icon { width: 1.25rem; height: 1.25rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
