@@ -8,7 +8,7 @@ test('build publishes only the public allowlist', () => {
   const dist = new URL('../dist/', import.meta.url);
   assert.deepEqual(readdirSync(dist).sort(), ['apple-touch-icon.png', 'assets', 'audio.js', 'boot.js', 'community.js', 'contribute.js', 'depack', 'favicon.ico', 'favicon.png', 'game.js', 'index.html', 'navigation.js', 'rewards.json', 'styles.css', 'vendor', 'world.js']);
   assert.deepEqual(readdirSync(new URL('vendor/', dist)).sort(), ['three.LICENSE', 'three.module.min.js']);
-  assert.deepEqual(readdirSync(new URL('assets/', dist)).sort(), ['atlas.svg', 'bankr.svg', 'base.ico', 'compass.svg', 'depack-mark.gif', 'depack-mark.png', 'depack.gif', 'depack.png', 'dexscreener.png', 'pons.png', 'robinhood.png', 'social-card.png', 'social-icon.png']);
+  assert.deepEqual(readdirSync(new URL('assets/', dist)).sort(), ['atlas.svg', 'bankr.svg', 'base.ico', 'compass.svg', 'depack-mark.gif', 'depack-mark.png', 'depack.gif', 'depack.png', 'dexscreener.png', 'poidh.svg', 'pons.png', 'robinhood.png', 'social-card.png', 'social-icon.png']);
   assert.match(readFileSync(new URL('index.html', dist), 'utf8'), /Knowledge,/);
 });
 

@@ -238,11 +238,12 @@
   }
 
   // ---------- Showing it ----------
-  const eth = (wei) => {
+  const eth = (wei, exact = false) => {
     const whole = wei / 10n ** 18n;
     const digits = (wei % 10n ** 18n).toString().padStart(18, '0');
-    // Four decimals read well, but the contract takes amounts down to 0.00001, so a smaller amount keeps its digits.
-    const frac = (whole || /[1-9]/.test(digits.slice(0, 4)) || !wei ? digits.slice(0, 4) : digits.slice(0, 8)).replace(/0+$/, '');
+    // Four decimals read well, but the contract takes amounts down to 0.00001, so a smaller amount keeps its digits;
+    // exact keeps them all, for a payout that must not look rounded.
+    const frac = (exact ? digits : whole || /[1-9]/.test(digits.slice(0, 4)) || !wei ? digits.slice(0, 4) : digits.slice(0, 8)).replace(/0+$/, '');
     return `${whole}${frac ? `.${frac}` : ''} ETH`;
   };
   const poidhUrl = (id) => `https://poidh.xyz/base/bounty/${BigInt(id) + POIDH_PAGE_OFFSET}`;
@@ -468,6 +469,7 @@
     document.getElementById('wallet-address-row').hidden = !accountName;
     document.getElementById('wallet-address').textContent = accountName && account ? short(account) : '';
     if (lastList) render(lastList); else refreshWallet();
+    fillStartBalance();
   }
 
   async function setAccount(provider, address) {
@@ -663,20 +665,55 @@
     });
   }
 
-  function wire(flow, { amount, minWei, label, onOpen }) {
+  function wire(flow, { amount, minWei, label, onOpen, ready = () => true, after = () => {} }) {
     flow.refresh = () => {
       const wei = toWei(typedIn(amount));
       // The label repeats exactly what was typed, so it always matches what the wallet will show.
       flow.send.textContent = wei && wei >= minWei ? label(typedIn(amount).replace(/^\./, '0.')) : label(null);
-      flow.send.disabled = busy || !wei || wei < minWei;
+      flow.send.disabled = busy || !wei || wei < minWei || !ready();
+      after(wei);
     };
     if (!flow.dialog || typeof flow.dialog.showModal !== 'function') return;
-    amount.addEventListener('input', flow.refresh);
+    amount.addEventListener('input', () => flow.refresh());
     flow.dialog.querySelectorAll('.preset').forEach((preset) => preset.addEventListener('click', () => {
       amount.value = preset.dataset.eth;
       flow.refresh();
     }));
     wireDialog(flow, () => onOpen.returnFocus?.());
+  }
+
+  // ---------- What people type: a small, safe Markdown reading, built as nodes ----------
+  // Paragraphs, "- " lists, **bold** and https links; anything else stays plain text.
+  function inline(text) {
+    const out = [];
+    const pattern = /\*\*([^*\n]+)\*\*|https:\/\/[^\s<>"]*[^\s<>".,;:!?)]/g;
+    let at = 0;
+    for (const match of text.matchAll(pattern)) {
+      if (match.index > at) out.push(text.slice(at, match.index));
+      out.push(match[1] !== undefined ? el('b', { textContent: match[1] })
+        : el('a', { href: match[0], target: '_blank', rel: 'noopener noreferrer', textContent: match[0].slice(8) }));
+      at = match.index + match[0].length;
+    }
+    if (at < text.length) out.push(text.slice(at));
+    return out;
+  }
+  const markdown = (text) => text.trim().split(/\n\s*\n/).filter(Boolean).map((block) => {
+    const lines = block.split('\n');
+    if (lines.every((line) => /^\s*[-*] /.test(line))) return el('ul', {}, ...lines.map((line) => el('li', {}, ...inline(line.replace(/^\s*[-*] /, '')))));
+    return el('p', {}, ...lines.flatMap((line, i) => (i ? [el('br'), ...inline(line)] : inline(line))));
+  });
+
+  // Write and Preview over one textarea; foot is a line the page adds after the text when it is sent.
+  function wireViews(textarea, preview, foot = null) {
+    const buttons = textarea.closest('.field').querySelectorAll('.view');
+    const show = (view) => {
+      buttons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
+      if (view === 'preview') preview.replaceChildren(...markdown(textarea.value), ...(foot ? [el('p', { className: 'md-foot', textContent: foot })] : []));
+      textarea.hidden = view === 'preview';
+      preview.hidden = view !== 'preview';
+    };
+    buttons.forEach((button) => button.addEventListener('click', () => show(button.dataset.view)));
+    return show;
   }
 
   // ---------- Adding ETH to a bounty ----------
@@ -723,34 +760,124 @@
   });
 
   // ---------- Starting a bounty ----------
+  // Each template is the wording of a bounty that worked, with the parts to change in brackets.
+  const ACCEPTED = 'Accepted when: the .fapack is built with the Field Atlas pack tools, imports in the app with Library then Import, and answers a few questions with citations to the right sections. Claim here with the link to the pack.';
+  const TEMPLATES = {
+    textbook: { name: '[Subject]: [book title]', about: `[Book title and edition] as an offline collection, like the existing Mathematics: Prealgebra pack: every chapter split into sections, with [worked examples, exercises, the glossary].\n\nSource: [link to the book], licence [CC BY 4.0], credited inside the pack.\n\n${ACCEPTED}` },
+    guide: { name: '[Topic] guide', about: `[Guide name] as an offline collection, like the existing Practical skills pack: one passage per step or section, with [the checklists and warnings].\n\nSource: [link to the guide], licence [CC BY 4.0], credited inside the pack.\n\n${ACCEPTED}` },
+    places: { name: 'Places: [what and where]', about: '[Kind of places] in [area] as an offline collection, like the existing Essentials pack: one entry per place with its name, location and [opening hours and phone].\n\nSource: [link to the data], licence [ODbL], credited inside the pack.\n\nAccepted when: the .fapack is built with the Field Atlas pack tools, imports in the app with Library then Import, and answers a few questions about the places with citations to the right entries. Claim here with the link to the pack.' },
+    blank: { name: '', about: '' },
+  };
+  // A [part] to fill; a Markdown link's [text](url) is not one.
+  const BLANK = /\[[^[\]\n]{1,80}\](?!\()/g;
+  const blanks = (text) => text.match(BLANK)?.length ?? 0;
+  // Selects the first [part] at or after from, so Tab walks through what is left to fill.
+  function selectBlank(input, from) {
+    if (input.hidden) return false;
+    const next = [...input.value.matchAll(BLANK)].find((match) => match.index >= from);
+    if (!next) return false;
+    input.focus();
+    input.setSelectionRange(next.index, next.index + next[0].length);
+    return true;
+  }
+  const WANTED_LINE = 'Wanted on https://www.getfieldatlas.com/depack/wanted/';
+  // Phones have no Tab key; a tap inside a part selects it instead.
+  const TOUCH = matchMedia('(pointer: coarse)').matches;
   const startFlow = makeFlow('start');
   const startOpen = document.getElementById('start-open');
   const startName = document.getElementById('start-name');
   const startAbout = document.getElementById('start-about');
   const startAmount = document.getElementById('start-amount');
+  const startLeft = () => blanks(startName.value) + blanks(startAbout.value);
   wire(startFlow, {
     amount: startAmount, minWei: MIN_BOUNTY_WEI,
     label: (text) => (text ? `Start it with ${text} ETH` : 'Start the bounty'),
     onOpen: { returnFocus: () => startOpen?.focus() },
+    ready: () => !!account && !!startName.value.trim() && !!startAbout.value.trim() && !startLeft(),
+    after: (wei) => {
+      const left = startLeft();
+      document.getElementById('start-left').textContent = left ? `${left} ${left === 1 ? 'part' : 'parts'} left to fill. ${TOUCH ? 'Tap one to type over it.' : 'Tab jumps to the next one.'}` : '';
+      document.getElementById('start-gets').textContent = wei ? eth(wei - (wei * 250n) / 10000n, true) : '';
+    },
   });
+
+  async function fillStartBalance() {
+    const row = document.getElementById('start-balance-row');
+    if (!row) return;
+    // No wallet yet: the dialog offers to connect one first, and the start button follows once it is known.
+    document.getElementById('start-connect').hidden = !!account;
+    document.getElementById('start-send').hidden = !account;
+    // Called on every wallet change, which can come before the dialog has ever been opened.
+    if (!document.getElementById('start')?.open) return;
+    startFlow.refresh();
+    // The last wallet's balance never shows against a new one; the row waits for this wallet's answer.
+    row.hidden = true;
+    document.getElementById('start-balance').textContent = '';
+    if (!account) return;
+    const asked = account;
+    const [reply] = await rpc([['eth_getBalance', [asked, 'latest']]]).catch(() => [null]);
+    if (asked !== account) return;
+    row.hidden = !reply?.result;
+    if (reply?.result) document.getElementById('start-balance').textContent = eth(BigInt(reply.result));
+  }
 
   if (startOpen) startOpen.hidden = typeof startFlow.dialog?.showModal !== 'function';
   if (startOpen && typeof startFlow.dialog?.showModal === 'function') {
+    const showStart = wireViews(startAbout, document.getElementById('start-preview'), WANTED_LINE);
+    const kinds = startFlow.dialog.querySelectorAll('.kind');
+    const firstBlank = () => selectBlank(startName, 0) || selectBlank(startAbout, 0);
+    const useTemplate = (kind) => {
+      kinds.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.kind === kind)));
+      startName.value = TEMPLATES[kind].name;
+      startAbout.value = TEMPLATES[kind].about;
+      showStart('write');
+      startFlow.refresh();
+      if (!firstBlank()) startName.focus();
+    };
+    // Typed text is only replaced after asking; an untouched template or an empty form switches at once.
+    const untouched = () => Object.values(TEMPLATES).some((t) => t.name === startName.value && t.about === startAbout.value);
+    kinds.forEach((button) => button.addEventListener('click', () => {
+      if (!untouched() && !window.confirm(`Replace your text with the ${button.textContent} template?`)) return;
+      useTemplate(button.dataset.kind);
+    }));
+    document.getElementById('start-connect').addEventListener('click', async () => {
+      if (busy) return;
+      await connect(startFlow);
+      // The connect button has just hidden itself; focus moves on to the next part to fill, or the start button.
+      if (account && startFlow.dialog.open && !firstBlank()) startFlow.send.focus();
+    });
+    for (const input of [startName, startAbout]) {
+      input.addEventListener('input', () => startFlow.refresh());
+      input.addEventListener('keydown', (event) => {
+        if (event.key !== 'Tab' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return;
+        const found = selectBlank(input, input.selectionEnd) || (input === startName && selectBlank(startAbout, 0));
+        if (found) event.preventDefault();
+      });
+      // A click inside a [part] selects all of it, ready to type over.
+      input.addEventListener('click', () => {
+        if (input.selectionStart !== input.selectionEnd) return;
+        const at = input.selectionStart;
+        const hit = [...input.value.matchAll(BLANK)].find((match) => match.index < at && at < match.index + match[0].length);
+        if (hit) input.setSelectionRange(hit.index, hit.index + hit[0].length);
+      });
+    }
     startOpen.addEventListener('click', () => {
       if (!busy) { startFlow.wallets.hidden = true; startFlow.say(''); }
-      startFlow.refresh();
       startFlow.dialog.showModal();
-      startName.focus();
+      fillStartBalance();
+      if (!startName.value && !startAbout.value) useTemplate([...kinds].find((button) => button.getAttribute('aria-pressed') === 'true').dataset.kind);
+      else { startFlow.refresh(); if (!firstBlank()) startName.focus(); }
     });
     startFlow.dialog.querySelector('form').addEventListener('submit', (event) => {
       event.preventDefault();
       const name = startName.value.trim();
       const about = startAbout.value.trim();
       const wei = toWei(typedIn(startAmount));
-      if (!name || !about) { startFlow.say('Give the collection a name and say what it should cover.'); (name ? startAbout : startName).focus(); return; }
-      if (!wei || wei < MIN_BOUNTY_WEI) return;
+      if (!name || !about) { startFlow.say('Give the collection a title and say what it should cover.'); (name ? startAbout : startName).focus(); return; }
+      if (startLeft()) { firstBlank(); return; }
+      if (!account || !wei || wei < MIN_BOUNTY_WEI) return;
       // The page's address in the description is what lets this page find and list the bounty later.
-      const description = `${about}\n\nWanted on https://www.getfieldatlas.com/depack/wanted/`;
+      const description = `${about}\n\n${WANTED_LINE}`;
       run(startFlow, async () => {
         const done = await pay(startFlow, { data: `${SEL.create}${encodeArgs(name, description)}`, wei, page: { href: 'https://poidh.xyz', text: 'poidh' } });
         if (!done) return;
@@ -760,6 +887,7 @@
         startFlow.say('Your bounty is live. It shows on this page after a short review.', made ? { href: poidhUrl(made.id), text: 'See it on poidh' } : done.receiptLink);
         startName.value = '';
         startAbout.value = '';
+        fillStartBalance();
       });
     });
   }
@@ -902,6 +1030,7 @@
   const voteBox = document.getElementById('claims-vote');
   let claimsFor = null;
   let claimsOpener = null;
+  let draftFor = null;
   const decideBox = document.getElementById('claims-decide');
   const decideSend = document.getElementById('claims-decide-send');
   const confirmBox = document.getElementById('claims-confirm');
@@ -913,14 +1042,16 @@
     decideSend.disabled = busy || !picked();
   };
   // Pack links in a claim open only for the two hosts packs come from; anything else stays plain text.
-  const packLink = (text) => {
-    const first = text.split(/\s/)[0];
-    return /^https:\/\/(github\.com|huggingface\.co)\/[^\s<>"]+$/.test(first) ? first : null;
-  };
-  const httpsUrl = (text) => {
-    try { const url = new URL(text.trim()); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; }
-  };
+  const packLink = (text) => text.match(/https:\/\/(?:github\.com|huggingface\.co)\/[^\s<>"]*[^\s<>".,;:!?)]/)?.[0] ?? null;
   const decider = (b) => b.state === 'open' && account && account === b.issuer.toLowerCase();
+
+  const WANTED_URL = 'https://www.getfieldatlas.com/depack/wanted/';
+  const CLAIMED_LINE = `Claimed on ${WANTED_URL}`;
+  // poidh mints every claim as an NFT whose image is the claim's uri. Claims here carry no proof image, so the NFT
+  // shows the site's card; the proof is the pack itself, linked in the description.
+  const CLAIM_IMAGE = 'https://www.getfieldatlas.com/assets/social-card.png';
+  const claimAbout = document.getElementById('claim-about');
+  const showClaimText = wireViews(claimAbout, document.getElementById('claim-preview'), CLAIMED_LINE);
 
   function claimRow(b, c, pickable) {
     const link = packLink(c.description);
@@ -929,7 +1060,9 @@
     const text = el('div', { className: 'claim-text' },
       el('b', { textContent: c.name }),
       el('span', { className: 'claim-facts' }, 'by ', who, c.createdAt ? ` · ${dateFmt.format(new Date(c.createdAt * 1000))}` : ''),
-      link ? el('a', { className: 'claim-about', href: link, rel: 'noopener noreferrer', textContent: about }) : el('span', { className: 'claim-about', textContent: about }));
+      el('span', { className: 'claim-about', textContent: about }),
+      // The link's own address is its label, so a claim's wording cannot dress up where it leads.
+      link ? el('a', { className: 'claim-link', href: link, target: '_blank', rel: 'noopener noreferrer', textContent: link.slice(8) }) : null);
     const state = c.accepted ? 'Accepted' : b.votingClaim === c.id ? 'In the vote' : null;
     // The creator picks one claim, then confirms; a button on every row made a wrong tap too easy.
     if (pickable && !state) {
@@ -960,10 +1093,15 @@
     document.getElementById('claims-vote-what').textContent = voted ? voted.name : `Claim ${b.votingClaim}`;
     const pickable = decider(b);
     if (pickable) claimsList.setAttribute('role', 'radiogroup'); else claimsList.removeAttribute('role');
-    claimsList.replaceChildren(...(claims.length
-      ? claims.map((c) => claimRow(b, c, pickable))
-      : [el('li', { className: 'quiet', textContent: 'No claims yet.' })]));
-    claimsList.append(el('li', { className: 'claim-more' }, el('a', { href: poidhUrl(b.id), textContent: 'Proof images and every claim on poidh' })));
+    // Only the creator reads every claim here, so this page does not hand early claims to later makers (they stay
+    // public on chain and on poidh); others see their own claims and, during a vote, the claim they are voting on.
+    const creator = !!account && account === b.issuer.toLowerCase();
+    const visible = creator ? claims : claims.filter((c) => c.id === b.votingClaim || (account && c.issuer === account));
+    const others = claims.length - visible.length;
+    claimsList.replaceChildren(...visible.map((c) => claimRow(b, c, pickable)));
+    if (!claims.length) claimsList.append(el('li', { className: 'quiet', textContent: 'No claims yet.' }));
+    else if (others) claimsList.append(el('li', { className: 'quiet', textContent: `${visible.length ? `${others} more` : others} ${others === 1 ? 'claim' : 'claims'} so far.` }));
+    if (creator) claimsList.append(el('li', { className: 'claim-more' }, el('a', { href: poidhUrl(b.id), textContent: 'Proof images and every claim on poidh' })));
     decideSend.textContent = external ? 'Put this claim to a vote' : 'Accept this claim';
     decideBox.hidden = !(pickable && claims.some((c) => !c.accepted && c.id !== b.votingClaim));
     confirmBox.hidden = true;
@@ -1074,18 +1212,16 @@
       const b = claimsFor;
       if (!b) return;
       const name = document.getElementById('claim-name').value.trim();
-      const link = httpsUrl(document.getElementById('claim-link').value);
-      const proof = httpsUrl(document.getElementById('claim-proof').value);
-      if (!name) { claimsFlow.say('Give the claim a name.'); return; }
-      if (!link) { claimsFlow.say('Add the pack\u2019s link; it must be an https link.'); return; }
-      if (!proof) { claimsFlow.say('Add a link to a proof image; it must be an https link.'); return; }
+      const about = claimAbout.value.trim();
+      if (!name) { claimsFlow.say('Give the claim a title.'); return; }
+      if (!about) { claimsFlow.say('Say what the pack holds, with its link.'); return; }
       run(claimsFlow, async () => {
-        // poidh shows the proof image from the claim's link; the description carries the pack link and this page.
-        const description = `${link}\n\nClaimed on https://www.getfieldatlas.com/depack/wanted/`;
-        const done = await pay(claimsFlow, { data: `${SEL.claim}${encodeArgs(b.id, name, description, proof)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' } });
+        const description = `${about}\n\n${CLAIMED_LINE}`;
+        const done = await pay(claimsFlow, { data: `${SEL.claim}${encodeArgs(b.id, name, description, CLAIM_IMAGE)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' } });
         if (!done) return;
         claimForm.reset();
-        claimsFlow.say('Claimed. The bounty\u2019s creator decides, or its funders vote.', done.receiptLink);
+        showClaimText('write');
+        claimsFlow.say('Claimed. The bounty’s creator decides, or its funders vote.', done.receiptLink);
         refresh().catch(() => {});
       });
     });
@@ -1098,6 +1234,8 @@
     claimsOpener = button;
     claimsFlow.wallets.hidden = true;
     claimsFlow.say('');
+    // A draft belongs to the bounty it was written for; another bounty starts empty.
+    if (draftFor !== b.id) { claimForm.reset(); showClaimText('write'); draftFor = b.id; }
     showClaims(b);
     claimsFlow.refresh();
     claimsFlow.dialog.showModal();

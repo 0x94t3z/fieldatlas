@@ -25,6 +25,8 @@ async function fakeBase(page, { joinRevert = null, joinError = null, createRever
       if (method === 'eth_getTransactionReceipt') return { jsonrpc: '2.0', id, result: { status: '0x1' } };
       // Wallets have no code unless a test gives one.
       if (method === 'eth_getCode') return { jsonrpc: '2.0', id, result: code[params[0].toLowerCase()] ?? '0x' };
+      // Every wallet holds 0.0503 ETH on Base.
+      if (method === 'eth_getBalance') return { jsonrpc: '2.0', id, result: '0xb2b3956033c000' };
       const data = params[0].data;
       const selector = data.slice(2, 10);
       // Basename lookups: nameForAddr, then the registry's resolver(node), then that resolver's addr(node).
@@ -403,15 +405,50 @@ test('anyone can start a bounty from the page, carrying the builder code, withou
   await page.goto('/depack/wanted/');
   await page.click('#start-open');
   await expect(page.locator('#start')).toBeVisible();
+  // Without a wallet the dialog asks to connect first; the start button and the balance follow.
+  await expect(page.locator('#start-connect')).toBeVisible();
+  await expect(page.locator('#start-send')).toBeHidden();
+  await expect(page.locator('#start-balance-row')).toBeHidden();
+  await page.click('#start-connect');
+  await expect(page.locator('#start-connect')).toBeHidden();
+  await expect(page.locator('#start-balance')).toHaveText('0.0503 ETH');
   await expect(page.locator('#start-send')).toHaveText('Start it with 0.005 ETH');
-  // Below the contract's 0.001 ETH minimum the button stays off; a name and a description are required.
+  // Focus moves on from the connect button to the first part to fill.
+  await expect(page.locator('#start-name')).toBeFocused();
+  expect(await page.locator('#start-name').evaluate(t => t.value.slice(t.selectionStart, t.selectionEnd))).toBe('[Subject]');
+  // The dialog opens on the textbook template, its first [part] selected; the button waits until none are left.
+  await expect(page.locator('#start-name')).toHaveValue('[Subject]: [book title]');
+  await expect(page.locator('#start-about')).toHaveValue(/^\[Book title and edition\] as an offline collection/);
+  await expect(page.locator('#start-left')).toHaveText('6 parts left to fill. Tab jumps to the next one.');
+  await expect(page.locator('#start-send')).toBeDisabled();
+  await page.keyboard.type('Chemistry');
+  await page.keyboard.press('Tab');
+  await page.keyboard.type('Chemistry 2e');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#start-about')).toBeFocused();
+  expect(await page.locator('#start-about').evaluate(t => t.value.slice(t.selectionStart, t.selectionEnd))).toBe('[Book title and edition]');
+  await expect(page.locator('#start-name')).toHaveValue('Chemistry: Chemistry 2e');
+  await expect(page.locator('#start-left')).toHaveText('4 parts left to fill. Tab jumps to the next one.');
+  // Templates swap the wording; the preview shows the page's line that is added when it is sent.
+  // Typed text is replaced only after asking.
+  const asked = [];
+  page.once('dialog', dialog => { asked.push(dialog.message()); dialog.accept(); });
+  await page.locator('#start .kind[data-kind="places"]').click();
+  expect(asked).toEqual(['Replace your text with the Places template?']);
+  await expect(page.locator('#start-name')).toHaveValue('Places: [what and where]');
+  await page.locator('#start .view[data-view="preview"]').click();
+  await expect(page.locator('#start-preview p').last()).toHaveText('Wanted on https://www.getfieldatlas.com/depack/wanted/');
+  await expect(page.locator('#start-about')).toBeHidden();
+  await page.locator('#start .view[data-view="write"]').click();
+  // The payout row is exact, and the wallet's balance shows once it is known.
+  await expect(page.locator('#start-gets')).toHaveText('0.004875 ETH');
+  // Below the contract's 0.001 ETH minimum the button stays off.
+  await page.fill('#start-name', poidh.create.name);
+  await page.fill('#start-about', poidh.create.about);
+  await expect(page.locator('#start-left')).toHaveText('');
   await page.fill('#start-amount', '0.0005');
   await expect(page.locator('#start-send')).toBeDisabled();
   await page.locator('#start .preset[data-eth="0.005"]').click();
-  await page.click('#start-send');
-  await expect(page.locator('#start-status')).toHaveText('Give the collection a name and say what it should cover.');
-  await page.fill('#start-name', poidh.create.name);
-  await page.fill('#start-about', poidh.create.about);
   await page.click('#start-send');
   await expect(page.locator('#start-status')).toContainText('Your bounty is live. It shows on this page after a short review.');
   await expect(page.locator('#start-status a')).toHaveAttribute('href', 'https://poidh.xyz/base/bounty/1596');
@@ -426,6 +463,45 @@ test('anyone can start a bounty from the page, carrying the builder code, withou
   expect(problems).toEqual([]);
 });
 
+test('the start dialog cannot be sent without a wallet, and Tab leaves a field whose parts are hidden in Preview', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page);
+  await page.addInitScript(fakeWallet);
+  await page.goto('/depack/wanted/');
+  await page.click('#start-open');
+  await page.locator('#start .view[data-view="preview"]').click();
+  await page.fill('#start-name', poidh.create.name);
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#start-name')).not.toBeFocused();
+  await page.locator('#start .view[data-view="write"]').click();
+  await page.fill('#start-about', poidh.create.about);
+  // Enter in a field submits the form; with no wallet connected nothing is asked of the wallet.
+  await page.locator('#start-name').press('Enter');
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.walletCalls.map(c => c.method))).toEqual([]);
+  await expect(page.locator('#start-connect')).toBeVisible();
+});
+
+test('typed descriptions preview as text, bold and https links only', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain');
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page);
+  await page.goto('/depack/wanted/');
+  await page.click('#start-open');
+  await page.fill('#start-about', 'javascript:alert(1) **<img src=x onerror=alert(1)>** https://evil.example/"onmouseover=alert(1) [t](javascript:alert(1))\n\n- one\n- two');
+  await page.locator('#start .view[data-view="preview"]').click();
+  await expect(page.locator('#start-preview img')).toHaveCount(0);
+  await expect(page.locator('#start-preview b')).toHaveText('<img src=x onerror=alert(1)>');
+  await expect(page.locator('#start-preview a')).toHaveCount(1);
+  await expect(page.locator('#start-preview a').first()).toHaveAttribute('href', 'https://evil.example/');
+  expect(await page.locator('#start-preview a').evaluateAll(links => links.every(a => a.href.startsWith('https://') && a.target === '_blank' && !a.hasAttribute('onmouseover')))).toBe(true);
+  await expect(page.locator('#start-preview li')).toHaveText(['one', 'two']);
+  // A Markdown link is not a part to fill.
+  await page.fill('#start-name', 'Chemistry: Chemistry 2e');
+  await expect(page.locator('#start-left')).toHaveText('');
+});
+
 test('a smart-contract wallet is told plainly that poidh needs a regular wallet to start a bounty', async ({ page }) => {
   test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
   await page.unroute('https://mainnet.base.org/**');
@@ -434,6 +510,7 @@ test('a smart-contract wallet is told plainly that poidh needs a regular wallet 
   await page.addInitScript(fakeWallet);
   await page.goto('/depack/wanted/');
   await page.click('#start-open');
+  await page.click('#start-connect');
   await page.fill('#start-name', poidh.create.name);
   await page.fill('#start-about', poidh.create.about);
   await page.click('#start-send');
@@ -448,6 +525,7 @@ test('a regular wallet with an EIP-7702 delegation can still start a bounty', as
   await page.addInitScript(fakeWallet);
   await page.goto('/depack/wanted/');
   await page.click('#start-open');
+  await page.click('#start-connect');
   await page.fill('#start-name', poidh.create.name);
   await page.fill('#start-about', poidh.create.about);
   await page.click('#start-send');
@@ -655,30 +733,44 @@ test('anyone claims a bounty from the page, with the builder code', async ({ pag
   await page.goto('/depack/wanted/');
   await page.locator('#bounty-600 .onpoidh').click();
   await expect(page.locator('#claims-title')).toHaveText('First aid in Swahili');
-  await expect(page.locator('#claims-list .claim b')).toHaveText(['Swahili first aid v2', 'Swahili first aid v1']);
-  // Only links to the hosts packs come from open; any other link in a claim stays plain text.
-  await expect(page.locator('#claim-41 a.claim-about')).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/pull/40');
-  await expect(page.locator('#claim-42 a.claim-about')).toHaveCount(0);
-  await expect(page.locator('#claims-list .claim-radio')).toHaveCount(0);
+  // Visitors see how many claims there are, not what they hold.
+  await expect(page.locator('#claims-list .claim')).toHaveCount(0);
+  await expect(page.locator('#claims-list')).toContainText('2 claims so far.');
+  await expect(page.locator('#claims-list .claim-more')).toHaveCount(0);
   // Without a wallet the dialog asks to connect first; the form follows once the page knows who is claiming.
   await expect(page.locator('#claims-form')).toBeHidden();
   await page.click('#claims-connect');
   await expect(page.locator('#claims-connect')).toBeHidden();
   await expect(page.locator('#claims-form')).toBeVisible();
+  // A maker sees their own claim, and only a count of the rest.
+  await expect(page.locator('#claims-list .claim b')).toHaveText(['Swahili first aid v1']);
+  await expect(page.locator('#claims-list')).toContainText('1 more claim so far.');
+  await expect(page.locator('#claims-list .claim-radio')).toHaveCount(0);
+  // A title and a description, previewed as it will read; the pack link opens.
   await page.fill('#claim-name', poidh.claim.name);
-  await page.fill('#claim-link', poidh.claim.link);
-  await page.fill('#claim-proof', 'http://example.org/proof.png');
   await page.click('#claims-send');
-  await expect(page.locator('#claims-status')).toHaveText('Add a link to a proof image; it must be an https link.');
+  await expect(page.locator('#claims-status')).toHaveText('Say what the pack holds, with its link.');
   expect(await sent(page)).toEqual([]);
-  await page.fill('#claim-proof', poidh.claim.proof);
+  await page.fill('#claim-about', poidh.claim.about);
+  await page.locator('#claims .view[data-view="preview"]').click();
+  await expect(page.locator('#claim-preview a')).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/pull/77');
+  await expect(page.locator('#claim-preview p').last()).toHaveText('Claimed on https://www.getfieldatlas.com/depack/wanted/');
+  await page.locator('#claims .view[data-view="write"]').click();
   await page.click('#claims-send');
   await expect(page.locator('#claims-status')).toContainText('Claimed.');
+  // createClaim(bounty, title, description + this page, the site's card as the claim NFT's image), then the suffix.
   const [tx] = await sent(page);
   expect(tx.to).toBe(POIDH);
   expect(BigInt(tx.value)).toBe(0n);
   expect(tx.chainId).toBe('0x2105');
   expect(tx.data).toBe(`${poidh.claim.calldata}${SUFFIX}`);
+  // A draft stays with its bounty: another bounty opens an empty form in Write.
+  await page.fill('#claim-about', 'draft for 600');
+  await page.locator('#claims .view[data-view="preview"]').click();
+  await page.click('#claims-close');
+  await page.locator('#bounty-603 .onpoidh').click();
+  await expect(page.locator('#claim-about')).toHaveValue('');
+  await expect(page.locator('#claim-about')).toBeVisible();
 });
 
 test('the creator picks one claim and confirms: a vote when others funded the bounty, acceptance when nobody did', async ({ page }) => {
@@ -693,6 +785,12 @@ test('the creator picks one claim and confirms: a vote when others funded the bo
   await page.locator('#bounty-600 .onpoidh').click();
   await expect(page.locator('#claims-form')).toBeHidden();
   await expect(page.locator('#claims-list')).toHaveAttribute('role', 'radiogroup');
+  await expect(page.locator('#claims-list .claim b')).toHaveText(['Swahili first aid v2', 'Swahili first aid v1']);
+  // Only links to the hosts packs come from open; any other link in a claim stays plain text.
+  await expect(page.locator('#claim-41 a.claim-link')).toHaveAttribute('href', 'https://github.com/0x94t3z/fieldatlas/pull/40');
+  await expect(page.locator('#claim-41 a.claim-link')).toHaveText('github.com/0x94t3z/fieldatlas/pull/40');
+  await expect(page.locator('#claim-42 a.claim-link')).toHaveCount(0);
+  await expect(page.locator('#claims-list .claim-more')).toHaveCount(1);
   // Nothing can be sent until one claim is picked, and picking only opens a confirm step.
   await expect(page.locator('#claims-decide-send')).toBeDisabled();
   await page.locator('#claim-41 .claim-radio').check();
@@ -719,20 +817,23 @@ test('the creator picks one claim and confirms: a vote when others funded the bo
 });
 
 test('claimers and bounty starters show their Basename once it points back to them', async ({ page }) => {
-  test.skip(!!process.env.SITE_URL, 'uses a fake chain');
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
   await page.unroute('https://mainnet.base.org/**');
   await fakeBase(page, { basename: { owner: '0x2222222222222222222222222222222222222222', name: 'maker.base.eth', pointsTo: '0x2222222222222222222222222222222222222222' } });
   await page.route('**/depack/wanted.json', route => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ approved: [610] }) }));
+  await page.addInitScript(fakeWallet);
   await page.goto('/depack/wanted/');
   await expect(page.locator('#bounty-610 .byline')).toHaveText('Started by maker.base.eth');
   await page.locator('#bounty-600 .onpoidh').click();
-  await expect(page.locator('#claim-41 .claim-who')).toHaveText('maker.base.eth');
-  await expect(page.locator('#claim-42 .claim-who')).toHaveText('0x4444…4444');
-  // Visitors see the claims without anything to pick.
-  await expect(page.locator('#claims-list .claim-radio')).toHaveCount(0);
+  // Visitors get only the count and nothing to pick.
+  await expect(page.locator('#claims-list')).toContainText('2 claims so far.');
   await expect(page.locator('#claims-decide')).toBeHidden();
   await expect(page.locator('#claims-connect')).toBeVisible();
   await expect(page.locator('#claims-form')).toBeHidden();
+  // The claimer connects and sees their claim under their Basename.
+  await page.click('#claims-connect');
+  await expect(page.locator('#claim-41 .claim-who')).toHaveText('maker.base.eth');
+  await expect(page.locator('#claim-42')).toHaveCount(0);
 });
 
 test('funders vote on the claim in the vote, with the builder code', async ({ page }) => {

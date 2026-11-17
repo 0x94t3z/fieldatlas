@@ -75,6 +75,7 @@
     </section>
 
     <p class="rules">Every collection uses openly licensed sources and passes the same checks as the rest of the library before it is paid. ETH goes to the poidh contract on Base, never to this site.</p>
+    <a class="powered" href="https://poidh.xyz">Powered by <img src="/assets/poidh.svg" alt="poidh" width="58" height="22"></a>
   </main>
 
   <dialog class="card give" id="give" aria-labelledby="give-title">
@@ -102,35 +103,61 @@
     </form>
   </dialog>
 
-  <dialog class="card give" id="start" aria-labelledby="start-title">
+  <dialog class="card give wide" id="start" aria-labelledby="start-title">
     <div class="card-head">
       <p class="card-kicker">Start a bounty</p>
       <h2 id="start-title">A collection you want made</h2>
       <button type="button" class="close" id="start-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
-    <form class="card-body give-body" id="start-form" novalidate>
-      <label class="field">
-        <span>Collection</span>
-        <input id="start-name" type="text" maxlength="80" autocomplete="off" placeholder="First aid in Swahili" required>
-      </label>
-      <label class="field">
-        <span>What it should cover, and from which sources</span>
-        <textarea id="start-about" rows="4" maxlength="1500" placeholder="Red Cross first-aid steps in Swahili, from openly licensed guides." required></textarea>
-      </label>
-      <label class="visually-hidden" for="start-amount">Reward in ETH</label>
-      <div class="amount">
-        <input id="start-amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.005">
-        <span>ETH on Base</span>
+    <form class="card-body split" id="start-form" novalidate>
+      <div class="split-main">
+        <div class="field">
+          <span id="start-kinds-label">Start from</span>
+          <div class="kinds" role="group" aria-labelledby="start-kinds-label">
+            <button type="button" class="kind" data-kind="textbook" aria-pressed="true">Textbook</button>
+            <button type="button" class="kind" data-kind="guide" aria-pressed="false">Guide</button>
+            <button type="button" class="kind" data-kind="places" aria-pressed="false">Places</button>
+            <button type="button" class="kind" data-kind="blank" aria-pressed="false">Blank</button>
+          </div>
+        </div>
+        <label class="field">
+          <span>Title</span>
+          <input id="start-name" type="text" maxlength="80" autocomplete="off" required>
+        </label>
+        <div class="field">
+          <div class="field-head">
+            <label for="start-about">Description</label>
+            <div class="views" role="group" aria-label="Description view">
+              <button type="button" class="view" data-view="write" aria-pressed="true">Write</button>
+              <button type="button" class="view" data-view="preview" aria-pressed="false">Preview</button>
+            </div>
+          </div>
+          <textarea id="start-about" rows="10" maxlength="1500" required></textarea>
+          <div class="md" id="start-preview" hidden></div>
+          <span class="left" id="start-left" aria-live="polite"></span>
+        </div>
       </div>
-      <div class="presets" role="group" aria-label="Reward">
-        <button type="button" class="preset" data-eth="0.002">0.002</button>
-        <button type="button" class="preset" data-eth="0.005">0.005</button>
-        <button type="button" class="preset" data-eth="0.01">0.01</button>
+      <div class="split-side">
+        <label class="field-label" for="start-amount">Reward</label>
+        <div class="amount">
+          <input id="start-amount" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.005">
+          <span>ETH on Base</span>
+        </div>
+        <div class="presets" role="group" aria-label="Reward">
+          <button type="button" class="preset" data-eth="0.002">0.002</button>
+          <button type="button" class="preset" data-eth="0.005">0.005</button>
+          <button type="button" class="preset" data-eth="0.01">0.01</button>
+        </div>
+        <dl class="sums">
+          <div id="start-balance-row" hidden><dt>Your balance</dt><dd id="start-balance"></dd></div>
+          <div><dt>Maker gets</dt><dd id="start-gets"></dd></div>
+        </dl>
+        <div class="wallets" id="start-wallets" hidden></div>
+        <button type="button" class="send" id="start-connect">Connect wallet</button>
+        <button type="submit" class="send" id="start-send" hidden>Start the bounty</button>
+        <p class="give-status" id="start-status" aria-live="polite"></p>
+        <p class="fine">poidh keeps 2.5% when the bounty is paid. Others can add ETH, and you pick the winning claim. It shows on this page after a short review.</p>
       </div>
-      <div class="wallets" id="start-wallets" hidden></div>
-      <button type="submit" class="send" id="start-send">Start the bounty</button>
-      <p class="give-status" id="start-status" aria-live="polite"></p>
-      <p class="fine">It goes from your wallet to the poidh bounty contract on Base, and others can add to it. You pick the winning claim here. It shows on this page after a short review.</p>
     </form>
   </dialog>
 
@@ -191,20 +218,24 @@
       </div>
       <button type="button" class="send" id="claims-connect" hidden>Connect wallet</button>
       <form class="claim-form" id="claims-form" novalidate hidden>
-        <h3>Claim it</h3>
-        <label class="field">
-          <span>Name</span>
-          <input id="claim-name" type="text" maxlength="80" autocomplete="off" placeholder="Swahili first aid, version 1" required>
-        </label>
-        <label class="field">
-          <span>Link to the pack</span>
-          <input id="claim-link" type="url" inputmode="url" maxlength="300" autocomplete="off" spellcheck="false" placeholder="https://github.com/…/pull/…" required>
-        </label>
-        <label class="field">
-          <span>Proof image link</span>
-          <input id="claim-proof" type="url" inputmode="url" maxlength="300" autocomplete="off" spellcheck="false" placeholder="https://…/screenshot.png" required>
-        </label>
-        <button type="submit" class="send" id="claims-send">Claim it</button>
+        <div class="split-main">
+          <label class="field">
+            <span>Title</span>
+            <input id="claim-name" type="text" maxlength="80" autocomplete="off" placeholder="Name your claim" required>
+          </label>
+          <div class="field">
+            <div class="field-head">
+              <label for="claim-about">Description</label>
+              <div class="views" role="group" aria-label="Description view">
+                <button type="button" class="view" data-view="write" aria-pressed="true">Write</button>
+                <button type="button" class="view" data-view="preview" aria-pressed="false">Preview</button>
+              </div>
+            </div>
+            <textarea id="claim-about" rows="8" maxlength="1500" placeholder="What the pack holds and how you checked it, with the link to the pack." required></textarea>
+            <div class="md" id="claim-preview" hidden></div>
+          </div>
+          <button type="submit" class="send" id="claims-send">Claim it</button>
+        </div>
       </form>
       <div class="wallets" id="claims-wallets" hidden></div>
       <p class="give-status" id="claims-status" aria-live="polite"></p>
