@@ -49,7 +49,7 @@
     <ol class="steps">
       <li><svg class="icon" aria-hidden="true"><use href="#i-speech"/></svg><b>Ask</b><p>Name the collection you are missing and link its openly licensed sources, so others can fund it.</p></li>
       <li><svg class="icon" aria-hidden="true"><use href="#i-coin"/></svg><b>Start or fund</b><p>Anyone starts a bounty for a missing collection, or adds ETH on Base to one.</p></li>
-      <li><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg><b>Make</b><p>Build the pack and claim on poidh. Paid once it passes review and a two-day vote.</p></li>
+      <li><svg class="icon" aria-hidden="true"><use href="#i-pen"/></svg><b>Make</b><p>Build the pack and claim the bounty here. Paid once the claim passes review, or a two-day vote when others funded it.</p></li>
     </ol>
 
     <section class="wanted" id="wanted" data-issuer="0xc698865c38eC12b475AA55764d447566dd54c758" aria-labelledby="open-title">
@@ -130,7 +130,7 @@
       <div class="wallets" id="start-wallets" hidden></div>
       <button type="submit" class="send" id="start-send">Start the bounty</button>
       <p class="give-status" id="start-status" aria-live="polite"></p>
-      <p class="fine">It goes from your wallet to the poidh bounty contract on Base, and others can add to it. You pick the winning claim, on poidh. It shows on this page after a short review.</p>
+      <p class="fine">It goes from your wallet to the poidh bounty contract on Base, and others can add to it. You pick the winning claim here. It shows on this page after a short review.</p>
     </form>
   </dialog>
 
@@ -155,6 +155,59 @@
       </div>
       <p class="give-status" id="wallet-status" aria-live="polite"></p>
       <p class="fine">poidh holds paid rewards, cancelled bounties and refunds as a balance until you withdraw it to your wallet.</p>
+    </div>
+  </dialog>
+
+  <dialog class="card give" id="claims" aria-labelledby="claims-title">
+    <div class="card-head">
+      <p class="card-kicker">Claims</p>
+      <h2 id="claims-title"></h2>
+      <button type="button" class="close" id="claims-close" aria-label="Close"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="card-body give-body">
+      <div class="vote" id="claims-vote" hidden>
+        <p class="vote-what">In the vote: <b id="claims-vote-what"></b></p>
+        <dl class="facts">
+          <div><dt>Yes</dt><dd id="claims-yes-total"></dd></div>
+          <div><dt>No</dt><dd id="claims-no-total"></dd></div>
+          <div><dt>Ends</dt><dd id="claims-ends"></dd></div>
+        </dl>
+        <div class="vote-actions">
+          <button type="button" class="send" id="claims-yes">Vote yes</button>
+          <button type="button" class="quiet-button" id="claims-no">Vote no</button>
+          <button type="button" class="send" id="claims-settle" hidden>Settle the vote</button>
+        </div>
+      </div>
+      <ul class="claims" id="claims-list" aria-label="Claims"></ul>
+      <div id="claims-decide" hidden>
+        <button type="button" class="send" id="claims-decide-send" disabled>Put this claim to a vote</button>
+      </div>
+      <div class="confirm" id="claims-confirm" hidden>
+        <p id="claims-confirm-text"></p>
+        <div class="vote-actions">
+          <button type="button" class="send" id="claims-confirm-send">Start the vote</button>
+          <button type="button" class="quiet-button" id="claims-confirm-back">Back</button>
+        </div>
+      </div>
+      <button type="button" class="send" id="claims-connect" hidden>Connect wallet</button>
+      <form class="claim-form" id="claims-form" novalidate hidden>
+        <h3>Claim it</h3>
+        <label class="field">
+          <span>Name</span>
+          <input id="claim-name" type="text" maxlength="80" autocomplete="off" placeholder="Swahili first aid, version 1" required>
+        </label>
+        <label class="field">
+          <span>Link to the pack</span>
+          <input id="claim-link" type="url" inputmode="url" maxlength="300" autocomplete="off" spellcheck="false" placeholder="https://github.com/…/pull/…" required>
+        </label>
+        <label class="field">
+          <span>Proof image link</span>
+          <input id="claim-proof" type="url" inputmode="url" maxlength="300" autocomplete="off" spellcheck="false" placeholder="https://…/screenshot.png" required>
+        </label>
+        <button type="submit" class="send" id="claims-send">Claim it</button>
+      </form>
+      <div class="wallets" id="claims-wallets" hidden></div>
+      <p class="give-status" id="claims-status" aria-live="polite"></p>
     </div>
   </dialog>
 

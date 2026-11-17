@@ -185,6 +185,36 @@ kbd { font: .75rem/1 var(--mono); padding: .2rem .45rem; background: var(--tile)
 .wanted-book .take { background: rgb(32 59 48 / 7%); }
 .wanted-book :focus-visible { outline-color: var(--paper-accent); }
 .onpoidh { display: inline-flex; align-items: center; min-height: 2.75rem; font-size: .88rem; color: var(--paper-ink); }
+button.onpoidh { padding: 0; border: 0; background: none; font-family: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; cursor: pointer; }
+/* Claims dialog: the vote, the claims, and the form to claim. */
+.vote { display: grid; gap: .6rem; padding: 1rem; background: var(--deep); border-radius: .75rem; }
+.vote-what { margin: 0; color: var(--muted); }
+.vote-what b { color: var(--ink); font-weight: 400; font-family: var(--serif); font-size: 1.1rem; }
+.vote .facts { margin: 0; }
+.vote-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.vote-actions > * { flex: 1 1 8rem; }
+.claims { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.claim { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; padding: .75rem .9rem; background: var(--tile); border-radius: .75rem; }
+.claim-text { display: grid; gap: .1rem; min-width: 0; flex: 1 1 14rem; }
+.claim-text b { font: 400 1.05rem/1.3 var(--serif); overflow-wrap: anywhere; }
+.claim-facts { font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.claim-about { font-size: .85rem; color: var(--muted); overflow-wrap: anywhere; }
+a.claim-about { color: var(--ink); }
+.claim-state { font-size: .8rem; color: var(--gold); white-space: nowrap; }
+.claim.is-pickable { padding: 0; }
+.claim-pick { display: flex; align-items: flex-start; gap: .75rem; width: 100%; padding: .75rem .9rem; border-radius: .75rem; cursor: pointer; }
+.claim-pick:hover { background: var(--tile-hover); }
+.claim-pick:has(:checked) { box-shadow: inset 0 0 0 2px var(--gold); }
+.claim-radio { flex: none; width: 1.15rem; height: 1.15rem; margin: .2rem 0 0; accent-color: var(--cta); }
+.claim-about { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+#claims-decide-send { width: 100%; }
+.confirm { display: grid; gap: .75rem; padding: 1rem; background: var(--deep); border-radius: .75rem; }
+.confirm p { margin: 0; }
+.claim-more { font-size: .85rem; }
+.claims .quiet { margin: 0; color: var(--muted); font-size: .9rem; }
+.claim-form { display: grid; gap: .8rem; }
+.claim-form h3 { margin: .4rem 0 0; font: 400 1.2rem/1.2 var(--serif); }
+.get:disabled { opacity: .5; cursor: default; }
 .ask { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 1.25rem 1.4rem; background: var(--tile); border-radius: 1rem; }
 .ask h3 { margin: 0; font: 400 1.3rem/1.2 var(--serif); }
 .ask p { margin: .2rem 0 0; color: var(--muted); font-size: .9rem; }

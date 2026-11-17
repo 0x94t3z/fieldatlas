@@ -25,6 +25,8 @@
     byUser: '0e122a78', userBounties: '2b9234b9', bounty: 'dc2f8744', participants: 'c1e3bd3e',
     votingClaim: '383d6d43', votes: '10b385c2', join: 'a9b2c6eb', create: '8c1d93c5',
     cancelOpen: 'd496ec7a', cancelSolo: 'b1b4be97', refund: '240b727e', withdraw: '3ccfd60b', balance: 'f3f43703',
+    claims: 'b03a50c7', everExternal: 'b04f5ebd', claim: '83ffc9f2', accept: '1d260f8e', startVote: '9e9251c8',
+    vote: 'b7c8994d', settle: '30f4ccac',
   };
   const MIN_BOUNTY_WEI = 10n ** 15n; // the contract's MIN_BOUNTY_AMOUNT, 0.001 ETH
   const ERRORS = {
@@ -41,6 +43,13 @@
     d0d04f60: 'There is nothing to withdraw yet.',
     dcd2fc90: 'That bounty is not cancelled.',
     '2fb19d77': 'This wallet has nothing to take back from that bounty.',
+    '8f60bb0a': 'The wallet that started this bounty cannot claim it.',
+    '10c2a11b': 'Others added ETH to this bounty, so the claim goes to a vote instead.',
+    '7c9a1cf9': 'Your vote is already in.',
+    '7a19ed05': 'The vote has ended. Settle it to finish.',
+    '6e242191': 'There is no vote on this bounty right now.',
+    d11e9bde: 'That claim was already accepted.',
+    '0455eeee': 'That claim is not on this bounty.',
   };
   const issuer = (section.dataset.issuer || '').toLowerCase();
   if (!/^0x[0-9a-f]{40}$/.test(issuer)) return;
@@ -114,6 +123,22 @@
     // getBountiesByUser always returns ten slots; unused ones are all zeros.
     for (let i = 0; i < count; i++) list.push(decodeBounty(r, start + r.num(start + 32 * i)));
     return list.filter((b) => !ZERO.test(b.issuer));
+  }
+  // getClaimsByBountyId: the newest ten claims, unused slots all zeros.
+  function decodeClaims(result) {
+    const r = reader(result);
+    const base = r.num(0);
+    const count = r.num(base);
+    const start = base + 32;
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      const t = start + r.num(start + 32 * i);
+      list.push({
+        id: r.uint(t), issuer: r.address(t + 32).toLowerCase(), name: r.string(t + r.num(t + 128)),
+        description: r.string(t + r.num(t + 160)), createdAt: r.num(t + 192), accepted: r.uint(t + 224) === 1n,
+      });
+    }
+    return list.filter((c) => !ZERO.test(c.issuer));
   }
 
   function decodeParticipants(result) {
@@ -191,7 +216,11 @@
     }).map((b) => b.id));
     const votingList = unpaid.filter((b) => voting.has(b.id));
     const tallies = votingList.length ? await rpc(votingList.map((b) => call(SEL.votes, uintArg(b.id)))) : [];
-    const deadline = new Map(votingList.map((b, i) => [b.id, tallies[i]?.result ? Number(reader(tallies[i].result).uint(64)) : 0]));
+    const tally = new Map(votingList.map((b, i) => {
+      const r = tallies[i]?.result ? reader(tallies[i].result) : null;
+      return [b.id, r ? { yes: r.uint(0), no: r.uint(32), deadline: Number(r.uint(64)) } : null];
+    }));
+    const votingClaim = new Map(unpaid.map((b, i) => [b.id, details[mine.length + i]?.result ? BigInt(details[mine.length + i].result) : 0n]));
     return mine.map((b) => {
       const c = crowd.get(b.id);
       // A cancelled bounty has its issuer written in as the claimer.
@@ -202,7 +231,8 @@
       const by = b.issuer.toLowerCase() === issuer ? null : `${b.issuer.slice(0, 6)}…${b.issuer.slice(-4)}`;
       return {
         ...b, state, by, people: c?.people ?? null, open: !!c?.open, joinable: state === 'open' && !!c?.open,
-        entries: c?.entries ?? [], wei, deadline: deadline.get(b.id) ?? 0,
+        entries: c?.entries ?? [], wei, deadline: tally.get(b.id)?.deadline ?? 0,
+        yes: tally.get(b.id)?.yes ?? 0n, no: tally.get(b.id)?.no ?? 0n, votingClaim: votingClaim.get(b.id) ?? 0n,
       };
     });
   }
@@ -216,8 +246,9 @@
     return `${whole}${frac ? `.${frac}` : ''} ETH`;
   };
   const poidhUrl = (id) => `https://poidh.xyz/base/bounty/${BigInt(id) + POIDH_PAGE_OFFSET}`;
-  const el = (tag, props = {}, ...children) => {
+  const el = (tag, { dataset, ...props } = {}, ...children) => {
     const node = Object.assign(document.createElement(tag), props);
+    if (dataset) Object.assign(node.dataset, dataset);
     node.append(...children.filter((child) => child !== null && child !== undefined));
     return node;
   };
@@ -233,7 +264,7 @@
   const dateFmt = new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' });
   const LABEL = { open: 'Wanted', voting: 'Voting', paid: 'Paid' };
 
-  const peopleText = (n) => `${n} ${n === 1 ? 'person' : 'people'}`;
+  const peopleText = (n) => `${n} ${n === 1 ? 'backer' : 'backers'}`;
   function lineFor(b) {
     if (b.state === 'voting' && b.deadline) {
       // A vote that has ended stays open on chain until someone settles it.
@@ -246,10 +277,16 @@
 
   function book(b) {
     const take = el('div', { className: 'take' });
+    const mine = account && account === b.issuer.toLowerCase();
+    if (b.state === 'open' || b.state === 'voting') {
+      // Claims and votes happen here, so they carry the builder code too.
+      const claims = el('button', { type: 'button', className: 'onpoidh', textContent: b.state === 'voting' ? 'See the vote' : mine ? 'Claims' : 'Make it' });
+      claims.addEventListener('click', () => openClaims(b, claims));
+      take.append(claims);
+    }
     if (b.state === 'open') {
-      take.append(el('a', { className: 'onpoidh', href: poidhUrl(b.id), textContent: 'Make it' }));
       // Only the wallet that started a bounty can cancel it (poidh checks this too); it cannot add to its own.
-      if (account && account === b.issuer.toLowerCase()) {
+      if (mine) {
         const stop = el('button', { type: 'button', className: 'get' }, 'Cancel bounty');
         stop.addEventListener('click', () => openCancel(b, stop));
         take.append(stop);
@@ -258,7 +295,7 @@
         give.addEventListener('click', () => openGive(b, give));
         take.append(give);
       }
-    } else {
+    } else if (b.state !== 'voting') {
       take.append(el('a', { className: 'onpoidh', href: poidhUrl(b.id), textContent: 'See it on poidh' }));
     }
     const line = lineFor(b);
@@ -267,7 +304,7 @@
         el('p', { className: 'kicker', textContent: LABEL[b.state] }),
         el('h3', { textContent: b.name }),
         line ? el('p', { className: 'line', textContent: line }) : null,
-        b.by ? el('p', { className: 'byline', textContent: `Started by ${b.by}` }) : null),
+        b.by ? el('p', { className: 'byline', textContent: `Started by ${b.by}`, dataset: { address: b.issuer.toLowerCase() } }) : null),
       take);
   }
 
@@ -310,6 +347,11 @@
     totals.querySelector('[data-total="paid"]').textContent = eth(sum(list.filter((b) => b.state === 'paid')));
     totals.hidden = false;
     document.getElementById('open-shelf').removeAttribute('data-loading');
+    refreshClaims();
+    // Someone else's bounty shows its starter's Basename or ENS name once it is read.
+    document.querySelectorAll('.byline[data-address]').forEach((line) => {
+      walletName(line.dataset.address).then((name) => { if (name && line.isConnected) line.textContent = `Started by ${name}`; });
+    });
     refreshWallet();
   }
 
@@ -458,13 +500,37 @@
   };
   const toHex = (text) => [...new TextEncoder().encode(text)].map((b) => b.toString(16).padStart(2, '0')).join('');
   // ABI encoding of (string, string): two offsets, then each string's length and its bytes padded to 32.
-  const twoStrings = (a, b) => {
-    const part = (text) => { const hex = toHex(text); return uintArg(hex.length / 2) + hex.padEnd(Math.ceil(hex.length / 64) * 64, '0'); };
-    const first = part(a);
-    return uintArg(64) + uintArg(64 + first.length / 2) + first + part(b);
+  // ABI-encodes numbers (bigint) and strings in order, strings after the head as the ABI lays them out.
+  const encodeArgs = (...args) => {
+    const tails = [];
+    let size = args.length * 32;
+    const heads = args.map((arg) => {
+      if (typeof arg !== 'string') return uintArg(arg);
+      const hex = toHex(arg);
+      const tail = uintArg(hex.length / 2) + hex.padEnd(Math.ceil(hex.length / 64) * 64, '0');
+      const at = size;
+      size += tail.length / 2;
+      tails.push(tail);
+      return uintArg(at);
+    });
+    return heads.join('') + tails.join('');
   };
 
   const CANCELLED = Symbol('cancelled');
+  // Connects a wallet from inside a dialog, using that dialog's wallet chooser and status line.
+  async function connect(flow) {
+    try {
+      const provider = await pickWallet(flow);
+      if (provider === CANCELLED) return;
+      if (!provider) { flow.say('No wallet in this browser. Open this page in your wallet app.'); return; }
+      flow.say('Waiting for your wallet…');
+      const [address] = await provider.request({ method: 'eth_requestAccounts' });
+      await setAccount(provider, address);
+      flow.say('');
+    } catch (error) {
+      flow.say(error?.code === 4001 ? 'Cancelled in the wallet.' : 'The wallet did not connect.');
+    }
+  }
   const flows = [];
   function makeFlow(prefix) {
     const flow = {
@@ -686,7 +752,7 @@
       // The page's address in the description is what lets this page find and list the bounty later.
       const description = `${about}\n\nWanted on https://www.getfieldatlas.com/depack/wanted/`;
       run(startFlow, async () => {
-        const done = await pay(startFlow, { data: `${SEL.create}${twoStrings(name, description)}`, wei, page: { href: 'https://poidh.xyz', text: 'poidh' } });
+        const done = await pay(startFlow, { data: `${SEL.create}${encodeArgs(name, description)}`, wei, page: { href: 'https://poidh.xyz', text: 'poidh' } });
         if (!done) return;
         // The newest bounty from this wallet with this name is the one just made.
         const [list] = await rpc([call(SEL.byUser, pad(done.from.toLowerCase().slice(2)) + uintArg(0))]).catch(() => [null]);
@@ -765,17 +831,7 @@
       walletFlow.dialog.showModal();
       fillWallet();
       if (account || busy) return;
-      try {
-        const provider = await pickWallet(walletFlow);
-        if (provider === CANCELLED) return;
-        if (!provider) { walletFlow.say('No wallet in this browser. Open this page in your wallet app.'); return; }
-        walletFlow.say('Waiting for your wallet…');
-        const [address] = await provider.request({ method: 'eth_requestAccounts' });
-        await setAccount(provider, address);
-        walletFlow.say('');
-      } catch (error) {
-        walletFlow.say(error?.code === 4001 ? 'Cancelled in the wallet.' : 'The wallet did not connect.');
-      }
+      connect(walletFlow);
     });
     walletFlow.send.addEventListener('click', () => run(walletFlow, async () => {
       const done = await pay(walletFlow, { data: SEL.withdraw, wei: 0n, page: { href: 'https://poidh.xyz', text: 'poidh' } });
@@ -837,6 +893,214 @@
     cancelFlow.say('');
     cancelFlow.refresh();
     cancelFlow.dialog.showModal();
+  }
+
+  // ---------- Claims and votes ----------
+  const claimsFlow = makeFlow('claims');
+  const claimsList = document.getElementById('claims-list');
+  const claimForm = document.getElementById('claims-form');
+  const voteBox = document.getElementById('claims-vote');
+  let claimsFor = null;
+  let claimsOpener = null;
+  const decideBox = document.getElementById('claims-decide');
+  const decideSend = document.getElementById('claims-decide-send');
+  const confirmBox = document.getElementById('claims-confirm');
+  const picked = () => claimsList.querySelector('input[name="claim-pick"]:checked');
+  let shown = { claims: [], external: true };
+  claimsFlow.refresh = () => {
+    claimsFlow.send.disabled = busy;
+    claimsFlow.dialog.querySelectorAll('#claims-confirm-send, #claims-yes, #claims-no, #claims-settle, input[name="claim-pick"]').forEach((control) => { control.disabled = busy; });
+    decideSend.disabled = busy || !picked();
+  };
+  // Pack links in a claim open only for the two hosts packs come from; anything else stays plain text.
+  const packLink = (text) => {
+    const first = text.split(/\s/)[0];
+    return /^https:\/\/(github\.com|huggingface\.co)\/[^\s<>"]+$/.test(first) ? first : null;
+  };
+  const httpsUrl = (text) => {
+    try { const url = new URL(text.trim()); return url.protocol === 'https:' && !url.username && !url.password ? url.href : null; } catch { return null; }
+  };
+  const decider = (b) => b.state === 'open' && account && account === b.issuer.toLowerCase();
+
+  function claimRow(b, c, pickable) {
+    const link = packLink(c.description);
+    const about = c.description.split('\n')[0].slice(0, 200);
+    const who = el('span', { className: 'claim-who', textContent: short(c.issuer), dataset: { address: c.issuer } });
+    const text = el('div', { className: 'claim-text' },
+      el('b', { textContent: c.name }),
+      el('span', { className: 'claim-facts' }, 'by ', who, c.createdAt ? ` · ${dateFmt.format(new Date(c.createdAt * 1000))}` : ''),
+      link ? el('a', { className: 'claim-about', href: link, rel: 'noopener noreferrer', textContent: about }) : el('span', { className: 'claim-about', textContent: about }));
+    const state = c.accepted ? 'Accepted' : b.votingClaim === c.id ? 'In the vote' : null;
+    // The creator picks one claim, then confirms; a button on every row made a wrong tap too easy.
+    if (pickable && !state) {
+      const radio = el('input', { type: 'radio', name: 'claim-pick', value: String(c.id), className: 'claim-radio' });
+      radio.addEventListener('change', () => { confirmBox.hidden = true; decideBox.hidden = false; claimsFlow.refresh(); });
+      return el('li', { className: 'claim is-pickable', id: `claim-${c.id}` }, el('label', { className: 'claim-pick' }, radio, text));
+    }
+    return el('li', { className: 'claim', id: `claim-${c.id}` }, text, state ? el('span', { className: 'claim-state', textContent: state }) : null);
+  }
+
+  async function fillClaims(b) {
+    claimsList.replaceChildren(el('li', { className: 'quiet', textContent: 'Reading the claims from Base…' }));
+    let replies;
+    try {
+      replies = await rpc([call(SEL.claims, uintArg(b.id) + uintArg(0)), call(SEL.everExternal, uintArg(b.id))]);
+    } catch {
+      replies = [];
+    }
+    if (claimsFor !== b) return;
+    if (!replies[0]?.result) {
+      claimsList.replaceChildren(el('li', { className: 'quiet' }, 'Base could not be reached just now. The claims are also on ', el('a', { href: poidhUrl(b.id), textContent: 'poidh' }), '.'));
+      return;
+    }
+    const claims = decodeClaims(replies[0].result);
+    const external = replies[1]?.result ? BigInt(replies[1].result) !== 0n : true;
+    shown = { claims, external };
+    const voted = claims.find((c) => c.id === b.votingClaim);
+    document.getElementById('claims-vote-what').textContent = voted ? voted.name : `Claim ${b.votingClaim}`;
+    const pickable = decider(b);
+    if (pickable) claimsList.setAttribute('role', 'radiogroup'); else claimsList.removeAttribute('role');
+    claimsList.replaceChildren(...(claims.length
+      ? claims.map((c) => claimRow(b, c, pickable))
+      : [el('li', { className: 'quiet', textContent: 'No claims yet.' })]));
+    claimsList.append(el('li', { className: 'claim-more' }, el('a', { href: poidhUrl(b.id), textContent: 'Proof images and every claim on poidh' })));
+    decideSend.textContent = external ? 'Put this claim to a vote' : 'Accept this claim';
+    decideBox.hidden = !(pickable && claims.some((c) => !c.accepted && c.id !== b.votingClaim));
+    confirmBox.hidden = true;
+    // Claimers show their Basename or ENS name once it is read.
+    claimsList.querySelectorAll('.claim-who').forEach((span) => {
+      walletName(span.dataset.address).then((name) => { if (name && span.isConnected) span.textContent = name; });
+    });
+    claimsFlow.refresh();
+  }
+
+  // What confirming does, in the contract's terms: the creator's share votes yes, and a vote passes when yes outweighs no.
+  function confirmText(b, c, external) {
+    if (!external) return `This pays ${eth(b.wei - (b.wei * 250n) / 10000n)} (the ${eth(b.wei)} reward less poidh\u2019s 2.5% fee) to ${short(c.issuer)} now. It cannot be undone.`;
+    const yours = b.entries.find((e) => e.address === account)?.amount ?? 0n;
+    const others = b.wei - yours;
+    const how = yours > others
+      ? `Your ${eth(yours)} counts as yes and outweighs the other backers\u2019 ${eth(others)}, so this claim will be paid after two days.`
+      : `Your ${eth(yours)} counts as yes. Backers have two days to vote, and it is paid unless more ETH votes no than yes.`;
+    return `${how} No other claim can be decided until the vote ends.`;
+  }
+
+  function showClaims(b) {
+    claimsFor = b;
+    document.getElementById('claims-title').textContent = b.name;
+    const voting = b.state === 'voting';
+    voteBox.hidden = !voting;
+    if (voting) {
+      const ended = b.deadline * 1000 <= Date.now();
+      document.getElementById('claims-yes-total').textContent = eth(b.yes);
+      document.getElementById('claims-no-total').textContent = eth(b.no);
+      document.getElementById('claims-ends').textContent = b.deadline ? (ended ? 'Ended' : dateFmt.format(new Date(b.deadline * 1000))) : '';
+      document.getElementById('claims-yes').hidden = ended;
+      document.getElementById('claims-no').hidden = ended;
+      document.getElementById('claims-settle').hidden = !ended;
+    }
+    // The wallet decides the view: the creator picks a claim, anyone else claims while no vote is running.
+    document.getElementById('claims-connect').hidden = !!account || b.state !== 'open';
+    claimForm.hidden = !account || b.state !== 'open' || account === b.issuer.toLowerCase();
+    fillClaims(b);
+  }
+
+  // The open dialog redraws after every fresh read and every wallet change, from the bounty as it is now.
+  function refreshClaims() {
+    if (!claimsFlow.dialog?.open || !claimsFor || busy) return;
+    showClaims(lastList?.find((item) => item.id === claimsFor.id) ?? claimsFor);
+  }
+
+  function decide(b, c, external) {
+    run(claimsFlow, async () => {
+      const data = `${external ? SEL.startVote : SEL.accept}${uintArg(b.id)}${uintArg(c.id)}`;
+      const done = await pay(claimsFlow, { data, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' },
+        errors: { '0d0d217e': 'Only the wallet that started this bounty can decide its claims.', b6c99482: 'A claim is already being voted on.' } });
+      if (!done) return;
+      confirmBox.hidden = true;
+      claimsFlow.say(external ? 'The vote is open for two days.' : 'Accepted. The reward, less poidh\u2019s 2.5% fee, is in the claimer\u2019s poidh balance.', done.receiptLink);
+      refresh().catch(() => {});
+    });
+  }
+
+  function castVote(yes) {
+    const b = claimsFor;
+    if (!b) return;
+    run(claimsFlow, async () => {
+      const done = await pay(claimsFlow, { data: `${SEL.vote}${uintArg(b.id)}${uintArg(yes ? 1 : 0)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' },
+        errors: { '2fb19d77': 'Only wallets that added ETH before the vote started can vote.' } });
+      if (!done) return;
+      claimsFlow.say('Your vote is in.', done.receiptLink);
+      refresh().catch(() => {});
+    });
+  }
+
+  if (typeof claimsFlow.dialog?.showModal === 'function') {
+    wireDialog(claimsFlow, () => ((claimsFor && document.querySelector(`#bounty-${claimsFor.id} .onpoidh`)) ?? claimsOpener)?.focus());
+    document.getElementById('claims-connect').addEventListener('click', () => { if (!busy) connect(claimsFlow); });
+    decideSend.addEventListener('click', () => {
+      const c = shown.claims.find((item) => String(item.id) === picked()?.value);
+      if (!claimsFor || !c) return;
+      document.getElementById('claims-confirm-text').textContent = confirmText(claimsFor, c, shown.external);
+      document.getElementById('claims-confirm-send').textContent = shown.external ? 'Start the vote' : 'Accept and pay';
+      decideBox.hidden = true;
+      confirmBox.hidden = false;
+      document.getElementById('claims-confirm-send').focus();
+    });
+    document.getElementById('claims-confirm-back').addEventListener('click', () => {
+      confirmBox.hidden = true;
+      decideBox.hidden = false;
+      decideSend.focus();
+    });
+    document.getElementById('claims-confirm-send').addEventListener('click', () => {
+      const c = shown.claims.find((item) => String(item.id) === picked()?.value);
+      if (claimsFor && c) decide(claimsFor, c, shown.external);
+    });
+    document.getElementById('claims-yes').addEventListener('click', () => castVote(true));
+    document.getElementById('claims-no').addEventListener('click', () => castVote(false));
+    document.getElementById('claims-settle').addEventListener('click', () => {
+      const b = claimsFor;
+      if (!b) return;
+      run(claimsFlow, async () => {
+        const done = await pay(claimsFlow, { data: `${SEL.settle}${uintArg(b.id)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' },
+          errors: { b6c99482: 'The vote is still running.' } });
+        if (!done) return;
+        claimsFlow.say('Settled.', done.receiptLink);
+        refresh().catch(() => {});
+      });
+    });
+    claimForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const b = claimsFor;
+      if (!b) return;
+      const name = document.getElementById('claim-name').value.trim();
+      const link = httpsUrl(document.getElementById('claim-link').value);
+      const proof = httpsUrl(document.getElementById('claim-proof').value);
+      if (!name) { claimsFlow.say('Give the claim a name.'); return; }
+      if (!link) { claimsFlow.say('Add the pack\u2019s link; it must be an https link.'); return; }
+      if (!proof) { claimsFlow.say('Add a link to a proof image; it must be an https link.'); return; }
+      run(claimsFlow, async () => {
+        // poidh shows the proof image from the claim's link; the description carries the pack link and this page.
+        const description = `${link}\n\nClaimed on https://www.getfieldatlas.com/depack/wanted/`;
+        const done = await pay(claimsFlow, { data: `${SEL.claim}${encodeArgs(b.id, name, description, proof)}`, wei: 0n, page: { href: poidhUrl(b.id), text: 'poidh' } });
+        if (!done) return;
+        claimForm.reset();
+        claimsFlow.say('Claimed. The bounty\u2019s creator decides, or its funders vote.', done.receiptLink);
+        refresh().catch(() => {});
+      });
+    });
+  }
+
+  function openClaims(b, button) {
+    if (typeof claimsFlow.dialog?.showModal !== 'function') { location.href = poidhUrl(b.id); return; }
+    // While something is being sent the dialog stays on that bounty.
+    if (busy) { if (claimsFor) claimsFlow.dialog.showModal(); return; }
+    claimsOpener = button;
+    claimsFlow.wallets.hidden = true;
+    claimsFlow.say('');
+    showClaims(b);
+    claimsFlow.refresh();
+    claimsFlow.dialog.showModal();
   }
 
   quiet('Reading the open bounties from Base.');
