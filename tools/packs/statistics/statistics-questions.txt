@@ -1,0 +1,35 @@
+Field Atlas test questions for the OpenStax Introductory Statistics 2e collection
+(poidh bounty, Base 1554). Thirty questions, written before the pack build,
+each answerable from the book's own text. Answers are recorded separately
+with the section cited for each.
+
+1. What is the difference between a population and a sample?
+2. What level of measurement is hair color: nominal, ordinal, interval, or ratio?
+3. In a designed experiment, what is the difference between the explanatory variable and the response variable?
+4. What is the median of the data set 2, 4, 6, 8, 10?
+5. What five values does a box plot display?
+6. In a right-skewed distribution, is the mean greater than, less than, or equal to the median?
+7. If P(A) = 0.3 and P(B) = 0.4 and A and B are independent, what is P(A AND B)?
+8. What is the addition rule for the probability of A OR B?
+9. What is a contingency table used for?
+10. What must the sum of all probabilities in a discrete probability distribution function equal?
+11. For a binomial distribution with n = 10 trials and p = 0.5, what is the expected value (mean)?
+12. For a Poisson distribution, what is the mean in terms of its parameter?
+13. What is the probability density function of a uniform distribution on the interval [a, b]?
+14. For an exponential distribution with decay parameter m, what is the mean?
+15. What is the z-score formula?
+16. Approximately what area under the standard normal curve lies between z = -1 and z = 1?
+17. What z-score corresponds to the 90th percentile of the standard normal distribution?
+18. What does the Central Limit Theorem say about the sampling distribution of sample means as the sample size grows?
+19. What is the formula for the standard error of the mean?
+20. What is the formula for the error bound for a population mean (EBM) when the population standard deviation is known?
+21. What is the z-score used for a 95% confidence interval?
+22. As the sample size increases, does a confidence interval get wider or narrower?
+23. What is a Type I error in hypothesis testing?
+24. What is the null hypothesis?
+25. What significance level is most commonly used, and what does a p-value smaller than it mean?
+26. Which test compares the means of two independent populations when the population standard deviations are unknown?
+27. What is a matched-pairs (paired samples) test used for?
+28. What is the chi-square goodness-of-fit test used for?
+29. For a chi-square test of independence with r rows and c columns, what are the degrees of freedom?
+30. What is the least-squares regression line, and what does the correlation coefficient r measure?
