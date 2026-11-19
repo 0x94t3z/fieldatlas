@@ -343,6 +343,33 @@ the pack. The pack and both files are hosted on
 [Hugging Face](https://huggingface.co/datasets/0x94t3z/fieldatlas-knowledge/tree/a27528359563795169f6e0b818537642290efab5/crypto-ethereum/2026.10.05). Field Atlas 1.4.0 offers it as
 Cryptography & Ethereum; later builds offer its `-leviathan` version, which carries the same files.
 
+## Mathematics: Introductory statistics (November 16)
+
+`tools/packs/extract_openstax_introductory_statistics.py` reads OpenStax *Introductory Statistics 2e* from
+a checkout of `openstax/osbooks-introductory-statistics-bundle` at commit
+`50ec91749080bb040b57bb40c34337cacc994cba` (17 March 2026). At that commit the repository's `LICENSE`
+and the book's collection metadata say CC BY 4.0; the publisher changed the bundle to CC BY-NC-SA on
+19 March 2026 (commit `592cff1`), and no later revision is used. The conversion is the Prealgebra
+extractor's, reused unchanged. Kept, one passage each: the 13 chapter introductions (several carry
+glossary terms or a formula review), the 80 numbered sections (the labs are numbered sections in this
+book) with their examples, try-it exercises, chapter review, formula review, practice, homework and
+the book's solutions, each followed by its glossary (44 have one), and the appendices "Mathematical
+Phrases, Symbols, and Formulas" and "Tables". Left out: the preface and the other six appendices.
+Three source fixes, all to characters that would show as noise: a summation sign with an empty
+zero-width superscript is written as the plain sign (11 places), and two Symbol-font private-use
+characters are written as alpha and minus (4 places). The corpus is committed as
+`tools/packs/introductory_statistics/corpus.jsonl` (95 passages, SHA-256
+`0e2585510ea0ae1bfac2ff389a16fd9b60d8018d7f4a89bdacd11ae2c9e75fc2`) and rebuilds byte for byte from that
+commit.
+
+`tools/packs/build_introductory_statistics_pack.py` builds the keyword-only pack
+(`openstax-introductory-statistics`, version `0.1.0`, schema 1) the way the Prealgebra pack is built:
+3,652,129 bytes, SHA-256 `1404c2371a51f6b2276c96a319108fe0af3931a1a35ce3381ddf2390f129eaad` with
+SQLite 3.46.1 (another SQLite version writes the same passages into different bytes), 1,576 passages.
+`0.1.0-leviathan` holds the same passages with a Leviathan 0.2.0 index (`index_pack_for_leviathan.py`,
+`build_dual_search_pack.py`, `package_search_upgrade.py --compressed`). Both carry `ATTRIBUTION.txt`
+inside. It has no meaning-search vectors. The answers run is in `tools/packs/introductory_statistics/`.
+
 ## Mathematics: Prealgebra (November 14)
 
 `tools/packs/extract_openstax_prealgebra.py` reads OpenStax *Prealgebra 2e* from a checkout of
