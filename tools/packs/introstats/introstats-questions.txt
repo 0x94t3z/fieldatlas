@@ -1,0 +1,13 @@
+Field Atlas test questions for the OpenStax Introductory Statistics 2e collection
+Ten questions, written before the retrieval run.
+
+1. What is the difference between a population and a sample?
+2. How do you find the median of a data set?
+3. What is the mean of a binomial distribution?
+4. How do you find a 95% confidence interval for a population mean when the population standard deviation is known?
+5. When do you reject the null hypothesis?
+6. What is the central limit theorem for sample means?
+7. How do you compute the test statistic for a chi-square goodness-of-fit test?
+8. What is the regression equation?
+9. What is an F distribution used for?
+10. What is the difference between a Type I and a Type II error?

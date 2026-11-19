@@ -372,6 +372,32 @@ collection's own id in place of a numbered module id, carries its credits inside
 passage at the start of a line or a word. The answers run in `tools/packs/prealgebra/` was made on
 0.1.0.
 
+## Mathematics: Introductory Statistics (November 19)
+
+`tools/packs/extract_openstax_introstats.py` reads OpenStax *Introductory Statistics 2e* from a
+checkout of `openstax/osbooks-introductory-statistics-bundle` at commit
+`50ec91749080bb040b57bb40c34337cacc994cba` (17 March 2026), the last revision published under CC BY
+4.0; the publisher changed it to CC BY-NC-SA on 19 March 2026, and no later revision is used. The 80
+numbered sections are kept whole, in the book's words, each followed by its glossary (38 sections
+carry one); Appendix F (Mathematical Phrases, Symbols, and Formulas) and Appendix H (Tables) are
+kept because they hold the formula and statistical tables. The preface, the chapter introductions
+and the other six appendices are left out, as in Prealgebra. Formulas are LaTeX converted from the
+book's MathML, tables are one row to a line, and images are left out with their captions and
+descriptions kept. The conversion helpers are the Prealgebra extractor's, unchanged. The corpus is
+committed as `tools/packs/introstats/corpus.jsonl` (SHA-256
+`69544fba5cced43f4c52ba1e42f4b6e6a8ebd818a76dcf05bf9558f2702848ae`) and rebuilds byte for byte from
+that commit.
+
+`tools/packs/build_introstats_pack.py` builds the keyword-only pack (`openstax-maths-introstats`,
+version `0.1.0`, schema 1): 3,427,170 bytes, SHA-256
+`aa32ee2675df1f3c657baf61945a13da91f065140182ce73a59834e99c1c7189` with SQLite 3.53.4, installing to
+3,425,871 bytes; a second build is identical. It holds 1,522 passages and carries `ATTRIBUTION.txt`
+inside. The ten-question retrieval run in `tools/packs/introstats/` names the section that teaches
+each question and is reproducible with `tools/packs/introstats/retrieval_check.py`. The pack is not
+in the download catalog; it is available at
+<https://github.com/ccheckx402/fieldatlas-introductory-statistics/releases/tag/v0.1.0> until hosting
+is decided.
+
 ## Practical skills (November 10)
 
 `tools/packs/build_practical_skills_pack.py` builds a focused collection of practical how-to guidance
