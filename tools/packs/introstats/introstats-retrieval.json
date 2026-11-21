@@ -1,0 +1,242 @@
+[
+  {
+    "question": "What is the difference between a population and a sample?",
+    "match": "population OR sample OR statistic OR parameter",
+    "top_docs": [
+      "openstax-introstats-m46909",
+      "openstax-introstats-m47002"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m46909",
+        "title": "Sampling and Data \u2014 Definitions of Statistics, Probability, and Key Terms",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/1-1-definitions-of-statistics-probability-and-key-terms",
+        "rank": 1,
+        "text": "all math classes to be the population, then the average number of points earned per student over all the math classes is an example of a parameter.\nOne of the main concerns in the field of statistics is how accurately a statistic estimates a parameter. The accuracy really depends on how well the sample represents the population. The sample must contain the characteristics of the population in order to be a representative sample. We are interested in both the sample statistic and the population parameter in inferential statistics. In a later chapter, we will use the sample statistic to test the validity of the established population parameter."
+      },
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals \u2014 A Single Population Mean using the Normal Distribution",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/8-1-a-single-population-mean-using-the-normal-distribution",
+        "rank": 2,
+        "text": "You need to measure at least 21 male students to achieve your goal.\n\nGlossary\nConfidence Level (CL)\n the percent expression for the probability that the confidence interval contains the true population parameter; for example, if the CL = 90%, then in 90 out of 100 samples the interval estimate will enclose the true population parameter.\nError Bound for a Population Mean (EBM)\n the margin of error; depends on the confidence level, sample size, and known or estimated population standard deviation."
+      }
+    ]
+  },
+  {
+    "question": "How do you find the median of a data set?",
+    "match": "median OR \"middle value\" OR \"measures of the center\"",
+    "top_docs": [
+      "openstax-introstats-m46928",
+      "openstax-introstats-m46930"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m46928",
+        "title": "Descriptive Statistics \u2014 Measures of the Center of the Data",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/2-5-measures-of-the-center-of-the-data",
+        "rank": 1,
+        "text": "You can quickly find the location of the median by using the expression $\\frac{n+1}{2}$.\nThe letter n is the total number of data values in the sample. If n is an odd number, the median is the middle value of the ordered data (ordered smallest to largest). If n is an even number, the median is equal to the two middle values added together and divided by two after the data has been ordered. For example, if the total number of data values is 97, then $\\frac{n+1}{2}$=\n$\\frac{97+1}{2}$ = 49. The median is the 49th value in the ordered data. If the total number of data values is 100, then $\\frac{n+1}{2}$=\n$\\frac{100+1}{2}$ = 50.5. The median occurs midway between the 50th and 51st values. The location of the median and the value of the median are not the same. The upper case letter M is often used to represent the median. The next example illustrates the location of the median and the value of the median."
+      },
+      {
+        "document_id": "openstax-introstats-m46930",
+        "title": "Descriptive Statistics \u2014 Measures of the Location of the Data",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/2-3-measures-of-the-location-of-the-data",
+        "rank": 2,
+        "text": "The median is seven. Half of the values are smaller than seven and half of the values are larger than seven.\nQuartiles are numbers that separate the data into quarters. Quartiles may or may not be part of the data. To find the quartiles, first find the median or second quartile. The first quartile, Q1, is the middle value of the lower half of the data, and the third quartile, Q3, is the middle value, or median, of the upper half of the data. To get the idea, consider the same data set:\n1; 1; 2; 2; 4; 6; 6.8; 7.2; 8; 8.3; 9; 10; 10; 11.5\nThe median or second quartile is seven. The lower half of the data are 1, 1, 2, 2, 4, 6, 6.8. The middle value of the lower half is two.\n1; 1; 2; 2; 4; 6; 6.8\nThe number two, which is part of the data, is the first quartile. One-fourth of the entire sets of values are the same as or less than two and three-fourths of the values are more than two.\nThe upper half of the data is 7.2, 8, 8.3, 9, 10, 10, 11.5. The middle value of the upper half is nine."
+      }
+    ]
+  },
+  {
+    "question": "What is the mean of a binomial distribution?",
+    "match": "binomial AND mean AND np",
+    "top_docs": [
+      "openstax-introstats-m46950",
+      "openstax-introstats-m46992",
+      "openstax-introstats-m47036",
+      "openstax-introstats-m46999"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m46950",
+        "title": "Discrete Random Variables \u2014 Binomial Distribution",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/4-3-binomial-distribution",
+        "rank": 1,
+        "text": "A statistical experiment can be classified as a binomial experiment if the following conditions are met:\n- There are a fixed number of trials, n.\n- There are only two possible outcomes, called \"success\" and, \"failure\" for each trial. The letter p denotes the probability of a success on one trial and q denotes the probability of a failure on one trial.\n- The n trials are independent and are repeated using identical conditions.\nThe outcomes of a binomial experiment fit a binomial probability distribution. The random variable X = the number of successes obtained in the n independent trials. The mean of X can be calculated using the formula \u03bc = np, and the standard deviation is given by the formula \u03c3 = $\\sqrt{npq}$.\nFormula Review\nX ~ B(n, p) means that the discrete random variable X has a binomial probability distribution with n trials and probability of success p.\nX = the number of successes in n independent trials\nn = the number of independent trials\nX takes on the values x = 0, 1, 2, 3, ..., n\np = the probability of a success for any trial\nq = the probability of a failure for any trial\np + q = 1\nq = 1 \u2013 p\nThe mean of X is \u03bc = np. The standard deviation of X is \u03c3 = $\\sqrt{npq}$."
+      },
+      {
+        "document_id": "openstax-introstats-m46992",
+        "title": "The Central Limit Theorem \u2014 Using the Central Limit Theorem",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/7-3-using-the-central-limit-theorem",
+        "rank": 2,
+        "text": "- the outcomes of any trial are success or failure\n- each trial has the same probability of a success p\nRecall that if X is the binomial random variable, then X ~ B(n, p). The shape of the binomial distribution needs to be\nsimilar to the shape of the normal distribution. To ensure this, the quantities np\nand nq must both be greater than five (np > 5 and nq > 5; the approximation is better if they are both greater than or equal to 10). Then the binomial can be approximated by the normal distribution with mean \u03bc = np and standard deviation \u03c3 = $\\sqrt{npq}$. Remember that q = 1 \u2013 p. In order to get the best approximation, add 0.5 to x or subtract 0.5 from x (use x + 0.5 or x \u2013 0.5). The number 0.5 is called the continuity correction factor and is used in the following example.\nSuppose in a local Kindergarten through 12th grade (K - 12) school district, 53 percent of the population favor a charter school for grades K through 5. A simple random sample of 300 is surveyed.\n- Find the probability that at least 150 favor a charter school.\n- Find the probability that at most 160 favor a charter school.\n- Find the probability that more than 155 favor a charter school."
+      },
+      {
+        "document_id": "openstax-introstats-m47036",
+        "title": "Hypothesis Testing with One Sample \u2014 Probability Distribution Needed for Hypothesis Testing",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/9-3-probability-distribution-needed-for-hypothesis-testing",
+        "rank": 3,
+        "text": "deviation. (Note that if the sample size is sufficiently large, a t-test will work even if the population is not approximately normally distributed).\nWhen you perform a hypothesis test of a single population proportion p, you take a simple random sample from the population. You must meet the conditions for a binomial distribution: there are a certain number n of independent trials, the outcomes of any trial are success or failure, and each trial has the same probability of a success p. The shape of the binomial distribution needs to be similar to the shape of the normal distribution. To ensure this, the quantities np and nq must both be greater than five ($np>5$ and $nq>5$). Then the binomial distribution of a sample (estimated) proportion can be approximated by the normal distribution with $\u03bc=p$ and $\u03c3=\\sqrt{\\frac{pq}{n}}$. Remember that $q=1-p$.\nChapter Review\nIn order for a hypothesis test\u2019s results to be generalized to a population, certain requirements must be satisfied.\nWhen testing for a single population mean:"
+      },
+      {
+        "document_id": "openstax-introstats-m46999",
+        "title": "Confidence Intervals \u2014 A Population Proportion",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/8-3-a-population-proportion",
+        "rank": 4,
+        "text": " formulas are different.\nHow do you know you are dealing with a proportion problem? First, the underlying distribution is a binomial distribution. (There is no mention of a mean or average.) If X is a binomial random variable, then X ~ B(n, p) where n is the number of trials and p is the probability of a success. To form a proportion, take X, the random variable for the number of successes and divide it by n, the number of trials (or the sample size). The random variable ${p}^{'}$ (read \"P prime\") is that proportion,\n${P}^{'}=\\frac{X}{n}$\n(Sometimes the random variable is denoted as ${P}^{^}$, read \"P hat\".)\nWhen n is large and p is not close to zero or one, we can use the normal distribution to approximate the binomial.\n$X~N(np,\\sqrt{npq})$\nIf we divide the random variable, the mean, and the standard\ndeviation by n, we get a normal distribution of proportions with ${p}^{'}$, called the\nestimated proportion, as the random variable. (Recall that a proportion as the\nnumber of successes divided by n.)\n$\\frac{X}{n}={P}^{'}\\text{~}N(\\frac{np}{n},\\frac{\\sqrt{npq}}{n})$\nUsing algebra to simplify : $\\frac{\\sqrt{npq}}{n}=\\sqrt{\\frac{pq}{n}}$"
+      }
+    ]
+  },
+  {
+    "question": "How do you find a 95% confidence interval for a population mean when the population standard deviation is known?",
+    "match": "confidence AND interval AND \"population mean\" AND sigma",
+    "top_docs": [
+      "openstax-introstats-m47002"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals \u2014 A Single Population Mean using the Normal Distribution",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/8-1-a-single-population-mean-using-the-normal-distribution",
+        "rank": 1,
+        "text": "-\n- $\\overline{x}$ =________\n- \u03c3 =________\n- n =________\n- In words, define the random variables X and $\\overline{X}$.\n- Which distribution should you use for this problem? Explain your choice.\n- Construct a 90% confidence interval for the population mean time to complete the tax forms.\n- State the confidence interval.\n- Sketch the graph.\n- Calculate the error bound.\n- If the firm wished to increase its level of confidence and keep the error bound the same by taking another survey, what changes should it make?\n- If the firm did another survey, kept the error bound the same, and only surveyed 49 people, what would happen to the level of confidence? Why?\n- Suppose that the firm decided that it needed to be at least 96% confident of the population mean length of time to within one hour. How would the number of people the firm surveys change? Why?\n-\n- $\\overline{x}$ = 23.6\n- $\u03c3$ = 7\n- n = 100\n- X is the time needed to complete an individual tax form. $\\overline{X}$ is the mean time to complete tax forms from a sample of 100 customers.\n- $N(23.6,\\frac{7}{\\sqrt{100}})$ because we know sigma.\n-\n- (22.228, 24.972)\n-"
+      }
+    ]
+  },
+  {
+    "question": "When do you reject the null hypothesis?",
+    "match": "\"null hypothesis\" AND reject AND (\"p-value\" OR rare OR decision)",
+    "top_docs": [
+      "openstax-introstats-m47044"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47044",
+        "title": "Hypothesis Testing with One Sample \u2014 Rare Events, the Sample, Decision and Conclusion",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/9-4-rare-events-the-sample-decision-and-conclusion",
+        "rank": 1,
+        "text": "the null hypothesis when the p-value is less than the established alpha value. The results of the sample data support the alternative hypothesis.\nDo not reject the null hypothesis when the p-value is greater than the established alpha value. The results of the sample data do not support the alternative hypothesis.\nTry It\nIt\u2019s a Boy Genetics Labs claim their procedures improve the chances of a boy being born. The results for a test of a single population proportion are as follows:\nH0: p = 0.50, Ha: p > 0.50\n\u03b1 = 0.01\np-value = 0.025\nInterpret the results and state a conclusion in simple, non-technical terms.\nChapter Review\nWhen the probability of an event occurring is low, and it happens, it is called a rare event. Rare events are important to consider in hypothesis testing because they can inform your willingness not to reject or to reject a null hypothesis. To test a null hypothesis, find the p-value for the sample data and graph the results. When deciding whether or not to reject the null the hypothesis, keep these two parameters in mind:\n- \u03b1 > p-value, reject the null hypothesis\n- \u03b1 \u2264 p-value, do not reject the null hypothesis\nWhen do you reject the null hypothesis?"
+      }
+    ]
+  },
+  {
+    "question": "What is the central limit theorem for sample means?",
+    "match": "\"central limit theorem\" AND \"sample means\"",
+    "top_docs": [
+      "openstax-introstats-m46994",
+      "openstax-introstats-m50269",
+      "openstax-introstats-m46992"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m46994",
+        "title": "The Central Limit Theorem \u2014 The Central Limit Theorem for Sample Means (Averages)",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/7-1-the-central-limit-theorem-for-sample-means-averages",
+        "rank": 1,
+        "text": "Data from the United States Department of Agriculture.\nChapter Review\nIn a population whose distribution may be known or unknown, if the size (n) of samples is sufficiently large, the distribution of the sample means will be approximately normal. The mean of the sample means will equal the population mean. The standard deviation of the distribution of the sample means, called the standard error of the mean, is equal to the population standard deviation divided by the square root of the sample size (n).\nFormula Review\nThe Central Limit Theorem for Sample Means: $\\overline{x}$ ~ N$({\u03bc}_{x}\\text{,}\\frac{\u03c3x}{\\sqrt{n}})$\nThe Mean $\\overline{X}$: \u03bcx\nCentral Limit Theorem for Sample Means z-score and standard error of the mean: $z=\\frac{\\overline{x}-{\u03bc}_{x}}{(\\frac{{\u03c3}_{x}}{\\sqrt{n}})}$\nStandard Error of the Mean (Standard Deviation ($\\overline{X}$)): $\\frac{{\u03c3}_{x}}{\\sqrt{n}}$"
+      },
+      {
+        "document_id": "openstax-introstats-m50269",
+        "title": "The Central Limit Theorem \u2014 Central Limit Theorem (Cookie Recipes)",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/7-5-central-limit-theorem-cookie-recipes",
+        "rank": 2,
+        "text": "- State the theoretical (according to the clt) distributions for the sample means.\n- n = 5: $\\overline{x}$ ~ _____(_____,_____)\n- n = 10: $\\overline{x}$ ~ _____(_____,_____)\n- Are the sample means for n = 5 and n = 10 \u201cclose\u201d to the theoretical mean, \u03bcx? Explain why or why not.\n- Which of the two distributions of sample means has the smaller standard deviation? Why?\n- As n changed, why did the shape of the distribution of the data change? Use one to two complete sentences to explain what happened."
+      },
+      {
+        "document_id": "openstax-introstats-m46992",
+        "title": "The Central Limit Theorem \u2014 Using the Central Limit Theorem",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/7-3-using-the-central-limit-theorem",
+        "rank": 3,
+        "text": "It is important for you to understand when to use the central limit theorem. If you are being asked to find the probability of the mean, use the clt for the mean. If you are being asked to find the probability of a sum or total, use the clt for sums. This also applies to percentiles for means and sums.\nNOTE\nIf you are being asked to find the probability of an individual value, do not use the clt. Use the distribution of its random variable.\nExamples of the Central Limit Theorem\nLaw of Large Numbers\nThe law of large numbers says that if you take samples of larger and larger size from any population, then the mean $\\overline{x}$ of the sample tends to get closer and closer to \u03bc. From the central limit theorem, we know that as n gets larger and larger, the sample means follow a normal distribution. The larger n gets, the smaller the standard deviation gets. (Remember that the standard deviation for $\\overline{X}$ is $\\frac{\u03c3}{\\sqrt{n}}$.) This means that the sample mean $\\overline{x}$ must be close to the population mean \u03bc. We can say that \u03bc is the value that the sample means approach as n gets larger. The central limit theorem illustrates the law of large numbers."
+      }
+    ]
+  },
+  {
+    "question": "How do you compute the test statistic for a chi-square goodness-of-fit test?",
+    "match": "\"chi-square\" AND \"goodness-of-fit\" AND \"test statistic\"",
+    "top_docs": [
+      "openstax-introstats-m47064"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47064",
+        "title": "The Chi-Square Distribution \u2014 Goodness-of-Fit Test",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/11-2-goodness-of-fit-test",
+        "rank": 1,
+        "text": "Chapter Review\nTo assess whether a data set fits a specific distribution, you can apply the goodness-of-fit hypothesis test that uses the chi-square distribution. The null hypothesis for this test states that the data come from the assumed distribution. The test compares observed values against the values you would expect to have if your data followed the assumed distribution. The test is almost always right-tailed. Each observation or cell category must have an expected value of at least five.\nFormula Review\n${\u2211}_{k}\\frac{{(O-E)}^{2}}{E}$\n goodness-of-fit test statistic where:\n\n O: observed values\nE: expected values"
+      }
+    ]
+  },
+  {
+    "question": "What is the regression equation?",
+    "match": "regression AND \"least squares\"",
+    "top_docs": [
+      "openstax-introstats-m47117",
+      "openstax-introstats-m47107",
+      "openstax-introstats-m50287"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47117",
+        "title": "Linear Regression and Correlation \u2014 The Regression Equation",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/12-3-the-regression-equation",
+        "rank": 1,
+        "text": "X (depth in feet) | Y (maximum dive time)\n50 | 80\n60 | 55\n70 | 45\n80 | 35\n90 | 25\n100 | 22\nThe third exam score, x, is the independent variable and the final exam score, y, is the dependent variable. We will plot a regression line that best \"fits\" the data. If each of you were to fit a line \"by eye,\" you would draw different lines. We can use what is called a least-squares regression line to obtain the best fit line.\nConsider the following diagram. Each point of data is of the the form (x, y) and each point of the line of best fit using least-squares linear regression has the form (x, \u0177).\nThe \u0177 is read \"y hat\" and is the estimated value of y. It is the value of y obtained using the regression line. It is not generally equal to y from data.\n[Image: The scatter plot of exam scores with a line of best fit. One data point is highlighted along with the corresponding point on the line of best fit. Both points have the same x-coordinate. The distance between these two points illustrates how to compute the sum of squared errors.]"
+      },
+      {
+        "document_id": "openstax-introstats-m47107",
+        "title": "Linear Regression and Correlation \u2014 Outliers",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/12-6-outliers",
+        "rank": 2,
+        "text": "- What is the slope of the least squares (best-fit) line? Interpret the slope.\nOrnithologists, scientists who study birds, tag sparrow hawks in 13 different colonies to study their population. They gather data for the percent of new sparrow hawks in each colony and the percent of those that have returned from migration.\nPercent return:74; 66; 81; 52; 73; 62; 52; 45; 62; 46; 60; 46; 38\nPercent new:5; 6; 8; 11; 12; 15; 16; 17; 18; 18; 19; 20; 20\n- Enter the data into your calculator and make a scatter plot.\n- Use your calculator\u2019s regression function to find the equation of the least-squares regression line. Add this to your scatter plot from part a.\n- Explain in words what the slope and y-intercept of the regression line tell us.\n- How well does the regression line fit the data? Explain your response.\n- Which point has the largest residual? Explain what the residual means in context. Is this point an outlier? An influential point? Explain.\n- An ecologist wants to predict how many birds will join another colony of sparrow hawks to which 70% of the adults from the previous year have returned. What is the prediction?\na. and b. Check student\u2019s solution."
+      },
+      {
+        "document_id": "openstax-introstats-m50287",
+        "title": "Linear Regression and Correlation \u2014 Regression (Fuel Efficiency)",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/12-9-regression-fuel-efficiency",
+        "rank": 3,
+        "text": "Enter your data into your calculator or computer. Write the linear equation, rounding to 4 decimal places.\n- Calculate the following:\n- a = ______\n- b = ______\n- correlation = ______\n- n = ______\n- equation: \u0177 = ______\n- Obtain the graph of the regression line on your calculator. Sketch the regression line on the\nsame axes as your scatter plot.\nDiscussion Questions\n- Is the correlation significant? Explain how you determined this in complete sentences.\n- Is the relationship a positive one or a negative one? Explain how you can tell and what\nthis means in terms of weight and fuel efficiency.\n- In one or two complete sentences, what is the practical interpretation of the slope of the least\nsquares line in terms of fuel efficiency and weight?\n- For a car that weighs 4,000 pounds, predict its fuel efficiency. Include units.\n- Can we predict the fuel efficiency of a car that weighs 10,000 pounds using the least\nsquares line? Explain why or why not.\n- Answer each question in complete sentences.\n- Does the line seem to fit the data? Why or why not?\n- What does the correlation imply about the relationship between fuel efficiency and\nweight of a car? Is this what you expected?"
+      }
+    ]
+  },
+  {
+    "question": "What is an F distribution used for?",
+    "match": "\"F distribution\" AND (variance OR ANOVA OR \"F-ratio\")",
+    "top_docs": [
+      "openstax-introstats-m47128",
+      "openstax-introstats-m47124"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47128",
+        "title": "F Distribution and One-Way ANOVA \u2014 The F Distribution and the F-Ratio",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/13-2-the-f-distribution-and-the-f-ratio",
+        "rank": 1,
+        "text": "were done with groups of different sizes. If the groups are the same size, the calculations simplify somewhat and the F-ratio can be written as:\nF-Ratio Formula when the groups are the same size\n$F=\\frac{n\\cdot{s}_{\\overline{x}}{}^{2}}{{s}^{2}{}_{\\text{pooled}}}$\nwhere ...\n- n = the sample size\n- dfnumerator = k \u2013 1\n- dfdenominator = n \u2013 k\n- s2 pooled = the mean of the sample variances (pooled variance)\n- ${s}_{\\overline{x}}{}^{2}$ = the variance of the sample means\nData are typically put into a table for easy viewing. One-Way ANOVA results are often displayed in this manner by computer software.\nSource of Variation | Sum of Squares (SS) | Degrees of Freedom (df) | Mean Square (MS) | F\nFactor (Between) | SS(Factor) | k \u2013 1 | MS(Factor) = SS(Factor)/(k \u2013 1) | F = MS(Factor)/MS(Error)\nError (Within) | SS(Error) | n \u2013 k | MS(Error) = SS(Error)/(n \u2013 k)\nTotal | SS(Total) | n \u2013 1\nThree different diet plans are to be tested for mean weight loss. The entries in the table are the weight losses for the different plans. The one-way ANOVA results are shown in The F Distribution and the F-Ratio.\nPlan 1: n1 = 4 | Plan 2: n2 = 3 | Plan 3: n3 = 3\n5 | 3.5 | 8\n4.5 | 7 | 4\n4 | 3.5\n3 | 4.5"
+      },
+      {
+        "document_id": "openstax-introstats-m47124",
+        "title": "F Distribution and One-Way ANOVA \u2014 One-Way ANOVA",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/13-1-one-way-anova",
+        "rank": 2,
+        "text": "16.4 | 16.4 | 16.6 | 16.5 | 16.6\n16.5 | 16.2 | 16.1 | 16.4 | 16.8\n$\\overline{x}=$\n${s}^{2}=$\nState the hypotheses.\nH0: ____________\nHa: ____________\n\nGlossary\nAnalysis of Variance\n also referred to as ANOVA, is a method of testing whether or not the means of three or more populations are equal. The method is applicable if:\n- all populations of interest are normally distributed.\n- the populations have equal standard deviations.\n- samples (not necessarily of the same size) are randomly and independently selected from each population.\nThe test statistic for analysis of variance is the F-ratio.\nOne-Way ANOVA\na method of testing whether or not the means of three or more populations are equal; the method is applicable if:\n- all populations of interest are normally distributed.\n- the populations have equal standard deviations.\n- samples (not necessarily of the same size) are randomly and independently selected from each population.\n- there is one independent variable and one dependent variable.\nThe test statistic for analysis of variance is the F-ratio.\nVariance"
+      }
+    ]
+  },
+  {
+    "question": "What is the difference between a Type I and a Type II error?",
+    "match": "\"type i\" AND \"type ii\" AND error",
+    "top_docs": [
+      "openstax-introstats-m47029"
+    ],
+    "passages": [
+      {
+        "document_id": "openstax-introstats-m47029",
+        "title": "Hypothesis Testing with One Sample \u2014 Outcomes and the Type I and Type II Errors",
+        "source": "https://openstax.org/books/introductory-statistics-2e/pages/9-2-outcomes-and-the-type-i-and-type-ii-errors",
+        "rank": 1,
+        "text": "Chapter Review\nIn every hypothesis test, the outcomes are dependent on a correct interpretation of the data. Incorrect calculations or misunderstood summary statistics can yield errors that affect the results. A Type I error occurs when a true null hypothesis is rejected. A Type II error occurs when a false null hypothesis is not rejected.\nThe probabilities of these errors are denoted by the Greek letters \u03b1 and \u03b2, for a Type I and a Type II error respectively. The power of the test, 1 \u2013 \u03b2, quantifies the likelihood that a test will yield the correct result of a true alternative hypothesis being accepted. A high power is desirable.\nFormula Review\n\u03b1 = probability of a Type I error = P(Type I error) = probability of rejecting the null hypothesis when the null hypothesis is true.\n\u03b2 = probability of a Type II error = P(Type II error) = probability of not rejecting the null hypothesis when the null hypothesis is false.\nThe mean price of mid-sized cars in a region is $32,000. A test is conducted to see if the claim is true. State the Type I and Type II errors in complete sentences.\nType I: The mean price of mid-sized cars is $32,000, but we conclude that it is not $32,000."
+      }
+    ]
+  }
+]
