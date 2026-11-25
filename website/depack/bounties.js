@@ -26,7 +26,7 @@
     votingClaim: '383d6d43', votes: '10b385c2', join: 'a9b2c6eb', create: '8c1d93c5',
     cancelOpen: 'd496ec7a', cancelSolo: 'b1b4be97', refund: '240b727e', withdraw: '3ccfd60b', balance: 'f3f43703',
     claims: 'b03a50c7', everExternal: 'b04f5ebd', claim: '83ffc9f2', accept: '1d260f8e', startVote: '9e9251c8',
-    vote: 'b7c8994d', settle: '30f4ccac',
+    vote: 'b7c8994d', settle: '30f4ccac', bountyClaim: '34414835', claimById: 'a888c2cd',
   };
   const MIN_BOUNTY_WEI = 10n ** 15n; // the contract's MIN_BOUNTY_AMOUNT, 0.001 ETH
   const ERRORS = {
@@ -140,6 +140,11 @@
     }
     return list.filter((c) => !ZERO.test(c.issuer));
   }
+  // claims(id): one Claim, its strings placed from the start of the reply.
+  const decodeClaim = (r) => ({
+    id: r.uint(0), issuer: r.address(32).toLowerCase(), name: r.string(r.num(128)),
+    description: r.string(r.num(160)), createdAt: r.num(192), accepted: r.uint(224) === 1n,
+  });
 
   function decodeParticipants(result) {
     const r = reader(result);
@@ -180,6 +185,28 @@
     const older = ids.filter((id) => !known.has(id));
     const replies = older.length ? await rpc(older.map((id) => call(SEL.bounty, uintArg(id)))) : [];
     return [...newest, ...replies.flatMap((reply) => (reply?.result ? [decodeBounty(reader(reply.result), 0)] : []))];
+  }
+
+  // Every claim on a bounty, newest first. getClaimsByBountyId always starts at the newest claim, so past ten the
+  // ids come from bountyClaims one by one (reading past the end reverts) and each older claim is read by its id.
+  async function readClaims(bountyId) {
+    const [first] = await rpc([call(SEL.claims, uintArg(bountyId) + uintArg(0))]);
+    if (!first?.result) throw new Error('unreachable');
+    const newest = decodeClaims(first.result);
+    if (newest.length < 10) return newest;
+    const ids = [];
+    for (let i = 0; ; i += 20) {
+      const replies = await rpc(Array.from({ length: 20 }, (_, k) => call(SEL.bountyClaim, uintArg(bountyId) + uintArg(i + k))));
+      if (replies.some((reply) => !reply || reply.error?.code === -32007)) throw new Error('rate limited');
+      const found = replies.map((reply) => reply?.result).filter(Boolean).map((result) => BigInt(result));
+      ids.push(...found);
+      if (found.length < 20 || replies.some((reply) => reply?.error)) break;
+    }
+    const known = new Set(newest.map((c) => c.id));
+    const older = ids.filter((id) => !known.has(id)).reverse();
+    const replies = older.length ? await rpc(older.map((id) => call(SEL.claimById, uintArg(id)))) : [];
+    if (replies.some((reply) => !reply?.result)) throw new Error('unreachable');
+    return [...newest, ...replies.map((reply) => decodeClaim(reader(reply.result)))];
   }
 
   const ZERO = /^0x0{40}$/;
@@ -1075,19 +1102,19 @@
 
   async function fillClaims(b) {
     claimsList.replaceChildren(el('li', { className: 'quiet', textContent: 'Reading the claims from Base…' }));
-    let replies;
+    let claims;
+    let ever;
     try {
-      replies = await rpc([call(SEL.claims, uintArg(b.id) + uintArg(0)), call(SEL.everExternal, uintArg(b.id))]);
+      [claims, [ever]] = await Promise.all([readClaims(b.id), rpc([call(SEL.everExternal, uintArg(b.id))])]);
     } catch {
-      replies = [];
+      claims = null;
     }
     if (claimsFor !== b) return;
-    if (!replies[0]?.result) {
+    if (!claims) {
       claimsList.replaceChildren(el('li', { className: 'quiet' }, 'Base could not be reached just now. The claims are also on ', el('a', { href: poidhUrl(b.id), textContent: 'poidh' }), '.'));
       return;
     }
-    const claims = decodeClaims(replies[0].result);
-    const external = replies[1]?.result ? BigInt(replies[1].result) !== 0n : true;
+    const external = ever?.result ? BigInt(ever.result) !== 0n : true;
     shown = { claims, external };
     const voted = claims.find((c) => c.id === b.votingClaim);
     document.getElementById('claims-vote-what').textContent = voted ? voted.name : `Claim ${b.votingClaim}`;

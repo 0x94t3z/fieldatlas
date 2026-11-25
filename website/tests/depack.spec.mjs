@@ -13,10 +13,24 @@ const abiString = text => {
 };
 const word = address => `0x${address.slice(2).toLowerCase().padStart(64, '0')}`;
 const BASENAME_RESOLVER = '0xc6d566a56a1aff6508b41f6c90ff131615583bcd';
+const uint = n => BigInt(n).toString(16).padStart(64, '0');
+// One Claim as the contract encodes it (id, issuer, bountyId, bountyIssuer, name, description, createdAt, accepted),
+// without the outer offset; claim n is "Claim n" by a wallet ending in n.
+const claimTuple = n => {
+  const str = text => { const hex = Buffer.from(text).toString('hex'); return uint(hex.length / 2) + hex.padEnd(Math.ceil(hex.length / 64) * 64 || 64, '0'); };
+  const name = str(`Claim ${n}`), about = str(`About claim ${n}`);
+  return uint(n) + uint(0x3000 + n) + uint(600) + uint(0x1234) + uint(256) + uint(256 + name.length / 2) + uint(1795000000 + n) + uint(0) + name + about;
+};
+const claimList = ids => {
+  const tuples = ids.map(claimTuple);
+  let at = 32 * ids.length;
+  const heads = tuples.map(t => { const h = uint(at); at += t.length / 2; return h; });
+  return `0x${uint(32)}${uint(ids.length)}${heads.join('')}${tuples.join('')}`;
+};
 
 // basename: { owner, name, pointsTo } gives that wallet a name in Base's reverse registrar, and the name's forward
 // record points to pointsTo. Every other wallet has no Basename.
-async function fakeBase(page, { joinRevert = null, joinError = null, createRevert = null, cancelRevert = null, byUser = poidh.byUser, code = {}, basename = null, reverts = {} } = {}) {
+async function fakeBase(page, { joinRevert = null, joinError = null, createRevert = null, cancelRevert = null, byUser = poidh.byUser, code = {}, basename = null, reverts = {}, manyClaims = null } = {}) {
   const calls = [];
   await page.route('https://mainnet.base.org/**', async route => {
     const body = route.request().postDataJSON();
@@ -42,6 +56,17 @@ async function fakeBase(page, { joinRevert = null, joinError = null, createRever
           : { jsonrpc: '2.0', id, error: { code: 3, message: 'execution reverted' } };
       }
       // Claims: the newest claims per bounty, and whether anyone besides the creator ever funded it (600 and 604 here).
+      // manyClaims: { bounty, count } gives that bounty claims 1..count; getClaimsByBountyId returns only the newest ten,
+      // as on chain, so the rest must be read by id.
+      if (manyClaims && arg === String(manyClaims.bounty)) {
+        const all = Array.from({ length: manyClaims.count }, (_, i) => i + 1);
+        if (selector === 'b03a50c7') return { jsonrpc: '2.0', id, result: claimList(all.slice(-10).reverse()) };
+        if (selector === '34414835') {
+          const index = Number(BigInt(`0x${data.slice(74, 138)}`));
+          return index < all.length ? { jsonrpc: '2.0', id, result: `0x${uint(all[index])}` } : { jsonrpc: '2.0', id, error: { code: 3, message: 'execution reverted' } };
+        }
+      }
+      if (manyClaims && selector === 'a888c2cd') return { jsonrpc: '2.0', id, result: `0x${claimTuple(Number(arg))}` };
       if (selector === 'b03a50c7') return { jsonrpc: '2.0', id, result: pick(poidh.claims) };
       if (selector === 'b04f5ebd') return { jsonrpc: '2.0', id, result: word(`0x${['600', '604'].includes(arg) ? '1' : '0'}`) };
       if (reverts[selector]) return { jsonrpc: '2.0', id, error: { code: 3, message: 'execution reverted', data: `0x${reverts[selector]}` } };
@@ -723,7 +748,6 @@ test('a wallet with neither name keeps its short address', async ({ page }) => {
 });
 
 const sent = page => page.evaluate(() => window.walletCalls.filter(c => c.method === 'eth_sendTransaction').map(c => c.params[0]));
-const uint = n => BigInt(n).toString(16).padStart(64, '0');
 
 test('anyone claims a bounty from the page, with the builder code', async ({ page }) => {
   test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
@@ -814,6 +838,22 @@ test('the creator picks one claim and confirms: a vote when others funded the bo
   await page.click('#claims-confirm-send');
   await expect(page.locator('#claims-status')).toContainText('Accepted.');
   expect((await sent(page))[1].data).toBe(`0x1d260f8e${uint(603)}${uint(51)}${SUFFIX}`);
+});
+
+test('the creator sees every claim, also past the ten poidh returns at once', async ({ page }) => {
+  test.skip(!!process.env.SITE_URL, 'uses a fake chain and wallet');
+  await page.unroute('https://mainnet.base.org/**');
+  await fakeBase(page, { manyClaims: { bounty: 600, count: 12 } });
+  await page.addInitScript(fakeWallet, { account: OWNER });
+  await page.goto('/depack/wanted/');
+  await page.click('#wallet-button');
+  await page.click('#wallet-close');
+  await page.locator('#bounty-600 .onpoidh').click();
+  // Newest first, down to the very first claim.
+  await expect(page.locator('#claims-list .claim b')).toHaveText(Array.from({ length: 12 }, (_, i) => `Claim ${12 - i}`));
+  await expect(page.locator('#claims-list .claim-radio')).toHaveCount(12);
+  await page.locator('#claim-1 .claim-radio').check();
+  await expect(page.locator('#claims-decide-send')).toBeEnabled();
 });
 
 test('claimers and bounty starters show their Basename once it points back to them', async ({ page }) => {
