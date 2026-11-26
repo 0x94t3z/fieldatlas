@@ -79,26 +79,34 @@ class MathTextTest {
         }
     }
 
-    @Test fun numbersBetweenMathMarksAreNotPrices() {
-        assertEquals("Sum is 17.0 (or 17.00).", MathText.readable("Sum is \$17.0\$ (or \$17.00\$)."))
-        assertEquals("Add: 3.7+12.4.", MathText.readable("Add: \$3.7+12.4.\$"))
-        assertEquals("the sum of 3 and x", MathText.readable("the sum of \$3\$ and \$x\$"))
-        for (text in listOf("from \$5-\$10 or \$5/\$10", "It is \$5 (\$4.50 after tax) or \$6.", "echo \$HOME and \$PATH; \$a.\$b; \$1\$2",
-                "\$BTC/\$ETH", "The total cost was \$1,875."))
+    @Test fun aModelAnswerKeepsDollarsThatAreNotLatex() {
+        // Spreadsheet cells, shell arguments and prices are written with dollars too; only LaTeX is rewritten.
+        for (text in listOf("Use =\$A1*\$B1 to lock the columns", "=VLOOKUP(\$A2,\$D\$1:\$E\$10,2,FALSE)", "cp \"\$1\" \"\$dest\"",
+                "awk '\$1=\$NF' file", "Stakes of \$.01/\$.02", "from \$5-\$10 or \$5/\$10", "It is \$5 (\$4.50 after tax) or \$6.",
+                "\$BTC/\$ETH", "The total cost was \$1,875.", "Sum is \$17.0\$ (or \$17.00\$)."))
             assertEquals(text, MathText.readable(text))
     }
 
-    @Test fun aSavedPassageShowsItsMathAsReadableText() {
+    @Test fun aSavedTextbookPassageShowsItsMathAsReadableText() {
         // Lines of the Prealgebra collection, as saved.
         assertEquals("Write the numbers vertically so the decimal points line up. | 3.7; +12.4",
             MathText.display("Write the numbers vertically so the decimal points line up. | \$\\begin{matrix} 3.7 \\\\ {+12.4}_{\\text{_____}} \\end{matrix}\$"))
-        assertEquals("Simplify 70/100.", MathText.display("Simplify \$\\frac{70}{100}.\$"))
-        assertEquals("Add the ones: 8+1=9Add the tens: 2+6=8", MathText.display("Add the ones: \$8+1=9\$Add the tens: \$2+6=8\$"))
+        assertEquals("Simplify 70/100.\nAdd: 3.7+12.4.\nAdd the ones: 8+1=9Add the tens: 2+6=8",
+            MathText.display("Simplify \$\\frac{70}{100}.\$\nAdd: \$3.7+12.4.\$\nAdd the ones: \$8+1=9\$Add the tens: \$2+6=8\$"))
         assertEquals("412 12/4 | Twelve divided by four", MathText.display("\$412\$\$12/4\$ | \$\\text{Twelve divided by four}\$"))
         assertEquals("a balance of −\$23 and a \$20 bill", MathText.display("a balance of \$\\text{−\$23}\$ and a \$\\text{\$20}\$ bill"))
+        assertEquals("A shirt costs \$20. Solve x/5=4 for x.", MathText.display("A shirt costs \$20. Solve \$\$\\frac{x}{5}=4\$\$ for x."))
         assertEquals("> Simplify 70/100.", MathText.display("> Simplify \$\\frac{70}{100}.\$"))
-        // Nothing but marked math changes: code, paths and prices read as published.
-        for (text in listOf("Run C:\\to\\file with snake_case_name and CO_2.", "It costs \$5 to \$10 a night.", "Three \$100 bills, 3 times \$100 equals \$300."))
+        assertEquals("For any numbers a, b, and c≠0,", MathText.display("For any numbers \$a\$, \$b\$, and \$c\\ne0\$,"))
+    }
+
+    @Test fun savedTextWithoutLatexIsShownAsSaved() {
+        // From the encyclopedia, travel and cryptography collections: a dollar there is never a math mark.
+        for (text in listOf("Joey Bada\$\$ – 2000 and Joey Bada\$\$ – 2000", "Prices are either \$\$ or \$\$\$. Signature restaurants are usually \$\$\$ and \$\$\$\$.",
+                "\"up to \$40,000 in damage\". 660 News. {{cite news}}: \"\$5 million\"", "\$.01/\$.02 Limit Texas Hold'Em", "ROM at \$0-\$FFF",
+                "if (self::\$_instance) { return self::\$_instance; }", "^[a-zA-Z0-9.*_+-]+\$ and then \\d+\$", "\$.metadata.constants.KEY_NAME and \$.x_y",
+                "'https://\${sender.tab.url}/\${pathFromDNSRecord}'", "Run C:\\to\\file with snake_case_name and CO_2.", "It costs \$5 to \$10 a night.",
+                "Three \$100 bills, 3 times \$100 equals \$300.", "Add: \$3.7+12.4.\$"))
             assertEquals(text, MathText.display(text))
     }
 }

@@ -81,7 +81,7 @@ internal fun SourceTextContent(text: String, language: String?, recognizedText: 
                 FilterChip(selected = rawOcr, onClick = { rawOcr = true }, label = { Text("Raw OCR") })
             }
             SelectionContainer {
-                Text(if (recognizedText && !rawOcr) readable else remember(text) { xyz.fieldatlas.research.MathText.display(text) },
+                Text(if (recognizedText) (if (rawOcr) text else readable) else remember(text) { xyz.fieldatlas.research.MathText.display(text) },
                     style = FieldAtlasReadingStyle)
             }
             if (recognizedText && !rawOcr && readable != text) Text("Extra blank lines hidden. Copy keeps the original recognized text.",

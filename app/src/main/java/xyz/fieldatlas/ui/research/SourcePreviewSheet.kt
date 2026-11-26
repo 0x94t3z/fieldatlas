@@ -271,13 +271,16 @@ internal fun SourcePreviewSheet(
                         Text(placeSheetFoot(evidence, place), style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
+                        val saved = evidence.text.trim()
+                        val shown = remember(evidence.chunkId) { xyz.fieldatlas.research.MathText.display(saved) }
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
                             // Plain text, never Markdown: saved passages cannot add links or citations.
-                            Text(xyz.fieldatlas.research.MathText.display(evidence.text.trim()), Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
+                            Text(shown, Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
                                 maxLines = 9, overflow = TextOverflow.Ellipsis)
                         }
-                        Text(if (appWritten) "Original saved text. The answer quotes it or is worked out from it on this phone."
-                            else "Original saved text. The model's wording is not verified against it.",
+                        val kind = if (shown == saved) "Original saved text." else "Saved text, its formulas written out."
+                        Text(if (appWritten) "$kind The answer quotes it or is worked out from it on this phone."
+                            else "$kind The model's wording is not verified against it.",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     // A place's list is its navigation: the full record stays one quiet tap away.
