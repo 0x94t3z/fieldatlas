@@ -1,0 +1,5 @@
+What is the formula for relative frequency?
+A binomial distribution has n = 20 trials and probability of success p = 0.25. What are its mean and standard deviation?
+State the Empirical Rule (the 68-95-99.7 rule) for a normal distribution.
+What is the formula for a confidence interval for a single population mean when the population standard deviation is known?
+What is the test statistic for a chi-square test of independence, and what is the null hypothesis?

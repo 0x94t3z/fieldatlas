@@ -1,0 +1,162 @@
+[
+  {
+    "id": "q1",
+    "question": "What is the formula for relative frequency?",
+    "expected": "Relative frequency = frequency / total number of data values, RF = f/n, where f is the frequency of a data value and n is the total number of data values.",
+    "query": "\"relative frequency\" f n",
+    "hits": [
+      {
+        "document_id": "openstax-introstats-m46924",
+        "title": "Descriptive Statistics — Histograms, Frequency Polygons, and Time Series Graphs",
+        "snippet": "- >>n<< = total number of data values (or the sum of the individual frequencies), and\n- RF = >>relative frequency<<,\nthen:\n$$\\text{RF}=\\frac{>>f<<}{>>n<<}$$\nFor ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46924",
+        "title": "Descriptive Statistics — Histograms, Frequency Polygons, and Time Series Graphs",
+        "snippet": " ... >>f<< = frequency\n- >>n<< = total number of data values (or the sum of the individual frequencies), and\n- RF = >>relative frequency<<,\nthen:\n$$\\text{RF}=\\frac{>>f<< ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46973",
+        "title": "The Normal Distribution — Using the Normal Distribution",
+        "snippet": " ... Determine the cumulative >>relative frequency<< for waiting less than 6.1 minutes.\n- Why aren’t the answers to part >>f<< and part g exactly ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46973",
+        "title": "The Normal Distribution — Using the Normal Distribution",
+        "snippet": " ... vary.\n- X ~ >>N<<(60136, 10468)\n- 0.7440\n- The cumulative >>relative frequency<< is 43/60 = 0.717.\n- The answers for part >>f<< and part g ... "
+      }
+    ]
+  },
+  {
+    "id": "q2",
+    "question": "A binomial distribution has n = 20 trials and probability of success p = 0.25. What are its mean and standard deviation?",
+    "expected": "Mean mu = n*p = 20*0.25 = 5. Standard deviation sigma = sqrt(n*p*q) = sqrt(20*0.25*0.75) = sqrt(3.75) = 1.94 (to two decimal places).",
+    "query": "binomial mean standard deviation",
+    "hits": [
+      {
+        "document_id": "openstax-introstats-m46950",
+        "title": "Discrete Random Variables — Binomial Distribution",
+        "snippet": " ... The >>mean<< of X can be calculated using the formula μ = np, and the >>standard<< >>deviation<< is given by the formula σ = $\\sqrt{npq ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46950",
+        "title": "Discrete Random Variables — Binomial Distribution",
+        "snippet": " ... The >>mean<< is μ = np and the >>standard<< >>deviation<< is σ = $\\sqrt{npq}$. The probability of exactly x successes in n trials is P ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46950",
+        "title": "Discrete Random Variables — Binomial Distribution",
+        "snippet": " ... The >>mean<<, μ, and variance, σ2, for the >>binomial<< probability distribution are μ = np and σ2 = npq. The >>standard<< >>deviation<<, σ, is then σ ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47036",
+        "title": "Hypothesis Testing with One Sample — Probability Distribution Needed for Hypothesis Testing",
+        "snippet": " ... 2{σ}^{2}}}$, where μ is the >>mean<< of the distribution, and σ is the >>standard<< >>deviation<<, notation: X ~ N(μ, σ). If μ ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46999",
+        "title": "Confidence Intervals — A Population Proportion",
+        "snippet": " ... The >>mean<< is μ = np and the >>standard<< >>deviation<< is σ = $\\sqrt{npq}$. The probability of exactly x successes in n trials is $P ... "
+      }
+    ]
+  },
+  {
+    "id": "q3",
+    "question": "State the Empirical Rule (the 68-95-99.7 rule) for a normal distribution.",
+    "expected": "About 68% of the values lie within one standard deviation of the mean, about 95% within two standard deviations, and about 99.7% within three standard deviations.",
+    "query": "empirical rule",
+    "hits": [
+      {
+        "document_id": "openstax-introstats-m46980",
+        "title": "The Normal Distribution — The Standard Normal Distribution",
+        "snippet": " ... The >>Empirical<< >>Rule<<\nIf X is a random variable and has a normal distribution with mean μ and standard deviation σ, then the >>Empirical<< ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46980",
+        "title": "The Normal Distribution — The Standard Normal Distribution",
+        "snippet": " ... The >>empirical<< >>rule<< is also known as the 68-95-99.7 >>rule<<.\n[Image: This frequency curve illustrates the >>empirical<< >>rule<<. The normal curve ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46922",
+        "title": "Descriptive Statistics — Measures of the Spread of the Data",
+        "snippet": " ... the mean.\n- This is known as the >>Empirical<< >>Rule<<.\n- It is important to note that this >>rule<< only applies when the shape of the ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47125",
+        "title": "F Distribution and One-Way ANOVA — Test of Two Variances",
+        "snippet": " ... Manuel I, Komnenus >>ruled<< the Byzantine >>Empire<< from Constantinople (Istanbul) during the years 1145 to 1180 A.D. The >>empire<< was very powerful during ... "
+      },
+      {
+        "document_id": "openstax-introstats-m46973",
+        "title": "The Normal Distribution — Using the Normal Distribution",
+        "snippet": " ... What can we say about X in regard to the 68-95-99.7 >>empirical<< >>rule<< (one standard deviation, two standard deviations and three ... "
+      }
+    ]
+  },
+  {
+    "id": "q4",
+    "question": "What is the formula for a confidence interval for a single population mean when the population standard deviation is known?",
+    "expected": "x-bar +/- z_(alpha/2) * (sigma / sqrt(n)): the sample mean plus or minus the z critical value times the standard error sigma/sqrt(n).",
+    "query": "\"confidence interval\" population mean normal distribution",
+    "hits": [
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+        "snippet": " ... Suppose scores on exams in statistics are >>normally<< >>distributed<< with an unknown >>population<< >>mean<< and a >>population<< standard deviation of three points. A random ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+        "snippet": " ... approximately >>normal<< >>distribution<<. Suppose that our sample has a >>mean<< of $\\overline{x}\\text{= 10}$ and we have constructed the 90% >>confidence interval<< (5 ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+        "snippet": " ... >>confidence interval<< for a >>population<< >>mean<< with a known standard deviation is based on the fact that the sample >>means<< follow an approximately >>normal<< ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+        "snippet": " ... >>Distribution<<\nUse the >>Normal<< >>Distribution<< for >>Means<<, >>Population<< Standard Deviation is Known EBM = z$\\frac{α}{2}\\cdot\\frac{σ}{\\sqrt{n}}$\nThe >>confidence<< ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47002",
+        "title": "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+        "snippet": " ... >>population<< >>mean<< for all statistics exam scores, the >>confidence interval<< necessarily needs to be wider.\n[Image: A >>normal<< >>distribution<< diagram illustrating a 95% >>confidence<< ... "
+      }
+    ]
+  },
+  {
+    "id": "q5",
+    "question": "What is the test statistic for a chi-square test of independence, and what is the null hypothesis?",
+    "expected": "Test statistic chi-square = sum over all cells of (Observed - Expected)^2 / Expected. Null hypothesis H0: the two variables are independent (there is no association between them).",
+    "query": "chi square test independence",
+    "hits": [
+      {
+        "document_id": "openstax-introstats-m47062",
+        "title": "The Chi-Square Distribution — Facts About the Chi-Square Distribution",
+        "snippet": " ... The random variable in the >>chi<<->>square<< distribution is the sum of >>squares<< of df standard normal variables, which must be >>independent<<. The key ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47082",
+        "title": "The Chi-Square Distribution — Comparison of the Chi-Square Tests",
+        "snippet": " ... a solution sheet to solve the hypothesis >>test<< problem. Go to Solution Sheets for the >>chi<<->>square<< solution sheet. Round expected frequency to two ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47062",
+        "title": "The Chi-Square Distribution — Facts About the Chi-Square Distribution",
+        "snippet": " ... The random variable for a >>chi<<->>square<< distribution with k degrees of freedom is the sum of k >>independent<<, >>squared<< standard normal variables.\nχ2 ... "
+      },
+      {
+        "document_id": "openstax-introstats-m47077",
+        "title": "The Chi-Square Distribution — Test of Independence",
+        "snippet": " ... Car size is >>independent<< of family size.\n- Ha: Car size is dependent on family size.\n- df = 9\n- >>chi<<->>square<< distribution with df = 9\n- >>test<< ... "
+      },
+      {
+        "document_id": "openstax-introstats-m50280",
+        "title": "The Chi-Square Distribution — Lab 2: Chi-Square Test of Independence",
+        "snippet": "[Image: Blank graph with vertical and horizontal axes.]\n- State your decision.\n- State your conclusion in a complete sentence.\nDiscussion Questions\n- Is the conclusion of ... "
+      }
+    ]
+  }
+]
