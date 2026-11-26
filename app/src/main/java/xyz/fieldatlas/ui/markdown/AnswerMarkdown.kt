@@ -181,7 +181,21 @@ private class MarkdownParser(markdown: String) {
             quoted += text
             index += 1
         }
-        return MarkdownBlock.Quote(parseInline(quoted.joinToString(" ")))
+        return MarkdownBlock.Quote(parseInline(quoted.joinToString(" ", transform = ::readableQuote)))
+    }
+
+    // The answer keeps a quoted passage word for word; only how its math is drawn changes here.
+    private fun readableQuote(line: String): String {
+        if ('$' !in line) return line
+        val citations = Regex("(?:\\s*\\[S\\d+])+$").find(line)?.value.orEmpty()
+        val quoted = line.dropLast(citations.length)
+        val published = MarkdownLiteral.decode(quoted)
+        val shown = xyz.fieldatlas.research.MathText.display(published)
+        return when {
+            shown == published -> line
+            "&#" in quoted -> MarkdownLiteral.encode(shown) + citations
+            else -> shown + citations
+        }
     }
 
     private fun parseParagraph(): MarkdownBlock.Paragraph {

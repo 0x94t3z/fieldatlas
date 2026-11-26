@@ -752,7 +752,8 @@ internal fun sourceOpening(evidence: xyz.fieldatlas.research.Evidence): String? 
 
 /** The first words of a passage, so two passages from the same article can be told apart before one is opened. */
 internal fun passageOpening(text: String): String? {
-    var words = xyz.fieldatlas.research.EvidenceRelevance.passageText(text).replace(Regex("\\s+"), " ").trim()
+    var words = xyz.fieldatlas.research.MathText.display(xyz.fieldatlas.research.EvidenceRelevance.passageText(text))
+        .replace(Regex("\\s+"), " ").trim()
     if (words.isEmpty()) return null
     // A passage cut from the middle of a word ("e parts on site") opens at its first whole word instead.
     if (words.first().isLowerCase() && ' ' in words) words = "\u2026" + words.substringAfter(' ')

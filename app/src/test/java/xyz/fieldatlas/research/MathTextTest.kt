@@ -78,4 +78,27 @@ class MathTextTest {
             assertEquals(text, MathText.readable(text))
         }
     }
+
+    @Test fun numbersBetweenMathMarksAreNotPrices() {
+        assertEquals("Sum is 17.0 (or 17.00).", MathText.readable("Sum is \$17.0\$ (or \$17.00\$)."))
+        assertEquals("Add: 3.7+12.4.", MathText.readable("Add: \$3.7+12.4.\$"))
+        assertEquals("the sum of 3 and x", MathText.readable("the sum of \$3\$ and \$x\$"))
+        for (text in listOf("from \$5-\$10 or \$5/\$10", "It is \$5 (\$4.50 after tax) or \$6.", "echo \$HOME and \$PATH; \$a.\$b; \$1\$2",
+                "\$BTC/\$ETH", "The total cost was \$1,875."))
+            assertEquals(text, MathText.readable(text))
+    }
+
+    @Test fun aSavedPassageShowsItsMathAsReadableText() {
+        // Lines of the Prealgebra collection, as saved.
+        assertEquals("Write the numbers vertically so the decimal points line up. | 3.7; +12.4",
+            MathText.display("Write the numbers vertically so the decimal points line up. | \$\\begin{matrix} 3.7 \\\\ {+12.4}_{\\text{_____}} \\end{matrix}\$"))
+        assertEquals("Simplify 70/100.", MathText.display("Simplify \$\\frac{70}{100}.\$"))
+        assertEquals("Add the ones: 8+1=9Add the tens: 2+6=8", MathText.display("Add the ones: \$8+1=9\$Add the tens: \$2+6=8\$"))
+        assertEquals("412 12/4 | Twelve divided by four", MathText.display("\$412\$\$12/4\$ | \$\\text{Twelve divided by four}\$"))
+        assertEquals("a balance of −\$23 and a \$20 bill", MathText.display("a balance of \$\\text{−\$23}\$ and a \$\\text{\$20}\$ bill"))
+        assertEquals("> Simplify 70/100.", MathText.display("> Simplify \$\\frac{70}{100}.\$"))
+        // Nothing but marked math changes: code, paths and prices read as published.
+        for (text in listOf("Run C:\\to\\file with snake_case_name and CO_2.", "It costs \$5 to \$10 a night.", "Three \$100 bills, 3 times \$100 equals \$300."))
+            assertEquals(text, MathText.display(text))
+    }
 }

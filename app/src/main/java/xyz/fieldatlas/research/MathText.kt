@@ -8,7 +8,7 @@ package xyz.fieldatlas.research
  * Only math the model marks as math is rewritten: `$…$`, `$$…$$`, `\(…\)` and `\[…\]`. A dollar
  * span must look like math (a command, a sub/superscript or braces), so "$5 to $10" is a price.
  * A chemical formula written without math marks ("CO_2", "H_2O") gets its subscripts too.
- * Quoted source lines ("> …") are left exactly as published.
+ * Quoted source lines ("> …") are left exactly as published; [display] is how the screen draws them.
  */
 object MathText {
     private val displayDollars = Regex("\\$\\$([^$]+?)\\$\\$")
@@ -17,8 +17,9 @@ object MathText {
     // follow the closing mark directly ("$20\\,^\\circ$C").
     private val inlineDollars = Regex("(?<![\\\\$\\w])\\$(?=\\S)([^$\\n]{1,300}?)(?<=\\S)\\$(?!\\$)")
     private val looksLikeMath = Regex("\\\\[A-Za-z]|[_^{}]")
+    private val wordInside = Regex("\\p{L}{2}")
     private val chemicalSubscript = Regex("(?<=[A-Z]|[A-Z][a-z]|\\))_\\{?(\\d{1,2})\\}?")
-    private val moneyInText = Regex("(\\\\text\\{)\\$(?=\\d)")
+    private val moneyInText = Regex("(\\{[^{}$]*)\\$(?=\\d)")
     private val bareCommand = Regex("\\\\(text|mathrm|ce|frac|times|cdot|rightarrow|to|approx|leq|geq|neq|degree|circ|pm|overline|begin)\\b")
 
     fun readable(text: String): String {
@@ -33,13 +34,63 @@ object MathText {
         val line = moneyInText.replace(source, "$1$MONEY")
         var out = displayDollars.replace(line) { convert(it.groupValues[1]) }
         out = bracketed.replace(out) { convert(it.groupValues[1].ifEmpty { it.groupValues[2] }) }
-        out = inlineDollars.replace(out) { match ->
-            val body = match.groupValues[1]
-            if (looksLikeMath.containsMatchIn(body)) convert(body) else match.value
-        }
+        out = inlineMath(out)
         // LaTeX written without math marks: only the common commands, so other backslashes stay.
         if (bareCommand.containsMatchIn(out)) out = convert(out, keepSpaces = true)
         return chemicalSubscript.replace(out) { script(it.groupValues[1], SUBSCRIPTS) ?: it.value }.replace(MONEY, '$')
+    }
+
+    /**
+     * A saved passage as the screen shows it. Only math the source marks with dollars is rewritten, so
+     * its code, paths and prices read as published. The saved text itself is never changed.
+     */
+    fun display(text: String): String {
+        if ('$' !in text) return text
+        return text.lines().joinToString("\n") { source ->
+            val line = apart(moneyInText.replace(source, "$1$MONEY"))
+            inlineMath(displayDollars.replace(line) { convert(it.groupValues[1]) }).replace(MONEY, '$')
+        }
+    }
+
+    /** A table cell set against the next one ("$3$$4$") ends one formula and starts another; it is not
+     * the "$$" that opens a formula on its own line. Every second mark closes, so those get a space. */
+    private fun apart(line: String): String {
+        if ("$$" !in line) return line
+        val out = StringBuilder()
+        var open = false
+        var index = 0
+        while (index < line.length) {
+            val char = line[index]
+            if (char == '$' && line.getOrNull(index - 1) != '\\') {
+                if (open && line.getOrNull(index + 1) == '$') { out.append("$ "); open = false; index++; continue }
+                if (!open && line.getOrNull(index + 1) == '$') {
+                    // A formula on its own line: keep both marks, and both of its closing ones.
+                    val close = line.indexOf("$$", index + 2)
+                    if (close > 0) { out.append(line, index, close + 2); index = close + 2; continue }
+                }
+                open = !open
+            }
+            out.append(char)
+            index++
+        }
+        return out.toString()
+    }
+
+    private fun inlineMath(line: String): String = inlineDollars.replace(line) { match ->
+        val body = match.groupValues[1]
+        if (looksLikeMath.containsMatchIn(body) || isPlainMath(body, line.getOrNull(match.range.last + 1))) convert(body)
+        else match.value
+    }
+
+    /** "$3.7+12.4$", "$10$" and "$+$" hold no command, yet a closing mark is not how a price is written.
+     * A word inside, or a digit right after ("$5-$10"), means two amounts of money instead; a letter
+     * right after is text the source set against a number ("$8+1=9$Add the tens"). */
+    private fun isPlainMath(body: String, next: Char?): Boolean = when {
+        wordInside.containsMatchIn(body) || next == '_' || next?.isDigit() == true -> false
+        // "$5 ($4.50 after tax)": a bracket left open belongs to the sentence, not to a formula.
+        body.count { it == '(' } != body.count { it == ')' } -> false
+        body.any(Char::isDigit) -> true
+        else -> next?.isLetter() != true && (body.any(Char::isLetter) || body.all { it in "+-−×÷=<>≤≥≠·" })
     }
 
     /** One math expression as plain text. */

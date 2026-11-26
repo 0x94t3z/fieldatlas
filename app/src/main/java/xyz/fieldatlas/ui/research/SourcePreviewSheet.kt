@@ -273,7 +273,7 @@ internal fun SourcePreviewSheet(
                     } else {
                         Surface(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f), shape = MaterialTheme.shapes.medium) {
                             // Plain text, never Markdown: saved passages cannot add links or citations.
-                            Text(evidence.text.trim(), Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
+                            Text(xyz.fieldatlas.research.MathText.display(evidence.text.trim()), Modifier.padding(16.dp), style = FieldAtlasReadingStyle,
                                 maxLines = 9, overflow = TextOverflow.Ellipsis)
                         }
                         Text(if (appWritten) "Original saved text. The answer quotes it or is worked out from it on this phone."

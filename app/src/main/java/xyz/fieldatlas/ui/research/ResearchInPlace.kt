@@ -353,8 +353,9 @@ internal fun bestMatchSoFar(state: ResearchUiState): Evidence? =
  */
 @Composable
 internal fun BestMatchSoFar(evidence: Evidence, question: String = "") {
-    val answer = remember(evidence.chunkId, question) { xyz.fieldatlas.research.AnswerSentence.pick(question, evidence.text) }
-    val excerpt = remember(evidence.chunkId) { passageExcerpt(evidence.text) }
+    val shown = remember(evidence.chunkId) { xyz.fieldatlas.research.MathText.display(evidence.text) }
+    val answer = remember(evidence.chunkId, question) { xyz.fieldatlas.research.AnswerSentence.pick(question, shown) }
+    val excerpt = remember(evidence.chunkId) { passageExcerpt(shown) }
     FieldAtlasCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
         Text("Best match so far", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(evidence.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight(650)),

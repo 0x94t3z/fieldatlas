@@ -29,6 +29,18 @@ class AnswerSectionTest {
         assertEquals("Buoyancy is an upward force.", MarkdownBlock.Quote(body).plainText())
     }
 
+    @Test fun aQuotedPassageShowsItsMathAsReadableText() {
+        // As the app quotes a saved passage: its symbols encoded, the citation after it.
+        val saved = "Write the numbers vertically so the decimal points line up. | \$\\begin{matrix} 3.7 \\\\ {+12.4}_{\\text{_____}} \\end{matrix}\$"
+        val quote = parseAnswerMarkdown("> ${xyz.fieldatlas.text.MarkdownLiteral.encode(saved)} [S1]").single() as MarkdownBlock.Quote
+        val (body, numbers) = quote.content.trailingCitations()
+        assertEquals(listOf(1), numbers)
+        assertEquals("Write the numbers vertically so the decimal points line up. | 3.7; +12.4", MarkdownBlock.Quote(body).plainText())
+        // The answer itself still holds the passage word for word.
+        assertEquals("> ${xyz.fieldatlas.text.MarkdownLiteral.encode(saved)} [S1]",
+            AnswerText.visible("> ${xyz.fieldatlas.text.MarkdownLiteral.encode(saved)} [S1]"))
+    }
+
     @Test fun inlineCitationsAndUncitedQuotesAreLeftInPlace() {
         val inline = parseAnswerMarkdown("> Boats float [S1] because of buoyancy.").single() as MarkdownBlock.Quote
         assertEquals(inline.content to emptyList<Int>(), inline.content.trailingCitations())
