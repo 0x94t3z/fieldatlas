@@ -1,6 +1,45 @@
 # Release audit
 
-Updated 11 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5, v1.4.6, v1.4.7, v1.4.8, v1.4.9 and v1.4.10 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags.
+Updated 26 November 2026. **Owner approved v1.2.0, v1.2.1, v1.3.0, v1.4.0, v1.4.1, v1.4.2, v1.4.3, v1.4.4, v1.4.5, v1.4.6, v1.4.7, v1.4.8, v1.4.9, v1.4.10 and v1.4.11 as public releases (not prereleases). That is a publication decision, not a claim that the quality gates below have passed.** Remaining quality and verification gaps below still apply. This is the single maintained readiness document. Historical release evidence remains in Git history and published release tags.
+
+## v1.4.11 release (26 November 2026)
+
+Published on 26 November 2026 at 09:28 UTC as [v1.4.11](https://github.com/0x94t3z/fieldatlas/releases/tag/v1.4.11),
+not a prerelease and marked latest, tag on `48f4202`, with `fieldatlas.apk` and `fieldatlas.apk.sha256` attached.
+The APK was built from `b0250c7` in the working tree, whose llama.cpp submodule was the pinned commit plus the
+committed patch and nothing else; the commits after `b0250c7` change only the README, the release notes, the website
+and the install guide. Version 1.4.11 (32), 103,679,141 bytes, SHA-256
+`de092fd45108fa78a366aefba428c9e8a29f79683c900876407d5a79dbf33c91`, signed with the public release certificate
+(`131127512c99a625acd0dd4baf20e1c7cd240b0fd573449197070000e3d6b666`). It was hashed before upload, from the draft
+and again from its public link without signing in; all match.
+
+A small release for the Mathematics: Prealgebra collection. A "how do I" question now keeps a textbook section whose
+title names the task (`4676943`, `97576a1`); before, the relevance check dropped every passage of the book for such a
+question. Formulas saved as LaTeX are written out as text in source cards, quotes, the source sheet and the full
+source (`f6d0281`, `6af2e6b`, `cd1c0c1`), and an answer shows the bar over a repeating decimal (`c51892e`). The
+built-in list of collections now holds Practical skills and Mathematics: Prealgebra, offered through Refresh since
+14 November.
+
+What was reviewed and cut before release: independent reviewers read the change in two rounds. The first found that
+the textbook rule let unrelated Encyclopedia passages through and that writing formulas out damaged text that is not
+maths (a name ending in dollar signs, prices, code, spreadsheet formulas), took verbatim quotes of such text out of
+their citation, and changed the raw view of recognised text. The rule now applies to textbook collections only and
+leaves the Encyclopedia with the passages it kept in 1.4.10; text is rewritten only where it holds a LaTeX command;
+the raw view is shown as read. A repair of sums written out in an answer was built and removed: reviewers found it
+changed correct answers.
+
+Known limits: the larger model still answers "how do I add decimals" from its own knowledge on a 12 GB device, with
+the textbook passages listed under it as found and not used; a model can add wrongly (17.00 for 4.39 + 12.6) and the
+app does not correct it; about 200 of the 1,313 Prealgebra passages hold plain numbers between dollar signs with no
+LaTeX command and are shown as saved.
+
+Before building: the JVM unit tests (1,851, 56 skipped) and lint passed. The offline packaging audit, native alignment
+and `zipalign -c -P 16 4` passed on the exact APK, which was installed on the 12 GB Android emulator over 1.4.10 with
+its data kept. With the larger model it answered "How do I add decimals" from its own knowledge and listed Prealgebra
+passages with their formulas written out. With the smaller model it answered the same question from two cited
+Prealgebra passages, opened the CPR guide in under a second for a collapse, and answered an ordinary Encyclopedia
+question with three cited sources. The Python suites passed at the release commit: scripts (78), packtool (12),
+benchmarks (10) and tools (337, 15 skipped); the website tests (65) passed. Not tested on a real phone.
 
 ## v1.4.10 release (11 November 2026)
 
