@@ -674,4 +674,23 @@ class EvidenceRelevanceTest {
         val lost = passage("Lost hikers should stay put.")
         assertEquals(listOf(lost), EvidenceRelevance.keep(listOf(lost), listOf("re", "lost")))
     }
+
+    @Test fun aHowDoIQuestionKeepsTextbookStepsThatNameTheTask() {
+        val steps = Evidence("openstax-prealgebra-m81295", "openstax-prealgebra-m81295:0001", "Decimals — Decimal Operations",
+            "https://openstax.org/books/prealgebra-2e/pages/5-2-decimal-operations",
+            "- Add or subtract the numbers as if they were whole numbers. Then place the decimal in the answer under the decimal points in the given numbers.\n" +
+                "Add: \$3.7+12.4.\$\nWrite the numbers vertically so the decimal points line up.\n" +
+                "Place holders are not needed since both numbers have the same number of decimal places.\nAdd: \$23.5+41.38.\$", -9.0)
+        for (question in listOf("How do I add decimals like 4.39 plus 12.6 lined up vertically?",
+            "How do I subtract decimals, like \$50 minus \$23.56?"))
+            assertEquals(question, listOf(steps), EvidenceRelevance.keep(listOf(steps), FtsQuery.from(question)!!.terms, question = question))
+        // The heading has to name part of the task; matching words in the text alone are not enough.
+        val elsewhere = steps.copy(documentId = "openstax-prealgebra-m81243", chunkId = "openstax-prealgebra-m81243:0003",
+            title = "Whole Numbers — Introduction to Whole Numbers")
+        val add = "How do I add decimals like 4.39 plus 12.6 lined up vertically?"
+        assertTrue(EvidenceRelevance.keep(listOf(elsewhere), FtsQuery.from(add)!!.terms, question = add).isEmpty())
+        // Asking how something works still needs an explanation, not a list of steps.
+        val why = "How does lining up decimal points work when you add numbers?"
+        assertTrue(EvidenceRelevance.keep(listOf(steps), FtsQuery.from(why)!!.terms, question = why).isEmpty())
+    }
 }

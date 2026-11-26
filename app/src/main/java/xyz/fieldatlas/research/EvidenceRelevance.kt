@@ -309,7 +309,8 @@ object EvidenceRelevance {
         // Two broad words in a long question (for example room + temperature)
         // must not outweigh its actual subjects (metal + wood).
         if (titleHits >= maxOf(minOf(2, topicTerms.size), (topicTerms.size * 2 + 2) / 3)) return true
-        val explanation = Regex("(?i)\\b(?:because|due to|caused by|results? from|results? in|therefore|through|enables?|allows?|gives?|causes?|requires?|converts?|consists? of|defined as|refers? to)\\b")
+        if (stepsMatch(item, topicTerms, question)) return true
+        val explanation =Regex("(?i)\\b(?:because|due to|caused by|results? from|results? in|therefore|through|enables?|allows?|gives?|causes?|requires?|converts?|consists? of|defined as|refers? to)\\b")
         // Capped at three: a long natural question ("how does tapping my card or phone on a payment terminal work, is
         // it safe if someone gets close with a reader") is not held to two thirds of its eleven words in one sentence.
         val required = minOf(3, if (topicTerms.size <= 3) topicTerms.size else (topicTerms.size * 2 + 2) / 3)
@@ -325,6 +326,21 @@ object EvidenceRelevance {
                 overview && " — " in item.title &&
                     question != null && titleSubjectIsQuestionSubject(item, question, topicTerms)
             }
+    }
+
+    /** "How do I add decimals ...?" asks for steps, and a textbook's steps ("write the numbers so
+     * the decimal points line up") rarely say "because", so the causal-sentence rule drops every
+     * one of them. Accept a passage whose heading names part of the task and whose text covers
+     * most of it. A similarity score has its own route, so this applies to word matches only. */
+    private fun stepsMatch(item: Evidence, terms: List<String>, question: String?): Boolean {
+        if (question == null || item.matchedBy?.let(conceptPattern::matches) == true) return false
+        if (!Regex("(?i)^\\s*how\\s+(?:do|can|could|should|would)\\s+(?:i|we|you)\\b")
+                .containsMatchIn(QuestionSubject.text(question))) return false
+        val core = terms.filterNot {
+            it in lookupWrappers || it in genericTerms || it in contractionFragments || it.all(Char::isDigit)
+        }
+        if (core.size < 2 || core.none { tokens(item.title).matches(it) }) return false
+        return termHits(item.title + "\n" + topicalText(item.text), core) >= (core.size * 2 + 2) / 3
     }
 
     /** Practical guidance often explains benefits in a short list, not a single causal
