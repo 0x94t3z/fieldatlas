@@ -102,6 +102,7 @@ object EvidenceRelevance {
     private val tokenPattern = Regex("[\\p{L}\\p{N}]+")
     private val metadataLine = Regex("^\\s*(?:PMID \\d+|(?:Year|Journal|Authors?|DOI|PMCID|Published|Publication types?|Keywords|MeSH):)")
     private val conceptPattern = Regex("^concept match ([0-9.]+)$")
+    private val textbooks = listOf("openstax-")
     private val lookupWrappers = setOf("best", "recommend", "suggest", "find", "list", "listed", "which", "where")
     private val genericTerms = setOf(
         "study", "studies", "report", "reports", "result", "results", "outcome", "outcomes",
@@ -330,10 +331,11 @@ object EvidenceRelevance {
 
     /** "How do I add decimals ...?" asks for steps, and a textbook's steps ("write the numbers so
      * the decimal points line up") rarely say "because", so the causal-sentence rule drops every
-     * one of them. Accept a passage whose heading names part of the task and whose text covers
-     * most of it. A similarity score has its own route, so this applies to word matches only. */
+     * one of them. Accept a textbook passage whose heading names part of the task and whose text
+     * covers most of it. Only a textbook: in an encyclopedia two shared words reach unrelated
+     * articles ("change a flat tire on my car" and a state car), which the causal rule keeps out. */
     private fun stepsMatch(item: Evidence, terms: List<String>, question: String?): Boolean {
-        if (question == null || item.matchedBy?.let(conceptPattern::matches) == true) return false
+        if (question == null || textbooks.none(item.documentId::startsWith)) return false
         if (!Regex("(?i)^\\s*how\\s+(?:do|can|could|should|would)\\s+(?:i|we|you)\\b")
                 .containsMatchIn(QuestionSubject.text(question))) return false
         val core = terms.filterNot {

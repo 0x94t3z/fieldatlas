@@ -689,6 +689,13 @@ class EvidenceRelevanceTest {
             title = "Whole Numbers — Introduction to Whole Numbers")
         val add = "How do I add decimals like 4.39 plus 12.6 lined up vertically?"
         assertTrue(EvidenceRelevance.keep(listOf(elsewhere), FtsQuery.from(add)!!.terms, question = add).isEmpty())
+        // Only a textbook: in an encyclopedia the same shared words reach unrelated articles.
+        assertTrue(EvidenceRelevance.keep(listOf(steps.copy(documentId = "wp-123-0004", chunkId = "wp-123-0004:0000")),
+            FtsQuery.from(add)!!.terms, question = add).isEmpty())
+        val car = Evidence("wp-7-0000", "wp-7-0000:0000", "United States presidential state car — Overview", "https://en.wikipedia.org",
+            "The presidential state car can change a flat tire on its own run-flat wheels and carries spare parts for the car.", -9.0)
+        val tire = "How do I change a flat tire on my car?"
+        assertTrue(EvidenceRelevance.keep(listOf(car), FtsQuery.from(tire)!!.terms, question = tire).isEmpty())
         // Asking how something works still needs an explanation, not a list of steps.
         val why = "How does lining up decimal points work when you add numbers?"
         assertTrue(EvidenceRelevance.keep(listOf(steps), FtsQuery.from(why)!!.terms, question = why).isEmpty())
