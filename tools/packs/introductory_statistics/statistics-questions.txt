@@ -1,0 +1,12 @@
+1. What is the formula for the z-score of a value x from a normal distribution?
+2. What conditions make an experiment a binomial experiment?
+3. What is the difference between a Type I error and a Type II error?
+4. How is the interquartile range found, and which values count as potential outliers?
+5. How is the expected value (mean) of a discrete random variable calculated?
+6. What does the central limit theorem say about the distribution of sample means?
+7. What is the error bound for a confidence interval for a population proportion?
+8. When are two events A and B independent?
+9. How are the expected values computed in a chi-square test of independence?
+10. What is the formula for the slope b of the least-squares regression line?
+11. In one-way ANOVA, what is the F ratio?
+12. What is a stratified sample?
