@@ -1,0 +1,194 @@
+[
+  {
+    "question": "What is a confidence interval for a population mean?",
+    "query": "confidence interval population mean",
+    "expected_document": "openstax-introstats-m47002",
+    "top3_documents": [
+      "openstax-introstats-m50274",
+      "openstax-introstats-m47002",
+      "openstax-introstats-m47002"
+    ],
+    "top3_titles": [
+      "Confidence Intervals — Confidence Interval (Women's Heights)",
+      "Confidence Intervals — A Single Population Mean using the Normal Distribution",
+      "Confidence Intervals — A Single Population Mean using the Normal Distribution"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "How is the Poisson distribution used for probabilities?",
+    "query": "poisson distribution probability",
+    "expected_document": "openstax-introstats-m46961",
+    "top3_documents": [
+      "openstax-introstats-m46961",
+      "openstax-introstats-m46961",
+      "openstax-introstats-m46961"
+    ],
+    "top3_titles": [
+      "Discrete Random Variables — Poisson Distribution",
+      "Discrete Random Variables — Poisson Distribution",
+      "Discrete Random Variables — Poisson Distribution"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What is a p-value in a hypothesis test?",
+    "query": "p-value hypothesis test",
+    "expected_document": "openstax-introstats-m47033",
+    "top3_documents": [
+      "openstax-introstats-m47044",
+      "openstax-introstats-m47044",
+      "openstax-introstats-m47044"
+    ],
+    "top3_titles": [
+      "Hypothesis Testing with One Sample — Rare Events, the Sample, Decision and Conclusion",
+      "Hypothesis Testing with One Sample — Rare Events, the Sample, Decision and Conclusion",
+      "Hypothesis Testing with One Sample — Rare Events, the Sample, Decision and Conclusion"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What is the interquartile range (IQR)?",
+    "query": "interquartile range IQR",
+    "expected_document": "openstax-introstats-m46930",
+    "top3_documents": [
+      "openstax-introstats-m46930",
+      "openstax-introstats-m46930",
+      "openstax-introstats-m46930"
+    ],
+    "top3_titles": [
+      "Descriptive Statistics — Measures of the Location of the Data",
+      "Descriptive Statistics — Measures of the Location of the Data",
+      "Descriptive Statistics — Measures of the Location of the Data"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "How is the standard deviation of a data set computed?",
+    "query": "standard deviation data set",
+    "expected_document": "openstax-introstats-m46922",
+    "top3_documents": [
+      "openstax-introstats-m46922",
+      "openstax-introstats-m46922",
+      "openstax-introstats-m46922"
+    ],
+    "top3_titles": [
+      "Descriptive Statistics — Measures of the Spread of the Data",
+      "Descriptive Statistics — Measures of the Spread of the Data",
+      "Descriptive Statistics — Measures of the Spread of the Data"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What are the mean and standard deviation of a binomial distribution?",
+    "query": "binomial distribution mean standard deviation",
+    "expected_document": "openstax-introstats-m46950",
+    "top3_documents": [
+      "openstax-introstats-m46950",
+      "openstax-introstats-m46950",
+      "openstax-introstats-m46950"
+    ],
+    "top3_titles": [
+      "Discrete Random Variables — Binomial Distribution",
+      "Discrete Random Variables — Binomial Distribution",
+      "Discrete Random Variables — Binomial Distribution"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What is a z-score in the standard normal distribution?",
+    "query": "z-score standard normal distribution",
+    "expected_document": "openstax-introstats-m46980",
+    "top3_documents": [
+      "openstax-introstats-m46980",
+      "openstax-introstats-m46980",
+      "openstax-introstats-m46980"
+    ],
+    "top3_titles": [
+      "The Normal Distribution — The Standard Normal Distribution",
+      "The Normal Distribution — The Standard Normal Distribution",
+      "The Normal Distribution — The Standard Normal Distribution"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "How is the regression equation for linear regression found?",
+    "query": "regression equation linear regression",
+    "expected_document": "openstax-introstats-m47117",
+    "top3_documents": [
+      "openstax-introstats-m47107",
+      "openstax-introstats-m47891",
+      "openstax-introstats-m47100"
+    ],
+    "top3_titles": [
+      "Linear Regression and Correlation — Outliers",
+      "Appendix F — Mathematical Phrases, Symbols, and Formulas",
+      "Linear Regression and Correlation — Linear Equations"
+    ],
+    "hit_in_top3": false
+  },
+  {
+    "question": "How does the chi-square test of independence work?",
+    "query": "chi-square test of independence",
+    "expected_document": "openstax-introstats-m47077",
+    "top3_documents": [
+      "openstax-introstats-m47082",
+      "openstax-introstats-m47062",
+      "openstax-introstats-m47077"
+    ],
+    "top3_titles": [
+      "The Chi-Square Distribution — Comparison of the Chi-Square Tests",
+      "The Chi-Square Distribution — Facts About the Chi-Square Distribution",
+      "The Chi-Square Distribution — Test of Independence"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What does the central limit theorem say about sample means?",
+    "query": "central limit theorem sample means",
+    "expected_document": "openstax-introstats-m46994",
+    "top3_documents": [
+      "openstax-introstats-m47891",
+      "openstax-introstats-m46992",
+      "openstax-introstats-m46994"
+    ],
+    "top3_titles": [
+      "Appendix F — Mathematical Phrases, Symbols, and Formulas",
+      "The Central Limit Theorem — Using the Central Limit Theorem",
+      "The Central Limit Theorem — The Central Limit Theorem for Sample Means (Averages)"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What is the probability distribution of a discrete random variable?",
+    "query": "discrete random variable probability distribution function",
+    "expected_document": "openstax-introstats-m46963",
+    "top3_documents": [
+      "openstax-introstats-m46963",
+      "openstax-introstats-m47891",
+      "openstax-introstats-m46963"
+    ],
+    "top3_titles": [
+      "Discrete Random Variables — Probability Distribution Function (PDF) for a Discrete Random Variable",
+      "Appendix F — Mathematical Phrases, Symbols, and Formulas",
+      "Discrete Random Variables — Probability Distribution Function (PDF) for a Discrete Random Variable"
+    ],
+    "hit_in_top3": true
+  },
+  {
+    "question": "What is the relative frequency of a class in a frequency table?",
+    "query": "relative frequency table",
+    "expected_document": "openstax-introstats-m46882",
+    "top3_documents": [
+      "openstax-introstats-m46924",
+      "openstax-introstats-m46882",
+      "openstax-introstats-m46882"
+    ],
+    "top3_titles": [
+      "Descriptive Statistics — Histograms, Frequency Polygons, and Time Series Graphs",
+      "Sampling and Data — Frequency, Frequency Tables, and Levels of Measurement",
+      "Sampling and Data — Frequency, Frequency Tables, and Levels of Measurement"
+    ],
+    "hit_in_top3": true
+  }
+]

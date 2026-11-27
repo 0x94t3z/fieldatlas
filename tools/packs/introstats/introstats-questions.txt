@@ -1,0 +1,10 @@
+Field Atlas test questions for the OpenStax Introductory Statistics 2e collection
+Five questions, written before the answers run. Expected answers were computed
+independently of the collection; the run retrieves the teaching section for
+each question from the built pack and works the answer from it.
+
+1. In a survey of 200 students, 45 said they take the bus to campus. What is the relative frequency of students who take the bus?
+2. An inspector samples n = 20 items. Each item is defective with probability p = 0.3, independently. If X is the number of defective items, X ~ B(20, 0.3). What are the mean and standard deviation of X?
+3. Heights are normally distributed with mean 170 cm and standard deviation 10 cm. By the Empirical Rule, about what percent of heights lie between 150 cm and 190 cm?
+4. A sample of n = 36 has mean x-bar = 82. The population standard deviation is known, sigma = 12. What is the 95% confidence interval for the population mean?
+5. A survey gives the 2x2 table: group A answers 30 yes / 20 no; group B answers 10 yes / 40 no (row totals 50 and 50, column totals 40 and 60, grand total 100). For a chi-square test of independence, what are the expected frequencies, the test statistic, and the degrees of freedom?
