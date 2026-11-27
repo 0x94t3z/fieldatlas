@@ -166,6 +166,19 @@
       "status": "proposed",
       "safeTxHash": "0x208e63c724ea8cafdb60477c4543e13a6c8638b7a90f62a0fbd7982d8bb7eb06",
       "nonce": 10
+    },
+    {
+      "date": "2026-12-02",
+      "contributor": "mak777uh",
+      "contributorId": 134157778,
+      "work": "Routing fixes for safety reports #14 to #19, merged for 1.4.9",
+      "link": "https://github.com/0x94t3z/fieldatlas/pull/23",
+      "issue": 0,
+      "amount": 20000000,
+      "address": "0x0A66a9dEF221Efc698b6bbecA82cAE6729A8aba8",
+      "status": "proposed",
+      "safeTxHash": "0xa238c21c3692a302e4c7f11e421c7b9654ccc595fb0bf6f58fb23b5b334195aa",
+      "nonce": 11
     }
   ]
 }
