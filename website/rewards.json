@@ -140,6 +140,32 @@
       "safeTxHash": "0x1707888ce15c871bafcb8f59edf6fb5387849f463ff8e34c9d58ef3430317906",
       "nonce": 8,
       "tx": "0x0996728887c6c5e927e98d204a16cec500d4840b0b5d834015de6674dfddb5ec"
+    },
+    {
+      "date": "2026-12-02",
+      "contributor": "swiftbotlabs",
+      "contributorId": 202518958,
+      "work": "Safety reports #14 to #19: six emergency questions that opened the wrong first-aid guide or none, fixed in 1.4.9",
+      "link": "https://github.com/0x94t3z/fieldatlas/issues/14",
+      "issue": 0,
+      "amount": 50000000,
+      "address": "0x2481E29895b43e87e547a50fB0BB5aa1E70585EB",
+      "status": "proposed",
+      "safeTxHash": "0x4deb84788207d07e6433754a297948d9dd5ffdfcf28fe14fa68325f4ced40f23",
+      "nonce": 9
+    },
+    {
+      "date": "2026-12-02",
+      "contributor": "georgeonweb3",
+      "contributorId": 139614108,
+      "work": "Build a Prealgebra collection from OpenStax",
+      "link": "https://github.com/0x94t3z/fieldatlas/pull/27",
+      "issue": 26,
+      "amount": 20000000,
+      "address": "0xfFDd2f83555c64d1CaA17f5646C08b80013ED38b",
+      "status": "proposed",
+      "safeTxHash": "0x208e63c724ea8cafdb60477c4543e13a6c8638b7a90f62a0fbd7982d8bb7eb06",
+      "nonce": 10
     }
   ]
 }
